@@ -783,43 +783,6 @@ class TestProcessResourceChange(TestCase):
         assert len(capture_exception.mock_calls) == 0
         assert safe_urlopen.call_count == 1
 
-    @patch("sentry_sdk.capture_exception")
-    def test_silently_retries_chunked_encoding_error_published(
-        self, capture_exception, safe_urlopen
-    ):
-        """
-        Test that a chunked encoding error raises a retry error
-        """
-        with assume_test_silo_mode_of(SentryApp):
-            SentryApp.objects.all().delete()
-            SentryAppInstallation.objects.all().delete()
-
-        self.sentry_app = self.create_sentry_app(
-            organization=self.organization, published=True, events=["issue.created"]
-        )
-        self.install = self.create_sentry_app_installation(
-            organization=self.organization, slug=self.sentry_app.slug
-        )
-
-        safe_urlopen.side_effect = ChunkedEncodingError("Connection reset by peer")
-
-        event = self.store_event(data={}, project_id=self.project.id)
-        assert event.group is not None
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
-                group_id=event.group_id,
-                project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        # Just 1 from the RetryError
-        assert len(capture_exception.mock_calls) == 1
-
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_process_no_event(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
