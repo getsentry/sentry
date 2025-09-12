@@ -275,7 +275,8 @@ def translate_discover_query_to_explore_query(
                 explore_query=new_explore_query.id
             )
     else:
-        new_explore_query = ExploreSavedQuery.objects.create(**create_defaults)
+        new_explore_query = ExploreSavedQuery(**create_defaults)
+        new_explore_query.save()
         DiscoverSavedQuery.objects.filter(id=discover_query_id).update(
             explore_query=new_explore_query.id
         )
