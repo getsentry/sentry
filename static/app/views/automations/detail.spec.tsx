@@ -81,7 +81,7 @@ describe('AutomationDetail', () => {
     expect(screen.getByRole('heading', {name: 'Details'})).toBeInTheDocument();
   });
 
-  it('can enable a disabled automation', async () => {
+  it('can disable an enabled automation', async () => {
     const disabledAutomation = AutomationFixture({
       ...automation,
       enabled: false,
