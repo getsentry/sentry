@@ -13,6 +13,7 @@ import type {PromotionModalBodyProps} from 'getsentry/components/promotionModal'
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {
+  BillingDetails,
   Invoice,
   Plan,
   PreviewData,
@@ -128,6 +129,17 @@ type EditCreditCardOptions = {
 export async function openEditCreditCard(options: EditCreditCardOptions) {
   const {default: Modal} = await import('getsentry/components/creditCardEditModal');
 
+  openModal(deps => <Modal {...deps} {...options} />);
+}
+
+type EditBillingDetailsOptions = {
+  organization: Organization;
+  refetch: () => void;
+  initialData?: BillingDetails;
+};
+
+export async function openEditBillingDetails(options: EditBillingDetailsOptions) {
+  const {default: Modal} = await import('getsentry/components/billingDetailsEditModal');
   openModal(deps => <Modal {...deps} {...options} />);
 }
 

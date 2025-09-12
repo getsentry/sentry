@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import {keepPreviousData} from '@tanstack/react-query';
 import type {Location} from 'history';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
@@ -18,12 +17,13 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {openEditCreditCard} from 'getsentry/actionCreators/modal';
-import BillingDetailsForm from 'getsentry/components/billingDetailsForm';
+import {openEditBillingDetails, openEditCreditCard} from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {BillingDetails as BillingDetailsType, Subscription} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
+import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
+import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
@@ -88,13 +88,6 @@ function BillingDetails({organization, subscription, location}: Props) {
     return <LoadingIndicator />;
   }
 
-  const balance =
-    subscription.accountBalance < 0
-      ? tct('[credits] credit', {
-          credits: formatCurrency(0 - subscription.accountBalance),
-        })
-      : `${formatCurrency(subscription.accountBalance)}`;
-
   return (
     <Fragment>
       <SubscriptionHeader organization={organization} subscription={subscription} />
@@ -137,20 +130,20 @@ function BillingDetails({organization, subscription, location}: Props) {
         </PanelBody>
       </Panel>
 
-      <Panel className="ref-billing-details">
-        <PanelHeader>{t('Billing Details')}</PanelHeader>
-        <PanelBody data-test-id="account-balance">
-          {subscription.accountBalance ? (
-            <FieldGroup label="Account Balance">{balance}</FieldGroup>
-          ) : null}
-          <BillingDetailsFormContainer organization={organization} />
-        </PanelBody>
-      </Panel>
+      <BillingDetailsPanel organization={organization} subscription={subscription} />
     </Fragment>
   );
 }
 
-function BillingDetailsFormContainer({organization}: {organization: Organization}) {
+function BillingDetailsPanel({
+  organization,
+  subscription,
+  title,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+  title?: string;
+}) {
   const {
     data: billingDetails,
     isPending: isLoading,
@@ -186,22 +179,78 @@ function BillingDetailsFormContainer({organization}: {organization: Organization
     return <LoadingError onRetry={() => fetchBillingDetails()} />;
   }
 
+  const taxFieldInfo = getTaxFieldInfo(billingDetails?.countryCode);
+  const balance =
+    subscription.accountBalance < 0
+      ? tct('[credits] credit', {
+          credits: formatCurrency(0 - subscription.accountBalance),
+        })
+      : `${formatCurrency(subscription.accountBalance)}`;
+
   return (
-    <BillingDetailsForm
-      requireChanges
-      initialData={billingDetails}
-      organization={organization}
-      onSubmitError={() => addErrorMessage(t('Unable to update billing details.'))}
-      onSubmitSuccess={() =>
-        addSuccessMessage(t('Successfully updated billing details.'))
-      }
-      fieldProps={{
-        disabled: !organization.access.includes('org:billing'),
-        disabledReason: t(
-          "You don't have access to manage these billing and subscription details."
-        ),
-      }}
-    />
+    <Panel className="ref-billing-details">
+      <PanelHeader>
+        {title ?? t('Billing Details')}
+        <Button
+          priority="primary"
+          size="sm"
+          onClick={() =>
+            openEditBillingDetails({
+              organization,
+              initialData: billingDetails,
+              refetch: fetchBillingDetails,
+            })
+          }
+          disabled={!organization.access.includes('org:billing')}
+        >
+          {t('Update details')}
+        </Button>
+      </PanelHeader>
+      <PanelBody>
+        {subscription.accountBalance ? (
+          <FieldGroup id="account-balance" label="Account Balance">
+            {balance}
+          </FieldGroup>
+        ) : null}
+        <FieldGroup label={t('Billing Email')}>
+          <TextForField>{billingDetails?.billingEmail}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Company Name')}>
+          <TextForField>{billingDetails?.companyName}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Address Line 1')}>
+          <TextForField>{billingDetails?.addressLine1}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Address Line 2')}>
+          <TextForField>{billingDetails?.addressLine2}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('City')}>
+          <TextForField>{billingDetails?.city}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('State / Region')}>
+          <TextForField>{billingDetails?.region}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Postal Code')}>
+          <TextForField>{billingDetails?.postalCode}</TextForField>
+        </FieldGroup>
+        <FieldGroup label={t('Country')}>
+          <TextForField>
+            {getCountryByCode(billingDetails?.countryCode)?.name}
+          </TextForField>
+        </FieldGroup>
+        {countryHasSalesTax(billingDetails?.countryCode) && taxFieldInfo && (
+          <FieldGroup
+            label={taxFieldInfo.label}
+            help={tct(
+              "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
+              {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
+            )}
+          >
+            <TextForField>{billingDetails?.taxNumber}</TextForField>
+          </FieldGroup>
+        )}
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -214,6 +263,7 @@ const TextForField = styled('span')`
 `;
 
 export default withSubscription(withOrganization(BillingDetails));
+export {BillingDetailsPanel};
 
 /** @internal exported for tests only */
-export {BillingDetails, BillingDetailsFormContainer};
+export {BillingDetails};
