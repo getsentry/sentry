@@ -13,6 +13,7 @@ import {
   useProgressiveQuery,
   type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useQueryParamsExtrapolate} from 'sentry/views/explore/queryParams/context';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreSpansTableOptions {
@@ -32,6 +33,8 @@ export function useExploreSpansTable({
   limit,
   query,
 }: UseExploreSpansTableOptions) {
+  const extrapolate = useQueryParamsExtrapolate();
+
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -40,11 +43,13 @@ export function useExploreSpansTable({
     },
     []
   );
+
   return useProgressiveQuery<typeof useExploreSpansTableImp>({
     queryHookImplementation: useExploreSpansTableImp,
     queryHookArgs: {enabled, limit, query},
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 }
