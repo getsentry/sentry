@@ -1,7 +1,3 @@
-import {useTheme} from '@emotion/react';
-
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -10,6 +6,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BuildError} from 'sentry/views/preprod/components/buildError';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
@@ -110,28 +107,5 @@ export default function BuildDetails() {
         </Layout.Body>
       </Layout.Page>
     </SentryDocumentTitle>
-  );
-}
-
-function BuildError({title, message}: {message: string; title: string}) {
-  const theme = useTheme();
-  return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      style={{minHeight: '60vh', padding: theme.space.md}}
-    >
-      <Flex
-        direction="column"
-        align="center"
-        gap="lg"
-        style={{maxWidth: '500px', textAlign: 'center'}}
-      >
-        <div style={{fontSize: '64px'}}>⚠️</div>
-        <Heading as="h2">{title}</Heading>
-        <Text>{message}</Text>
-      </Flex>
-    </Flex>
   );
 }
