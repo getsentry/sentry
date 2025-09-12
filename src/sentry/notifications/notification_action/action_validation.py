@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 from django.core.exceptions import ValidationError
@@ -37,6 +38,7 @@ def _get_integrations(organization: Organization, provider: str) -> list[RpcInte
 class BaseActionValidatorTranslator(ABC):
     provider: str
     notify_action_form: type[Form] | None
+    channel_transformer: Callable[[str, str], str] | None  # passed for Slack and MSTeams
 
     def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None:
         self.validated_data = validated_data
@@ -49,7 +51,7 @@ class BaseActionValidatorTranslator(ABC):
         notify_action_form = self.notify_action_form(
             data=self.generate_action_form_payload(),
             integrations=_get_integrations(self.organization, self.provider),
-            channel_transformer=get_channel_id,
+            channel_transformer=self.channel_transformer,
         )
 
         if notify_action_form.is_valid():
@@ -71,6 +73,7 @@ class SlackActionValidatorTranslator(BaseActionValidatorTranslator):
     from sentry.integrations.slack.actions.notification import SlackNotifyServiceAction
 
     provider = "slack"
+    channel_transformer = get_channel_id
     notify_action_form = SlackNotifyServiceForm
 
     def generate_action_form_payload(self) -> dict[str, Any]:
