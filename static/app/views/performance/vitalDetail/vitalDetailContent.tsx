@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -7,7 +7,6 @@ import omit from 'lodash/omit';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {getInterval} from 'sentry/components/charts/utils';
-import {Alert} from 'sentry/components/core/alert';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -73,7 +72,6 @@ function getSummaryConditions(query: string) {
 
 function VitalDetailContent(props: Props) {
   const theme = useTheme();
-  const [error, setError] = useState<string | undefined>(undefined);
   function handleSearch(query: string) {
     const {location} = props;
 
@@ -162,18 +160,6 @@ function VitalDetailContent(props: Props) {
     );
   }
 
-  function renderError() {
-    if (!error) {
-      return null;
-    }
-
-    return (
-      <Alert.Container>
-        <Alert type="error">{error}</Alert>
-      </Alert.Container>
-    );
-  }
-
   function renderContent(vital: WebVital) {
     const {location, organization, eventView, projects} = props;
 
@@ -245,7 +231,6 @@ function VitalDetailContent(props: Props) {
                   projects={projects}
                   organization={organization}
                   location={location}
-                  setError={setError}
                   summaryConditions={summaryConditions}
                 />
               </TeamKeyTransactionManager.Provider>
@@ -283,7 +268,6 @@ function VitalDetailContent(props: Props) {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        {renderError()}
         <Layout.Main fullWidth>
           <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
           <SupportedBrowsers>
