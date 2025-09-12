@@ -271,7 +271,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
             self.create_data_condition(
                 condition_group=detector.workflow_condition_group,
-                type=Condition.GREATER,
+                type=Condition.EQUAL,
                 condition_result=DetectorPriorityLevel.HIGH,
                 comparison=1,
             )
