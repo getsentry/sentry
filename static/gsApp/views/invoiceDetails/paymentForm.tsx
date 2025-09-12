@@ -104,6 +104,7 @@ function InvoiceDetailsPaymentForm({
           footerClassName="modal-footer"
           onCancel={() => closeModal()}
           onSubmit={handleSubmit}
+          cardMode="payment"
         />
       </Body>
     </Fragment>
