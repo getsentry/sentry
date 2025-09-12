@@ -31,6 +31,7 @@ export interface TraceTreeNodeDetailsProps<T> {
   replay: ReplayRecord | null;
   traceId: string;
   hideNodeActions?: boolean;
+  tree?: TraceTree;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
