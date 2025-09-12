@@ -1961,7 +1961,7 @@ const DEVICE_FIELD_DEFINITION: Record<DeviceFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_SIMULATOR]: {
-    desc: t('Indicates if it occured on a simulator'),
+    desc: t('Indicates if it occurred on a simulator'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
@@ -2510,7 +2510,7 @@ export const DISCOVER_FIELDS = [
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,
 
-  // Field alises defined in src/sentry/api/event_search.py
+  // Field aliases defined in src/sentry/api/event_search.py
   FieldKey.PROJECT,
   FieldKey.ISSUE,
   FieldKey.USER_DISPLAY,
