@@ -14,6 +14,10 @@ import {
   getEapTimePeriodsForInterval,
   MetricDetectorInterval,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+import {
+  translateAggregateTag,
+  translateAggregateTagBack,
+} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
 
 import type {DetectorDatasetConfig} from './base';
 
@@ -49,8 +53,12 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   transformComparisonSeriesData: data => {
     return [transformEventsStatsComparisonSeries(data)];
   },
-  fromApiAggregate: aggregate => aggregate,
-  toApiAggregate: aggregate => aggregate,
+  fromApiAggregate: aggregate => {
+    return translateAggregateTag(aggregate);
+  },
+  toApiAggregate: aggregate => {
+    return translateAggregateTagBack(aggregate);
+  },
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   getDiscoverDataset: () => DiscoverDatasets.OURLOGS,
 };
