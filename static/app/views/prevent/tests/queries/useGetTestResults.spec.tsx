@@ -21,7 +21,6 @@ const mockTestResultsResponse = {
     {
       name: 'test_example_function',
       avgDuration: 0.045,
-      commitsFailed: 5,
       failureRate: 0.12,
       flakeRate: 0.08,
       lastDuration: 0.052,
@@ -34,7 +33,6 @@ const mockTestResultsResponse = {
     {
       name: 'test_another_function',
       avgDuration: 0.023,
-      commitsFailed: 2,
       failureRate: 0.05,
       flakeRate: 0.02,
       lastDuration: 0.025,
@@ -91,7 +89,7 @@ describe('useInfiniteTestResults', () => {
       match: [
         MockApiClient.matchQuery({
           interval: 'INTERVAL_30_DAY',
-          sortBy: '-COMMITS_WHERE_FAIL',
+          sortBy: '-RUNS_FAILED',
           branch: 'main',
         }),
       ],
@@ -125,7 +123,6 @@ describe('useInfiniteTestResults', () => {
     expect(result.current.data.testResults[0]).toEqual({
       testName: 'test_example_function',
       averageDurationMs: 45, // avgDuration * 1000
-      commitsFailed: 5,
       failureRate: 0.12,
       flakeRate: 8, // flakeRate * 100
       lastDuration: 0.052,
@@ -147,7 +144,7 @@ describe('useInfiniteTestResults', () => {
       match: [
         MockApiClient.matchQuery({
           interval: 'INTERVAL_30_DAY',
-          sortBy: '-COMMITS_WHERE_FAIL',
+          sortBy: '-RUNS_FAILED',
           branch: 'main',
           cursor: 'next-cursor',
           navigation: 'next',
@@ -194,7 +191,7 @@ describe('useInfiniteTestResults', () => {
       match: [
         MockApiClient.matchQuery({
           interval: 'INTERVAL_30_DAY',
-          sortBy: '-COMMITS_WHERE_FAIL',
+          sortBy: '-RUNS_FAILED',
           branch: 'main',
         }),
       ],

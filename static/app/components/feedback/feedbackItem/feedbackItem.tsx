@@ -30,9 +30,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   eventData: Event | undefined;
   feedbackItem: FeedbackIssue;
+  onBackToList?: () => void;
 }
 
-export default function FeedbackItem({feedbackItem, eventData}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
   const organization = useOrganization();
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
@@ -54,7 +55,11 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
   return (
     <Fragment>
       <AnalyticsArea name="details">
-        <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
+        <FeedbackItemHeader
+          eventData={eventData}
+          feedbackItem={feedbackItem}
+          onBackToList={onBackToList}
+        />
         <OverflowPanelItem ref={overflowRef}>
           <FeedbackItemSection sectionKey="message">
             <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
@@ -166,7 +171,9 @@ function FeedbackItemContexts({
   eventData.contexts.feedback = eventData.contexts.feedback ?? {};
   eventData.contexts.feedback['auto_spam.detection_enabled'] =
     evidenceObject.spam_detection_enabled;
-  eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
+  if (evidenceObject.spam_detection_enabled) {
+    eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
+  }
 
   const cards = getOrderedContextItems(eventData).map(
     ({alias, type, value: contextValue}) => (

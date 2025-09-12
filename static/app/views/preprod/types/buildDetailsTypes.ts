@@ -5,6 +5,7 @@ export interface BuildDetailsApiResponse {
   id: string;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
+  size_analysis_state?: BuildDetailsSizeAnalysisState;
   size_info?: BuildDetailsSizeInfo;
 }
 
@@ -30,7 +31,7 @@ interface BuildDetailsVcsInfo {
   head_repo_name?: string;
   head_sha?: string;
   pr_number?: number;
-  provider?: 'github' | 'github_enterprise' | 'gitlab' | 'bitbucket' | 'bitbucket_server';
+  provider?: 'github';
 }
 
 export interface BuildDetailsSizeInfo {
@@ -49,4 +50,11 @@ export enum BuildDetailsArtifactType {
   XCARCHIVE = 0,
   AAB = 1,
   APK = 2,
+}
+
+export enum BuildDetailsSizeAnalysisState {
+  PENDING = 0,
+  PROCESSING = 1,
+  COMPLETED = 2,
+  FAILED = 3,
 }

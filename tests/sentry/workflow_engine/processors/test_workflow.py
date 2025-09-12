@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
+from sentry.buffer.base import Buffer
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
@@ -12,11 +14,10 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+from sentry.utils.cache import cache
 from sentry.workflow_engine import buffer as workflow_buffer
 from sentry.workflow_engine.models import (
     Action,
@@ -35,6 +36,7 @@ from sentry.workflow_engine.processors.workflow import (
     process_workflows,
 )
 from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+from sentry.workflow_engine.tasks.workflows import process_workflows_event
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -89,6 +91,27 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_error_event(self) -> None:
         triggered_workflows = process_workflows(self.event_data, FROZEN_TIME)
         assert triggered_workflows == {self.error_workflow}
+
+    @patch("sentry.workflow_engine.processors.action.fire_actions")
+    def test_process_workflows_event(self, mock_fire_actions: MagicMock) -> None:
+        # Create an action so fire_actions will be called
+        self.create_workflow_action(workflow=self.error_workflow)
+
+        process_workflows_event(
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            group_id=self.group.id,
+            occurrence_id=self.group_event.occurrence_id,
+            group_state={
+                "id": 1,
+                "is_new": False,
+                "is_regression": True,
+                "is_new_group_environment": False,
+            },
+            has_reappeared=False,
+            has_escalated=False,
+        )
+        mock_fire_actions.assert_called_once()
 
     @patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
@@ -233,6 +256,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_no_environment(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         Environment.objects.all().delete()
+        cache.clear()
         triggered_workflows = process_workflows(self.event_data, FROZEN_TIME)
 
         assert not triggered_workflows
@@ -315,7 +339,11 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert triggered_workflows == {self.error_workflow}
 
 
-@mock_redis_buffer()
+def mock_workflows_buffer():
+    return patch("sentry.workflow_engine.buffer.get_backend", new=lambda: RedisBuffer())
+
+
+@mock_workflows_buffer()
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     def setUp(self) -> None:
         (
@@ -485,7 +513,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         self.action_group, _ = self.create_workflow_action(self.workflow)
 
         self.buffer_keys = DelayedWorkflow.get_buffer_keys()
-        self.mock_redis_buffer = mock_redis_buffer()
+        self.mock_redis_buffer = mock_workflows_buffer()
         self.mock_redis_buffer.__enter__()
 
     def tearDown(self) -> None:
@@ -677,7 +705,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
 
 @freeze_time(FROZEN_TIME)
-@mock_redis_buffer()
+@mock_workflows_buffer()
 class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def setUp(self) -> None:
         (
@@ -860,13 +888,13 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
             group=self.group_event.group,
         )
 
-    @patch("sentry.buffer.backend.push_to_sorted_set")
-    @patch("sentry.buffer.backend.push_to_hash_bulk")
+    @patch("sentry.workflow_engine.buffer.get_backend")
     @patch("random.choice")
-    @override_options({"workflow_engine.buffer.use_new_buffer": False})
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
-        self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
+        self, mock_randchoice, mock_get_backend
     ) -> None:
+        mock_buffer = MagicMock(spec=Buffer)
+        mock_get_backend.return_value = mock_buffer
         mock_randchoice.return_value = f"{DelayedWorkflow.buffer_key}:{5}"
         enqueue_workflows(
             {
@@ -881,44 +909,17 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
             }
         )
 
-        mock_push_to_sorted_set.assert_called_once_with(
+        mock_buffer.push_to_sorted_set.assert_called_once_with(
             key=f"{DelayedWorkflow.buffer_key}:{5}",
             value=[self.group_event.project_id],
         )
 
-    @patch("sentry.workflow_engine.buffer._backend.push_to_sorted_set")
-    @patch("sentry.workflow_engine.buffer._backend.push_to_hash_bulk")
-    @patch("random.choice")
-    @override_options({"workflow_engine.buffer.use_new_buffer": True})
-    def test_enqueue_workflows__adds_to_workflow_engine_buffer_new_buffer(
-        self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
-    ) -> None:
-        key_choice = f"{DelayedWorkflow.buffer_key}:{5}"
-        mock_randchoice.return_value = key_choice
-        enqueue_workflows(
-            {
-                self.workflow: DelayedWorkflowItem(
-                    self.workflow,
-                    self.group_event,
-                    self.workflow.when_condition_group_id,
-                    [self.slow_workflow_filter_group.id],
-                    [self.workflow_filter_group.id],
-                    timestamp=timezone.now(),
-                )
-            }
-        )
-
-        mock_push_to_sorted_set.assert_called_once_with(
-            key=key_choice,
-            value=[self.group_event.project_id],
-        )
-
-    @patch("sentry.buffer.backend.push_to_sorted_set")
-    @patch("sentry.buffer.backend.push_to_hash_bulk")
-    @override_options({"workflow_engine.buffer.use_new_buffer": False})
+    @patch("sentry.workflow_engine.buffer.get_backend")
     def test_enqueue_workflow__adds_to_workflow_engine_set(
-        self, mock_push_to_hash_bulk, mock_push_to_sorted_set
+        self, mock_get_backend: MagicMock
     ) -> None:
+        mock_buffer = MagicMock(spec=Buffer)
+        mock_get_backend.return_value = mock_buffer
         current_time = timezone.now()
         workflow_filter_group_2 = self.create_data_condition_group()
         self.create_workflow_data_condition_group(
@@ -955,7 +956,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         passing_condition_group_ids = ",".join(
             str(id) for id in [self.workflow_filter_group.id, workflow_filter_group_2.id]
         )
-        mock_push_to_hash_bulk.assert_called_once_with(
+        mock_buffer.push_to_hash_bulk.assert_called_once_with(
             model=Workflow,
             filters={"project_id": self.group_event.project_id},
             data={

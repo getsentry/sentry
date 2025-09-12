@@ -1,0 +1,13 @@
+---
+created: '2025-09-11T21:20:20.559036+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouping_info.py
+---
+{
+  "fallback": {
+    "description": "fallback",
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "key": "fallback",
+    "type": "fallback"
+  }
+}

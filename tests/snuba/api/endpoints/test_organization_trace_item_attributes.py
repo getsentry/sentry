@@ -1167,13 +1167,8 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         self.create_project(id=base_id + 299, name="bar")
         self.create_project(id=base_id + 399, name="baz")
 
-        features = {
-            **self.feature_flags,
-            "organizations:global-views": True,
-        }
-
         for key in ["project", "project.name"]:
-            response = self.do_request(features=features, key=key)
+            response = self.do_request(key=key)
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
@@ -1202,7 +1197,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 },
             ]
 
-            response = self.do_request(query={"substringMatch": "ba"}, features=features, key=key)
+            response = self.do_request(query={"substringMatch": "ba"}, key=key)
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
@@ -1225,7 +1220,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
 
         key = "project.id"
 
-        response = self.do_request(features=features, key=key)
+        response = self.do_request(key=key)
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
@@ -1254,7 +1249,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-        response = self.do_request(query={"substringMatch": "99"}, features=features, key=key)
+        response = self.do_request(query={"substringMatch": "99"}, key=key)
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {

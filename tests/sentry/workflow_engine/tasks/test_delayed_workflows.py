@@ -5,7 +5,7 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 import pytest
 from django.utils import timezone
 
-from sentry import buffer
+from sentry.buffer.redis import RedisBuffer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -19,9 +19,9 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.taskworker.state import CurrentTaskState
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded
+from sentry.workflow_engine import buffer as workflow_buffer
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     EventFrequencyQueryHandler,
@@ -67,6 +67,10 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
+
+
+def mock_workflows_buffer():
+    return patch("sentry.workflow_engine.buffer.get_backend", new=lambda: RedisBuffer())
 
 
 class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
@@ -118,14 +122,17 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.detector_dcg = self.create_data_condition_group()
         self.detector.update(workflow_condition_group=self.detector_dcg)
 
-        self.mock_redis_buffer = mock_redis_buffer()
-        self.mock_redis_buffer.__enter__()
+        # Set up buffer mock
+        self.buffer_mock = mock_workflows_buffer()
+        self.buffer_mock.start()
 
-        buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project.id)
-        buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project2.id)
+        buffer_backend = workflow_buffer.get_backend()
+        buffer_backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project.id)
+        buffer_backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project2.id)
 
     def tearDown(self) -> None:
-        self.mock_redis_buffer.__exit__(None, None, None)
+        super().tearDown()
+        self.buffer_mock.stop()
 
     def create_project_event_freq_workflow(
         self,
@@ -212,7 +219,8 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         value = json.dumps(value_dict)
         when_dcg_str = str(when_dcg_id) if when_dcg_id else ""
         field = f"{workflow_id}:{group_id}:{when_dcg_str}:{','.join([str(dcg.id) for dcg in if_dcgs])}:{','.join([str(dcg.id) for dcg in passing_dcgs])}"
-        buffer.backend.push_to_hash(
+        buffer_backend = workflow_buffer.get_backend()
+        buffer_backend.push_to_hash(
             model=Workflow,
             filters={"project_id": project_id},
             field=field,
@@ -996,42 +1004,50 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
     def test_cleanup_redis(self) -> None:
         self._push_base_events()
 
-        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        buffer_backend = workflow_buffer.get_backend()
+        data = buffer_backend.get_hash(Workflow, {"project_id": self.project.id})
         assert set(data.keys()) == self.workflow_group_dcg_mapping
 
         event_data = EventRedisData.from_redis_data(data, continue_on_error=False)
         cleanup_redis_buffer(self.project.id, event_data.events.keys(), None)
-        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        buffer_backend = workflow_buffer.get_backend()
+        data = buffer_backend.get_hash(Workflow, {"project_id": self.project.id})
         assert data == {}
 
     @override_options({"delayed_processing.batch_size": 1})
     @patch("sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async")
     def test_batched_cleanup(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
-        all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        buffer_backend = workflow_buffer.get_backend()
+        all_data = buffer_backend.get_hash(Workflow, {"project_id": self.project.id})
 
-        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
+        buffer_backend = workflow_buffer.get_backend()
+        process_in_batches(buffer_backend, self.project.id, "delayed_workflow")
         batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify we removed the data from the buffer
-        data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
+        buffer_backend = workflow_buffer.get_backend()
+        data = buffer_backend.get_hash(Workflow, {"project_id": self.project.id})
         assert data == {}
 
-        first_batch = buffer.backend.get_hash(
+        buffer_backend = workflow_buffer.get_backend()
+        first_batch = buffer_backend.get_hash(
             model=Workflow, field={"project_id": self.project.id, "batch_key": batch_one_key}
         )
         event_data = EventRedisData.from_redis_data(first_batch, continue_on_error=False)
         cleanup_redis_buffer(self.project.id, event_data.events.keys(), batch_one_key)
 
         # Verify the batch we "executed" is removed
-        data = buffer.backend.get_hash(
+        buffer_backend = workflow_buffer.get_backend()
+        data = buffer_backend.get_hash(
             Workflow, {"project_id": self.project.id, "batch_key": batch_one_key}
         )
         assert data == {}
 
         # Verify the batch we didn't execute is still in redis
-        data = buffer.backend.get_hash(
+        buffer_backend = workflow_buffer.get_backend()
+        data = buffer_backend.get_hash(
             Workflow, {"project_id": self.project.id, "batch_key": batch_two_key}
         )
         for key in first_batch.keys():

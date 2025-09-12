@@ -15,7 +15,7 @@ interface UseGroupByFieldsProps {
    * All the group bys that are in use. They will be injected if
    * they dont exist already.
    */
-  groupBys: string[];
+  groupBys: readonly string[];
   numberTags: TagCollection;
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;

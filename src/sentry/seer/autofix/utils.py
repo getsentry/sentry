@@ -29,11 +29,14 @@ class AutofixIssue(TypedDict):
     title: str
 
 
-class AutofixRequest(TypedDict):
+class AutofixRequest(BaseModel):
     organization_id: int
     project_id: int
     issue: AutofixIssue
     repos: list[SeerRepoDefinition]
+
+    class Config:
+        extra = "allow"
 
 
 class FileChange(BaseModel):
@@ -56,15 +59,21 @@ class AutofixTriggerSource(StrEnum):
 
 class CodingAgentResult(BaseModel):
     description: str
-    repo_external_id: str
+    repo_provider: str
+    repo_full_name: str
     branch_name: str | None = None
     pr_url: str | None = None
+
+
+class CodingAgentProviderType(StrEnum):
+    CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
 
 
 class CodingAgentState(BaseModel):
     id: str
     status: CodingAgentStatus = CodingAgentStatus.PENDING
     agent_url: str | None = None
+    provider: CodingAgentProviderType
     name: str
     started_at: datetime
     results: list[CodingAgentResult] = []
@@ -89,6 +98,17 @@ class AutofixState(BaseModel):
 
     class Config:
         extra = "allow"
+
+
+class CodingAgentStateUpdate(BaseModel):
+    status: CodingAgentStatus | None = None
+    agent_url: str | None = None
+    results: list[CodingAgentResult] | None = None
+
+
+class CodingAgentStateUpdateRequest(BaseModel):
+    agent_id: str
+    updates: CodingAgentStateUpdate
 
 
 autofix_connection_pool = connection_from_url(
@@ -163,7 +183,7 @@ def get_autofix_state(
         ):
             state = AutofixState.validate(result["state"])
 
-            if state.request["organization_id"] != organization_id:
+            if state.request.organization_id != organization_id:
                 raise SeerPermissionError("Different organization ID found in autofix state")
 
             return state

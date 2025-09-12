@@ -5,7 +5,12 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    UptimeSubscription,
+    get_project_subscription,
+    get_uptime_subscription,
+)
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -124,9 +129,9 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert DataSourceDetector.objects.filter(id=data_source_detector_2.id).exists()
 
     def test_delete_uptime_detector(self) -> None:
-        proj_sub = self.create_project_uptime_subscription()
-        uptime_sub = proj_sub.uptime_subscription
-        detector = get_detector(uptime_sub)
+        detector = self.create_uptime_detector()
+        uptime_sub = get_uptime_subscription(detector)
+        proj_sub = get_project_subscription(detector)
         self.ScheduledDeletion.schedule(instance=detector, days=0)
 
         with self.tasks():
