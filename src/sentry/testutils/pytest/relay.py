@@ -134,6 +134,17 @@ def relay_server(relay_server_setup, settings):
     with get_docker_client() as docker_client:
         container_name = _relay_server_container_name()
         _remove_container_if_exists(docker_client, container_name)
+
+        ci_group = environ.get("TEST_GROUP", "local")
+        image_name = options["image"]
+        try:
+            docker_client.images.get(image_name)
+            _log.warning("[CI-GROUP-%s] Image %s EXISTS locally", ci_group, image_name)
+        except Exception:
+            _log.warning(
+                "[CI-GROUP-%s] Image %s NOT FOUND locally - will download", ci_group, image_name
+            )
+
         container = docker_client.containers.run(**options)
 
     _log.info("Waiting for Relay container to start")
