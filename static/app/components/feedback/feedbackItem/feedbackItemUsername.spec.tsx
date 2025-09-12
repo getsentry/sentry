@@ -5,7 +5,30 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 
 describe('FeedbackItemUsername', () => {
+  let seerSetupMock: any;
+
+  const mockSeerSetup = (overrides: any = {}) => {
+    return MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: false,
+          userHasAcknowledged: false,
+          ...overrides.setupAcknowledgement,
+        },
+        billing: {
+          hasAutofixQuota: false,
+          hasScannerQuota: false,
+        },
+        ...overrides,
+      },
+    });
+  };
+
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    seerSetupMock = mockSeerSetup();
+
     Object.assign(navigator, {
       clipboard: {
         writeText: jest.fn().mockResolvedValue(''),
@@ -115,5 +138,103 @@ describe('FeedbackItemUsername', () => {
     });
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Foo Bar <foo@bar.com>');
+  });
+
+  describe('AI summary functionality', () => {
+    it('should display summary and include it in email subject when AI summary is enabled', async () => {
+      seerSetupMock = mockSeerSetup({
+        setupAcknowledgement: {orgHasAcknowledged: true},
+      });
+
+      const issue = FeedbackIssueFixture({
+        metadata: {
+          name: 'Foo Bar',
+          contact_email: 'foo@bar.com',
+          summary: 'Login issue with payment flow',
+        },
+      });
+
+      render(<FeedbackItemUsername feedbackIssue={issue} />, {
+        organization: {
+          features: ['user-feedback-ai-titles', 'gen-ai-features'],
+        },
+      });
+
+      await waitFor(() => {
+        expect(seerSetupMock).toHaveBeenCalled();
+      });
+
+      expect(screen.getByText('Login issue with payment flow')).toBeInTheDocument();
+
+      const mailtoButton = screen.getByRole('button');
+      expect(mailtoButton).toHaveAttribute(
+        'href',
+        expect.stringContaining('Login%20issue%20with%20payment%20flow')
+      );
+    });
+
+    it.each([
+      {
+        description: 'AI features are disabled',
+        features: ['user-feedback-ai-titles'],
+        summary: 'Login issue with payment flow',
+        seerSetupOverrides: {setupAcknowledgement: {orgHasAcknowledged: true}},
+      },
+      {
+        description: 'user feedback AI titles are disabled',
+        features: ['gen-ai-features'],
+        summary: 'Login issue with payment flow',
+        seerSetupOverrides: {setupAcknowledgement: {orgHasAcknowledged: true}},
+      },
+      {
+        description: 'organization has not acknowledged AI setup',
+        features: ['user-feedback-ai-titles', 'gen-ai-features'],
+        summary: 'Login issue with payment flow',
+        seerSetupOverrides: {
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+          },
+        },
+      },
+      {
+        description: 'AI features enabled but summary is null',
+        features: ['user-feedback-ai-titles', 'gen-ai-features'],
+        summary: null,
+        seerSetupOverrides: {setupAcknowledgement: {orgHasAcknowledged: true}},
+      },
+    ])(
+      'should not display summary or include it in email subject when $description',
+      async ({features, summary, seerSetupOverrides}) => {
+        seerSetupMock = mockSeerSetup(seerSetupOverrides);
+
+        const issue = FeedbackIssueFixture({
+          metadata: {
+            name: 'Foo Bar',
+            contact_email: 'foo@bar.com',
+            summary,
+          },
+        });
+
+        render(<FeedbackItemUsername feedbackIssue={issue} />, {
+          organization: {
+            features,
+          },
+        });
+
+        await waitFor(() => {
+          expect(seerSetupMock).toHaveBeenCalled();
+        });
+
+        if (summary) {
+          expect(screen.queryByText(summary)).not.toBeInTheDocument();
+        }
+
+        const mailtoButton = screen.getByRole('button');
+        expect(mailtoButton).toHaveAttribute(
+          'href',
+          expect.not.stringContaining('Login%20issue%20with%20payment%20flow')
+        );
+      }
+    );
   });
 });

@@ -29,6 +29,7 @@ import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useM
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
+import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
 const CHART_HEIGHT = 180;
 
@@ -216,12 +217,19 @@ export function MetricDetectorChart({
   ]);
 
   const yAxes = useMemo(() => {
+    const {formatYAxisLabel} = getDetectorChartFormatters({
+      detectionType,
+      aggregate,
+    });
+
     const mainYAxis: YAXisComponentOption = {
       max: maxValue > 0 ? maxValue : undefined,
       min: 0,
       axisLabel: {
         // Hide the maximum y-axis label to avoid showing arbitrary threshold values
         showMaxLabel: false,
+        // Format the axis labels with units
+        formatter: formatYAxisLabel,
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -235,7 +243,13 @@ export function MetricDetectorChart({
     }
 
     return axes;
-  }, [maxValue, isAnomalyDetection, anomalyMarkerResult.incidentMarkerYAxis]);
+  }, [
+    maxValue,
+    isAnomalyDetection,
+    anomalyMarkerResult.incidentMarkerYAxis,
+    detectionType,
+    aggregate,
+  ]);
 
   // Prepare grid with anomaly marker adjustments
   const grid = useMemo(() => {
@@ -280,6 +294,10 @@ export function MetricDetectorChart({
               ? anomalyMarkerResult.connectIncidentMarkerChartRef
               : undefined
           }
+          tooltip={{
+            valueFormatter: getDetectorChartFormatters({detectionType, aggregate})
+              .formatTooltipValue,
+          }}
         />
       )}
       <ChartFooter>
