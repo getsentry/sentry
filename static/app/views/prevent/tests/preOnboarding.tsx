@@ -14,33 +14,16 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const INSTRUCTIONS_TEXT = {
-  noOrgs: {
-    header: t('Get Started by installing the GitHub Sentry App'),
-    subtext: t(
-      "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
-    ),
-    mainCTA: t('Add installation'),
-    mainCTALink: '/settings/integrations/github',
-  },
-  hasOrgs: {
-    header: t('Request Updated Permissions on your Integrated Organization'),
-    subtext: t(
-      "Sentry is requesting updated permissions access to your integrated organization(s). Admin required. If you're not an admin, reach out to your organization's owner to update the Sentry app permissions."
-    ),
-    mainCTA: t('Review permissions'),
-    mainCTALink: '/settings/integrations/github',
-  },
+  header: t('Get Started by installing the GitHub Sentry App'),
+  subtext: t(
+    "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
+  ),
+  mainCTA: t('Add installation'),
+  mainCTALink: '/settings/integrations/github',
 } as const;
-
-// TODO: this should come from the backend
-const HAS_INTEGRATED_ORGS = false;
 
 export default function TestPreOnboardingPage() {
   const organization = useOrganization();
-  const instructionSet = HAS_INTEGRATED_ORGS
-    ? INSTRUCTIONS_TEXT.hasOrgs
-    : INSTRUCTIONS_TEXT.noOrgs;
-
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
 
@@ -86,11 +69,11 @@ export default function TestPreOnboardingPage() {
       {isUSStorage && (
         <Panel>
           <InstructionsSection>
-            <h2>{instructionSet.header}</h2>
-            <SubtextParagraph>{instructionSet.subtext}</SubtextParagraph>
+            <h2>{INSTRUCTIONS_TEXT.header}</h2>
+            <SubtextParagraph>{INSTRUCTIONS_TEXT.subtext}</SubtextParagraph>
             <ButtonBar>
-              <LinkButton priority="primary" href={instructionSet.mainCTA}>
-                {instructionSet.mainCTA}
+              <LinkButton priority="primary" href={INSTRUCTIONS_TEXT.mainCTA}>
+                {INSTRUCTIONS_TEXT.mainCTA}
               </LinkButton>
               <LinkButton priority="default" href="/settings/integrations/github">
                 Learn more
