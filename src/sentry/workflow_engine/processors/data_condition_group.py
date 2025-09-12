@@ -166,6 +166,7 @@ def evaluate_data_conditions(
 def process_data_condition_group(
     group: DataConditionGroup,
     value: T,
+    data_conditions_for_group: list[DataCondition] | None = None,
 ) -> DataConditionGroupResult:
     condition_results: list[ProcessedDataCondition] = []
 
@@ -180,7 +181,9 @@ def process_data_condition_group(
 
     # Check if conditions are already prefetched before using cache
     all_conditions: list[DataCondition]
-    if (
+    if data_conditions_for_group is not None:
+        all_conditions = data_conditions_for_group
+    elif (
         hasattr(group, "_prefetched_objects_cache")
         and "conditions" in group._prefetched_objects_cache
     ):

@@ -26,7 +26,10 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
 )
-from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
+from sentry.workflow_engine.processors.data_condition_group import (
+    get_data_conditions_for_group,
+    process_data_condition_group,
+)
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
@@ -161,8 +164,26 @@ def evaluate_workflow_triggers(
     triggered_workflows: set[Workflow] = set()
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
 
+    dcg_ids = [
+        workflow.when_condition_group_id
+        for workflow in workflows
+        if workflow.when_condition_group_id
+    ]
+    when_data_conditions_by_dcg_id = (
+        dict(zip(dcg_ids, get_data_conditions_for_group.batch([(dcg_id,) for dcg_id in dcg_ids])))
+        if dcg_ids
+        else {}
+    )
+
     for workflow in workflows:
-        evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
+        when_data_conditions = (
+            when_data_conditions_by_dcg_id.get(workflow.when_condition_group_id)
+            if workflow.when_condition_group_id is not None
+            else None
+        )
+        evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(
+            event_data, when_data_conditions
+        )
 
         if remaining_conditions:
             if isinstance(event_data.event, GroupEvent):
@@ -269,6 +290,13 @@ def evaluate_workflows_action_filters(
 
     filtered_action_groups: set[DataConditionGroup] = set()
 
+    dcg_ids = [dcg.id for dcg in action_conditions_to_workflow.keys()]
+    data_conditions_for_group = (
+        dict(zip(dcg_ids, get_data_conditions_for_group.batch([(dcg_id,) for dcg_id in dcg_ids])))
+        if dcg_ids
+        else {}
+    )
+
     for action_condition, workflow in action_conditions_to_workflow.items():
         env = (
             Environment.objects.get_from_cache(id=workflow.environment_id)
@@ -277,7 +305,9 @@ def evaluate_workflows_action_filters(
         )
         workflow_event_data = replace(event_data, workflow_env=env)
         group_evaluation, slow_conditions = process_data_condition_group(
-            action_condition, workflow_event_data
+            action_condition,
+            workflow_event_data,
+            data_conditions_for_group.get(action_condition.id),
         )
 
         if slow_conditions:
