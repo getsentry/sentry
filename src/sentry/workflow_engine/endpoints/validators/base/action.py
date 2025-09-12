@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import is_action_permitted
@@ -61,16 +62,20 @@ class BaseActionValidator(CamelSnakeSerializer):
             )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        from sentry.notifications.notification_action.action_validation import (
-            clean_validated_action_attrs,
-        )
+        from sentry.notifications.notification_action.registry import action_validator_registry
 
         attrs = super().validate(attrs)
 
         if not (organization := self.context.get("organization")):
             raise serializers.ValidationError("Organization is required in the context")
 
-        return clean_validated_action_attrs(attrs, organization)
+        try:
+            handler = action_validator_registry.get(attrs["type"])
+        except NoRegistrationExistsError:
+            # TODO: remove try/catch when all existing action types are registered
+            return attrs
+
+        return handler(attrs, organization).clean_data()
 
     def create(self, validated_value: dict[str, Any]) -> Action:
         self._check_action_type(Action.Type(validated_value["type"]))
