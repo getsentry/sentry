@@ -26,12 +26,12 @@ const tableHeaders = [
   },
 ];
 
-export type Sort = {
+type Sort = {
   field: string;
   kind: 'asc' | 'desc';
 };
 
-export interface SizeCompareItemDiffTableProps {
+interface SizeCompareItemDiffTableProps {
   diffItems: DiffItem[];
 }
 

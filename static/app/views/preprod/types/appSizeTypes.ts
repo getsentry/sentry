@@ -16,7 +16,7 @@ export enum SizeAnalysisComparisonState {
   FAILED = 3,
 }
 
-export interface SizeAnalysisComparison {
+interface SizeAnalysisComparison {
   base_size_metric_id: number;
   comparison_id: number | null;
   error_code: string | null;

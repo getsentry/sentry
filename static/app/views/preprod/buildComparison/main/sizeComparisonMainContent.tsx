@@ -128,9 +128,9 @@ export function SizeComparisonMainContent() {
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
     return (
       <BuildError
-        title="Size comparison data unavailable"
+        title={t('Size comparison data unavailable')}
         message={
-          sizeComparisonQuery.error?.message || 'Failed to load size comparison data'
+          sizeComparisonQuery.error?.message || t('Failed to load size comparison data')
         }
       />
     );
@@ -189,7 +189,7 @@ export function SizeComparisonMainContent() {
                 </Flex>
                 <Flex gap="xs">
                   <Text variant="muted" size="sm">
-                    Comparison:
+                    {t('Comparison:')}
                   </Text>
                   <Text variant="muted" size="sm" bold>
                     {metric.base === 0
@@ -208,7 +208,7 @@ export function SizeComparisonMainContent() {
         <Flex direction="column" gap="0">
           {/* TODO: Collapsable */}
           <Flex align="center" gap="sm" padding="xl">
-            <Heading as="h2">Files Changed:</Heading>
+            <Heading as="h2">{t('Files Changed:')}</Heading>
             <Heading as="h2" variant="muted">
               {comparisonDataQuery.data?.diff_items.length}
             </Heading>
