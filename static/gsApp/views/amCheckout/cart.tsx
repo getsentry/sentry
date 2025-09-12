@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
@@ -134,11 +135,11 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
         <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
         <Flex direction="column" gap="xs">
           <ItemFlex>
-            <p>{tct('[name] Plan', {name: activePlan.name})}</p>
-            <p>
+            <Text bold>{tct('[name] Plan', {name: activePlan.name})}</Text>
+            <Text>
               {utils.displayPrice({cents: activePlan.totalPrice})}
               {`/${shortInterval}`}
-            </p>
+            </Text>
           </ItemFlex>
           {activePlan.categories
             .filter(
@@ -165,7 +166,7 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
               return (
                 <ItemFlex key={category}>
                   <div>
-                    {formattedReserved}{' '}
+                    <Text>{formattedReserved} </Text>
                     {reserved === 1 && category !== DataCategory.ATTACHMENTS
                       ? getSingularCategoryName({
                           plan: activePlan,
@@ -675,7 +676,9 @@ function Cart({
       />
       <PlanSummary>
         <PlanSummaryHeader isOpen={summaryIsOpen}>
-          <Title>{t('Plan Summary')}</Title>
+          <Heading as="h2" textWrap="nowrap">
+            {t('Plan Summary')}
+          </Heading>
           <Flex gap="xs" align="center">
             <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
             <Button
@@ -745,13 +748,6 @@ const SummarySection = styled('div')`
   }
 `;
 
-const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-  text-wrap: nowrap;
-`;
-
 const PlanSummary = styled('div')`
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.border};
@@ -812,7 +808,7 @@ const ItemFlex = styled('div')`
 const IconContainer = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: ${p => p.theme.space['2xs']};
+  margin-top: 1px;
 `;
 
 const RenewalDate = styled('div')`
