@@ -20,7 +20,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Extrapolated based on 100 span samples'
+        'Extrapolated from 100 span samples'
       );
       await userEvent.hover(screen.getByText('100'));
       expect(
@@ -41,7 +41,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Top 5 groups extrapolated based on 100 span samples'
+        'Top 5 groups extrapolated from 100 span samples'
       );
       await userEvent.hover(screen.getByText('100'));
       expect(
@@ -65,7 +65,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Extrapolated based on 100 span samples'
+        'Extrapolated from 100 span samples'
       );
     });
     it('renders for full scan with grouping', () => {
@@ -80,7 +80,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Top 5 groups extrapolated based on 100 span samples'
+        'Top 5 groups extrapolated from 100 span samples'
       );
     });
   });
