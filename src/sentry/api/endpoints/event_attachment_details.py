@@ -1,5 +1,8 @@
+import contextlib
 import posixpath
+from typing import IO, ContextManager
 
+import sentry_sdk
 from django.http import StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,9 +17,12 @@ from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.activity import Activity
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.objectstore.service import ClientError
+from sentry.options.rollout import in_rollout_group
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -56,16 +62,48 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (EventAttachmentDetailsPermission,)
 
-    def download(self, attachment):
+    def download(self, attachment: EventAttachment):
         name = posixpath.basename(" ".join(attachment.name.split()))
 
         def stream_attachment():
+            filestore_attachment = attachment.getfile()
+            objectstore_attachment: IO[bytes] | ContextManager[None] = contextlib.nullcontext()
+            if in_rollout_group("objectstore.double_write", attachment.project_id):
+                # This is a bit ugly admittedly. We have no way to tell whether
+                # an attachment has actually been double-written. We just assume
+                # it was based on the feature flag, which is not the case for all
+                # the attachments prior to the flag being turned on.
+                # So in this case, we just try reading, and swallow any not found errors.
+                try:
+                    try:
+                        # We force the attachment model to use the objectstore backend
+                        # by changing its prefix. Its a big hack, but hey why not.
+                        assert attachment.blob_path is not None
+                        attachment.blob_path.replace(V1_PREFIX, V2_PREFIX)
+                        objectstore_attachment = attachment.getfile()
+                        metrics.incr("storage.attachments.double_write.read")
+                    except ClientError as e:
+                        if e.status != 404:
+                            raise
+                except Exception:
+                    sentry_sdk.capture_exception()
+
             # TODO: We should pass along the `Accept-Encoding`, so we can avoid
             # decompressing on the API side, and just transfer the already
             # compressed bytes to the client as it indicated it can handle it.
-            with attachment.getfile() as fp:
-                while chunk := fp.read(4096):
-                    yield chunk
+            with filestore_attachment as fa, objectstore_attachment as oa:
+                while filestore_chunk := fa.read(4096):
+                    if oa:
+                        try:
+                            objectstore_chunk = oa.read(4096)
+                            assert filestore_chunk == objectstore_chunk
+                        except Exception:
+                            # If we have encountered one error, clear the objectstore
+                            # file, to avoid spamming more errors for all the remaining chunks.
+                            oa.close()
+                            oa = None
+                            sentry_sdk.capture_exception()
+                    yield filestore_chunk
 
         response = StreamingHttpResponse(
             stream_attachment(),
