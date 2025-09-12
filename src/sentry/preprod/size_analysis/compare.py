@@ -38,6 +38,14 @@ def compare_size_analysis(
         base_element = base_files.get(path)
         head_size = head_element.size if head_element else None
         base_size = base_element.size if base_element else None
+
+        if head_element:
+            item_type = head_element.type
+        elif base_element:
+            item_type = base_element.type
+        else:
+            item_type = None
+
         if head_size is not None and base_size is not None:
             size_diff = head_size - base_size
             if size_diff == 0:
@@ -63,7 +71,7 @@ def compare_size_analysis(
                 head_size=head_size,
                 base_size=base_size,
                 path=path,
-                item_type=head_element.type,
+                item_type=item_type,
                 type=diff_type,
             )
         )
