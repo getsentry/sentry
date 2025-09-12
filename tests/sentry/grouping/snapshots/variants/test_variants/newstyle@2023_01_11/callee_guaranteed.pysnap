@@ -1,5 +1,5 @@
 ---
-created: '2025-05-12T23:40:58.067213+00:00'
+created: '2025-09-11T18:38:49.335294+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -123,9 +123,11 @@ app:
               "stripped_application_code"
         type*
           "<redacted>"
-        ns-error*
-          "<redacted>"
-          2
+        ns_error*
+          domain*
+            "<redacted>"
+          code*
+            2
 --------------------------------------------------------------------------
 system:
   hash: "47481871aa8d5ab5729cf2db78ce3032"
@@ -247,6 +249,8 @@ system:
               "stripped_application_code"
         type*
           "<redacted>"
-        ns-error*
-          "<redacted>"
-          2
+        ns_error*
+          domain*
+            "<redacted>"
+          code*
+            2

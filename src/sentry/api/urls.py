@@ -12,15 +12,6 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
-from sentry.api.endpoints.organization_member_invite.details import (
-    OrganizationMemberInviteDetailsEndpoint,
-)
-from sentry.api.endpoints.organization_member_invite.index import (
-    OrganizationMemberInviteIndexEndpoint,
-)
-from sentry.api.endpoints.organization_member_invite.reinvite import (
-    OrganizationMemberReinviteEndpoint,
-)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugin_deprecation_info import (
     OrganizationPluginDeprecationInfoEndpoint,
@@ -71,10 +62,12 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
+from sentry.codecov.endpoints.repository.repository import RepositoryEndpoint
 from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
     RepositoryTokenRegenerateEndpoint,
 )
 from sentry.codecov.endpoints.repository_tokens.repository_tokens import RepositoryTokensEndpoint
+from sentry.codecov.endpoints.sync_repos.sync_repos import SyncReposEndpoint
 from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
@@ -87,6 +80,15 @@ from sentry.core.endpoints.organization_environments import OrganizationEnvironm
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
 from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from sentry.core.endpoints.organization_member_invite.details import (
+    OrganizationMemberInviteDetailsEndpoint,
+)
+from sentry.core.endpoints.organization_member_invite.index import (
+    OrganizationMemberInviteIndexEndpoint,
+)
+from sentry.core.endpoints.organization_member_invite.reinvite import (
+    OrganizationMemberReinviteEndpoint,
+)
 from sentry.core.endpoints.organization_member_requests_invite_details import (
     OrganizationInviteRequestDetailsEndpoint,
 )
@@ -413,6 +415,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
+from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
@@ -1113,6 +1116,11 @@ PREVENT_URLS = [
         name="sentry-api-0-repository-branches",
     ),
     re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/$",
+        RepositoryEndpoint.as_view(),
+        name="sentry-api-0-repository",
+    ),
+    re_path(
         r"^owner/(?P<owner>[^/]+)/repositories/$",
         RepositoriesEndpoint.as_view(),
         name="sentry-api-0-repositories",
@@ -1127,8 +1135,12 @@ PREVENT_URLS = [
         RepositoryTokenRegenerateEndpoint.as_view(),
         name="sentry-api-0-repository-token-regenerate",
     ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repositories/sync/$",
+        SyncReposEndpoint.as_view(),
+        name="sentry-api-0-repositories-sync",
+    ),
 ]
-
 
 USER_URLS = [
     re_path(
@@ -3403,6 +3415,7 @@ INTERNAL_URLS = [
         name="sentry-demo-mode-email-capture",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
+    *notification_platform_urls.internal_urlpatterns,
 ]
 
 urlpatterns = [

@@ -53,6 +53,13 @@ interface SearchProps {
    */
   maxResults?: number;
   /**
+   * afterAction
+   */
+  onAction?: (
+    item: Result['item'],
+    state?: AutoComplete<Result['item']>['state']
+  ) => void;
+  /**
    * Renders the result item
    */
   renderItem?: ListProps['renderItem'];
@@ -64,6 +71,7 @@ interface SearchProps {
    * Fuse search options
    */
   searchOptions?: Fuse.IFuseOptions<any>;
+
   /**
    * The sources to query
    */
@@ -78,6 +86,7 @@ function Search({
   renderInput,
   renderItem,
   closeOnSelect,
+  onAction,
   dropdownClassName,
   resultFooter,
   searchOptions,
@@ -109,6 +118,7 @@ function Search({
       // `to` is a react-router route
       if (typeof item.action === 'function') {
         item.action(item, state);
+        onAction?.(item, state);
         return;
       }
 
@@ -142,7 +152,7 @@ function Search({
             };
       navigateTo(nextTo, router, item.configUrl);
     },
-    [entryPoint, router, params]
+    [entryPoint, router, params, onAction]
   );
 
   const saveQueryMetrics = useCallback(

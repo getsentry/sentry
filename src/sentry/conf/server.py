@@ -168,6 +168,10 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+# When running in an air gap environment, set this to True to disable external
+# network calls and features that require internet connectivity.
+SENTRY_AIR_GAP = False
+
 # XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
 #           it can not be `default`. The default cluster in sentry.io
 #           production is NOT a true redis cluster and WILL error in prod.
@@ -838,6 +842,7 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
@@ -1547,6 +1552,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
+    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
@@ -3081,6 +3087,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
+    "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
 )
 
 

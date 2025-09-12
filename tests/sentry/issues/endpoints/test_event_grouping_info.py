@@ -87,7 +87,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
                     stacktrace_component = exception_component_subcomponent
                     for frame_component in stacktrace_component["values"]:
                         for frame_component_subcomponent in frame_component["values"]:
-                            if frame_component_subcomponent["id"] == "context-line":
+                            if frame_component_subcomponent["id"] == "context_line":
                                 context_line_component = frame_component_subcomponent
                                 response_context_lines.append(context_line_component["values"][0])
 

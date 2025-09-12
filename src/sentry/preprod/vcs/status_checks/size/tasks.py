@@ -338,7 +338,13 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 check_data["conclusion"] = mapped_conclusion.value
 
             if target_url:
-                check_data["details_url"] = target_url
+                if target_url.startswith("http"):
+                    check_data["details_url"] = target_url
+                else:
+                    logger.warning(
+                        "preprod.status_checks.create.invalid_target_url",
+                        extra={"target_url": target_url},
+                    )
 
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)

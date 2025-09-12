@@ -75,15 +75,39 @@ class PreprodArtifactApiDeleteEvent(analytics.Event):
     artifact_id: str
 
 
-class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
-    type = "preprod_artifact.api.install_details"
+@analytics.eventclass("preprod_artifact.api.size_analysis_compare.get")
+class PreprodArtifactApiSizeAnalysisCompareGetEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    head_artifact_id: str
+    base_artifact_id: str
 
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("artifact_id"),
-    )
+
+@analytics.eventclass("preprod_artifact.api.size_analysis_compare.post")
+class PreprodArtifactApiSizeAnalysisComparePostEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    head_artifact_id: str
+    base_artifact_id: str
+
+
+@analytics.eventclass("preprod_artifact.api.install_details")
+class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
+@analytics.eventclass("preprod_artifact.api.size_analysis_compare_download")
+class PreprodArtifactApiSizeAnalysisCompareDownloadEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    head_size_metric_id: str
+    base_size_metric_id: str
 
 
 analytics.register(PreprodArtifactApiAssembleEvent)
@@ -97,3 +121,6 @@ analytics.register(PreprodArtifactApiRerunAnalysisEvent)
 analytics.register(PreprodArtifactApiAdminGetInfoEvent)
 analytics.register(PreprodArtifactApiAdminBatchDeleteEvent)
 analytics.register(PreprodArtifactApiDeleteEvent)
+analytics.register(PreprodArtifactApiSizeAnalysisCompareGetEvent)
+analytics.register(PreprodArtifactApiSizeAnalysisComparePostEvent)
+analytics.register(PreprodArtifactApiSizeAnalysisCompareDownloadEvent)
