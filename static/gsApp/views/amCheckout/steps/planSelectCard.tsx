@@ -31,6 +31,7 @@ function PlanSelectCard({
   plan,
   isSelected,
   onUpdate,
+  planValue,
   planName,
   planContent,
   price,
@@ -68,19 +69,28 @@ function PlanSelectCard({
       gap="md"
       padding="2xl"
     >
-      <Flex align="center" justify="between" gap="md">
-        <Flex align="center" gap={'sm'}>
+      <Row>
+        <PlanIconContainer>
           {adjustedPlanIcon}
-          <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
-            {planName}
-          </Heading>
-        </Flex>
-        {badge}
-      </Flex>
+          {badge}
+        </PlanIconContainer>
+        <StyledRadio
+          readOnly
+          id={plan.id}
+          aria-label={`${planName} plan`}
+          value={planValue}
+          checked={isSelected}
+          onClick={onPlanSelect}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              onPlanSelect();
+            }
+          }}
+        />
+      </Row>
       <div>
-        <Text size="md" variant={isSelected ? 'accent' : 'muted'}>
-          {description}
-        </Text>
+        <Title>{planName}</Title>
+        <Description isSelected={isSelected}>{description}</Description>
       </div>
       <div>
         <Price>{`$${price}`}</Price>
@@ -93,12 +103,32 @@ function PlanSelectCard({
 export default PlanSelectCard;
 
 const PlanOption = styled(Flex)<{isSelected?: boolean}>`
-  background: ${p => p.theme.background};
+  background: ${p => (p.isSelected ? `${p.theme.active}05` : p.theme.background)};
   color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => (p.isSelected ? p.theme.purple400 : p.theme.border)};
-  border-bottom: 3px solid ${p => (p.isSelected ? p.theme.purple400 : p.theme.border)};
+  border: 1px solid ${p => (p.isSelected ? p.theme.active : p.theme.border)};
   cursor: pointer;
+`;
+
+const Row = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const PlanIconContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
+`;
+
+const Description = styled('div')<{isSelected?: boolean}>`
+  color: ${p => (p.isSelected ? p.theme.activeText : p.theme.subText)};
 `;
 
 const Price = styled('span')`
