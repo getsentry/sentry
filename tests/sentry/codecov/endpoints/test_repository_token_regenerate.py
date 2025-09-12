@@ -92,8 +92,26 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data[0] == "Repository not found"
 
-    def test_scope_map_enforcement(self) -> None:
+    @patch(
+        "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
+    )
+    def test_scope_map_enforcement(self, mock_codecov_client_class) -> None:
         """Test that the scope map permissions are properly enforced"""
+        # Mock the Codecov API client to avoid actual API calls during permission testing
+        mock_graphql_response = {
+            "data": {
+                "regenerateRepositoryUploadToken": {
+                    "token": "codecov-generated-token-12345",
+                }
+            }
+        }
+
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
         # Create a user with only org:read permission
         user_with_read_only = self.create_user("readonly@test.com")
         self.create_member(
@@ -120,13 +138,13 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         self.login_as(user_with_read_only)
         response = self.client.post(url, data={})
         # Should not be a 403 Forbidden (permission denied)
-        assert response.status_code != 403
+        assert response.status_code == 200
 
         # Test that user with org:write can access the endpoint
         self.login_as(user_with_write)
         response = self.client.post(url, data={})
         # Should not be a 403 Forbidden (permission denied)
-        assert response.status_code != 403
+        assert response.status_code == 200
 
         # Test that user without permissions cannot access the endpoint
         self.login_as(user_without_permissions)
