@@ -203,8 +203,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                         )
                         break
 
-        total_outliers = int(totals_1_result["data"][0][f"count({function_parameter})"])
-        total_spans = int(totals_2_result["data"][0][f"count({function_parameter})"])
+        total_outliers = int(totals_1_result["data"][0]["count(span.duration)"])
+        total_spans = int(totals_2_result["data"][0]["count(span.duration)"])
         total_baseline = total_spans - total_outliers
 
         scored_attrs_rrf = keyed_rrf_score(
