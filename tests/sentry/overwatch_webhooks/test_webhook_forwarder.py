@@ -2,11 +2,11 @@ from unittest.mock import MagicMock, patch
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.overwatch_webhooks.consent_checks import (
-    EVENTS_TO_FORWARD_OVERWATCH,
+from sentry.overwatch_webhooks.models import OrganizationSummary, WebhookDetails
+from sentry.overwatch_webhooks.webhook_forwarder import (
+    GITHUB_EVENTS_TO_FORWARD_OVERWATCH,
     OverwatchGithubWebhookForwarder,
 )
-from sentry.overwatch_webhooks.models import OrganizationSummary, WebhookDetails
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -30,7 +30,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
     def test_should_forward_to_overwatch_with_valid_events(self):
         """Test that should_forward_to_overwatch returns True for valid events."""
-        for event_action in EVENTS_TO_FORWARD_OVERWATCH:
+        for event_action in GITHUB_EVENTS_TO_FORWARD_OVERWATCH:
             event = {"action": event_action}
             assert self.forwarder.should_forward_to_overwatch(event) is True
 
@@ -227,11 +227,11 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             # Verify all organizations are included
             assert isinstance(call_args, WebhookDetails)
             assert len(call_args.organizations) == 3
-            org_names = {org.name for org in call_args.organizations}
-            assert org_names == {"Org 1", "Org 2", "Org 3"}
+            org_names = {org.slug for org in call_args.organizations}
+            assert org_names == {"org-1", "org-2", "org-3"}
             assert call_args.webhook_body == event
 
-    @patch("sentry.overwatch_webhooks.consent_checks.OverwatchWebhookPublisher")
+    @patch("sentry.overwatch_webhooks.webhook_forwarder.OverwatchWebhookPublisher")
     def test_publisher_initialization_with_mocked_publisher(self, mock_publisher_class):
         """Test that publisher is initialized correctly with mocked publisher."""
         mock_publisher_instance = MagicMock()
@@ -255,7 +255,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             organization.save()
 
         # Test each valid event action
-        for action in EVENTS_TO_FORWARD_OVERWATCH:
+        for action in GITHUB_EVENTS_TO_FORWARD_OVERWATCH:
             event = {"action": action, "test_data": f"data_for_{action}"}
 
             with patch.object(self.forwarder.publisher, "enqueue_webhook") as mock_enqueue:

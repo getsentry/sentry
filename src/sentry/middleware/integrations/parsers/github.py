@@ -17,7 +17,7 @@ from sentry.integrations.github.webhook import (
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.overwatch_webhooks.consent_checks import OverwatchGithubWebhookForwarder
+from sentry.overwatch_webhooks.webhook_forwarder import OverwatchGithubWebhookForwarder
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 

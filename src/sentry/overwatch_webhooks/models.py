@@ -35,6 +35,7 @@ class OrganizationSummary:
 class WebhookDetails:
     organizations: list[OrganizationSummary]
     webhook_body: dict[str, Any]
+    integration_provider: str
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
