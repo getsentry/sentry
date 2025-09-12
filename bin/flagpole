@@ -3,7 +3,6 @@
 import argparse
 import sys
 
-import click
 import yaml
 
 from flagpole import Feature
@@ -11,34 +10,47 @@ from flagpole.evaluation_context import EvaluationContext
 from sentry.utils import json
 
 
+def output(template, *args):
+    print(template, *args)  # noqa: S002
+
+
 def main():
     args = get_arguments()
 
-    click.echo("Evaluating a flag:")
-    click.echo("    File: ", args.get("flagpole_file"))
-    click.echo("    Flag Name: ", args.get("flag_name"))
-    click.echo("    Evaluation Context: ", args.get("context"))
-    click.echo("")
+    output("Evaluating a flag:")
+    output("    File: ", args.get("flagpole_file"))
+    output("    Flag Name: ", args.get("flag_name"))
+    output("    Evaluation Context: ", args.get("context"))
+    output("")
 
     evaluate_flag(args.get("flag_name"), args.get("flagpole_file"), args.get("context"))
 
 
 def get_arguments():
-    parser = argparse.ArgumentParser(description="Evaluate a flagpole flag.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate a flagpole flag.",
+        epilog="""
+Examples:
+    %(prog)s --flagpole-file config/flagpole.yaml --flag-name my-feature-flag
+    %(prog)s --flagpole-file config/flagpole.yaml --flag-name my-feature-flag --context '{"user_id": 123}'
+    %(prog)s --flagpole-file config/flagpole.yaml --flag-name my-feature-flag '{"user_id": 123, "organization_id": 456}'
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--flagpole-file",
         required=True,
-        help="Path to the flagpole.yaml file.",
+        help="Path to the flagpole.yaml file containing flag definitions.",
     )
     parser.add_argument(
         "--flag-name",
         required=True,
-        help="Name of the flag to evaluate.",
+        help="Name of the flag to evaluate from the flagpole file.",
     )
     parser.add_argument(
         "--context",
         required=False,
-        help="Context to evaluate the flag against.",
+        help="JSON context object to evaluate the flag against (e.g., '{\"user_id\": 123}').",
     )
     (args, extra) = parser.parse_known_args()
 
@@ -52,16 +64,16 @@ def get_arguments():
             context = {}
 
     return {
+        "context": context,
         "flag_name": args.flag_name,
         "flagpole_file": args.flagpole_file,
-        "context": context,
     }
 
 
 def evaluate_flag(flag_name, flagpole_file, context):
     if not flag_name:
-        click.echo("Error: Flag name is required")
-        click.echo("")
+        output("Error: Flag name is required")
+        output("")
         sys.exit(1)
 
     with open(flagpole_file) as f:
@@ -73,7 +85,7 @@ def evaluate_flag(flag_name, flagpole_file, context):
         feature = Feature.from_feature_dictionary(flag_name, dfn)
 
         context = EvaluationContext(context)
-        click.echo(feature.match(context))
+        output(feature.match(context))
 
 
 if __name__ == "__main__":
