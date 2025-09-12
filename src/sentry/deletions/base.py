@@ -144,6 +144,7 @@ class BaseDeletionTask(Generic[ModelT]):
         This **should** not be called with arbitrary types, but rather should
         be used for only the base type this task was instantiated against.
         """
+        print(f"BaseDeletionTask.delete_bulk ({self.model.__name__})")
         self.mark_deletion_in_progress(instance_list)
 
         child_relations = self.get_child_relations_bulk(instance_list)
@@ -169,10 +170,12 @@ class BaseDeletionTask(Generic[ModelT]):
         raise NotImplementedError
 
     def delete_instance_bulk(self, instance_list: Sequence[ModelT]) -> None:
+        print(f"ModelDeletionTask.delete_instance_bulk ({self.model.__name__})")
         for instance in instance_list:
             self.delete_instance(instance)
 
     def delete_children(self, relations: list[BaseRelation]) -> bool:
+        print(f"ModelDeletionTask.delete_children ({self.model.__name__})")
         return _delete_children(self.manager, relations, self.transaction_id, self.actor_id)
 
     def mark_deletion_in_progress(self, instance_list: Sequence[ModelT]) -> None:
@@ -220,6 +223,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if all matching entities have been removed.
         """
+        print(f"ModelDeletionTask.chunk ({self.model.__name__})")
         query_limit = self.query_limit
         remaining = self.chunk_size
 
@@ -246,6 +250,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         return True
 
     def delete_instance(self, instance: ModelT) -> None:
+        print(f"ModelDeletionTask.delete_instance ({self.model.__name__})")
         instance_id = instance.id
         try:
             instance.delete()
@@ -286,9 +291,11 @@ class BulkModelDeletionTask(ModelDeletionTask[ModelT]):
     DEFAULT_CHUNK_SIZE = 10000
 
     def chunk(self, apply_filter: bool = False) -> bool:
+        print(f"BulkModelDeletionTask.chunk ({self.model.__name__})")
         return self._delete_instance_bulk()
 
     def _delete_instance_bulk(self) -> bool:
+        print(f"BulkModelDeletionTask._delete_instance_bulk ({self.model.__name__})")
         try:
             with unguarded_write(using=router.db_for_write(self.model)):
                 return bulk_delete_objects(
