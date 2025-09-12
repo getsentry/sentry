@@ -787,7 +787,7 @@ class ExhaustiveFixtures(Fixtures):
             provider="slack", name=f"Slack for {org.slug}", external_id=f"slack:{org.slug}"
         )
         return OrganizationIntegration.objects.create(
-            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
+            organization_id=org.id, integration=integration, config={"hello": "hello"}
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
