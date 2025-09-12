@@ -138,12 +138,6 @@ export const allOperators = [
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
   TermOperator.NOT_EQUAL,
-  TermOperator.CONTAINS,
-  TermOperator.DOES_NOT_CONTAIN,
-  TermOperator.STARTS_WITH,
-  TermOperator.DOES_NOT_START_WITH,
-  TermOperator.ENDS_WITH,
-  TermOperator.DOES_NOT_END_WITH,
 ] as const;
 
 const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
