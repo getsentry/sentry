@@ -187,31 +187,96 @@ class BaseNotification(abc.ABC):
             project: Project | None = getattr(self, "project", None)
             group: Group | None = getattr(self, "group", None)
 
-            event_classes = {
-                ExternalProviders.EMAIL: EmailNotificationSent,
-                ExternalProviders.SLACK: SlackIntegrationNotificationSent,
-                ExternalProviders.PAGERDUTY: PagerdutyIntegrationNotificationSent,
-                ExternalProviders.OPSGENIE: OpsgenieIntegrationNotificationSent,
-                ExternalProviders.DISCORD: DiscordIntegrationNotificationSent,
-                ExternalProviders.MSTEAMS: MSTeamsIntegrationNotificationSent,
-            }
+            def create_notification_sent_event(
+                provider: ExternalProviders,
+                organization_id: int,
+                project_id: int | None,
+                category: str,
+                actor_id: int | None,
+                user_id: int | None,
+                group_id: int | None,
+                id: int,
+                actor_type: str,
+                notification_uuid: str,
+                alert_id: int | None,
+            ) -> analytics.Event | None:
+                if provider == ExternalProviders.EMAIL:
+                    return EmailNotificationSent(
+                        organization_id=organization_id,
+                        project_id=project_id,
+                        category=category,
+                        actor_id=actor_id,
+                        user_id=user_id,
+                        group_id=group_id,
+                        id=id,
+                        actor_type=actor_type,
+                        notification_uuid=notification_uuid,
+                        alert_id=alert_id,
+                    )
+                elif provider == ExternalProviders.SLACK:
+                    return SlackIntegrationNotificationSent(
+                        organization_id=organization_id,
+                        project_id=project_id,
+                        category=category,
+                        actor_id=actor_id,
+                        user_id=user_id,
+                        group_id=group_id,
+                        notification_uuid=notification_uuid,
+                        alert_id=alert_id,
+                        actor_type=actor_type,
+                    )
+                elif provider == ExternalProviders.PAGERDUTY:
+                    return PagerdutyIntegrationNotificationSent(
+                        organization_id=organization_id,
+                        project_id=project_id,
+                        category=category,
+                        group_id=group_id,
+                        notification_uuid=notification_uuid,
+                        alert_id=alert_id,
+                    )
+                elif provider == ExternalProviders.OPSGENIE:
+                    return OpsgenieIntegrationNotificationSent(
+                        organization_id=organization_id,
+                        project_id=project_id,
+                        category=category,
+                        group_id=group_id,
+                        notification_uuid=notification_uuid,
+                        alert_id=alert_id,
+                    )
+                elif provider == ExternalProviders.DISCORD:
+                    return DiscordIntegrationNotificationSent(
+                        organization_id=organization_id,
+                        project_id=project_id,
+                        category=category,
+                        group_id=group_id,
+                        notification_uuid=notification_uuid,
+                        alert_id=alert_id,
+                    )
+                elif provider == ExternalProviders.MSTEAMS:
+                    return MSTeamsIntegrationNotificationSent(
+                        organization_id=organization_id,
+                        project_id=project_id,
+                        category=category,
+                        actor_id=actor_id,
+                        user_id=user_id,
+                        notification_uuid=notification_uuid,
+                        alert_id=alert_id,
+                    )
+                return None
 
             try:
-                event = (
-                    event_classes[provider](
-                        organization_id=self.organization.id,
-                        project_id=project.id if project else None,
-                        category=self.metrics_key,
-                        actor_id=recipient.id if recipient.is_user else None,
-                        user_id=recipient.id if recipient.is_user else None,
-                        group_id=group.id if group else None,
-                        id=recipient.id,
-                        actor_type=recipient.actor_type,
-                        notification_uuid=self.notification_uuid,
-                        alert_id=self.alert_id if self.alert_id else None,
-                    )
-                    if provider in event_classes
-                    else None
+                event = create_notification_sent_event(
+                    provider,
+                    organization_id=self.organization.id,
+                    project_id=project.id if project else None,
+                    category=self.metrics_key,
+                    actor_id=recipient.id if recipient.is_user else None,
+                    user_id=recipient.id if recipient.is_user else None,
+                    group_id=group.id if group else None,
+                    id=recipient.id,
+                    actor_type=recipient.actor_type,
+                    notification_uuid=self.notification_uuid,
+                    alert_id=self.alert_id if self.alert_id else None,
                 )
 
                 if event is not None:
