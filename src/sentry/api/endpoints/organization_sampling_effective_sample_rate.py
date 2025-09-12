@@ -53,8 +53,6 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:dynamic-sampling", organization, actor=request.user):
-            # Maintain parity with previous serializer logic that only exposed
-            # effective sample rate when the org had dynamic sampling enabled.
             raise ResourceDoesNotExist
 
         org_volume = get_organization_volume(organization.id, time_interval=timedelta(hours=24))
