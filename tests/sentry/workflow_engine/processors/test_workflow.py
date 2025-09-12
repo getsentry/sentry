@@ -439,8 +439,10 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     @patch.object(get_data_conditions_for_group, "batch")
     def test_batched_data_condition_lookup_is_used(self, mock_batch):
         """Test that batch lookup is used when evaluating multiple workflows."""
-        workflow_two, _, _, triggers_two = self.create_detector_and_workflow(name_prefix="two")
+        workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
 
+        assert self.workflow.when_condition_group
+        assert workflow_two.when_condition_group
         # Mock the batch method to return the expected data
         mock_batch.return_value = [
             list(self.workflow.when_condition_group.conditions.all()),
