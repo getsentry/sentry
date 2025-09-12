@@ -24,6 +24,13 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - run: mkdir covdata && cp .coverage* covdata
+      shell: bash
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.job }}-${{ inputs.matrix_instance_number || 'unknown' }}
+        path: covdata/*
+        include-hidden-files: true
     - name: Collect test data
       uses: getsentry/action-collect-test-data@ac0b9ecb5dc7437c113051e4e6a70012ff02c6dc # 0.4.1
       with:
