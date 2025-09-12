@@ -229,7 +229,6 @@ def incident_attachment_info(
         title_link_params["notification_uuid"] = notification_uuid
 
     from sentry.incidents.grouptype import MetricIssue
-    from sentry.incidents.models import Incident
 
     # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
     if should_fire_workflow_actions(organization, MetricIssue.type_id):
