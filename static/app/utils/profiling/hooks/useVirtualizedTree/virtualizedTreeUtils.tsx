@@ -182,6 +182,18 @@ export interface VirtualizedTreeRenderedRow<T> {
   styles: React.CSSProperties;
 }
 
+export interface VirtualizedTreeRenderedRowHandlers<T> {
+  handleExpandTreeNode: (
+    node: VirtualizedTreeNode<T>,
+    expand: boolean,
+    opts?: {expandChildren: boolean}
+  ) => void;
+  handleRowClick: (evt: React.MouseEvent<HTMLElement>) => void;
+  handleRowKeyDown: (event: React.KeyboardEvent) => void;
+  handleRowMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
+  selectedNodeIndex: number | null;
+}
+
 export function findRenderedItems<T extends TreeLike>({
   items,
   overscroll,
