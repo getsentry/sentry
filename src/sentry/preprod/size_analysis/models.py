@@ -47,7 +47,6 @@ class DiffType(str, Enum):
     REMOVED = "removed"
     INCREASED = "increased"
     DECREASED = "decreased"
-    UNCHANGED = "unchanged"
 
 
 class DiffItem(BaseModel):
