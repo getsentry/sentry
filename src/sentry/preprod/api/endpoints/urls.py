@@ -23,6 +23,7 @@ from .project_preprod_artifact_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
 from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
+from .project_preprod_artifact_user_download import ProjectPreprodArtifactUserDownloadEndpoint
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
 from .project_preprod_list_builds import ProjectPreprodListBuildsEndpoint
@@ -69,11 +70,15 @@ preprod_urlpatterns = [
         name="sentry-api-0-project-preprod-artifact-delete",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/download/$",
+        ProjectPreprodArtifactUserDownloadEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-user-download",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/installablepreprodartifact/(?P<url_path>[^/]+)/$",
         ProjectInstallablePreprodArtifactDownloadEndpoint.as_view(),
         name="sentry-api-0-installable-preprod-artifact-download",
     ),
-    # Size analysis
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/$",
         ProjectPreprodArtifactSizeAnalysisCompareEndpoint.as_view(),
