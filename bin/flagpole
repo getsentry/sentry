@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import dataclasses
 import sys
 from pathlib import Path
 
@@ -11,11 +12,11 @@ from flagpole.evaluation_context import EvaluationContext
 from sentry.utils import json
 
 
-def output(template, *args):
-    print(template, *args)  # noqa: S002
+def output(*args):
+    print(*args)  # noqa: S002
 
 
-def main():
+def main() -> None:
     args = get_arguments()
 
     indent = "    "
@@ -26,6 +27,7 @@ def main():
     output(indent, args.get("flag_name"))
     output("")
     output("Evaluation Context:")
+
     output(indent, args.get("context"))
     output("")
 
@@ -39,9 +41,19 @@ def main():
     output("Definition:")
     output(feature.to_yaml_str())
 
+    try:
+        eval_context = EvaluationContext(args.get("context"))
+        (result, involves_rollout, segment) = evaluate_flag(feature, eval_context)
+    except Exception as e:
+        output("Unable to eval. Check your context value")
+        output(e)
+        sys.exit(1)
+
     output("Result:")
-    result = evaluate_flag(feature, args.get("context"))
-    output(indent, result)
+    output(indent, result, "(depends on rollout)" if involves_rollout else None)
+    if segment:
+        output("Passing Segment:")
+        output(indent, segment.name)
 
 
 def get_arguments() -> dict:
@@ -99,9 +111,20 @@ def read_feature(flag_name: str, flagpole_file: str) -> Feature:
         return feature
 
 
-def evaluate_flag(feature: Feature, context: object):
-    context = EvaluationContext(context)
-    return feature.match(context)
+def evaluate_flag(feature: Feature, context: EvaluationContext) -> bool:
+    real_result = feature.match(context)
+
+    involves_rollout = False
+    for segment in feature.segments:
+        involves_rollout = involves_rollout or segment.rollout != 100
+
+    for segment in feature.segments:
+        test = dataclasses.replace(feature, segments=[segment])
+        segment.rollout = 100
+        if test.match(context):
+            return (real_result, involves_rollout, segment)
+
+    return (real_result, involves_rollout, None)
 
 
 if __name__ == "__main__":
