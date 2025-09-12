@@ -10,7 +10,6 @@ from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from rest_framework.request import Request
 
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
@@ -75,12 +74,12 @@ class OAuthAuthorizeView(AuthLoginView):
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
-    def respond_login(self, request: Request, context, **kwargs):
+    def respond_login(self, request: HttpRequest, context, **kwargs):
         application = kwargs["application"]  # required argument
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: Request, **kwargs) -> HttpResponseBase:
+    def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -111,7 +110,26 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
+        # Spec references:
+        #   - RFC 6749 §3.1.2.3 (Redirection Endpoint): redirect_uri must match a pre-registered value; if
+        #     multiple redirect URIs are registered, the client MUST include redirect_uri in the request.
+        #     https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
+        #   - RFC 8252 §8.4 (Native Apps): loopback redirect considerations (ephemeral ports).
+        #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
         if not redirect_uri:
+            # If multiple redirect URIs are registered, require the client to provide an
+            # exact redirect_uri.
+            # See RFC 6749 §3.1.2.3: https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
+            uris = application.get_redirect_uris()
+            if len(uris) != 1:
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    err_response="redirect_uri",
+                )
             redirect_uri = application.get_default_redirect_uri()
         elif not application.is_valid_redirect_uri(redirect_uri):
             return self.error(
@@ -251,7 +269,7 @@ class OAuthAuthorizeView(AuthLoginView):
         return self.respond("sentry/oauth-authorize.html", context)
 
     def _logged_out_post(
-        self, request: Request, application: ApiApplication, **kwargs: Any
+        self, request: HttpRequest, application: ApiApplication, **kwargs: Any
     ) -> HttpResponseBase:
         # subtle indirection to avoid "unreachable" after `.is_authenticated` below
         # since `.post()` mutates `request.user`
@@ -262,7 +280,7 @@ class OAuthAuthorizeView(AuthLoginView):
             request.session.modified = True
         return response
 
-    def post(self, request: Request, **kwargs) -> HttpResponseBase:
+    def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         try:
             payload = request.session["oa2"]
         except KeyError:

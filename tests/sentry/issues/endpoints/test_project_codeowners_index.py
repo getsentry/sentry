@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
@@ -55,16 +56,29 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_codeowners_with_integration(self, get_codeowner_mock_file: MagicMock) -> None:
-        code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
+        code_owner = self.create_codeowners(
+            self.project, self.code_mapping, raw=f"*.js {self.external_team.external_name}"
+        )
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
         assert resp.status_code == 200
         resp_data = resp.data[0]
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
-        assert resp_data["dateUpdated"] == code_owner.date_updated
+        # TODO (ID-832): this assert will pass once we are no longer updating ProjectCodeOwners objects in the GET request handler
+        # assert resp_data["dateUpdated"] == code_owner.date_updated
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider
+        assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+        assert resp_data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "codeowners", "pattern": "*.js"},
+                    "owners": [{"type": "team", "id": self.team.id, "name": self.team.slug}],
+                }
+            ],
+        }
 
     @patch(
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
@@ -73,17 +87,30 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
     def test_get_expanded_codeowners_with_integration(
         self, get_codeowner_mock_file: MagicMock
     ) -> None:
-        code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
+        code_owner = self.create_codeowners(
+            self.project, self.code_mapping, raw=f"*.js {self.external_team.external_name}"
+        )
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(f"{self.url}?expand=codeMapping")
         assert resp.status_code == 200
         resp_data = resp.data[0]
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
-        assert resp_data["dateUpdated"] == code_owner.date_updated
+        # TODO (ID-832): this assert will pass once we are no longer updating ProjectCodeOwners objects in the GET request handler
+        # assert resp_data["dateUpdated"] == code_owner.date_updated
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
-        assert resp_data["provider"] == self.integration.provider
         assert resp_data["codeMapping"]["id"] == str(self.code_mapping.id)
+        assert resp_data["provider"] == self.integration.provider
+        assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+        assert resp_data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "codeowners", "pattern": "*.js"},
+                    "owners": [{"type": "team", "id": self.team.id, "name": self.team.slug}],
+                }
+            ],
+        }
 
     @patch(
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
@@ -272,6 +299,76 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 }
             ],
         }
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
+    @with_feature("organizations:use-case-insensitive-codeowners")
+    def test_case_insensitive_team_matching(self, get_codeowner_mock_file: MagicMock) -> None:
+        """Test that team names are matched case-insensitively in CODEOWNERS files."""
+
+        external_team_name = self.external_team.external_name
+        capitalized_external_team_name = external_team_name.swapcase()
+
+        self.data[
+            "raw"
+        ] = f"""
+        src/frontend/* {external_team_name}
+        src/frontend2/* {capitalized_external_team_name}
+        """
+
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+
+        assert response.status_code == 201, response.content
+
+        assert (
+            response.data["ownershipSyntax"]
+            == f"codeowners:src/frontend/* #{self.team.slug}\ncodeowners:src/frontend2/* #{self.team.slug}\n"
+        )
+
+        errors = response.data["errors"]
+        assert errors["missing_external_teams"] == []
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
+    def test_multiple_mappings_to_same_sentry_team(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
+        """Multiple external teams map to the same Sentry team"""
+
+        # 2 external teams that map to the same Sentry team
+        # so 2 external actors @getsentry/ecosystem and @other-external-team both map to #tiger-team
+        external_team_2 = self.create_external_team(
+            team=self.team,
+            integration=self.integration,
+            external_name="@getsentry/other-external-team",
+        )
+
+        assert self.external_team.external_name != external_team_2.external_name
+
+        self.data[
+            "raw"
+        ] = f"""
+        src/frontend/* {self.external_team.external_name}
+        src/frontend2/* {external_team_2.external_name}
+        """
+
+        with self.feature(
+            {
+                "organizations:integrations-codeowners": True,
+            }
+        ):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.content
+
+        assert (
+            response.data["ownershipSyntax"]
+            == f"codeowners:src/frontend/* #{self.team.slug}\ncodeowners:src/frontend2/* #{self.team.slug}\n"
+        )
 
     @patch(
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",

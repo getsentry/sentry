@@ -112,7 +112,6 @@ class EapCheckEntry:
     """
 
     uptime_check_id: str
-    uptime_monitor_id: int
     timestamp: datetime
     scheduled_check_time: datetime
     check_status: CheckStatus
@@ -146,7 +145,3 @@ class UptimeMonitorMode(enum.IntEnum):
     AUTO_DETECTED_ONBOARDING = 2
     # Auto-detected by our system and actively monitoring
     AUTO_DETECTED_ACTIVE = 3
-
-
-# TODO(epurkhiser): interop with getsentry
-ProjectUptimeSubscriptionMode = UptimeMonitorMode

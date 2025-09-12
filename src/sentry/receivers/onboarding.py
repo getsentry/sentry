@@ -7,6 +7,7 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.analytics.events.first_cron_checkin_sent import FirstCronCheckinSent
 from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
@@ -22,6 +23,7 @@ from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.analytics.events.first_sourcemaps_sent import FirstSourcemapsSentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
 from sentry.constants import InsightModules
@@ -107,15 +109,19 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             # XXX(dcramer): we cannot setup onboarding tasks without a user
             return
 
-    analytics.record(
-        "project.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        origin=origin,
-        project_id=project.id,
-        platform=project.platform,
-    )
+    try:
+        analytics.record(
+            ProjectCreatedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                origin=origin,
+                project_id=project.id,
+                platform=project.platform,
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
     completed = complete_onboarding_task(
         organization=project.organization,
@@ -279,22 +285,24 @@ def record_first_new_feedback(project, **kwargs):
 @first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
 def record_first_cron_monitor(project, user, from_upsert, **kwargs):
     analytics.record(
-        "first_cron_monitor.created",
-        user_id=get_owner_id(project, user),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        from_upsert=from_upsert,
+        FirstCronMonitorCreated(
+            user_id=get_owner_id(project, user),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            from_upsert=from_upsert,
+        )
     )
 
 
 @cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_cron_monitor_created")
 def record_cron_monitor_created(project, user, from_upsert, **kwargs):
     analytics.record(
-        "cron_monitor.created",
-        user_id=get_owner_id(project, user),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        from_upsert=from_upsert,
+        CronMonitorCreated(
+            user_id=get_owner_id(project, user),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            from_upsert=from_upsert,
+        )
     )
 
 

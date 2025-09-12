@@ -292,6 +292,7 @@ export enum FieldValueType {
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
+  SMALL_INTEGER = 'small_integer', // Value suggestions are 1-1000.
 }
 
 export enum WebVital {
@@ -1047,6 +1048,12 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.FAILURE_RATE,
 ];
 
+export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
+  ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey.COUNT_IF,
+  AggregationKey.APDEX,
+];
+
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   [AggregationKey.COUNT]: {
@@ -1240,6 +1247,54 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.PERCENTAGE,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.COUNT_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_IF],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: () => {
+          return true;
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: 'greater',
+        options: CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.APDEX]: {
+    ...AGGREGATION_FIELDS[AggregationKey.APDEX],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([FieldValueType.DURATION]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.NUMBER,
+        defaultValue: '300',
         required: true,
       },
     ],
@@ -2587,7 +2642,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
     desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
@@ -2602,47 +2657,47 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.COUNT_DEAD_CLICKS]: {
     desc: t('Number of dead clicks in the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.COUNT_RAGE_CLICKS]: {
     desc: t('Number of rage clicks in the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.COUNT_ERRORS]: {
     desc: t('Number of issues in the replay with level=error'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.COUNT_INFOS]: {
     desc: t('Number of issues in the replay with level=info'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.COUNT_SCREENS]: {
     desc: t('Number of screens visited within the replay. Alias of count_urls.'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.COUNT_SEGMENTS]: {
     desc: t('Number of segments in the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.COUNT_TRACES]: {
     desc: t('Number of traces in the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.COUNT_URLS]: {
     desc: t('Number of urls visited within the replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.COUNT_WARNINGS]: {
     desc: t('Number of issues in the replay with level=warning'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.SMALL_INTEGER,
   },
   [ReplayFieldKey.DURATION]: {
     desc: t('Duration of the replay, in seconds'),

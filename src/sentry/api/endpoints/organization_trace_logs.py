@@ -107,8 +107,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         try:
-            # The trace view isn't useful without global views, so skipping the check here
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -119,7 +118,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         if len(trace_ids) == 0:
             raise ParseError("Need to pass at least one traceId")
 
-        orderby = request.GET.getlist("orderby", ["-timestamp", "-timestamp_precise"])
+        orderby = request.GET.getlist("sort", ["-timestamp", "-timestamp_precise"])
         additional_query = request.GET.get("query")
 
         update_snuba_params_with_timestamp(request, snuba_params)

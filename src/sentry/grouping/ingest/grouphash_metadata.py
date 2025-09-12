@@ -419,7 +419,7 @@ def _get_stacktrace_hashing_metadata(
         ),
         "num_stacktraces": (
             len(contributing_component.values)
-            if contributing_component.id == "chained-exception"
+            if contributing_component.id == "chained_exception"
             else 1
         ),
     }
@@ -532,8 +532,8 @@ def _get_template_hashing_metadata(
 
     if subcomponents_by_id["filename"].values:
         metadata["template_name"] = subcomponents_by_id["filename"].values[0]
-    if subcomponents_by_id["context-line"].values:
-        metadata["template_context_line"] = subcomponents_by_id["context-line"].values[0]
+    if subcomponents_by_id["context_line"].values:
+        metadata["template_context_line"] = subcomponents_by_id["context_line"].values[0]
 
     return metadata
 

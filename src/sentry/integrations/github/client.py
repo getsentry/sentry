@@ -31,7 +31,7 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -425,7 +425,7 @@ class GitHubBaseClient(
 
         return should_count_error
 
-    def get_repos(self) -> list[dict[str, Any]]:
+    def get_repos(self, page_number_limit: int | None = None) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -433,7 +433,11 @@ class GitHubBaseClient(
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self._get_with_pagination("/installation/repositories", response_key="repositories")
+        return self._get_with_pagination(
+            "/installation/repositories",
+            response_key="repositories",
+            page_number_limit=page_number_limit,
+        )
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
@@ -535,10 +539,13 @@ class GitHubBaseClient(
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        """
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         response = self.get(endpoint)
-        reactions = response["reactions"]
-        del reactions["url"]
+        reactions = response.get("reactions", {})
+        reactions.pop("url", None)
         return reactions
 
     def get_user(self, gh_username: str) -> Any:
@@ -648,10 +655,23 @@ class GitHubBaseClient(
             # usually a missing repo/branch/file which is expected with wrong configurations.
             # If data is not present, the query may be formed incorrectly, so raise an error.
             if not response.get("data"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in response.get("errors", [])]
-                )
+                err_message = ""
+                for error in response.get("errors", []):
+                    err = error.get("message", "")
+                    err_message += err + "\n"
+
+                    if err and "something went wrong" in err.lower():
+                        raise UnknownHostError(err)
+
                 raise ApiError(err_message)
+
+        detail = str(response.get("detail", ""))
+        if detail and "internal error" in detail.lower():
+            errorId = response.get("errorId", "")
+            logger.info(
+                "github.get_blame_for_files.host_error", extra={**log_info, "errorId": errorId}
+            )
+            raise UnknownHostError("Something went wrong when communicating with GitHub")
 
         return extract_commits_from_blame_response(
             response=response,

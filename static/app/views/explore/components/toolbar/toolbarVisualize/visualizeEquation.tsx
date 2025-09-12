@@ -8,14 +8,14 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  ALLOWED_EXPLORE_EQUATION_AGGREGATES,
   FieldKind,
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
-import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
+import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeEquationProps {
   onDelete: () => void;
@@ -78,7 +78,7 @@ export function VisualizeEquation({
   return (
     <ToolbarRow>
       <ArithmeticBuilder
-        aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+        aggregations={ALLOWED_EXPLORE_EQUATION_AGGREGATES}
         functionArguments={functionArguments}
         getFieldDefinition={getSpanFieldDefinition}
         expression={expression}

@@ -225,6 +225,8 @@ Then, use it to run sync this time:
                     "uv",
                     "sync",
                     "--frozen",
+                    # don't uninstall sentry/getsentry fast_editable shims
+                    "--inexact",
                     "--quiet",
                     "--active",
                 ),

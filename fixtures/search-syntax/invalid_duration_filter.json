@@ -17,8 +17,7 @@
         "value": {
           "quoted": false,
           "type": "valueText",
-          "value": ">..500s",
-          "wildcard": false
+          "value": ">..500s"
         }
       },
       {"type": "spaces", "value": ""}

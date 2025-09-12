@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -42,6 +43,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -51,9 +53,7 @@ import {
   useExploreFields,
   useExploreId,
   useExploreQuery,
-  useExploreVisualizes,
   useSetExplorePageParams,
-  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -65,8 +65,13 @@ import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeser
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
-import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsMode,
+  useQueryParamsVisualizes,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {SpansExport} from 'sentry/views/explore/spans/spansExport';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -399,8 +404,8 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
-  const visualizes = useExploreVisualizes();
-  const setVisualizes = useSetExploreVisualizes();
+  const visualizes = useQueryParamsVisualizes();
+  const setVisualizes = useSetQueryParamsVisualizes();
   const [tab, setTab] = useTab();
 
   const query = useExploreQuery();
@@ -488,20 +493,34 @@ function SpanTabContentSection({
 
   return (
     <ContentSection expanded={controlSectionExpanded}>
-      <ChevronButton
-        aria-label={controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')}
-        expanded={controlSectionExpanded}
-        size="xs"
-        icon={
-          <IconChevron
-            isDouble
-            direction={controlSectionExpanded ? 'left' : 'right'}
-            size="xs"
+      <OverChartButtonGroup>
+        <ChevronButton
+          aria-label={
+            controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')
+          }
+          expanded={controlSectionExpanded}
+          size="xs"
+          icon={
+            <IconChevron
+              isDouble
+              direction={controlSectionExpanded ? 'left' : 'right'}
+              size="xs"
+            />
+          }
+          onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
+        >
+          {controlSectionExpanded ? null : t('Advanced')}
+        </ChevronButton>
+        <Feature features="organizations:tracing-export-csv">
+          <SpansExport
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
           />
-        }
-        onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-      />
-      {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
+        </Feature>
+      </OverChartButtonGroup>
+      {!resultsLoading && !hasResults && (
+        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+      )}
       {defined(error) && (
         <Alert.Container>
           <Alert type="error">{error.message}</Alert>
@@ -638,10 +657,6 @@ const OnboardingContentSection = styled('section')`
 
 const ChevronButton = withChonk(
   styled(Button)<{expanded: boolean}>`
-    width: 28px;
-    border-left-color: ${p => p.theme.background};
-    border-top-left-radius: 0px;
-    border-bottom-left-radius: 0px;
     margin-bottom: ${space(1)};
     display: none;
 
@@ -650,28 +665,33 @@ const ChevronButton = withChonk(
     }
 
     ${p =>
-      p.expanded
-        ? css`
-            margin-left: -13px;
-          `
-        : css`
-            margin-left: -31px;
-          `}
+      p.expanded &&
+      css`
+        margin-left: -13px;
+        border-left-color: ${p.theme.background};
+        border-top-left-radius: 0px;
+        border-bottom-left-radius: 0px;
+      `}
   `,
   chonkStyled(Button)<{expanded: boolean}>`
     margin-bottom: ${space(1)};
     display: none;
-    margin-left: ${p => (p.expanded ? '-13px' : '-31px')};
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
       display: inline-flex;
     }
 
-    &::after {
-      border-left-color: ${p => p.theme.background};
-      border-top-left-radius: 0px;
-      border-bottom-left-radius: 0px;
-    }
+    ${p =>
+      p.expanded &&
+      css`
+        margin-left: -13px;
+
+        &::after {
+          border-left-color: ${p.theme.background};
+          border-top-left-radius: 0px;
+          border-bottom-left-radius: 0px;
+        }
+      `}
   `
 );
 

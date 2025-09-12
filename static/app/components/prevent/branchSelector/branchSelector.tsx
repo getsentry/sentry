@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 
 import {IconBranch} from './iconBranch';
 
-export const ALL_BRANCHES = 'All Branches';
+const ALL_BRANCHES = 'All Branches';
 
 export function BranchSelector() {
   const {branch, integratedOrgId, repository, preventPeriod, changeContextValue} =
@@ -26,15 +26,16 @@ export function BranchSelector() {
     term: searchValue,
   });
   const branches = data.branches;
-  const defaultBranch = data.defaultBranch;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
+      const newBranch =
+        selectedOption.value === ALL_BRANCHES ? null : selectedOption.value;
       changeContextValue({
         integratedOrgId,
         repository,
         preventPeriod,
-        branch: selectedOption.value,
+        branch: newBranch,
       });
     },
     [changeContextValue, integratedOrgId, repository, preventPeriod]
@@ -86,7 +87,7 @@ export function BranchSelector() {
 
   const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
-      if (!defaultBranch || !branch || branch === defaultBranch) {
+      if (!branch || branch === ALL_BRANCHES) {
         return null;
       }
 
@@ -97,25 +98,18 @@ export function BranchSelector() {
               integratedOrgId,
               repository,
               preventPeriod,
-              branch: defaultBranch,
+              branch: null,
             });
             closeOverlay();
           }}
           size="zero"
           borderless
         >
-          {t('Reset to default')}
+          {t('Reset to all branches')}
         </ResetButton>
       );
     },
-    [
-      branch,
-      integratedOrgId,
-      preventPeriod,
-      repository,
-      changeContextValue,
-      defaultBranch,
-    ]
+    [branch, integratedOrgId, preventPeriod, repository, changeContextValue]
   );
 
   function getEmptyMessage() {
@@ -140,7 +134,7 @@ export function BranchSelector() {
       disableSearchFilter
       searchPlaceholder={t('search by branch name')}
       options={options}
-      value={branch ?? ''}
+      value={branch ?? ALL_BRANCHES}
       onChange={handleChange}
       onOpenChange={_ => setSearchValue(undefined)}
       menuHeaderTrailingItems={branchResetButton}

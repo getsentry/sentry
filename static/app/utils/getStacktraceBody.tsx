@@ -1,12 +1,35 @@
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {Event} from 'sentry/types/event';
 
-export default function getStacktraceBody(
-  event: Event,
+type GetStacktraceBodyArgs = {
+  /** The Sentry event containing stack trace data. */
+  event: Event;
+  /** Whether the similarity embeddings feature is enabled. */
+  hasSimilarityEmbeddingsFeature?: boolean;
+  /** Whether to include source code context in stack trace frames for JavaScript. */
+  includeJSContext?: boolean;
+  /** Whether to include location (e.g. line number, column number) in stack trace frames. */
+  includeLocation?: boolean;
+  /** Whether to display the frames from newest to oldest. */
+  newestFirst?: boolean;
+  // If true, the generated stack trace will be in the default format for the platform.
+  // If false, the stack trace will be structured according to newestFirst.
+  rawTrace?: boolean;
+};
+
+/**
+ * Extracts and formats stack trace content from a Sentry event for display.
+ *
+ * @returns Array of formatted strings each representing a stack trace, one per exception found in the event.
+ */
+export default function getStacktraceBody({
+  event,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
-  includeJSContext = false
-) {
+  rawTrace = true,
+  newestFirst = true,
+  includeJSContext = false,
+}: GetStacktraceBodyArgs) {
   if (!event?.entries) {
     return [];
   }
@@ -38,14 +61,16 @@ export default function getStacktraceBody(
   return exc.data.values
     .filter((value: any) => !!value.stacktrace)
     .map((value: any) =>
-      rawStacktraceContent(
-        value.stacktrace,
-        event.platform,
-        value,
+      rawStacktraceContent({
+        data: value.stacktrace,
+        platform: event.platform,
+        exception: value,
         hasSimilarityEmbeddingsFeature,
         includeLocation,
-        includeJSContext
-      )
+        rawTrace,
+        newestFirst,
+        includeJSContext,
+      })
     )
     .reduce((acc: any, value: any) => acc.concat(value), []);
 }

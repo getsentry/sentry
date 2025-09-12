@@ -284,6 +284,11 @@ const appConfig: Configuration = {
     // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
     // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
     css: false,
+    // https://rspack.dev/config/experiments#experimentslazybarrel
+    lazyBarrel: true,
+    // https://rspack.dev/config/experiments#experimentsnativewatcher
+    // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
+    nativeWatcher: false,
   },
   module: {
     /**
@@ -550,19 +555,7 @@ const appConfig: Configuration = {
     // This only runs in production mode
     minimizer: [
       new rspack.LightningCssMinimizerRspackPlugin(),
-      new rspack.SwcJsMinimizerRspackPlugin({
-        minimizerOptions: {
-          compress: {
-            // We are turning off these 3 minifier options because it has caused
-            // unexpected behaviour. See the following issues for more details.
-            // - https://github.com/swc-project/swc/issues/10822
-            // - https://github.com/swc-project/swc/issues/10824
-            reduce_vars: false,
-            inline: 0,
-            collapse_vars: false,
-          },
-        },
-      }),
+      new rspack.SwcJsMinimizerRspackPlugin(),
     ],
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
@@ -609,6 +602,9 @@ if (
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
+      // since ngrok urls are public and can be accessed by anyone.
+      // '.ngrok.io',
     ],
     static: {
       directory: './src/sentry/static/sentry',

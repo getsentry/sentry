@@ -101,6 +101,7 @@ describe('LoaderScript', () => {
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
           otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+          otlp_logs: 'http://dev.getsentry.net:8000/api/1/otlp/v1/logs',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -176,7 +177,7 @@ describe('LoaderScript', () => {
 
     expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
-    expect(screen.getByText('Enable Debug Bundles & Logging')).toBeInTheDocument();
+    expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
     let performanceCheckbox = screen.getByRole('checkbox', {
       name: 'Enable Performance Monitoring',
@@ -191,7 +192,7 @@ describe('LoaderScript', () => {
     expect(replayCheckbox).toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Debug Bundles & Logging',
+      name: 'Enable SDK debugging',
     });
     expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).not.toBeChecked();
@@ -242,6 +243,7 @@ describe('LoaderScript', () => {
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
           otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+          otlp_logs: 'http://dev.getsentry.net:8000/api/1/otlp/v1/logs',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -302,7 +304,7 @@ describe('LoaderScript', () => {
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Debug Bundles & Logging',
+        name: 'Enable SDK debugging',
         checked: false,
       })
     ).toHaveLength(2);
@@ -335,7 +337,7 @@ describe('LoaderScript', () => {
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Debug Bundles & Logging',
+        name: 'Enable SDK debugging',
         checked: false,
       })
     ).toHaveLength(2);

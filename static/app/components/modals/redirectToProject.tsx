@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Text from 'sentry/components/text';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -66,24 +66,22 @@ class RedirectToProjectModal extends Component<Props, State> {
 
         <Body>
           <div>
-            <Text>
-              <p>{t('The project slug has been changed.')}</p>
+            <Text>{t('The project slug has been changed.')}</Text>
 
-              <p>
-                {tct(
-                  'You will be redirected to the new project [project] in [timer] seconds...',
-                  {
-                    project: <strong>{slug}</strong>,
-                    timer: `${this.state.timer}`,
-                  }
-                )}
-              </p>
-              <ButtonWrapper>
-                <LinkButton priority="primary" href={this.newPath}>
-                  {t('Continue to %s', slug)}
-                </LinkButton>
-              </ButtonWrapper>
+            <Text>
+              {tct(
+                'You will be redirected to the new project [project] in [timer] seconds...',
+                {
+                  project: <strong>{slug}</strong>,
+                  timer: `${this.state.timer}`,
+                }
+              )}
             </Text>
+            <ButtonWrapper>
+              <LinkButton priority="primary" href={this.newPath}>
+                {t('Continue to %s', slug)}
+              </LinkButton>
+            </ButtonWrapper>
           </div>
         </Body>
       </Fragment>

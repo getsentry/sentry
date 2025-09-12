@@ -125,7 +125,6 @@ package.json                                             @getsentry/owners-js-de
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
 ## Design
-/static/app/icons/                                       @getsentry/design
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
 
@@ -287,6 +286,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 /static/app/views/discover/                                               @getsentry/explore
 /static/app/utils/discover/                                               @getsentry/explore
+/static/app/utils/timeSeries/                                             @getsentry/visibility
 ## Endof Visibility
 
 
@@ -357,6 +357,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/components/analyticsArea.tsx       @getsentry/app-frontend
 /static/app/components/events/interfaces/      @getsentry/app-frontend
 /static/app/components/forms/                  @getsentry/app-frontend
+/static/app/locale.tsx                         @getsentry/app-frontend
 ## End of Frontend
 
 # Workflow engine
@@ -385,6 +386,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/pipeline/                                                @getsentry/ecosystem
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
+/src/sentry/workflow_engine/tasks/actions.py                         @getsentry/ecosystem
 
 /src/sentry/users/models/identity.py                                 @getsentry/enterprise
 

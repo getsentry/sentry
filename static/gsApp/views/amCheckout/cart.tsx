@@ -7,21 +7,20 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {IconLightning, IconLock} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
+import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
   InvoiceItemType,
   OnDemandBudgetMode,
   type Plan,
   type PreviewData,
-  type Promotion,
   type Subscription,
 } from 'getsentry/types';
 import {
@@ -31,7 +30,8 @@ import {
   hasPartnerMigrationFeature,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
-import {loadStripe} from 'getsentry/utils/stripe';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
+import CartDiff from 'getsentry/views/amCheckout/cartDiff';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -48,13 +48,15 @@ const NULL_PREVIEW_STATE: CartPreviewState = {
 interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
+  formDataForPreview: CheckoutFormData;
   hasCompleteBillingDetails: boolean;
+  onSuccess: ({
+    invoice,
+    nextQueryParams,
+    isSubmitted,
+  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
   organization: Organization;
   subscription: Subscription;
-  /**
-   * TODO(isabella): Add this back in (was not ported from checkout v1 to v2)
-   */
-  discountInfo?: Promotion['discountInfo'];
   referrer?: string;
 }
 
@@ -114,7 +116,7 @@ interface TotalSummaryProps extends BaseSummaryProps {
   subscription: Subscription;
 }
 
-function PlanSummary({activePlan, formData}: PlanSummaryProps) {
+function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
   // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
@@ -128,7 +130,6 @@ function PlanSummary({activePlan, formData}: PlanSummaryProps) {
 
   return (
     <SummarySection>
-      <Title>{t('Plan Summary')}</Title>
       <ItemWithIcon data-test-id="summary-item-plan">
         <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
         <Flex direction="column" gap="xs">
@@ -423,33 +424,48 @@ function TotalSummary({
     return subtext;
   };
 
+  const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const credits = utils.getCredits({invoiceItems: previewData?.invoiceItems ?? []});
+  const creditApplied = utils.getCreditApplied({
+    creditApplied: previewData?.creditApplied ?? 0,
+    invoiceItems: previewData?.invoiceItems ?? [],
+  });
+
   return (
     <SummarySection>
-      {!previewDataLoading && (
+      {!previewDataLoading && isDueToday && (
         <Fragment>
-          {isDueToday &&
-            previewData?.invoiceItems
-              .filter(item => item.type === InvoiceItemType.SALES_TAX)
-              .map(item => {
-                const formattedPrice = utils.displayPrice({cents: item.amount});
-                return (
-                  <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                    <ItemFlex>
-                      <div>{item.description}</div>
-                      <div>{formattedPrice}</div>
-                    </ItemFlex>
-                  </Item>
-                );
-              })}
+          {fees.map(item => {
+            const formattedPrice = utils.displayPrice({cents: item.amount});
+            return (
+              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                <ItemFlex>
+                  <div>{item.description}</div>
+                  <div>{formattedPrice}</div>
+                </ItemFlex>
+              </Item>
+            );
+          })}
+          {!!creditApplied && (
+            <Item data-test-id="summary-item-credit_applied">
+              <ItemFlex>
+                <div>{t('Credit applied')}</div>
+                <Credit>{utils.displayPrice({cents: -creditApplied})}</Credit>
+              </ItemFlex>
+            </Item>
+          )}
+          {credits.map(item => {
+            const formattedPrice = utils.displayPrice({cents: item.amount});
+            return (
+              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                <ItemFlex>
+                  <div>{item.description}</div>
+                  <div>{formattedPrice}</div>
+                </ItemFlex>
+              </Item>
+            );
+          })}
         </Fragment>
-      )}
-      {!previewDataLoading && isDueToday && !!previewData?.creditApplied && (
-        <Item data-test-id="summary-item-credit_applied">
-          <ItemFlex>
-            <div>{t('Credit applied')}</div>
-            <Credit>{utils.displayPrice({cents: -previewData.creditApplied})}</Credit>
-          </ItemFlex>
-        </Item>
       )}
       <Item data-test-id="summary-item-due-today">
         <ItemFlex>
@@ -482,8 +498,8 @@ function TotalSummary({
             priority="danger"
             onClick={() => onSubmit(true)}
             disabled={buttonDisabled || previewDataLoading}
+            icon={<IconLightning />}
           >
-            <IconLightning />
             {isSubmitting ? t('Checking out...') : t('Migrate Now')}
           </StyledButton>
         )}
@@ -492,8 +508,8 @@ function TotalSummary({
           priority="primary"
           onClick={() => onSubmit()}
           disabled={buttonDisabled || previewDataLoading}
+          icon={<IconLock locked />}
         >
-          <IconLock locked />
           {isSubmitting
             ? t('Checking out...')
             : isMigratingPartner
@@ -516,12 +532,16 @@ function Cart({
   subscription,
   organization,
   referrer,
+  formDataForPreview,
   hasCompleteBillingDetails,
+  onSuccess,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stripe, setStripe] = useState<stripe.Stripe>();
+  const stripe = useStripeInstance();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [summaryIsOpen, setSummaryIsOpen] = useState(true);
+  const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
@@ -530,7 +550,7 @@ function Cart({
     await utils.fetchPreviewData(
       organization,
       api,
-      formData,
+      formDataForPreview,
       () => setPreviewState(prev => ({...prev, isLoading: true})),
       (data: PreviewData | null) => {
         setPreviewState(prev => ({
@@ -580,20 +600,11 @@ function Cart({
         resetPreviewState();
       }
     );
-  }, [api, formData, organization, subscription.contractPeriodEnd]);
+  }, [api, formDataForPreview, organization, subscription.contractPeriodEnd]);
 
   useEffect(() => {
     fetchPreview();
   }, [fetchPreview]);
-
-  // TODO(checkout v3): This should be refactored with the new Stripe changes
-  useEffect(() => {
-    loadStripe(Stripe => {
-      const apiKey = ConfigStore.get('getsentry.stripePublishKey');
-      const instance = Stripe(apiKey);
-      setStripe(instance);
-    });
-  }, []);
 
   const handleCardAction = ({intentDetails}: {intentDetails: utils.IntentDetails}) => {
     utils.stripeHandleCardAction(
@@ -623,6 +634,8 @@ function Cart({
     onHandleCardAction: handleCardAction,
     onFetchPreviewData: fetchPreview,
     referrer,
+    previewData: previewState.previewData ?? undefined,
+    onSuccess,
   });
 
   const handleConfirmAndPay = (applyNow?: boolean) => {
@@ -652,13 +665,37 @@ function Cart({
   return (
     <CartContainer data-test-id="cart">
       {errorMessage && <Alert type="error">{errorMessage}</Alert>}
-      <PlanSummary activePlan={activePlan} formData={formData} />
-      <SubtotalSummary
+      <CartDiff
         activePlan={activePlan}
         formData={formData}
-        previewDataLoading={previewState.isLoading}
-        renewalDate={previewState.renewalDate}
+        subscription={subscription}
+        isOpen={changesIsOpen}
+        onToggle={setChangesIsOpen}
+        organization={organization}
       />
+      <PlanSummaryHeader isOpen={summaryIsOpen} shouldShadow={changesIsOpen}>
+        <Title>{t('Plan Summary')}</Title>
+        <Flex gap="xs" align="center">
+          <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+          <Button
+            aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
+            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+            borderless
+            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
+          />
+        </Flex>
+      </PlanSummaryHeader>
+      {summaryIsOpen && (
+        <div data-test-id="plan-summary">
+          <ItemsSummary activePlan={activePlan} formData={formData} />
+          <SubtotalSummary
+            activePlan={activePlan}
+            formData={formData}
+            previewDataLoading={previewState.isLoading}
+            renewalDate={previewState.renewalDate}
+          />
+        </div>
+      )}
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
@@ -683,12 +720,6 @@ export default Cart;
 const CartContainer = styled(Panel)`
   display: flex;
   flex-direction: column;
-  padding: ${p => p.theme.space['2xl']} 0 0;
-  gap: ${p => p.theme.space['2xl']};
-
-  & > *:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
 `;
 
 const SummarySection = styled('div')`
@@ -699,12 +730,37 @@ const SummarySection = styled('div')`
   & > *:not(:last-child) {
     margin-bottom: ${p => p.theme.space.xl};
   }
+
+  border-bottom: 1px solid ${p => p.theme.border};
+
+  &:not(:first-child) {
+    padding-top: ${p => p.theme.space['2xl']};
+  }
 `;
 
 const Title = styled('h1')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0 0 ${p => p.theme.space.xl};
+  margin: 0;
+  text-wrap: nowrap;
+`;
+
+const PlanSummaryHeader = styled('div')<{isOpen: boolean; shouldShadow: boolean}>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${p => p.theme.space.xl};
+  border-bottom: ${p => (p.isOpen ? 'none' : `1px solid ${p.theme.border}`)};
+  box-shadow: ${p => (p.shouldShadow ? '0 -5px 5px #00000010' : 'none')};
+  gap: ${p => p.theme.space.sm};
+`;
+
+const OrgSlug = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
+  flex-shrink: 1;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
 `;
 
 const Item = styled('div')`

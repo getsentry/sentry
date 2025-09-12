@@ -43,6 +43,7 @@ const rightAlignColumns = new Set([
 
 export function McpPromptsTable() {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`);
   const tableDataRequest = useSpanTableData({
     query,
@@ -102,6 +103,7 @@ export function McpPromptsTable() {
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
                 query: `${query} span.status:internal_error ${SpanFields.MCP_PROMPT_NAME}:${dataRow[SpanFields.MCP_PROMPT_NAME]}`,
+                selection,
                 organization,
                 referrer: MCPReferrer.MCP_PROMPT_TABLE,
               })}
@@ -116,7 +118,7 @@ export function McpPromptsTable() {
           return <div />;
       }
     },
-    [tableDataRequest, organization, query]
+    [tableDataRequest, organization, query, selection]
   );
 
   return (
@@ -151,6 +153,7 @@ function McpPromptCell({prompt}: {prompt: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
+    field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
     query: `span.op:mcp.server ${SpanFields.MCP_PROMPT_NAME}:"${prompt}"`,
     sort: `-count(span.duration)`,
   });

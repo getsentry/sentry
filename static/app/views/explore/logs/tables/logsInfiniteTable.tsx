@@ -25,12 +25,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  useLogsFields,
-  useLogsSearch,
-  useLogsSortBys,
-  useSetLogsSortBys,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   LOGS_INSTRUCTIONS_URL,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
@@ -54,6 +49,11 @@ import {
   getTableHeaderLabel,
   logsFieldAlignment,
 } from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsFields,
+  useQueryParamsSortBys,
+  useSetQueryParamsSortBys,
+} from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
@@ -90,7 +90,7 @@ export function LogsInfiniteTable({
   embeddedOptions,
 }: LogsTableProps) {
   const theme = useTheme();
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const search = useLogsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
@@ -125,13 +125,17 @@ export function LogsInfiniteTable({
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-    staticColumnWidths: {
-      [OurLogKnownFieldKey.MESSAGE]: '1fr',
-    },
-  });
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.slice(),
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths: {
+        [OurLogKnownFieldKey.MESSAGE]: '1fr',
+      },
+    }
+  );
 
   const estimateSize = useCallback(
     (index: number) => {
@@ -361,9 +365,9 @@ function LogsTableHeader({
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
-  const fields = useLogsFields();
-  const sortBys = useLogsSortBys();
-  const setSortBys = useSetLogsSortBys();
+  const fields = useQueryParamsFields();
+  const sortBys = useQueryParamsSortBys();
+  const setSortBys = useSetQueryParamsSortBys();
 
   const {infiniteLogsQueryResult} = useLogsPageData();
 
@@ -395,7 +399,14 @@ function LogsTableHeader({
               isFirst={index === 0}
             >
               <TableHeadCellContent
-                onClick={isFrozen ? undefined : () => setSortBys([{field}])}
+                onClick={
+                  isFrozen
+                    ? undefined
+                    : () => {
+                        const kind = direction === 'desc' ? 'asc' : 'desc';
+                        setSortBys([{field, kind}]);
+                      }
+                }
                 isFrozen={isFrozen}
               >
                 <Tooltip showOnlyOnOverflow title={headerLabel}>

@@ -24,7 +24,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.min_ago_iso = self.min_ago.isoformat()
-        self.features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        self.features = {"organizations:discover-basic": True}
 
     def assert_facet(self, response, key, expected):
         actual = None
@@ -336,15 +336,6 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data == []
-
-    def test_multiple_projects_without_global_view(self) -> None:
-        self.store_event(data={"event_id": uuid4().hex}, project_id=self.project.id)
-        self.store_event(data={"event_id": uuid4().hex}, project_id=self.project2.id)
-
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(self.url, format="json")
-        assert response.status_code == 400, response.content
-        assert response.data == {"detail": "You cannot view events from multiple projects."}
 
     def test_project_selected(self) -> None:
         self.store_event(

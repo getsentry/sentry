@@ -14,7 +14,13 @@ from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
 from sentry.workflow_engine import buffer
-from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+)
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -24,7 +30,7 @@ from sentry.workflow_engine.processors.data_condition_group import process_data_
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
 logger = log_context.get_logger(__name__)
@@ -94,6 +100,7 @@ class DelayedWorkflowItem:
         )
 
 
+@scopedstats.timer()
 def enqueue_workflows(
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
@@ -138,6 +145,7 @@ def enqueue_workflows(
 
 
 @sentry_sdk.trace
+@scopedstats.timer()
 def evaluate_workflow_triggers(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
@@ -183,6 +191,24 @@ def evaluate_workflow_triggers(
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
+                if features.has(
+                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                    workflow.organization,
+                ):
+                    try:
+                        detector_workflow = DetectorWorkflow.objects.get(workflow_id=workflow.id)
+                        logger.info(
+                            "workflow_engine.process_workflows.workflow_triggered",
+                            extra={
+                                "workflow_id": workflow.id,
+                                "detector_id": detector_workflow.detector_id,
+                                "organization_id": workflow.organization.id,
+                                "project_id": event_data.group.project.id,
+                                "group_type": event_data.group.type,
+                            },
+                        )
+                    except DetectorWorkflow.DoesNotExist:
+                        continue
 
     metrics_incr(
         "process_workflows.triggered_workflows",
@@ -218,6 +244,7 @@ def evaluate_workflow_triggers(
 
 
 @sentry_sdk.trace
+@scopedstats.timer()
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
@@ -333,6 +360,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
 
 
+@scopedstats.timer()
 def _get_associated_workflows(
     detector: Detector, environment: Environment | None, event_data: WorkflowEventData
 ) -> set[Workflow]:
@@ -409,7 +437,7 @@ def process_workflows(
             raise ValueError("Unable to determine the detector for the event")
 
         log_context.add_extras(detector_id=detector.id)
-        organization = detector.project.organization
+        organization = event_data.event.project.organization
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
         WorkflowEventContext.set(

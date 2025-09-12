@@ -11,10 +11,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
-import {getRelativeDate} from 'sentry/components/timeSince';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -35,9 +33,7 @@ import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/u
 
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
-import {traceAnalytics} from './traceAnalytics';
 import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
@@ -47,6 +43,7 @@ import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceIssuesOnLoad} from './useTraceOnLoad';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
+import {useTraceWaterfallModels} from './useTraceWaterfallModels';
 
 const noopTraceSearch = () => {};
 
@@ -87,7 +84,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     null
   );
 
-  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
+  const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
@@ -121,43 +118,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     },
     [organization, projects, traceDispatch]
   );
-
-  const {
-    data: {hasExceededPerformanceUsageLimit},
-    isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
-
-  useEffect(() => {
-    if (props.tree.type !== 'trace') {
-      return;
-    }
-
-    const traceNode = props.tree.root.children[0];
-    const traceTimestamp = traceNode?.space?.[0];
-    const traceAge = defined(traceTimestamp)
-      ? getRelativeDate(traceTimestamp, 'ago')
-      : 'unknown';
-
-    if (traceNode && !isLoadingSubscriptionDetails) {
-      const issuesCount = TraceTree.UniqueIssues(traceNode).length;
-
-      traceAnalytics.trackTraceShape(
-        props.tree,
-        projectsRef.current,
-        props.organization,
-        hasExceededPerformanceUsageLimit,
-        'issue_details',
-        traceAge,
-        issuesCount,
-        props.tree.eap_spans_count
-      );
-    }
-  }, [
-    props.tree,
-    hasExceededPerformanceUsageLimit,
-    isLoadingSubscriptionDetails,
-    props.organization,
-  ]);
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
@@ -221,7 +181,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
         for (const o of n.occurrences) {
-          if (o.event_id === props.event.occurrence?.id) {
+          if (o.event_id === props.event.eventID) {
             return true;
           }
         }

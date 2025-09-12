@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, SupportsInt, cast
 
 import sentry_sdk
 from django.urls import reverse
@@ -14,6 +14,19 @@ from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestEx
 from sentry import analytics, features, nodestore
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
     AlertRuleUiComponentWebhookSentEvent,
+)
+from sentry.analytics.events.comment_webhooks import (
+    CommentCreatedEvent,
+    CommentDeletedEvent,
+    CommentEvent,
+    CommentUpdatedEvent,
+)
+from sentry.analytics.events.sentryapp_issue_webhooks import (
+    SentryAppIssueAssigned,
+    SentryAppIssueCreated,
+    SentryAppIssueIgnored,
+    SentryAppIssueResolved,
+    SentryAppIssueUnresolved,
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
@@ -591,12 +604,41 @@ def workflow_notification(
         data.update({"issue": serialize(issue)})
 
     send_webhooks(installation=install, event=event, data=data, actor=user)
-    analytics.record(
-        f"sentry_app.{event}",
-        user_id=user_id,
-        group_id=issue_id,
-        installation_id=installation_id,
-    )
+
+    analytics_event: analytics.Event | None = None
+    if event == SentryAppEventType.ISSUE_ASSIGNED:
+        analytics_event = SentryAppIssueAssigned(
+            user_id=user_id,
+            group_id=issue_id,
+            installation_id=installation_id,
+        )
+    elif event == SentryAppEventType.ISSUE_CREATED:
+        analytics_event = SentryAppIssueCreated(
+            user_id=user_id,
+            group_id=issue_id,
+            installation_id=installation_id,
+        )
+    elif event == SentryAppEventType.ISSUE_IGNORED:
+        analytics_event = SentryAppIssueIgnored(
+            user_id=user_id,
+            group_id=issue_id,
+            installation_id=installation_id,
+        )
+    elif event == SentryAppEventType.ISSUE_RESOLVED:
+        analytics_event = SentryAppIssueResolved(
+            user_id=user_id,
+            group_id=issue_id,
+            installation_id=installation_id,
+        )
+    elif event == SentryAppEventType.ISSUE_UNRESOLVED:
+        analytics_event = SentryAppIssueUnresolved(
+            user_id=user_id,
+            group_id=issue_id,
+            installation_id=installation_id,
+        )
+
+    if analytics_event is not None:
+        analytics.record(analytics_event)
 
 
 @instrumented_task(
@@ -639,14 +681,34 @@ def build_comment_webhook(
 
     send_webhooks(installation=install, event=event, data=payload, actor=user)
     # `event` is comment.created, comment.updated, or comment.deleted
-    analytics.record(
-        event,
-        user_id=user_id,
-        group_id=issue_id,
-        project_slug=project_slug,
-        installation_id=installation_id,
-        comment_id=comment_id,
-    )
+    analytics_event: CommentEvent | None = None
+    if event == SentryAppEventType.COMMENT_CREATED:
+        analytics_event = CommentCreatedEvent(
+            user_id=user_id,
+            group_id=issue_id,
+            project_slug=str(project_slug),
+            installation_id=installation_id,
+            comment_id=int(cast(SupportsInt, comment_id)),
+        )
+    elif event == SentryAppEventType.COMMENT_UPDATED:
+        analytics_event = CommentUpdatedEvent(
+            user_id=user_id,
+            group_id=issue_id,
+            project_slug=str(project_slug),
+            installation_id=installation_id,
+            comment_id=int(cast(SupportsInt, comment_id)),
+        )
+    elif event == SentryAppEventType.COMMENT_DELETED:
+        analytics_event = CommentDeletedEvent(
+            user_id=user_id,
+            group_id=issue_id,
+            project_slug=str(project_slug),
+            installation_id=installation_id,
+            comment_id=int(cast(SupportsInt, comment_id)),
+        )
+
+    if analytics_event is not None:
+        analytics.record(analytics_event)
 
 
 def get_webhook_data(
@@ -958,7 +1020,7 @@ def broadcast_webhooks_for_organization(
         ]
 
         if not relevant_installations:
-            logger.error(
+            logger.info(
                 "sentry_app.webhook_no_installations_subscribed",
                 extra={
                     "resource_name": resource_name,
@@ -974,7 +1036,11 @@ def broadcast_webhooks_for_organization(
 
                 logger.info(
                     "sentry_app.webhook_queued",
-                    extra={"event_type": event_type, "installation_id": installation.id},
+                    extra={
+                        "event_type": event_type,
+                        "installation_id": installation.id,
+                        "organization_id": organization_id,
+                    },
                 )
             else:
                 logger.error(

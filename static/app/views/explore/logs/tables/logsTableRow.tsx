@@ -34,8 +34,6 @@ import {
 import {
   useLogsAddSearchFilter,
   useLogsAnalyticsPageSource,
-  useLogsFields,
-  useLogsIsTableFrozen,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -51,6 +49,7 @@ import {
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
+import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {
   DetailsBody,
   DetailsContent,
@@ -78,6 +77,7 @@ import {
   getLogSeverityLevel,
   ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
+import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type LogsRowProps = {
@@ -135,7 +135,7 @@ export const LogRowContent = memo(function LogRowContent({
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
@@ -401,7 +401,7 @@ function LogRowDetails({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
   const projectSlug = project?.slug ?? '';
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const getActions = useLogAttributesTreeActions({embedded});
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
@@ -558,9 +558,9 @@ function LogRowDetailsActions({
   tableDataRow: OurLogsResponseItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
-  const isTableFrozen = useLogsIsTableFrozen();
+  const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
-  const showFilterButtons = !isTableFrozen;
+  const showFilterButtons = !isFrozen;
 
   const {onClick: betterCopyToClipboard} = useCopyToClipboard({
     text: isPending || isError ? '' : ourlogToJson(data),

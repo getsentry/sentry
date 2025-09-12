@@ -19,14 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  useLogsBaseSearch,
-  useLogsFields,
-  useLogsLimitToTraceId,
-  useLogsProjectIds,
-  useLogsSearch,
-  useLogsSortBys,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
@@ -34,6 +27,11 @@ import {
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
+import {
+  useLogsFrozenProjectIds,
+  useLogsFrozenSearch,
+  useLogsFrozenTraceIds,
+} from 'sentry/views/explore/logs/logsFrozenContext';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -48,7 +46,9 @@ import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateSortBys,
   useQueryParamsCursor,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsSortBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -81,10 +81,10 @@ function useLogsAggregatesQueryKey({
 }) {
   const organization = useOrganization();
   const _search = useLogsSearch();
-  const baseSearch = useLogsBaseSearch();
+  const baseSearch = useLogsFrozenSearch();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
-  const projectIds = useLogsProjectIds();
+  const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
@@ -106,7 +106,7 @@ function useLogsAggregatesQueryKey({
     aggregateSortBys.slice(),
     pageFilters,
     dataset,
-    projectIds
+    projectIds ?? pageFilters.projects
   );
   const params = {
     query: {
@@ -155,20 +155,21 @@ export function useLogsAggregatesQuery({
   return {
     ...queryResult,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
+    eventView: other.eventView,
   };
 }
 
 function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) {
   const organization = useOrganization();
   const _search = useLogsSearch();
-  const baseSearch = useLogsBaseSearch();
+  const baseSearch = useLogsFrozenSearch();
   const cursor = useQueryParamsCursor();
-  const _fields = useLogsFields();
-  const sortBys = useLogsSortBys();
-  const limitToTraceId = useLogsLimitToTraceId();
+  const _fields = useQueryParamsFields();
+  const sortBys = useQueryParamsSortBys();
+  const frozenTraceIds = useLogsFrozenTraceIds();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
-  const projectIds = useLogsProjectIds();
+  const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
 
   const search = baseSearch ? _search.copy() : _search;
@@ -182,11 +183,18 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const pageFilters = selection;
   const dataset = DiscoverDatasets.OURLOGS;
 
-  const eventView = getEventView(search, fields, sorts, pageFilters, dataset, projectIds);
+  const eventView = getEventView(
+    search,
+    fields,
+    sorts.slice(),
+    pageFilters,
+    dataset,
+    projectIds ?? pageFilters.projects
+  );
   const params = {
     query: {
       ...eventView.getEventsAPIPayload(location),
-      ...(limitToTraceId ? {traceId: limitToTraceId} : {}),
+      ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
       cursor,
       per_page: limit ? limit : undefined,
       referrer,
@@ -196,7 +204,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   };
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${limitToTraceId ? 'trace-logs' : 'events'}/`,
+    `/organizations/${organization.slug}/${frozenTraceIds ? 'trace-logs' : 'events'}/`,
     params,
   ];
 
@@ -310,7 +318,10 @@ function getPageParam(
  * This ensures the first page query filters for logs older than Date.now() - MAX_LOG_INGEST_DELAY
  * which means the next logs page fetched will have results instead of having to wait for the MAX_LOG_INGEST_DELAY to pass.
  */
-function getInitialPageParam(autoRefresh: boolean, sortBys: Sort[]): LogPageParam {
+function getInitialPageParam(
+  autoRefresh: boolean,
+  sortBys: readonly Sort[]
+): LogPageParam {
   if (!autoRefresh) {
     return null;
   }
@@ -411,16 +422,16 @@ export function useInfiniteLogsQuery({
   });
   const queryClient = useQueryClient();
 
-  const sortBys = useLogsSortBys();
+  const sortBys = useQueryParamsSortBys();
 
   const getPreviousPageParam = useCallback(
     (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam('previous', sortBys, autoRefresh)(data, _, pageParam),
+      getPageParam('previous', sortBys.slice(), autoRefresh)(data, _, pageParam),
     [sortBys, autoRefresh]
   );
   const getNextPageParam = useCallback(
     (data: ApiResult<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam('next', sortBys, autoRefresh)(data, _, pageParam),
+      getPageParam('next', sortBys.slice(), autoRefresh)(data, _, pageParam),
     [sortBys, autoRefresh]
   );
 

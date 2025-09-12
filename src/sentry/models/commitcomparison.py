@@ -36,10 +36,18 @@ class CommitComparison(DefaultFieldsModel):
 
     # Sentry data, can be hydrated separately
     head_commit = FlexibleForeignKey(
-        "sentry.Commit", null=True, on_delete=models.SET_NULL, related_name="head_commit_set"
+        "sentry.Commit",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="head_commit_set",
+        db_constraint=False,
     )
     base_commit = FlexibleForeignKey(
-        "sentry.Commit", null=True, on_delete=models.SET_NULL, related_name="base_commit_set"
+        "sentry.Commit",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="base_commit_set",
+        db_constraint=False,
     )
 
     class Meta:
@@ -48,16 +56,4 @@ class CommitComparison(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["organization_id", "head_repo_name", "head_sha"]),
             models.Index(fields=["organization_id", "head_repo_name", "base_sha"]),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["organization_id", "head_sha", "base_sha"],
-                condition=models.Q(base_sha__isnull=False),
-                name="unique_commit_comparison",
-            ),
-            models.UniqueConstraint(
-                fields=["organization_id", "head_sha"],
-                condition=models.Q(base_sha__isnull=True),
-                name="unique_single_commit",
-            ),
         ]

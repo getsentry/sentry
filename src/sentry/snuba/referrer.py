@@ -100,6 +100,7 @@ class Referrer(StrEnum):
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
+    DATA_EXPORT_TASKS_EXPLORE = "data_export.tasks.explore"
     API_GROUP_AI_AUTOFIX = "api.group_ai_autofix"
     API_GROUP_AI_SUMMARY = "api.group_ai_summary"
     API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
@@ -361,6 +362,23 @@ class Referrer(StrEnum):
         "api.insights.span-summary-panel-samples-table-avg"
     )
     API_INSIGHTS_BROWSER_RESOURCES_PAGE_SELECTOR = "api.insights.browser.resources.page-selector"
+
+    # AI Agents
+    API_INSIGHTS_AGENTS_MODELS_TABLE = "api.insights.agent-monitoring.models-table"
+    API_INSIGHTS_AGENTS_TOOLS_TABLE = "api.insights.agent-monitoring.tools-table"
+    API_INSIGHTS_AGENTS_TRACE_DRAWER = "api.insights.agent-monitoring.trace-drawer"
+    API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
+    API_INSIGHTS_AGENTS_TOKEN_USAGE_WIDGET = "api.insights.agent-monitoring.token-usage-widget"
+    API_INSIGHTS_AGENTS_TOKEN_COST_WIDGET = "api.insights.agent-monitoring.token-cost-widget"
+    API_INSIGHTS_AGENTS_TOKEN_TYPES_WIDGET = "api.insights.agent-monitoring.token-types-widget"
+    API_INSIGHTS_AGENTS_TOOL_CALLS_WIDGET = "api.insights.agent-monitoring.tool-calls-widget"
+    API_INSIGHTS_AGENTS_TOOL_ERRORS_WIDGET = "api.insights.agent-monitoring.tool-errors-widget"
+    API_INSIGHTS_AGENTS_LLM_CALLS_WIDGET = "api.insights.agent-monitoring.llm-calls-widget"
+    API_INSIGHTS_AGENTS_AGENT_RUNS_WIDGET = "api.insights.agent-monitoring.agent-runs-widget"
+    API_INSIGHTS_AGENTS_AGENT_DURATION_WIDGET = (
+        "api.insights.agent-monitoring.agent-duration-widget"
+    )
+    API_INSIGHTS_AGENTS_ONBOARDING = "api.insights.agent-monitoring.onboarding"
 
     # MCP (Model Context Protocol)
     API_INSIGHTS_MCP_PROMPT_DURATION_WIDGET = "api.insights.mcp.prompt-duration-widget"

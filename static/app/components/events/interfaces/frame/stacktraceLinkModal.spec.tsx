@@ -1,4 +1,5 @@
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {BitbucketIntegrationConfigFixture} from 'sentry-fixture/integrationListDirectory';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -250,5 +251,87 @@ describe('StacktraceLinkModal', () => {
         screen.queryByText('Select from one of these suggestions or paste your URL below')
       ).not.toBeInTheDocument();
     });
+  });
+
+  it('shows code path configuration options specific to Bitbucket', () => {
+    const bitbucketIntegration = BitbucketIntegrationConfigFixture();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/derive-code-mappings/`,
+      body: [],
+    });
+
+    renderGlobalModal();
+    act(() =>
+      openModal(modalProps => (
+        <StacktraceLinkModal
+          {...modalProps}
+          filename="app/app.py"
+          closeModal={closeModal}
+          integrations={[bitbucketIntegration]}
+          organization={org}
+          project={project}
+          onSubmit={onSubmit}
+        />
+      ))
+    );
+
+    expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
+    expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+
+    const textInput = screen.getByRole('textbox', {name: 'Repository URL'});
+    expect(textInput).toHaveAttribute(
+      'placeholder',
+      'https://bitbucket.org/workspace/repo/src/branch/app/app.py'
+    );
+  });
+
+  it('uses GitHub URL format when multiple providers are present', () => {
+    const bitbucketIntegration = BitbucketIntegrationConfigFixture();
+    const githubIntegration = GitHubIntegrationFixture();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/derive-code-mappings/`,
+      body: [
+        {
+          filename: 'app/app.py',
+          repo_name: 'shashank-jarmale/test-sentry/test-python-bitbucket',
+          repo_branch: 'main',
+          stacktrace_root: '/app',
+          source_path: '/app/',
+        },
+      ],
+    });
+
+    renderGlobalModal();
+    act(() =>
+      openModal(modalProps => (
+        <StacktraceLinkModal
+          {...modalProps}
+          filename="app/app.py"
+          closeModal={closeModal}
+          integrations={[bitbucketIntegration, githubIntegration]}
+          organization={org}
+          project={project}
+          onSubmit={onSubmit}
+        />
+      ))
+    );
+
+    expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
+    expect(screen.queryByText('Bitbucket')).not.toBeInTheDocument();
+    expect(screen.queryByText('GitHub')).not.toBeInTheDocument();
+    expect(screen.getByText('Go to your source code provider')).toBeInTheDocument();
+
+    expect(
+      screen.queryByText(
+        'https://github.com/shashank-jarmale/test-sentry/test-python-bitbucket/blob/main/app/app.py'
+      )
+    ).not.toBeInTheDocument();
+
+    const textInput = screen.getByRole('textbox', {name: 'Repository URL'});
+    expect(textInput).toHaveAttribute(
+      'placeholder',
+      'https://github.com/helloworld/Hello-World/blob/master/app/app.py'
+    );
   });
 });
