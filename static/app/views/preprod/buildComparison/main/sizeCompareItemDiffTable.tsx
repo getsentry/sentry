@@ -17,6 +17,10 @@ const tableHeaders = [
     label: 'File Path',
   },
   {
+    key: 'item_type',
+    label: 'Item Type',
+  },
+  {
     key: 'size',
     label: 'Size',
   },
@@ -61,6 +65,10 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
         bValue = order[b.type];
         break;
       }
+      case 'item_type':
+        aValue = a.item_type || '';
+        bValue = b.item_type || '';
+        break;
       case 'file_path':
         aValue = a.path || '';
         bValue = b.path || '';
@@ -136,7 +144,7 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
               </ChangeTag>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>{diffItem.path}</SimpleTable.RowCell>
-            {/* TODO: Item type */}
+            <SimpleTable.RowCell>{diffItem.item_type}</SimpleTable.RowCell>
             <SimpleTable.RowCell>
               {diffItem.head_size
                 ? formatBytesBase10(diffItem.head_size)
@@ -154,7 +162,7 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 0.5fr 1.5fr 1fr 1fr;
+  grid-template-columns: 0.5fr 3fr 0.5fr 0.5fr 0.5fr;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border-left: 0px;
   border-right: 0px;
