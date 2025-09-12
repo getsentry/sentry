@@ -109,6 +109,7 @@ function InvoiceDetailsPaymentForm({
           </Text>
           {shouldUseStripe ? (
             <StripeCreditCardForm
+              onCancel={() => closeModal()}
               amount={invoice.amountBilled ?? 0}
               cardMode={'payment'}
               onSuccess={() => {

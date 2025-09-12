@@ -1,9 +1,13 @@
 import type {Organization} from 'sentry/types/organization';
 
 import StripeCreditCardForm from 'getsentry/components/stripeCreditCardForm';
-import type {FTCConsentLocation} from 'getsentry/types';
+import type {FTCConsentLocation, Subscription} from 'getsentry/types';
 
 export interface StripeCreditCardSetupProps {
+  /**
+   * Handler for cancellation.
+   */
+  onCancel: () => void;
   /**
    * Handler for success.
    */
@@ -26,6 +30,10 @@ export interface StripeCreditCardSetupProps {
    * Location of form, if any.
    */
   location?: FTCConsentLocation;
+  /**
+   * Handler for success called with new subscription state.
+   */
+  onSuccessWithSubscription?: (subscription: Subscription) => void;
   /**
    * The URL referrer, if any.
    */

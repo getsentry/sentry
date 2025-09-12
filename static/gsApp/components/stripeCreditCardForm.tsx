@@ -4,11 +4,14 @@ import type {
   PaymentIntentResult,
   PaymentMethod,
   SetupIntentResult,
+  Stripe,
+  StripeElements,
   StripePaymentElementChangeEvent,
 } from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -21,7 +24,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {StripeCreditCardSetupProps} from 'getsentry/components/stripeCreditCardSetup';
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import {usePaymentIntentData, useSetupIntentData} from 'getsentry/hooks/useIntentData';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {
   FTCConsentLocation,
   PaymentCreateResponse,
@@ -31,12 +33,6 @@ import type {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface StripeCreditCardFormProps extends StripeCreditCardSetupProps {
-  cardMode: 'setup' | 'payment';
-  intentDataEndpoint: string;
-  amount?: number;
-}
-
-interface StripeIntentFormProps extends StripeCreditCardSetupProps {
   /**
    * If the form is being used for setup or payment intent.
    */
@@ -45,10 +41,19 @@ interface StripeIntentFormProps extends StripeCreditCardSetupProps {
    * The endpoint to get the intent data.
    */
   intentDataEndpoint: string;
+  amount?: number;
 }
 
-interface IntentFormProps
-  extends Omit<StripeCreditCardFormProps, 'amount' | 'intentDataEndpoint'> {
+interface StripeIntentFormProps extends Omit<StripeCreditCardFormProps, 'amount'> {}
+
+interface IntentFormProps extends StripeIntentFormProps {
+  handleSubmit: ({
+    stripe,
+    elements,
+  }: {
+    elements: StripeElements | null;
+    stripe: Stripe | null;
+  }) => void;
   onError: (error: string) => void;
   intentData?: PaymentSetupCreateResponse | PaymentCreateResponse;
 }
@@ -65,104 +70,13 @@ function StripeCreditCardForm(props: StripeCreditCardFormProps) {
   );
 }
 
-function StripeSetupIntentForm({
-  onSuccess,
-  budgetModeText,
-  buttonText,
-  location,
-  referrer,
-  organization,
-  cardMode,
-  intentDataEndpoint,
-}: StripeIntentFormProps) {
+function StripeSetupIntentForm(props: StripeIntentFormProps) {
+  const {organization, location, onSuccess, onSuccessWithSubscription} = props;
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
 
   const {intentData, isLoading, isError, error} = useSetupIntentData({
-    endpoint: intentDataEndpoint,
+    endpoint: props.intentDataEndpoint,
   });
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    setErrorMessage(error);
-  }
-
-  return (
-    <Flex direction="column" gap="xl">
-      <Alert type="error">{errorMessage}</Alert>
-      <IntentForm
-        cardMode={cardMode}
-        onSuccess={onSuccess}
-        budgetModeText={budgetModeText}
-        buttonText={buttonText}
-        location={location}
-        referrer={referrer}
-        organization={organization}
-        intentData={intentData}
-        onError={setErrorMessage}
-      />
-    </Flex>
-  );
-}
-
-function StripePaymentIntentForm({
-  onSuccess,
-  budgetModeText,
-  buttonText,
-  location,
-  referrer,
-  organization,
-  cardMode,
-  intentDataEndpoint,
-}: StripeIntentFormProps) {
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
-  const {intentData, isLoading, isError, error} = usePaymentIntentData({
-    endpoint: intentDataEndpoint,
-  });
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    setErrorMessage(error);
-  }
-
-  return (
-    <Flex direction="column" gap="xl">
-      {isError && <Alert type="error">{errorMessage}</Alert>}
-      <IntentForm
-        cardMode={cardMode}
-        onSuccess={onSuccess}
-        budgetModeText={budgetModeText}
-        buttonText={buttonText}
-        location={location}
-        referrer={referrer}
-        organization={organization}
-        intentData={intentData}
-        onError={setErrorMessage}
-      />
-    </Flex>
-  );
-}
-
-function IntentForm({
-  cardMode,
-  onSuccess,
-  budgetModeText,
-  buttonText,
-  location,
-  referrer,
-  organization,
-  onError,
-  intentData,
-}: IntentFormProps) {
-  const [loading, setLoading] = useState(false);
-  const elements = useElements();
-  const stripe = useStripe();
-  const [submitDisabled, setSubmitDisabled] = useState(false);
 
   const {mutateAsync: updateSubscription} = useMutation({
     mutationFn: ({
@@ -180,76 +94,146 @@ function IntentForm({
           ftcConsentLocation,
         },
       }),
-    onMutate: () => {
-      setLoading(true);
-    },
     onSuccess: (data: Subscription) => {
       addSuccessMessage(t('Updated payment method.'));
-      setLoading(false);
-      SubscriptionStore.set(organization.slug, data);
-      onSuccess?.();
-    },
-    onError: error => {
-      onError(error.message);
-      setSubmitDisabled(true);
-      setLoading(false);
+      onSuccessWithSubscription?.(data);
+      onSuccess();
     },
   });
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  const handleSubmit = () => {
+  if (isError) {
+    setErrorMessage(error);
+  }
+
+  const handleSubmit = ({
+    stripe,
+    elements,
+  }: {
+    elements: StripeElements | null;
+    stripe: Stripe | null;
+  }) => {
     if (!stripe || !elements || !intentData) {
-      onError(t('Cannot complete your payment at this time, please try again later.'));
+      setErrorMessage(
+        t('Cannot complete your payment at this time, please try again later.')
+      );
       return;
     }
 
     elements.submit();
-    switch (cardMode) {
-      case 'payment':
-        stripe
-          .confirmPayment({
-            elements,
-            clientSecret: intentData.clientSecret,
-            redirect: 'if_required',
-          })
-          .then((result: PaymentIntentResult) => {
-            if (result.error) {
-              onError(result.error.message ?? t('Payment failed.'));
-              return;
-            }
-            // TODO: make sure this is the correct event
-            trackGetsentryAnalytics('billing_failure.paid_now', {
-              organization,
-              referrer: decodeScalar(referrer),
-            });
-            addSuccessMessage(t('Payment sent successfully.'));
-            onSuccess?.();
-          });
-        break;
-      default:
-        stripe
-          .confirmSetup({
-            elements,
-            clientSecret: intentData.clientSecret,
-            redirect: 'if_required',
-          })
-          .then((result: SetupIntentResult) => {
-            if (result.error) {
-              onError(result.error.message ?? t('Setup failed.'));
-              return;
-            }
-            updateSubscription({
-              paymentMethod: result.setupIntent.payment_method,
-              ftcConsentLocation: location,
-            });
-          });
-
-        break;
-    }
+    stripe
+      .confirmSetup({
+        elements,
+        clientSecret: intentData.clientSecret,
+        redirect: 'if_required',
+      })
+      .then((result: SetupIntentResult) => {
+        if (result.error) {
+          setErrorMessage(result.error.message ?? t('Setup failed.'));
+          return;
+        }
+        updateSubscription({
+          paymentMethod: result.setupIntent.payment_method,
+          ftcConsentLocation: location,
+        });
+      });
   };
+
+  return (
+    <Flex direction="column" gap="xl">
+      {isError && <Alert type="error">{errorMessage}</Alert>}
+      <IntentForm
+        {...props}
+        intentData={intentData}
+        onError={setErrorMessage}
+        handleSubmit={handleSubmit}
+      />
+    </Flex>
+  );
+}
+
+function StripePaymentIntentForm(props: StripeIntentFormProps) {
+  const {organization, referrer, onSuccess} = props;
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const {intentData, isLoading, isError, error} = usePaymentIntentData({
+    endpoint: props.intentDataEndpoint,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    setErrorMessage(error);
+  }
+
+  const handleSubmit = ({
+    stripe,
+    elements,
+  }: {
+    elements: StripeElements | null;
+    stripe: Stripe | null;
+  }) => {
+    if (!stripe || !elements || !intentData) {
+      setErrorMessage(
+        t('Cannot complete your payment at this time, please try again later.')
+      );
+      return;
+    }
+
+    elements.submit();
+    stripe
+      .confirmPayment({
+        elements,
+        clientSecret: intentData.clientSecret,
+        redirect: 'if_required',
+      })
+      .then((result: PaymentIntentResult) => {
+        if (result.error) {
+          setErrorMessage(result.error.message ?? t('Payment failed.'));
+          return;
+        }
+        // TODO: make sure this is the correct event
+        trackGetsentryAnalytics('billing_failure.paid_now', {
+          organization,
+          referrer: decodeScalar(referrer),
+        });
+        addSuccessMessage(t('Payment sent successfully.'));
+        onSuccess();
+      });
+  };
+
+  return (
+    <Flex direction="column" gap="xl">
+      {isError && <Alert type="error">{errorMessage}</Alert>}
+      <IntentForm
+        {...props}
+        intentData={intentData}
+        onError={setErrorMessage}
+        handleSubmit={handleSubmit}
+      />
+    </Flex>
+  );
+}
+
+function IntentForm({
+  onCancel,
+  budgetModeText,
+  buttonText,
+  location,
+  handleSubmit,
+}: IntentFormProps) {
+  const [loading, setLoading] = useState(false);
+  const elements = useElements();
+  const stripe = useStripe();
+  const [submitDisabled, setSubmitDisabled] = useState(false);
+
+  if (loading) {
+    return <LoadingIndicator />;
+  }
 
   const handleFormChange = (formData: StripePaymentElementChangeEvent) => {
     if (formData.complete) {
@@ -261,9 +245,15 @@ function IntentForm({
 
   return (
     <Form
-      onSubmit={handleSubmit}
+      onSubmit={() => handleSubmit({stripe, elements})}
       submitDisabled={submitDisabled}
       submitLabel={buttonText}
+      extraButton={<Button onClick={onCancel}>{t('Cancel')}</Button>}
+      footerStyle={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginLeft: 0,
+      }}
     >
       <Flex direction="column" gap="xl">
         <PaymentElement

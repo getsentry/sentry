@@ -47,6 +47,8 @@ function CreditCardEditModal({
       <Body>
         {shouldUseStripe ? (
           <StripeCreditCardSetup
+            onCancel={closeModal}
+            onSuccessWithSubscription={onSuccess}
             onSuccess={() => {
               closeModal();
               trackGetsentryAnalytics('billing_details.updated_cc', {
