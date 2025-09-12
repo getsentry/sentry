@@ -372,6 +372,7 @@ const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
 `;
 
 const AggregateFlamegraphSidePanelContainer = styled('div')<{visible: boolean}>`
+  border-left: 1px solid ${p => p.theme.border};
   overflow-y: scroll;
   ${p => !p.visible && 'display: none;'}
 `;
