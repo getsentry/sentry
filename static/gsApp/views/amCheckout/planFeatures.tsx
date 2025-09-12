@@ -68,9 +68,9 @@ function FeatureItem({feature, isIncluded}: {feature: string; isIncluded: boolea
     <FeatureItemContainer isIncluded={isIncluded}>
       <Container padding="0">
         {isIncluded ? (
-          <IconCheckmark size="md" color="success" />
+          <IconCheckmark size="sm" color="success" />
         ) : (
-          <IconClose size="md" color="gray300" />
+          <IconClose size="sm" color="gray300" />
         )}
       </Container>
       <Text variant={isIncluded ? 'primary' : 'muted'}>{feature}</Text>
@@ -148,7 +148,7 @@ function PlanFeatures({
               ))}
               {Object.keys(perUnitPriceDiffs).length > 0 && (
                 <EventPriceWarning align="center" gap="sm">
-                  <IconWarning size="md" color="yellow300" />
+                  <IconWarning size="sm" color="yellow300" />
                   <Tooltip
                     title={tct('Starting at [priceDiffs].', {
                       priceDiffs: oxfordizeArray(
