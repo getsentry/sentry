@@ -642,9 +642,6 @@ class PostSentryAppsTest(SentryAppsTest):
             "schema": ["['#general'] is too short for element of type 'alert-rule-action'"]
         }
 
-        # XXX: Compare schema as an object instead of json to avoid key ordering issues
-        record.call_args.kwargs["schema"] = orjson.loads(record.call_args.kwargs["schema"])
-
         assert_last_analytics_event(
             record,
             SentryAppSchemaValidationError(
