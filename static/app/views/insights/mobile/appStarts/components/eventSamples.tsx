@@ -29,7 +29,6 @@ type Props = {
   transaction: string;
   footerAlignedPagination?: boolean;
   release?: string;
-  showDeviceClassSelector?: boolean;
 };
 
 export function EventSamples({
@@ -37,7 +36,6 @@ export function EventSamples({
   transaction,
   release,
   sortKey,
-  showDeviceClassSelector,
   footerAlignedPagination,
 }: Props) {
   const location = useLocation();
@@ -51,7 +49,7 @@ export function EventSamples({
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
-    `release:${release}`,
+    ...(release ? [`release:${release}`] : []),
     ...(startType ? [`${SpanFields.APP_START_TYPE}:${startType}`] : []),
     ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
@@ -122,7 +120,6 @@ export function EventSamples({
       sortKey={sortKey}
       data={{data, meta}}
       pageLinks={pageLinks}
-      showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}
       footerAlignedPagination={footerAlignedPagination}

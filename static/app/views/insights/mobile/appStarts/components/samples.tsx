@@ -27,33 +27,49 @@ export function SamplesTables({transactionName}: any) {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const organization = useOrganization();
 
+  const primaryReleaseSelected = primaryRelease && primaryRelease !== '';
+  const secondaryReleaseSelected = secondaryRelease && secondaryRelease !== '';
+
   const content = useMemo(() => {
     if (sampleType === EVENT) {
+      if (primaryReleaseSelected && secondaryReleaseSelected) {
+        return (
+          <EventSplitContainer>
+            <ErrorBoundary mini>
+              <div>
+                <EventSamples
+                  cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                  sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                  release={primaryRelease}
+                  transaction={transactionName}
+                  footerAlignedPagination
+                />
+              </div>
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <div>
+                <EventSamples
+                  cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                  sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                  release={secondaryRelease}
+                  transaction={transactionName}
+                  footerAlignedPagination
+                />
+              </div>
+            </ErrorBoundary>
+          </EventSplitContainer>
+        );
+      }
       return (
-        <EventSplitContainer>
-          <ErrorBoundary mini>
-            <div>
-              <EventSamples
-                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                release={primaryRelease}
-                transaction={transactionName}
-                footerAlignedPagination
-              />
-            </div>
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <div>
-              <EventSamples
-                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                release={secondaryRelease}
-                transaction={transactionName}
-                footerAlignedPagination
-              />
-            </div>
-          </ErrorBoundary>
-        </EventSplitContainer>
+        <ErrorBoundary mini>
+          <EventSamples
+            cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+            sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+            release={primaryRelease}
+            transaction={transactionName}
+            footerAlignedPagination
+          />
+        </ErrorBoundary>
       );
     }
 
@@ -66,7 +82,14 @@ export function SamplesTables({transactionName}: any) {
         />
       </ErrorBoundary>
     );
-  }, [primaryRelease, sampleType, secondaryRelease, transactionName]);
+  }, [
+    primaryRelease,
+    sampleType,
+    secondaryRelease,
+    transactionName,
+    primaryReleaseSelected,
+    secondaryReleaseSelected,
+  ]);
 
   return (
     <div>

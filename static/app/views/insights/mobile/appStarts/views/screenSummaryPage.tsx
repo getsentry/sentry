@@ -29,7 +29,7 @@ import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/w
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 
 type Query = {
   [SpanFields.APP_START_TYPE]: string;
@@ -83,6 +83,15 @@ export function ScreenSummaryContentPage() {
 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
+  // Only show comparison when we have two different releases selected
+  const primaryReleaseSelected = primaryRelease && primaryRelease !== '';
+  const secondaryReleaseSelected = secondaryRelease && secondaryRelease !== '';
+
+  const showComparison =
+    primaryReleaseSelected &&
+    secondaryReleaseSelected &&
+    primaryRelease !== secondaryRelease;
+
   useEffect(() => {
     // Default the start type to cold start if not present
     if (!appStartType) {
@@ -120,6 +129,24 @@ export function ScreenSummaryContentPage() {
     },
   });
 
+  let fields: SpanProperty[] = [];
+  if (showComparison) {
+    fields = [
+      `avg_if(span.duration,release,equals,${primaryRelease})`,
+      `avg_if(span.duration,release,equals,${secondaryRelease})`,
+      `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
+      `count_if(release,equals,${primaryRelease})`,
+      `count_if(release,equals,${secondaryRelease})`,
+    ];
+  } else if (primaryReleaseSelected) {
+    fields = [
+      `avg_if(span.duration,release,equals,${primaryRelease})`,
+      `count_if(release,equals,${primaryRelease})`,
+    ];
+  } else {
+    fields = [`avg(span.duration)`, `count()`];
+  }
+
   return (
     <Fragment>
       <HeaderContainer>
@@ -138,49 +165,68 @@ export function ScreenSummaryContentPage() {
             'span.description:["Warm Start","Warm App Start"]',
             ')',
           ]}
-          fields={[
-            `avg_if(span.duration,release,equals,${primaryRelease})`,
-            `avg_if(span.duration,release,equals,${secondaryRelease})`,
-            `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-            `count_if(release,equals,${primaryRelease})`,
-            `count_if(release,equals,${secondaryRelease})`,
-          ]}
-          blocks={[
-            {
-              unit: DurationUnit.MILLISECOND,
-              allowZero: false,
-              title:
-                appStartType === COLD_START_TYPE
-                  ? t('Avg Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
-                  : t('Avg Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
-              dataKey: `avg_if(span.duration,release,equals,${primaryRelease})`,
-            },
-            {
-              unit: DurationUnit.MILLISECOND,
-              allowZero: false,
-              title:
-                appStartType === COLD_START_TYPE
-                  ? t('Avg Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
-                  : t('Avg Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
-              dataKey: `avg_if(span.duration,release,equals,${secondaryRelease})`,
-            },
-            {
-              unit: 'percent_change',
-              title: t('Change'),
-              dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-              preferredPolarity: '-',
-            },
-            {
-              unit: 'count',
-              title: t('Count (%s)', PRIMARY_RELEASE_ALIAS),
-              dataKey: `count_if(release,equals,${primaryRelease})`,
-            },
-            {
-              unit: 'count',
-              title: t('Count (%s)', SECONDARY_RELEASE_ALIAS),
-              dataKey: `count_if(release,equals,${secondaryRelease})`,
-            },
-          ]}
+          fields={fields}
+          blocks={
+            showComparison
+              ? [
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    allowZero: false,
+                    title:
+                      appStartType === COLD_START_TYPE
+                        ? t('Avg Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
+                        : t('Avg Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
+                    dataKey: `avg_if(span.duration,release,equals,${primaryRelease})`,
+                  },
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    allowZero: false,
+                    title:
+                      appStartType === COLD_START_TYPE
+                        ? t('Avg Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
+                        : t('Avg Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
+                    dataKey: `avg_if(span.duration,release,equals,${secondaryRelease})`,
+                  },
+                  {
+                    unit: 'percent_change',
+                    title: t('Change'),
+                    dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
+                    preferredPolarity: '-',
+                  },
+                  {
+                    unit: 'count',
+                    title: t('Count (%s)', PRIMARY_RELEASE_ALIAS),
+                    dataKey: `count_if(release,equals,${primaryRelease})`,
+                  },
+                  {
+                    unit: 'count',
+                    title: t('Count (%s)', SECONDARY_RELEASE_ALIAS),
+                    dataKey: `count_if(release,equals,${secondaryRelease})`,
+                  },
+                ]
+              : [
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    allowZero: false,
+                    title:
+                      appStartType === COLD_START_TYPE
+                        ? t('Avg Cold Start')
+                        : t('Avg Warm Start'),
+                    dataKey:
+                      primaryRelease && primaryRelease !== ''
+                        ? `avg_if(span.duration,release,equals,${primaryRelease})`
+                        : 'avg(span.duration)',
+                  },
+                  {
+                    unit: 'count',
+                    title: t('Count'),
+                    dataKey:
+                      primaryRelease && primaryRelease !== ''
+                        ? `count_if(release,equals,${primaryRelease})`
+                        : 'count()',
+                  },
+                ]
+          }
           referrer="api.insights.mobile-startup-totals"
         />
       </HeaderContainer>

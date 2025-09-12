@@ -36,7 +36,7 @@ import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
-import {SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 
 const YAXES = [YAxis.COLD_START, YAxis.WARM_START];
@@ -81,12 +81,16 @@ function DeviceClassBreakdownBarChart({
     appendReleaseFilters(query, primaryRelease, secondaryRelease)
   );
   const referrer = Referrer.DEVICE_CLASS_BREAKDOWN_BAR_CHART;
-
-  const groupBy = [SpanFields.DEVICE_CLASS, SpanFields.RELEASE] as const;
-  const appStartMetric =
+  const appStartMetric: SpanProperty =
     startType === COLD_START_TYPE
       ? 'avg(measurements.app_start_cold)'
       : 'avg(measurements.app_start_warm)';
+
+  const groupBy: SpanProperty[] = [SpanFields.DEVICE_CLASS];
+  if (primaryRelease || secondaryRelease) {
+    groupBy.push(SpanFields.RELEASE);
+  }
+  groupBy.push(appStartMetric);
 
   const {
     data: startupDataByDeviceClass,
@@ -96,7 +100,7 @@ function DeviceClassBreakdownBarChart({
     {
       enabled: !isReleasesLoading,
       search,
-      fields: [appStartMetric, ...groupBy],
+      fields: groupBy,
     },
     referrer
   );
@@ -144,7 +148,7 @@ function DeviceClassBreakdownBarChart({
   const Visualization = (
     <BarChart
       legend={{
-        show: true,
+        show: primaryRelease !== undefined,
         right: 12,
       }}
       autoHeightResize
@@ -159,9 +163,9 @@ function DeviceClassBreakdownBarChart({
                   ...datum,
                   itemStyle: {
                     color:
-                      series.seriesName === primaryRelease
-                        ? PRIMARY_RELEASE_COLOR
-                        : SECONDARY_RELEASE_COLOR,
+                      series.seriesName === secondaryRelease
+                        ? SECONDARY_RELEASE_COLOR
+                        : PRIMARY_RELEASE_COLOR,
                   },
                 }
           ),

@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
@@ -26,7 +27,8 @@ import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 const getQueryString = (
   location: Location,
   screens: string[],
-  selectedPlatform: string | undefined
+  selectedPlatform: string | undefined,
+  selectedRelease: string | undefined
 ) => {
   const {query: locationQuery} = location;
   const query = new MutableSearch(['transaction.op:[ui.load,navigation]']);
@@ -38,6 +40,9 @@ const getQueryString = (
   }
   if (selectedPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
+  }
+  if (selectedRelease && selectedRelease !== '') {
+    query.addFilterValue('release', selectedRelease);
   }
   let queryString = query.formatString();
 
@@ -73,6 +78,7 @@ export function ScreensOverview() {
   const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const [hasVisibleScreens, setHasVisibleScreens] = useState<boolean>(false);
+  const {primaryRelease} = useReleaseSelection();
   const visibleScreensRef = useRef<string[]>([]);
   const sortedBy = decodeScalar(location.query.sort);
   const sort = (sortedBy && decodeSorts([sortedBy])[0]) || DEFAULT_SORT;
@@ -85,12 +91,14 @@ export function ScreensOverview() {
   const primaryQuery = getQueryString(
     location,
     [],
-    isProjectCrossPlatform ? selectedPlatform : undefined
+    isProjectCrossPlatform ? selectedPlatform : undefined,
+    primaryRelease
   );
   const visibleScreenQuery = getQueryString(
     location,
     visibleScreensRef.current,
-    isProjectCrossPlatform ? selectedPlatform : undefined
+    isProjectCrossPlatform ? selectedPlatform : undefined,
+    primaryRelease
   );
 
   // TODO: This is temporary while we are still using eventView here

@@ -84,7 +84,8 @@ function StartDurationWidget({additionalFilters}: Props) {
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
   const search = new MutableSearch(queryString);
   const referrer = Referrer.MOBILE_APP_STARTS_DURATION_CHART;
-  const groupBy = SpanFields.RELEASE;
+  const groupBy =
+    primaryRelease || secondaryRelease ? SpanFields.RELEASE : SpanFields.TRANSACTION;
   const yAxis: SpanProperty = 'avg(span.duration)';
 
   const {
@@ -120,7 +121,7 @@ function StartDurationWidget({additionalFilters}: Props) {
       error={seriesError}
       queryInfo={{search, groupBy: [groupBy], referrer}}
       showReleaseAs="none"
-      showLegend="always"
+      showLegend={primaryRelease ? 'always' : 'never'}
       height={220}
     />
   );

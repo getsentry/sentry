@@ -1,9 +1,7 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -79,7 +77,7 @@ export function ScreenCharts({additionalFilters}: Props) {
   ]);
 
   const search = new MutableSearch(queryString);
-  const groupBy = SpanFields.RELEASE;
+  const groupBy = primaryRelease ? SpanFields.RELEASE : SpanFields.TRANSACTION;
   const referrer = Referrer.SCREENLOAD_LANDING_DURATION_CHART;
 
   const {
@@ -99,13 +97,6 @@ export function ScreenCharts({additionalFilters}: Props) {
     },
     referrer
   );
-
-  useEffect(() => {
-    if (defined(primaryRelease) || isReleasesLoading) {
-      return;
-    }
-    Sentry.captureException(new Error('Screen summary missing releases'));
-  }, [primaryRelease, isReleasesLoading]);
 
   const transformedReleaseSeries: Record<string, Record<string, Series>> = {};
   yAxes.forEach(val => {
@@ -132,10 +123,10 @@ export function ScreenCharts({additionalFilters}: Props) {
   if (defined(releaseSeriesArray)) {
     releaseSeriesArray.forEach(release => {
       const releaseName = release.name;
-      const isPrimary = releaseName === primaryRelease;
+      const isSecondary = releaseName === secondaryRelease;
       const colors = theme.chart.getColorPalette(3);
-      const color = isPrimary ? colors[0] : colors[1];
-      const version = formatVersion(releaseName, true);
+      const color = isSecondary ? colors[1] : colors[0];
+      const version = formatVersion(releaseName);
 
       const seriesNames = [
         'avg(measurements.time_to_initial_display)',
@@ -173,16 +164,6 @@ export function ScreenCharts({additionalFilters}: Props) {
     return <LoadingContainer />;
   }
 
-  if (!defined(primaryRelease) && !isReleasesLoading) {
-    return (
-      <Alert.Container>
-        <Alert type="warning">
-          {t('Invalid selection. Try a different release or date range.')}
-        </Alert>
-      </Alert.Container>
-    );
-  }
-
   function renderCharts() {
     return (
       <Fragment>
@@ -196,7 +177,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             error={seriesError}
             aliases={chartAliases}
             showReleaseAs="none"
-            showLegend="always"
+            showLegend={primaryRelease ? 'always' : 'never'}
             height={'100%'}
           />
           <InsightsLineChartWidget
@@ -207,7 +188,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             error={seriesError}
             aliases={chartAliases}
             showReleaseAs="none"
-            showLegend="always"
+            showLegend={primaryRelease ? 'always' : 'never'}
             height={'100%'}
           />
           <ScreensBarChart search={search} type="ttfd" chartHeight={150} />
@@ -219,7 +200,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             error={seriesError}
             aliases={chartAliases}
             showReleaseAs="none"
-            showLegend="always"
+            showLegend={primaryRelease ? 'always' : 'never'}
             height={'100%'}
           />
         </ChartContainer>

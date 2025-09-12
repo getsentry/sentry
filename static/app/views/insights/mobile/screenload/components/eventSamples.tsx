@@ -30,7 +30,6 @@ type Props = {
   release: string;
   sortKey: string;
   transaction: string;
-  showDeviceClassSelector?: boolean;
 };
 
 export function ScreenLoadEventSamples({
@@ -38,7 +37,6 @@ export function ScreenLoadEventSamples({
   transaction,
   release,
   sortKey,
-  showDeviceClassSelector,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
@@ -50,12 +48,18 @@ export function ScreenLoadEventSamples({
   const subregions = decodeList(location.query[SpanFields.USER_GEO_SUBREGION]);
 
   const searchQuery = useMemo(() => {
-    const mutableQuery = new MutableSearch([
+    const baseFilters = [
       'span.op:[ui.load,navigation]',
       `is_transaction:true`,
       `transaction:${transaction}`,
-      `release:${release}`,
-    ]);
+    ];
+
+    // Only add release filter if release is not empty (not "All")
+    if (release) {
+      baseFilters.push(`release:${release}`);
+    }
+
+    const mutableQuery = new MutableSearch(baseFilters);
 
     if (subregions.length > 0) {
       mutableQuery.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
@@ -138,9 +142,9 @@ export function ScreenLoadEventSamples({
       eventView={eventView}
       sortKey={sortKey}
       data={{data, meta}}
-      showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}
+      footerAlignedPagination
     />
   );
 }

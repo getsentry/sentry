@@ -32,13 +32,11 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {
-  SpanOpSelector,
-  TTID_CONTRIBUTING_SPAN_OPS,
-} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
+import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
 
@@ -53,6 +51,9 @@ export function ScreenLoadSpansTable({
   primaryRelease,
   secondaryRelease,
 }: Props) {
+  // Only show comparison when we have two different releases selected
+  const showComparison =
+    primaryRelease && secondaryRelease && primaryRelease !== secondaryRelease;
   const organization = useOrganization();
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const baseURL = `${moduleURL}/details/`;
@@ -97,43 +98,69 @@ export function ScreenLoadSpansTable({
     field: 'sum(span.self_time)',
   };
 
+  const fields: SpanProperty[] = [
+    PROJECT_ID,
+    SPAN_OP,
+    SPAN_GROUP,
+    SPAN_DESCRIPTION,
+    'ttid_contribution_rate()',
+    'ttfd_contribution_rate()',
+    'count()',
+    `sum(${SPAN_SELF_TIME})`,
+  ];
+  if (showComparison) {
+    fields.push(
+      `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+      `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`
+    );
+  } else {
+    fields.push(`avg(${SPAN_SELF_TIME})`);
+  }
+
   const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
       search: queryStringPrimary,
       sorts: [sort],
       limit: 25,
-      fields: [
-        PROJECT_ID,
-        SPAN_OP,
-        SPAN_GROUP,
-        SPAN_DESCRIPTION,
-        `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-        `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-        'ttid_contribution_rate()',
-        'ttfd_contribution_rate()',
-        'count()',
-        `sum(${SPAN_SELF_TIME})`,
-      ],
+      fields,
     },
     'api.insights.mobile-span-table'
   );
 
-  const columnNameMap = {
-    [SPAN_OP]: t('Operation'),
-    [SPAN_DESCRIPTION]: t('Span Description'),
-    'count()': t('Total Count'),
-    affects: hasTTFD ? t('Affects') : t('Affects TTID'),
-    [`sum(${SPAN_SELF_TIME})`]: t('Total Time Spent'),
-    [`avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`]: t(
-      'Avg Duration (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`]: t(
-      'Avg Duration (%s)',
-      SECONDARY_RELEASE_ALIAS
-    ),
-  };
+  const columns: GridColumnHeader[] = [
+    {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
+    {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
+  ];
+  if (showComparison) {
+    columns.push(
+      {
+        key: `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+        name: t('Avg Duration (%s)', PRIMARY_RELEASE_ALIAS),
+        width: COL_WIDTH_UNDEFINED,
+      },
+      {
+        key: `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
+        name: t('Avg Duration (%s)', SECONDARY_RELEASE_ALIAS),
+        width: COL_WIDTH_UNDEFINED,
+      }
+    );
+  } else {
+    columns.push({
+      key: `avg(${SPAN_SELF_TIME})`,
+      name: t('Avg Duration'),
+      width: COL_WIDTH_UNDEFINED,
+    });
+  }
+
+  if (organization.features.includes('insight-modules')) {
+    columns.push({key: 'affects', name: t('Affects'), width: COL_WIDTH_UNDEFINED});
+  }
+  columns.push({
+    key: `sum(${SPAN_SELF_TIME})`,
+    name: t('Total Time Spent'),
+    width: COL_WIDTH_UNDEFINED,
+  });
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!meta?.fields) {
@@ -340,24 +367,10 @@ export function ScreenLoadSpansTable({
 
   return (
     <Fragment>
-      <SpanOpSelector
-        primaryRelease={primaryRelease}
-        transaction={transaction}
-        secondaryRelease={secondaryRelease}
-      />
       <GridEditable
         isLoading={isPending || hasTTFDLoading}
         data={data}
-        columnOrder={[
-          String(SPAN_OP),
-          String(SPAN_DESCRIPTION),
-          `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
-          `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
-          ...(organization.features.includes('insight-modules') ? ['affects'] : []),
-          ...['count()', `sum(${SPAN_SELF_TIME})`],
-        ].map(col => {
-          return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
-        })}
+        columnOrder={columns}
         columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
           renderHeadCell: column => renderHeadCell(column, meta),

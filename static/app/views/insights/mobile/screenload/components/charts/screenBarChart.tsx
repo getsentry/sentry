@@ -47,12 +47,16 @@ export function ScreensBarChart({
     secondaryRelease,
   } = useReleaseSelection();
 
+  const groupBy: SpanProperty[] = [SpanFields.DEVICE_CLASS];
+  if (primaryRelease || secondaryRelease) {
+    groupBy.push(SpanFields.RELEASE);
+  }
   const breakdownMetric: SpanProperty =
     type === 'ttid'
       ? 'avg(measurements.time_to_initial_display)'
       : 'avg(measurements.time_to_full_display)';
+  groupBy.push(breakdownMetric);
 
-  const groupBy = [SpanFields.DEVICE_CLASS, SpanFields.RELEASE] as const;
   const referrer = Referrer.SCREEN_BAR_CHART;
 
   const {
@@ -64,7 +68,7 @@ export function ScreensBarChart({
       enabled: !isReleasesLoading,
       search,
       orderby: breakdownMetric,
-      fields: [...groupBy, breakdownMetric],
+      fields: groupBy,
     },
     referrer
   );
@@ -128,7 +132,7 @@ export function ScreensBarChart({
           interval: 0,
         },
       }}
-      legend={{show: true, top: 0, left: 0}}
+      legend={{show: primaryRelease !== undefined, top: 0, left: 0}}
       yAxis={{
         axisLabel: {
           formatter(value: number) {
