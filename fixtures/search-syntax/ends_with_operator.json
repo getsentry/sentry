@@ -1,13 +1,13 @@
 [
   {
-    "query": "browser.name:ends withfirefox",
+    "query": "browser.name:EndsWithfirefox",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "operator": "ends with",
+        "operator": "EndsWith",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {"type": "valueText", "value": "firefox", "quoted": false}
       },
@@ -15,14 +15,14 @@
     ]
   },
   {
-    "query": "browser.name:ends with[firefox, chrome]",
+    "query": "browser.name:EndsWith[firefox, chrome]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
         "negated": false,
-        "operator": "ends with",
+        "operator": "EndsWith",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {
           "type": "valueTextList",
@@ -42,14 +42,14 @@
     ]
   },
   {
-    "query": "!browser.name:ends withfirefox",
+    "query": "!browser.name:EndsWithfirefox",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
         "negated": true,
-        "operator": "ends with",
+        "operator": "EndsWith",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {"type": "valueText", "value": "firefox", "quoted": false}
       },
@@ -57,14 +57,14 @@
     ]
   },
   {
-    "query": "!browser.name:ends with[firefox, chrome]",
+    "query": "!browser.name:EndsWith[firefox, chrome]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
         "negated": true,
-        "operator": "ends with",
+        "operator": "EndsWith",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {
           "type": "valueTextList",
