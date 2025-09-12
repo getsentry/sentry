@@ -2230,7 +2230,7 @@ dev = [
     { name = "sentry-cli", specifier = ">=2.16.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
     { name = "sentry-devenv", specifier = ">=1.22.0" },
-    { name = "sentry-forked-django-stubs", specifier = ">=5.2.2.post1" },
+    { name = "sentry-forked-django-stubs", specifier = ">=5.2.4.post1" },
     { name = "sentry-forked-djangorestframework-stubs", specifier = ">=3.16.2.post1" },
     { name = "time-machine", specifier = ">=2.16.0" },
     { name = "types-beautifulsoup4", specifier = ">=4.11.6" },
@@ -2300,7 +2300,7 @@ wheels = [
 
 [[package]]
 name = "sentry-forked-django-stubs"
-version = "5.2.2.post1"
+version = "5.2.4.post1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "django", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2309,7 +2309,7 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_forked_django_stubs-5.2.2.post1-py3-none-any.whl", hash = "sha256:8863f1d339200de4ed6a6a9e16ab24ef454d75202c97a73d98572f805d5cb24f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_forked_django_stubs-5.2.4.post1-py3-none-any.whl", hash = "sha256:840967a4bd974f3b8667ac85bafdd4b9fa5d5f1daaa4047a0dae000ddd670b39" },
 ]
 
 [[package]]
