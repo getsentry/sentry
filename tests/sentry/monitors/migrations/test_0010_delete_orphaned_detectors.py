@@ -58,4 +58,5 @@ class DeleteOrphanedDetectorsTest(TestMigrations):
         valid_data_sources = DataSource.objects.filter(type=DATA_SOURCE_CRON_MONITOR)
         assert valid_data_sources.count() == 1
         remaining_data_source = valid_data_sources.first()
+        assert remaining_data_source
         assert remaining_data_source.source_id == str(self.monitor_with_detector.id)
