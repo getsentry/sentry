@@ -1,5 +1,5 @@
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.explore.models import ExploreSavedQueryDataset
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.explore.translation.discover_translation import (
     translate_discover_query_to_explore_query,
 )
@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverToExploreTranslationTest(TestCase):
-    def create_discover_query(self, name: str, query: dict):
+    def create_discover_query(self, name: str, query: dict, explore_query=None):
         discover_saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -20,6 +20,7 @@ class DiscoverToExploreTranslationTest(TestCase):
             visits=1,
             last_visited=before_now(minutes=5),
             dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            explore_query=explore_query,
         )
         discover_saved_query.set_projects([self.project1.id, self.project2.id])
 
@@ -33,6 +34,29 @@ class DiscoverToExploreTranslationTest(TestCase):
         self.project2 = self.create_project(organization=self.org)
 
         self.env = self.create_environment(project=self.project1)
+
+        self.existing_explore_query = {
+            "query": "is_transaction:1",
+            "range": "14d",
+            "aggregateField": [
+                {"groupBy": "id"},
+                {"groupBy": "title"},
+                {"groupBy": "timestamp"},
+                {"yAxes": ["count()"], "chartType": 2},
+            ],
+            "fields": ["id", "title", "timestamp"],
+            "orderby": "-timestamp",
+            "display": "default",
+            "environment": [],
+        }
+
+        self.existing_explore_query_saved_query = ExploreSavedQuery.objects.create(
+            id="12345",
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Existing explore query",
+            query=self.existing_explore_query,
+        )
 
     def test_translate_simple_discover_to_explore_query(self):
         self.simple_query = {
@@ -297,3 +321,37 @@ class DiscoverToExploreTranslationTest(TestCase):
         query = new_explore_query.query["query"][0]
         assert query["aggregateOrderby"] == "-equation|count(span.duration) + 5"
         assert query["orderby"] is None
+
+    def test_translate_discover_query_to_explore_query_with_existing_explore_query(self):
+        self.existing_explore_discover_query = {
+            "query": "event.type:transaction",
+            "range": "14d",
+            "yAxis": ["count()"],
+            "fields": ["id", "title", "timestamp"],
+            "orderby": "-timestamp",
+            "display": "default",
+            "environment": [],
+        }
+        self.existing_explore_discover_query_saved_query = self.create_discover_query(
+            "Existing explore query",
+            self.existing_explore_discover_query,
+            self.existing_explore_query_saved_query,
+        )
+
+        new_explore_query = translate_discover_query_to_explore_query(
+            self.existing_explore_discover_query_saved_query
+        )
+        assert new_explore_query.name == "Existing explore query"
+        assert new_explore_query.id == self.existing_explore_query_saved_query.id
+
+        query = new_explore_query.query["query"][0]
+        assert query["fields"] == ["id", "transaction", "timestamp"]
+        assert query["query"] == "(is_transaction:1) AND is_transaction:1"
+        assert query["aggregateField"] == [
+            {"groupBy": "id"},
+            {"groupBy": "transaction"},
+            {"groupBy": "timestamp"},
+            {"yAxes": ["count(span.duration)"], "chartType": 2},
+        ]
+        assert query["aggregateOrderby"] is None
+        assert query["orderby"] == "-timestamp"

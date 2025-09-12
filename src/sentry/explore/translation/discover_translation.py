@@ -10,6 +10,7 @@ from sentry.discover.translation.mep_to_eap import (
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.integrations.slack.unfurl.discover import is_aggregate
+from sentry.search.events.fields import get_function_alias_with_columns, is_function, parse_function
 
 # we're going to keep the chart types from discover
 # bar = 0, line = 1, area = 2
@@ -38,10 +39,21 @@ def _get_translated_orderby_item(orderby, columns, is_negated):
     to regular function notation. We do this by stripping both the orderby item and the given columns
     (which could be functions and fields) and then checking if it matches up to any of those stripped columns.
     """
-    columns_stripped_list = [re.sub(r"[.()_,\s]", "", column) for column in columns]
-    joined_orderby_item = re.sub(r"[.()_,\s]", "", orderby)
+    columns_underscore_list = []
+    for column in columns:
+        if is_function(column):
+            aggregate, fields, alias = parse_function(column)
+            columns_underscore_list.append(get_function_alias_with_columns(aggregate, fields))
+        else:
+            # non-function columns don't change format
+            columns_underscore_list.append(column)
+    joined_orderby_item = orderby
+    if is_function(orderby):
+        aggregate, fields, alias = parse_function(orderby)
+        joined_orderby_item = get_function_alias_with_columns(aggregate, fields)
+
     converted_orderby = None
-    for index, stripped_column in enumerate(columns_stripped_list):
+    for index, stripped_column in enumerate(columns_underscore_list):
         if joined_orderby_item == stripped_column:
             converted_orderby = columns[index]
             break
@@ -226,18 +238,40 @@ def translate_discover_query_to_explore_query(
         discover_query.query
     )
 
-    new_explore_query = ExploreSavedQuery.objects.create(
-        date_updated=discover_query.date_updated,
-        date_added=discover_query.date_created,
-        created_by_id=discover_query.created_by_id,
-        visits=discover_query.visits,
-        last_visited=discover_query.last_visited,
-        dataset=ExploreSavedQueryDataset.SEGMENT_SPANS,
-        is_multi_query=False,
-        organization=discover_query.organization,
-        name=discover_query.name,
-        query=translated_query_field,
+    create_defaults = {
+        "date_updated": discover_query.date_updated,
+        "date_added": discover_query.date_created,
+        "created_by_id": discover_query.created_by_id,
+        "visits": discover_query.visits,
+        "last_visited": discover_query.last_visited,
+        "dataset": ExploreSavedQueryDataset.SEGMENT_SPANS,
+        "is_multi_query": False,
+        "organization": discover_query.organization,
+        "name": discover_query.name,
+        "query": translated_query_field,
         # TODO(nikki): add changed_reason (after making updates to translation layer)
-    )
+    }
+
+    explore_query = discover_query.explore_query
+    discover_query_id = discover_query.id
+
+    if discover_query.explore_query is not None:
+        try:
+            explore_query = ExploreSavedQuery.objects.get(id=explore_query.id)
+            for key, value in create_defaults.items():
+                setattr(explore_query, key, value)
+            explore_query.save()
+            new_explore_query = explore_query
+        except ExploreSavedQuery.DoesNotExist:
+            new_explore_query = ExploreSavedQuery(**create_defaults)
+            new_explore_query.save()
+            DiscoverSavedQuery.objects.filter(id=discover_query_id).update(
+                explore_query=new_explore_query.id
+            )
+    else:
+        new_explore_query = ExploreSavedQuery.objects.create(**create_defaults)
+        DiscoverSavedQuery.objects.filter(id=discover_query_id).update(
+            explore_query=new_explore_query.id
+        )
 
     return new_explore_query
