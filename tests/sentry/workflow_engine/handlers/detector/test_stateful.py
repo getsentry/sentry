@@ -4,7 +4,11 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    DataConditionResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+)
 from tests.sentry.workflow_engine.handlers.detector.test_base import MockDetectorStateHandler
 
 Level = DetectorPriorityLevel
@@ -185,7 +189,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             },
         )
 
-    def packet(self, key: int, result: DetectorPriorityLevel | int) -> DataPacket:
+    def packet(self, key: int, result: DataConditionResult | str) -> DataPacket:
         """
         Constructs a test data packet that will evaluate to the
         DetectorPriorityLevel specified for the result parameter.
@@ -193,6 +197,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         See the `add_condition` to understand the priority level -> group value
         mappings.
         """
+        value = result
         if isinstance(result, DetectorPriorityLevel):
             value = result.name
 
