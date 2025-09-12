@@ -18,6 +18,7 @@ import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarker
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
@@ -137,12 +138,18 @@ function MetricDetectorChart({
   }, [thresholdAdditionalSeries, openPeriodMarkerResult.incidentMarkerSeries]);
 
   const yAxes = useMemo(() => {
+    const {formatYAxisLabel} = getDetectorChartFormatters({
+      detectionType,
+      aggregate: snubaQuery.aggregate,
+    });
+
     const mainYAxis: YAXisComponentOption = {
       max: maxValue > 0 ? maxValue : undefined,
       min: 0,
       axisLabel: {
         // Hide the maximum y-axis label to avoid showing arbitrary threshold values
         showMaxLabel: false,
+        formatter: (value: number) => formatYAxisLabel(value),
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -155,7 +162,12 @@ function MetricDetectorChart({
     }
 
     return axes;
-  }, [maxValue, openPeriodMarkerResult.incidentMarkerYAxis]);
+  }, [
+    maxValue,
+    openPeriodMarkerResult.incidentMarkerYAxis,
+    detectionType,
+    snubaQuery.aggregate,
+  ]);
 
   const grid = useMemo(() => {
     return {
@@ -170,7 +182,7 @@ function MetricDetectorChart({
   if (isLoading) {
     return (
       <Flex height={CHART_HEIGHT} justify="center" align="center">
-        <Placeholder height={`${CHART_HEIGHT - 20}px`} />
+        <Placeholder height={`${CHART_HEIGHT}px`} />
       </Flex>
     );
   }
@@ -198,6 +210,12 @@ function MetricDetectorChart({
       grid={grid}
       xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
       ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
+      tooltip={{
+        valueFormatter: getDetectorChartFormatters({
+          detectionType,
+          aggregate: snubaQuery.aggregate,
+        }).formatTooltipValue,
+      }}
       {...chartZoomProps}
     />
   );
