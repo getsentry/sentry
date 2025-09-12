@@ -43,14 +43,14 @@ def main() -> None:
 
     try:
         eval_context = EvaluationContext(args.get("context"))
-        (result, involves_rollout, segment) = evaluate_flag(feature, eval_context)
+        (result, rollout, segment) = evaluate_flag(feature, eval_context)
     except Exception as e:
         output("Unable to eval. Check your context value")
         output(e)
         sys.exit(1)
 
     output("Result:")
-    output(indent, result, "(depends on rollout)" if involves_rollout else None)
+    output(indent, result, f"({rollout}% rollout)" if rollout != 100 else "")
     if segment:
         output("Passing Segment:")
         output(indent, segment.name)
@@ -114,17 +114,14 @@ def read_feature(flag_name: str, flagpole_file: str) -> Feature:
 def evaluate_flag(feature: Feature, context: EvaluationContext) -> bool:
     real_result = feature.match(context)
 
-    involves_rollout = False
-    for segment in feature.segments:
-        involves_rollout = involves_rollout or segment.rollout != 100
-
     for segment in feature.segments:
         test = dataclasses.replace(feature, segments=[segment])
+        original_rollout = segment.rollout
         segment.rollout = 100
         if test.match(context):
-            return (real_result, involves_rollout, segment)
+            return (real_result, original_rollout, segment)
 
-    return (real_result, involves_rollout, None)
+    return (real_result, False, None)
 
 
 if __name__ == "__main__":
