@@ -23,11 +23,6 @@ export interface StripeCreditCardSetupProps {
   buttonText?: string;
 
   /**
-   * The endpoint to use to get the intent data.
-   * Defaults to the setup intent endpoint.
-   */
-  endpoint?: string;
-  /**
    * Location of form, if any.
    */
   location?: FTCConsentLocation;
@@ -38,7 +33,13 @@ export interface StripeCreditCardSetupProps {
 }
 
 function StripeCreditCardSetup(props: StripeCreditCardSetupProps) {
-  return <StripeCreditCardForm cardMode="setup" {...props} />;
+  return (
+    <StripeCreditCardForm
+      cardMode="setup"
+      intentDataEndpoint={`/organizations/${props.organization.slug}/payments/setup/`}
+      {...props}
+    />
+  );
 }
 
 export default StripeCreditCardSetup;

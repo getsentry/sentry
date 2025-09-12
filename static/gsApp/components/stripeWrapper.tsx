@@ -10,9 +10,11 @@ import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 
 function StripeWrapper({
   paymentElementMode,
+  amount,
   children,
 }: {
   children: React.ReactNode;
+  amount?: number;
   paymentElementMode?: 'setup' | 'payment';
 }) {
   const stripe = useStripeInstance();
@@ -25,8 +27,9 @@ function StripeWrapper({
     ? {
         mode: paymentElementMode,
         setupFutureUsage: 'off_session' as const,
-        captureMethod: 'manual' as const,
+        captureMethod: 'automatic' as const,
         paymentMethodTypes: ['card'],
+        amount,
       }
     : {};
 

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {PaymentElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {
   PaymentIntentResult,
@@ -20,6 +20,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 
 import type {StripeCreditCardSetupProps} from 'getsentry/components/stripeCreditCardSetup';
 import StripeWrapper from 'getsentry/components/stripeWrapper';
+import {usePaymentIntentData, useSetupIntentData} from 'getsentry/hooks/useIntentData';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {
   FTCConsentLocation,
@@ -30,21 +31,124 @@ import type {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface StripeCreditCardFormProps extends StripeCreditCardSetupProps {
+  cardMode: 'setup' | 'payment';
+  intentDataEndpoint: string;
+  amount?: number;
+}
+
+interface StripeIntentFormProps extends StripeCreditCardSetupProps {
   /**
    * If the form is being used for setup or payment intent.
    */
   cardMode: 'setup' | 'payment';
+  /**
+   * The endpoint to get the intent data.
+   */
+  intentDataEndpoint: string;
+}
+
+interface IntentFormProps
+  extends Omit<StripeCreditCardFormProps, 'amount' | 'intentDataEndpoint'> {
+  onError: (error: string) => void;
+  intentData?: PaymentSetupCreateResponse | PaymentCreateResponse;
 }
 
 function StripeCreditCardForm(props: StripeCreditCardFormProps) {
   return (
-    <StripeWrapper paymentElementMode={props.cardMode}>
-      <StripeCreditCardFormInner {...props} />
+    <StripeWrapper paymentElementMode={props.cardMode} amount={props.amount}>
+      {props.cardMode === 'setup' ? (
+        <StripeSetupIntentForm {...props} />
+      ) : (
+        <StripePaymentIntentForm {...props} />
+      )}
     </StripeWrapper>
   );
 }
 
-function StripeCreditCardFormInner({
+function StripeSetupIntentForm({
+  onSuccess,
+  budgetModeText,
+  buttonText,
+  location,
+  referrer,
+  organization,
+  cardMode,
+  intentDataEndpoint,
+}: StripeIntentFormProps) {
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+
+  const {intentData, isLoading, isError, error} = useSetupIntentData({
+    endpoint: intentDataEndpoint,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    setErrorMessage(error);
+  }
+
+  return (
+    <Flex direction="column" gap="xl">
+      <Alert type="error">{errorMessage}</Alert>
+      <IntentForm
+        cardMode={cardMode}
+        onSuccess={onSuccess}
+        budgetModeText={budgetModeText}
+        buttonText={buttonText}
+        location={location}
+        referrer={referrer}
+        organization={organization}
+        intentData={intentData}
+        onError={setErrorMessage}
+      />
+    </Flex>
+  );
+}
+
+function StripePaymentIntentForm({
+  onSuccess,
+  budgetModeText,
+  buttonText,
+  location,
+  referrer,
+  organization,
+  cardMode,
+  intentDataEndpoint,
+}: StripeIntentFormProps) {
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const {intentData, isLoading, isError, error} = usePaymentIntentData({
+    endpoint: intentDataEndpoint,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    setErrorMessage(error);
+  }
+
+  return (
+    <Flex direction="column" gap="xl">
+      {isError && <Alert type="error">{errorMessage}</Alert>}
+      <IntentForm
+        cardMode={cardMode}
+        onSuccess={onSuccess}
+        budgetModeText={budgetModeText}
+        buttonText={buttonText}
+        location={location}
+        referrer={referrer}
+        organization={organization}
+        intentData={intentData}
+        onError={setErrorMessage}
+      />
+    </Flex>
+  );
+}
+
+function IntentForm({
   cardMode,
   onSuccess,
   budgetModeText,
@@ -52,43 +156,13 @@ function StripeCreditCardFormInner({
   location,
   referrer,
   organization,
-  endpoint,
-}: StripeCreditCardFormProps) {
+  onError,
+  intentData,
+}: IntentFormProps) {
   const [loading, setLoading] = useState(false);
   const elements = useElements();
   const stripe = useStripe();
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [submitDisabled, setSubmitDisabled] = useState(false);
-  const [intentData, setIntentData] = useState<
-    PaymentSetupCreateResponse | PaymentCreateResponse | undefined
-  >(undefined);
-
-  const intentDataEndpoint =
-    endpoint ?? `/organizations/${organization.slug}/payments/setup/`;
-
-  const {mutate: loadIntentData} = useMutation<
-    PaymentSetupCreateResponse | PaymentCreateResponse
-  >({
-    mutationFn: () =>
-      fetchMutation({
-        method: 'POST',
-        url: intentDataEndpoint,
-      }),
-    onSuccess: data => {
-      setIntentData(data);
-      setLoading(false);
-    },
-    onError: error => {
-      setErrorMessage(error.message);
-      setSubmitDisabled(true);
-      setLoading(false);
-    },
-  });
-
-  useEffect(() => {
-    setLoading(true);
-    loadIntentData();
-  }, [loadIntentData]);
 
   const {mutateAsync: updateSubscription} = useMutation({
     mutationFn: ({
@@ -116,7 +190,7 @@ function StripeCreditCardFormInner({
       onSuccess?.();
     },
     onError: error => {
-      setErrorMessage(error.message);
+      onError(error.message);
       setSubmitDisabled(true);
       setLoading(false);
     },
@@ -127,10 +201,8 @@ function StripeCreditCardFormInner({
   }
 
   const handleSubmit = () => {
-    if (!intentData || !stripe || !elements) {
-      setErrorMessage(
-        t('Cannot complete your payment at this time, please try again later.')
-      );
+    if (!stripe || !elements || !intentData) {
+      onError(t('Cannot complete your payment at this time, please try again later.'));
       return;
     }
 
@@ -145,7 +217,7 @@ function StripeCreditCardFormInner({
           })
           .then((result: PaymentIntentResult) => {
             if (result.error) {
-              setErrorMessage(result.error.message);
+              onError(result.error.message ?? t('Payment failed.'));
               return;
             }
             // TODO: make sure this is the correct event
@@ -166,7 +238,7 @@ function StripeCreditCardFormInner({
           })
           .then((result: SetupIntentResult) => {
             if (result.error) {
-              setErrorMessage(result.error.message);
+              onError(result.error.message ?? t('Setup failed.'));
               return;
             }
             updateSubscription({
@@ -188,9 +260,12 @@ function StripeCreditCardFormInner({
   };
 
   return (
-    <Form onSubmit={handleSubmit} submitDisabled={submitDisabled}>
+    <Form
+      onSubmit={handleSubmit}
+      submitDisabled={submitDisabled}
+      submitLabel={buttonText}
+    >
       <Flex direction="column" gap="xl">
-        {errorMessage && <Alert type="error">{errorMessage}</Alert>}
         <PaymentElement
           onChange={handleFormChange}
           options={{
