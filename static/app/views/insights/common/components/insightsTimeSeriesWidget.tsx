@@ -11,7 +11,10 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
-import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  LegendSelection,
+  TimeSeries,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -48,7 +51,6 @@ export interface InsightsTimeSeriesWidgetProps
     LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
-  series: DiscoverSeries[];
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
@@ -69,11 +71,12 @@ export interface InsightsTimeSeriesWidgetProps
     groupBy?: SpanFields[];
     yAxis?: string[];
   };
-
   samples?: Samples;
+  series?: DiscoverSeries[];
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble' | 'none';
   stacked?: boolean;
+  timeSeries?: TimeSeries[];
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
@@ -94,27 +97,38 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     ...props?.aliases,
   };
 
+  const PlottableDataConstructor =
+    props.visualizationType === 'line'
+      ? Line
+      : props.visualizationType === 'area'
+        ? Area
+        : Bars;
+
   const yAxes = new Set<string>();
   const plottables = [
-    ...(props.series.filter(Boolean) ?? []).map(serie => {
-      const timeSeries = markDelayedData(
+    ...(props.series?.filter(Boolean) ?? []).map(serie => {
+      const delayedTimeSeries = markDelayedData(
         convertSeriesToTimeseries(serie),
         INGESTION_DELAY
       );
-      const PlottableDataConstructor =
-        props.visualizationType === 'line'
-          ? Line
-          : props.visualizationType === 'area'
-            ? Area
-            : Bars;
 
       // yAxis should not contain whitespace, some yAxes are like `epm() span.op:queue.publish`
-      yAxes.add(timeSeries?.yAxis?.split(' ')[0] ?? '');
+      yAxes.add(delayedTimeSeries?.yAxis?.split(' ')[0] ?? '');
 
-      return new PlottableDataConstructor(timeSeries, {
-        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
+      return new PlottableDataConstructor(delayedTimeSeries, {
+        color: serie.color ?? COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: aliases?.[timeSeries.yAxis],
+        alias: aliases?.[delayedTimeSeries.yAxis],
+      });
+    }),
+    ...(props.timeSeries?.filter(Boolean) ?? []).map(timeSeries => {
+      // TODO: After merge of ENG-5375 we don't need to run `markDelayedData` on output of `/events-timeseries/`
+      const delayedTimeSeries = markDelayedData(timeSeries, INGESTION_DELAY);
+
+      return new PlottableDataConstructor(delayedTimeSeries, {
+        color: COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
+        stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
+        alias: aliases?.[delayedTimeSeries.yAxis],
       });
     }),
     ...(props.extraPlottables ?? []),
@@ -158,7 +172,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  if (props.series.filter(Boolean).length === 0) {
+  if (
+    [...(props.series ?? []), ...(props.timeSeries ?? [])].filter(Boolean).length === 0
+  ) {
     return (
       <ChartContainer height={props.height}>
         <Widget
