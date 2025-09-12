@@ -225,7 +225,7 @@ ACTION_CHOICES = [
 ]
 
 
-class FallthroughChoiceType(Enum):
+class FallthroughChoiceType(StrEnum):
     ALL_MEMBERS = "AllMembers"
     ACTIVE_MEMBERS = "ActiveMembers"
     NO_ONE = "NoOne"
