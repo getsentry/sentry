@@ -12,7 +12,7 @@ class TestProcessDataPacket(BaseWorkflowTest):
             self.create_detector_and_workflow()
         )
 
-        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
+        _, _, self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
 
     def test_single_data_packet(self) -> None:
         results = process_data_packet(self.data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
