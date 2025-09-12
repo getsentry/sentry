@@ -406,7 +406,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 
   if (!dynamicSamplingEnabled) {
-    <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
+    return <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
   }
 
   if (!data) {
