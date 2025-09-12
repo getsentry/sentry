@@ -25,6 +25,10 @@ export type SuspectAttributesResult = {
       label: string;
       value: string;
     }>;
+    order: {
+      rrf: number;
+      rrr: number | null;
+    };
   }>;
 };
 

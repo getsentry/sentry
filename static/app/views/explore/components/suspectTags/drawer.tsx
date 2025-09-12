@@ -10,6 +10,10 @@ import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Charts} from 'sentry/views/explore/components/suspectTags/charts';
+import {
+  SortingToggle,
+  type SortingMethod,
+} from 'sentry/views/explore/components/suspectTags/sortingToggle';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import useSuspectAttributes from 'sentry/views/explore/hooks/useSuspectAttributes';
 
@@ -21,23 +25,35 @@ type Props = {
 export function Drawer({boxSelectOptions, chartInfo}: Props) {
   const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, chartInfo});
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortingMethod, setSortingMethod] = useState<SortingMethod>('rrf');
 
-  const filteredRankedAttributes = useMemo(() => {
+  const filteredAndSortedRankedAttributes = useMemo(() => {
     const attrs = data?.rankedAttributes;
     if (!attrs) {
       return [];
     }
 
-    if (!searchQuery.trim()) {
-      return attrs;
+    let filteredAttrs = attrs;
+    if (searchQuery.trim()) {
+      const searchFor = searchQuery.toLocaleLowerCase().trim();
+      filteredAttrs = attrs.filter(attr =>
+        attr.attributeName.toLocaleLowerCase().trim().includes(searchFor)
+      );
     }
 
-    const searchFor = searchQuery.toLocaleLowerCase().trim();
+    const sortedAttrs = [...filteredAttrs].sort((a, b) => {
+      const aOrder = a.order[sortingMethod];
+      const bOrder = b.order[sortingMethod];
 
-    return attrs.filter(attr =>
-      attr.attributeName.toLocaleLowerCase().trim().includes(searchFor)
-    );
-  }, [searchQuery, data?.rankedAttributes]);
+      if (aOrder === null && bOrder === null) return 0;
+      if (aOrder === null) return 1;
+      if (bOrder === null) return -1;
+
+      return aOrder - bOrder;
+    });
+
+    return sortedAttrs;
+  }, [searchQuery, data?.rankedAttributes, sortingMethod]);
 
   // We use the search query as a key to virtual list items, to correctly re-mount
   // charts that were invisible before the user searched for it. Debouncing the search
@@ -60,15 +76,18 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
           <LoadingError message={t('Failed to load suspect attributes')} />
         ) : (
           <Fragment>
-            <StyledBaseSearchBar
-              placeholder={t('Search keys')}
-              onChange={query => setSearchQuery(query)}
-              query={searchQuery}
-              size="sm"
-            />
-            {filteredRankedAttributes.length > 0 ? (
+            <ControlsContainer>
+              <StyledBaseSearchBar
+                placeholder={t('Search keys')}
+                onChange={query => setSearchQuery(query)}
+                query={searchQuery}
+                size="sm"
+              />
+              <SortingToggle value={sortingMethod} onChange={setSortingMethod} />
+            </ControlsContainer>
+            {filteredAndSortedRankedAttributes.length > 0 ? (
               <Charts
-                rankedAttributes={filteredRankedAttributes}
+                rankedAttributes={filteredAndSortedRankedAttributes}
                 searchQuery={debouncedSearchQuery}
               />
             ) : (
@@ -88,8 +107,15 @@ const Title = styled('h4')`
   flex-shrink: 0;
 `;
 
-const StyledBaseSearchBar = styled(BaseSearchBar)`
+const ControlsContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
   margin-bottom: ${space(1.5)};
+`;
+
+const StyledBaseSearchBar = styled(BaseSearchBar)`
+  flex: 1;
 `;
 
 const SubTitle = styled('span')`
