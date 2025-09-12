@@ -109,6 +109,10 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
 export const getCategoriesForIntegration = (
   integration: AppOrProviderOrPlugin
 ): string[] => {
+  if (isCodingAgentIntegration(integration)) {
+    return ['coding agent'];
+  }
+
   if (isSentryApp(integration)) {
     return ['internal', 'unpublished'].includes(integration.status)
       ? [integration.status]
@@ -207,6 +211,8 @@ export const getIntegrationIcon = (
       return <IconVsts size={iconSize} />;
     case 'codecov':
       return <IconCodecov size={iconSize} />;
+    case 'cursor':
+      return <IconGeneric size={iconSize} />; // TODO: Add proper Cursor icon
     default:
       return <IconGeneric size={iconSize} />;
   }
@@ -230,7 +236,9 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'vsts':
       return 'Azure DevOps';
     case 'codecov':
-      return 'Codeov';
+      return 'Codecov';
+    case 'cursor':
+      return 'Cursor Agent';
     default:
       return '';
   }
@@ -413,4 +421,10 @@ export function sortIntegrations({
     // then sort by name
     return a.slug.localeCompare(b.slug);
   });
+}
+
+export function isCodingAgentIntegration(integration: AppOrProviderOrPlugin): boolean {
+  const codingAgentIntegrationSlugs = ['cursor'];
+
+  return codingAgentIntegrationSlugs.includes(integration.slug);
 }
