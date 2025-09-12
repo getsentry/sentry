@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {IconCheckmark, IconClose} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
@@ -65,14 +65,16 @@ const FEATURES: Array<{features: string[]; plan: string}> = [
 
 function FeatureItem({feature, isIncluded}: {feature: string; isIncluded: boolean}) {
   return (
-    <Flex gap="sm">
-      {isIncluded ? (
-        <IconCheckmark size="md" color="success" />
-      ) : (
-        <IconClose size="md" color="error" />
-      )}
+    <FeatureItemContainer isIncluded={isIncluded}>
+      <Container padding="0">
+        {isIncluded ? (
+          <IconCheckmark size="md" color="success" />
+        ) : (
+          <IconClose size="md" color="gray300" />
+        )}
+      </Container>
       <Text variant={isIncluded ? 'primary' : 'muted'}>{feature}</Text>
-    </Flex>
+    </FeatureItemContainer>
   );
 }
 
@@ -117,16 +119,18 @@ function PlanFeatures({
   return (
     <Flex
       background="primary"
-      padding="2xl"
+      padding="xl"
       radius="lg"
       border="primary"
-      gap="sm"
+      gap="xl"
       direction="column"
     >
-      <Heading as="h3" size="xl">
-        {t("What's included")}
+      <Heading as="h3">
+        {t('What you get on the ')}
+        <Text underline>{activePlan.name}</Text>
+        {t(' plan:')}
       </Heading>
-      <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="sm">
+      <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="md xl">
         {planToFeatures.map(({plan, features, perUnitPriceDiffs}, index) => {
           const planName = plan.name;
           const lowerCasePlanName = planName.toLowerCase();
@@ -137,13 +141,14 @@ function PlanFeatures({
               data-test-id={dataTestId}
               key={lowerCasePlanName}
               direction="column"
-              gap="sm"
+              gap="md"
             >
               {features.map(feature => (
                 <FeatureItem key={feature} feature={feature} isIncluded={isIncluded} />
               ))}
               {Object.keys(perUnitPriceDiffs).length > 0 && (
                 <EventPriceWarning align="center" gap="sm">
+                  <IconWarning size="md" color="yellow300" />
                   <Tooltip
                     title={tct('Starting at [priceDiffs].', {
                       priceDiffs: oxfordizeArray(
@@ -160,8 +165,8 @@ function PlanFeatures({
                     })}
                   >
                     {/* TODO(checkout v3): verify tooltip copy */}
-                    <Text as="span" size="sm" variant="muted">
-                      {tct('*Excess usage for [categories] costs more on [planName]', {
+                    <Text as="span" size="md" variant="muted">
+                      {tct('Excess usage for [categories] costs more on [planName]', {
                         categories: listDisplayNames({
                           plan,
                           categories: Object.keys(perUnitPriceDiffs) as DataCategory[],
@@ -187,5 +192,22 @@ const EventPriceWarning = styled(Flex)`
   > span {
     text-decoration: underline dotted;
     text-decoration-color: ${p => p.theme.subText};
+  }
+`;
+
+const FeatureItemContainer = styled(Flex)<{isIncluded: boolean}>`
+  align-items: start;
+  color: ${p => p.theme.textColor};
+  gap: ${p => p.theme.space.md};
+  opacity: ${p => (p.isIncluded ? 1 : 0.5)};
+
+  &:after {
+    content: '';
+    display: inline;
+    min-width: ${p => p.theme.space['2xl']};
+    flex: 1;
+    height: 1px;
+    border-top: 1px dashed ${p => p.theme.border};
+    transform: translateY(${p => p.theme.space.md});
   }
 `;
