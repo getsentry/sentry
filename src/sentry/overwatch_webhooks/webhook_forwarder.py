@@ -5,14 +5,15 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.models import OrganizationSummary, WebhookDetails
-from sentry.overwatch_webhooks.overwatch_webhook_publisher import OverwatchWebhookPublisher
+from sentry.overwatch_webhooks.webhook_publisher import OverwatchWebhookPublisher
 
-EVENTS_TO_FORWARD_OVERWATCH = {
+# TODO: Double check that this includes all of the events you care about.
+GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
     "installation",
     "installation_repositories",
-    "push",
+    "issue_comment",
     "pull_request",
-    "pull_request_review",
+    "pull_request_review_comment",
 }
 
 
@@ -25,7 +26,7 @@ class OverwatchGithubWebhookForwarder:
         self.publisher = OverwatchWebhookPublisher(integration_provider=integration.provider)
 
     def should_forward_to_overwatch(self, event: dict[str, Any]) -> bool:
-        return event.get("action") in EVENTS_TO_FORWARD_OVERWATCH
+        return event.get("action") in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
 
     def get_organizations_with_consent(self, integration: Integration) -> list[OrganizationSummary]:
         """
@@ -53,13 +54,13 @@ class OverwatchGithubWebhookForwarder:
 
     def forward_if_applicable(self, event: Mapping[str, Any]):
         orgs_with_consent = self.get_organizations_with_consent(integration=self.integration)
-        if not orgs_with_consent:
+        if not orgs_with_consent or not self.should_forward_to_overwatch(event):
             return
 
         webhook_detail = WebhookDetails(
             organizations=orgs_with_consent,
             webhook_body=dict(event),
+            integration_provider=self.integration.provider,
         )
 
-        if self.should_forward_to_overwatch(event):
-            self.publisher.enqueue_webhook(webhook_detail)
+        self.publisher.enqueue_webhook(webhook_detail)
