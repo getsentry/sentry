@@ -5,6 +5,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {
   getAggregateAlias,
+  getEquationAliasIndex,
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
@@ -93,13 +94,26 @@ export function getSeriesRequestData(
         widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
 
       if ([DiscoverDatasets.OURLOGS, DiscoverDatasets.SPANS].includes(dataset)) {
-        if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
-          if (!requestData.field?.includes(trimStart(widgetQuery.orderby, '-'))) {
-            requestData.field = [
-              ...widgetQuery.columns,
-              ...widgetQuery.aggregates,
-              trimStart(widgetQuery.orderby, '-'),
-            ];
+        if (
+          isEquation(trimStart(widgetQuery.orderby, '-')) &&
+          !requestData.field?.includes(trimStart(widgetQuery.orderby, '-'))
+        ) {
+          requestData.field = [
+            ...widgetQuery.columns,
+            ...widgetQuery.aggregates,
+            trimStart(widgetQuery.orderby, '-'),
+          ];
+        } else if (isEquationAlias(trimStart(widgetQuery.orderby, '-'))) {
+          const equations = widgetQuery.fields?.filter(isEquation) ?? [];
+          const equationIndex = getEquationAliasIndex(
+            trimStart(widgetQuery.orderby, '-')
+          );
+
+          const equationOrderBy = equations[equationIndex];
+          if (equationOrderBy) {
+            widgetQuery.orderby = widgetQuery.orderby.startsWith('-')
+              ? `-${equationOrderBy}`
+              : equationOrderBy;
           }
         }
       } else {

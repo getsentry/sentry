@@ -83,11 +83,8 @@ export function SortBySelectors({
         sortDirection: values.sortDirection,
       });
     }
-    console.log('setting custom eq', values.sortBy);
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
-
-  console.log('customEquation', customEquation.sortBy);
 
   const timeseriesSortOptions = useMemo(() => {
     let options: Record<string, SelectValue<FieldValue>> = {};
@@ -195,8 +192,6 @@ export function SortBySelectors({
                 });
                 return;
               }
-
-              console.log('on change value', value);
 
               if (
                 [WidgetType.SPANS, WidgetType.LOGS].includes(widgetType) &&
