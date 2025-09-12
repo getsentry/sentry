@@ -4,6 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Grid} from 'sentry/components/core/layout';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -168,12 +169,14 @@ function AdditionalProductsSubstep({
   return (
     <Substep>
       <SubstepTitle>{t('Select additional products')}</SubstepTitle>
-      <ProductSelect
-        activePlan={activePlan}
-        formData={formData}
-        onUpdate={onUpdate}
-        isNewCheckout
-      />
+      <Grid columns="1fr 1fr" gap="xl">
+        <ProductSelect
+          activePlan={activePlan}
+          formData={formData}
+          onUpdate={onUpdate}
+          isNewCheckout
+        />
+      </Grid>
     </Substep>
   );
 }
@@ -306,7 +309,7 @@ const Substep = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
-  margin-top: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const SubstepTitle = styled('h2')`
