@@ -122,7 +122,7 @@ export enum FilterType {
  * \uf00d unicode character to isolate the wildcard operator from the rest of the string,
  * as this gives us more flexibility down the road to add more operators.
  *
- * Unicode Character: \uf00d
+ * Unicode Character: `\uf00d`
  */
 export enum WildcardOperators {
   CONTAINS = '\uf00dcontains\uf00d',
@@ -130,17 +130,15 @@ export enum WildcardOperators {
   ENDS_WITH = '\uf00dends with\uf00d',
 }
 
-export const allOperators = [
-  TermOperator.DEFAULT,
+export const comparisonOperators = [
   TermOperator.GREATER_THAN_EQUAL,
   TermOperator.LESS_THAN_EQUAL,
   TermOperator.GREATER_THAN,
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
-  TermOperator.NOT_EQUAL,
 ] as const;
 
-const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+export const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
 
 export const wildcardOperators = [
   TermOperator.CONTAINS,
@@ -149,7 +147,7 @@ export const wildcardOperators = [
   TermOperator.DOES_NOT_START_WITH,
   TermOperator.ENDS_WITH,
   TermOperator.DOES_NOT_END_WITH,
-];
+] as const;
 
 /**
  * Map of certain filter types to other filter types with applicable operators
@@ -199,7 +197,7 @@ export const filterTypeConfig = {
   },
   [FilterType.DATE]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
   },
@@ -217,19 +215,19 @@ export const filterTypeConfig = {
   },
   [FilterType.DURATION]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
   },
   [FilterType.SIZE]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
   },
   [FilterType.NUMERIC]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
   },
@@ -247,37 +245,37 @@ export const filterTypeConfig = {
   },
   [FilterType.AGGREGATE_DURATION]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
   },
   [FilterType.AGGREGATE_SIZE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_NUMERIC]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
   },
   [FilterType.AGGREGATE_PERCENTAGE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_PERCENTAGE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_RELATIVE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: true,
   },
