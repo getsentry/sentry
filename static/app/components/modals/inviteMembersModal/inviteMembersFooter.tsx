@@ -1,9 +1,7 @@
-import styled from '@emotion/styled';
-
+import {Flex} from 'sentry/components/core/layout';
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   canSend: boolean;
@@ -32,7 +30,7 @@ export default function InviteMembersFooter({canSend}: Props) {
   };
 
   return (
-    <FooterContent>
+    <Flex gap="md" align="center" justify="between" flex="1">
       <div>
         <InviteStatusMessage data-test-id="invite-status-message" />
       </div>
@@ -48,14 +46,6 @@ export default function InviteMembersFooter({canSend}: Props) {
           sendInvites();
         }}
       />
-    </FooterContent>
+    </Flex>
   );
 }
-
-const FooterContent = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  justify-content: space-between;
-  flex: 1;
-`;
