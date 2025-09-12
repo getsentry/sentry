@@ -312,12 +312,12 @@ function BillingDetailsForm({
                         apiKey: GOOGLE_MAPS_API_KEY,
                       }
                     : {
-                        mode: 'automatic',
+                        mode: 'automatic', // if our key isn't available, see if we can use Stripe's
                       },
                   allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
                     defined(code)
                   ).map(([code]) => code as string),
-                  fields: {phone: 'never', name: 'never'} as any,
+                  fields: {phone: 'never'}, // don't show phone number field
                   defaultValues: {
                     name: initialData?.companyName,
                     address: {
