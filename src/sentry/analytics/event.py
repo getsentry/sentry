@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from base64 import b64encode
-from collections.abc import Callable, Sequence
-from dataclasses import asdict, field, fields
+from collections.abc import Callable
+from dataclasses import asdict, fields
 from datetime import datetime as dt
 from typing import Any, ClassVar, Self, cast, dataclass_transform, overload
 from uuid import UUID, uuid1
@@ -10,9 +10,6 @@ from uuid import UUID, uuid1
 from django.utils import timezone
 from pydantic import Field
 from pydantic.dataclasses import dataclass
-
-from sentry.analytics.attribute import Attribute
-from sentry.analytics.utils import get_data
 
 
 # this overload of the decorator is for using it with parenthesis, first parameter is optional
@@ -84,33 +81,18 @@ class Event:
     # the type of the event, used for serialization and matching. Can be None for abstract base event classes
     type: ClassVar[str | None]
 
-    # TODO: this is the "old-style" attributes and data. Will be removed once all events are migrated to the new style.
-    attributes: ClassVar[Sequence[Attribute] | None] = None
-    data: dict[str, Any] | None = field(repr=False, init=False, default=None)
-
     def serialize(self) -> dict[str, Any]:
         if self.data is None:
-            self.data = {k: v for k, v in asdict(self).items() if k not in ("type", "data")}
+            self.data = {k: v for k, v in asdict(self).items() if k != "type"}
         return self.data
 
     @classmethod
     # @deprecated("This constructor function is discouraged, as it is not type-safe.")
     def from_instance(cls, instance: Any, **kwargs: Any) -> Self:
-        # TODO: this is the "old-style" attributes based constructor. Once all events are migrated to the new style,
-        # we can remove this.
-        if cls.attributes:
-            items = {
-                attr.name: kwargs.get(attr.name, getattr(instance, attr.name, None))
-                for attr in cls.attributes
-            }
-            self = cls()
-            self.data = get_data(cls.attributes, items)
-            return self
-
         attrs: dict[str, Any] = {
             f.name: kwargs.get(f.name, getattr(instance, f.name, None))
             for f in fields(cls)
-            if f.name not in ("type", "data")
+            if f.name != "type"
         }
         return cls(**attrs)
 
