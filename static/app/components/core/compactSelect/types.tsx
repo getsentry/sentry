@@ -64,3 +64,18 @@ export interface SelectSectionWithKey<Value extends SelectKey>
 export type SelectOptionOrSectionWithKey<Value extends SelectKey> =
   | SelectOptionWithKey<Value>
   | SelectSectionWithKey<Value>;
+
+/**
+ * Options for the virtualized list.
+ */
+export interface VirtualizedMenuOptions {
+  // An estimated height for the items in the list.
+  itemHeight: number;
+  // The maximum height of the list in pixels.
+  maxHeight: number;
+  // The number of items to render outside of the viewport.
+  overscan: number;
+  // The minimum width of the list in pixels. If the minimum width is not provided,
+  // the list will be at most the same size as the trigger button.
+  minWidth?: number;
+}

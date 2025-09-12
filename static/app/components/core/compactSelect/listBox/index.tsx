@@ -1,9 +1,10 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {
   ListLabel,
@@ -11,7 +12,11 @@ import {
   ListWrap,
   SizeLimitMessage,
 } from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+import type {
+  SelectKey,
+  SelectSection,
+  VirtualizedMenuOptions,
+} from 'sentry/components/core/compactSelect/types';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -89,7 +94,20 @@ interface ListBoxProps
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * Enable virtualization for better performance with large lists.
+   */
+  virtualized?: boolean;
+  /**
+   * Options for the virtualized list.
+   */
+  virtualizedMenuOptions?: VirtualizedMenuOptions;
 }
+
+export const DEFAULT_ITEM_HEIGHT = 40;
+export const DEFAULT_OVERSCAN = 10;
+export const DEFAULT_MAX_HEIGHT = 300;
+const DEFAULT_MIN_WIDTH = 0;
 
 const EMPTY_SET = new Set<never>();
 
@@ -102,6 +120,9 @@ const EMPTY_SET = new Set<never>();
  * options are unreachable via keyboard (only the options themselves can be focused on).
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
+ *
+ * When `virtualized` is true, the list will be virtualized for better performance
+ * with large datasets.
  */
 export function ListBox({
   ref,
@@ -118,9 +139,18 @@ export function ListBox({
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
+  virtualized = false,
+  virtualizedMenuOptions = {
+    itemHeight: DEFAULT_ITEM_HEIGHT,
+    maxHeight: DEFAULT_MAX_HEIGHT,
+    minWidth: DEFAULT_MIN_WIDTH,
+    overscan: DEFAULT_OVERSCAN,
+  },
   ...props
 }: ListBoxProps) {
   const listElementRef = useRef<HTMLUListElement>(null);
+  const scrollElementRef = useRef<HTMLDivElement>(null);
+
   const {listBoxProps, labelProps} = useListBox(
     {
       ...props,
@@ -153,49 +183,125 @@ export function ListBox({
     [listState.collection, hiddenOptions]
   );
 
+  const virtualizer = useVirtualizer({
+    count: listItems.length,
+    getScrollElement: () => scrollElementRef.current,
+    estimateSize: () => virtualizedMenuOptions.itemHeight,
+    overscan: virtualizedMenuOptions.overscan,
+  });
+
+  const virtualItems = virtualizer?.getVirtualItems() ?? [];
+
+  // Handle focus wrapping manually for virtualized lists
+  useEffect(() => {
+    if (!virtualized || !listState.selectionManager.focusedKey) return;
+
+    const focusedIndex = listItems.findIndex(
+      item => item.key === listState.selectionManager.focusedKey
+    );
+
+    if (focusedIndex !== -1) {
+      virtualizer.scrollToIndex(focusedIndex);
+    }
+  }, [listState.selectionManager.focusedKey, virtualized, listItems, virtualizer]);
+
+  const renderListItems = () => {
+    const itemsToRender = virtualized
+      ? virtualItems
+      : listItems.map((item, index) => ({item, index}));
+
+    return itemsToRender.map(virtualOrRegularItem => {
+      const item =
+        'item' in virtualOrRegularItem
+          ? virtualOrRegularItem.item
+          : listItems[virtualOrRegularItem.index];
+
+      if (!item) return null;
+
+      const itemStyle =
+        virtualized && 'start' in virtualOrRegularItem
+          ? {
+              position: 'absolute' as const,
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualOrRegularItem.start}px)`,
+            }
+          : undefined;
+
+      return item.type === 'section' ? (
+        <ListBoxSection
+          key={item.key}
+          item={item}
+          listState={listState}
+          hiddenOptions={hiddenOptions}
+          onToggle={onSectionToggle}
+          size={size}
+          showSectionHeaders={showSectionHeaders}
+          showDetails={showDetails}
+          style={itemStyle}
+        />
+      ) : (
+        <ListBoxOption
+          key={item.key}
+          item={item}
+          listState={listState}
+          size={size}
+          showDetails={showDetails}
+          style={itemStyle}
+        />
+      );
+    });
+  };
+
+  const content = (
+    <ListWrap
+      {...mergeProps(listBoxProps, props)}
+      onKeyDown={onKeyDown}
+      ref={mergeRefs(listElementRef, ref)}
+      style={
+        virtualized
+          ? {
+              height: virtualizer.getTotalSize(),
+              position: 'relative',
+            }
+          : undefined
+      }
+    >
+      {overlayIsOpen && renderListItems()}
+
+      {!hasSearch && hiddenOptions.size > 0 && (
+        <SizeLimitMessage>
+          {sizeLimitMessage ?? t('Use search to find more options…')}
+        </SizeLimitMessage>
+      )}
+    </ListWrap>
+  );
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <ListWrap
-        {...mergeProps(listBoxProps, props)}
-        onKeyDown={onKeyDown}
-        ref={mergeRefs(listElementRef, ref)}
-      >
-        {overlayIsOpen &&
-          listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <ListBoxSection
-                  key={item.key}
-                  item={item}
-                  listState={listState}
-                  hiddenOptions={hiddenOptions}
-                  onToggle={onSectionToggle}
-                  size={size}
-                  showSectionHeaders={showSectionHeaders}
-                  showDetails={showDetails}
-                />
-              );
-            }
 
-            return (
-              <ListBoxOption
-                key={item.key}
-                item={item}
-                listState={listState}
-                size={size}
-                showDetails={showDetails}
-              />
-            );
-          })}
-
-        {!hasSearch && hiddenOptions.size > 0 && (
-          <SizeLimitMessage>
-            {sizeLimitMessage ?? t('Use search to find more options…')}
-          </SizeLimitMessage>
-        )}
-      </ListWrap>
+      {virtualized ? (
+        <div
+          ref={scrollElementRef}
+          style={{
+            overflow: 'auto',
+            maxHeight: virtualizedMenuOptions.maxHeight,
+            height: Math.min(
+              virtualizedMenuOptions.maxHeight,
+              virtualizer.getTotalSize()
+            ),
+            width: '100%',
+            minWidth: virtualizedMenuOptions.minWidth,
+          }}
+        >
+          {content}
+        </div>
+      ) : (
+        content
+      )}
     </Fragment>
   );
 }

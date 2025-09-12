@@ -3,6 +3,11 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {
+  DEFAULT_ITEM_HEIGHT,
+  DEFAULT_MAX_HEIGHT,
+  DEFAULT_OVERSCAN,
+} from 'sentry/components/core/compactSelect/listBox';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -151,6 +156,14 @@ export function SelectRow({
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
       <AggregateCompactSelect
         searchable
+        virtualized
+        virtualizedMenuOptions={{
+          itemHeight: DEFAULT_ITEM_HEIGHT,
+          maxHeight: DEFAULT_MAX_HEIGHT,
+          overscan: DEFAULT_OVERSCAN,
+          // The trigger for this button is small, so we set a min width to provide a wider menu
+          minWidth: 400,
+        }}
         hasColumnParameter={hasColumnParameter}
         disabled={disabled || aggregateOptions.length <= 1}
         options={aggregateOptions}
@@ -412,6 +425,7 @@ export function SelectRow({
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
             searchable
+            virtualized
             options={columnOptions}
             value={
               field.kind === FieldValueKind.FUNCTION

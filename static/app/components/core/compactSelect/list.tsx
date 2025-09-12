@@ -24,6 +24,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSection,
+  VirtualizedMenuOptions,
 } from './types';
 import {
   getDisabledOptions,
@@ -97,6 +98,14 @@ interface BaseListProps<Value extends SelectKey>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * Enable virtualization for large lists.
+   */
+  virtualized?: boolean;
+  /**
+   * Options for the virtualized list.
+   */
+  virtualizedMenuOptions?: VirtualizedMenuOptions;
 }
 
 export interface SingleListProps<Value extends SelectKey> extends BaseListProps<Value> {
@@ -145,6 +154,8 @@ function List<Value extends SelectKey>({
   sizeLimit,
   sizeLimitMessage,
   closeOnSelect,
+  virtualized = false,
+  virtualizedMenuOptions,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
   const {overlayState, registerListState, saveSelectedOptions, search, overlayIsOpen} =
@@ -367,6 +378,8 @@ function List<Value extends SelectKey>({
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
+          virtualized={virtualized}
+          virtualizedMenuOptions={virtualizedMenuOptions}
         />
       )}
       {multiple &&

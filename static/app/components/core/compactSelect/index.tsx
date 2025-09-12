@@ -14,6 +14,7 @@ import type {
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
   SelectSection,
+  VirtualizedMenuOptions,
 } from './types';
 import {getItemsWithKeys} from './utils';
 
@@ -21,6 +22,8 @@ export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
 interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
   options: Array<SelectOptionOrSection<Value>>;
+  virtualized?: boolean;
+  virtualizedMenuOptions?: VirtualizedMenuOptions;
 }
 
 export interface SingleSelectProps<Value extends SelectKey>
@@ -68,6 +71,8 @@ function CompactSelect<Value extends SelectKey>({
   isOptionDisabled,
   sizeLimit,
   sizeLimitMessage,
+  virtualized,
+  virtualizedMenuOptions,
 
   // Control props
   grid,
@@ -124,6 +129,8 @@ function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
+        virtualized={virtualized}
+        virtualizedMenuOptions={virtualizedMenuOptions}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {

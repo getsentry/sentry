@@ -21,6 +21,25 @@ describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   let mockNavigate!: jest.Mock;
 
+  beforeAll(() => {
+    // Required mock for virtualization components used downstream to render tag lists
+    jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+      width: 100,
+      height: 10000,
+      top: 0,
+      left: 0,
+      bottom: 1000,
+      right: 1000,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    }));
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
     organization = OrganizationFixture({
       features: ['performance-view'],

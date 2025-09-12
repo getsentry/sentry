@@ -25,6 +25,7 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   size: ListBoxOptionProps['size'];
   onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
   showDetails?: boolean;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -39,6 +40,7 @@ export function ListBoxSection({
   hiddenOptions,
   showSectionHeaders,
   showDetails = true,
+  style,
 }: ListBoxSectionProps) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
     heading: item.rendered,
@@ -59,7 +61,7 @@ export function ListBoxSection({
   return (
     <Fragment>
       {showSectionHeaders && <SectionSeparator {...separatorProps} />}
-      <SectionWrap {...itemProps}>
+      <SectionWrap {...itemProps} style={style}>
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
           <SectionHeader>
             {item.rendered && (
