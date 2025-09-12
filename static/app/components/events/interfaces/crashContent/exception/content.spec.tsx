@@ -177,7 +177,7 @@ describe('Exception Content', () => {
     );
   });
 
-  it('respects platform overrides in stacktrace frames', async () => {
+  it('respects platform overrides in stacktrace frames', () => {
     const event = EventFixture({
       projectID: project.id,
       platform: 'python',
@@ -345,7 +345,7 @@ describe('Exception Content', () => {
       expect(within(exceptions[0]!).getByText('Related Exceptions')).toBeInTheDocument();
     });
 
-    it('displays exception group tree in first frame when there is no other context', async () => {
+    it('displays exception group tree in first frame when there is no other context', () => {
       render(<Content {...defaultProps} />, {
         deprecatedRouterMocks: true,
       });
