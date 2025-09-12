@@ -141,7 +141,7 @@ function ActionDetails({action, handler}: ActionDetailsProps) {
 
   return (
     <Fragment>
-      {action.status === 'active' && (
+      {action.status === 'disabled' && (
         <IconPadding>
           <IconWarning color="danger" />
         </IconPadding>
