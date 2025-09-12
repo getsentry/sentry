@@ -4,9 +4,13 @@ from django.db import IntegrityError
 
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
-from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
+from sentry.monitors.utils import (
+    ensure_cron_detector,
+    ensure_cron_detector_deletion,
+    get_detector_for_monitor,
+)
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 
 class EnsureCronDetectorTest(TestCase):
@@ -111,3 +115,104 @@ class GetDetectorForMonitorTest(TestCase):
         assert detector1.id != detector2.id
         assert detector1.name == monitor1.name
         assert detector2.name == monitor2.name
+
+
+class EnsureCronDetectorDeletionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.monitor = self.create_monitor()
+
+    def test_deletes_data_source_and_detector(self) -> None:
+        ensure_cron_detector(self.monitor)
+        data_source = DataSource.objects.get(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=self.monitor.organization_id,
+            source_id=str(self.monitor.id),
+        )
+        datasource_detector = DataSourceDetector.objects.get(data_source=data_source)
+        detector = datasource_detector.detector
+        data_source_id = data_source.id
+        detector_id = detector.id
+
+        ensure_cron_detector_deletion(self.monitor)
+
+        assert not DataSource.objects.filter(id=data_source_id).exists()
+        assert not Detector.objects.filter(id=detector_id).exists()
+
+    def test_does_nothing_when_no_data_source_exists(self) -> None:
+        initial_datasource_count = DataSource.objects.count()
+        initial_detector_count = Detector.objects.count()
+
+        ensure_cron_detector_deletion(self.monitor)
+
+        assert DataSource.objects.count() == initial_datasource_count
+        assert Detector.objects.count() == initial_detector_count
+
+    def test_deletes_only_data_source_when_no_detector_exists(self) -> None:
+        data_source = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=self.monitor.organization_id,
+            source_id=str(self.monitor.id),
+        )
+        data_source_id = data_source.id
+
+        ensure_cron_detector_deletion(self.monitor)
+
+        assert not DataSource.objects.filter(id=data_source_id).exists()
+
+    def test_deletes_correct_detector_for_specific_monitor(self) -> None:
+        monitor1 = self.monitor
+        monitor2 = self.create_monitor(name="Monitor 2")
+
+        ensure_cron_detector(monitor1)
+        ensure_cron_detector(monitor2)
+
+        data_source1 = DataSource.objects.get(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=monitor1.organization_id,
+            source_id=str(monitor1.id),
+        )
+        datasource_detector1 = DataSourceDetector.objects.get(data_source=data_source1)
+        detector1 = datasource_detector1.detector
+
+        data_source2 = DataSource.objects.get(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=monitor2.organization_id,
+            source_id=str(monitor2.id),
+        )
+        datasource_detector2 = DataSourceDetector.objects.get(data_source=data_source2)
+        detector2 = datasource_detector2.detector
+
+        data_source1_id = data_source1.id
+        detector1_id = detector1.id
+        data_source2_id = data_source2.id
+        detector2_id = detector2.id
+
+        ensure_cron_detector_deletion(monitor1)
+
+        assert not DataSource.objects.filter(id=data_source1_id).exists()
+        assert not Detector.objects.filter(id=detector1_id).exists()
+        assert DataSource.objects.filter(id=data_source2_id).exists()
+        assert Detector.objects.filter(id=detector2_id).exists()
+
+    def test_atomic_transaction_ensures_both_deleted(self) -> None:
+        ensure_cron_detector(self.monitor)
+
+        data_source = DataSource.objects.get(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=self.monitor.organization_id,
+            source_id=str(self.monitor.id),
+        )
+        datasource_detector = DataSourceDetector.objects.get(data_source=data_source)
+        detector = datasource_detector.detector
+
+        with patch("sentry.monitors.utils.Detector.delete") as mock_delete:
+            mock_delete.side_effect = Exception("Cannot delete detector")
+
+            try:
+                ensure_cron_detector_deletion(self.monitor)
+            except Exception:
+                pass
+
+        assert DataSource.objects.filter(id=data_source.id).exists()
+        assert Detector.objects.filter(id=detector.id).exists()

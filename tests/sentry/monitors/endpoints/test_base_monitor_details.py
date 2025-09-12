@@ -19,12 +19,14 @@ from sentry.monitors.models import (
     MonitorIncident,
     ScheduleType,
 )
-from sentry.monitors.utils import get_timeout_at
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
+from sentry.monitors.utils import ensure_cron_detector, get_timeout_at
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.models import DataSource, Detector
 
 
 class BaseMonitorDetailsTest(MonitorTestCase):
@@ -1014,3 +1016,97 @@ class BaseDeleteMonitorTest(MonitorTestCase):
 
         with pytest.raises(Rule.DoesNotExist):
             Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
+
+    def test_deletes_detector_and_datasource(self) -> None:
+        monitor = self._create_monitor()
+        ensure_cron_detector(monitor)
+
+        data_source = DataSource.objects.get(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=monitor.organization_id,
+            source_id=str(monitor.id),
+        )
+        detector = Detector.objects.get(data_sources=data_source)
+        data_source_id = data_source.id
+        detector_id = detector.id
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="DELETE", status_code=202
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.PENDING_DELETION
+
+        assert not DataSource.objects.filter(id=data_source_id).exists()
+        assert not Detector.objects.filter(id=detector_id).exists()
+
+    def test_delete_without_detector_succeeds(self) -> None:
+        monitor = self._create_monitor()
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="DELETE", status_code=202
+        )
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.PENDING_DELETION
+
+    def test_delete_with_multiple_monitors_only_deletes_correct_detector(self) -> None:
+        monitor1 = self._create_monitor(name="Monitor 1")
+        monitor2 = self._create_monitor(name="Monitor 2")
+
+        ensure_cron_detector(monitor1)
+        ensure_cron_detector(monitor2)
+
+        data_source1 = DataSource.objects.get(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=monitor1.organization_id,
+            source_id=str(monitor1.id),
+        )
+        detector1 = Detector.objects.get(data_sources=data_source1)
+        data_source2 = DataSource.objects.get(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=monitor2.organization_id,
+            source_id=str(monitor2.id),
+        )
+        detector2 = Detector.objects.get(data_sources=data_source2)
+
+        data_source1_id = data_source1.id
+        detector1_id = detector1.id
+        data_source2_id = data_source2.id
+        detector2_id = detector2.id
+
+        self.get_success_response(
+            self.organization.slug, monitor1.slug, method="DELETE", status_code=202
+        )
+
+        assert not DataSource.objects.filter(id=data_source1_id).exists()
+        assert not Detector.objects.filter(id=detector1_id).exists()
+        assert DataSource.objects.filter(id=data_source2_id).exists()
+        assert Detector.objects.filter(id=detector2_id).exists()
+
+    def test_delete_environment_does_not_delete_detector(self) -> None:
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+        ensure_cron_detector(monitor)
+
+        data_source = DataSource.objects.get(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=monitor.organization_id,
+            source_id=str(monitor.id),
+        )
+        detector = Detector.objects.get(data_sources=data_source)
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="DELETE",
+            status_code=202,
+            qs_params={"environment": "production"},
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == ObjectStatus.PENDING_DELETION
+
+        assert DataSource.objects.filter(id=data_source.id).exists()
+        assert Detector.objects.filter(id=detector.id).exists()
