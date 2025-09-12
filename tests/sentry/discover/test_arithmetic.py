@@ -49,6 +49,16 @@ def test_simple_arithmetic(a, op, b) -> None:
     assert result.rhs == float(b), equation
 
 
+def test_parse_arithmetic_returns_float() -> None:
+    result, _, _ = parse_arithmetic("0")
+    assert result == 0.0
+
+
+def test_parse_arithmetic_returns_column() -> None:
+    result, _, _ = parse_arithmetic("spans.db")
+    assert result == "spans.db"
+
+
 @pytest.mark.parametrize(
     "a,op1,b,op2,c",
     [
