@@ -357,6 +357,7 @@ def handle_resolve_in_release(
 ) -> tuple[dict[str, Any], int | None]:
     res_type = None
     release = None
+    future_release_version = None
     commit = None
     self_assign_issue = "0"
     new_status_details = {}
