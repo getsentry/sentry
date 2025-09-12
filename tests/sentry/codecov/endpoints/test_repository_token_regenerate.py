@@ -91,3 +91,45 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data[0] == "Repository not found"
+
+    def test_scope_map_enforcement(self) -> None:
+        """Test that the scope map permissions are properly enforced"""
+        # Create a user with only org:read permission
+        user_with_read_only = self.create_user("readonly@test.com")
+        self.create_member(
+            user=user_with_read_only,
+            organization=self.organization,
+            role="member",  # member role has org:read
+        )
+
+        # Create a user with org:write permission
+        user_with_write = self.create_user("write@test.com")
+        self.create_member(
+            user=user_with_write,
+            organization=self.organization,
+            role="admin",  # admin role has org:write
+        )
+
+        # Create a user with no permissions
+        user_without_permissions = self.create_user("noperms@test.com")
+        # Don't add them to the organization
+
+        url = self.reverse_url()
+
+        # Test that user with org:read can access the endpoint
+        self.login_as(user_with_read_only)
+        response = self.client.post(url, data={})
+        # Should not be a 403 Forbidden (permission denied)
+        assert response.status_code != 403
+
+        # Test that user with org:write can access the endpoint
+        self.login_as(user_with_write)
+        response = self.client.post(url, data={})
+        # Should not be a 403 Forbidden (permission denied)
+        assert response.status_code != 403
+
+        # Test that user without permissions cannot access the endpoint
+        self.login_as(user_without_permissions)
+        response = self.client.post(url, data={})
+        # Should be 403 Forbidden (permission denied)
+        assert response.status_code == 403
