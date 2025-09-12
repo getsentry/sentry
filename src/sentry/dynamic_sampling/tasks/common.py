@@ -392,7 +392,7 @@ def compute_guarded_sliding_window_sample_rate(
     except Exception as e:
         sentry_sdk.capture_exception(
             e,
-            extra={
+            extras={
                 "org_id": org_id,
                 "project_id": project_id,
                 "total_root_count": total_root_count,
