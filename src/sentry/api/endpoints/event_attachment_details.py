@@ -68,7 +68,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         def stream_attachment():
             filestore_attachment = attachment.getfile()
             objectstore_attachment: IO[bytes] | ContextManager[None] = contextlib.nullcontext()
-            if in_rollout_group("objectstore.double_write.attachments", attachment.project_id):
+            if attachment.blob_path and in_rollout_group(
+                "objectstore.double_write.attachments", attachment.project_id
+            ):
                 # This is a bit ugly admittedly. We have no way to tell whether
                 # an attachment has actually been double-written. We just assume
                 # it was based on the feature flag, which is not the case for all
@@ -78,7 +80,6 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                     try:
                         # We force the attachment model to use the objectstore backend
                         # by changing its prefix. Its a big hack, but hey why not.
-                        assert attachment.blob_path is not None
                         attachment.blob_path = attachment.blob_path.replace(V1_PREFIX, V2_PREFIX)
                         objectstore_attachment = attachment.getfile()
                         metrics.incr("storage.attachments.double_write.read")
@@ -100,7 +101,6 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                         except Exception:
                             # If we have encountered one error, clear the objectstore
                             # file, to avoid spamming more errors for all the remaining chunks.
-                            oa.close()
                             oa = None
                             sentry_sdk.capture_exception()
                     yield filestore_chunk
