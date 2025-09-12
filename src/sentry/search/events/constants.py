@@ -310,9 +310,9 @@ OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exac
 WILDCARD_UNICODE = "\uf00d"
 
 WILDCARD_OPERATOR_MAP = {
-    "contains": f"{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}",
-    "starts_with": f"{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}",
-    "ends_with": f"{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}",
+    "contains": f"{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}",
+    "starts_with": f"{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}",
+    "ends_with": f"{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}",
 }
 
 MAX_SEARCH_RELEASES = 1000
