@@ -118,8 +118,8 @@ class GroupHashesEndpoint(GroupEndpoint):
         grouphashes = {
             grouphash.hash: grouphash
             for grouphash in GroupHash.objects.filter(
-                project_id=project_id, hash__in=primary_hashes
-            ).select_related("_metadata")
+                project_id=project_id, group_id=group_id, hash__in=primary_hashes
+            ).select_related("metadata")
         }
 
         return [
