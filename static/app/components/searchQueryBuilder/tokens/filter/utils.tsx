@@ -87,10 +87,11 @@ export function getValidOpsForFilter(
   const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes])];
 
   // Find all valid operations
-  const baseOps = fieldDefinition?.allowComparisonOperators
-    ? allOperators
-    : allValidTypes.flatMap(type => filterTypeConfig[type].validOps);
-  const validOps = new Set<TermOperator>(baseOps);
+  const validOps = new Set<TermOperator>(
+    fieldDefinition?.allowComparisonOperators
+      ? allOperators
+      : allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
+  );
 
   // Conditionally add wildcard operators if:
   // - Feature flag is enabled
