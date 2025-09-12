@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from pathlib import Path
 
 import yaml
 
@@ -17,29 +18,46 @@ def output(template, *args):
 def main():
     args = get_arguments()
 
-    output("Evaluating a flag:")
-    output("    File: ", args.get("flagpole_file"))
-    output("    Flag Name: ", args.get("flag_name"))
-    output("    Evaluation Context: ", args.get("context"))
+    indent = "    "
+    output("Opening file:")
+    output(indent, args.get("flagpole_file"))
+    output("")
+    output("Evaluating flag:")
+    output(indent, args.get("flag_name"))
+    output("")
+    output("Evaluation Context:")
+    output(indent, args.get("context"))
     output("")
 
-    evaluate_flag(args.get("flag_name"), args.get("flagpole_file"), args.get("context"))
+    try:
+        feature = read_feature(args.get("flag_name"), args.get("flagpole_file"))
+    except Exception as e:
+        output("Unable to load feature")
+        output(e)
+        sys.exit(1)
+
+    output("Definition:")
+    output(feature.to_yaml_str())
+
+    output("Result:")
+    result = evaluate_flag(feature, args.get("context"))
+    output(indent, result)
 
 
-def get_arguments():
+def get_arguments() -> dict:
     parser = argparse.ArgumentParser(
         description="Evaluate a flagpole flag.",
         epilog="""
 Examples:
-    %(prog)s --flagpole-file config/flagpole.yaml --flag-name my-feature-flag
-    %(prog)s --flagpole-file config/flagpole.yaml --flag-name my-feature-flag --context '{"user_id": 123}'
-    %(prog)s --flagpole-file config/flagpole.yaml --flag-name my-feature-flag '{"user_id": 123, "organization_id": 456}'
+    %(prog)s --flag-name my-feature-flag
+    %(prog)s --flag-name my-feature-flag --context '{"user_id": 123}'
+    %(prog)s --flag-name my-feature-flag '{"user_id": 123, "organization_id": 456}'
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--flagpole-file",
-        required=True,
+        default=f"{Path.home()}/code/sentry-options-automator/options/default/flagpole.yaml",
         help="Path to the flagpole.yaml file containing flag definitions.",
     )
     parser.add_argument(
@@ -60,7 +78,7 @@ Examples:
         try:
             blob = [a for a in extra if a != "--"]
             context = json.loads(blob[0] or "{}")
-        except json.JSONDecodeError:
+        except (IndexError, json.JSONDecodeError):
             context = {}
 
     return {
@@ -70,12 +88,7 @@ Examples:
     }
 
 
-def evaluate_flag(flag_name, flagpole_file, context):
-    if not flag_name:
-        output("Error: Flag name is required")
-        output("")
-        sys.exit(1)
-
+def read_feature(flag_name: str, flagpole_file: str) -> Feature:
     with open(flagpole_file) as f:
         content = f.read()
         parsed_yaml = yaml.safe_load(content)
@@ -83,9 +96,12 @@ def evaluate_flag(flag_name, flagpole_file, context):
         dfn = options.get(flag_name)
 
         feature = Feature.from_feature_dictionary(flag_name, dfn)
+        return feature
 
-        context = EvaluationContext(context)
-        output(feature.match(context))
+
+def evaluate_flag(feature: Feature, context: object):
+    context = EvaluationContext(context)
+    return feature.match(context)
 
 
 if __name__ == "__main__":
