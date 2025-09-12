@@ -10,9 +10,7 @@ export function ourlogsAsFrames(
 ): OurLogsPseudoFrame[] {
   return ourlogs.map(ourlog => ({
     category: 'ourlogs',
-    data: {
-      message: ourlog[OurLogKnownFieldKey.MESSAGE],
-    },
+    data: undefined,
     offsetMs:
       new Date(ourlog[OurLogKnownFieldKey.TIMESTAMP]).getTime() - relativeTimestampMs,
     timestampMs: new Date(ourlog[OurLogKnownFieldKey.TIMESTAMP]).getTime(),

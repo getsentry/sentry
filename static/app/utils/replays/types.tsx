@@ -438,6 +438,7 @@ export type OurLogsPseudoFrame = {
   category: 'ourlogs';
   offsetMs: number;
   timestampMs: number;
+  data?: undefined;
 };
 
 /**
