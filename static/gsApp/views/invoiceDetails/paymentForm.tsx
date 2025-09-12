@@ -11,7 +11,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import type {SubmitData} from 'getsentry/components/creditCardForm';
 import CreditCardForm from 'getsentry/components/creditCardForm';
+import StripeCreditCardForm from 'getsentry/components/stripeCreditCardForm';
 import type {Invoice, PaymentCreateResponse} from 'getsentry/types';
+import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -87,6 +89,12 @@ function InvoiceDetailsPaymentForm({
   }
   const error = validationError || intentError;
   const errorRetry = intentError ? () => loadData() : undefined;
+  const shouldUseStripe = hasStripeComponentsFeature(organization);
+  const commonProps = {
+    referrer: decodeScalar(location?.query?.referrer),
+    buttonText: t('Pay Now'),
+    error,
+  };
 
   return (
     <Fragment>
@@ -97,15 +105,25 @@ function InvoiceDetailsPaymentForm({
             amount: displayPriceWithCents({cents: invoice.amountBilled ?? 0}),
           })}
         </p>
-        <CreditCardForm
-          buttonText={t('Pay Now')}
-          error={error}
-          errorRetry={errorRetry}
-          footerClassName="modal-footer"
-          onCancel={() => closeModal()}
-          onSubmit={handleSubmit}
-          cardMode="payment"
-        />
+        {shouldUseStripe ? (
+          <StripeCreditCardForm
+            cardMode={'payment'}
+            onSuccess={() => {
+              reloadInvoice();
+              closeModal();
+            }}
+            organization={organization}
+            {...commonProps}
+          />
+        ) : (
+          <CreditCardForm
+            errorRetry={errorRetry}
+            footerClassName="modal-footer"
+            onCancel={() => closeModal()}
+            onSubmit={handleSubmit}
+            {...commonProps}
+          />
+        )}
       </Body>
     </Fragment>
   );

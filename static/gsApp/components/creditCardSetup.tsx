@@ -156,7 +156,6 @@ function CreditCardSetup({
       referrer={referrer}
       location={location}
       budgetModeText={budgetModeText}
-      cardMode="setup"
     />
   );
 }

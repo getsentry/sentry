@@ -1,48 +1,22 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {
-  CardElement,
-  PaymentElement,
-  useElements,
-  useStripe,
-} from '@stripe/react-stripe-js';
-import {
-  type PaymentIntentResult,
-  type PaymentMethod,
-  type SetupIntentResult,
-  type Stripe,
-  type StripeCardElement,
-  type StripePaymentElementChangeEvent,
-} from '@stripe/stripe-js';
+import {CardElement, useElements, useStripe} from '@stripe/react-stripe-js';
+import {type Stripe, type StripeCardElement} from '@stripe/stripe-js';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
-import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NODE_ENV} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import StripeWrapper from 'getsentry/components/stripeWrapper';
-import {
-  FTCConsentLocation,
-  type PaymentCreateResponse,
-  type PaymentSetupCreateResponse,
-} from 'getsentry/types';
-import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {FTCConsentLocation} from 'getsentry/types';
 
 export type SubmitData = {
   /**
@@ -66,10 +40,6 @@ export type SubmitData = {
 };
 
 type Props = {
-  /**
-   * If the form is being used for setup or payment intent.
-   */
-  cardMode: 'setup' | 'payment';
   /**
    * Handle the card form submission.
    */
@@ -123,204 +93,10 @@ type Props = {
  * and classic card flows.
  */
 function CreditCardForm(props: Props) {
-  const organization = useOrganization();
-  const shouldUseStripeComponents = hasStripeComponentsFeature(organization);
-
   return (
-    <StripeWrapper mode={props.cardMode}>
-      {shouldUseStripeComponents ? (
-        <StripeCreditCardFormInner {...props} organization={organization} />
-      ) : (
-        <CreditCardFormInner {...props} />
-      )}
+    <StripeWrapper>
+      <CreditCardFormInner {...props} />
     </StripeWrapper>
-  );
-}
-
-function StripeCreditCardFormInner({
-  buttonText,
-  budgetModeText,
-  location,
-  cardMode,
-  organization,
-  endpoint,
-}: Props & {organization: Organization; endpoint?: string}) {
-  const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const elements = useElements();
-  const stripe = useStripe();
-  const [errorMessage, setErrorMessage] = useState<React.ReactNode | undefined>(
-    undefined
-  );
-  const [submitDisabled, setSubmitDisabled] = useState(false);
-  const currentLocation = useLocation();
-  const [intentData, setIntentData] = useState<
-    PaymentSetupCreateResponse | PaymentCreateResponse | undefined
-  >(undefined);
-
-  const intentDataEndpoint =
-    endpoint ?? `/organizations/${organization.slug}/payments/setup/`;
-  const {mutate: loadIntentData} = useMutation<
-    PaymentSetupCreateResponse | PaymentCreateResponse
-  >({
-    mutationFn: () =>
-      fetchMutation({
-        method: 'POST',
-        url: intentDataEndpoint,
-      }),
-    onSuccess: data => {
-      setIntentData(data);
-      setLoading(false);
-    },
-    onError: error => {
-      setErrorMessage(error.message);
-      setSubmitDisabled(true);
-      setLoading(false);
-    },
-  });
-
-  const {mutateAsync: updateSubscription} = useMutation({
-    mutationFn: ({
-      paymentMethod,
-      ftcConsentLocation,
-    }: {
-      paymentMethod: string | PaymentMethod | null;
-      ftcConsentLocation?: FTCConsentLocation;
-    }) =>
-      fetchMutation({
-        method: 'PUT',
-        url: `/customers/${organization.slug}/`,
-        data: {
-          paymentMethod,
-          ftcConsentLocation,
-        },
-      }),
-    onMutate: () => {
-      setLoading(true);
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Updated payment method.'));
-      setLoading(false);
-    },
-    onError: error => {
-      setErrorMessage(error.message);
-      setSubmitDisabled(true);
-      setLoading(false);
-    },
-  });
-
-  useEffect(() => {
-    setLoading(true);
-    loadIntentData();
-  }, [loadIntentData]);
-
-  if (loading) {
-    return <LoadingIndicator />;
-  }
-
-  const handleSubmit = () => {
-    if (busy) {
-      return;
-    }
-    setBusy(true);
-    if (!intentData || !stripe || !elements) {
-      setErrorMessage(
-        t('Cannot complete your payment at this time, please try again later.')
-      );
-      setBusy(false);
-      return;
-    }
-
-    elements.submit();
-    switch (cardMode) {
-      case 'payment':
-        stripe
-          .confirmPayment({
-            elements,
-            clientSecret: intentData.clientSecret,
-            redirect: 'if_required',
-          })
-          .then((result: PaymentIntentResult) => {
-            if (result.error) {
-              setErrorMessage(result.error.message);
-              return;
-            }
-            // TODO: make sure this is the correct event
-            trackGetsentryAnalytics('billing_failure.paid_now', {
-              organization,
-              referrer: decodeScalar(currentLocation?.query?.referrer),
-            });
-            addSuccessMessage(t('Payment sent successfully.'));
-            // TODO: call onSuccess?
-          });
-        break;
-      default:
-        stripe
-          .confirmSetup({
-            elements,
-            clientSecret: intentData.clientSecret,
-            redirect: 'if_required',
-          })
-          .then((result: SetupIntentResult) => {
-            if (result.error) {
-              setErrorMessage(result.error.message);
-              return;
-            }
-            updateSubscription({
-              paymentMethod: result.setupIntent.payment_method,
-              ftcConsentLocation: location,
-            });
-          });
-
-        break;
-    }
-  };
-
-  const handleFormChange = (formData: StripePaymentElementChangeEvent) => {
-    if (formData.complete) {
-      setSubmitDisabled(false);
-    } else {
-      setSubmitDisabled(true);
-    }
-  };
-
-  return (
-    <Form onSubmit={handleSubmit} submitDisabled={submitDisabled}>
-      <Flex direction="column" gap="xl">
-        {errorMessage && <Alert type="error">{errorMessage}</Alert>}
-        <PaymentElement
-          onChange={handleFormChange}
-          options={{
-            // fields: {billingDetails: 'never'},
-            terms: {card: 'never'}, // we display the terms ourselves
-            wallets: {applePay: 'never', googlePay: 'never'},
-          }}
-          onReady={() => setLoading(false)}
-        />
-        <Container>
-          <small>
-            {tct('Payments are processed securely through [stripe:Stripe].', {
-              stripe: <ExternalLink href="https://stripe.com/" />,
-            })}
-          </small>
-          {/* location is 0 on the checkout page which is why this isn't location && */}
-          {location !== null && location !== undefined && (
-            <FinePrint>
-              {tct(
-                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetModeText] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetModeText] fees. You may cancel your subscription at any time [here:here].',
-                {
-                  buttonText: <b>{buttonText}</b>,
-                  budgetModeText,
-                  here: (
-                    <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
-                  ),
-                }
-              )}
-            </FinePrint>
-          )}
-        </Container>
-      </Flex>
-    </Form>
   );
 }
 

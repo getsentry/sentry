@@ -9,26 +9,33 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 
 function StripeWrapper({
-  mode,
+  paymentElementMode,
   children,
 }: {
   children: React.ReactNode;
-  mode?: 'setup' | 'payment';
+  paymentElementMode?: 'setup' | 'payment';
 }) {
   const stripe = useStripeInstance();
   const theme = useTheme();
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
 
+  // NOTE: These need to match what we set in the backend
+  // for payment and setup intents
+  const modeBasedOptions = paymentElementMode
+    ? {
+        mode: paymentElementMode,
+        setupFutureUsage: 'off_session' as const,
+        captureMethod: 'manual' as const,
+        paymentMethodTypes: ['card'],
+      }
+    : {};
+
   return (
     <Elements
       stripe={stripe}
       options={{
-        mode,
         currency: 'usd',
         loader: 'always',
-        setupFutureUsage: mode ? 'off_session' : undefined,
-        captureMethod: mode ? 'manual' : undefined,
-        paymentMethodTypes: mode ? ['card'] : undefined,
         fonts: [
           {
             family: 'Rubik',
@@ -61,6 +68,7 @@ function StripeWrapper({
             },
           },
         },
+        ...modeBasedOptions,
       }}
     >
       {children}
