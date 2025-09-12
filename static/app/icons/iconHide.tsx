@@ -1,7 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconHide(props: SVGIconProps) {
+export function IconHide(props: SVGIconProps) {
   return (
     <SvgIcon {...props} kind="path">
       <path d="M8,11.75c-3.61,0-5.48-3.13-5.97-4.79-.12-.4.11-.81.51-.93.4-.12.81.11.93.51.04.15,1.15,3.71,4.53,3.71s4.49-3.56,4.53-3.71c.12-.4.54-.62.93-.5.4.12.62.53.51.93-.49,1.66-2.36,4.79-5.97,4.79Z" />
@@ -13,7 +13,3 @@ function IconHide(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconHide.displayName = 'IconHide';
-
-export {IconHide};

@@ -4,14 +4,10 @@ import {SvgIcon} from './svgIcon';
 /**
  * @deprecated This icon will be removed in new UI.
  */
-function IconCircleFill(props: SVGIconProps) {
+export function IconCircleFill(props: SVGIconProps) {
   return (
     <SvgIcon {...props} viewBox="0 0 24 24" kind="path">
       <circle cx="12" cy="12" r="10" />
     </SvgIcon>
   );
 }
-
-IconCircleFill.displayName = 'IconCircleFill';
-
-export {IconCircleFill};

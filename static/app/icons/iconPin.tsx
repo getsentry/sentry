@@ -10,7 +10,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-function IconPin({isSolid = false, ...props}: Props) {
+export function IconPin({isSolid = false, ...props}: Props) {
   const theme = useTheme();
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
 
@@ -42,7 +42,3 @@ function IconPin({isSolid = false, ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconPin.displayName = 'IconPin';
-
-export {IconPin};

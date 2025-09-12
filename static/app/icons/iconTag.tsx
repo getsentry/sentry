@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconTag(props: SVGIconProps) {
+export function IconTag(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -22,7 +22,3 @@ function IconTag(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconTag.displayName = 'IconTag';
-
-export {IconTag};

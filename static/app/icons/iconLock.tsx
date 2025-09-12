@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   locked?: boolean;
 }
 
-function IconLock({locked = false, ...props}: Props) {
+export function IconLock({locked = false, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -42,7 +42,3 @@ function IconLock({locked = false, ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconLock.displayName = 'IconLock';
-
-export {IconLock};

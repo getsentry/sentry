@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconLightning(props: SVGIconProps) {
+export function IconLightning(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -15,7 +15,3 @@ function IconLightning(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconLightning.displayName = 'IconLightning';
-
-export {IconLightning};

@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   isZoomIn?: boolean;
 }
 
-function IconZoom({isZoomIn = false, ...props}: Props) {
+export function IconZoom({isZoomIn = false, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -44,7 +44,3 @@ function IconZoom({isZoomIn = false, ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconZoom.displayName = 'IconZoom';
-
-export {IconZoom};

@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   isFocused?: boolean;
 }
 
-function IconFocus({isFocused = true, ...props}: Props) {
+export function IconFocus({isFocused = true, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -43,7 +43,3 @@ function IconFocus({isFocused = true, ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconFocus.displayName = 'IconFocus';
-
-export {IconFocus};

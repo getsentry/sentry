@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconGraphScatter(props: SVGIconProps) {
+export function IconGraphScatter(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -35,7 +35,3 @@ function IconGraphScatter(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconGraphScatter.displayName = 'IconGraphScatter';
-
-export {IconGraphScatter};

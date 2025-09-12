@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconGrabbable(props: SVGIconProps) {
+export function IconGrabbable(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -30,7 +30,3 @@ function IconGrabbable(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconGrabbable.displayName = 'IconGrabbable';
-
-export {IconGrabbable};

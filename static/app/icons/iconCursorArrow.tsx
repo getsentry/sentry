@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconCursorArrow(props: SVGIconProps) {
+export function IconCursorArrow(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -21,7 +21,3 @@ function IconCursorArrow(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconCursorArrow.displayName = 'IconCursorArrow';
-
-export {IconCursorArrow};
