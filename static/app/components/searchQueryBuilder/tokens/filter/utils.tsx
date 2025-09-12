@@ -1,8 +1,9 @@
 import {
-  allOperators,
+  comparisonOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
+  isInterchangeableFilterOperator,
   TermOperator,
   Token,
   wildcardOperators,
@@ -74,39 +75,37 @@ export function getValidOpsForFilter(
 ): readonly TermOperator[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
 
-  if (fieldDefinition?.allowComparisonOperators) {
-    const validOps = new Set<TermOperator>(allOperators);
-
-    return [...validOps];
-  }
-
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
 
   // Determine any interchangeable filter types for our valid types
-  const interchangeableTypes = validTypes.map(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    type => interchangeableFilterOperators[type] ?? []
+  const interchangeableTypes = validTypes.flatMap(type =>
+    isInterchangeableFilterOperator(type) ? interchangeableFilterOperators[type] : []
   );
 
   // Combine all types
-  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
+  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes])];
 
   // Find all valid operations
   const validOps = new Set<TermOperator>(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
 
-  if (
-    hasWildcardOperators &&
-    fieldDefinition?.allowWildcard !== false &&
-    fieldDefinition?.valueType === FieldValueType.STRING
-  ) {
-    wildcardOperators.forEach(op => validOps.add(op));
+  // Conditionally add comparison operators if they're not already present:
+  // - Field definition allows comparison operators
+  if (fieldDefinition?.allowComparisonOperators) {
+    comparisonOperators.forEach(op => validOps.add(op));
   }
 
-  if (!hasWildcardOperators) {
+  // Conditionally remove wildcard operators if:
+  // - Feature flag is not enabled
+  // - Field definition does not allow wildcard operators
+  // - Field definition is a string field
+  if (
+    !hasWildcardOperators ||
+    !areWildcardOperatorsAllowed(fieldDefinition) ||
+    fieldDefinition?.valueType !== FieldValueType.STRING
+  ) {
     wildcardOperators.forEach(op => validOps.delete(op));
   }
 
