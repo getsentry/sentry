@@ -103,7 +103,7 @@ class GithubRequestParser(BaseRequestParser):
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
 
-        if options.get("overwatch.forward-webhooks.regions"):
+        if options.get("overwatch.github.forward-webhooks"):
             self.try_forward_to_overwatch(integration=integration, event=event)
 
         return self.get_response_from_webhookpayload(
