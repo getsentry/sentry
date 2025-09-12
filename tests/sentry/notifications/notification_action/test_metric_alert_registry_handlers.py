@@ -67,11 +67,14 @@ class TestHandler(BaseMetricAlertHandler):
 @with_feature("organizations:issue-open-periods")
 class MetricAlertHandlerBase(BaseWorkflowTest):
     def create_models(self):
-
         self.workflow, self.detector, _, _ = self.create_detector_and_workflow()
-        self.snuba_query, self.subscription, self.data_source, _ = (
-            self.create_test_query_data_source(detector=self.detector)
+        self.snuba_query = self.create_snuba_query()
+        self.subscription = self.create_snuba_query_subscription(snuba_query_id=self.snuba_query.id)
+        self.data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(self.subscription.id),
         )
+        self.create_data_source_detector(data_source=self.data_source, detector=self.detector)
 
         self.alert_rule = self.create_alert_rule()
         self.create_alert_rule_detector(detector=self.detector, alert_rule_id=self.alert_rule.id)
