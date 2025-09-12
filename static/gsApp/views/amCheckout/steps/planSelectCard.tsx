@@ -67,7 +67,7 @@ function PlanSelectCard({
       onClick={onPlanSelect}
       direction="column"
       gap="md"
-      padding="2xl"
+      padding="xl"
     >
       <Row>
         <PlanIconContainer>
