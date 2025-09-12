@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import ChangeARRAction from 'admin/components/changeARRAction';
@@ -394,35 +395,54 @@ function isWithinAcceptedMargin(
 }
 
 function DynamicSampling({organization}: {organization: Organization}) {
-  if (organization.features?.includes('dynamic-sampling')) {
-    const effectiveSampleRate = organization.effectiveSampleRate
-      ? organization.effectiveSampleRate * 100
-      : null;
-    const desiredSampleRate = organization.desiredSampleRate
-      ? organization.desiredSampleRate * 100
-      : null;
-    const diffSampleRate =
-      effectiveSampleRate && desiredSampleRate
-        ? Math.abs(effectiveSampleRate - desiredSampleRate)
-        : null;
+  const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
-    return (
-      <ThresholdLabel
-        positive={
-          effectiveSampleRate && desiredSampleRate
-            ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
-            : false
-        }
-      >
-        {effectiveSampleRate && desiredSampleRate
-          ? `${effectiveSampleRate.toFixed(2)}% instead of ${desiredSampleRate.toFixed(2)}% (~${diffSampleRate?.toFixed(2)}%)`
-          : desiredSampleRate
-            ? `${desiredSampleRate.toFixed(2)}%`
-            : 'n/a'}
-      </ThresholdLabel>
-    );
+  const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
+    [`/organizations/${organization.slug}/sampling/effective-sample-rate/`],
+    {
+      staleTime: Infinity,
+      enabled: dynamicSamplingEnabled,
+    }
+  );
+
+  if (!dynamicSamplingEnabled) {
+    return <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
   }
-  return <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
+  if (isError) {
+    return <ThresholdLabel positive={false}>Error loading data</ThresholdLabel>;
+  }
+  if (isPending) {
+    return <ThresholdLabel positive={false}>Loading...</ThresholdLabel>;
+  }
+
+  if (!defined(data.effectiveSampleRate)) {
+    return <ThresholdLabel positive={false}>n/a</ThresholdLabel>;
+  }
+
+  const effectiveSampleRate = data.effectiveSampleRate * 100;
+  const desiredSampleRate = organization.desiredSampleRate
+    ? organization.desiredSampleRate * 100
+    : null;
+  const diffSampleRate =
+    effectiveSampleRate && desiredSampleRate
+      ? Math.abs(effectiveSampleRate - desiredSampleRate)
+      : null;
+
+  return (
+    <ThresholdLabel
+      positive={
+        effectiveSampleRate && desiredSampleRate
+          ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
+          : false
+      }
+    >
+      {effectiveSampleRate && desiredSampleRate
+        ? `${effectiveSampleRate.toFixed(2)}% instead of ${desiredSampleRate.toFixed(2)}% (~${diffSampleRate?.toFixed(2)}%)`
+        : desiredSampleRate
+          ? `${desiredSampleRate.toFixed(2)}%`
+          : 'n/a'}
+    </ThresholdLabel>
+  );
 }
 
 function CustomerOverview({customer, onAction, organization}: Props) {
