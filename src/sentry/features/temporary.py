@@ -499,7 +499,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable the backend endpoint and frontend for categorizing user feedbacks
     manager.add("organizations:user-feedback-ai-categorization-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-powered title generation for user feedback
-    manager.add("organizations:user-feedback-ai-titles", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:user-feedback-ai-titles", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable auto spam classification at User Feedback ingest time
     manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable User Feedback v2 UI
