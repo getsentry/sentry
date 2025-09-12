@@ -123,6 +123,12 @@ When Not to Comment
 - Don't duplicate function or variable names in plain English.
 - Don't leave stale comments that contradict the code.
 
+Avoid comments that reference removed or obsolete code paths (e.g. “No longer
+uses X format”). If compatibility code or legacy behavior is deleted, comments
+about it should also be deleted. The comment should describe the code that
+exists now, not what used to be there. Historic details belong in commit
+messages or documentation, not in-line comments.
+
 ### Database Operations
 
 ```bash
