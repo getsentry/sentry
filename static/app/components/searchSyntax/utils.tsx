@@ -1,6 +1,12 @@
 import type {LocationRange} from 'peggy';
 
-import type {TermOperator, TokenResult} from './parser';
+import type {
+  BasicOperator,
+  ComparisonOperator,
+  TermOperator,
+  TokenResult,
+  WildcardOperator,
+} from './parser';
 import {basicOperators, comparisonOperators, Token, wildcardOperators} from './parser';
 
 /**
@@ -326,17 +332,24 @@ export function isWithinToken(
   return position >= node.location.start.offset && position <= node.location.end.offset;
 }
 
+function isBasicOperator(value: string): value is BasicOperator {
+  // @ts-expect-error - Expected error as basicOperators is a const object
+  return basicOperators.includes(value);
+}
+
+function isComparisonOperator(value: string): value is ComparisonOperator {
+  // @ts-expect-error - Expected error as comparisonOperators is a const object
+  return comparisonOperators.includes(value);
+}
+
+export function isWildcardOperator(value: string): value is WildcardOperator {
+  // @ts-expect-error - Expected error as wildcardOperators is a const object
+  return wildcardOperators.includes(value);
+}
+
 export function isOperator(value: string): value is TermOperator {
   return (
-    // @ts-expect-error - We're checking to see if the value is a valid operator so we're
-    // expecting an error because we're passing in a string.
-    basicOperators.includes(value) ||
-    // @ts-expect-error - We're checking to see if the value is a valid operator so we're
-    // same as above ^^
-    comparisonOperators.includes(value) ||
-    // @ts-expect-error - We're checking to see if the value is a valid operator so we're
-    // same as above ^^
-    wildcardOperators.includes(value)
+    isBasicOperator(value) || isComparisonOperator(value) || isWildcardOperator(value)
   );
 }
 
