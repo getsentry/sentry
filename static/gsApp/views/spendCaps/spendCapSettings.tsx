@@ -361,7 +361,6 @@ function InnerSpendCapSettings({
     }
   };
 
-  const budgetTerm = activePlan.budgetTerm;
   const formattedBudgetMode = onDemandBudgets.budgetMode.replace('_', '-');
 
   const getPerCategoryWarning = (productName: string) => {
@@ -521,15 +520,6 @@ function InnerSpendCapSettings({
           )}
         </Subtext>
       </div>
-      <ExampleContainer>
-        <strong>{t('Example:')}</strong>
-        <p>
-          {tct(
-            "With a $300 cap, if you use $150 in [budgetTerm] beyond your included volumes, you'll be charged exactly $150. Your service continues normally until you hit the $300 limit.",
-            {budgetTerm}
-          )}
-        </p>
-      </ExampleContainer>
       {inputs}
       <StartingRate
         alignSelf={
@@ -666,16 +656,6 @@ const InnerContainer = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   background: ${p => p.theme.background};
-`;
-
-const ExampleContainer = styled('div')`
-  background: ${p => p.theme.blue100};
-  color: ${p => p.theme.activeText};
-  padding: ${p => p.theme.space.xl};
-
-  > p {
-    margin: 0;
-  }
 `;
 
 // TODO(isabella): fix text color
