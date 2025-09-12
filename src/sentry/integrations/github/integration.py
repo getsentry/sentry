@@ -637,13 +637,30 @@ class GitHubIntegrationProvider(IntegrationProvider):
         github_app_id = extra.get("app_id")
         SENTRY_GITHUB_APP_ID = options.get("github-app.id")
 
-        if github_app_id and github_app_id == SENTRY_GITHUB_APP_ID:
-            codecov_account_link.apply_async(
-                kwargs={
+        if not github_app_id or not SENTRY_GITHUB_APP_ID:
+            logger.warning(
+                "codecov.account_link.configuration_error",
+                extra={
                     "integration_id": integration.id,
                     "organization_id": organization.id,
-                }
+                    "has_github_app_id": bool(github_app_id),
+                    "has_sentry_github_app_id": bool(SENTRY_GITHUB_APP_ID),
+                },
             )
+
+        if github_app_id and SENTRY_GITHUB_APP_ID and github_app_id == SENTRY_GITHUB_APP_ID:
+            org_integration = OrganizationIntegration.objects.filter(
+                integration=integration, organization_id=organization.id
+            ).first()
+
+            # Double check org integration exists before linking accounts
+            if org_integration:
+                codecov_account_link.apply_async(
+                    kwargs={
+                        "integration_id": integration.id,
+                        "organization_id": organization.id,
+                    }
+                )
 
         repos = repository_service.get_repositories(
             organization_id=organization.id,
