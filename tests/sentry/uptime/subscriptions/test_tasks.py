@@ -23,11 +23,10 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
 from sentry.uptime.models import (
-    ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_project_subscription,
+    get_uptime_subscription,
 )
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
@@ -530,12 +529,10 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         with (
             self.tasks(),
             mock.patch(
-                "sentry.uptime.subscriptions.subscriptions.get_project_subscription",
-                side_effect=ProjectUptimeSubscription.DoesNotExist,
+                "sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",
+                side_effect=Exception("Test exception"),
             ),
-            mock.patch(
-                "sentry.uptime.subscriptions.tasks.logger",
-            ) as logger,
+            mock.patch("sentry.uptime.subscriptions.tasks.logger") as logger,
         ):
             # Does not raise
             broken_monitor_checker()
@@ -554,14 +551,13 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
             uptime_status=uptime_status,
             uptime_status_update_date=update_date,
         )
-        proj_sub = get_project_subscription(detector)
+        uptime_subscription = get_uptime_subscription(detector)
 
         with self.tasks():
             broken_monitor_checker()
 
-        proj_sub.refresh_from_db()
-        assert proj_sub.status == expected_status
-        assert proj_sub.uptime_subscription.uptime_status == expected_uptime_status
+        uptime_subscription.refresh_from_db()
+        assert uptime_subscription.uptime_status == expected_uptime_status
 
         detector.refresh_from_db()
         if expected_status == ObjectStatus.ACTIVE:
