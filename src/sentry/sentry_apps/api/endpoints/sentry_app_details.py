@@ -190,8 +190,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 logger.info(name, extra=log_info)
                 analytics.record(
                     SentryAppSchemaValidationError(
-                        # TODO (fabian): rename back to schema once we've come back to use built-in dataclasses
-                        app_schema=log_info["schema"],
+                        schema=orjson.dumps(request.data["schema"]).decode(),
                         user_id=request.user.id,
                         sentry_app_id=sentry_app.id,
                         sentry_app_name=sentry_app.name,
