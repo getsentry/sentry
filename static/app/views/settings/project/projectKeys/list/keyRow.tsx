@@ -24,7 +24,6 @@ type Props = {
   hasWriteAccess: boolean;
   onRemove: (data: ProjectKey) => void;
   onToggle: (isActive: boolean, data: ProjectKey) => void;
-  orgId: string;
   organization: Organization;
   project: Project;
   projectId: string;
