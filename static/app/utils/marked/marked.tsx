@@ -65,7 +65,6 @@ const noHighlightingMarked = new Marked({
 const highlightingMarked = new Marked(
   markedHighlight({
     async: true,
-    // eslint-disable-next-line require-await
     highlight: async (code, lang, _info): Promise<string> => {
       if (!lang) {
         return code;

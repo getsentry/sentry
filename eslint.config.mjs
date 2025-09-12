@@ -363,7 +363,7 @@ export default typescript.config([
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
-      'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
+      'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
         'error',
         'always',
@@ -490,6 +490,7 @@ export default typescript.config([
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
       : {},
