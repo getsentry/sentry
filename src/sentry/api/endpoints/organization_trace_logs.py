@@ -118,7 +118,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         if len(trace_ids) == 0:
             raise ParseError("Need to pass at least one traceId")
 
-        orderby = request.GET.getlist("orderby", ["-timestamp", "-timestamp_precise"])
+        orderby = request.GET.getlist("sort", ["-timestamp", "-timestamp_precise"])
         additional_query = request.GET.get("query")
 
         update_snuba_params_with_timestamp(request, snuba_params)
