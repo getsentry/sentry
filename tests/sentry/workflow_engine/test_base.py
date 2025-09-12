@@ -12,6 +12,7 @@ from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.notifications.notification_action.action_validation import BaseActionValidatorTranslator
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -79,6 +80,16 @@ class MockActionHandler(ActionHandler):
         "required": ["baz"],
         "additionalProperties": False,
     }
+
+
+class MockActionValidatorTranslator(BaseActionValidatorTranslator):
+    notify_action_class = None
+
+    def generate_action_form_payload(self, validated_data: dict[str, Any]) -> dict[str, Any]:
+        return validated_data
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        return cleaned_data
 
 
 class DataConditionHandlerMixin:

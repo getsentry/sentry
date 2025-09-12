@@ -3,12 +3,16 @@ from unittest import mock
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
-from tests.sentry.workflow_engine.test_base import MockActionHandler
+from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
 
 
 @mock.patch(
     "sentry.workflow_engine.registry.action_handler_registry.get",
     return_value=MockActionHandler,
+)
+@mock.patch.dict(
+    "sentry.notifications.notification_action.action_validation.action_validator_translator_mapping",
+    {"slack": MockActionValidatorTranslator},
 )
 class TestBaseActionValidator(TestCase):
     def setUp(self) -> None:
