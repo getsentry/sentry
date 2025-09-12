@@ -1,7 +1,7 @@
 import type {LocationRange} from 'peggy';
 
 import type {TermOperator, TokenResult} from './parser';
-import {allOperators, Token} from './parser';
+import {allOperators, Token, wildcardOperators} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -327,7 +327,9 @@ export function isWithinToken(
 }
 
 export function isOperator(value: string): value is TermOperator {
-  return allOperators.includes(value as TermOperator);
+  // @ts-expect-error - We're checking to see if the value is a valid operator so we're
+  // expecting an error because we're passing in a string.
+  return allOperators.includes(value) || wildcardOperators.includes(value);
 }
 
 function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
