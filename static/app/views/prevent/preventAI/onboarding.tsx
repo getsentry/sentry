@@ -6,7 +6,7 @@ import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-da
 import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
 import {IconInfo} from 'sentry/icons/iconInfo';
@@ -109,7 +109,7 @@ export default function PreventAIOnboarding() {
                     </Text>
                   ),
                   organizationSettingsLink: (
-                    <ExternalLink href={`/settings/${organization.slug}`} />
+                    <Link to={`/settings/${organization.slug}#hideAiFeatures`} />
                   ),
                 }
               )}
