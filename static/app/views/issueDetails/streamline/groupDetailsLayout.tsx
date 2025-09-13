@@ -25,12 +25,18 @@ import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggle
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
+  useHasAIMode,
 } from 'sentry/views/issueDetails/utils';
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
+  const [isAIMode] = useHasAIMode();
+
+  // In AI mode, force sidebar closed
+  const shouldShowSidebar = isAIMode ? false : isSidebarOpen;
+
   return (
-    <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={isSidebarOpen}>
+    <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={shouldShowSidebar}>
       {children}
     </StyledLayoutBody>
   );
@@ -49,6 +55,8 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
+  const [isAIMode] = useHasAIMode();
+
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -58,41 +66,50 @@ export function GroupDetailsLayout({
       <StreamlinedGroupHeader group={group} event={event ?? null} project={project} />
       <GroupLayoutBody>
         <div>
-          <SharedTourElement<IssueDetailsTour>
-            id={IssueDetailsTour.AGGREGATES}
-            demoTourId={DemoTourStep.ISSUES_AGGREGATES}
-            tourContext={IssueDetailsTourContext}
-            title={t('View data in aggregate')}
-            description={t(
-              'The top section of the page always displays data in aggregate, including trends over time or tag value distributions.'
-            )}
-            position="bottom"
-          >
-            <EventDetailsHeader event={event} group={group} project={project} />
-          </SharedTourElement>
-          <SharedTourElement<IssueDetailsTour>
-            id={IssueDetailsTour.EVENT_DETAILS}
-            demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
-            tourContext={IssueDetailsTourContext}
-            title={t('Explore details')}
-            description={t(
-              'Here we capture everything we know about this data example, like context, trace, breadcrumbs, replay, and tags.'
-            )}
-            position="top"
-          >
-            <GroupContent>
-              {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
-                <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                  <IssueEventNavigation event={event} group={group} />
-                  {/* Since the event details header is disabled, display the sidebar toggle here */}
-                  {!hasFilterBar && <ToggleSidebar size="sm" />}
-                </NavigationSidebarWrapper>
+          {!isAIMode && (
+            <SharedTourElement<IssueDetailsTour>
+              id={IssueDetailsTour.AGGREGATES}
+              demoTourId={DemoTourStep.ISSUES_AGGREGATES}
+              tourContext={IssueDetailsTourContext}
+              title={t('View data in aggregate')}
+              description={t(
+                'The top section of the page always displays data in aggregate, including trends over time or tag value distributions.'
               )}
-              <ContentPadding>{children}</ContentPadding>
-            </GroupContent>
-          </SharedTourElement>
+              position="bottom"
+            >
+              <EventDetailsHeader event={event} group={group} project={project} />
+            </SharedTourElement>
+          )}
+          {isAIMode ? (
+            // AI mode: render children directly without the event details wrapper
+            <ContentPadding>{children}</ContentPadding>
+          ) : (
+            <SharedTourElement<IssueDetailsTour>
+              id={IssueDetailsTour.EVENT_DETAILS}
+              demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
+              tourContext={IssueDetailsTourContext}
+              title={t('Explore details')}
+              description={t(
+                'Here we capture everything we know about this data example, like context, trace, breadcrumbs, replay, and tags.'
+              )}
+              position="top"
+            >
+              <GroupContent>
+                {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
+                  <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                    <IssueEventNavigation event={event} group={group} />
+                    {/* Since the event details header is disabled, display the sidebar toggle here */}
+                    {!hasFilterBar && <ToggleSidebar size="sm" />}
+                  </NavigationSidebarWrapper>
+                )}
+                <ContentPadding>{children}</ContentPadding>
+              </GroupContent>
+            </SharedTourElement>
+          )}
         </div>
-        <StreamlinedSidebar group={group} event={event} project={project} />
+        {!isAIMode && (
+          <StreamlinedSidebar group={group} event={event} project={project} />
+        )}
       </GroupLayoutBody>
     </IssueDetailsContextProvider>
   );
