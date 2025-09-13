@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from itertools import islice
-from typing import ClassVar
+from typing import Any, ClassVar, Protocol
 
 from celery import Task
 
@@ -14,7 +14,6 @@ from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError, Registry
-from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 
 logger = logging.getLogger("sentry.delayed_processing")
 
@@ -28,6 +27,27 @@ class FilterKeys:
 class BufferHashKeys:
     model: type[models.Model]
     filters: FilterKeys
+
+
+class BufferProtocol(Protocol):
+
+    def get_hash(self, model: type[models.Model], field: dict[str, Any]) -> dict[str, str]: ...
+
+    def get_hash_length(self, model: type[models.Model], field: dict[str, Any]) -> int: ...
+
+    def push_to_hash_bulk(
+        self, model: type[models.Model], filters: dict[str, Any], data: dict[str, str]
+    ) -> None: ...
+
+    def delete_hash(
+        self, model: type[models.Model], filters: dict[str, Any], fields: list[str]
+    ) -> None: ...
+
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
+    ) -> dict[int, list[float]]: ...
+
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None: ...
 
 
 class DelayedProcessingBase(ABC):
@@ -57,7 +77,7 @@ class DelayedProcessingBase(ABC):
         ]
 
     @staticmethod
-    def buffer_backend() -> RedisHashSortedSetBuffer:
+    def buffer_backend() -> BufferProtocol:
         raise NotImplementedError
 
 
@@ -65,7 +85,7 @@ delayed_processing_registry = Registry[type[DelayedProcessingBase]]()
 
 
 def fetch_group_to_event_data(
-    buffer: RedisHashSortedSetBuffer,
+    buffer: BufferProtocol,
     project_id: int,
     model: type[models.Model],
     batch_key: str | None = None,
@@ -87,9 +107,7 @@ def bucket_num_groups(num_groups: int) -> str:
     return "1"
 
 
-def process_in_batches(
-    buffer: RedisHashSortedSetBuffer, project_id: int, processing_type: str
-) -> None:
+def process_in_batches(buffer: BufferProtocol, project_id: int, processing_type: str) -> None:
     """
     This will check the number of alertgroup_to_event_data items in the Redis buffer for a project.
 

@@ -11,7 +11,7 @@ from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
-from sentry import features, nodestore
+from sentry import buffer, features, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -29,9 +29,9 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyConditionData,
     percent_increase,
 )
-from sentry.rules.processing import buffer
 from sentry.rules.processing.buffer_processing import (
     BufferHashKeys,
+    BufferProtocol,
     DelayedProcessingBase,
     FilterKeys,
     delayed_processing_registry,
@@ -54,7 +54,6 @@ from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
-from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
@@ -112,7 +111,7 @@ def fetch_rulegroup_to_event_data(project_id: int, batch_key: str | None = None)
     if batch_key:
         field["batch_key"] = batch_key
 
-    return buffer.get_backend().get_hash(model=Project, field=field)
+    return buffer.backend.get_hash(model=Project, field=field)
 
 
 def get_rules_to_groups(rulegroup_to_event_data: dict[str, str]) -> DefaultDict[int, set[int]]:
@@ -671,7 +670,7 @@ def cleanup_redis_buffer(
     if batch_key:
         filters["batch_key"] = batch_key
 
-    buffer.get_backend().delete_hash(model=Project, filters=filters, fields=hashes_to_delete)
+    buffer.backend.delete_hash(model=Project, filters=filters, fields=hashes_to_delete)
     if log_config.num_events_issue_debugging:
         logger.info(
             "delayed_processing.cleanup_redis_buffer",
@@ -814,5 +813,5 @@ class DelayedRule(DelayedProcessingBase):
         return apply_delayed
 
     @staticmethod
-    def buffer_backend() -> RedisHashSortedSetBuffer:
-        return buffer.get_backend()
+    def buffer_backend() -> BufferProtocol:
+        return buffer.backend

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from sentry import buffer
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -16,7 +17,6 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyConditionData,
 )
-from sentry.rules.processing import buffer
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import (
     DataAndGroups,
@@ -752,7 +752,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         project_id = self.project.id
         self.project.delete()
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -770,7 +770,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         environments, etc. are properly fired.
         """
         self._push_base_events()
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -796,9 +796,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         assert (self.rule3.id, self.group3.id) in rule_fire_histories
         assert (self.rule4.id, self.group4.id) in rule_fire_histories
 
-        rule_group_data = buffer.get_backend().get_hash(
-            Project, {"project_id": self.project_two.id}
-        )
+        rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project_two.id})
         assert rule_group_data == {}
 
     def test_apply_delayed_issue_platform_event(self) -> None:
@@ -827,7 +825,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
             event5.event_id,
             occurrence_id=event5.occurrence_id,
         )
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -860,7 +858,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         group5 = event5.group
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -891,7 +889,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         group5 = event5.group
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -923,7 +921,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         group5 = event5.group
         self.push_to_hash(self.project.id, diff_interval_rule.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -956,7 +954,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         group5 = event5.group
         self.push_to_hash(self.project.id, diff_env_rule.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -994,7 +992,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         group5 = event5.group
         self.push_to_hash(self.project.id, no_fire_rule.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -1043,7 +1041,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         self.push_to_hash(
             self.project.id, two_conditions_match_all_rule.id, group5.id, event5.event_id
         )
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -1108,7 +1106,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
 
         group1 = evaluated_event.group
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         rp = RuleProcessor(
@@ -1177,7 +1175,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
 
         group1 = evaluated_event.group
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         rp = RuleProcessor(
@@ -1204,9 +1202,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         self._push_base_events()
         project_three = self.create_project(organization=self.organization)
         env3 = self.create_environment(project=project_three)
-        buffer.get_backend().push_to_sorted_set(
-            key=PROJECT_ID_BUFFER_LIST_KEY, value=project_three.id
-        )
+        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_three.id)
         rule_1 = self.create_project_rule(
             project=project_three,
             condition_data=[self.event_frequency_condition],
@@ -1235,7 +1231,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         self.push_to_hash(project_three.id, rule_1.id, group1.id, event1.event_id)
         self.push_to_hash(project_three.id, rule_2.id, group2.id, event2.event_id)
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert project_three.id == project_ids[2][0]
@@ -1282,7 +1278,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         group5 = event5.group
         self.push_to_hash(self.project.id, percent_comparison_rule.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -1313,7 +1309,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         event5 = self.create_event(self.project_three.id, FROZEN_TIME, "group-6")
         assert event5.group
 
-        buffer.get_backend().push_to_sorted_set(
+        buffer.backend.push_to_sorted_set(
             key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_three.id
         )
         self.push_to_hash(
@@ -1351,7 +1347,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
             self.project.id, percent_comparison_rule.id, event5.group.id, event5.event_id
         )
 
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
@@ -1412,7 +1408,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
 
         for rule in [self.fires_percent_rule, self.fires_count_rule, self.skips_count_rule]:
             self.push_to_hash(self.project.id, rule.id, self.group5.id, self.event5.event_id)
-        project_ids = buffer.get_backend().get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         return project_ids[0][0]
@@ -1516,12 +1512,22 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         )
 
     def test_cleanup_redis(self) -> None:
-        self.push_to_hash(self.project.id, self.rule.id, self.group.id)
+        # Use sentry's main buffer for delayed_processing, not workflow engine buffer
+        from sentry import buffer
+
+        value = json.dumps({"event_id": None, "occurrence_id": None})
+        buffer.backend.push_to_hash(
+            model=Project,
+            filters={"project_id": self.project.id},
+            field=f"{self.rule.id}:{self.group.id}",
+            value=value,
+        )
+
         rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
         rules_to_groups[self.rule.id].add(self.group.id)
 
         cleanup_redis_buffer(self.log_config, self.project, rules_to_groups, None)
-        rule_group_data = buffer.get_backend().get_hash(Project, {"project_id": self.project.id})
+        rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
     @override_options({"delayed_processing.batch_size": 2})
@@ -1539,24 +1545,24 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_two.id)
         rules_to_groups[self.rule.id].add(group_three.id)
 
-        process_in_batches(buffer.get_backend(), self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify process_rulegroups_in_batches removed the data from the buffer
-        rule_group_data = buffer.get_backend().get_hash(Project, {"project_id": self.project.id})
+        rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
         cleanup_redis_buffer(self.log_config, self.project, rules_to_groups, batch_one_key)
 
         # Verify the batch we "executed" is removed
-        rule_group_data = buffer.get_backend().get_hash(
+        rule_group_data = buffer.backend.get_hash(
             Project, {"project_id": self.project.id, "batch_key": batch_one_key}
         )
         assert rule_group_data == {}
 
         # Verify the batch we didn't execute is still in redis
-        rule_group_data = buffer.get_backend().get_hash(
+        rule_group_data = buffer.backend.get_hash(
             Project, {"project_id": self.project.id, "batch_key": batch_two_key}
         )
         assert rule_group_data == {
