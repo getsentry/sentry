@@ -1,11 +1,12 @@
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
-import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
+import {MetricDetectorDetailsOngoingIssue} from 'sentry/views/detectors/components/details/metric/ongoingIssue';
 import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
 import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
 import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
@@ -38,7 +39,9 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
           {snubaQuery && (
             <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
           )}
-          <DetectorDetailsOngoingIssues detectorId={detector.id} />
+          <ErrorBoundary mini>
+            <MetricDetectorDetailsOngoingIssue detector={detector} />
+          </ErrorBoundary>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

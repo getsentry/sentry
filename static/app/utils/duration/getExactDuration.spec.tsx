@@ -42,4 +42,8 @@ describe('getExactDuration', () => {
       '387 weeks 2 days 1 hour 23 minutes 55 seconds'
     );
   });
+
+  it('truncates sub-minute durations when precision is minutes (abbr)', () => {
+    expect(getExactDuration(30, true, 'minutes')).toBe('0min');
+  });
 });
