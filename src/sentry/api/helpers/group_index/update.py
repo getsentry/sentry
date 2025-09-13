@@ -395,7 +395,7 @@ def handle_resolve_in_release(
         if len(projects) > 1:
             raise MultipleProjectsError()
         # release to resolve by may not exist yet
-        release = status_details.get("inFutureRelease")
+        release = status_details.get("inFutureRelease") or None
         # get the original version string stored by the validator
         future_release_version = status_details.get("_future_release_version")
 
