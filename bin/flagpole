@@ -1,0 +1,129 @@
+#!/usr/bin/env python
+
+import argparse
+import dataclasses
+import sys
+from pathlib import Path
+
+import yaml
+
+from flagpole import Feature
+from flagpole.conditions import Segment
+from flagpole.evaluation_context import EvaluationContext
+from sentry.utils import json
+
+
+def output(*args):
+    print(*args)  # noqa: S002
+
+
+def main() -> None:
+    args = get_arguments()
+
+    indent = "    "
+    output("Opening file:")
+    output(indent, args.get("flagpole_file"))
+    output("")
+    output("Evaluating flag:")
+    output(indent, args.get("flag_name"))
+    output("")
+    output("Evaluation Context:")
+
+    output(indent, args.get("context"))
+    output("")
+
+    try:
+        feature = read_feature(args.get("flag_name"), args.get("flagpole_file"))
+    except Exception as e:
+        output("Unable to load feature")
+        output(e)
+        sys.exit(1)
+
+    output("Definition:")
+    output(feature.to_yaml_str())
+
+    try:
+        eval_context = EvaluationContext(args.get("context"))
+        (result, rollout, segment) = evaluate_flag(feature, eval_context)
+    except Exception as e:
+        output("Unable to eval. Check your context value")
+        output(e)
+        sys.exit(1)
+
+    output("Result:")
+    output(indent, result, f"({rollout}% rollout)" if rollout != 100 else "")
+    if segment:
+        output("Passing Segment:")
+        output(indent, segment.name)
+
+
+def get_arguments() -> dict:
+    parser = argparse.ArgumentParser(
+        description="Evaluate a flagpole flag.",
+        epilog="""
+Examples:
+    %(prog)s --flag-name my-feature-flag
+    %(prog)s --flag-name my-feature-flag --context '{"user_id": 123}'
+    %(prog)s --flag-name my-feature-flag '{"user_id": 123, "organization_id": 456}'
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--flagpole-file",
+        default=f"{Path.home()}/code/sentry-options-automator/options/default/flagpole.yaml",
+        help="Path to the flagpole.yaml file containing flag definitions.",
+    )
+    parser.add_argument(
+        "--flag-name",
+        required=True,
+        help="Name of the flag to evaluate from the flagpole file.",
+    )
+    parser.add_argument(
+        "--context",
+        required=False,
+        help="JSON context object to evaluate the flag against (e.g., '{\"user_id\": 123}').",
+    )
+    (args, extra) = parser.parse_known_args()
+
+    if args.context:
+        context = json.loads(args.context)
+    else:
+        try:
+            blob = [a for a in extra if a != "--"]
+            context = json.loads(blob[0] or "{}")
+        except (IndexError, json.JSONDecodeError):
+            context = {}
+
+    return {
+        "context": context,
+        "flag_name": args.flag_name,
+        "flagpole_file": args.flagpole_file,
+    }
+
+
+def read_feature(flag_name: str, flagpole_file: str) -> Feature:
+    with open(flagpole_file) as f:
+        content = f.read()
+        parsed_yaml = yaml.safe_load(content)
+        options = parsed_yaml.get("options")
+        dfn = options.get(flag_name)
+
+        feature = Feature.from_feature_dictionary(flag_name, dfn)
+        return feature
+
+
+def evaluate_flag(feature: Feature, context: EvaluationContext) -> (bool, bool, Segment | None):
+    real_result = feature.match(context)
+
+    for segment in feature.segments:
+        test = dataclasses.replace(feature, segments=[segment])
+        original_rollout = segment.rollout
+        segment.rollout = 100
+        if test.match(context):
+            return (real_result, original_rollout, segment)
+
+    return (real_result, False, None)
+
+
+if __name__ == "__main__":
+    main()
