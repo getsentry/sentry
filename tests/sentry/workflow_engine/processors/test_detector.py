@@ -338,7 +338,10 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_detectors(data_packet, [detector])
-            mock_incr.assert_not_called()
+            calls = mock_incr.call_args_list
+            # We can have background threads emitting metrics as tasks are scheduled
+            filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
+            assert len(filtered_calls) == 0
 
 
 @django_db_all

@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -9,6 +8,7 @@ from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMax
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
@@ -63,12 +63,10 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 204
         assert not ProjectCodeOwners.objects.filter(id=str(self.codeowners.id)).exists()
 
-    @patch("django.utils.timezone.now")
-    def test_basic_update(self, mock_timezone_now: MagicMock) -> None:
+    @freeze_time("2023-10-03 00:00:00")
+    def test_basic_update(self) -> None:
         self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
         self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
-        date = datetime(2023, 10, 3, tzinfo=timezone.utc)
-        mock_timezone_now.return_value = date
         raw = "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
         data = {
             "raw": raw,
@@ -89,7 +87,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.data["id"] == str(self.codeowners.id)
         assert response.data["raw"] == raw.strip()
         codeowner = ProjectCodeOwners.objects.filter(id=self.codeowners.id)[0]
-        assert codeowner.date_updated == date
+        assert codeowner.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-10-03 00:00:00"
 
     def test_wrong_codeowners_id(self) -> None:
         self.url = reverse(
