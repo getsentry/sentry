@@ -60,8 +60,7 @@ describe('StacktraceLink', () => {
     render(
       <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
     );
-    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
-    expect(link).toBeInTheDocument();
+    const link = await screen.findByRole('button', {name: 'Open this line in GitHub'});
     expect(link).toHaveAttribute('href', 'https://something.io#L233');
   });
 
@@ -155,8 +154,7 @@ describe('StacktraceLink', () => {
       }
     );
 
-    const link = await screen.findByRole('link', {name: 'Open in Codecov'});
-    expect(link).toBeInTheDocument();
+    const link = await screen.findByRole('button', {name: 'Open in Codecov'});
     expect(link).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py#L233'
@@ -221,7 +219,7 @@ describe('StacktraceLink', () => {
       }
     );
     expect(
-      await screen.findByRole('link', {name: 'Open this line in GitHub'})
+      await screen.findByRole('button', {name: 'Open this line in GitHub'})
     ).toBeInTheDocument();
     expect(stacktraceCoverageMock).not.toHaveBeenCalled();
   });
@@ -247,8 +245,7 @@ describe('StacktraceLink', () => {
         disableSetup={false}
       />
     );
-    const link = await screen.findByRole('link', {name: 'GitHub'});
-    expect(link).toBeInTheDocument();
+    const link = await screen.findByRole('button', {name: 'GitHub'});
     expect(link).toHaveAttribute(
       'href',
       'https://www.github.com/username/path/to/file.py#L100'
@@ -264,8 +261,7 @@ describe('StacktraceLink', () => {
       <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
     );
 
-    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
-    expect(link).toBeInTheDocument();
+    const link = await screen.findByRole('button', {name: 'Open this line in GitHub'});
     expect(link).toHaveAttribute('href', 'https://something.io#L233');
     // The link is an icon with aira label
     expect(link).toHaveTextContent('');
