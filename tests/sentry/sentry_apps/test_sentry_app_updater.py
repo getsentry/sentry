@@ -6,15 +6,20 @@ from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
 from sentry.constants import SentryAppStatus
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.logic import SentryAppUpdater, expand_events
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -26,7 +31,7 @@ class TestUpdater(TestCase):
         self.sentry_app = self.create_sentry_app(
             name="nulldb",
             organization=self.org,
-            scopes=("project:read",),
+            scopes=("project:read", "event:read"),
             schema={"elements": [self.create_issue_link_schema()]},
         )
         self.updater = SentryAppUpdater(sentry_app=self.sentry_app)
@@ -90,7 +95,7 @@ class TestUpdater(TestCase):
         tokens = ApiToken.objects.filter(application=self.sentry_app.application).order_by(
             "expires_at"
         )
-        assert tokens[0].get_scopes() == ["project:read"]
+        assert tokens[0].get_scopes() == ["event:read", "project:read"]
         assert tokens[1].get_scopes() == ["project:read", "project:write"]
 
     def test_doesnt_update_published_app_scopes(self) -> None:
@@ -253,3 +258,109 @@ class TestUpdater(TestCase):
         updater.run(self.user)
         with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
+
+    @with_feature("organizations:service-hooks-outbox")
+    def test_update_service_hooks_with_outbox_feature_enabled(self) -> None:
+        """Test _update_service_hooks when organizations:service-hooks-outbox feature is enabled."""
+        # Create installation
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        with outbox_runner():
+            # Clear any existing outbox entries
+            ControlOutbox.objects.all().delete()
+
+            # Update the sentry app to trigger service hook updates
+            updater = SentryAppUpdater(sentry_app=self.sentry_app)
+            updater.webhook_url = "https://example.com/new-webhook"
+            updater.events = ["comment"]
+            updater.run(self.user)
+
+            # Verify outbox entries were created
+            outbox_entries = ControlOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_HOOK_UPDATE,
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.sentry_app.id,
+            )
+
+            assert len(outbox_entries) == 1
+
+            # Verify the outbox entry has correct data
+            entry = outbox_entries[0]
+            assert entry.object_identifier == installation.id
+            assert entry.region_name is not None
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            service_hook = ServiceHook.objects.get(
+                application_id=self.sentry_app.application_id, organization_id=self.org.id
+            )
+            assert service_hook.url == "https://example.com/new-webhook"
+            # Events get expanded from "comment" to specific comment events
+            assert set(service_hook.events) == {
+                "comment.created",
+                "comment.deleted",
+                "comment.updated",
+            }
+
+    @with_feature("organizations:service-hooks-outbox")
+    def test_update_service_hooks_no_installations(self) -> None:
+        """Test _update_service_hooks when there are no installations."""
+        # Ensure no installations exist
+        SentryAppInstallation.objects.filter(sentry_app=self.sentry_app).delete()
+
+        with outbox_runner():
+            # Clear any existing outbox entries
+            ControlOutbox.objects.all().delete()
+
+            updater = SentryAppUpdater(sentry_app=self.sentry_app)
+            updater.webhook_url = "https://example.com/webhook"
+            updater.run(self.user)
+
+            # Verify no outbox entries were created
+            outbox_entries = ControlOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_HOOK_UPDATE
+            )
+            assert len(outbox_entries) == 0
+
+    @with_feature("organizations:service-hooks-outbox")
+    def test_update_service_hooks_outbox_entries_created(self) -> None:
+        """Test that outbox entries are properly created and processed."""
+        # Create installation
+        self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        # Clear existing outbox entries
+        ControlOutbox.objects.all().delete()
+
+        # Update the sentry app
+        updater = SentryAppUpdater(sentry_app=self.sentry_app)
+        updater.webhook_url = "https://example.com/webhook"
+        updater.run(self.user)
+
+        with outbox_runner():
+            # Verify outbox entries were created and processed
+            outbox_entries = ControlOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_HOOK_UPDATE,
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.sentry_app.id,
+            )
+            assert outbox_entries.count() == 1
+
+            updated_app = SentryApp.objects.get(id=self.sentry_app.id)
+            assert updated_app.webhook_url == "https://example.com/webhook"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            outbox_entries = ControlOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_HOOK_UPDATE,
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.sentry_app.id,
+            )
+            assert outbox_entries.count() == 0
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            service_hook = ServiceHook.objects.get(
+                application_id=self.sentry_app.application_id, organization_id=self.org.id
+            )
+            assert service_hook.url == "https://example.com/webhook"
