@@ -82,8 +82,8 @@ def build_workflow_event_data_from_event(
         raise EventNotFoundError(event_id, project_id)
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
-    # TODO(iamrajjoshi): Should we use get_from_cache here?
-    group = Group.objects.get(id=group_id)
+
+    group = Group.objects.get_from_cache(id=group_id)
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 
