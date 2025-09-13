@@ -321,7 +321,7 @@ export function Content({
             )
           }
           disableCollapsePersistence
-          initialCollapse={excIdx !== values.length - 1}
+          initialCollapse={excIdx < values.length - 3}
           additionalIdentifier={
             exc.mechanism?.exception_id?.toString() ?? excIdx.toString()
           }
