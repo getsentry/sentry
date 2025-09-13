@@ -31,7 +31,7 @@ class TestActionsValidator(CamelSnakeSerializer):
 
     def validate_actions(self, value):
         for action in value:
-            BaseActionValidator(data=action).is_valid(raise_exception=True)
+            BaseActionValidator(data=action, context=self.context).is_valid(raise_exception=True)
         return value
 
 
@@ -64,7 +64,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
 
         The actions will be fired against a sample event in the first project of the organization.
         """
-        serializer = TestActionsValidator(data=request.data)
+        serializer = TestActionsValidator(data=request.data, context={"organization": organization})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
