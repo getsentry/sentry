@@ -10,11 +10,11 @@ from typing import ClassVar
 from celery import Task
 
 from sentry import options
-from sentry.buffer.base import Buffer, BufferField
+from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.utils import metrics
-from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.registry import NoRegistrationExistsError, Registry
+from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 
 logger = logging.getLogger("sentry.delayed_processing")
 
@@ -57,7 +57,7 @@ class DelayedProcessingBase(ABC):
         ]
 
     @staticmethod
-    def buffer_backend() -> LazyServiceWrapper[Buffer]:
+    def buffer_backend() -> RedisHashSortedSetBuffer:
         raise NotImplementedError
 
 
@@ -65,7 +65,7 @@ delayed_processing_registry = Registry[type[DelayedProcessingBase]]()
 
 
 def fetch_group_to_event_data(
-    buffer: LazyServiceWrapper[Buffer],
+    buffer: RedisHashSortedSetBuffer,
     project_id: int,
     model: type[models.Model],
     batch_key: str | None = None,
@@ -88,7 +88,7 @@ def bucket_num_groups(num_groups: int) -> str:
 
 
 def process_in_batches(
-    buffer: LazyServiceWrapper[Buffer], project_id: int, processing_type: str
+    buffer: RedisHashSortedSetBuffer, project_id: int, processing_type: str
 ) -> None:
     """
     This will check the number of alertgroup_to_event_data items in the Redis buffer for a project.
