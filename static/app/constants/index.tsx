@@ -240,6 +240,7 @@ const DEFAULT_STATS_INFO = {
   yAxisMinInterval: 100,
 };
 const GIGABYTE = 10 ** 9;
+const KILOBYTE = 10 ** 3;
 
 // https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
 export const DATA_CATEGORY_INFO = {
@@ -523,7 +524,7 @@ export const DATA_CATEGORY_INFO = {
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
-      yAxisMinInterval: 0.5 * GIGABYTE,
+      yAxisMinInterval: 1 * KILOBYTE,
     },
   },
   [DataCategoryExact.SEER_AUTOFIX]: {
