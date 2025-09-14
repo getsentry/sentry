@@ -38,7 +38,7 @@ class RuleNodeField(serializers.Field):
             raise ValidationError("Missing attribute 'id'")
 
         for key, value in list(data.items()):
-            if not value:
+            if value == "":
                 del data[key]
 
         cls = rules.get(data["id"], self.type_name)
