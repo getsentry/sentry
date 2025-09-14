@@ -39,7 +39,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.workflow_engine import models as workflow_engine
 
     from . import defaults
-    from .base import BulkModelDeletionTask
+    from .base import BulkModelDeletionTask, ModelDeletionTask
 
     # fmt: off
     manager.register(models.Activity, BulkModelDeletionTask)
@@ -61,7 +61,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupEmailThread, BulkModelDeletionTask)
     manager.register(models.GroupEnvironment, BulkModelDeletionTask)
     manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
-    manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
+    manager.register(models.GroupHashMetadata, ModelDeletionTask)
     manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
     manager.register(models.GroupLink, BulkModelDeletionTask)
     manager.register(models.GroupMeta, BulkModelDeletionTask)
