@@ -122,7 +122,7 @@ def evaluate_flag(feature: Feature, context: EvaluationContext) -> (bool, bool, 
         if test.match(context):
             return (real_result, original_rollout, segment)
 
-    return (real_result, False, None)
+    return (real_result, 100, None)
 
 
 if __name__ == "__main__":
