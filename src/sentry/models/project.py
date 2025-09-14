@@ -751,6 +751,11 @@ class Project(Model):
 
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
+            print("Project.delete")
+            import pprint
+
+            pprint.pprint(args)
+            pprint.pprint(kwargs)
             return super().delete(*args, **kwargs)
 
     def normalize_before_relocation_import(
