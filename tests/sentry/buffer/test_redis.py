@@ -4,6 +4,7 @@ import pickle
 import random
 from collections import defaultdict
 from collections.abc import Mapping
+from functools import wraps
 from unittest import mock
 
 import pytest
@@ -15,6 +16,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.redis import get_cluster_routing_client
@@ -28,14 +30,38 @@ def _hgetall_decode_keys(client, key, is_redis_cluster):
         return ret
 
 
+def skip_if_redis_cluster(test_func):
+    """Decorator to skip test methods that don't support Redis cluster mode."""
+
+    @wraps(test_func)
+    def wrapper(self, *args, **kwargs):
+        if self.buf.is_redis_cluster:
+            pytest.skip("Test does not support Redis cluster mode")
+        return test_func(self, *args, **kwargs)
+
+    return wrapper
+
+
 @pytest.mark.django_db
 class TestRedisBuffer:
-    @pytest.fixture(params=["cluster", "blaster"])
+    @pytest.fixture(params=["cluster_single", "blaster", "cluster"])
     def buffer(self, set_sentry_option, request):
         value = copy.deepcopy(options.get("redis.clusters"))
-        value["default"]["is_redis_cluster"] = request.param == "cluster"
-        with set_sentry_option("redis.clusters", value):
-            yield RedisBuffer()
+        value["default"]["is_redis_cluster"] = request.param in ["cluster_single", "cluster"]
+        if request.param == "cluster":
+            with use_redis_cluster("cluster"):
+                buf = RedisBuffer(cluster="cluster")
+                for _, info in buf.cluster.info("server").items():
+                    assert info["redis_mode"] == "cluster"
+                buf.cluster.flushdb()
+                yield buf
+        else:
+            with set_sentry_option("redis.clusters", value):
+                buf = RedisBuffer()
+                if request.param == "cluster_single":
+                    info = buf.cluster.info("server")
+                    assert info["redis_mode"] == "standalone"
+                yield buf
 
     @pytest.fixture(autouse=True)
     def setup_buffer(self, buffer):
@@ -76,6 +102,7 @@ class TestRedisBuffer:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
+    @skip_if_redis_cluster
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_does_bubble_up_json(self, process) -> None:
@@ -122,6 +149,7 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
+    @skip_if_redis_cluster
     @django_db_all
     @freeze_time()
     def test_group_cache_updated(self, default_group, task_runner) -> None:
@@ -139,6 +167,7 @@ class TestRedisBuffer:
         group = Group.objects.get_from_cache(id=default_group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
 
+    @skip_if_redis_cluster
     def test_get(self) -> None:
         model = mock.Mock()
         model.__name__ = "Mock"
@@ -151,6 +180,7 @@ class TestRedisBuffer:
         self.buf.incr(model, {"times_seen": 5}, filters)
         assert self.buf.get(model, columns, filters=filters) == {"times_seen": 6}
 
+    @skip_if_redis_cluster
     def test_incr_saves_to_redis(self) -> None:
         now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC)
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
@@ -431,6 +461,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
+    @skip_if_redis_cluster
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_assign_custom_queue(
@@ -494,6 +525,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
+    @skip_if_redis_cluster
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_assign_custom_queue_multiple_batches(
@@ -566,6 +598,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
+    @skip_if_redis_cluster
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_custom_queue_function_fallback(
@@ -627,6 +660,7 @@ class TestRedisBuffer:
         redis_buffer_router._routers = original_routers
         assert num_of_calls == 1
 
+    @skip_if_redis_cluster
     @django_db_all
     @freeze_time()
     def test_incr_uses_signal_only(self, default_group, task_runner) -> None:
