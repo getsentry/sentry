@@ -27,8 +27,6 @@ from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api.oauth_token")
 
-# PKCE behavior: Prefer S256; allow "plain" only when toggled on
-PKCE_ALLOW_PLAIN = False
 _PKCE_VERIFIER_RE = re.compile(r"^[A-Za-z0-9\-\._~]{43,128}$")
 
 
@@ -259,8 +257,8 @@ class OAuthTokenView(View):
             return None
 
         if method == "PLAIN":
-            # v1 respects PKCE_ALLOW_PLAIN; v0 allows plain regardless
-            if app_version >= 1 and not PKCE_ALLOW_PLAIN:
+            # v1 forbids plain; v0 allows plain
+            if app_version >= 1:
                 return {"error": "invalid_grant", "reason": "pkce verification failed"}
             if code_verifier != grant.code_challenge:
                 return {"error": "invalid_grant", "reason": "pkce verification failed"}

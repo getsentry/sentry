@@ -445,7 +445,7 @@ class OAuthTokenCodeTest(TestCase):
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
     def test_pkce_plain_mode(self) -> None:
-        # plain should be denied by default
+        # plain should be denied for v1 applications, allowed for v0
         self.login_as(self.user)
         grant = ApiGrant.objects.create(
             user=self.user,
@@ -468,33 +468,27 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
-        # Temporarily allow plain and expect success
-        from sentry.web.frontend import oauth_token as oauth_token_module
-
-        original = oauth_token_module.PKCE_ALLOW_PLAIN
-        oauth_token_module.PKCE_ALLOW_PLAIN = True
-        try:
-            grant2 = ApiGrant.objects.create(
-                user=self.user,
-                application=self.application,
-                redirect_uri=self.application.get_default_redirect_uri(),
-                code_challenge="b" * 60,
-                code_challenge_method="plain",
-            )
-            resp = self.client.post(
-                self.path,
-                {
-                    "grant_type": "authorization_code",
-                    "redirect_uri": self.application.get_default_redirect_uri(),
-                    "code": grant2.code,
-                    "code_verifier": "b" * 60,
-                    "client_id": self.application.client_id,
-                    "client_secret": self.client_secret,
-                },
-            )
-            assert resp.status_code == 200
-        finally:
-            oauth_token_module.PKCE_ALLOW_PLAIN = original
+        # Switch to v0 behavior and expect success
+        self.application.update(version=0)
+        grant2 = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge="b" * 60,
+            code_challenge_method="plain",
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant2.code,
+                "code_verifier": "b" * 60,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
 
     def test_valid_params(self) -> None:
         self.login_as(self.user)

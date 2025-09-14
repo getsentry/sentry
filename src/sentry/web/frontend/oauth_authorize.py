@@ -22,8 +22,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.api.oauth_authorize")
 
-# PKCE behavior: Prefer S256; optionally allow "plain" when toggled on
-PKCE_ALLOW_PLAIN = False
+# PKCE behavior: Prefer S256; v1 applications require S256; v0 allow plain for compatibility
 PKCE_DEFAULT_METHOD = "S256"
 
 
@@ -157,7 +156,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
-        # Validate PKCE inputs (when provided). For v1+ applications, only S256 is allowed by default;
+        # Validate PKCE inputs (when provided). For v1+ applications, only S256 is allowed;
         # for v0, allow "plain" to avoid breakage.
         if code_challenge:
             method = (code_challenge_method or PKCE_DEFAULT_METHOD).upper()
@@ -172,7 +171,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 )
             if method == "PLAIN":
                 app_version = getattr(application, "version", 0) or 0
-                if app_version >= 1 and not PKCE_ALLOW_PLAIN:
+                if app_version >= 1:
                     return self.error(
                         request=request,
                         client_id=client_id,
