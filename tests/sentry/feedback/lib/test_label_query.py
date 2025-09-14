@@ -150,27 +150,9 @@ class TestLabelQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         }
 
     def test_query_label_group_counts(self) -> None:
-        self._create_feedback(
-            "a",
-            [
-                "User Interface",
-                "Performance",
-            ],
-        )
-        self._create_feedback(
-            "b",
-            [
-                "Performance",
-                "Authentication",
-            ],
-        )
-        self._create_feedback(
-            "c",
-            [
-                "Authentication",
-                "Security",
-            ],
-        )
+        self._create_feedback("a", ["User Interface", "Performance"])
+        self._create_feedback("b", ["Performance", "Authentication"])
+        self._create_feedback("c", ["Authentication", "Security"])
 
         label_groups_to_expected_result = {
             ("User Interface",): 1,
