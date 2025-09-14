@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any, TypedDict
 
 import pytest
 from snuba_sdk import Column, Condition, Direction, Entity, Op, OrderBy, Query, Request
@@ -15,22 +14,13 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.snuba import raw_snql_query
 from tests.sentry.feedback import mock_feedback_event
-from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-class FeedbackData(TypedDict):
-    fingerprint: str
-    tags: list[tuple[str, str]]
-    contexts: dict[str, Any]
-
-
-@django_db_all
-class TestLabelQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
+class TestLabelQuery(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
