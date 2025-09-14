@@ -83,6 +83,12 @@ class ApiGrant(Model):
         on_delete="CASCADE",
     )
 
+    # PKCE (RFC 7636) parameters persisted from authorization request
+    # - code_challenge: BASE64URL-encoded string (43-128 chars)
+    # - code_challenge_method: typically "S256"; "plain" optionally allowed
+    code_challenge = models.CharField(max_length=128, null=True, blank=True)
+    code_challenge_method = models.CharField(max_length=10, null=True, blank=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_apigrant"

@@ -220,6 +220,7 @@ class OAuthTokenCodeTest(TestCase):
                 "grant_type": "authorization_code",
                 "code": self.grant.code,
                 "client_id": self.application.client_id,
+                "redirect_uri": self.application.get_default_redirect_uri(),
                 "client_secret": self.client_secret,
             },
         )
@@ -254,6 +255,7 @@ class OAuthTokenCodeTest(TestCase):
                 "grant_type": "authorization_code",
                 "code": self.grant.code,
                 "client_id": self.application.client_id,
+                "redirect_uri": self.application.get_default_redirect_uri(),
                 "client_secret": self.client_secret,
             },
         )
@@ -262,9 +264,9 @@ class OAuthTokenCodeTest(TestCase):
         data = json.loads(resp.content)
         assert "id_token" not in data
 
-    def test_valid_no_redirect_uri(self) -> None:
+    def test_redirect_binding_required_when_grant_has_redirect(self) -> None:
         """
-        Checks that we get the correct redirect URI if we don't pass one in
+        Omitting redirect_uri on token exchange must fail when grant stored it.
         """
         self.login_as(self.user)
 
@@ -278,19 +280,219 @@ class OAuthTokenCodeTest(TestCase):
             },
         )
 
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_redirect_binding_mismatch(self) -> None:
+        self.login_as(self.user)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "redirect_uri": "https://example.org/callback",
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_pkce_s256_happy_path(self) -> None:
+        import base64
+        import hashlib
+
+        self.login_as(self.user)
+        # Create a grant with S256 code challenge derived from a known verifier
+        verifier = "a" * 50
+        digest = hashlib.sha256(verifier.encode("ascii")).digest()
+        challenge = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge=challenge,
+            code_challenge_method="S256",
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant.code,
+                "code_verifier": verifier,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
         assert resp.status_code == 200
-        data = json.loads(resp.content)
 
-        token = ApiToken.objects.get(token=data["access_token"])
-        assert token.application == self.application
-        assert token.user == self.grant.user
-        assert token.get_scopes() == self.grant.get_scopes()
+    def test_pkce_missing_verifier(self) -> None:
+        self.login_as(self.user)
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge="x" * 43,
+            code_challenge_method="S256",
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
 
-        assert data["access_token"] == token.token
-        assert data["refresh_token"] == token.refresh_token
-        assert isinstance(data["expires_in"], int)
-        assert data["token_type"] == "bearer"
-        assert data["user"]["id"] == str(token.user_id)
+    def test_pkce_length_and_charset(self) -> None:
+        self.login_as(self.user)
+        # too short
+        grant1 = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge="x" * 43,
+            code_challenge_method="S256",
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant1.code,
+                "code_verifier": "a" * 42,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+        # too long
+        grant2 = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge="x" * 43,
+            code_challenge_method="S256",
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant2.code,
+                "code_verifier": "a" * 129,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+        # invalid charset
+        grant3 = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge="x" * 43,
+            code_challenge_method="S256",
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant3.code,
+                "code_verifier": "invalid*chars",
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_pkce_s256_mismatch(self) -> None:
+        self.login_as(self.user)
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge="x" * 43,
+            code_challenge_method="S256",
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant.code,
+                "code_verifier": "a" * 50,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_pkce_plain_mode(self) -> None:
+        # plain should be denied by default
+        self.login_as(self.user)
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge="a" * 50,
+            code_challenge_method="PLAIN",
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant.code,
+                "code_verifier": "a" * 50,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+        # Temporarily allow plain and expect success
+        from sentry.web.frontend import oauth_token as oauth_token_module
+
+        original = oauth_token_module.PKCE_ALLOW_PLAIN
+        oauth_token_module.PKCE_ALLOW_PLAIN = True
+        try:
+            grant2 = ApiGrant.objects.create(
+                user=self.user,
+                application=self.application,
+                redirect_uri=self.application.get_default_redirect_uri(),
+                code_challenge="b" * 60,
+                code_challenge_method="plain",
+            )
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "authorization_code",
+                    "redirect_uri": self.application.get_default_redirect_uri(),
+                    "code": grant2.code,
+                    "code_verifier": "b" * 60,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+            assert resp.status_code == 200
+        finally:
+            oauth_token_module.PKCE_ALLOW_PLAIN = original
 
     def test_valid_params(self) -> None:
         self.login_as(self.user)

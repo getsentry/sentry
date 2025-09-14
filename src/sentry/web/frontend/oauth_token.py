@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import logging
+import re
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
@@ -23,6 +26,10 @@ from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api.oauth_token")
+
+# PKCE behavior: Prefer S256; allow "plain" only when toggled on
+PKCE_ALLOW_PLAIN = False
+_PKCE_VERIFIER_RE = re.compile(r"^[A-Za-z0-9\-\._~]{43,128}$")
 
 
 class _TokenInformationUser(TypedDict):
@@ -138,11 +145,37 @@ class OAuthTokenView(View):
         if grant.is_expired():
             return {"error": "invalid_grant", "reason": "grant expired"}
 
+        # Enforce redirect_uri binding: when the grant was issued with a redirect_uri,
+        # the token request MUST include the identical redirect_uri (RFC 6749 §4.1.3).
         redirect_uri = request.POST.get("redirect_uri")
-        if not redirect_uri:
-            redirect_uri = application.get_default_redirect_uri()
-        elif grant.redirect_uri != redirect_uri:
-            return {"error": "invalid_grant", "reason": "invalid redirect URI"}
+        if grant.redirect_uri:
+            if not redirect_uri or grant.redirect_uri != redirect_uri:
+                return {"error": "invalid_grant", "reason": "invalid redirect URI"}
+
+        # PKCE verification (RFC 7636): if the grant has a stored code_challenge,
+        # require a valid code_verifier on the token request.
+        if grant.code_challenge:
+            code_verifier = request.POST.get("code_verifier")
+            if not code_verifier:
+                return {"error": "invalid_grant", "reason": "missing code_verifier"}
+            # Enforce length and charset
+            if len(code_verifier) < 43 or len(code_verifier) > 128:
+                return {"error": "invalid_grant", "reason": "invalid code_verifier length"}
+            if not _PKCE_VERIFIER_RE.match(code_verifier):
+                return {"error": "invalid_grant", "reason": "invalid code_verifier charset"}
+
+            method = (grant.code_challenge_method or "S256").upper()
+            if method == "S256":
+                digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+                computed = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+                if computed != grant.code_challenge:
+                    return {"error": "invalid_grant", "reason": "pkce verification failed"}
+            elif method == "PLAIN":
+                if not PKCE_ALLOW_PLAIN or code_verifier != grant.code_challenge:
+                    return {"error": "invalid_grant", "reason": "pkce verification failed"}
+            else:
+                # Unknown method on stored grant; reject
+                return {"error": "invalid_grant", "reason": "unsupported pkce method"}
 
         try:
             token_data = {"token": ApiToken.from_grant(grant=grant)}

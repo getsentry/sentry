@@ -22,6 +22,10 @@ from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.api.oauth_authorize")
 
+# PKCE behavior: Prefer S256; optionally allow "plain" when toggled on
+PKCE_ALLOW_PLAIN = False
+PKCE_DEFAULT_METHOD = "S256"
+
 
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
@@ -85,6 +89,8 @@ class OAuthAuthorizeView(AuthLoginView):
         redirect_uri = request.GET.get("redirect_uri")
         state = request.GET.get("state")
         force_prompt = request.GET.get("force_prompt")
+        code_challenge = request.GET.get("code_challenge")
+        code_challenge_method = request.GET.get("code_challenge_method")
 
         if not client_id:
             return self.error(
@@ -182,6 +188,31 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
+        # Validate PKCE inputs (when provided). We only allow S256 by default.
+        if code_challenge:
+            # Default to S256 if method omitted
+            method = (code_challenge_method or PKCE_DEFAULT_METHOD).upper()
+            if method not in ("S256", "PLAIN"):
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    err_response="code_challenge_method",
+                )
+            if method == "PLAIN" and not PKCE_ALLOW_PLAIN:
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    err_response="code_challenge_method",
+                )
+            # Normalize casing for storage
+            code_challenge_method = method
+
         payload = {
             "rt": response_type,
             "cid": client_id,
@@ -189,6 +220,8 @@ class OAuthAuthorizeView(AuthLoginView):
             "sc": scopes,
             "st": state,
             "uid": request.user.id if request.user.is_authenticated else "",
+            "cc": code_challenge or "",
+            "ccm": code_challenge_method or "",
         }
         request.session["oa2"] = payload
 
@@ -225,6 +258,8 @@ class OAuthAuthorizeView(AuthLoginView):
             "sc": scopes,
             "st": state,
             "uid": request.user.id,
+            "cc": code_challenge or "",
+            "ccm": code_challenge_method or "",
         }
         request.session["oa2"] = payload
 
@@ -351,6 +386,10 @@ class OAuthAuthorizeView(AuthLoginView):
         redirect_uri,
         state,
     ) -> HttpResponseBase:
+        # Pull PKCE data (if any) from the session payload prepared during GET
+        sess_payload = request.session.get("oa2", {}) if hasattr(request, "session") else {}
+        sess_code_challenge = sess_payload.get("cc") or None
+        sess_code_challenge_method = sess_payload.get("ccm") or None
         # Some applications require org level access, so user who approves only gives
         # access to that organization by selecting one. If None, means the application
         # has user level access and will be able to have access to all the organizations of that user.
@@ -391,6 +430,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 redirect_uri=redirect_uri,
                 scope_list=scopes,
                 organization_id=selected_organization_id,
+                code_challenge=sess_code_challenge,
+                code_challenge_method=sess_code_challenge_method,
             )
             logger.info(
                 "approve.grant",
