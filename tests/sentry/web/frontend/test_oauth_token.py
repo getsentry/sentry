@@ -54,6 +54,8 @@ class OAuthTokenCodeTest(TestCase):
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
         )
+        # Use application version 1 for strict OAuth 2.1 behaviors in these tests
+        self.application.update(version=1)
         self.client_secret = self.application.client_secret
         self.grant = ApiGrant.objects.create(
             user=self.user, application=self.application, redirect_uri="https://example.com"

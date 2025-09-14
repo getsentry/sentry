@@ -157,6 +157,32 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
+        # Validate PKCE inputs (when provided). For v1+ applications, only S256 is allowed by default;
+        # for v0, allow "plain" to avoid breakage.
+        if code_challenge:
+            method = (code_challenge_method or PKCE_DEFAULT_METHOD).upper()
+            if method not in ("S256", "PLAIN"):
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    err_response="code_challenge_method",
+                )
+            if method == "PLAIN":
+                app_version = getattr(application, "version", 0) or 0
+                if app_version >= 1 and not PKCE_ALLOW_PLAIN:
+                    return self.error(
+                        request=request,
+                        client_id=client_id,
+                        response_type=response_type,
+                        redirect_uri=redirect_uri,
+                        name="invalid_request",
+                        err_response="code_challenge_method",
+                    )
+            code_challenge_method = method
+
         scopes_s = request.GET.get("scope")
         if scopes_s:
             scopes = scopes_s.split(" ")
@@ -188,30 +214,7 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
-        # Validate PKCE inputs (when provided). We only allow S256 by default.
-        if code_challenge:
-            # Default to S256 if method omitted
-            method = (code_challenge_method or PKCE_DEFAULT_METHOD).upper()
-            if method not in ("S256", "PLAIN"):
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    err_response="code_challenge_method",
-                )
-            if method == "PLAIN" and not PKCE_ALLOW_PLAIN:
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    err_response="code_challenge_method",
-                )
-            # Normalize casing for storage
-            code_challenge_method = method
+        # Defer PKCE validation until after we have `application` to check version.
 
         payload = {
             "rt": response_type,

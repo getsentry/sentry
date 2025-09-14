@@ -145,37 +145,26 @@ class OAuthTokenView(View):
         if grant.is_expired():
             return {"error": "invalid_grant", "reason": "grant expired"}
 
-        # Enforce redirect_uri binding: when the grant was issued with a redirect_uri,
-        # the token request MUST include the identical redirect_uri (RFC 6749 §4.1.3).
+        # Enforce redirect_uri binding with application-version-aware behavior
+        app_version = getattr(grant.application, "version", 0) or 0
         redirect_uri = request.POST.get("redirect_uri")
-        if grant.redirect_uri:
-            if not redirect_uri or grant.redirect_uri != redirect_uri:
-                return {"error": "invalid_grant", "reason": "invalid redirect URI"}
+        redirect_check = self._check_redirect_binding(
+            application=application,
+            grant=grant,
+            request_redirect_uri=redirect_uri,
+            app_version=app_version,
+        )
+        if redirect_check is not None:
+            return redirect_check
 
-        # PKCE verification (RFC 7636): if the grant has a stored code_challenge,
-        # require a valid code_verifier on the token request.
-        if grant.code_challenge:
-            code_verifier = request.POST.get("code_verifier")
-            if not code_verifier:
-                return {"error": "invalid_grant", "reason": "missing code_verifier"}
-            # Enforce length and charset
-            if len(code_verifier) < 43 or len(code_verifier) > 128:
-                return {"error": "invalid_grant", "reason": "invalid code_verifier length"}
-            if not _PKCE_VERIFIER_RE.match(code_verifier):
-                return {"error": "invalid_grant", "reason": "invalid code_verifier charset"}
-
-            method = (grant.code_challenge_method or "S256").upper()
-            if method == "S256":
-                digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
-                computed = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
-                if computed != grant.code_challenge:
-                    return {"error": "invalid_grant", "reason": "pkce verification failed"}
-            elif method == "PLAIN":
-                if not PKCE_ALLOW_PLAIN or code_verifier != grant.code_challenge:
-                    return {"error": "invalid_grant", "reason": "pkce verification failed"}
-            else:
-                # Unknown method on stored grant; reject
-                return {"error": "invalid_grant", "reason": "unsupported pkce method"}
+        # PKCE verification with application-version-aware behavior
+        pkce_error = self._verify_pkce(
+            grant=grant,
+            code_verifier=request.POST.get("code_verifier"),
+            app_version=app_version,
+        )
+        if pkce_error is not None:
+            return pkce_error
 
         try:
             token_data = {"token": ApiToken.from_grant(grant=grant)}
@@ -193,6 +182,91 @@ class OAuthTokenView(View):
             token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant)
 
         return token_data
+
+    @staticmethod
+    def _compute_s256(code_verifier: str) -> str:
+        digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+        return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+    def _check_redirect_binding(
+        self,
+        *,
+        application: ApiApplication,
+        grant: ApiGrant,
+        request_redirect_uri: str | None,
+        app_version: int,
+    ) -> dict | None:
+        """Validate redirect_uri binding and log legacy fallback.
+
+        Returns an error dict on failure, otherwise None. The resolved redirect_uri
+        is not used downstream, so there is no return of the value here.
+        """
+        if app_version >= 1:
+            if grant.redirect_uri and (
+                not request_redirect_uri or grant.redirect_uri != request_redirect_uri
+            ):
+                return {"error": "invalid_grant", "reason": "invalid redirect URI"}
+            return None
+
+        # v0 legacy behavior
+        if not request_redirect_uri:
+            logger.warning(
+                "oauth.token-legacy-redirect-fallback",
+                extra={
+                    "application_id": grant.application_id,
+                    "client_id": application.client_id,
+                    "grant_id": grant.id,
+                },
+            )
+            # Allow fallback; nothing else to check
+            return None
+
+        if grant.redirect_uri != request_redirect_uri:
+            return {"error": "invalid_grant", "reason": "invalid redirect URI"}
+        return None
+
+    def _verify_pkce(
+        self, *, grant: ApiGrant, code_verifier: str | None, app_version: int
+    ) -> dict | None:
+        if not grant.code_challenge:
+            return None
+
+        # For v0: missing verifier is allowed (log), provided one must validate
+        if app_version < 1 and not code_verifier:
+            logger.warning(
+                "oauth.token-legacy-pkce-missing-verifier",
+                extra={
+                    "application_id": grant.application_id,
+                    "client_id": grant.application.client_id,
+                    "grant_id": grant.id,
+                },
+            )
+            return None
+
+        # For v1 or when provided in v0, validate per RFC 7636
+        if not code_verifier:
+            return {"error": "invalid_grant", "reason": "missing code_verifier"}
+        if len(code_verifier) < 43 or len(code_verifier) > 128:
+            return {"error": "invalid_grant", "reason": "invalid code_verifier length"}
+        if not _PKCE_VERIFIER_RE.match(code_verifier):
+            return {"error": "invalid_grant", "reason": "invalid code_verifier charset"}
+
+        method = (grant.code_challenge_method or "S256").upper()
+        if method == "S256":
+            computed = self._compute_s256(code_verifier)
+            if computed != grant.code_challenge:
+                return {"error": "invalid_grant", "reason": "pkce verification failed"}
+            return None
+
+        if method == "PLAIN":
+            # v1 respects PKCE_ALLOW_PLAIN; v0 allows plain regardless
+            if app_version >= 1 and not PKCE_ALLOW_PLAIN:
+                return {"error": "invalid_grant", "reason": "pkce verification failed"}
+            if code_verifier != grant.code_challenge:
+                return {"error": "invalid_grant", "reason": "pkce verification failed"}
+            return None
+
+        return {"error": "invalid_grant", "reason": "unsupported pkce method"}
 
     def get_refresh_token(self, request: Request, application: ApiApplication) -> dict:
         refresh_token_code = request.POST.get("refresh_token")
