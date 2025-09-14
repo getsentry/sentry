@@ -1,3 +1,6 @@
+import type {Theme} from '@emotion/react';
+
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -68,6 +71,13 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       }
       current = current.parent;
     }
+  }
+
+  get description(): string | undefined {
+    const isOtelFriendlyUi = this.extra.organization.features.includes(
+      'performance-otel-friendly-ui'
+    );
+    return isOtelFriendlyUi ? this.value.name : this.value.description;
   }
 
   get drawerTabsTitle(): string {
@@ -248,6 +258,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     TraceTree.invalidate(this as any, true);
     return true;
+  }
+
+  makeBarColor(theme: Theme): string {
+    return pickBarColor(this.op, theme);
   }
 
   pathToNode(): TraceTree.NodePath[] {

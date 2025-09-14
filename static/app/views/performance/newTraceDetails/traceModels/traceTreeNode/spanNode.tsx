@@ -1,3 +1,6 @@
+import type {Theme} from '@emotion/react';
+
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -41,6 +44,10 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
 
   get drawerTabsTitle(): string {
     return this.op + (this.value.description ? ' - ' + this.value.description : '');
+  }
+
+  makeBarColor(theme: Theme): string {
+    return pickBarColor(this.op, theme);
   }
 
   get traceHeaderTitle(): {title: string; subtitle?: string} {

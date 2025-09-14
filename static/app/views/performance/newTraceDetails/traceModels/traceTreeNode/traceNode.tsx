@@ -1,5 +1,6 @@
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceRootRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceRootNode';
@@ -36,7 +37,7 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
   }
 
   printNode(): string {
-    return `trace root`;
+    return isTraceSplitResult(this.value) ? 'trace root' : 'eap trace root';
   }
 
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
