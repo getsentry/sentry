@@ -62,26 +62,27 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
     <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
-      <Tooltip
-        title={tct(
-          'The assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
-          {
-            dataProcessingPolicy: (
-              <ExternalLink
-                onMouseOver={() => setOptionDisableOverride(true)}
-                onMouseOut={() => setOptionDisableOverride(false)}
-                href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features"
-              />
-            ),
-          }
-        )}
-        isHoverable
-        showUnderline
-      >
-        <AskSeerLabel {...labelProps}>
-          {t('Ask Seer')} <FeatureBadge type="beta" />
-        </AskSeerLabel>
-      </Tooltip>
+      <AskSeerLabel {...labelProps}>
+        <Tooltip
+          title={tct(
+            'The assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
+            {
+              dataProcessingPolicy: (
+                <ExternalLink
+                  onMouseOver={() => setOptionDisableOverride(true)}
+                  onMouseOut={() => setOptionDisableOverride(false)}
+                  href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features"
+                />
+              ),
+            }
+          )}
+          isHoverable
+          showUnderline
+        >
+          {t('Ask Seer')}
+        </Tooltip>
+        <FeatureBadge type="beta" />
+      </AskSeerLabel>
     </AskSeerListItem>
   );
 }

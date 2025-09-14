@@ -1,4 +1,5 @@
 import random
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
@@ -21,12 +22,16 @@ from sentry.workflow_engine.models import (
     DetectorWorkflow,
     Workflow,
 )
+from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
 )
-from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
+from sentry.workflow_engine.processors.data_condition_group import (
+    get_data_conditions_for_group,
+    process_data_condition_group,
+)
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
@@ -144,6 +149,21 @@ def enqueue_workflows(
     )
 
 
+@scopedstats.timer()
+def _get_data_conditions_for_group_by_dcg(dcg_ids: Sequence[int]) -> dict[int, list[DataCondition]]:
+    """
+    Given a list of DataConditionGroup IDs, return a dict mapping them to their DataConditions.
+    Fetching them individually as needed is typically simple; this is for cases where the performance
+    benefit is worth passing around a dict.
+    """
+    if not dcg_ids:
+        return {}
+    # `batch` wants param tuples and associates return results by index.
+    return dict(
+        zip(dcg_ids, get_data_conditions_for_group.batch([(dcg_id,) for dcg_id in dcg_ids]))
+    )
+
+
 @sentry_sdk.trace
 @scopedstats.timer()
 def evaluate_workflow_triggers(
@@ -161,8 +181,22 @@ def evaluate_workflow_triggers(
     triggered_workflows: set[Workflow] = set()
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
 
+    dcg_ids = [
+        workflow.when_condition_group_id
+        for workflow in workflows
+        if workflow.when_condition_group_id
+    ]
+    # Retrieve these as a batch to avoid a query/cache-lookup per DCG.
+    data_conditions_by_dcg_id = _get_data_conditions_for_group_by_dcg(dcg_ids)
+
     for workflow in workflows:
-        evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
+        when_data_conditions = None
+        if dcg_id := workflow.when_condition_group_id:
+            when_data_conditions = data_conditions_by_dcg_id.get(dcg_id)
+
+        evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(
+            event_data, when_data_conditions
+        )
 
         if remaining_conditions:
             if isinstance(event_data.event, GroupEvent):
@@ -269,7 +303,12 @@ def evaluate_workflows_action_filters(
 
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    for action_condition, workflow in action_conditions_to_workflow.items():
+    # Retrieve these as a batch to avoid a query/cache-lookup per DCG.
+    data_conditions_by_dcg_id = _get_data_conditions_for_group_by_dcg(
+        [dcg.id for dcg in action_conditions_to_workflow.keys()]
+    )
+
+    for action_condition_group, workflow in action_conditions_to_workflow.items():
         env = (
             Environment.objects.get_from_cache(id=workflow.environment_id)
             if workflow.environment_id
@@ -277,7 +316,9 @@ def evaluate_workflows_action_filters(
         )
         workflow_event_data = replace(event_data, workflow_env=env)
         group_evaluation, slow_conditions = process_data_condition_group(
-            action_condition, workflow_event_data
+            action_condition_group,
+            workflow_event_data,
+            data_conditions_by_dcg_id.get(action_condition_group.id),
         )
 
         if slow_conditions:
@@ -286,12 +327,12 @@ def evaluate_workflows_action_filters(
 
             if isinstance(event_data.event, GroupEvent):
                 if delayed_workflow_item := queue_items_by_workflow.get(workflow):
-                    delayed_workflow_item.delayed_if_group_ids.append(action_condition.id)
+                    delayed_workflow_item.delayed_if_group_ids.append(action_condition_group.id)
                 else:
                     queue_items_by_workflow[workflow] = DelayedWorkflowItem(
                         workflow=workflow,
                         delayed_when_group_id=None,
-                        delayed_if_group_ids=[action_condition.id],
+                        delayed_if_group_ids=[action_condition_group.id],
                         event=event_data.event,
                         passing_if_group_ids=[],
                         timestamp=event_start_time,
@@ -305,7 +346,7 @@ def evaluate_workflows_action_filters(
                     "workflow_engine.process_workflows.enqueue_workflow.activity",
                     extra={
                         "event_id": event_data.event.id,
-                        "action_condition_id": action_condition.id,
+                        "action_condition_id": action_condition_group.id,
                         "workflow_id": workflow.id,
                     },
                 )
@@ -315,9 +356,9 @@ def evaluate_workflows_action_filters(
                     if delayed_workflow_item.delayed_when_group_id:
                         # If there are already delayed when conditions,
                         # we need to evaluate them before firing the action group
-                        delayed_workflow_item.passing_if_group_ids.append(action_condition.id)
+                        delayed_workflow_item.passing_if_group_ids.append(action_condition_group.id)
                 else:
-                    filtered_action_groups.add(action_condition)
+                    filtered_action_groups.add(action_condition_group)
 
     event_id = (
         event_data.event.event_id
@@ -332,7 +373,8 @@ def evaluate_workflows_action_filters(
             "event_id": event_id,
             "workflow_ids": [workflow.id for workflow in action_conditions_to_workflow.values()],
             "action_conditions": [
-                action_condition.id for action_condition in action_conditions_to_workflow.keys()
+                action_condition_group.id
+                for action_condition_group in action_conditions_to_workflow.keys()
             ],
             "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
             "queue_workflows": sorted(wf.id for wf in queue_items_by_workflow.keys()),

@@ -1,10 +1,8 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import IssueListContainer from 'sentry/views/issueList';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -17,9 +15,6 @@ describe('IssueListContainer', () => {
   const organization = OrganizationFixture({
     features: ['enforce-stacked-navigation'],
   });
-
-  const user = UserFixture();
-  user.options.prefersStackedNavigation = true;
 
   const initialRouterConfig = {
     location: {
@@ -41,7 +36,6 @@ describe('IssueListContainer', () => {
         },
         new Set(['projects'])
       );
-      ConfigStore.set('user', user);
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/100/',
