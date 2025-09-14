@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any, TypedDict
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -8,30 +7,20 @@ from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.models.project import Project
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
-from tests.sentry.issues.test_utils import SearchIssueTestMixin
-
-
-class FeedbackData(TypedDict):
-    fingerprint: str
-    tags: list[tuple[str, str]]
-    contexts: dict[str, Any]
 
 
 @region_silo_test
-class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
+class OrganizationFeedbackCategoriesTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-feedback-categories"
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(
-            organization=self.org, name="Sentaur Squad", members=[self.user]
-        )
-        self.project1 = self.create_project(teams=[self.team])
+        self.org = self.organization
+        self.project1 = self.project
         self.project2 = self.create_project(teams=[self.team])
         self.features = {
             "organizations:user-feedback-ai-categorization-features": True,
