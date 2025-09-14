@@ -92,7 +92,6 @@ describe('BaseNode', () => {
       expect(node.errors).toBeInstanceOf(Set);
       expect(node.occurrences).toBeInstanceOf(Set);
       expect(node.profiles).toBeInstanceOf(Set);
-      expect(node.opsBreakdown).toEqual([]);
     });
 
     it('should set parent relationship correctly', () => {

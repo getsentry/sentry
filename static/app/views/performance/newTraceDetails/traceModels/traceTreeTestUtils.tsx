@@ -87,6 +87,7 @@ export function makeEAPSpan(
     parent_span_id: null,
     children: [],
     errors: [],
+    occurrences: [],
     measurements: {},
     duration: 10,
     ...overrides,

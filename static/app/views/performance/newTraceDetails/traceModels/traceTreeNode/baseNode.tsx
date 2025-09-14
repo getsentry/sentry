@@ -66,11 +66,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   canAutogroup = false;
 
   /**
-   * The breakdown of the node's operations.
-   */
-  opsBreakdown: TraceTree.OpsBreakdown = [];
-
-  /**
    * The errors associated with the node.
    */
   errors = new Set<TraceTree.TraceErrorIssue>();
