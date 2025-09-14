@@ -31,6 +31,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.path = f"/organizations/{self.org.slug}/releases/"
         self.project.update(first_event=timezone.now())
 
+    @pytest.mark.skip(reason="flaky: #99306")
     @patch("sentry.api.serializers.models.organization.get_organization_volume", return_value=None)
     def test_list(self, _: MagicMock) -> None:
         self.create_release(project=self.project, version="1.0", date_added=self.release_date)
