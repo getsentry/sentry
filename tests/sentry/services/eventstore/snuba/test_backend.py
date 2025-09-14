@@ -332,7 +332,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         # Returns None if the query fails for a known reason
         with mock.patch(
-            "sentry.utils.snuba.bulk_raw_query", side_effect=snuba.QueryOutsideRetentionError()
+            "sentry.utils.snuba.bulk_snuba_queries", side_effect=snuba.QueryOutsideRetentionError()
         ):
             prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=filter)
 
