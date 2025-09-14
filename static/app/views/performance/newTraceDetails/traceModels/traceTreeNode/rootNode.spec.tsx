@@ -1,9 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-
 import {type TraceTreeNodeExtra} from './baseNode';
 import {RootNode} from './rootNode';
 
@@ -16,30 +13,11 @@ const createMockExtra = (
   ...overrides,
 });
 
-const createMockTraceValue = (override?: TraceTree.Trace): TraceTree.Trace => {
-  return override
-    ? override
-    : [
-        makeEAPSpan({
-          event_id: 'test-trace-id',
-          project_slug: 'test-project',
-          description: 'Test trace description',
-          op: 'trace.operation',
-        }),
-        makeEAPSpan({
-          event_id: 'test-trace-id',
-          project_slug: 'test-project',
-          description: 'Test trace description',
-          op: 'trace.operation',
-        }),
-      ];
-};
-
 describe('RootNode', () => {
   describe('constructor', () => {
     it('should initialize RootNode with correct properties', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       expect(rootNode.parent).toBeNull();
       expect(rootNode.value).toBeNull();
@@ -49,16 +27,13 @@ describe('RootNode', () => {
       expect(rootNode.errors).toBeInstanceOf(Set);
       expect(rootNode.occurrences).toBeInstanceOf(Set);
       expect(rootNode.profiles).toBeInstanceOf(Set);
-
-      // The root node has a single child, an instance of the TraceNode
-      expect(rootNode.children).toHaveLength(1);
     });
   });
 
   describe('type getter', () => {
     it('should return ROOT node type', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       expect(rootNode.pathToNode()).toStrictEqual([`virtual-root`]);
     });
@@ -67,7 +42,7 @@ describe('RootNode', () => {
   describe('drawerTabsTitle getter', () => {
     it('should return localized "Root" string', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       const title = rootNode.drawerTabsTitle;
 
@@ -78,7 +53,7 @@ describe('RootNode', () => {
   describe('traceHeaderTitle getter', () => {
     it('should return correct title and subtitle structure', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       const headerTitle = rootNode.traceHeaderTitle;
 
@@ -92,7 +67,7 @@ describe('RootNode', () => {
   describe('makeBarColor', () => {
     it('should return the color from pickBarColor', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       const color = rootNode.makeBarColor(theme);
 
@@ -103,7 +78,7 @@ describe('RootNode', () => {
   describe('printNode', () => {
     it('should return "virtual root" string', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       const nodeString = rootNode.printNode();
 
@@ -114,7 +89,7 @@ describe('RootNode', () => {
   describe('renderWaterfallRow', () => {
     it('should return null', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       const result = rootNode.renderWaterfallRow({} as any);
 
@@ -125,7 +100,7 @@ describe('RootNode', () => {
   describe('renderDetails', () => {
     it('should return null', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       const result = rootNode.renderDetails({} as any);
 
@@ -136,7 +111,7 @@ describe('RootNode', () => {
   describe('analyticsName', () => {
     it('should return "root"', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       expect(rootNode.analyticsName()).toBe('root');
     });
@@ -145,7 +120,7 @@ describe('RootNode', () => {
   describe('matchWithFreeText', () => {
     it('should always return false', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       expect(rootNode.matchWithFreeText('root')).toBe(false);
       expect(rootNode.matchWithFreeText('trace')).toBe(false);
@@ -156,7 +131,7 @@ describe('RootNode', () => {
 
     it('should return false for any search key', () => {
       const extra = createMockExtra();
-      const rootNode = new RootNode(null, createMockTraceValue(), extra);
+      const rootNode = new RootNode(null, null, extra);
 
       // Test various search terms
       const searchTerms = [

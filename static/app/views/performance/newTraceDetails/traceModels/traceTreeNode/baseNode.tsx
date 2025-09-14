@@ -56,6 +56,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   expanded = true;
 
   /**
+   * Whether this should be considered when detecting no instrumentation between spans.
+   */
+  allowNoInstrumentationNodes = false;
+
+  /**
    * Whether this node can be autogrouped.
    */
   canAutogroup = false;

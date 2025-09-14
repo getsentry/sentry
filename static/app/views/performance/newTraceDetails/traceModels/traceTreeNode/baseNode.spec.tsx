@@ -87,6 +87,7 @@ describe('BaseNode', () => {
       expect(node.fetchStatus).toBe('idle');
       expect(node.hasFetchedChildren).toBe(false);
       expect(node.canAutogroup).toBe(false);
+      expect(node.allowNoInstrumentationNodes).toBe(false);
       expect(node.children).toEqual([]);
       expect(node.errors).toBeInstanceOf(Set);
       expect(node.occurrences).toBeInstanceOf(Set);

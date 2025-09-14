@@ -4,17 +4,9 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
-import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
-import {TraceNode} from './traceNode';
+import {BaseNode} from './baseNode';
 
 export class RootNode extends BaseNode<null> {
-  children: [TraceNode];
-
-  constructor(parent: null, value: TraceTree.Trace, extra: TraceTreeNodeExtra) {
-    super(parent, null, extra);
-    this.children = [new TraceNode(this, value, extra)];
-  }
-
   get drawerTabsTitle(): string {
     return t('Root');
   }
