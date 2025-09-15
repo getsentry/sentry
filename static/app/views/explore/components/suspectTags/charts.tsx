@@ -59,10 +59,14 @@ type CohortData = SuspectAttributesResult['rankedAttributes'][number]['cohort1']
 
 function cohortsToSeriesData(
   cohort1: CohortData,
-  cohort2: CohortData
+  cohort2: CohortData,
+  seriesTotals: {
+    [BASELINE_SERIES_NAME]: number;
+    [SELECTED_SERIES_NAME]: number;
+  }
 ): {
-  [BASELINE_SERIES_NAME]: Array<{label: string; value: string}>;
-  [SELECTED_SERIES_NAME]: Array<{label: string; value: string}>;
+  [BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
+  [SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
 } {
   const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
   const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
@@ -79,12 +83,17 @@ function cohortsToSeriesData(
     const baselineVal = cohort2Map.get(label) ?? '0';
 
     // We sort by descending value of the selected cohort
-    const sortVal = Number(selectedVal);
+    const selectedPercentage =
+      (Number(selectedVal) / seriesTotals[SELECTED_SERIES_NAME]) * 100;
+    const baselinePercentage =
+      (Number(baselineVal) / seriesTotals[BASELINE_SERIES_NAME]) * 100;
+
+    const sortVal = selectedPercentage;
 
     return {
       label,
-      selectedValue: selectedVal,
-      baselineValue: baselineVal,
+      selectedValue: selectedPercentage,
+      baselineValue: baselinePercentage,
       sortValue: sortVal,
     };
   });
@@ -141,29 +150,27 @@ function Chart({
   const cohort1Color = theme.chart.getColorPalette(0)?.[0];
   const cohort2Color = '#dddddd';
 
-  const seriesData = useMemo(
-    () => cohortsToSeriesData(attribute.cohort1, attribute.cohort2),
-    [attribute.cohort1, attribute.cohort2]
-  );
-
   const seriesTotals = useMemo(
     () => cohortTotals(attribute.cohort1, attribute.cohort2),
     [attribute.cohort1, attribute.cohort2]
   );
 
-  const valueFormatter = useCallback(
-    (_value: number, label?: string, seriesParams?: CallbackDataParams) => {
-      const data = Number(seriesParams?.data);
-      const total = seriesTotals[label as keyof typeof seriesTotals];
+  const seriesData = useMemo(
+    () => cohortsToSeriesData(attribute.cohort1, attribute.cohort2, seriesTotals),
+    [attribute.cohort1, attribute.cohort2, seriesTotals]
+  );
 
-      if (total === 0) {
+  const valueFormatter = useCallback(
+    (_value: number, _label?: string, seriesParams?: CallbackDataParams) => {
+      const percentage = Number(seriesParams?.data);
+
+      if (isNaN(percentage) || percentage === 0) {
         return '\u2014';
       }
 
-      const percentage = (data / total) * 100;
       return `${percentage.toFixed(1)}%`;
     },
-    [seriesTotals]
+    []
   );
 
   const formatAxisLabel = useCallback(
@@ -191,17 +198,8 @@ function Chart({
         throw new Error('selectedParam or baselineParam is not defined');
       }
 
-      const selectedTotal =
-        seriesTotals[selectedParam?.seriesName as keyof typeof seriesTotals];
-      const selectedData = Number(selectedParam?.data);
-      const selectedPercentage =
-        selectedTotal === 0 ? 0 : (selectedData / selectedTotal) * 100;
-
-      const baselineTotal =
-        seriesTotals[baselineParam?.seriesName as keyof typeof seriesTotals];
-      const baselineData = Number(baselineParam?.data);
-      const baselinePercentage =
-        baselineTotal === 0 ? 0 : (baselineData / baselineTotal) * 100;
+      const selectedPercentage = Number(selectedParam?.data);
+      const baselinePercentage = Number(baselineParam?.data);
 
       const isDifferent = selectedPercentage.toFixed(1) !== baselinePercentage.toFixed(1);
 
@@ -214,7 +212,7 @@ function Chart({
 
       return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
     },
-    [seriesTotals, theme.textColor]
+    [theme.textColor]
   );
 
   const [tooltipOptions, setTooltipOptions] = useState<TooltipOption | undefined>(
