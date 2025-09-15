@@ -43,6 +43,9 @@ class GroupHash(Model):
         app_label = "sentry"
         db_table = "sentry_grouphash"
         unique_together = (("project", "hash"),)
+        indexes = [
+            models.Index(fields=["id"]),
+        ]
 
     @property
     def metadata(self) -> GroupHashMetadata | None:
