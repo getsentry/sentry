@@ -1,11 +1,9 @@
-import styled from '@emotion/styled';
-
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-
-import type {InviteStatus} from './types';
 
 interface InviteCountProps {
   count: number;
@@ -14,11 +12,11 @@ interface InviteCountProps {
 
 function InviteCount({count, isRequest}: InviteCountProps) {
   return (
-    <BoldCount>
+    <Text bold>
       {isRequest
         ? tn('%s invite request', '%s invite requests', count)
         : tn('%s invite', '%s invites', count)}
-    </BoldCount>
+    </Text>
   );
 }
 
@@ -39,47 +37,35 @@ function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
   return (
     <div>
       {sentCount > 0 && (
-        <StatusMessage status="success" isNewInviteModal>
+        <Flex gap="md" align="center">
           <IconCheckmark size="sm" color="successText" />
           <span role="alert" aria-label={t('Sent Invites')}>
             {tct('[invites] sent.', tctComponents)}
           </span>
-        </StatusMessage>
+        </Flex>
       )}
       {errorCount > 0 && (
-        <StatusMessage status="error" isNewInviteModal>
+        <Flex gap="md" align="center">
           <IconWarning size="sm" color="errorText" />
           <span role="alert" aria-label={t('Failed Invites')}>
             {tct('[failedInvites] failed to send.', tctComponents)}
           </span>
-        </StatusMessage>
+        </Flex>
       )}
     </div>
   );
 }
 
-interface InviteStatusMessageProps {
-  complete: boolean;
-  hasDuplicateEmails: boolean;
-  inviteStatus: InviteStatus;
-  sendingInvites: boolean;
-  willInvite: boolean;
-}
-
-export default function InviteStatusMessage({
-  complete,
-  inviteStatus,
-  sendingInvites,
-  willInvite,
-}: InviteStatusMessageProps) {
+export default function InviteStatusMessage() {
+  const {complete, inviteStatus, sendingInvites, willInvite} = useInviteMembersContext();
   if (sendingInvites) {
     return (
-      <StatusMessage>
+      <Flex gap="md" align="center">
         <LoadingIndicator mini relative size={16} />
         {willInvite
           ? t('Sending organization invitations\u2026')
           : t('Sending invite requests\u2026')}
-      </StatusMessage>
+      </Flex>
     );
   }
 
@@ -99,20 +85,3 @@ export default function InviteStatusMessage({
 
   return null;
 }
-
-export const StatusMessage = styled('div')<{
-  isNewInviteModal?: boolean;
-  status?: 'success' | 'error';
-}>`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p =>
-    p.status === 'error' && !p.isNewInviteModal ? p.theme.errorText : p.theme.textColor};
-`;
-
-const BoldCount = styled('div')`
-  display: inline;
-  font-weight: bold;
-`;

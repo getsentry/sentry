@@ -25,6 +25,9 @@ from sentry.api.endpoints.organization_releases import (
 from sentry.api.endpoints.organization_sampling_admin_metrics import (
     OrganizationDynamicSamplingAdminMetricsEndpoint,
 )
+from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
+    OrganizationSamplingEffectiveSampleRateEndpoint,
+)
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
@@ -1588,6 +1591,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-sampling-root-counts",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/sampling/effective-sample-rate/$",
+        OrganizationSamplingEffectiveSampleRateEndpoint.as_view(),
+        name="sentry-api-0-organization-sampling-effective-sample-rate",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/admin-metrics/$",
         OrganizationDynamicSamplingAdminMetricsEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-admin-metrics",
@@ -3099,12 +3107,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-uptime-alert-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_project_subscription_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/$",
         ProjectUptimeAlertDetailsEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_project_subscription_id>[^/]+)/checks/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/checks/$",
         ProjectUptimeAlertCheckIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-checks",
     ),
