@@ -88,7 +88,7 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=15 * 60,  # 10 minutes
+    soft_time_limit=15 * 60,  # 15 minutes
     time_limit=15 * 60 + 5,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
@@ -294,6 +294,7 @@ def boost_low_volume_projects_of_org(
         )
 
 
+@metrics.wraps("dynamic_sampling.fetch_projects_with_total_root_transaction_count_and_rates")
 def fetch_projects_with_total_root_transaction_count_and_rates(
     org_ids: list[int],
     measure: SamplingMeasure,
@@ -319,6 +320,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     return aggregated_projects
 
 
+@dynamic_sampling_task
 def query_project_counts_by_org(
     org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
 ) -> Iterator[Sequence[OrgProjectVolumes]]:
@@ -400,12 +402,15 @@ def query_project_counts_by_org(
     offset = 0
     more_results: bool = True
     while more_results:
-        request = Request(
-            dataset=Dataset.PerformanceMetrics.value,
-            app_id="dynamic_sampling",
-            query=query.set_offset(offset),
-            tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
-        )
+        with metrics.timer(
+            "dynamic_sampling.query_project_counts_by_org.query_time", tags={"measure": measure}
+        ):
+            request = Request(
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query.set_offset(offset),
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+            )
         data = raw_snql_query(
             request,
             referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
@@ -430,6 +435,7 @@ def query_project_counts_by_org(
         ]
 
 
+@dynamic_sampling_task
 def calculate_sample_rates_of_projects(
     org_id: int,
     projects_with_tx_count: Sequence[ProjectVolumes],
@@ -567,6 +573,7 @@ def calculate_sample_rates_of_projects(
     return rebalanced_projects
 
 
+@dynamic_sampling_task
 def store_rebalanced_projects(org_id: int, rebalanced_projects: list[RebalancedItem]) -> None:
     """Stores the rebalanced projects in the cache and invalidates the project configs."""
     redis_client = get_redis_client_for_ds()
