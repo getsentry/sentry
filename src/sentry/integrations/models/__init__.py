@@ -1,4 +1,6 @@
 __all__ = (
+    "DataForwardingConfig",
+    "DataForwardingProject",
     "DocIntegration",
     "ExternalActor",
     "ExternalIssue",
@@ -11,7 +13,8 @@ __all__ = (
 )
 
 # REQUIRED for migrations to run.
-
+from .data_forwarding_config import DataForwardingConfig
+from .data_forwarding_project import DataForwardingProject
 from .doc_integration import DocIntegration
 from .external_actor import ExternalActor
 from .external_issue import ExternalIssue
