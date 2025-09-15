@@ -139,3 +139,44 @@ def test_merge_pii_configs_rule_references() -> None:
             },
         },
     }
+
+
+@django_db_all
+def test_qualified_selector_breadcrumb_data_screen_bug(default_project: Project) -> None:
+    """
+    This test demonstrates the bug where:
+    Qualified selector 'breadcrumb.data.screen' should only match screen values in breadcrumb data,
+       but currently doesn't work as expected
+    """
+    project = default_project
+    organization = project.organization
+
+    organization.update_option("sentry:sensitive_fields", ["breadcrumb.data.screen"])
+    # organization.update_option("sentry:scrub_data", True)
+
+    # Create an event with 'screen' in both breadcrumb data and other locations
+    event = {
+        "breadcrumbs": {
+            "values": [
+                {
+                    "type": "navigation",
+                    "timestamp": 1458857193.973275,
+                    "data": {
+                        "screen": "HomeScreen",
+                        "other_field": "should_remain",
+                    },
+                }
+            ]
+        },
+        "extra": {"screen": "LoginScreen"},
+        "tags": {"screen_type": "mobile"},
+    }
+
+    new_event = scrub_data(project, event)
+
+    # Check that breadcrumb.data.screen is scrubbed
+    breadcrumb_screen = new_event["breadcrumbs"]["values"][0]["data"]["screen"]
+    assert breadcrumb_screen == "[Filtered]"
+
+    # Check that extra.screen remains
+    assert new_event["extra"]["screen"] == "LoginScreen"
