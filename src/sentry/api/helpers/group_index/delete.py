@@ -78,8 +78,8 @@ def delete_group_list(
 
     # Removing GroupHash rows prevents new events from associating to the groups
     # we just deleted.
-    delete_group_hashes(project.id, error_ids)
-    delete_group_hashes(project.id, non_error_ids, seer_deletion=True)
+    delete_group_hashes(project.id, error_ids, seer_deletion=True)
+    delete_group_hashes(project.id, non_error_ids)
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
