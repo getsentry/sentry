@@ -1,10 +1,11 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   ActionType,
   SentryAppIdentifier,
@@ -138,21 +139,30 @@ function ActionDetails({action, handler}: ActionDetailsProps) {
   const node = actionNodesMap.get(action.type);
   const Component = node?.details;
 
-  if (!Component || !handler) {
-    return <span>{node?.label}</span>;
-  }
-
-  return <Component action={action} handler={handler} />;
+  return (
+    <Fragment>
+      {action.status === 'disabled' && (
+        <IconPadding>
+          <IconWarning color="danger" />
+        </IconPadding>
+      )}
+      {!Component || !handler ? (
+        <span>{node?.label}</span>
+      ) : (
+        <Component action={action} handler={handler} />
+      )}
+    </Fragment>
+  );
 }
 
 const Panel = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   background-color: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   word-break: break-word;
 `;
 
@@ -163,15 +173,21 @@ const ConditionGroupHeader = styled('div')`
 const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   color: ${p => p.theme.subText};
 
   ${p =>
     p.showDivider &&
     css`
-      padding-top: ${space(1.5)};
+      padding-top: ${p.theme.space.lg};
       border-top: 1px solid ${p.theme.translucentBorder};
     `}
+`;
+
+const IconPadding = styled('span')`
+  padding-right: ${p => p.theme.space.sm};
+  height: 100%;
+  vertical-align: middle;
 `;
 
 export default ConditionsPanel;

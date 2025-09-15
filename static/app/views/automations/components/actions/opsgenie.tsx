@@ -26,7 +26,7 @@ export function OpsgenieDetails({
     'Send a [logo] Opsgenie notification to [account] and team [team] with [priority] priority',
     {
       logo: ActionMetadata[ActionType.OPSGENIE]?.icon,
-      account: integration?.name || action.integrationId,
+      account: integration?.name || t('unknown'),
       team: service?.name || action.config.targetIdentifier,
       priority: String(action.data.priority),
     }
