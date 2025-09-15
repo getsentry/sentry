@@ -309,12 +309,19 @@ def evaluate_workflows_action_filters(
         [dcg.id for dcg in action_conditions_to_workflow.keys()]
     )
 
-    for action_condition_group, workflow in action_conditions_to_workflow.items():
-        env = (
-            Environment.objects.get_from_cache(id=workflow.environment_id)
-            if workflow.environment_id
-            else None
+    env_by_id: dict[int, Environment] = {
+        env.id: env
+        for env in Environment.objects.get_many_from_cache(
+            {
+                wf.environment_id
+                for wf in action_conditions_to_workflow.values()
+                if wf.environment_id
+            }
         )
+    }
+
+    for action_condition_group, workflow in action_conditions_to_workflow.items():
+        env = env_by_id.get(workflow.environment_id) if workflow.environment_id else None
         workflow_event_data = replace(event_data, workflow_env=env)
         group_evaluation, slow_conditions = process_data_condition_group(
             action_condition_group,
