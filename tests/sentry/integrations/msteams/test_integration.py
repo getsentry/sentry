@@ -33,18 +33,18 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             "tenant_id": tenant_id,
         }
 
-    def assert_team_installation_post_install(self):
+    def assert_team_installation_post_install(self) -> None:
         integration_url = f"organizations/{self.organization.slug}/alerts/rules/"
         assert integration_url in responses.calls[1].request.body.decode("utf-8")
         assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
 
-    def assert_personal_installation_post_install(self):
+    def assert_personal_installation_post_install(self) -> None:
         integration_url = "/settings/account/notifications"
         request_body = responses.calls[1].request.body.decode("utf-8")
         assert "Personal installation successful" in request_body
         assert integration_url in request_body
 
-    def assert_setup_flow(self, installation_type: str):
+    def assert_setup_flow(self, installation_type: str) -> None:
         responses.reset()
 
         responses.add(
