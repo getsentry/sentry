@@ -88,12 +88,12 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=10 * 60,  # 10 minutes
-    time_limit=10 * 60 + 5,
+    soft_time_limit=15 * 60,  # 10 minutes
+    time_limit=15 * 60 + 5,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
-        processing_deadline_duration=10 * 60 + 5,
+        processing_deadline_duration=15 * 60 + 5,
         retry=Retry(
             times=5,
             delay=5,
@@ -152,6 +152,7 @@ def partition_by_measure(
     orgs = [org for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT]
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
+        metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(orgs))
         return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
 
     spans = []
@@ -167,6 +168,8 @@ def partition_by_measure(
         else:
             transactions.append(org.id)
 
+    metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(spans))
+    metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(transactions))
     return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
 
 

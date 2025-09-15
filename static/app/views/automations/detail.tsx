@@ -2,6 +2,7 @@ import {Fragment, useCallback} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -33,6 +34,7 @@ import {AutomationStatsChart} from 'sentry/views/automations/components/automati
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
+import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
@@ -64,6 +66,8 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
+  const warning = getAutomationActionsWarning(automation);
+
   return (
     <SentryDocumentTitle title={automation.name} noSuffix>
       <DetailLayout>
@@ -86,6 +90,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         </DetailLayout.Header>
         <DetailLayout.Body>
           <DetailLayout.Main>
+            {warning && (
+              <Alert type={warning.color === 'warning' ? 'warning' : 'error'}>
+                {warning.message}
+              </Alert>
+            )}
             <PageFiltersContainer>
               <DatePageFilter />
               <ErrorBoundary>

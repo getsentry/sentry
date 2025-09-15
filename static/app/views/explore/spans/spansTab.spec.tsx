@@ -17,10 +17,10 @@ import {FieldKind} from 'sentry/utils/fields';
 import {
   PageParamsProvider,
   useExploreFields,
-  useExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -167,10 +167,10 @@ describe('SpansTabContent', () => {
 
   it('inserts group bys from aggregate mode as fields in samples mode', async () => {
     let fields: string[] = [];
-    let groupBys: string[] = [];
+    let groupBys: readonly string[] = [];
     function Component() {
       fields = useExploreFields();
-      groupBys = useExploreGroupBys();
+      groupBys = useQueryParamsGroupBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
 

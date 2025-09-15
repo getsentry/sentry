@@ -20,7 +20,10 @@ describe('SetupReplaysCTA', () => {
     render(<SetupReplaysCTA primaryAction="create" />);
     const createBtn = screen.getByTestId('create-project-btn');
     expect(createBtn).toBeInTheDocument();
-    expect(createBtn).toHaveAttribute('href', `/organizations/org-slug/projects/new/`);
+    expect(createBtn).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/insights/projects/new/`
+    );
   });
 
   it('create project w/ disabled state including tooltip', async () => {

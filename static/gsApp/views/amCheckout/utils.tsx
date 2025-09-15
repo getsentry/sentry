@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 import {type PaymentIntentResult, type Stripe} from '@stripe/stripe-js';
+import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
 import {
@@ -30,9 +31,11 @@ import {
   InvoiceItemType,
   PlanTier,
   type EventBucket,
+  type InvoiceItem,
   type OnDemandBudgets,
   type Plan,
   type PreviewData,
+  type PreviewInvoiceItem,
   type ReservedBudgetCategoryType,
   type Subscription,
 } from 'getsentry/types';
@@ -47,6 +50,7 @@ import {
 import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import {
   SelectableProduct,
   type CheckoutAPIData,
@@ -617,18 +621,30 @@ export function normalizeAndGetCheckoutAPIData({
 export function useSubmitCheckout({
   organization,
   subscription,
+  previewData,
   onErrorMessage,
   onSubmitting,
   onHandleCardAction,
   onFetchPreviewData,
+  onSuccess,
   referrer = 'billing',
 }: {
   onErrorMessage: (message: string) => void;
   onFetchPreviewData: () => void;
   onHandleCardAction: ({intentDetails}: {intentDetails: IntentDetails}) => void;
   onSubmitting: (b: boolean) => void;
+  onSuccess: ({
+    isSubmitted,
+    invoice,
+    nextQueryParams,
+    previewData,
+  }: Pick<
+    CheckoutState,
+    'invoice' | 'nextQueryParams' | 'isSubmitted' | 'previewData'
+  >) => void;
   organization: Organization;
   subscription: Subscription;
+  previewData?: PreviewData;
   referrer?: string;
 }) {
   const api = useApi({});
@@ -647,7 +663,7 @@ export function useSubmitCheckout({
         }
       );
     },
-    onSuccess: (_, _variables) => {
+    onSuccess: (response, _variables) => {
       recordAnalytics(
         organization,
         subscription,
@@ -671,14 +687,12 @@ export function useSubmitCheckout({
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
 
-      // TODO(checkout v3): This should be changed to redirect to the success page
-      browserHistory.push(
-        normalizeUrl(
-          `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
-            justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
-          }`
-        )
-      );
+      const {invoice} = response;
+      const nextQueryParams = [referrer];
+      if (justBoughtSeer) {
+        nextQueryParams.push('showSeerAutomationAlert=true');
+      }
+      onSuccess({isSubmitted: true, invoice, nextQueryParams, previewData});
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;
@@ -899,4 +913,75 @@ export function getContentForPlan(plan: Plan): PlanContent {
       logBytes: t('5GB Logs'),
     },
   };
+}
+
+export function invoiceItemTypeToDataCategory(
+  type: InvoiceItemType
+): DataCategory | null {
+  if (!type.startsWith('reserved_') && !type.startsWith('ondemand_')) {
+    return null;
+  }
+  return camelCase(
+    type.replace('reserved_', '').replace('ondemand_', '')
+  ) as DataCategory;
+}
+
+export function invoiceItemTypeToProduct(
+  type: InvoiceItemType
+): SelectableProduct | null {
+  // TODO(checkout v3): update this to support more products
+  if (type !== InvoiceItemType.RESERVED_SEER_BUDGET) {
+    return null;
+  }
+  return camelCase(
+    type.replace('reserved_', '').replace('_budget', '')
+  ) as SelectableProduct;
+}
+
+export function getFees({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+  );
+}
+
+export function getCredits({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [
+        InvoiceItemType.SUBSCRIPTION_CREDIT,
+        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
+        InvoiceItemType.DISCOUNT,
+        InvoiceItemType.RECURRING_DISCOUNT,
+      ].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+  );
+}
+
+/**
+ * Returns the credit applied to an invoice or preview data.
+ * If the invoice items contain a BALANCE_CHANGE item with a negative amount,
+ * the invoice/preview data already accounts for the credit applied, so we return 0.
+ */
+export function getCreditApplied({
+  creditApplied,
+  invoiceItems,
+}: {
+  creditApplied: number;
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  const credits = getCredits({invoiceItems});
+  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+    return 0;
+  }
+  return creditApplied;
 }

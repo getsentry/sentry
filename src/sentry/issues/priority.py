@@ -62,12 +62,13 @@ def update_priority(
             "reason": reason,
         },
     )
+
+    record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
+
     # TODO (aci cleanup): if the group corresponds to a metric issue, then update its incident activity
     # we will remove this once we've fully deprecated the Incident model
     if group.type == MetricIssue.type_id:
         update_incident_activity_based_on_group_activity(group, priority)
-
-    record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
 
     issue_update_priority.send_robust(
         group=group,

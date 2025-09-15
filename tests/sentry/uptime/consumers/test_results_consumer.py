@@ -49,7 +49,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
+    get_project_subscription,
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
@@ -71,11 +71,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.subscription = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex, interval_seconds=300, region_slugs=["default"]
         )
-        self.project_subscription = self.create_project_uptime_subscription(
+        self.detector = self.create_uptime_detector(
             uptime_subscription=self.subscription,
             owner=self.user,
         )
-        self.detector = get_detector(self.subscription)
+        self.project_subscription = get_project_subscription(self.detector)
 
     def send_result(
         self, result: CheckResult, consumer: ProcessingStrategy[KafkaPayload] | None = None
@@ -618,7 +618,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert remove_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
+        assert remove_call_vals == [(DataCategory.UPTIME, self.detector.id)]
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()
@@ -868,7 +868,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.uuid4().hex,
             host_provider_name="test_provider",
         )
-        self.create_project_uptime_subscription(self.project, uptime_subscription=subscription)
+        self.create_uptime_detector(self.project, uptime_subscription=subscription)
         self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex,
             host_provider_name="test_provider",
@@ -1039,7 +1039,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1"],
         )
-        self.create_project_uptime_subscription(uptime_subscription=sub)
+        self.create_uptime_detector(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1070,7 +1070,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1", "region2"],
         )
-        self.create_project_uptime_subscription(uptime_subscription=sub)
+        self.create_uptime_detector(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1097,7 +1097,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.ONE_HOUR,
         )
-        self.create_project_uptime_subscription(uptime_subscription=hour_sub)
+        self.create_uptime_detector(uptime_subscription=hour_sub)
         self.run_check_and_update_region_test(
             hour_sub,
             ["region1", "region2"],
@@ -1119,7 +1119,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
         )
-        self.create_project_uptime_subscription(uptime_subscription=five_min_sub)
+        self.create_uptime_detector(uptime_subscription=five_min_sub)
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
@@ -1168,7 +1168,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
         )
-        self.create_project_uptime_subscription(uptime_subscription=five_min_sub)
+        self.create_uptime_detector(uptime_subscription=five_min_sub)
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
@@ -1190,7 +1190,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1", "region2"],
         )
-        self.create_project_uptime_subscription(uptime_subscription=sub)
+        self.create_uptime_detector(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1244,7 +1244,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             subscription_2 = self.create_uptime_subscription(
                 subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
             )
-            self.create_project_uptime_subscription(uptime_subscription=subscription_2)
+            self.create_uptime_detector(uptime_subscription=subscription_2)
 
             result_1 = self.create_uptime_result(
                 self.subscription.subscription_id,
@@ -1299,7 +1299,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         subscription_2 = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
         )
-        self.create_project_uptime_subscription(uptime_subscription=subscription_2)
+        self.create_uptime_detector(uptime_subscription=subscription_2)
 
         result_1 = self.create_uptime_result(
             self.subscription.subscription_id,

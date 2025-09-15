@@ -141,7 +141,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       return (
         <DropdownContainer>
           <Tooltip title={t('N/A')}>
-            <Flex justify="center" style={{width: '20px'}}>
+            <Flex justify="center" width="20px">
               <IconNot size="xs" color="gray300" />
             </Flex>
           </Tooltip>

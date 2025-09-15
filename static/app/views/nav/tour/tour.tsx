@@ -273,7 +273,8 @@ export function useTourModal() {
     assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
       ?.seen === false &&
     !shouldSkipForNewUserEnforcedStackedNav &&
-    !localTourState.hasSeen;
+    !localTourState.hasSeen &&
+    !process.env.IS_ACCEPTANCE_TEST;
 
   const dismissTour = useCallback(() => {
     trackAnalytics('navigation.tour_modal_dismissed', {organization});

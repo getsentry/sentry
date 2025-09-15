@@ -148,9 +148,11 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                       data-test-id={`${budgetTypeInfo.apiName}-reserved`}
                     >
                       <ReservedItem isIndividualProduct>
-                        {toTitleCase(budgetTypeInfo.productCheckoutName, {
-                          allowInnerUpperCase: true,
-                        })}
+                        <span>
+                          {toTitleCase(budgetTypeInfo.productCheckoutName, {
+                            allowInnerUpperCase: true,
+                          })}
+                        </span>
                         <QuestionTooltip
                           size="xs"
                           title={tct(
@@ -229,28 +231,30 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                   style={{alignItems: 'center'}}
                 >
                   <ReservedItem>
-                    {(formData.reserved[category] ?? 0) > 0 && (
-                      <Fragment>
-                        <ReservedNumberEmphasisText>
-                          {formatReservedWithUnits(
-                            formData.reserved[category] ?? 0,
-                            category
-                          )}
-                        </ReservedNumberEmphasisText>{' '}
-                      </Fragment>
-                    )}
-                    {formData.reserved[category] === 1 &&
-                    category !== DataCategory.ATTACHMENTS
-                      ? getSingularCategoryName({
-                          plan: activePlan,
-                          category,
-                          title: true,
-                        })
-                      : getPlanCategoryName({
-                          plan: activePlan,
-                          category,
-                          title: true,
-                        })}
+                    <span>
+                      {(formData.reserved[category] ?? 0) > 0 && (
+                        <Fragment>
+                          <ReservedNumberEmphasisText>
+                            {formatReservedWithUnits(
+                              formData.reserved[category] ?? 0,
+                              category
+                            )}
+                          </ReservedNumberEmphasisText>{' '}
+                        </Fragment>
+                      )}
+                      {formData.reserved[category] === 1 &&
+                      category !== DataCategory.ATTACHMENTS
+                        ? getSingularCategoryName({
+                            plan: activePlan,
+                            category,
+                            title: true,
+                          })
+                        : getPlanCategoryName({
+                            plan: activePlan,
+                            category,
+                            title: true,
+                          })}
+                    </span>
                     {paygCategories.includes(category) ? (
                       <QuestionTooltip
                         size="xs"
@@ -408,11 +412,13 @@ const ReservedVolumes = styled('div')`
 `;
 
 const ReservedItem = styled(Title)<{isIndividualProduct?: boolean}>`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
   color: ${p => (p.isIndividualProduct ? p.theme.textColor : p.theme.subText)};
   font-weight: ${p => (p.isIndividualProduct ? 600 : 'normal')};
+  text-wrap: balance;
+
+  > span {
+    margin-right: ${space(0.5)};
+  }
 `;
 
 const Section = styled(PanelChild)`

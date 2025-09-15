@@ -15,12 +15,14 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 
+@scopedstats.timer()
 def create_workflow_fire_histories(
     detector: Detector,
     actions_to_fire: BaseQuerySet[Action],

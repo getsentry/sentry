@@ -14,7 +14,7 @@ from sentry.db.models import (
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import IncidentType
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
@@ -83,7 +83,6 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                         "group_id": group.id,
                     },
                 )
-
             incident = cls.create_incident_for_open_period(
                 occurrence, alert_rule, group, open_period
             )
@@ -130,21 +129,23 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             projects=[group.project],
             subscription=subscription,
         )
-        # XXX: if this is the *very first* open period, manually add the first incident status change activity
-        # because the group never changed priority
-        if GroupOpenPeriod.objects.filter(group=group).count() == 1:
-            priority = occurrence.evidence_data.get("priority", DetectorPriorityLevel.HIGH)
-            severity = (
-                IncidentStatus.CRITICAL
-                if priority == DetectorPriorityLevel.HIGH
-                else IncidentStatus.WARNING
-            )  # this assumes that LOW isn't used for metric issues
+        # XXX: if this is the very first open period, or if the priority didn't change from the last priority on the last open period,
+        # manually add the first incident status change activity because the group never changed priority
+        # if the priority changed, then the call to update_incident_status in update_priority will be a no-op.
+        priority = (
+            occurrence.priority if occurrence.priority is not None else DetectorPriorityLevel.HIGH
+        )
+        severity = (
+            IncidentStatus.CRITICAL
+            if priority == DetectorPriorityLevel.HIGH
+            else IncidentStatus.WARNING
+        )  # this assumes that LOW isn't used for metric issues
 
-            update_incident_status(
-                incident,
-                severity,
-                status_method=IncidentStatusMethod.RULE_TRIGGERED,
-            )
+        update_incident_status(
+            incident,
+            severity,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
+        )
         return incident
 
     @classmethod

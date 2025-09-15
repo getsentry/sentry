@@ -1,4 +1,5 @@
-from sentry.spans.consumers.process_segments.enrichment import Enricher, compute_breakdowns
+from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
+from sentry.spans.consumers.process_segments.shim import make_compatible
 from tests.sentry.spans.consumers.process import build_mock_span
 
 # Tests ported from Relay
@@ -36,9 +37,10 @@ def test_childless_spans() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
+    enriched = [make_compatible(span) for span in enriched]
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 1123.0,
         "bbbbbbbbbbbbbbbb": 3000.0,
@@ -79,9 +81,9 @@ def test_nested_spans() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 400.0,
@@ -122,9 +124,9 @@ def test_overlapping_child_spans() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 400.0,
@@ -165,9 +167,9 @@ def test_child_spans_dont_intersect_parent() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 1000.0,
@@ -208,9 +210,9 @@ def test_child_spans_extend_beyond_parent() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 200.0,
@@ -251,9 +253,9 @@ def test_child_spans_consumes_all_of_parent() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 0.0,
@@ -294,9 +296,9 @@ def test_only_immediate_child_spans_affect_calculation() -> None:
         ),
     ]
 
-    _, enriched = Enricher.enrich_spans(spans)
+    _, enriched = TreeEnricher.enrich_spans(spans)
 
-    exclusive_times = {span["span_id"]: span["exclusive_time"] for span in enriched}
+    exclusive_times = {span["span_id"]: span["exclusive_time_ms"] for span in enriched}
     assert exclusive_times == {
         "aaaaaaaaaaaaaaaa": 4000.0,
         "bbbbbbbbbbbbbbbb": 600.0,
@@ -364,7 +366,7 @@ def test_emit_ops_breakdown() -> None:
     }
 
     # Compute breakdowns for the segment span
-    _ = Enricher.enrich_spans(spans)
+    _ = TreeEnricher.enrich_spans(spans)
     updates = compute_breakdowns(spans, breakdowns_config)
 
     assert updates["span_ops.ops.http"] == 3600000.0
@@ -401,7 +403,8 @@ def test_write_tags_for_performance_issue_detection():
         segment_span,
     ]
 
-    _, spans = Enricher.enrich_spans(spans)
+    _, spans = TreeEnricher.enrich_spans(spans)
+    spans = [make_compatible(span) for span in spans]
 
     child_span, segment_span = spans
 
@@ -420,6 +423,97 @@ def test_write_tags_for_performance_issue_detection():
         "release": "1.0.0",
         "platform": "php",
     }
+
+
+def test_has_gen_ai_spans_field_when_gen_ai_spans_present():
+    segment_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        start_timestamp_precise=1609455600.0,
+        end_timestamp_precise=1609455605.0,
+        span_id="aaaaaaaaaaaaaaaa",
+    )
+
+    spans = [
+        segment_span,
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1609455601.0,
+            end_timestamp_precise=1609455602.0,
+            span_id="bbbbbbbbbbbbbbbb",
+            parent_span_id="aaaaaaaaaaaaaaaa",
+            span_op="gen_ai.chat_completion",
+        ),
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1609455602.0,
+            end_timestamp_precise=1609455603.0,
+            span_id="cccccccccccccccc",
+            parent_span_id="aaaaaaaaaaaaaaaa",
+            span_op="http.client",
+        ),
+    ]
+
+    segment_idx, enriched = TreeEnricher.enrich_spans(spans)
+
+    # Check that the segment span has sentry._internal.segment.contains_gen_ai_spans field set to True
+    assert segment_idx is not None
+    segment_span_data = enriched[segment_idx]["data"]
+    assert segment_span_data.get("sentry._internal.segment.contains_gen_ai_spans") is True
+
+    # Check that non-segment spans don't have the field
+    for i, span in enumerate(enriched):
+        if i != segment_idx:
+            assert "sentry._internal.segment.contains_gen_ai_spans" not in span["data"]
+
+
+def test_has_gen_ai_spans_field_not_present_without_gen_ai_spans():
+    segment_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        start_timestamp_precise=1609455600.0,
+        end_timestamp_precise=1609455605.0,
+        span_id="aaaaaaaaaaaaaaaa",
+    )
+
+    spans = [
+        segment_span,
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1609455601.0,
+            end_timestamp_precise=1609455602.0,
+            span_id="bbbbbbbbbbbbbbbb",
+            parent_span_id="aaaaaaaaaaaaaaaa",
+            span_op="http.client",
+        ),
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1609455602.0,
+            end_timestamp_precise=1609455603.0,
+            span_id="cccccccccccccccc",
+            parent_span_id="aaaaaaaaaaaaaaaa",
+            span_op="db.query",
+        ),
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1609455603.0,
+            end_timestamp_precise=1609455604.0,
+            span_id="dddddddddddddddd",
+            parent_span_id="aaaaaaaaaaaaaaaa",
+            span_op="resource.script",
+        ),
+    ]
+
+    segment_idx, enriched = TreeEnricher.enrich_spans(spans)
+
+    # Check that the segment span does NOT have sentry._internal.segment.contains_gen_ai_spans field
+    assert segment_idx == 0
+    segment_span_data = enriched[segment_idx]["data"]
+    assert "sentry._internal.segment.contains_gen_ai_spans" not in segment_span_data
+
+    # Check that no span has the field
+    for span in enriched:
+        assert "sentry._internal.segment.contains_gen_ai_spans" not in span["data"]
 
 
 def _mock_performance_issue_span(is_segment, data, **fields):

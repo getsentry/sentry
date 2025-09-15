@@ -757,6 +757,28 @@ def test_as_log_message_canvas() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
+def test_as_log_message_multiclick() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756176027605,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "category": "ui.multiClick",
+                "message": "body > button#mutationButtonImmediately",
+                "timestamp": 1756176027605,
+                "data": {
+                    "clickCount": 5,
+                    "node": {"tagName": "div"},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "ms"
+
+
 def test_as_log_message_resource_img() -> None:
     event = {
         "type": 5,

@@ -425,7 +425,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   onSnooze={onSnooze}
                   ruleId={rule.id}
                   projectSlug={projectSlug}
-                  ruleActionCategory={ruleActionCategory}
                   hasAccess={hasAccess}
                   type="issue"
                   disabled={rule.status === 'disabled'}

@@ -435,7 +435,6 @@ function LeafBreadCrumbLabel({
         text={traceSlug}
         size="zero"
         borderless
-        iconSize="xs"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
         }}

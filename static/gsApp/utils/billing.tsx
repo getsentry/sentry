@@ -150,7 +150,11 @@ export function formatReservedWithUnits(
     return options.isGifted ? '0 GB' : UNLIMITED;
   }
   if (!options.useUnitScaling) {
-    const formatted = formatReservedNumberToString(reservedQuantity, options);
+    const byteOptions =
+      dataCategory === DataCategory.LOG_BYTE
+        ? {...options, isAbbreviated: false}
+        : options;
+    const formatted = formatReservedNumberToString(reservedQuantity, byteOptions);
     return `${formatted} GB`;
   }
 
@@ -306,6 +310,9 @@ export const hasPartnerMigrationFeature = (organization: Organization) =>
 
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
+
+export const hasStripeComponentsFeature = (organization: Organization) =>
+  organization.features.includes('stripe-components');
 
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 

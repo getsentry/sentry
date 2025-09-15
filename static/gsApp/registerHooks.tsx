@@ -12,14 +12,12 @@ import DataConsentBanner from 'getsentry/components/dataConsentBanner';
 import DataConsentOrgCreationCheckbox from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DisabledAlertWizard from 'getsentry/components/features/disabledAlertWizard';
-import DisabledAllProjectsSelect from 'getsentry/components/features/disabledAllProjectsSelect';
 import DisabledAuthProvider from 'getsentry/components/features/disabledAuthProvider';
 import DisabledCustomInboundFilters from 'getsentry/components/features/disabledCustomInboundFilters';
 import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
-import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
@@ -27,7 +25,6 @@ import PerformanceNewProjectPrompt from 'getsentry/components/features/performan
 import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
 import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
 import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
-import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import {
@@ -40,7 +37,6 @@ import {ProductSelectionAvailability} from 'getsentry/components/productSelectio
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import ReplayZendeskFeedback from 'getsentry/components/replayZendeskFeedback';
-import SidebarNavigationItem from 'getsentry/components/sidebarNavigationItem';
 import SuperuserWarning, {
   shouldExcludeOrg,
 } from 'getsentry/components/superuser/superuserWarning';
@@ -81,6 +77,7 @@ import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
+  ContinuousProfilingBillingRequirementBanner,
   ProfilingBetaAlertBanner,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
@@ -154,25 +151,10 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:organization-header': () => OrganizationHeader,
 
   /**
-   * Ensure the Invite Members button is always enabled without regard for the
-   * `feature:invite-members` flag.
-   */
-  'member-invite-button:customization': () => InviteMembersButtonCustomization,
-
-  /**
    * Augment the invite members modal component to start a trial before
    * inviting members.
    */
   'member-invite-modal:customization': () => MemberInviteModalCustomization,
-
-  /**
-   * Wrap navigation items in the main sidebar with a possible upsell, if
-   * that navigation item is not available on the current plan tier. The
-   * upsell blocks the button, and shows the upsell popup on hover. Very
-   * similar to `sidebar:item-label`, but wraps the entire link. Expects
-   * a render prop.
-   */
-  'sidebar:navigation-item': () => SidebarNavigationItem,
 
   /**
    * Augment the targeted onboarding page with a different header
@@ -213,6 +195,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>
     ContinuousProfilingBetaSDKAlertBanner,
+  'component:continuous-profiling-billing-requirement-banner': () =>
+    ContinuousProfilingBillingRequirementBanner,
   'component:explore-date-range-query-limit-footer': () =>
     ExploreDateRangeQueryLimitFooter,
   /**
@@ -265,7 +249,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
 
   'feature-disabled:discard-groups': p => <DisabledDiscardGroup {...p} />,
   'feature-disabled:data-forwarding': p => <DisabledDataForwarding {...p} />,
-  'feature-disabled:relay': p => <DisabledRelay {...p} />,
   'feature-disabled:rate-limits': p => <DisabledRateLimits {...p} />,
   'feature-disabled:sso-basic': p => <DisabledAuthProvider {...p} />,
   'feature-disabled:sso-saml2': p => <DisabledAuthProvider {...p} />,
@@ -318,16 +301,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <ProjectPerformanceScoreCard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </ProjectPerformanceScoreCard>
-  ),
-  'feature-disabled:project-selector-checkbox': p => (
-    <PowerFeatureHovercard features={['organizations:global-views']} id="global-views">
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </PowerFeatureHovercard>
-  ),
-  'feature-disabled:project-selector-all-projects': p => (
-    <DisabledAllProjectsSelect {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </DisabledAllProjectsSelect>
   ),
   'feature-disabled:open-discover': p => (
     <PowerFeatureHovercard features={['organizations:discover-basic']} id="open-discover">

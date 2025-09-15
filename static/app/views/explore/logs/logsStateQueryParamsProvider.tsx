@@ -70,6 +70,8 @@ export function LogsStateQueryParamsProvider({
     <QueryParamsContextProvider
       queryParams={readableQueryParams}
       setQueryParams={setWritableQueryParams}
+      isUsingDefaultFields
+      shouldManageFields={false}
     >
       {children}
     </QueryParamsContextProvider>

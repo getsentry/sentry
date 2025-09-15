@@ -29,9 +29,10 @@ from sentry.silo.util import (
 from sentry.types.region import (
     Region,
     RegionResolutionError,
-    find_all_region_addresses,
+    get_global_directory,
     get_region_by_name,
 )
+from sentry.utils import metrics
 
 REQUEST_ATTEMPTS_LIMIT = 10
 CACHE_TIMEOUT = 43200  # 12 hours = 60 * 60 * 12 seconds
@@ -47,16 +48,26 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
     """
     region_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
-    for address in find_all_region_addresses():
-        url = urllib3.util.parse_url(address)
+    for region in get_global_directory().regions:
+        url = urllib3.util.parse_url(region.address)
         if url.host:
             # This is an IPv4 address.
             # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
-            ip = socket.gethostbyname(url.host)
+            try:
+                ip = socket.gethostbyname(url.host)
+            except Exception:
+                metrics.incr(
+                    "hybrid_cloud.silo_client.ip_address_resolution_error",
+                    tags={"region": region.name},
+                )
+                sentry_sdk.capture_exception(
+                    RegionResolutionError(f"Unable to resolve region host for: {url.host}")
+                )
+                continue
             region_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
         else:
             sentry_sdk.capture_exception(
-                RegionResolutionError(f"Unable to parse url to host for: {address}")
+                RegionResolutionError(f"Unable to parse url to host for: {region.address}")
             )
 
     return frozenset(region_ip_addresses)

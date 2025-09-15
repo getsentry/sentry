@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -16,15 +16,13 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {FloatingTrigger} from 'sentry/views/explore/components/suspectTags/floatingTrigger';
-import type {
-  BaseVisualize,
-  Visualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartBoxSelect} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {
@@ -42,7 +40,7 @@ interface ExploreChartsProps {
   query: string;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  visualizes: Visualize[];
+  visualizes: readonly Visualize[];
   samplingMode?: SamplingMode;
 }
 
@@ -77,7 +75,17 @@ export function ExploreCharts({
       if (i === index) {
         visualize = visualize.replace({chartType});
       }
-      return visualize.toJSON();
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  }
+
+  function handleChartVisibilityChange(index: number, visible: boolean) {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === index) {
+        visualize = visualize.replace({visible});
+      }
+      return visualize.serialize();
     });
     setVisualizes(newVisualizes);
   }
@@ -97,6 +105,9 @@ export function ExploreCharts({
               key={`${index}`}
               index={index}
               onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
+              onChartVisibilityChange={visible =>
+                handleChartVisibilityChange(index, visible)
+              }
               query={query}
               timeseriesResult={timeseriesResult}
               visualize={visualize}
@@ -113,6 +124,7 @@ export function ExploreCharts({
 interface ChartProps {
   index: number;
   onChartTypeChange: (chartType: ChartType) => void;
+  onChartVisibilityChange: (visible: boolean) => void;
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: Visualize;
@@ -123,6 +135,7 @@ interface ChartProps {
 function Chart({
   index,
   onChartTypeChange,
+  onChartVisibilityChange,
   query,
   visualize,
   timeseriesResult,
@@ -131,8 +144,7 @@ function Chart({
 }: ChartProps) {
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
-  const [visible, setVisible] = useState(true);
-  const chartHeight = visible ? CHART_HEIGHT : 50;
+  const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const triggerWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -227,8 +239,8 @@ function Chart({
         query={query}
         interval={interval}
         visualizeIndex={index}
-        visible={visible}
-        setVisible={setVisible}
+        visible={visualize.visible}
+        setVisible={onChartVisibilityChange}
       />
     </Fragment>
   );
@@ -239,7 +251,7 @@ function Chart({
         Title={Title}
         Actions={Actions}
         Visualization={
-          visible && (
+          visualize.visible && (
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
@@ -251,7 +263,7 @@ function Chart({
           )
         }
         Footer={
-          visible && (
+          visualize.visible && (
             <ConfidenceFooter
               sampleCount={chartInfo.sampleCount}
               isLoading={chartInfo.timeseriesResult?.isPending || false}

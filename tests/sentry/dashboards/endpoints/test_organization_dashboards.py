@@ -35,7 +35,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=self.dashboard_2,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -1506,7 +1505,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         expected_layout = {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}
         DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -1531,7 +1529,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_widget_preview_still_provides_display_type_if_no_layout(self) -> None:
         DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,

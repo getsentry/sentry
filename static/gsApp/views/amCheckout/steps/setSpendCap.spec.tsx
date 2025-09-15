@@ -60,6 +60,7 @@ describe('SetSpendCap', () => {
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
         isNewCheckout
+        navigate={jest.fn()}
       />
     );
 
@@ -102,6 +103,7 @@ describe('SetSpendCap', () => {
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
         isNewCheckout
+        navigate={jest.fn()}
       />
     );
 

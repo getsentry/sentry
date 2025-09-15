@@ -100,6 +100,10 @@ type ContinuousProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
+type ContinuousProfilingBillingRequirementBannerProps = {
+  project: Project;
+};
+
 type CronsBillingBannerProps = {
   organization: Organization;
 };
@@ -177,6 +181,7 @@ type ComponentHooks = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
   'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
+  'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
@@ -225,10 +230,8 @@ type ComponentHooks = {
  */
 type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
-  'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
-  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
@@ -266,10 +269,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:profiling-page': FeatureDisabledHook;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
-  'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
-  'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
-  'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
@@ -597,43 +597,6 @@ type IntegrationsFeatureGatesHook = () => {
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
 };
-
-/**
- * Invite Button customization allows for a render-props component to replace
- * or intercept props of the button element.
- */
-type InviteButtonCustomizationHook = () => React.ComponentType<{
-  children: (opts: {
-    /**
-     * Whether the Invite Members button is active or not
-     */
-    disabled: boolean;
-    onTriggerModal: () => void;
-    /**
-     * Whether to display a message that new members must be registered via SSO
-     */
-    isSsoRequired?: boolean;
-  }) => React.ReactElement;
-  onTriggerModal: () => void;
-  organization: Organization;
-}>;
-
-/**
- * Sidebar navigation item customization allows passing render props to disable
- * the link, wrap it in an upsell modal, and give it some additional content
- * (e.g., a Business Icon) to render.
- *
- * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
- * too, since this is a more generic version.
- */
-type SidebarNavigationItemHook = () => React.ComponentType<{
-  children: (opts: {
-    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
-    additionalContent: React.ReactElement | null;
-    disabled: boolean;
-  }) => React.ReactElement;
-  id: string;
-}>;
 
 /**
  * Invite Modal customization allows for a render-prop component to add

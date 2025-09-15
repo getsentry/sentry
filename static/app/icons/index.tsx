@@ -55,6 +55,7 @@ export {IconGraph} from './iconGraph';
 export {IconGrid} from './iconGrid';
 export {IconGroup} from './iconGroup';
 export {IconHappy} from './iconHappy';
+export {IconHide} from './iconHide';
 export {IconInfo} from './iconInfo';
 export {IconInput} from './iconInput';
 export {IconIssues} from './iconIssues';

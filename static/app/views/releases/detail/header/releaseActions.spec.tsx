@@ -107,7 +107,7 @@ describe('ReleaseActions', () => {
     );
     await waitFor(() =>
       expect(router.push).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/releases/`
+        `/organizations/${organization.slug}/explore/releases/`
       )
     );
   });

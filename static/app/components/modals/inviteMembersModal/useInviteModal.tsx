@@ -142,7 +142,12 @@ export default function useInviteModal({organization, initialData, source}: Prop
           : false;
 
         const orgLevelError = errorResponse?.organization;
-        const error = orgLevelError || emailError || t('Could not invite user');
+        const error =
+          orgLevelError ||
+          emailError ||
+          (errorResponse?.detail
+            ? t('Could not invite user. %s', errorResponse?.detail)
+            : t('Could not invite user.'));
 
         setState(prev => ({
           ...prev,
