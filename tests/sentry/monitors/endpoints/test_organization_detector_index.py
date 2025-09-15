@@ -240,7 +240,12 @@ class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
             )
 
         assert response.data["name"] == "Updated Detector"
-        assert response.data["owner"] == new_user.get_actor_identifier()
+        assert response.data["owner"] == {
+            "email": new_user.email,
+            "id": str(new_user.id),
+            "name": new_user.get_username(),
+            "type": "user",
+        }
         assert response.data["type"] == MonitorIncidentType.slug
 
         self.detector.refresh_from_db()

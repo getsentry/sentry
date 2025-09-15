@@ -61,7 +61,12 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
             "name": "Monitor Incident Detector",
             "type": MonitorIncidentType.slug,
             "workflowIds": [],
-            "owner": f"user:{self.user.id}",
+            "owner": {
+                "email": self.user.email,
+                "id": str(self.user.id),
+                "name": self.user.get_username(),
+                "type": "user",
+            },
             "createdBy": None,
             "dateCreated": response.data["dateCreated"],
             "dateUpdated": response.data["dateUpdated"],
@@ -106,7 +111,11 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
         )
 
         assert response.data["name"] == "Updated Monitor Detector"
-        assert response.data["owner"] == f"team:{team.id}"
+        assert response.data["owner"] == {
+            "id": str(team.id),
+            "name": team.slug,
+            "type": "team",
+        }
         assert response.data["type"] == MonitorIncidentType.slug
 
         self.monitor.refresh_from_db()
