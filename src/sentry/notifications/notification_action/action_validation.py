@@ -17,7 +17,9 @@ def _get_integration(validated_data: dict[str, Any], provider: str) -> RpcIntegr
     if not (integration_id := validated_data.get("integration_id")):
         raise ValidationError(f"Integration ID is required for {provider} action")
 
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         raise ValidationError(f"{provider} integration with id {integration_id} not found")
     return integration
