@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any
 from urllib.parse import urljoin
 
+import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
@@ -20,6 +21,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
 from sentry.metrics.base import Tags
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
@@ -58,6 +60,7 @@ class IntegrationProxyFailureMetricType(StrEnum):
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
     UNKNOWN_ERROR = "unknown_error"
+    FAILED_VALIDATION = "failed_validation"
 
 
 @control_silo_endpoint
@@ -248,29 +251,53 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             headers=clean_headers,
         )
 
+    @sentry_sdk.trace(op="integration_proxy.http_method_not_allowed")
     def http_method_not_allowed(self, request):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
-        # Removes leading slashes as it can result in incorrect urls being generated
-        self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
-        self.log_extra["method"] = request.method
-        self.log_extra["path"] = self.proxy_path
-        self.log_extra["host"] = request.headers.get("Host")
+        with IntegrationProxyEvent(
+            interaction_type=IntegrationProxyEventType.SHOULD_PROXY
+        ).capture() as lifecycle:
+            # Removes leading slashes as it can result in incorrect urls being generated
+            self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
+            self.log_extra["method"] = request.method
+            self.log_extra["path"] = self.proxy_path
+            self.log_extra["host"] = request.headers.get("Host")
 
-        if not self._should_operate(request):
-            return HttpResponseBadRequest()
+            if not self._should_operate(request):
+                lifecycle.record_failure(
+                    failure_reason=IntegrationProxyFailureMetricType.FAILED_VALIDATION
+                )
+                return HttpResponseBadRequest()
 
-        self._add_metric(metric_name=IntegrationProxySuccessMetricType.INITIALIZE, sample_rate=1.0)
+            self._add_metric(
+                metric_name=IntegrationProxySuccessMetricType.INITIALIZE, sample_rate=1.0
+            )
 
-        base_url = request.headers.get(PROXY_BASE_URL_HEADER)
-        base_url = base_url.rstrip("/")
+            base_url = request.headers.get(PROXY_BASE_URL_HEADER)
+            base_url = base_url.rstrip("/")
 
-        full_url = urljoin(f"{base_url}/", self.proxy_path)
-        self.log_extra["full_url"] = full_url
-        headers = clean_outbound_headers(request.headers)
+            full_url = urljoin(f"{base_url}/", self.proxy_path)
+            self.log_extra["full_url"] = full_url
+            headers = clean_outbound_headers(request.headers)
 
-        response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
+        with IntegrationProxyEvent(
+            interaction_type=IntegrationProxyEventType.PROXY_REQUEST
+        ).capture() as lifecycle:
+            if self.org_integration is not None:
+                lifecycle.add_extras(
+                    {
+                        "integration_id": self.org_integration.integration_id,
+                        "organization_id": self.org_integration.organization_id,
+                    }
+                )
+            if self.integration is not None:
+                lifecycle.add_extras({"provider": self.integration.provider})
+
+            response = self._call_third_party_api(
+                request=request, full_url=full_url, headers=headers
+            )
 
         self._add_metric(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,

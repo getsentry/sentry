@@ -423,3 +423,37 @@ class IntegrationWebhookEvent(IntegrationEventLifecycleMetric):
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
+
+
+class IntegrationProxyEventType(StrEnum):
+    """An instance to be recorded of a integration proxy event."""
+
+    SHOULD_PROXY = "should_proxy"
+    PROXY_REQUEST = "proxy_request"
+
+
+@dataclass
+class IntegrationProxyEvent(EventLifecycleMetric):
+    """An instance to be recorded of a integration proxy event."""
+
+    interaction_type: IntegrationProxyEventType
+
+    def get_metrics_domain(self) -> str:
+        return "integration_proxy"
+
+    def get_interaction_type(self) -> str:
+        return str(self.interaction_type)
+
+    def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
+        tokens = (self.get_metrics_domain(), self.interaction_type, str(outcome))
+        return ".".join(tokens)
+
+    def get_metric_tags(self) -> Mapping[str, str]:
+        return {
+            "interaction_type": self.interaction_type,
+        }
+
+    def get_extras(self) -> Mapping[str, Any]:
+        return {
+            "interaction_type": self.interaction_type,
+        }
