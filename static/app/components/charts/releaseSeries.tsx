@@ -98,6 +98,9 @@ type State = {
   releases: ReleaseMetaBasic[] | null;
 };
 
+/**
+ * @deprecated use useReleaseBubbles instead
+ */
 class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   state: State = {
     releases: null,
