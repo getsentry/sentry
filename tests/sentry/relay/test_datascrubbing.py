@@ -153,11 +153,9 @@ def test_qualified_selector_breadcrumb_data_screen_bug(default_project: Project)
 
     organization.update_option(
         "sentry:sensitive_fields",
-        [
-            "breadcrumb.data.screen\nbreadcrumbs.values.*.data.screen\nbreadcrumbs.values.*.data.screen"
-        ],
+        ["breadcrumb.data.screen\nbreadcrumbs.values.*.data.screen"],
     )
-    # organization.update_option("sentry:scrub_data", True)
+    organization.update_option("sentry:require_scrub_data", True)
 
     # Create an event with 'screen' in both breadcrumb data and other locations
     event = {
