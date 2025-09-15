@@ -1145,7 +1145,7 @@ register(
     "embeddings-grouping.seer.delete-record-batch-size",
     type=Int,
     default=100,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
