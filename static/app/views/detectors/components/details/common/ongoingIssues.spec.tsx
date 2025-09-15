@@ -7,9 +7,9 @@ import {SimpleGroupFixture} from 'sentry-fixture/group';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {MetricDetectorDetailsOngoingIssue} from 'sentry/views/detectors/components/details/metric/ongoingIssue';
+import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 
-describe('MetricDetectorDetailsOngoingIssue', () => {
+describe('DetectorDetailsOngoingIssues', () => {
   it('renders latest issue with one open period', async () => {
     const detector = MetricDetectorFixture({
       latestGroup: SimpleGroupFixture({
@@ -50,14 +50,25 @@ describe('MetricDetectorDetailsOngoingIssue', () => {
       },
     });
 
-    render(<MetricDetectorDetailsOngoingIssue detector={detector} />, {
-      organization: {slug: 'org-slug'},
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/open-periods/`,
+      body: [
+        {
+          start: '2025-06-01T10:00:00Z',
+          end: '2025-06-01T11:00:00Z',
+          duration: '3600',
+          isOpen: false,
+          lastChecked: '2025-06-01T11:00:00Z',
+        },
+      ],
     });
+
+    render(<DetectorDetailsOngoingIssues detector={detector} />);
 
     expect(await screen.findByTestId('event-issue-header')).toBeInTheDocument();
 
-    expect(screen.getByText('Started')).toBeInTheDocument();
-    expect(screen.getByText('Ended')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Zoom'})).toBeInTheDocument();
+    expect(await screen.findByText('Started')).toBeInTheDocument();
+    expect(await screen.findByText('Ended')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Zoom'})).toBeInTheDocument();
   });
 });

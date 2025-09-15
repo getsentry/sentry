@@ -71,7 +71,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DatePageFilter />
-          <DetectorDetailsOngoingIssues detectorId={detector.id} />
+          <DetectorDetailsOngoingIssues detector={detector} />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

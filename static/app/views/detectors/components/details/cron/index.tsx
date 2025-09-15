@@ -47,6 +47,21 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const monitorEnv = getLatestCronMonitorEnv(detector);
   const hasCheckedIn = hasLastCheckIn(dataSource.queryObj.environments);
 
+  function getIntervalSecondsFromEnv(env?: MonitorEnvironment): number | undefined {
+    if (!env?.lastCheckIn || !env?.nextCheckIn) {
+      return 60;
+    }
+    const last = new Date(env.lastCheckIn).getTime();
+    const next = new Date(env.nextCheckIn).getTime();
+    if (!Number.isFinite(last) || !Number.isFinite(next) || next <= last) {
+      return 60;
+    }
+    const seconds = Math.floor((next - last) / 1000);
+    return Math.max(60, seconds);
+  }
+
+  const intervalSeconds = getIntervalSecondsFromEnv(monitorEnv);
+
   return (
     <DetailLayout>
       <DetectorDetailsHeader detector={detector} project={project} />
@@ -56,7 +71,10 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             <Fragment>
               <DatePageFilter />
               <DetailsTimeline monitor={dataSource.queryObj} />
-              <DetectorDetailsOngoingIssues detectorId={detector.id} />
+              <DetectorDetailsOngoingIssues
+                detector={detector}
+                intervalSeconds={intervalSeconds}
+              />
               <Section title={t('Recent Check-Ins')}>
                 <div>
                   <MonitorCheckIns
