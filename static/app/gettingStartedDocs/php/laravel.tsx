@@ -387,7 +387,6 @@ const profilingOnboarding: OnboardingConfig = {
       description: t(
         'Verify that profiling is working correctly by simply using your application.'
       ),
-      configurations: [],
     },
   ],
   nextSteps: () => [],

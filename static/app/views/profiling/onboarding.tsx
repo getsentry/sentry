@@ -315,13 +315,7 @@ export function Onboarding() {
   const steps = [
     ...profilingDocs.install(docParams),
     ...profilingDocs.configure(docParams),
-    // TODO(aknaus): Move into snippets once all have profiling docs
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
-    },
+    ...profilingDocs.verify(docParams),
   ];
 
   return (
