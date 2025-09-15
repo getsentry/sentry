@@ -208,13 +208,10 @@ def process_buffer_for_type(processing_type: str, handler: type[DelayedProcessin
 def process_buffer() -> None:
     """
     Process all registered delayed processing types.
-    If workflow_engine.use_process_pending_batch is False, skip delayed_workflow processing
-    to allow it to run in the separate process_delayed_workflows task.
     """
-    use_pending_batch = options.get("workflow_engine.use_process_pending_batch")
-
     for processing_type, handler in delayed_processing_registry.registrations.items():
         # If the config option is disabled and this is delayed_workflow, skip it
+        use_pending_batch = options.get("workflow_engine.use_process_pending_batch")
         if not use_pending_batch and processing_type == "delayed_workflow":
             continue
         process_buffer_for_type(processing_type, handler)
