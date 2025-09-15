@@ -261,7 +261,7 @@ def translate_discover_query_to_explore_query(
     explore_query = discover_query.explore_query
     discover_query_id = discover_query.id
 
-    if discover_query.explore_query is not None:
+    if explore_query is not None:
         try:
             explore_query = ExploreSavedQuery.objects.get(id=explore_query.id)
             for key, value in create_defaults.items():
