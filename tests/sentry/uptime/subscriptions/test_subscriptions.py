@@ -19,7 +19,6 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
     get_project_subscription,
     get_uptime_subscription,
 )
@@ -653,7 +652,7 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
             detector.refresh_from_db()
 
         assert UptimeSubscription.objects.filter(id=other_sub.uptime_subscription_id).exists()
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, mock.ANY)
+        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
 
     @mock.patch("sentry.quotas.backend.remove_seat")
     def test_single_subscriptions(self, mock_remove_seat: mock.MagicMock) -> None:
@@ -675,7 +674,7 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
             proj_sub.uptime_subscription.refresh_from_db()
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, mock.ANY)
+        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
 
 
 class RemoveUptimeSubscriptionIfUnusedTest(UptimeTestCase):
@@ -707,27 +706,24 @@ class RemoveUptimeSubscriptionIfUnusedTest(UptimeTestCase):
 class IsUrlMonitoredForProjectTest(UptimeTestCase):
     def test_not_monitored(self) -> None:
         assert not is_url_auto_monitored_for_project(self.project, "https://sentry.io")
-        subscription = self.create_project_uptime_subscription(mode=UptimeMonitorMode.MANUAL)
-        assert not is_url_auto_monitored_for_project(
-            self.project, subscription.uptime_subscription.url
-        )
+        detector = self.create_uptime_detector(mode=UptimeMonitorMode.MANUAL)
+        uptime_subscription = get_uptime_subscription(detector)
+        assert not is_url_auto_monitored_for_project(self.project, uptime_subscription.url)
 
     def test_monitored(self) -> None:
-        subscription = self.create_project_uptime_subscription(
-            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE
-        )
-        assert is_url_auto_monitored_for_project(self.project, subscription.uptime_subscription.url)
+        detector = self.create_uptime_detector(mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE)
+        uptime_subscription = get_uptime_subscription(detector)
+        assert is_url_auto_monitored_for_project(self.project, uptime_subscription.url)
 
     def test_monitored_other_project(self) -> None:
         other_project = self.create_project()
-        subscription = self.create_project_uptime_subscription(
+        detector = self.create_uptime_detector(
             project=self.project,
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         )
-        assert is_url_auto_monitored_for_project(self.project, subscription.uptime_subscription.url)
-        assert not is_url_auto_monitored_for_project(
-            other_project, subscription.uptime_subscription.url
-        )
+        uptime_subscription = get_uptime_subscription(detector)
+        assert is_url_auto_monitored_for_project(self.project, uptime_subscription.url)
+        assert not is_url_auto_monitored_for_project(other_project, uptime_subscription.url)
 
 
 class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
@@ -735,16 +731,12 @@ class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
         assert get_auto_monitored_detectors_for_project(self.project) == []
 
     def test(self) -> None:
-        subscription = self.create_project_uptime_subscription(
-            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE
-        )
-        detector = get_detector(subscription.uptime_subscription)
+        detector = self.create_uptime_detector(mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE)
         assert get_auto_monitored_detectors_for_project(self.project) == [detector]
-        other_subscription = self.create_project_uptime_subscription(
+        other_detector = self.create_uptime_detector(
             mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING
         )
-        other_detector = get_detector(other_subscription.uptime_subscription)
-        self.create_project_uptime_subscription(mode=UptimeMonitorMode.MANUAL)
+        self.create_uptime_detector(mode=UptimeMonitorMode.MANUAL)
         assert set(get_auto_monitored_detectors_for_project(self.project)) == {
             detector,
             other_detector,
@@ -752,7 +744,7 @@ class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
 
     def test_other_project(self) -> None:
         other_project = self.create_project()
-        self.create_project_uptime_subscription(mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE)
+        self.create_uptime_detector(mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE)
         assert get_auto_monitored_detectors_for_project(other_project) == []
 
 
@@ -775,7 +767,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         proj_sub.refresh_from_db()
         assert proj_sub.status == ObjectStatus.DISABLED
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
 
         detector.refresh_from_db()
         assert not detector.enabled
@@ -807,7 +799,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         assert proj_sub.status == ObjectStatus.DISABLED
         assert proj_sub.uptime_subscription.uptime_status == UptimeStatus.OK
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
 
         detector.refresh_from_db()
         assert not detector.enabled
@@ -905,8 +897,8 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
 
         # Seat assignment was called
-        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
 
         detector.refresh_from_db()
         assert detector.enabled
@@ -949,7 +941,7 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
         detector.refresh_from_db()
         assert not detector.enabled
 
-        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
         mock_assign_seat.assert_not_called()
 
     @mock.patch("sentry.quotas.backend.check_assign_seat")

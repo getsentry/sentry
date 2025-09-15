@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import features, search
+from sentry import search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -86,17 +86,6 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
 
         if not projects:
             return Response([])
-
-        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
-        if (
-            len(projects) > 1
-            and not features.has("organizations:global-views", organization, actor=request.user)
-            and not is_fetching_replay_data
-        ):
-            return Response(
-                {"detail": "You do not have the multi project stream feature enabled"}, status=400
-            )
 
         queries = request.GET.getlist("query")
         response = {}

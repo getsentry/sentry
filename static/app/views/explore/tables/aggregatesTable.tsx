@@ -47,9 +47,8 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
-
-import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;

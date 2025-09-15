@@ -43,6 +43,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -70,7 +71,7 @@ import {
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
-import {ExploreExport} from 'sentry/views/explore/spans/spansExport';
+import {SpansExport} from 'sentry/views/explore/spans/spansExport';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -511,7 +512,7 @@ function SpanTabContentSection({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Feature features="organizations:tracing-export-csv">
-          <ExploreExport
+          <SpansExport
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
           />
@@ -693,18 +694,6 @@ const ChevronButton = withChonk(
       `}
   `
 );
-
-const OverChartButtonGroup = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.xs};
-  justify-content: space-between;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    justify-content: flex-end;
-    margin-bottom: ${p => p.theme.space.md};
-  }
-`;
 
 const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};

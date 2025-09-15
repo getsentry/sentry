@@ -1,7 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -20,19 +22,114 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export default function FeedbackListPage() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
-
-  useRedirectToFeedbackFromEvent();
+  const pageFilters = usePageFilters();
+  const prefersStackedNav = usePrefersStackedNav();
 
   const feedbackId = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackId);
 
-  const prefersStackedNav = usePrefersStackedNav();
+  const {query: locationQuery} = useLocation();
+  const searchQuery = locationQuery.query ?? '';
+
+  useRedirectToFeedbackFromEvent();
+
+  const theme = useTheme();
+  const isMediumOrSmaller = useMedia(`(max-width: ${theme.breakpoints.md})`);
+  const [showItemPreview, setShowItemPreview] = useState(false);
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
+
+  // show feedback item preview when feedback is selected on med screens and smaller
+  useEffect(() => {
+    if (isMediumOrSmaller) {
+      setShowItemPreview(Boolean(feedbackId));
+      if (feedbackId) {
+        window.scrollTo(0, 0);
+      }
+    } else {
+      setShowItemPreview(false);
+    }
+  }, [isMediumOrSmaller, feedbackId]);
+
+  useEffect(() => {
+    setSelectedItemIndex(null);
+  }, [pageFilters, searchQuery]);
+
+  const handleJumpToSelectedItem = () => {
+    const scrollContainer = document.querySelector('[data-scrollable]');
+    if (selectedItemIndex === null || !scrollContainer) {
+      return;
+    }
+
+    const estimatedItemHeight = 80;
+    const scrollPosition = selectedItemIndex * estimatedItemHeight;
+
+    scrollContainer.scrollTo({
+      top: scrollPosition,
+      behavior: 'auto',
+    });
+  };
+
+  const handleBackToList = () => {
+    setShowItemPreview(false);
+  };
+
+  const handleItemSelect = (itemIndex?: number) => {
+    setSelectedItemIndex(itemIndex ?? null);
+    setShowItemPreview(true);
+  };
+
+  const largeScreenView = (
+    <Fragment>
+      <SummaryListContainer style={{gridArea: 'list'}}>
+        <FeedbackSummaryCategories />
+        <Container>
+          <FeedbackList onItemSelect={() => {}} />
+        </Container>
+      </SummaryListContainer>
+
+      <Container style={{gridArea: 'details'}}>
+        <AnalyticsArea name="details">
+          <FeedbackItemLoader />
+        </AnalyticsArea>
+      </Container>
+    </Fragment>
+  );
+
+  const smallerScreenView = (
+    <Fragment>
+      {showItemPreview ? (
+        <Container style={{gridArea: 'content'}}>
+          <AnalyticsArea name="details">
+            <FeedbackItemLoader onBackToList={handleBackToList} />
+          </AnalyticsArea>
+        </Container>
+      ) : (
+        <SummaryListContainer style={{gridArea: 'content'}}>
+          <FeedbackSummaryCategories />
+          <Container>
+            <FeedbackList onItemSelect={handleItemSelect} />
+            {selectedItemIndex !== null && (
+              <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
+                {t('Jump to selected item')}
+              </JumpToSelectedButton>
+            )}
+          </Container>
+        </SummaryListContainer>
+      )}
+    </Fragment>
+  );
+
+  // on medium and smaller screens, hide the search & filters when feedback item is in view
+  const hideTop = isMediumOrSmaller && showItemPreview;
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -54,27 +151,21 @@ export default function FeedbackListPage() {
           <PageFiltersContainer>
             <ErrorBoundary>
               <Background>
-                <LayoutGrid>
-                  <FiltersContainer style={{gridArea: 'top'}}>
-                    <FeedbackFilters />
-                    <SearchContainer>
-                      <FeedbackSearch />
-                    </SearchContainer>
-                  </FiltersContainer>
+                <LayoutGrid hideTop={hideTop}>
+                  {!hideTop && (
+                    <FiltersContainer style={{gridArea: 'top'}}>
+                      <FeedbackFilters />
+                      <SearchContainer>
+                        <FeedbackSearch />
+                      </SearchContainer>
+                    </FiltersContainer>
+                  )}
                   {hasSetupOneFeedback || hasSlug ? (
-                    <Fragment>
-                      <SummaryListContainer style={{gridArea: 'list'}}>
-                        <FeedbackSummaryCategories />
-                        <Container>
-                          <FeedbackList />
-                        </Container>
-                      </SummaryListContainer>
-                      <Container style={{gridArea: 'details'}}>
-                        <AnalyticsArea name="details">
-                          <FeedbackItemLoader />
-                        </AnalyticsArea>
-                      </Container>
-                    </Fragment>
+                    isMediumOrSmaller ? (
+                      smallerScreenView
+                    ) : (
+                      largeScreenView
+                    )
                   ) : (
                     <SetupContainer>
                       <FeedbackSetupPanel />
@@ -105,7 +196,7 @@ const SummaryListContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const LayoutGrid = styled('div')`
+const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   overflow: hidden;
   flex-grow: 1;
 
@@ -126,11 +217,8 @@ const LayoutGrid = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
-    grid-template-rows: max-content minmax(50vh, 1fr) max-content;
-    grid-template-areas:
-      'top'
-      'list'
-      'details';
+    grid-template-rows: ${p => (p.hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh')};
+    grid-template-areas: ${p => (p.hideTop ? "'.' 'content'" : "'top' 'content'")};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -177,4 +265,11 @@ const FiltersContainer = styled('div')`
 const SearchContainer = styled('div')`
   flex-grow: 1;
   min-width: 0;
+`;
+
+const JumpToSelectedButton = styled(Button)`
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 4%;
 `;

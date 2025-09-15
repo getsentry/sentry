@@ -28,7 +28,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -96,9 +95,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     projectSlug: project.slug,
   });
 
-  const hasStackedNav = usePrefersStackedNav();
   const hasIssueViews = useHasIssueViews();
-  const isStarredViewAllowed = hasStackedNav && hasIssueViews;
+  const isStarredViewAllowed = hasIssueViews;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));

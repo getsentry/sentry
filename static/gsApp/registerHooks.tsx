@@ -26,7 +26,6 @@ import PerformanceNewProjectPrompt from 'getsentry/components/features/performan
 import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
 import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
 import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
-import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import {
@@ -79,6 +78,7 @@ import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
+  ContinuousProfilingBillingRequirementBanner,
   ProfilingBetaAlertBanner,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
@@ -152,12 +152,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:organization-header': () => OrganizationHeader,
 
   /**
-   * Ensure the Invite Members button is always enabled without regard for the
-   * `feature:invite-members` flag.
-   */
-  'member-invite-button:customization': () => InviteMembersButtonCustomization,
-
-  /**
    * Augment the invite members modal component to start a trial before
    * inviting members.
    */
@@ -202,6 +196,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>
     ContinuousProfilingBetaSDKAlertBanner,
+  'component:continuous-profiling-billing-requirement-banner': () =>
+    ContinuousProfilingBillingRequirementBanner,
   'component:explore-date-range-query-limit-footer': () =>
     ExploreDateRangeQueryLimitFooter,
   /**

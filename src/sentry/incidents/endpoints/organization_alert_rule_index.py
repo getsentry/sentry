@@ -287,6 +287,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                     UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
                 ),
                 data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+                status=ObjectStatus.ACTIVE,
             )
             .select_related("project")
             .prefetch_related("data_sources")

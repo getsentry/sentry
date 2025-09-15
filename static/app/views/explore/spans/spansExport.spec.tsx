@@ -2,13 +2,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {downloadAsCsv} from 'sentry/views/discover/utils';
-import {ExploreExport} from 'sentry/views/explore/spans/spansExport';
+import {SpansExport} from 'sentry/views/explore/spans/spansExport';
 
 jest.mock('sentry/views/discover/utils', () => ({
   downloadAsCsv: jest.fn(),
 }));
 
-describe('ExploreExport', () => {
+describe('SpansExport', () => {
   const {organization} = initializeOrg({
     organization: {features: ['discover-query']},
   });
@@ -45,7 +45,7 @@ describe('ExploreExport', () => {
 
   it('should render the export button', () => {
     render(
-      <ExploreExport
+      <SpansExport
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
@@ -58,7 +58,7 @@ describe('ExploreExport', () => {
     aggregatesTableResult.result.data = [{'browser.name': 'Chrome', count: 1}];
     spansTableResult.result.data = [{id: '1', 'browser.name': 'Chrome'}];
     render(
-      <ExploreExport
+      <SpansExport
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
@@ -87,7 +87,7 @@ describe('ExploreExport', () => {
     });
 
     render(
-      <ExploreExport
+      <SpansExport
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
@@ -111,7 +111,7 @@ describe('ExploreExport', () => {
     aggregatesTableResult.result.data = [{'browser.name': 'Chrome', count: 1}];
     spansTableResult.result.data = [{id: '1', 'browser.name': 'Chrome'}];
     render(
-      <ExploreExport
+      <SpansExport
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
@@ -142,7 +142,7 @@ describe('ExploreExport', () => {
     });
 
     render(
-      <ExploreExport
+      <SpansExport
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
