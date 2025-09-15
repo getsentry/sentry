@@ -1,16 +1,11 @@
 from unittest import mock
 
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.action_validation import SlackActionValidatorHandler
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 
 
-@mock.patch(
-    "sentry.notifications.notification_action.registry.action_validator_registry.get",
-    return_value=SlackActionValidatorHandler,
-)
 class TestSlackActionValidator(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -26,7 +21,7 @@ class TestSlackActionValidator(TestCase):
         }
 
     @mock.patch("sentry.integrations.slack.utils.channel.check_for_channel")
-    def test_validate(self, mock_check_for_channel, mock_action_validator_get):
+    def test_validate(self, mock_check_for_channel):
         mock_check_for_channel.return_value = "C1234567890"
 
         validator = BaseActionValidator(
@@ -37,7 +32,7 @@ class TestSlackActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate__missing_integration_id(self, mock_action_validator_get):
+    def test_validate__missing_integration_id(self):
         del self.valid_data["integrationId"]
         validator = BaseActionValidator(
             data={**self.valid_data},
@@ -47,7 +42,7 @@ class TestSlackActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate__missing_integration(self, mock_action_validator_get):
+    def test_validate__missing_integration(self):
         validator = BaseActionValidator(
             data={**self.valid_data, "integrationId": 123},
             context={"organization": self.organization},
@@ -56,7 +51,7 @@ class TestSlackActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate__invalid_channel_id(self, mock_action_validator_get):
+    def test_validate__invalid_channel_id(self):
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -68,7 +63,7 @@ class TestSlackActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate__invalid_channel_name(self, mock_action_validator_get):
+    def test_validate__invalid_channel_name(self):
         validator = BaseActionValidator(
             data={
                 **self.valid_data,

@@ -57,7 +57,7 @@ class TestWorkflowValidator(TestCase):
                         "type": Action.Type.SLACK,
                         "config": {"foo": "bar"},
                         "data": {"baz": "bar"},
-                        "integrationId": 1,
+                        "integrationId": self.integration.id,
                     }
                 ],
             }
@@ -81,7 +81,7 @@ class TestWorkflowValidator(TestCase):
                     {
                         "type": Action.Type.SLACK,
                         "config": {},
-                        "integrationId": 1,
+                        "integrationId": self.integration.id,
                     }
                 ],
             }
@@ -112,6 +112,10 @@ class TestWorkflowValidatorCreate(TestCase):
             "organization": self.organization,
             "request": self.make_request(user=self.user),
         }
+
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider="slack", organization=self.organization, user=self.user
+        )
 
         self.valid_data = {
             "name": "test",
@@ -186,7 +190,7 @@ class TestWorkflowValidatorCreate(TestCase):
                         "type": Action.Type.SLACK,
                         "config": {"foo": "bar"},
                         "data": {"baz": "bar"},
-                        "integrationId": 1,
+                        "integrationId": self.integration.id,
                     }
                 ],
                 "logicType": "any",
@@ -218,7 +222,7 @@ class TestWorkflowValidatorCreate(TestCase):
                         "type": Action.Type.SLACK,
                         "config": {"foo": "bar"},
                         "data": {"baz": "bar"},
-                        "integrationId": 1,
+                        "integrationId": self.integration.id,
                     }
                 ],
                 "logicType": "any",
@@ -334,6 +338,10 @@ class TestWorkflowValidatorUpdate(TestCase):
             "request": self.make_request(),
         }
 
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider="slack", organization=self.organization, user=self.user
+        )
+
         self.action_filters = [
             {
                 "actions": [
@@ -345,7 +353,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                             "target_type": 0,
                         },
                         "data": {},
-                        "integrationId": 1,
+                        "integrationId": self.integration.id,
                     }
                 ],
                 "logicType": "any",
@@ -455,7 +463,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                             "targetType": 0,
                         },
                         "data": {},
-                        "integrationId": 1,
+                        "integrationId": self.integration.id,
                     }
                 ],
                 "logicType": "all",
@@ -579,7 +587,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                     "targetType": 0,
                 },
                 "data": {},
-                "integrationId": 1,
+                "integrationId": self.integration.id,
             }
         )
 

@@ -427,6 +427,9 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider="slack", organization=self.organization, user=self.user
+        )
         self.valid_workflow = {
             "name": "Test Workflow",
             "enabled": True,
@@ -509,7 +512,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
                             "targetType": 0,
                         },
                         "data": {},
-                        "integrationId": 1,
+                        "integrationId": self.integration.id,
                     },
                 ],
             }
