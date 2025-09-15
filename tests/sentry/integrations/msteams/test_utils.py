@@ -2,6 +2,7 @@ import time
 
 import orjson
 import responses
+from requests import PreparedRequest
 
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.testutils.cases import TestCase
@@ -51,7 +52,10 @@ class GetChannelIdTest(TestCase):
             json={"members": second_users},
         )
 
-        def user_conversation_id_callback(request):
+        def user_conversation_id_callback(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.body is not None
             payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "d_p_r"}] and payload["channelData"] == {
                 "tenant": {"id": "3141-5926-5358"}
@@ -65,6 +69,7 @@ class GetChannelIdTest(TestCase):
                 "tenant": {"id": "1618-0339-8874"}
             }:
                 return 200, {}, orjson.dumps({"id": "prepare_to_die"}).decode()
+            raise Exception("Callback invariant violation")
 
         responses.add_callback(
             responses.POST,
@@ -73,11 +78,11 @@ class GetChannelIdTest(TestCase):
         )
 
     @responses.activate
-    def run_valid_test(self, expected, name):
+    def run_valid_test(self, expected: str, name: str) -> None:
         assert expected == get_channel_id(self.organization, self.integration.id, name)
 
     @responses.activate
-    def run_invalid_test(self, name):
+    def run_invalid_test(self, name: str) -> None:
         assert get_channel_id(self.organization, self.integration.id, name) is None
 
     def test_general_channel_selected(self) -> None:
