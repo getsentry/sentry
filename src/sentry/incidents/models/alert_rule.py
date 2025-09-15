@@ -108,7 +108,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     def __build_subscription_cache_key(cls, subscription_id: int) -> str:
         return cls.CACHE_SUBSCRIPTION_KEY % subscription_id
 
-    def get_for_subscription(self, subscription: Model) -> AlertRule:
+    def get_for_subscription(self, subscription: QuerySubscription) -> AlertRule:
         """
         Fetches the AlertRule associated with a Subscription. Attempts to fetch from
         cache then hits the database
