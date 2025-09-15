@@ -44,7 +44,7 @@ class GroupHash(Model):
         db_table = "sentry_grouphash"
         unique_together = (("project", "hash"),)
         indexes = [
-            models.Index(fields=["id"]),
+            models.Index(fields=["project", "group", "id"]),
         ]
 
     @property
