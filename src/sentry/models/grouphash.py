@@ -38,6 +38,7 @@ class GroupHash(Model):
     state = BoundedPositiveIntegerField(
         choices=[(State.LOCKED_IN_MIGRATION, _("Locked (Migration in Progress)"))], null=True
     )
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
 
     class Meta:
         app_label = "sentry"
