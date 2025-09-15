@@ -308,8 +308,8 @@ const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  height: ${p => p.size};
-  width: ${p => p.size};
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
   margin: 0;
   margin-bottom: ${p => p.theme.space['2xs']};
 `;
