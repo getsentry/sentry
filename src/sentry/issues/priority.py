@@ -79,28 +79,31 @@ def update_priority(
 
     # create a row in the GroupOpenPeriodActivity table
     open_period = get_latest_open_period(group)
-    if get_group_type_by_type_id(group.type).track_priority_changes:
-        if is_regression:
-            # in case the rollout somehow goes out between open period creation and priority update
-            try:
-                activity_entry_to_update = GroupOpenPeriodActivity.objects.get(
-                    group_open_period=open_period, type=OpenPeriodActivityType.OPENED
-                )
-                activity_entry_to_update.update(value=priority)
-            except GroupOpenPeriodActivity.DoesNotExist:
+    if open_period is None:
+        logger.error("No open period found for group", extra={"group_id": group.id})
+    else:
+        if get_group_type_by_type_id(group.type).track_priority_changes:
+            if is_regression:
+                # in case the rollout somehow goes out between open period creation and priority update
+                try:
+                    activity_entry_to_update = GroupOpenPeriodActivity.objects.get(
+                        group_open_period=open_period, type=OpenPeriodActivityType.OPENED
+                    )
+                    activity_entry_to_update.update(value=priority)
+                except GroupOpenPeriodActivity.DoesNotExist:
+                    GroupOpenPeriodActivity.objects.create(
+                        date_added=open_period.date_started,
+                        group_open_period=open_period,
+                        type=OpenPeriodActivityType.OPENED,
+                        value=priority,
+                    )
+            else:
+                # make a new activity entry
                 GroupOpenPeriodActivity.objects.create(
-                    date_added=open_period.date_started,
                     group_open_period=open_period,
-                    type=OpenPeriodActivityType.OPENED,
+                    type=OpenPeriodActivityType.STATUS_CHANGE,
                     value=priority,
                 )
-        else:
-            # make a new activity entry
-            GroupOpenPeriodActivity.objects.create(
-                group_open_period=open_period,
-                type=OpenPeriodActivityType.STATUS_CHANGE,
-                value=priority,
-            )
 
     issue_update_priority.send_robust(
         group=group,
