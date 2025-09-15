@@ -33,7 +33,7 @@ class TestOverwatchRpcEndpoint(APITestCase):
         return payload, auth_header
 
     @patch(
-        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", ["test-secret"]
+        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", "test-secret"
     )
     def test_successful_request(self):
         """Test successful request with valid authentication and arguments."""
@@ -51,7 +51,7 @@ class TestOverwatchRpcEndpoint(APITestCase):
         assert response.data == {}  # Stub implementation returns empty dict
 
     @patch(
-        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", ["test-secret"]
+        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", "test-secret"
     )
     def test_invalid_method_returns_404(self):
         """Test that calling an invalid method returns 404."""
@@ -68,7 +68,7 @@ class TestOverwatchRpcEndpoint(APITestCase):
         assert response.status_code == 404
 
     @patch(
-        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", ["test-secret"]
+        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", "test-secret"
     )
     def test_missing_args_returns_success(self):
         """Test that missing 'args' key defaults to empty dict and still works."""
@@ -99,7 +99,7 @@ class TestOverwatchRpcEndpoint(APITestCase):
         assert response.status_code == 403
 
     @patch(
-        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", ["test-secret"]
+        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", "test-secret"
     )
     def test_invalid_signature_returns_401(self):
         """Test that request with invalid signature returns 401."""
