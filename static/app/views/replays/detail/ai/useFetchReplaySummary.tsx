@@ -43,35 +43,26 @@ export interface UseFetchReplaySummaryResult {
 
 const shouldPoll = (
   summaryData: SummaryResponse | undefined,
-  isStartSummaryRequestPending: boolean,
+  startRequestFailed: boolean,
   didTimeout: boolean
 ) => {
-  // If timeout occurred, stop polling regardless of status
-  if (didTimeout) {
+  if (startRequestFailed || didTimeout) {
     return false;
   }
 
   if (!summaryData) {
-    // No data yet - poll if we've started a request
-    return isStartSummaryRequestPending;
+    return true;
   }
 
   switch (summaryData.status) {
     case ReplaySummaryStatus.NOT_STARTED:
-      // Not started - poll if we've started a request
-      return isStartSummaryRequestPending;
-
     case ReplaySummaryStatus.PROCESSING:
-      // Currently processing - poll
       return true;
 
+    // Final states
     case ReplaySummaryStatus.COMPLETED:
     case ReplaySummaryStatus.ERROR:
-      // Final states - no need to poll
-      return false;
-
     default:
-      // Unknown status - don't poll
       return false;
   }
 };
@@ -169,7 +160,7 @@ export function useFetchReplaySummary(
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestPending, didTimeout)) {
+        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
           return POLL_INTERVAL_MS;
         }
         return false;
