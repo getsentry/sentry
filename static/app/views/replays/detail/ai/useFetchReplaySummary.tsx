@@ -22,7 +22,7 @@ export interface UseFetchReplaySummaryResult {
    */
   isError: boolean;
   /**
-   * Whether the summary is still processing after the last start request.
+   * Whether the summary is still processing after the last start request. Does not account for timeouts.
    */
   isPending: boolean;
   /**
@@ -209,6 +209,7 @@ export function useFetchReplaySummary(
     dataUpdatedAt < startSummaryRequestTime.current ||
     isStartSummaryRequestPending ||
     isPending ||
+    summaryData?.status === ReplaySummaryStatus.NOT_STARTED ||
     summaryData?.status === ReplaySummaryStatus.PROCESSING;
 
   // Clears the polling timeout when we get valid summary results.

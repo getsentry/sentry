@@ -141,14 +141,7 @@ export default function Ai() {
     );
   }
 
-  // checking this prevents initial flicker
-  const summaryNotComplete =
-    summaryData?.status &&
-    [ReplaySummaryStatus.NOT_STARTED, ReplaySummaryStatus.PROCESSING].includes(
-      summaryData?.status
-    );
-
-  if (isSummaryPending || summaryNotComplete) {
+  if (isSummaryPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
