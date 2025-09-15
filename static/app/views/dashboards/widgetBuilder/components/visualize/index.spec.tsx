@@ -1473,6 +1473,7 @@ describe('Visualize', () => {
 
     it('adds equations', async () => {
       const organizationWithFlag = OrganizationFixture();
+      organizationWithFlag.features.push('visibility-explore-equations');
 
       render(
         <WidgetBuilderProvider>
@@ -1527,6 +1528,7 @@ describe('Visualize', () => {
 
     it('adds equations line chart', async () => {
       const organizationWithFlag = OrganizationFixture();
+      organizationWithFlag.features.push('visibility-explore-equations');
 
       render(
         <WidgetBuilderProvider>

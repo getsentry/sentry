@@ -359,6 +359,10 @@ function Visualize({error, setError}: VisualizeProps) {
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
 
+  const hasExploreEquations = organization.features.includes(
+    'visibility-explore-equations'
+  );
+
   return (
     <Fragment>
       <SectionHeader
@@ -862,31 +866,36 @@ function Visualize({error, setError}: VisualizeProps) {
               ? t('+ Add Field')
               : t('+ Add Column')}
         </AddButton>
-        {datasetConfig.enableEquations && (
-          <AddButton
-            priority="link"
-            disabled={disableTransactionWidget}
-            aria-label={t('Add Equation')}
-            onClick={() => {
-              dispatch({
-                type: updateAction,
-                payload: [...(fields ?? []), {kind: FieldValueKind.EQUATION, field: ''}],
-              });
+        {datasetConfig.enableEquations &&
+          (state.dataset !== WidgetType.SPANS ||
+            (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
+            <AddButton
+              priority="link"
+              disabled={disableTransactionWidget}
+              aria-label={t('Add Equation')}
+              onClick={() => {
+                dispatch({
+                  type: updateAction,
+                  payload: [
+                    ...(fields ?? []),
+                    {kind: FieldValueKind.EQUATION, field: ''},
+                  ],
+                });
 
-              trackAnalytics('dashboards_views.widget_builder.change', {
-                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                field: 'visualize.addEquation',
-                from: source,
-                new_widget: !isEditing,
-                value: '',
-                widget_type: state.dataset ?? '',
-                organization,
-              });
-            }}
-          >
-            {t('+ Add Equation')}
-          </AddButton>
-        )}
+                trackAnalytics('dashboards_views.widget_builder.change', {
+                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                  field: 'visualize.addEquation',
+                  from: source,
+                  new_widget: !isEditing,
+                  value: '',
+                  widget_type: state.dataset ?? '',
+                  organization,
+                });
+              }}
+            >
+              {t('+ Add Equation')}
+            </AddButton>
+          )}
       </AddButtons>
     </Fragment>
   );
