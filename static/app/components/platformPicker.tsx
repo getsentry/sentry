@@ -164,10 +164,11 @@ function PlatformPicker({
     platformList,
     source,
     organization,
+    category,
   });
 
   useEffect(() => {
-    latestValuesRef.current = {filter, platformList, source, organization};
+    latestValuesRef.current = {filter, platformList, source, organization, category};
   });
 
   const debounceSearch = useRef(
@@ -177,6 +178,7 @@ function PlatformPicker({
         platformList: currentPlatformList,
         source: currentSource,
         organization: currentOrganization,
+        category: currentCategory,
       } = latestValuesRef.current;
 
       if (!currentFilter) {
@@ -201,7 +203,7 @@ function PlatformPicker({
         return;
       }
 
-      setPlatform({...fullPlatformMatch, category});
+      setPlatform({...fullPlatformMatch, category: currentCategory});
     }, DEFAULT_DEBOUNCE_DURATION)
   ).current;
 
