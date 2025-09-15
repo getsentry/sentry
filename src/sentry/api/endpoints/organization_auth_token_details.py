@@ -6,6 +6,7 @@ from sentry import analytics, audit_log
 from sentry.analytics.events.org_auth_token_deleted import OrgAuthTokenDeleted
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -25,6 +26,7 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (OrgAuthTokenPermission,)
 
     def get(
