@@ -133,7 +133,15 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
         for process_group_resolution.
         """
         if "inFutureRelease" in attrs:
-            future_release_version = self.initial_data.get("inFutureRelease")
+            initial_data = getattr(self, "initial_data", {})
+            if (
+                not initial_data
+                and hasattr(self, "parent")
+                and hasattr(self.parent, "initial_data")
+            ):
+                initial_data = self.parent.initial_data.get("statusDetails", {})
+
+            future_release_version = initial_data.get("inFutureRelease")
             if future_release_version:
                 attrs["_future_release_version"] = future_release_version
         return attrs

@@ -620,12 +620,6 @@ def process_group_resolution(
                 # activity status should look like "... resolved in version future_release_version"
                 activity_data.update({"version": future_release_version})
 
-            resolution, created = GroupResolution.objects.get_or_create(
-                group=group, defaults=resolution_params
-            )
-            if not created:
-                resolution.update(datetime=now, **resolution_params)
-
         resolution, created = GroupResolution.objects.get_or_create(
             group=group, defaults=resolution_params
         )

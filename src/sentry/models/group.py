@@ -214,6 +214,7 @@ STATUS_UPDATE_CHOICES = {
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
     "resolvedInNextRelease": GroupStatus.UNRESOLVED,
+    "resolvedInFutureRelease": GroupStatus.UNRESOLVED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
 }
