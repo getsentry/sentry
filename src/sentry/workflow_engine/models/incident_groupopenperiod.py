@@ -83,6 +83,8 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                         "group_id": group.id,
                     },
                 )
+                raise
+
             incident = cls.create_incident_for_open_period(
                 occurrence, alert_rule, group, open_period
             )
@@ -102,10 +104,38 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
     @classmethod
     def create_incident_for_open_period(cls, occurrence, alert_rule, group, open_period):
         from sentry.incidents.logic import create_incident, update_incident_status
-        from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+        from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
         from sentry.incidents.utils.process_update_helpers import (
             calculate_event_date_from_update_date,
         )
+
+        # XXX: there's a chance that an open incident exists already if single processing
+        # is enabled for an organization in the middle of an active incident. See if such
+        # an incident exists, and associate it with the open period if so.
+        open_incident = (
+            Incident.objects.filter(alert_rule__id=alert_rule.id, date_closed=None)
+            .order_by("-date_started")
+            .first()
+        )
+        if open_incident is not None:
+            # if a new occurrence came in, that means we need to update the priority of the incident
+            priority = (
+                occurrence.priority
+                if occurrence.priority is not None
+                else DetectorPriorityLevel.HIGH
+            )
+            severity = (
+                IncidentStatus.CRITICAL
+                if priority == DetectorPriorityLevel.HIGH
+                else IncidentStatus.WARNING
+            )  # this assumes that LOW isn't used for metric issues
+
+            update_incident_status(
+                open_incident,
+                severity,
+                status_method=IncidentStatusMethod.RULE_TRIGGERED,
+            )
+            return open_incident
 
         # Extract query subscription id from evidence_data
         source_id = occurrence.evidence_data.get("data_packet_source_id")
@@ -131,7 +161,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
         )
         # XXX: if this is the very first open period, or if the priority didn't change from the last priority on the last open period,
         # manually add the first incident status change activity because the group never changed priority
-        # if the priority changed, then the call to update_incident_status in update_priority will be a no-op.
+        # if the priority changed, then the call to update_incident_status in update_priority will be a no-op
         priority = (
             occurrence.priority if occurrence.priority is not None else DetectorPriorityLevel.HIGH
         )
@@ -210,8 +240,14 @@ def update_incident_activity_based_on_group_activity(
         incident = Incident.objects.get(id=incident_id)
 
     except IncidentGroupOpenPeriod.DoesNotExist:
-        logger.warning(
-            "No IncidentGroupOpenPeriod relationship found",
+        # This could happen because the priority changed when opening the period, but
+        # the priority change came before relationship creation. This isn't a problem—we create the
+        # relationship with the new priority in create_from_occurrence() anyway.
+
+        # we could also hit this case if there are outstanding open incidents when switching to single
+        # processing. Again, create_from_occurrence() will handle any status changes we need.
+        logger.info(
+            "No IncidentGroupOpenPeriod relationship found when updating IncidentActivity table",
             extra={
                 "open_period_id": open_period.id,
             },
@@ -232,6 +268,7 @@ def update_incident_activity_based_on_group_activity(
 def update_incident_based_on_open_period_status_change(
     group: Group,
     new_status: int,
+    detector_id: int,
 ) -> None:
     from sentry.incidents.logic import update_incident_status
     from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
@@ -253,13 +290,31 @@ def update_incident_based_on_open_period_status_change(
         incident = Incident.objects.get(id=incident_id)
 
     except IncidentGroupOpenPeriod.DoesNotExist:
-        logger.warning(
-            "No IncidentGroupOpenPeriod relationship found",
-            extra={
-                "open_period_id": open_period.id,
-            },
+        # check if single processing was turned on while there was an active incident
+        try:
+            alert_rule_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+        except AlertRuleDetector.DoesNotExist:
+            logger.exception(
+                "No AlertRuleDetector found for detector ID", extra={"detector_id": detector_id}
+            )
+            return
+        open_incident = (
+            Incident.objects.filter(alert_rule__id=alert_rule_id, date_closed=None)
+            .order_by("-date_started")
+            .first()
         )
-        return
+        if open_incident is not None:
+            incident = open_incident
+            IncidentGroupOpenPeriod.create_relationship(incident=incident, open_period=open_period)
+        else:
+            logger.exception(
+                "No IncidentGroupOpenPeriod relationship and no outstanding incident",
+                extra={
+                    "open_period_id": open_period.id,
+                },
+            )
+            return
+
     if incident.subscription_id is not None:
         subscription = QuerySubscription.objects.select_related("snuba_query").get(
             id=int(incident.subscription_id)
