@@ -49,7 +49,6 @@ export function getTourTask(
   switch (guide) {
     case 'sidebar':
       return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
-    // TODO(ogi): Remove this once we merge the new sidebar tour
     case 'sidebar_v2':
       return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
     case 'issues':
