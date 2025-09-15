@@ -15,7 +15,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import IssueViewsList from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsList';
 
 const organization = OrganizationFixture({
-  features: ['enforce-stacked-navigation', 'issue-views'],
+  features: ['issue-views'],
 });
 
 describe('IssueViewsList', () => {

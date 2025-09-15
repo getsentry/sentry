@@ -264,15 +264,14 @@ export function useTourModal() {
     {hasSeen: false}
   );
 
-  const enforceStackedNav = organization.features.includes('enforce-stacked-navigation');
   // We don't want to show the tour modal for new users that were forced into the new stacked navigation.
-  const shouldSkipForNewUserEnforcedStackedNav =
-    enforceStackedNav && new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
+  const shouldSkipTourForNewUsers =
+    new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
   const shouldShowTourModal =
     assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
       ?.seen === false &&
-    !shouldSkipForNewUserEnforcedStackedNav &&
+    !shouldSkipTourForNewUsers &&
     !localTourState.hasSeen &&
     !process.env.IS_ACCEPTANCE_TEST;
 
