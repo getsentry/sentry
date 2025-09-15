@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import {useLocation} from 'sentry/utils/useLocation';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {
@@ -102,12 +101,11 @@ export function useDetectorResolvedStatsPeriod(params: {
 export function useDetectorDateParams(params: {
   dataset: DetectorDataset | undefined;
   intervalSeconds: number | undefined;
+  end?: string;
+  start?: string;
+  urlStatsPeriod?: string;
 }): {end?: string; start?: string; statsPeriod?: MetricDetectorTimePeriod} {
-  const location = useLocation();
-  const start = location.query?.start as string | undefined;
-  const end = location.query?.end as string | undefined;
-  const statsPeriod = location.query?.statsPeriod as string | undefined;
-  const {dataset, intervalSeconds} = params;
+  const {dataset, intervalSeconds, start, end, urlStatsPeriod} = params;
 
   return useMemo(() => {
     if (start && end) {
@@ -119,8 +117,8 @@ export function useDetectorDateParams(params: {
     const resolved = resolveStatsPeriodForDetector({
       dataset,
       intervalSeconds,
-      urlStatsPeriod: statsPeriod,
+      urlStatsPeriod,
     });
     return {statsPeriod: resolved};
-  }, [dataset, intervalSeconds, start, end, statsPeriod]);
+  }, [dataset, intervalSeconds, start, end, urlStatsPeriod]);
 }

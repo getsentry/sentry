@@ -227,10 +227,17 @@ export function MetricDetectorDetailsChart({
   detector,
   snubaQuery,
 }: MetricDetectorDetailsChartProps) {
+  const location = useLocation();
+  const statsPeriod = location.query?.statsPeriod as string | undefined;
+  const start = location.query?.start as string | undefined;
+  const end = location.query?.end as string | undefined;
   const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const dateParams = useDetectorDateParams({
     dataset: detectorDataset,
     intervalSeconds: snubaQuery.timeWindow,
+    start,
+    end,
+    urlStatsPeriod: statsPeriod,
   });
 
   return (
