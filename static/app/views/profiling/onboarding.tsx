@@ -14,7 +14,6 @@ import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
   ProductSolution,
-  StepType,
   type Configuration,
   type DocsParams,
   type OnboardingStep,
