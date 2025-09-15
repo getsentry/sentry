@@ -24,7 +24,6 @@ describe('UptimeAlertDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/checks/`,
-      query: {useDetectorId: '1'},
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -38,7 +37,6 @@ describe('UptimeAlertDetails', () => {
   it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
-      query: {useDetectorId: '1'},
       body: UptimeRuleFixture({name: 'Uptime Test Rule'}),
     });
 
@@ -55,7 +53,6 @@ describe('UptimeAlertDetails', () => {
   it('shows a message for invalid uptime alert', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
-      query: {useDetectorId: '1'},
       statusCode: 404,
     });
 
@@ -74,12 +71,10 @@ describe('UptimeAlertDetails', () => {
   it('disables and enables the rule', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
-      query: {useDetectorId: '1'},
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
-      query: {useDetectorId: '1'},
       body: UptimeRuleFixture({name: 'Uptime Test Rule'}),
     });
 
@@ -94,7 +89,6 @@ describe('UptimeAlertDetails', () => {
 
     const disableMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
-      query: {useDetectorId: '1'},
       method: 'PUT',
       body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'disabled'}),
     });
@@ -111,7 +105,6 @@ describe('UptimeAlertDetails', () => {
 
     const enableMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
-      query: {useDetectorId: '1'},
       method: 'PUT',
       body: UptimeRuleFixture({name: 'Uptime Test Rule', status: 'active'}),
     });

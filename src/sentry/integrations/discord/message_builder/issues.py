@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from sentry import features, tagstore
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
-from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.base.base import (
+    DiscordMessage,
+    DiscordMessageBuilder,
+)
 from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
 from sentry.integrations.discord.message_builder.base.component.base import DiscordMessageComponent
 from sentry.integrations.discord.message_builder.base.component.button import DiscordButton
@@ -48,7 +51,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
 
-    def build(self, notification_uuid: str | None = None) -> dict[str, object]:
+    def build(self, notification_uuid: str | None = None) -> DiscordMessage:
         project = Project.objects.get_from_cache(id=self.group.project_id)
         event_for_tags = self.event or self.group.get_latest_event()
         timestamp = (

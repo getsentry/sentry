@@ -7,10 +7,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
-    CHECKSTATUS_FAILURE,
-    CHECKSTATUS_SUCCESS,
-)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -33,17 +29,9 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.function_cache import cache_func, cache_func_for_models
-from sentry.workflow_engine.models import (
-    Condition,
-    DataCondition,
-    DataConditionGroup,
-    DataSource,
-    DataSourceDetector,
-    Detector,
-    DetectorState,
-)
+from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +232,7 @@ def get_org_from_detector(detector: Detector) -> tuple[Organization]:
 @cache_func_for_models([(Detector, get_org_from_detector)])
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
     return Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
         type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         project__organization=organization,
         config__mode__in=[
@@ -354,17 +343,8 @@ def get_uptime_subscription(detector: Detector) -> UptimeSubscription:
     return UptimeSubscription.objects.get_from_cache(id=int(data_source.source_id))
 
 
-def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:
-    """
-    Given a detector get the matching project subscription
-    """
-    data_source = detector.data_sources.first()
-    assert data_source
-    return ProjectUptimeSubscription.objects.get(uptime_subscription_id=int(data_source.source_id))
-
-
 def get_audit_log_data(detector: Detector):
-    """Get audit log data from a detector instead of a ProjectUptimeSubscription instance."""
+    """Get audit log data from a detector."""
     uptime_subscription = get_uptime_subscription(detector)
 
     owner_user_id = None
@@ -387,61 +367,3 @@ def get_audit_log_data(detector: Detector):
         "headers": uptime_subscription.headers,
         "body": uptime_subscription.body,
     }
-
-
-# TODO(epurkhiser): To be removed once it's no longer used in getsentry tests
-def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
-    """
-    Creates a uptime detector and associated data-source given a
-    ProjectUptimeSubscription.
-    """
-    data_source = DataSource.objects.create(
-        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-        organization=project_sub.project.organization,
-        source_id=str(project_sub.uptime_subscription_id),
-    )
-    condition_group = DataConditionGroup.objects.create(
-        organization=project_sub.project.organization,
-    )
-    DataCondition.objects.create(
-        comparison=CHECKSTATUS_FAILURE,
-        type=Condition.EQUAL,
-        condition_result=DetectorPriorityLevel.HIGH,
-        condition_group=condition_group,
-    )
-    DataCondition.objects.create(
-        comparison=CHECKSTATUS_SUCCESS,
-        type=Condition.EQUAL,
-        condition_result=DetectorPriorityLevel.OK,
-        condition_group=condition_group,
-    )
-    env = project_sub.environment.name if project_sub.environment else None
-    detector = Detector.objects.create(
-        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-        project=project_sub.project,
-        name=project_sub.name,
-        owner_user_id=project_sub.owner_user_id,
-        owner_team_id=project_sub.owner_team_id,
-        config={
-            "environment": env,
-            "mode": project_sub.mode,
-        },
-        workflow_condition_group=condition_group,
-    )
-    DataSourceDetector.objects.create(data_source=data_source, detector=detector)
-
-    # Create DetectorState based on the uptime_status from the uptime_subscription
-    if project_sub.uptime_subscription.uptime_status == UptimeStatus.FAILED:
-        DetectorState.objects.create(
-            detector=detector,
-            state=DetectorPriorityLevel.HIGH,
-            is_triggered=True,
-        )
-    else:
-        DetectorState.objects.create(
-            detector=detector,
-            state=DetectorPriorityLevel.OK,
-            is_triggered=False,
-        )
-
-    return detector

@@ -53,6 +53,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
         )
         self.detector.workflow_condition_group = detector_conditions
         self.detector.save()
+        _, _, self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
 
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
         self.event = self.store_event(data={}, project_id=self.project.id)
@@ -101,8 +102,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         """
         This test ensures that a data_source can create the correct event in Issue Platform
         """
-        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
-
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
@@ -117,8 +116,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__different_type(self) -> None:
-        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
-
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
@@ -131,7 +128,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__no_detectors(self) -> None:
-        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
         self.detector.delete()
 
         with mock.patch(

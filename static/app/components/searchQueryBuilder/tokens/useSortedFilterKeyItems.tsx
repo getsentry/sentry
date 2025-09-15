@@ -7,7 +7,6 @@ import type {
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
-  createAskSeerConsentItem,
   createAskSeerItem,
   createFilterValueItem,
   createItem,
@@ -138,7 +137,6 @@ export function useSortedFilterKeyItems({
     replaceRawSearchKeys,
     matchKeySuggestions,
     enableAISearch,
-    gaveSeerConsent,
   } = useSearchQueryBuilder();
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
@@ -197,9 +195,7 @@ export function useSortedFilterKeyItems({
 
     const askSeerItem = [];
     if (enableAISearch) {
-      askSeerItem.push(
-        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
-      );
+      askSeerItem.push(createAskSeerItem());
     }
 
     if (includeSuggestions) {
@@ -295,7 +291,6 @@ export function useSortedFilterKeyItems({
     filterKeys,
     filterValue,
     flatKeys,
-    gaveSeerConsent,
     getFieldDefinition,
     includeSuggestions,
     inputValue,
