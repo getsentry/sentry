@@ -66,11 +66,14 @@ import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTraces
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
+  useQueryParamsExtrapolate,
   useQueryParamsMode,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
+import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
 import {SpansExport} from 'sentry/views/explore/spans/spansExport';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -406,6 +409,7 @@ function SpanTabContentSection({
   const {selection} = usePageFilters();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
+  const extrapolate = useQueryParamsExtrapolate();
   const [tab, setTab] = useTab();
 
   const query = useExploreQuery();
@@ -511,16 +515,20 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
-        <Feature features="organizations:tracing-export-csv">
-          <SpansExport
-            aggregatesTableResult={aggregatesTableResult}
-            spansTableResult={spansTableResult}
-          />
-        </Feature>
+        <ActionButtonsGroup>
+          <Feature features="organizations:tracing-export-csv">
+            <SpansExport
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+            />
+          </Feature>
+          <SettingsDropdown />
+        </ActionButtonsGroup>
       </OverChartButtonGroup>
       {!resultsLoading && !hasResults && (
         <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       )}
+      <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
           <Alert type="error">{error.message}</Alert>
@@ -539,6 +547,7 @@ function SpanTabContentSection({
         <ExploreCharts
           confidences={confidences}
           query={query}
+          extrapolate={extrapolate}
           timeseriesResult={timeseriesResult}
           visualizes={visualizes}
           setVisualizes={setVisualizes}
@@ -655,9 +664,13 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
+const ActionButtonsGroup = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+`;
+
 const ChevronButton = withChonk(
   styled(Button)<{expanded: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -674,7 +687,6 @@ const ChevronButton = withChonk(
       `}
   `,
   chonkStyled(Button)<{expanded: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {

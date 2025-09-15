@@ -11,6 +11,7 @@ export interface ReadableQueryParamsOptions {
   readonly aggregateFields: readonly AggregateField[];
   readonly aggregateSortBys: readonly Sort[];
   readonly cursor: string;
+  readonly extrapolate: boolean;
   readonly fields: string[];
   readonly mode: Mode;
   readonly query: string;
@@ -18,6 +19,7 @@ export interface ReadableQueryParamsOptions {
 }
 
 export class ReadableQueryParams {
+  readonly extrapolate: boolean;
   readonly mode: Mode;
   readonly query: string;
   readonly search: MutableSearch;
@@ -33,6 +35,7 @@ export class ReadableQueryParams {
   readonly visualizes: readonly Visualize[];
 
   constructor(options: ReadableQueryParamsOptions) {
+    this.extrapolate = options.extrapolate;
     this.mode = options.mode;
     this.query = options.query;
     this.search = new MutableSearch(this.query);
