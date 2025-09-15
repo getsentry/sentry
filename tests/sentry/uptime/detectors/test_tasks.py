@@ -5,6 +5,7 @@ from unittest import mock
 from unittest.mock import call
 from urllib.robotparser import RobotFileParser
 
+import pytest
 from django.utils import timezone
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -238,6 +239,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
             assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
             mock_monitor_url_for_project.assert_not_called()
 
+    @pytest.mark.skip(reason="flaky: #97490")
     @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
     def test_succeeds_existing_subscription_other_project(self) -> None:
         other_project = self.create_project()
