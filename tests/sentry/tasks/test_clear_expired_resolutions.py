@@ -113,12 +113,10 @@ class ClearExpiredResolutionsTest(TestCase):
 
         clear_expired_resolutions(new_release.id)
 
-        # Verify the resolution was updated
         updated_resolution = GroupResolution.objects.get(id=resolution.id)
         assert updated_resolution.status == GroupResolution.Status.resolved
         assert updated_resolution.release == new_release
         assert updated_resolution.type == GroupResolution.Type.in_release
 
-        # Verify the activity was updated
         updated_activity = Activity.objects.get(id=activity.id)
         assert updated_activity.data["version"] == new_release.version
