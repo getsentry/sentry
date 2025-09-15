@@ -114,7 +114,7 @@ class TreeEnricher:
                 if ret.get(key) is None:
                     ret[key] = value
             if self._has_gen_ai_spans and span is self._segment_span:
-                ret["sentry._internal.has_gen_ai_spans"] = True
+                ret["sentry._internal.segment.contains_gen_ai_spans"] = True
 
         return ret
 

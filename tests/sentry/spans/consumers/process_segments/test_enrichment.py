@@ -456,15 +456,15 @@ def test_has_gen_ai_spans_field_when_gen_ai_spans_present():
 
     segment_idx, enriched = TreeEnricher.enrich_spans(spans)
 
-    # Check that the segment span has sentry._internal.has_gen_ai_spans field set to True
+    # Check that the segment span has sentry._internal.segment.contains_gen_ai_spans field set to True
     assert segment_idx is not None
     segment_span_data = enriched[segment_idx]["data"]
-    assert segment_span_data.get("sentry._internal.has_gen_ai_spans") is True
+    assert segment_span_data.get("sentry._internal.segment.contains_gen_ai_spans") is True
 
     # Check that non-segment spans don't have the field
     for i, span in enumerate(enriched):
         if i != segment_idx:
-            assert "sentry._internal.has_gen_ai_spans" not in span["data"]
+            assert "sentry._internal.segment.contains_gen_ai_spans" not in span["data"]
 
 
 def test_has_gen_ai_spans_field_not_present_without_gen_ai_spans():
@@ -506,14 +506,14 @@ def test_has_gen_ai_spans_field_not_present_without_gen_ai_spans():
 
     segment_idx, enriched = TreeEnricher.enrich_spans(spans)
 
-    # Check that the segment span does NOT have sentry._internal.has_gen_ai_spans field
+    # Check that the segment span does NOT have sentry._internal.segment.contains_gen_ai_spans field
     assert segment_idx == 0
     segment_span_data = enriched[segment_idx]["data"]
-    assert "sentry._internal.has_gen_ai_spans" not in segment_span_data
+    assert "sentry._internal.segment.contains_gen_ai_spans" not in segment_span_data
 
     # Check that no span has the field
     for span in enriched:
-        assert "sentry._internal.has_gen_ai_spans" not in span["data"]
+        assert "sentry._internal.segment.contains_gen_ai_spans" not in span["data"]
 
 
 def _mock_performance_issue_span(is_segment, data, **fields):
