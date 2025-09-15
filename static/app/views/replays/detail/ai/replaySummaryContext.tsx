@@ -13,7 +13,7 @@ const ReplaySummaryContext = createContext<UseFetchReplaySummaryResult>({
   summaryData: undefined,
   isError: false,
   isPending: false,
-  isPolling: false,
+  isTimedOut: false,
   startSummaryRequest: () => {},
   isStartSummaryRequestPending: false,
 });

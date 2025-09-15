@@ -4,7 +4,7 @@ import loadingGif from 'sentry-images/spot/ai-loader.gif';
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -14,6 +14,7 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -44,8 +45,8 @@ export default function Ai() {
   const {
     summaryData,
     isPending: isSummaryPending,
-    isPolling,
     isError,
+    isTimedOut,
     startSummaryRequest,
   } = useReplaySummaryContext();
 
@@ -119,29 +120,24 @@ export default function Ai() {
 
   if (isError) {
     return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>{t('Failed to load replay summary.')}</div>
-          <div>
-            <Button
-              priority="default"
-              type="button"
-              size="xs"
-              onClick={() => {
-                startSummaryRequest();
-                trackAnalytics('replay.ai-summary.regenerate-requested', {
-                  organization,
-                  area: analyticsArea + '.error',
-                });
-              }}
-              icon={<IconSync size="xs" />}
-            >
-              {t('Retry')}
-            </Button>
-          </div>
-        </EndStateContainer>
-      </Wrapper>
+      <AnalyticsArea name="error">
+        <ErrorState
+          organization={organization}
+          startSummaryRequest={startSummaryRequest}
+        />
+      </AnalyticsArea>
+    );
+  }
+
+  if (isTimedOut) {
+    return (
+      <AnalyticsArea name="timeout">
+        <ErrorState
+          organization={organization}
+          startSummaryRequest={startSummaryRequest}
+          extraMessage={t('processing timed out.')}
+        />
+      </AnalyticsArea>
     );
   }
 
@@ -152,7 +148,7 @@ export default function Ai() {
       summaryData?.status
     );
 
-  if (isSummaryPending || isPolling || summaryNotComplete) {
+  if (isSummaryPending || summaryNotComplete) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -239,12 +235,54 @@ export default function Ai() {
           {segmentCount > 100 && (
             <Subtext>
               {t(
-                'Note: this replay is too long, so we currently only summarize part of it.'
+                `Note: this replay is too long, so we're currently only summarizing part of it.`
               )}
             </Subtext>
           )}
         </OverflowBody>
       </StyledTabItemContainer>
+    </Wrapper>
+  );
+}
+
+function ErrorState({
+  organization,
+  startSummaryRequest,
+  extraMessage,
+}: {
+  organization: Organization;
+  startSummaryRequest: () => void;
+  extraMessage?: string;
+}) {
+  const analyticsArea = useAnalyticsArea();
+
+  return (
+    <Wrapper data-test-id="replay-details-ai-summary-tab">
+      <EndStateContainer>
+        <img src={aiBanner} alt="" />
+        <div>
+          {extraMessage
+            ? t('Failed to load replay summary - %s', extraMessage)
+            : t('Failed to load replay summary.')}
+        </div>
+        <div>
+          <Button
+            priority="default"
+            type="button"
+            size="xs"
+            onClick={() => {
+              startSummaryRequest();
+              trackAnalytics('replay.ai-summary.regenerate-requested', {
+                organization,
+                area: analyticsArea,
+              });
+            }}
+            icon={<IconSync size="xs" />}
+          >
+            {t('Retry')}
+          </Button>
+        </div>
+      </EndStateContainer>
     </Wrapper>
   );
 }
