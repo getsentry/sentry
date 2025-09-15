@@ -1,0 +1,208 @@
+import {uuid4} from '@sentry/core';
+
+import {t} from 'sentry/locale';
+import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {ParentAutogroupNode as LegacyParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {TraceAutogroupedRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceAutogroupedRow';
+import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+
+import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
+import {computeCollapsedBarSpace} from './utils';
+
+export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
+  head: BaseNode;
+  tail: BaseNode;
+  groupCount = 0;
+
+  private _autogroupedSegments: Array<[number, number]> | undefined;
+
+  constructor(
+    parent: BaseNode | null,
+    node: TraceTree.ChildrenAutogroup,
+    extra: TraceTreeNodeExtra,
+    head: BaseNode,
+    tail: BaseNode
+  ) {
+    super(parent, node, extra);
+    this.head = head;
+    this.tail = tail;
+  }
+
+  get id(): string {
+    return uuid4();
+  }
+
+  get autogroupedSegments(): Array<[number, number]> {
+    if (this._autogroupedSegments) {
+      return this._autogroupedSegments;
+    }
+
+    const children: BaseNode[] = [];
+    let start: BaseNode | undefined = this.head;
+
+    while (start && start !== this.tail) {
+      children.push(start);
+      start = start.children[0];
+    }
+
+    children.push(this.tail);
+
+    this._autogroupedSegments = computeCollapsedBarSpace(children);
+    return this._autogroupedSegments;
+  }
+
+  get drawerTabsTitle(): string {
+    return t('Autogroup') + ' - ' + this.value.autogrouped_by.op;
+  }
+
+  get op(): string | undefined {
+    return this.value.autogrouped_by.op;
+  }
+
+  printNode(): string {
+    return this.value.autogrouped_by.op;
+  }
+
+  pathToNode(): TraceTree.NodePath[] {
+    return [`ag-${this.id}`];
+  }
+
+  analyticsName(): string {
+    return 'parent autogroup';
+  }
+
+  renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
+    props: TraceRowProps<NodeType>
+  ): React.ReactNode {
+    return (
+      <TraceAutogroupedRow {...props} node={props.node as LegacyParentAutogroupNode} />
+    );
+  }
+
+  renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
+    props: TraceTreeNodeDetailsProps<NodeType>
+  ): React.ReactNode {
+    return (
+      <AutogroupNodeDetails
+        {...props}
+        node={props.node as unknown as LegacyParentAutogroupNode}
+      />
+    );
+  }
+
+  matchWithFreeText(query: string): boolean {
+    if (this.op?.includes(query)) {
+      return true;
+    }
+
+    if (this.description?.includes(query)) {
+      return true;
+    }
+
+    if (
+      'name' in this.value &&
+      typeof this.value.name === 'string' &&
+      this.value.name.includes(query)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  get traceHeaderTitle(): {
+    title: string;
+    subtitle?: string;
+  } {
+    return {
+      title: this.op || t('Trace'),
+      subtitle: this.description,
+    };
+  }
+
+  get directChildren(): BaseNode[] {
+    if (this.expanded) {
+      return [this.head];
+    }
+
+    return this.tail.children;
+  }
+
+  get visibleChildren(): BaseNode[] {
+    const queue: BaseNode[] = [];
+    const visibleChildren: BaseNode[] = [];
+
+    for (let i = this.directChildren.length - 1; i >= 0; i--) {
+      queue.push(this.directChildren[i]!);
+    }
+
+    while (queue.length > 0) {
+      const node = queue.pop()!;
+
+      visibleChildren.push(node);
+
+      const children = node.directChildren;
+
+      for (let i = children.length - 1; i >= 0; i--) {
+        queue.push(children[i]!);
+      }
+    }
+
+    return visibleChildren;
+  }
+
+  expand(expanding: boolean, tree: TraceTree): boolean {
+    const index = tree.list.indexOf(this as any);
+
+    // Expanding is not allowed for zoomed in nodes
+    if (expanding === this.expanded || this.hasFetchedChildren) {
+      return false;
+    }
+
+    if (expanding) {
+      // Adding the index check here because the node may not be in the list,
+      // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
+      // The node is part of the tree, but not visible yet. Check can be pushed to the top of the function
+      // when we no longer have to support non-eap traces.
+      if (index !== -1) {
+        tree.list.splice(index + 1, this.visibleChildren.length);
+      }
+
+      // When the node is collapsed, children point to the autogrouped node.
+      // We need to point them back to the tail node which is now visible
+      for (const c of this.tail.children) {
+        c.parent = this.tail;
+      }
+
+      // Adding the index check here because the node may not be in the list,
+      // since we explicitly hide all non-transaction nodes on load in the eap-watefall.
+      // The node is part of the tree, but not visible yet.Check can be pushed to the top of the function
+      // when we no longer have to support non-eap traces.
+      if (index !== -1) {
+        tree.list.splice(
+          index + 1,
+          0,
+          this.head as any,
+          ...(this.visibleChildren as any)
+        );
+      }
+    } else {
+      tree.list.splice(index + 1, this.visibleChildren.length);
+
+      // When we collapse the autogroup, we need to point the tail children
+      // back to the tail autogroup node.
+      for (const c of this.tail.children) {
+        c.parent = this.tail;
+      }
+
+      tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+    }
+
+    TraceTree.invalidate(this as any, true);
+    this.expanded = expanding;
+    return true;
+  }
+}

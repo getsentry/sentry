@@ -280,6 +280,7 @@ export declare namespace TraceTree {
     op: string;
     span_id: string;
     description?: string;
+    name?: string;
   }
 
   interface SiblingAutogroup extends BaseAutogroup {
