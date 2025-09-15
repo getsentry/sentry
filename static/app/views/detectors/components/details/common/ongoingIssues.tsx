@@ -194,7 +194,8 @@ function LatestGroupWithOpenPeriods({
     (start: Date, end?: Date) => {
       const startMs = start.getTime();
       const endMs = (end ?? new Date()).getTime();
-      // Use detector interval to determine context
+
+      // Default to 1 minute if intervalSeconds is not provided
       const intervalMs = Math.max((intervalSeconds ?? 60) * 1000, 60_000);
       const bufferMs = 10 * intervalMs; // show ~10 data points of context on each side
 
@@ -210,6 +211,7 @@ function LatestGroupWithOpenPeriods({
       let zoomStartMs = desiredStart;
       let zoomEndMs = desiredEnd;
       if (zoomEndMs - zoomStartMs > maxSpanMs) {
+        // Open periods can be longer than 90 days.
         // Prefer to show the end: clamp the window to the last maxSpanMs ending at desiredEnd
         zoomEndMs = desiredEnd;
         zoomStartMs = zoomEndMs - maxSpanMs;
