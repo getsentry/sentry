@@ -17,7 +17,6 @@ from sentry.uptime.detectors.ranking import (
     should_detect_for_organization,
     should_detect_for_project,
 )
-from sentry.uptime.models import get_project_subscription
 
 
 class AddBaseUrlToRankTest(UptimeTestCase):
@@ -205,6 +204,5 @@ class ShouldDetectForOrgTest(UptimeTestCase):
         assert should_detect_for_organization(self.organization)
         detector = self.create_uptime_detector()
         assert not should_detect_for_organization(self.organization)
-        get_project_subscription(detector).delete()
         detector.delete()
         assert should_detect_for_organization(self.organization)

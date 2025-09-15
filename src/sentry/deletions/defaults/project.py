@@ -47,7 +47,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.snuba.models import QuerySubscription
-        from sentry.uptime.models import ProjectUptimeSubscription
         from sentry.workflow_engine.models import Detector
 
         relations: list[BaseRelation] = [
@@ -90,7 +89,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
             IncidentProject,
-            ProjectUptimeSubscription,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
