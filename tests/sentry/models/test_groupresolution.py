@@ -317,6 +317,10 @@ class GroupResolutionTest(TestCase):
                 release=self.new_release,
                 group=self.group,
                 type=getattr(GroupResolution.Type, resolution_type),
+                # future release cannot be None if resolution type is in_future_release
+                future_release_version=(
+                    "future-version-a" if resolution_type == "in_future_release" else None
+                ),
             )
             assert (
                 GroupResolution.has_resolution(self.group, self.old_release) is not NotImplemented
