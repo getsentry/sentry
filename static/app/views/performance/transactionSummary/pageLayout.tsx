@@ -330,7 +330,7 @@ function PageLayout(props: Props) {
   );
 }
 
-export function NoAccess() {
+function NoAccess() {
   return (
     <Alert.Container>
       <Alert type="warning" showIcon={false}>

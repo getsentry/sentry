@@ -22,29 +22,3 @@ export const RowRectangle = styled('div')<{
   transition: border-color 0.15s ease-in-out;
   ${p => !p.isHidden && getHatchPattern(p.spanBarType, p.theme)}
 `;
-
-export const DurationPill = styled('div')<{
-  durationDisplay: DurationDisplay;
-  showDetail: boolean;
-  spanBarType?: SpanBarType;
-}>`
-  position: absolute;
-  border-radius: ${p => p.theme.borderRadius};
-  padding: 0 ${space(0.5)};
-  top: 50%;
-  display: flex;
-  align-items: center;
-  transform: translateY(-50%);
-  white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.xs};
-
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-
-  ${getDurationPillAlignment}
-  ${getDurationPillColors}
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    font-size: 10px;
-  }
-`;

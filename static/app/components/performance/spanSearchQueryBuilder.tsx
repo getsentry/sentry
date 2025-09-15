@@ -158,38 +158,6 @@ function useSpanSearchQueryBuilderProps({
   };
 }
 
-export function SpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
-  const {useEap} = props;
-
-  if (useEap) {
-    return <EapSpanSearchQueryBuilderWrapper {...props} />;
-  }
-
-  return <IndexedSpanSearchQueryBuilder {...props} />;
-}
-
-function IndexedSpanSearchQueryBuilder({
-  initialQuery,
-  searchSource,
-  datetime,
-  onSearch,
-  onBlur,
-  placeholder,
-  projects,
-}: SpanSearchQueryBuilderProps) {
-  const searchQueryBuilderProps = useSpanSearchQueryBuilderProps({
-    initialQuery,
-    searchSource,
-    datetime,
-    onSearch,
-    onBlur,
-    placeholder,
-    projects,
-  });
-
-  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
-}
-
 export function EapSpanSearchQueryBuilderWrapper(props: SpanSearchQueryBuilderProps) {
   const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
     useTraceItemTags('number');
