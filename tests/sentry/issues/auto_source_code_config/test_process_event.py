@@ -2,7 +2,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict, cast
 from unittest.mock import patch
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
@@ -15,6 +14,7 @@ from sentry.issues.auto_source_code_config.integration_utils import Installation
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
 from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
 from sentry.models.repository import Repository
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase

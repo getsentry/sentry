@@ -67,6 +67,9 @@ const applyMaxSize: Modifier<'applyMaxSize', Record<string, unknown>> = {
   requires: ['maxSize'],
   enabled: false, // will be enabled when overlay is open
   fn({state}) {
+    if (!state.modifiersData.maxSize) {
+      return;
+    }
     const {width, height} = state.modifiersData.maxSize;
     state.styles.popper!.maxHeight = height;
     state.styles.popper!.maxWidth = width;
@@ -268,9 +271,12 @@ function useOverlay({
   // Get props for overlay element
   const interactedOutside = useRef(false);
   const interactOutsideTrigger = useRef<HTMLElement | null>(null);
+  const isClosing = useRef(false);
   const {overlayProps: overlayAriaProps} = useOverlayAria(
     {
       onClose: () => {
+        // Prevent onClose from triggering multiple times when clicking outside
+        isClosing.current = true;
         onClose?.();
 
         if (interactedOutside.current) {
@@ -279,11 +285,13 @@ function useOverlay({
           const trigger = interactOutsideTrigger.current;
           interactOutsideTrigger.current = null;
 
+          // When changing this, check that you can switch between dropdowns with a single click
           trigger?.focus();
           trigger?.click();
         }
 
         openState.close();
+        isClosing.current = false;
       },
       isOpen: openState.isOpen,
       isDismissable,
@@ -294,7 +302,8 @@ function useOverlay({
           target &&
           triggerRef.current !== target &&
           !triggerRef.current?.contains(target) &&
-          (shouldCloseOnInteractOutside?.(target) ?? true)
+          (shouldCloseOnInteractOutside?.(target) ?? true) &&
+          !isClosing.current
         ) {
           // Check if the target is inside a different overlay trigger. If yes, then we
           // should activate that trigger after this overlay has closed (see the onClose

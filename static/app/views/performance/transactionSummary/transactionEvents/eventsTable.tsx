@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, type ReactNode, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
@@ -43,7 +43,6 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -221,6 +220,7 @@ function EventsTable({
         Actions.SHOW_GREATER_THAN,
         Actions.SHOW_LESS_THAN,
         Actions.OPEN_EXTERNAL_LINK,
+        Actions.OPEN_INTERNAL_LINK,
       ];
 
       if (['attachments', 'minidump'].includes(field)) {
@@ -232,10 +232,6 @@ function EventsTable({
       if (field === 'id' || field === 'trace') {
         const isIssue = !!issueId;
         let target: LocationDescriptor = {};
-        const locationWithTab = {
-          ...location,
-          query: {...location.query, tab: Tab.EVENTS},
-        };
         if (isIssue && !isRegressionIssue && field === 'id') {
           target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
         } else {
@@ -244,7 +240,7 @@ function EventsTable({
               traceSlug: dataRow.trace?.toString()!,
               eventId: dataRow.id,
               timestamp: dataRow.timestamp!,
-              location: locationWithTab,
+              location,
               organization,
               source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
               view: domainViewFilters?.view,
@@ -253,7 +249,7 @@ function EventsTable({
             target = generateTraceLink(transactionName, domainViewFilters?.view)(
               organization,
               dataRow,
-              locationWithTab
+              location
             );
           }
         }
@@ -572,7 +568,7 @@ function EventsTable({
         orgSlug={organization.slug}
         location={location}
         setError={error => setError(error?.message)}
-        referrer="api.performance.transaction-summary"
+        referrer="api.insights.transaction-summary"
         cursor="0:0:0"
       >
         {({isLoading: isTotalEventsLoading, tableData: table}) => {
@@ -584,7 +580,7 @@ function EventsTable({
               orgSlug={organization.slug}
               location={location}
               setError={error => setError(error?.message)}
-              referrer={referrer || 'api.performance.transaction-events'}
+              referrer={referrer || 'api.insights.transaction-events'}
             >
               {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
                 tableData ??= {data: []};

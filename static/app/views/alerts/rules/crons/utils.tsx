@@ -1,4 +1,4 @@
-import {type MonitorEnvironment, MonitorStatus} from 'sentry/views/insights/crons/types';
+import {MonitorStatus, type MonitorEnvironment} from 'sentry/views/insights/crons/types';
 
 const MONITOR_STATUS_PRECEDENT = [
   MonitorStatus.ERROR,

@@ -11,8 +11,8 @@ import {
 import RepositoryRow from 'sentry/components/repositoryRow';
 import {RepositoryStatus} from 'sentry/types/integrations';
 
-describe('RepositoryRow', function () {
-  beforeEach(function () {
+describe('RepositoryRow', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
@@ -21,12 +21,12 @@ describe('RepositoryRow', function () {
     status: RepositoryStatus.PENDING_DELETION,
   });
 
-  describe('rendering with access', function () {
+  describe('rendering with access', () => {
     const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
-    it('displays provider information', function () {
+    it('displays provider information', () => {
       render(<RepositoryRow repository={repository} orgSlug={organization.slug} />, {
         organization,
       });
@@ -40,7 +40,7 @@ describe('RepositoryRow', function () {
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
     });
 
-    it('displays cancel pending button', function () {
+    it('displays cancel pending button', () => {
       render(<RepositoryRow repository={pendingRepo} orgSlug={organization.slug} />, {
         organization,
       });
@@ -54,12 +54,12 @@ describe('RepositoryRow', function () {
     });
   });
 
-  describe('rendering without access', function () {
+  describe('rendering without access', () => {
     const organization = OrganizationFixture({
       access: ['org:write'],
     });
 
-    it('displays disabled trash', function () {
+    it('displays disabled trash', () => {
       render(<RepositoryRow repository={repository} orgSlug={organization.slug} />, {
         organization,
       });
@@ -68,7 +68,7 @@ describe('RepositoryRow', function () {
       expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
     });
 
-    it('displays disabled cancel', function () {
+    it('displays disabled cancel', () => {
       render(<RepositoryRow repository={pendingRepo} orgSlug={organization.slug} />, {
         organization,
       });
@@ -78,12 +78,12 @@ describe('RepositoryRow', function () {
     });
   });
 
-  describe('deletion', function () {
+  describe('deletion', () => {
     const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
-    it('sends api request to hide upon clicking delete', async function () {
+    it('sends api request to hide upon clicking delete', async () => {
       const deleteRepo = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/`,
         method: 'PUT',
@@ -104,12 +104,12 @@ describe('RepositoryRow', function () {
     });
   });
 
-  describe('cancel deletion', function () {
+  describe('cancel deletion', () => {
     const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
-    it('sends api request to cancel', async function () {
+    it('sends api request to cancel', async () => {
       const cancel = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${pendingRepo.id}/`,
         method: 'PUT',

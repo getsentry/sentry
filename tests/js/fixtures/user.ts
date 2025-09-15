@@ -18,7 +18,6 @@ export function UserFixture(params: Partial<User> = {}): User {
       prefersIssueDetailsStreamlinedUI: true,
       prefersStackedNavigation: false,
       prefersNextjsInsightsOverview: false,
-      prefersAgentsInsightsModule: false,
       prefersChonkUI: false,
     },
     ip_address: '127.0.0.1',

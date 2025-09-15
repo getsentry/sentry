@@ -23,12 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import {
-  GIGABYTE,
-  RESERVED_BUDGET_QUOTA,
-  UNLIMITED,
-  UNLIMITED_ONDEMAND,
-} from 'getsentry/constants';
+import {RESERVED_BUDGET_QUOTA, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
 import type {
   BillingHistory,
   BillingMetricHistory,
@@ -37,6 +32,7 @@ import type {
 } from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {
+  convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
@@ -339,9 +335,10 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                       {metricHistory.reserved === RESERVED_BUDGET_QUOTA
                         ? 'N/A'
                         : usagePercentage(
-                            metricHistory.category === DataCategory.ATTACHMENTS
-                              ? metricHistory.usage / GIGABYTE
-                              : metricHistory.usage,
+                            convertUsageToReservedUnit(
+                              metricHistory.usage,
+                              metricHistory.category
+                            ),
                             metricHistory.prepaid
                           )}
                     </td>

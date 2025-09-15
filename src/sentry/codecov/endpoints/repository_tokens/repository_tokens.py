@@ -34,7 +34,7 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
             PreventParams.LIMIT,
             PreventParams.NAVIGATION,
             PreventParams.CURSOR,
-            PreventParams.TERM,
+            PreventParams.TOKENS_SORT_BY,
         ],
         request=None,
         responses={
@@ -52,6 +52,28 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
         navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
         limit_param = request.query_params.get("limit", MAX_RESULTS_PER_PAGE)
         cursor = request.query_params.get("cursor")
+
+        sort_by = request.query_params.get("sortBy", "-COMMIT_DATE")
+
+        # Validate sort parameters
+        valid_sort_fields = {"COMMIT_DATE", "NAME"}
+
+        if sort_by.startswith("-"):
+            sort_field = sort_by[1:]
+            ordering_direction = OrderingDirection.DESC.value
+        else:
+            sort_field = sort_by
+            ordering_direction = OrderingDirection.ASC.value
+
+        if sort_field not in valid_sort_fields:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={
+                    "details": f"Invalid sortBy parameter. Allowed values: {', '.join(sorted(valid_sort_fields))}"
+                },
+            )
+
+        sort_by = sort_field
 
         owner_slug = owner.name
 
@@ -75,8 +97,8 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
 
         variables = {
             "owner": owner_slug,
-            "direction": OrderingDirection.DESC.value,
-            "ordering": "COMMIT_DATE",
+            "direction": ordering_direction,
+            "ordering": sort_by,
             "first": limit if navigation != NavigationParameter.PREV.value else None,
             "last": limit if navigation == NavigationParameter.PREV.value else None,
             "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,

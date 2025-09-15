@@ -21,14 +21,12 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  type CategoryOption,
-  CHART_OPTIONS_DATACATEGORY,
-  type ChartStats,
-} from 'sentry/views/organizationStats/usageChart';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
+  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
+  type CategoryOption,
+  type ChartStats,
 } from 'sentry/views/organizationStats/usageChart';
 import {
   getDateFromMoment,
@@ -37,12 +35,12 @@ import {
 
 import {GIGABYTE} from 'getsentry/constants';
 import {
+  ReservedBudgetCategoryType,
   type BillingMetricHistory,
   type BillingStat,
   type BillingStats,
   type CustomerUsage,
   type Plan,
-  ReservedBudgetCategoryType,
   type ReservedBudgetForCategory,
   type Subscription,
 } from 'getsentry/types';

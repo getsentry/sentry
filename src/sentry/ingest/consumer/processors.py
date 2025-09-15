@@ -13,13 +13,16 @@ from usageaccountant import UsageUnit
 from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import EventManager, save_attachment
-from sentry.eventstore.processing import event_processing_store, transaction_processing_store
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services.eventstore.processing import (
+    event_processing_store,
+    transaction_processing_store,
+)
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.usage_accountant import record
@@ -274,7 +277,7 @@ def process_event(
                     project_id=project_id,
                 )
             else:
-                metrics.incr("feedback.ingest.filtered", tags={"reason": "org.denylist"})
+                metrics.incr("feedback.ingest.denylist")
         else:
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the
@@ -375,7 +378,8 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
     attachment_msg = message["attachment"]
     attachment_type = attachment_msg.pop("attachment_type")
 
-    # NOTE: `get_from_chunks` will avoid the cache if `attachment_msg` contains `data` inline
+    # NOTE: `get_from_chunks` will avoid the cache if `attachment_msg` contains `data` inline,
+    # or if the attachment has already been stored with a `stored_id`.
     attachment = attachment_cache.get_from_chunks(
         key=cache_key, type=attachment_type, **attachment_msg
     )

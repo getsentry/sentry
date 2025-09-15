@@ -12,7 +12,7 @@ import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('WebVitalMetersWithIssues', function () {
+describe('WebVitalMetersWithIssues', () => {
   const organization = OrganizationFixture();
   const projectScore: ProjectScore = {
     lcpScore: 100,
@@ -24,7 +24,7 @@ describe('WebVitalMetersWithIssues', function () {
   const projectData: ProjectData[] = [];
   let issuesMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     issuesMock = MockApiClient.addMockResponse({
       method: 'GET',

@@ -23,8 +23,8 @@ import SeparatorField from './separatorField';
 import TextareaField from './textareaField';
 import TextField from './textField';
 
-describe('Field accessibility', function () {
-  it('has appropriate aria attributes on all fields', async function () {
+describe('Field accessibility', () => {
+  it('has appropriate aria attributes on all fields', async () => {
     // TODO(epurkhiser): The following fields are sill missing accessibility
     // check tests:
     //

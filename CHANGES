@@ -1,3 +1,35 @@
+25.8.0
+------
+
+### Various fixes & improvements
+
+- fix(ci): Push docker image on release branches (#97936) by @hubertdeng123
+- fix(explore): Insert group bys before visualizes if possible (#97923) by @Zylphrex
+- feat(logs): Support multiple visualizes and groupbys in logs (#97912) by @Zylphrex
+- ref(dashboards): make `WidgetCardChart` functional (#97885) by @lzhao-sentry
+- feat(summarization): Route s4s traffic to new pod (#97926) by @Mihir-Mavalankar
+- aci(feat): Use propagated timestamp to track triggering latency (#97612) by @kcons
+- feat(detectors): Update detection algorithm for MN+1 Experimental Detector (#97533) by @roggenkemper
+- fix(aci): Make rule/workflow redis buffer interactions non-transactional (#97917) by @kcons
+- ref: remove coreapi, use ParseError in sentry_app logic (#97913) by @JoshFerge
+- chore(cell-actions): use popper strategy fixed instead of portalling (#97593) by @lzhao-sentry
+- ref(replay): Refactor how we refresh bulk delete notifications (#97893) by @ryan953
+- feat(replay): Add a dropdown to make it easier to select replays inside stories (#97713) by @ryan953
+- feat(otlp): Collapse Trace Waterfall spans based on span name (#97706) by @gggritso
+- feat(otlp): Use `name` attribute in more spaces in the span waterfall (#97704) by @gggritso
+- ref: move codeowners endpoints into issues module (#97916) by @JoshFerge
+- ref(groupingInfo): Hide client fingerprint in Contributing Values view if it doesn't contribute (#97904) by @shayna-ch
+- ref(groupingInfo): add highlight to contributing values when All Values is set (#97812) by @shayna-ch
+- ref(issues): improve similar issues stacktrace diff (#97645) by @shayna-ch
+- chore: add good example of `SENTRY_DISALLOWED_IPS` (#97847) by @oioki
+- feat(trace-eap-waterfall): Exclude missing instrumentation nodes from FE traces (#97879) by @Abdkhan14
+- ref(cell-actions): better interactions for ID and clearer menu indication (#97888) by @lzhao-sentry
+- :running: perf(aci): measure trigger action execution time (#97918) by @iamrajjoshi
+- chore(autofix): add more copy button content (#97891) by @roaga
+- feat(autofix): Show error message when drafting PR (#97867) by @roaga
+
+_Plus 1946 more_
+
 25.7.0
 ------
 

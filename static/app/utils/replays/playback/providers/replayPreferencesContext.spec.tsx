@@ -4,8 +4,8 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {
   LocalStorageReplayPreferences,
-  type PrefsStrategy,
   StaticReplayPreferences,
+  type PrefsStrategy,
 } from 'sentry/components/replays/preferences/replayPreferences';
 import {
   ReplayPreferencesContextProvider,

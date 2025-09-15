@@ -436,7 +436,6 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'visibility-explore-view',
-        'ourlogs-alerts',
         'ourlogs-enabled',
       ];
       const rule = MetricRuleFixture();

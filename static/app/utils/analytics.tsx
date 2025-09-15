@@ -8,12 +8,16 @@ import {
   type AlertsEventParameters,
 } from 'sentry/utils/analytics/alertsAnalyticsEvents';
 import {
+  exploreAnalyticsEventMap,
+  type ExploreAnalyticsEventParameters,
+} from 'sentry/utils/analytics/exploreAnalyticsEvents';
+import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
 import {
-  type GamingAnalyticsEventParameters,
   gamingEventMap,
+  type GamingAnalyticsEventParameters,
 } from 'sentry/utils/analytics/gamingAnalyticsEvents';
 import {
   logsAnalyticsEventMap,
@@ -118,6 +122,7 @@ interface EventParameters
     LogsAnalyticsEventParameters,
     TracingEventParameters,
     StatsEventParameters,
+    ExploreAnalyticsEventParameters,
     QuickStartEventParameters,
     TempestEventParameters,
     Record<string, Record<string, any>> {}
@@ -139,6 +144,7 @@ const allEventMap: Record<string, string | null> = {
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
+  ...exploreAnalyticsEventMap,
   ...logsAnalyticsEventMap,
   ...releasesEventMap,
   ...replayEventMap,

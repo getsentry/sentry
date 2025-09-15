@@ -21,11 +21,11 @@ import {
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS, MODULE_DOC_LINK} from 'sentry/views/insights/cache/settings';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -163,7 +163,7 @@ export function CacheLandingPage() {
     <React.Fragment>
       <BackendHeader module={ModuleName.CACHE} />
 
-      <ModuleBodyUpsellHook moduleName={ModuleName.CACHE}>
+      <ModuleFeature moduleName={ModuleName.CACHE}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
@@ -194,7 +194,7 @@ export function CacheLandingPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }

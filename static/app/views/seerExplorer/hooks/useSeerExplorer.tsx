@@ -1,11 +1,11 @@
 import {useCallback, useState} from 'react';
 
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
-  type UseApiQueryOptions,
   useQueryClient,
+  type ApiQueryKey,
+  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -26,7 +26,7 @@ type SeerExplorerChatResponse = {
   run_id: number;
 };
 
-const POLL_INTERVAL = 500; // Poll every 500ms
+const POLL_INTERVAL = 1000; // Poll every second
 
 const makeSeerExplorerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey => [
   `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
@@ -85,6 +85,10 @@ export const useSeerExplorer = () => {
   const [optimisticMessageIds, setOptimisticMessageIds] = useState<Set<string>>(
     new Set()
   );
+  const [pendingOptimisticBlocks, setPendingOptimisticBlocks] = useState<{
+    blocks: Block[];
+    insertIndex: number;
+  } | null>(null);
 
   const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(orgSlug || '', currentRunId || undefined),
@@ -156,10 +160,59 @@ export const useSeerExplorer = () => {
           prev => new Set([...prev, userMessage.id, loadingMessage.id])
         );
 
+        // Keep a local copy of optimistic blocks so they persist across polls
+        setPendingOptimisticBlocks({
+          blocks: [userMessage, loadingMessage],
+          insertIndex: calculatedInsertIndex,
+        });
+
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(orgSlug, currentRunId),
           {session: updatedSession}
+        );
+      } else {
+        // Handle optimistic UI for the first message (no run yet or no session in cache)
+        const userMessage: Block = {
+          id: `user-${timestamp}`,
+          message: {
+            role: 'user',
+            content: query,
+          },
+          timestamp: new Date().toISOString(),
+          loading: false,
+        };
+
+        const loadingMessage: Block = {
+          id: `loading-${timestamp}`,
+          message: {
+            role: 'assistant',
+            content: 'Thinking...',
+          },
+          timestamp: new Date().toISOString(),
+          loading: true,
+        };
+
+        setOptimisticMessageIds(
+          prev => new Set([...prev, userMessage.id, loadingMessage.id])
+        );
+
+        setPendingOptimisticBlocks({
+          blocks: [userMessage, loadingMessage],
+          insertIndex: calculatedInsertIndex,
+        });
+
+        const newSession: NonNullable<SeerExplorerResponse['session']> = {
+          run_id: undefined,
+          blocks: [userMessage, loadingMessage],
+          status: 'processing',
+          updated_at: new Date().toISOString(),
+        };
+
+        setApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          makeSeerExplorerQueryKey(orgSlug),
+          {session: newSession}
         );
       }
 
@@ -181,17 +234,13 @@ export const useSeerExplorer = () => {
           setCurrentRunId(response.run_id);
         }
 
-        // Clear deletedFromIndex since we just sent a message from that point
-        if (deletedFromIndex !== null) {
-          setDeletedFromIndex(null);
-        }
-
         // Invalidate queries to fetch fresh data
         queryClient.invalidateQueries({
           queryKey: makeSeerExplorerQueryKey(orgSlug, response.run_id),
         });
-      } catch (e) {
+      } catch (e: any) {
         setWaitingForResponse(false);
+        setPendingOptimisticBlocks(null);
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(orgSlug, currentRunId || undefined),
@@ -207,6 +256,7 @@ export const useSeerExplorer = () => {
     setWaitingForResponse(false);
     setDeletedFromIndex(null);
     setOptimisticMessageIds(new Set());
+    setPendingOptimisticBlocks(null);
     if (orgSlug) {
       setApiQueryData<SeerExplorerResponse>(
         queryClient,
@@ -222,6 +272,18 @@ export const useSeerExplorer = () => {
 
   // Always filter messages based on deletedFromIndex before any other processing
   let sessionData = apiData?.session ?? null;
+
+  // If we are between queries (e.g., first message just set a new run id and
+  // the new query hasn't returned yet), keep showing optimistic blocks by
+  // constructing an ephemeral processing session.
+  if (!sessionData && pendingOptimisticBlocks) {
+    sessionData = {
+      run_id: currentRunId ?? undefined,
+      blocks: pendingOptimisticBlocks.blocks,
+      status: 'processing',
+      updated_at: new Date().toISOString(),
+    };
+  }
   if (sessionData?.blocks && deletedFromIndex !== null) {
     // Separate optimistic messages from real messages
     const optimisticMessages = sessionData.blocks.filter(msg =>
@@ -240,6 +302,39 @@ export const useSeerExplorer = () => {
     };
   }
 
+  // If we have pending optimistic blocks and the server has not completed processing,
+  // ensure they remain visible even if the next poll hasn't included them yet.
+  if (sessionData) {
+    if (pendingOptimisticBlocks && sessionData.status === 'processing') {
+      const existingIds = new Set(sessionData.blocks.map(b => b.id));
+      const nonExistingOptimistic = pendingOptimisticBlocks.blocks.filter(
+        b => !existingIds.has(b.id)
+      );
+
+      if (nonExistingOptimistic.length > 0) {
+        const safeInsertIndex = Math.min(
+          Math.max(pendingOptimisticBlocks.insertIndex, 0),
+          sessionData.blocks.length
+        );
+        const mergedBlocks = [
+          ...sessionData.blocks.slice(0, safeInsertIndex),
+          ...nonExistingOptimistic,
+          ...sessionData.blocks.slice(safeInsertIndex),
+        ];
+        sessionData = {
+          ...sessionData,
+          blocks: mergedBlocks,
+          status: 'processing',
+        };
+      }
+    }
+
+    // If processing is done, clear any pending optimistic blocks
+    if (pendingOptimisticBlocks && sessionData.status !== 'processing') {
+      setPendingOptimisticBlocks(null);
+    }
+  }
+
   if (waitingForResponse && sessionData?.blocks) {
     // Stop waiting once we see the response is no longer loading
     const hasLoadingMessage = sessionData.blocks.some(block => block.loading);
@@ -250,6 +345,8 @@ export const useSeerExplorer = () => {
       setDeletedFromIndex(null);
       // Clear optimistic message IDs since they should now be real messages
       setOptimisticMessageIds(new Set());
+      // Clear any pending optimistic blocks
+      setPendingOptimisticBlocks(null);
     }
   }
 

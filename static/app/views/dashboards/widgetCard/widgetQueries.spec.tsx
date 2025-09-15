@@ -15,7 +15,7 @@ import {
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 
-describe('Dashboards > WidgetQueries', function () {
+describe('Dashboards > WidgetQueries', () => {
   const initialData = initializeOrg();
 
   const renderWithProviders = (component: React.ReactNode) =>
@@ -91,11 +91,11 @@ describe('Dashboards > WidgetQueries', function () {
     },
   };
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('can send multiple API requests', async function () {
+  it('can send multiple API requests', async () => {
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -123,7 +123,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(defaultMock).toHaveBeenCalledTimes(1);
   });
 
-  it('appends dashboard filters to events series request', async function () {
+  it('appends dashboard filters to events series request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -151,7 +151,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('appends dashboard filters to events table request', async function () {
+  it('appends dashboard filters to events table request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],
@@ -179,7 +179,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('sets errorMessage when the first request fails', async function () {
+  it('sets errorMessage when the first request fails', async () => {
     const okMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       match: [MockApiClient.matchQuery({query: 'event.type:error'})],
@@ -216,7 +216,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(failMock).toHaveBeenCalledTimes(1);
   });
 
-  it('adjusts interval based on date window', async function () {
+  it('adjusts interval based on date window', async () => {
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -261,7 +261,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('adjusts interval based on date window 14d', async function () {
+  it('adjusts interval based on date window 14d', async () => {
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -290,7 +290,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('can send table result queries', async function () {
+  it('can send table result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -334,7 +334,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps?.tableResults?.[0]!.meta).toBeDefined();
   });
 
-  it('can send multiple table queries', async function () {
+  it('can send multiple table queries', async () => {
     const firstQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -401,7 +401,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps?.tableResults?.[1]!.data[0]!.title).toBeDefined();
   });
 
-  it('can send big number result queries', async function () {
+  it('can send big number result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -460,7 +460,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps?.tableResults?.[0]?.meta).toBeDefined();
   });
 
-  it('stops loading state once all queries finish even if some fail', async function () {
+  it('stops loading state once all queries finish even if some fail', async () => {
     const firstQuery = MockApiClient.addMockResponse({
       statusCode: 500,
       url: '/organizations/org-slug/events/',
@@ -523,7 +523,7 @@ describe('Dashboards > WidgetQueries', function () {
     await waitFor(() => expect(childProps?.loading).toBe(false));
   });
 
-  it('sets bar charts to 1d interval', async function () {
+  it('sets bar charts to 1d interval', async () => {
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -551,7 +551,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(errorMock).toHaveBeenCalledTimes(1);
   });
 
-  it('returns timeseriesResults in the same order as widgetQuery', async function () {
+  it('returns timeseriesResults in the same order as widgetQuery', async () => {
     MockApiClient.clearMockResponses();
     const defaultMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -624,7 +624,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('calls events-stats with 4h interval when interval buckets would exceed 66', async function () {
+  it('calls events-stats with 4h interval when interval buckets would exceed 66', async () => {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -662,7 +662,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('does not re-query events and sets name in widgets', async function () {
+  it('does not re-query events and sets name in widgets', async () => {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: EventsStatsFixture(),
@@ -730,7 +730,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('charts send metricsEnhanced requests', async function () {
+  it('charts send metricsEnhanced requests', async () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -787,7 +787,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
   });
 
-  it('tables send metricsEnhanced requests', async function () {
+  it('tables send metricsEnhanced requests', async () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -833,7 +833,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
   });
 
-  it('does not inject equation aliases for top N requests', async function () {
+  it('does not inject equation aliases for top N requests', async () => {
     const testData = initializeOrg({
       organization: {
         ...OrganizationFixture(),

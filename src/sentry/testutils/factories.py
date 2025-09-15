@@ -32,7 +32,6 @@ from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -106,6 +105,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projecttemplate import ProjectTemplate
+from sentry.models.pullrequest import PullRequestCommit
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -141,6 +141,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
+from sentry.services.eventstore.models import Event
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -150,17 +151,14 @@ from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
-    ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -187,6 +185,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
@@ -929,9 +928,77 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_pull_request(
+        repository_id=None, organization_id=None, key=None, title=None, message=None, author=None
+    ):
+        from sentry.models.pullrequest import PullRequest
+
+        return PullRequest.objects.create(
+            repository_id=repository_id,
+            organization_id=organization_id,
+            key=key or str(uuid4().hex[:8]),
+            title=title or make_sentence(),
+            message=message or make_sentence(),
+            author=author,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_pull_request_comment(
+        pull_request,
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+        group_ids=None,
+        comment_type=None,
+        reactions=None,
+    ):
+        from django.utils import timezone
+
+        from sentry.models.pullrequest import CommentType, PullRequestComment
+
+        if created_at is None:
+            created_at = timezone.now()
+        if updated_at is None:
+            updated_at = created_at
+        if group_ids is None:
+            group_ids = []
+        if comment_type is None:
+            comment_type = CommentType.MERGED_PR
+
+        return PullRequestComment.objects.create(
+            pull_request=pull_request,
+            external_id=external_id or uuid4().int % (10**9),
+            created_at=created_at,
+            updated_at=updated_at,
+            group_ids=group_ids,
+            comment_type=comment_type,
+            reactions=reactions,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_pull_request_commit(pull_request, commit):
+        return PullRequestCommit.objects.create(
+            pull_request=pull_request,
+            commit=commit,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_file_change(commit, filename):
         return CommitFileChange.objects.get_or_create(
-            organization_id=commit.organization_id, commit=commit, filename=filename, type="M"
+            organization_id=commit.organization_id, commit_id=commit.id, filename=filename, type="M"
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_release_commit(release, commit, order=1):
+        return ReleaseCommit.objects.create(
+            organization_id=release.organization_id,
+            release=release,
+            commit=commit,
+            order=order,
         )
 
     @staticmethod
@@ -1993,7 +2060,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
+    def create_webhook_payload(
+        mailbox_name: str, region_name: str | None, **kwargs
+    ) -> WebhookPayload:
         payload_kwargs = {
             "request_method": "POST",
             "request_path": "/extensions/github/webhook/",
@@ -2050,39 +2119,6 @@ class Factories:
         )
 
     @staticmethod
-    def create_project_uptime_subscription(
-        project: Project,
-        env: Environment | None,
-        uptime_subscription: UptimeSubscription,
-        status: int,
-        mode: UptimeMonitorMode,
-        name: str | None,
-        owner: Actor | None,
-        id: int | None,
-    ):
-        if name is None:
-            name = petname.generate().title()
-        owner_team_id = None
-        owner_user_id = None
-        if owner:
-            if owner.is_team:
-                owner_team_id = owner.id
-            elif owner.is_user:
-                owner_user_id = owner.id
-
-        return ProjectUptimeSubscription.objects.create(
-            uptime_subscription=uptime_subscription,
-            project=project,
-            environment=env,
-            status=status,
-            mode=mode,
-            name=name,
-            owner_team_id=owner_team_id,
-            owner_user_id=owner_user_id,
-            pk=id,
-        )
-
-    @staticmethod
     def create_uptime_subscription_region(
         subscription: UptimeSubscription,
         region_slug: str,
@@ -2116,7 +2152,6 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_dashboard_widget(
-        order: int,
         dashboard: Dashboard | None = None,
         title: str | None = None,
         display_type: int | None = None,
@@ -2130,7 +2165,7 @@ class Factories:
             title = petname.generate(2, " ", letters=10).title()
 
         return DashboardWidget.objects.create(
-            dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
+            dashboard=dashboard, title=title, display_type=display_type, **kwargs
         )
 
     @staticmethod
@@ -2142,7 +2177,7 @@ class Factories:
         **kwargs,
     ):
         if widget is None:
-            widget = Factories.create_dashboard_widget(order=order)
+            widget = Factories.create_dashboard_widget()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)
@@ -2301,6 +2336,15 @@ class Factories:
         if workflow is None:
             workflow = Factories.create_workflow()
         return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_group(
+        detector: Detector,
+        group: Group,
+        **kwargs,
+    ) -> DetectorGroup:
+        return DetectorGroup.objects.create(detector=detector, group=group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

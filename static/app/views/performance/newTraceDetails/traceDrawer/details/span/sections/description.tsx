@@ -91,7 +91,7 @@ export function SpanDescription({
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
+    organization.features.includes('insight-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
   const groupHash = hasNewSpansUIFlag
@@ -114,7 +114,7 @@ export function SpanDescription({
         project_id={node.event?.projectID}
         organization={organization}
       />
-      <Link
+      <StyledLink
         to={
           hasExploreEnabled
             ? getSearchInExploreTarget(
@@ -156,11 +156,11 @@ export function SpanDescription({
           }
         }}
       >
-        <StyledIconGraph type="scatter" size="xs" />
+        <IconGraph type="scatter" size="xs" />
         {hasNewSpansUIFlag || hasExploreEnabled
           ? t('More Samples')
           : t('View Similar Spans')}
-      </Link>
+      </StyledLink>
     </BodyContentWrapper>
   ) : null;
 
@@ -202,7 +202,6 @@ export function SpanDescription({
             <CopyToClipboardButton
               borderless
               size="zero"
-              iconSize="xs"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
             />
@@ -304,7 +303,6 @@ function ResourceImage(props: {
         <CopyToClipboardButton
           borderless
           size="zero"
-          iconSize="xs"
           text={fileName}
           title={t('Copy file name')}
         />
@@ -358,10 +356,6 @@ const CodeSnippetWrapper = styled('div')`
   flex: 1;
 `;
 
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
-`;
-
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
   gap: ${space(1)};
@@ -390,4 +384,10 @@ const DescriptionWrapper = styled('div')`
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
   padding: ${space(1)};
   justify-content: center;
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

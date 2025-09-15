@@ -174,7 +174,7 @@ class NotificationActionNotificationMessageRepository:
         It is up to the caller to iterate over all the data, or store in memory if they need all objects concurrently.
         """
         action_id_filter = Q(action__id__in=action_ids) if action_ids else Q()
-        group_id_filter = Q(group__id__in=group_ids) if group_ids else Q()
+        group_id_filter = Q(group_id__in=group_ids) if group_ids else Q()
         open_period_start_filter = (
             Q(open_period_start=open_period_start) if open_period_start else Q()
         )

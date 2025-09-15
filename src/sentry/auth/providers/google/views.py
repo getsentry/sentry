@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import orjson
 from django.http import HttpRequest
-from rest_framework.response import Response
+from django.http.response import HttpResponseBase
 
+from sentry.auth.helper import AuthHelper
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -18,13 +20,16 @@ logger = logging.getLogger("sentry.auth.google")
 
 
 class FetchUser(AuthView):
-    def __init__(self, domains, version, *args, **kwargs) -> None:
+    def __init__(
+        self, domains: list[str] | None, version: str | None, *args: Any, **kwargs: Any
+    ) -> None:
         self.domains = domains
         self.version = version
         super().__init__(*args, **kwargs)
 
-    def dispatch(self, request: HttpRequest, pipeline) -> Response:
-        data = pipeline.fetch_state("data")
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
+        data: dict[str, Any] | None = pipeline.fetch_state("data")
+        assert data is not None
 
         try:
             id_token = data["id_token"]
@@ -39,7 +44,7 @@ class FetchUser(AuthView):
             return pipeline.error(ERR_INVALID_RESPONSE)
 
         try:
-            payload = orjson.loads(payload_b)
+            payload: dict[str, Any] = orjson.loads(payload_b)
         except Exception as exc:
             logger.exception("Unable to decode id_token payload: %s", exc)
             return pipeline.error(ERR_INVALID_RESPONSE)
@@ -49,6 +54,7 @@ class FetchUser(AuthView):
             return pipeline.error(ERR_INVALID_RESPONSE)
 
         # support legacy style domains with pure domain regexp
+        domain: str | None = None
         if self.version is None:
             domain = extract_domain(payload["email"])
         else:
@@ -81,5 +87,5 @@ def google_configure_view(
     return DeferredResponse("sentry_auth_google/configure.html", {"domains": domains or []})
 
 
-def extract_domain(email):
+def extract_domain(email: str) -> str:
     return email.rsplit("@", 1)[-1]

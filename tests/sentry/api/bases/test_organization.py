@@ -46,7 +46,7 @@ from sentry.utils.security.orgauthtoken_token import hash_token
 
 class MockSuperUser:
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return True
 
 

@@ -64,7 +64,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
@@ -77,6 +77,7 @@ from sentry.web.helpers import render_to_response
 from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
+from .utils import parse_github_blob_url
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -258,16 +259,20 @@ class GitHubIntegration(
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        branch, _, _ = url.partition("/")
+        if not repo.url:
+            return ""
+        branch, _ = parse_github_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        _, _, source_path = url.partition("/")
+        if not repo.url:
+            return ""
+        _, source_path = parse_github_blob_url(repo.url, url)
         return source_path
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         args:
         * query - a query to filter the repositories by
@@ -276,7 +281,7 @@ class GitHubIntegration(
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         if not query:
-            all_repos = self.get_client().get_repos()
+            all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
             return [
                 {
                     "name": i["name"],
@@ -375,8 +380,8 @@ class GitHubIntegration(
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
-## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this pull request
+This pull request was merged and Sentry observed the following issues:
 
 {issue_list}
 
@@ -466,6 +471,20 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
+def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
+    if e.json:
+        message = e.json.get("message", "")
+        if RATE_LIMITED_MESSAGE in message:
+            return []
+        elif "403 Forbidden" in message:
+            return []
+    elif e.code == 404 or e.code == 403:
+        return []
+    elif isinstance(e, ApiInvalidRequestError):
+        return []
+    return None
+
+
 class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
     integration: GitHubIntegration
     organization_option_key = "sentry:github_open_pr_bot"
@@ -477,8 +496,9 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         try:
             pr_files = client.get_pullrequest_files(repo=repo.name, pull_number=pr.key)
         except ApiError as e:
-            if (e.json and RATE_LIMITED_MESSAGE in e.json.get("message", "")) or e.code == 404:
-                return []
+            api_error_resp = process_api_error(e)
+            if api_error_resp is not None:
+                return api_error_resp
             else:
                 raise
 

@@ -153,7 +153,7 @@ export function Am1MobileOverviewPage() {
     columnTitles = [
       ...columnTitles.slice(0, 5),
       {title: 'ttid'},
-      ...columnTitles.slice(5, 0),
+      ...columnTitles.slice(5),
     ];
     tripleChartRowCharts.push(
       ...[
@@ -162,7 +162,7 @@ export function Am1MobileOverviewPage() {
       ]
     );
   }
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
   if (organization.features.includes('starfish-mobile-appstart')) {
@@ -172,7 +172,7 @@ export function Am1MobileOverviewPage() {
     );
   }
 
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
   }
 

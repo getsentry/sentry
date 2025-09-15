@@ -6,9 +6,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
 import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
@@ -109,10 +109,10 @@ export function InviteMissingMembersModal({
   const renderStatusMessage = () => {
     if (sendingInvites) {
       return (
-        <StatusMessage>
+        <Flex gap="md" align="center">
           <LoadingIndicator mini relative size={16} />
           {t('Sending organization invitations\u2026')}
-        </StatusMessage>
+        </Flex>
       );
     }
 
@@ -128,14 +128,14 @@ export function InviteMissingMembersModal({
       };
 
       return (
-        <StatusMessage status="success">
+        <Flex gap="md" align="center">
           <IconCheckmark size="sm" />
           <span>
             {errorCount > 0
               ? tct('Sent [invites], [failed] failed to send.', tctComponents)
               : tct('Sent [invites]', tctComponents)}
           </span>
-        </StatusMessage>
+        </Flex>
       );
     }
 
@@ -157,7 +157,7 @@ export function InviteMissingMembersModal({
           data,
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       const errorResponse = err.responseJSON;
 
       // Use the email error message if available. This inconsistently is

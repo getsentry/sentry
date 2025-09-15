@@ -18,9 +18,9 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
@@ -319,12 +319,37 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "description": "This is the description",
         }
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as e:
+        with pytest.raises(IntegrationConfigurationError) as e:
             self.install.create_issue(form_data)
 
-        assert e.value.args[0] == {
-            "detail": "Issues are disabled for this repo, please check your repo's permissions"
+        assert (
+            e.value.args[0]
+            == "Issues are disabled for this repository, please check your repository permissions"
+        )
+
+    @responses.activate
+    def test_create_issue_with_bad_github_repo_permissions(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            status=403,
+            json={
+                "message": "Repository was archived so is read-only.",
+                "documentation_url": "https://docs.github.com/rest/issues/issues#create-an-issue",
+                "status": "403",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
         }
+
+        with pytest.raises(IntegrationConfigurationError) as e:
+            self.install.create_issue(form_data)
+
+        assert e.value.args[0] == "Repository was archived so is read-only."
 
     @responses.activate
     def test_create_issue_raises_integration_error(self) -> None:

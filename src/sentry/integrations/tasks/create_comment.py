@@ -52,9 +52,9 @@ def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
 
     with SCMIntegrationInteractionEvent(
         interaction_type=SCMIntegrationInteractionType.SYNC_EXTERNAL_ISSUE_COMMENT_CREATE,
-        organization=external_issue.organization,
         provider_key=installation.model.get_provider().name,
-        org_integration=installation.org_integration,
+        organization_id=external_issue.organization.id,
+        integration_id=installation.org_integration.integration_id,
     ).capture() as lifecycle:
         lifecycle.add_extras(
             {

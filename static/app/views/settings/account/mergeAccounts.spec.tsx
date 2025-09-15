@@ -15,8 +15,8 @@ import MergeAccounts from 'sentry/views/settings/account/mergeAccounts';
 const ENDPOINT = '/auth-v2/merge-accounts/';
 const VERIFICATION_CODE_ENDPOINT = '/auth-v2/user-merge-verification-codes/';
 
-describe('MergeAccounts', function () {
-  beforeEach(function () {
+describe('MergeAccounts', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -24,7 +24,7 @@ describe('MergeAccounts', function () {
     });
   });
 
-  it('renders single account', async function () {
+  it('renders single account', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -38,7 +38,7 @@ describe('MergeAccounts', function () {
     ).toBeInTheDocument();
   });
 
-  it('can post verification code', async function () {
+  it('can post verification code', async () => {
     const mock = MockApiClient.addMockResponse({
       url: VERIFICATION_CODE_ENDPOINT,
       method: 'POST',
@@ -62,7 +62,7 @@ describe('MergeAccounts', function () {
     );
   });
 
-  it('can select accounts', async function () {
+  it('can select accounts', async () => {
     render(<MergeAccounts />);
     renderGlobalModal();
 
@@ -73,7 +73,7 @@ describe('MergeAccounts', function () {
     ).toBeInTheDocument();
   });
 
-  it('can submit merge request', async function () {
+  it('can submit merge request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',

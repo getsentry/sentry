@@ -185,7 +185,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert job.status == "pending"
 
         # Verify task was scheduled
-        mock_task.assert_called_once_with(job.id, offset=0)
+        mock_task.assert_called_once_with(job.id, offset=0, has_seer_data=False)
 
         with assume_test_silo_mode(SiloMode.REGION):
             RegionOutbox(
@@ -341,6 +341,30 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
                 format="json",
             )
         assert response.status_code == 201
+
+    @patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay")
+    def test_post_has_seer_data(self, mock_task: MagicMock) -> None:
+        """Test POST with summaries enabled schedules task with has_seer_data=True."""
+        data = {
+            "data": {
+                "rangeStart": "2023-01-01T00:00:00Z",
+                "rangeEnd": "2023-01-02T00:00:00Z",
+                "environments": ["production"],
+                "query": None,
+            }
+        }
+
+        with self.feature({"organizations:replay-ai-summaries": True}):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="post", **data, status_code=201
+            )
+
+        job_data = response.data["data"]
+        job = ReplayDeletionJobModel.objects.get(id=job_data["id"])
+        assert job.project_id == self.project.id
+        assert job.status == "pending"
+
+        mock_task.assert_called_once_with(job.id, offset=0, has_seer_data=True)
 
 
 @region_silo_test

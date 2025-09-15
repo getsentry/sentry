@@ -1,3 +1,6 @@
+import logging
+import re
+
 import jsonschema
 import orjson
 from rest_framework.exceptions import PermissionDenied
@@ -9,9 +12,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+
+logger = logging.getLogger(__name__)
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -46,6 +53,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
                     "code_signature_errors": {"type": "array", "items": {"type": "string"}},
                 },
             },
+            "dequeued_at": {"type": "string"},
         },
         "additionalProperties": True,
     }
@@ -65,6 +73,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         "apple_app_info.profile_name": "The profile_name field must be a string.",
         "apple_app_info.is_code_signature_valid": "The is_code_signature_valid field must be a boolean.",
         "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
+        "dequeued_at": "The dequeued_at field must be a string.",
     }
 
     try:
@@ -80,6 +89,84 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         return {}, validation_error_message
     except (orjson.JSONDecodeError, TypeError):
         return {}, "Invalid json body"
+
+
+def find_or_create_release(
+    project, package: str, version: str, build_number: int | None = None
+) -> Release | None:
+    """
+    Find or create a release based on package, version, and project.
+
+    Creates release version in format: package@version+build_number (if build_number provided)
+    or package@version (if no build_number)
+
+    Args:
+        project: The project to search/create the release for
+        package: The package identifier (e.g., "com.myapp.MyApp")
+        version: The version string (e.g., "1.2.300")
+        build_number: Optional build number to include in release version
+
+    Returns:
+        Release object if found/created, None if creation fails
+    """
+    try:
+        base_version = f"{package}@{version}"
+        existing_release = Release.objects.filter(
+            organization_id=project.organization_id,
+            projects=project,
+            version__regex=rf"^{re.escape(base_version)}(\+\d+)?$",
+        ).first()
+
+        if existing_release:
+            logger.info(
+                "Found existing release for preprod artifact",
+                extra={
+                    "project_id": project.id,
+                    "package": package,
+                    "version": version,
+                    "build_number": build_number,
+                    "existing_release_version": existing_release.version,
+                    "existing_release_id": existing_release.id,
+                },
+            )
+            return existing_release
+
+        if build_number is not None:
+            release_version = f"{package}@{version}+{build_number}"
+        else:
+            release_version = base_version
+
+        release = Release.get_or_create(
+            project=project,
+            version=release_version,
+        )
+
+        logger.info(
+            "Created new release for preprod artifact",
+            extra={
+                "project_id": project.id,
+                "package": package,
+                "version": version,
+                "build_number": build_number,
+                "created_release_version": release.version,
+                "created_release_id": release.id,
+            },
+        )
+
+        return release
+
+    except Exception as e:
+        logger.exception(
+            "Failed to find or create release",
+            extra={
+                "project_id": project.id,
+                "package": package,
+                "version": version,
+                "build_number": build_number,
+                "error": str(e),
+            },
+        )
+        return None
 
 
 @region_silo_endpoint
@@ -123,16 +210,21 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             )
         )
 
-        # Validate request data
         data, error_message = validate_preprod_artifact_update_schema(request.body)
         if error_message:
             return Response({"error": error_message}, status=400)
 
-        # Get the artifact
+        try:
+            artifact_id_int = int(artifact_id)
+            if artifact_id_int <= 0:
+                raise ValueError("ID must be positive")
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid artifact ID format"}, status=400)
+
         try:
             preprod_artifact = PreprodArtifact.objects.get(
                 project=project,
-                id=artifact_id,
+                id=artifact_id_int,
             )
         except PreprodArtifact.DoesNotExist:
             return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
@@ -175,12 +267,14 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
             preprod_artifact.app_name = data["app_name"]
             updated_fields.append("app_name")
 
+        extras_updates = {}
+
         if "apple_app_info" in data:
             apple_info = data["apple_app_info"]
             if "main_binary_uuid" in apple_info:
                 preprod_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
                 updated_fields.append("main_binary_identifier")
-            parsed_apple_info = {}
+
             for field in [
                 "is_simulator",
                 "codesigning_type",
@@ -191,13 +285,17 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                 "code_signature_errors",
             ]:
                 if field in apple_info:
-                    parsed_apple_info[field] = apple_info[field]
+                    extras_updates[field] = apple_info[field]
 
-            if parsed_apple_info:
-                preprod_artifact.extras = parsed_apple_info
-                updated_fields.append("extras")
+        if "dequeued_at" in data:
+            extras_updates["dequeued_at"] = data["dequeued_at"]
 
-        # Save the artifact if any fields were updated
+        if extras_updates:
+            if preprod_artifact.extras is None:
+                preprod_artifact.extras = {}
+            preprod_artifact.extras.update(extras_updates)
+            updated_fields.append("extras")
+
         if updated_fields:
             if preprod_artifact.state != PreprodArtifact.ArtifactState.FAILED:
                 preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
@@ -205,10 +303,28 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
 
             preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
 
+            create_preprod_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact_id_int,
+                }
+            )
+
+        if (
+            preprod_artifact.app_id
+            and preprod_artifact.build_version
+            and preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+        ):
+            find_or_create_release(
+                project=project,
+                package=preprod_artifact.app_id,
+                version=preprod_artifact.build_version,
+                build_number=preprod_artifact.build_number,
+            )
+
         return Response(
             {
                 "success": True,
-                "artifact_id": artifact_id,
-                "updated_fields": updated_fields,
+                "artifactId": artifact_id,
+                "updatedFields": updated_fields,
             }
         )

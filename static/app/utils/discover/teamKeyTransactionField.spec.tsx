@@ -9,7 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import TeamKeyTransactionField from 'sentry/utils/discover/teamKeyTransactionField';
 
-describe('TeamKeyTransactionField', function () {
+describe('TeamKeyTransactionField', () => {
   const organization = OrganizationFixture();
   const teams = [
     TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -17,13 +17,13 @@ describe('TeamKeyTransactionField', function () {
   ];
   const project = ProjectFixture({teams});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.loadInitialData([project]));
     act(() => TeamStore.loadInitialData(teams));
   });
 
-  it('renders with all teams checked', async function () {
+  it('renders with all teams checked', async () => {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
@@ -62,7 +62,7 @@ describe('TeamKeyTransactionField', function () {
     expect(teamTwoOption).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('renders with some teams checked', async function () {
+  it('renders with some teams checked', async () => {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
@@ -104,7 +104,7 @@ describe('TeamKeyTransactionField', function () {
     expect(teamTwoOption).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('renders with no teams checked', async function () {
+  it('renders with no teams checked', async () => {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
@@ -143,7 +143,7 @@ describe('TeamKeyTransactionField', function () {
     expect(teamTwoOption).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('should be able to check one team', async function () {
+  it('should be able to check one team', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
@@ -197,7 +197,7 @@ describe('TeamKeyTransactionField', function () {
     expect(teamOneOption).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('should be able to uncheck one team', async function () {
+  it('should be able to uncheck one team', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
@@ -251,7 +251,7 @@ describe('TeamKeyTransactionField', function () {
     expect(teamOneOption).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('should be able to check all with my teams', async function () {
+  it('should be able to check all with my teams', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
@@ -308,7 +308,7 @@ describe('TeamKeyTransactionField', function () {
     expect(teamTwoOption).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('should be able to uncheck all with my teams', async function () {
+  it('should be able to uncheck all with my teams', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,

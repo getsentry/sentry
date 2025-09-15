@@ -66,7 +66,7 @@ export function useReleases(
         {
           query: {
             ...eventView.getEventsAPIPayload(location),
-            referrer: 'api.starfish.mobile-release-selector',
+            referrer: 'api.insights.mobile-release-selector',
           },
         },
       ] as ApiQueryKey;

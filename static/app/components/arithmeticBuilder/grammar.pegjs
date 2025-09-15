@@ -10,21 +10,24 @@ token
   }
 
 func
-  = func:name "(" attrs:attrs spaces ")" {
-    return tc.tokenFunction(func, attrs, location());
+  = func:name "(" args:args spaces ")" {
+    return tc.tokenFunction(func, args, location());
   }
 
-attrs = yes_attr / no_attr
+args = arg_list / no_arg
 
-yes_attr
-  = spaces attr:attr spaces {
-      return [attr];
-    }
-
-no_attr
+no_arg
   = spaces {
     return [];
   }
+
+arg_list
+  = head:yes_arg tail:("," @yes_arg)* { return [head, ...tail]; }
+
+yes_arg
+  = spaces arg:arg spaces { return arg }
+
+arg = attr
 
 attr = typed_attr / untyped_attr
 

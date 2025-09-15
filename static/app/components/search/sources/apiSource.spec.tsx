@@ -13,7 +13,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import type {Result} from './types';
 
-describe('ApiSource', function () {
+describe('ApiSource', () => {
   let projectsMock: jest.Mock;
   let teamsMock: jest.Mock;
   let membersMock: jest.Mock;
@@ -27,7 +27,7 @@ describe('ApiSource', function () {
     children: jest.fn().mockReturnValue(null),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -78,11 +78,11 @@ describe('ApiSource', function () {
     configState = ConfigStore.getState();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     ConfigStore.loadInitialData(configState);
   });
 
-  it('queries all API endpoints', async function () {
+  it('queries all API endpoints', async () => {
     const mock = jest.fn().mockReturnValue(null);
     render(
       <ApiSource {...defaultProps} query="foo">
@@ -97,7 +97,7 @@ describe('ApiSource', function () {
     expect(eventIdMock).not.toHaveBeenCalled();
   });
 
-  it('only queries for shortids when query matches shortid format', async function () {
+  it('only queries for shortids when query matches shortid format', async () => {
     const mock = jest.fn().mockReturnValue(null);
     const {rerender} = render(
       <ApiSource {...defaultProps} query="JAVASCRIPT">
@@ -128,7 +128,7 @@ describe('ApiSource', function () {
     );
   });
 
-  it('only queries for eventids when query matches eventid format of 32 chars', async function () {
+  it('only queries for eventids when query matches eventid format of 32 chars', async () => {
     const mock = jest.fn().mockReturnValue(null);
     const {rerender} = render(
       <ApiSource {...defaultProps} query="1234567890123456789012345678901">
@@ -162,7 +162,7 @@ describe('ApiSource', function () {
     );
   });
 
-  it('Does not query org apis when no org in context', async function () {
+  it('Does not query org apis when no org in context', async () => {
     const mock = jest.fn().mockReturnValue(null);
     render(
       <ApiSource {...defaultProps} query="foo">
@@ -177,7 +177,7 @@ describe('ApiSource', function () {
     expect(membersMock).not.toHaveBeenCalled();
   });
 
-  it('render function is called with correct results', async function () {
+  it('render function is called with correct results', async () => {
     const mock = jest.fn().mockReturnValue(null);
     render(
       <ApiSource {...defaultProps} query="foo">
@@ -193,7 +193,7 @@ describe('ApiSource', function () {
           model: expect.objectContaining({slug: 'foo-project'}),
           sourceType: 'project',
           resultType: 'route',
-          to: '/organizations/org-slug/projects/foo-project/?project=2',
+          to: '/organizations/org-slug/insights/projects/foo-project/?project=2',
         }),
         expect.objectContaining({
           model: expect.objectContaining({slug: 'foo-project'}),
@@ -205,7 +205,7 @@ describe('ApiSource', function () {
           model: expect.objectContaining({slug: 'foo-project'}),
           sourceType: 'project',
           resultType: 'route',
-          to: '/organizations/org-slug/alerts/rules/?project=2',
+          to: '/organizations/org-slug/issues/alerts/rules/?project=2',
         }),
         expect.objectContaining({
           model: expect.objectContaining({slug: 'foo-team'}),
@@ -217,7 +217,7 @@ describe('ApiSource', function () {
     });
   });
 
-  it('render function is called with correct results when API requests partially succeed', async function () {
+  it('render function is called with correct results when API requests partially succeed', async () => {
     const mock = jest.fn().mockReturnValue(null);
 
     MockApiClient.addMockResponse({
@@ -238,7 +238,7 @@ describe('ApiSource', function () {
     });
   });
 
-  it('render function is updated as query changes', async function () {
+  it('render function is updated as query changes', async () => {
     const mock = jest.fn().mockReturnValue(null);
     const {rerender} = render(
       <ApiSource {...defaultProps} query="foo">
@@ -269,8 +269,8 @@ describe('ApiSource', function () {
     expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-project');
   });
 
-  describe('API queries', function () {
-    it('calls API based on query string', async function () {
+  describe('API queries', () => {
+    it('calls API based on query string', async () => {
       const {rerender} = render(<ApiSource {...defaultProps} query="" />);
 
       await waitFor(() => {

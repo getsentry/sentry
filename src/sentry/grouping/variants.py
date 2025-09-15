@@ -10,7 +10,7 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.fingerprinting import FingerprintRule
+from sentry.grouping.fingerprinting.rules import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 if TYPE_CHECKING:
@@ -94,34 +94,6 @@ class FallbackVariant(BaseVariant):
 
     def get_hash(self) -> str | None:
         return hash_from_values([])
-
-
-class PerformanceProblemVariant(BaseVariant):
-    """
-    Applies only to transaction events! Transactions are not subject to the
-    normal grouping pipeline. Instead, they are fingerprinted by
-    `PerformanceDetector` when the event is saved by `EventManager`. We detect
-    problems, generate some metadata called "evidence" and use that evidence
-    for fingerprinting. The evidence is then stored in `nodestore`. This
-        variant's hash is delegated to the `EventPerformanceProblem` that
-        contains the event and the evidence.
-    """
-
-    type = "performance_problem"
-    description = "performance problem"
-
-    def __init__(self, event_performance_problem: Any):
-        self.event_performance_problem = event_performance_problem
-        self.problem = event_performance_problem.problem
-
-    def get_hash(self) -> str | None:
-        return self.problem.fingerprint
-
-    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
-        problem_data = self.problem.to_dict()
-        evidence_hashes = self.event_performance_problem.evidence_hashes
-
-        return {"evidence": {**problem_data, **evidence_hashes}}
 
 
 class ComponentVariant(BaseVariant):

@@ -11,7 +11,6 @@ from slack_sdk.errors import SlackApiError
 
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -42,6 +41,7 @@ from sentry.notifications.notification_action.utils import should_fire_workflow_
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 from sentry.workflow_engine.models.action import Action

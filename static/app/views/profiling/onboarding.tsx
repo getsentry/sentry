@@ -12,17 +12,18 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
-  type Configuration,
   DocsPageLocation,
-  type DocsParams,
-  type OnboardingStep,
   ProductSolution,
   StepType,
+  type Configuration,
+  type DocsParams,
+  type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
@@ -273,16 +274,7 @@ export function Onboarding() {
               {project: project.slug}
             )}
           </p>
-          <LinkButton
-            size="sm"
-            href={
-              // TODO(aknaus): Go does not have profiling docs yet, so we redirect to the general profiling docs. Remove this once Go has docs.
-              currentPlatform.id === 'go'
-                ? 'https://docs.sentry.io/product/profiling/getting-started/'
-                : `${currentPlatform.link}/profiling/`
-            }
-            external
-          >
+          <LinkButton size="sm" href={`${currentPlatform.link}/profiling/`} external>
             {t('Go to Documentation')}
           </LinkButton>
         </DescriptionWrapper>
@@ -296,8 +288,7 @@ export function Onboarding() {
     dsn,
     organization,
     platformKey: project.platform || 'other',
-    projectId: project.id,
-    projectSlug: project.slug,
+    project,
     isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,
@@ -337,6 +328,7 @@ export function Onboarding() {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+      <ContinuousProfilingBillingRequirementBanner project={project} />
       <GuidedSteps>
         {steps
           // Only show non-optional steps

@@ -3,16 +3,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import features, search
+from sentry import search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.snuba import discover
@@ -86,17 +86,6 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
 
         if not projects:
             return Response([])
-
-        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
-        if (
-            len(projects) > 1
-            and not features.has("organizations:global-views", organization, actor=request.user)
-            and not is_fetching_replay_data
-        ):
-            return Response(
-                {"detail": "You do not have the multi project stream feature enabled"}, status=400
-            )
 
         queries = request.GET.getlist("query")
         response = {}

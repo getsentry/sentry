@@ -292,7 +292,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     label: 'npx',
                     value: 'npx',
                     language: 'bash',
-                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.projectSlug}`,
+                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.project.slug}`,
                   },
                 ],
               },

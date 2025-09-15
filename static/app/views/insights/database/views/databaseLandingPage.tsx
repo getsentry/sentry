@@ -11,10 +11,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import DatabaseLandingDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget';
 import DatabaseLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget';
 import {useDatabaseLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingChartFilter';
@@ -110,7 +110,7 @@ export function DatabaseLandingPage() {
       limit: LIMIT,
       cursor,
     },
-    'api.starfish.use-span-list'
+    'api.insights.use-span-list'
   );
 
   const {isPending: isThroughputDataLoading, data: throughputData} =
@@ -132,7 +132,7 @@ export function DatabaseLandingPage() {
   return (
     <React.Fragment>
       <BackendHeader module={ModuleName.DB} />
-      <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
+      <ModuleFeature moduleName={ModuleName.DB}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -178,7 +178,7 @@ export function DatabaseLandingPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }

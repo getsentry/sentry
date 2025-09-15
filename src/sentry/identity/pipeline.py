@@ -32,13 +32,13 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
     pipeline_name = "identity_provider"
     provider_model_cls = IdentityProvider
 
-    # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
+    # TODO(ecosystem): Delete this after Azure DevOps migration is complete
     def _get_provider(self, provider_key: str, organization: RpcOrganization | None) -> Provider:
         if provider_key == IntegrationProviderSlug.AZURE_DEVOPS.value and features.has(
             "organizations:migrate-azure-devops-integration", organization
         ):
             provider_key = "vsts_new"
-        # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
+        # TODO(ecosystem): Delete this after Azure DevOps migration is complete
         if provider_key == "vsts_login" and options.get("vsts.social-auth-migration"):
             provider_key = "vsts_login_new"
 

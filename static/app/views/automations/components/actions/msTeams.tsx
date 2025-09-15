@@ -1,9 +1,9 @@
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {t, tct} from 'sentry/locale';
 import {
+  ActionType,
   type Action,
   type ActionHandler,
-  ActionType,
 } from 'sentry/types/workflowEngine/actions';
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {TargetDisplayField} from 'sentry/views/automations/components/actions/targetDisplayField';
@@ -16,8 +16,7 @@ export function MSTeamsDetails({
   handler: ActionHandler;
 }) {
   const integrationName =
-    handler.integrations?.find(i => i.id === action.integrationId)?.name ||
-    action.integrationId;
+    handler.integrations?.find(i => i.id === action.integrationId)?.name || t('unknown');
 
   return tct('Send a [logo] Microsoft Teams notification to [team] team, to [channel]', {
     logo: ActionMetadata[ActionType.MSTEAMS]?.icon,

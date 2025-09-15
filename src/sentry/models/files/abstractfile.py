@@ -19,7 +19,8 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
-from sentry.db.models import JSONField, Model, WrappingU32IntegerField
+from sentry.db.models import Model, WrappingU32IntegerField
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
@@ -219,7 +220,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     name = models.TextField()
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
-    headers: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    headers = LegacyTextJSONField(default=dict)
     size = WrappingU32IntegerField(null=True)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
 

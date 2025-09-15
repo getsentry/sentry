@@ -3,22 +3,22 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import Form from 'sentry/components/deprecatedforms/form';
 import NumberField from 'sentry/components/deprecatedforms/numberField';
 
-describe('NumberField', function () {
-  describe('render()', function () {
-    it('renders', function () {
+describe('NumberField', () => {
+  describe('render()', () => {
+    it('renders', () => {
       render(<NumberField name="fieldName" />);
     });
 
-    it('renders with optional attributes', function () {
+    it('renders with optional attributes', () => {
       render(<NumberField name="fieldName" min={0} max={100} />);
     });
 
-    it('renders with value', function () {
+    it('renders with value', () => {
       render(<NumberField name="fieldName" value={5} />);
       expect(screen.getByRole('spinbutton')).toHaveValue(5);
     });
 
-    it('renders with form context', function () {
+    it('renders with form context', () => {
       render(
         <Form initialData={{fieldName: 5}}>
           <NumberField name="fieldName" />
@@ -27,7 +27,7 @@ describe('NumberField', function () {
       expect(screen.getByRole('spinbutton')).toHaveValue(5);
     });
 
-    it('doesnt save `NaN` when new value is empty string', async function () {
+    it('doesnt save `NaN` when new value is empty string', async () => {
       render(
         <Form initialData={{fieldName: 5}}>
           <NumberField name="fieldName" defaultValue="5" />

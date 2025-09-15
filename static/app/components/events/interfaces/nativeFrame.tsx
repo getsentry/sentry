@@ -37,7 +37,7 @@ import type {
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
-import {type StacktraceType, StackView} from 'sentry/types/stacktrace';
+import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';

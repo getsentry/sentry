@@ -6,11 +6,11 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 
 const path = '/some-path/';
 
-describe('GlobalSelectionLink', function () {
+describe('GlobalSelectionLink', () => {
   const getRouter = (query?: {environment: string; project: string[]}) =>
     RouterFixture({location: {query}});
 
-  it('has global selection values in query', async function () {
+  it('has global selection values in query', async () => {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
@@ -30,7 +30,7 @@ describe('GlobalSelectionLink', function () {
     expect(router.push).toHaveBeenCalledWith({pathname: path, query});
   });
 
-  it('does not have global selection values in query', function () {
+  it('does not have global selection values in query', () => {
     render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {
       router: getRouter(),
       deprecatedRouterMocks: true,
@@ -39,7 +39,7 @@ describe('GlobalSelectionLink', function () {
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);
   });
 
-  it('combines query parameters with custom query', async function () {
+  it('combines query parameters with custom query', async () => {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
@@ -63,7 +63,7 @@ describe('GlobalSelectionLink', function () {
     });
   });
 
-  it('combines query parameters with no query', async function () {
+  it('combines query parameters with no query', async () => {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',

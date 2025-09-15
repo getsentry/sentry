@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any
 
-from sentry.constants import DataCategory
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
-from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -22,7 +19,7 @@ def shim_to_feedback(
     event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
-):
+) -> None:
     """
     takes user reports from the legacy user report form/endpoint and
     user reports that come from relay envelope ingestion and
@@ -31,17 +28,7 @@ def shim_to_feedback(
     legacy user report and event to create the new feedback.
     """
     if is_in_feedback_denylist(project.organization):
-        track_outcome(
-            org_id=project.organization_id,
-            project_id=project.id,
-            key_id=None,
-            outcome=Outcome.RATE_LIMITED,
-            reason="feedback_denylist",
-            timestamp=datetime.fromisoformat(event.timestamp),
-            event_id=event.event_id,
-            category=DataCategory.USER_REPORT_V2,
-            quantity=1,
-        )
+        metrics.incr("feedback.ingest.denylist")
         return
 
     try:

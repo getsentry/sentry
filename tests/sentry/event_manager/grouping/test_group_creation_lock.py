@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.event_manager import GroupInfo, assign_event_to_group
-from sentry.eventstore.models import Event
+from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
 
 CONCURRENCY = 2

@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue.unignored")
 class IssueUnignoredEvent(analytics.Event):
-    type = "issue.unignored"
-
-    attributes = (
-        analytics.Attribute("user_id", type=int, required=False),
-        analytics.Attribute("default_user_id", type=int),
-        analytics.Attribute("organization_id", type=int),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("transition_type"),
-    )
+    user_id: int | None = None
+    default_user_id: int | str
+    organization_id: int
+    group_id: int
+    transition_type: str
 
 
 analytics.register(IssueUnignoredEvent)

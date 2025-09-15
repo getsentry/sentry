@@ -1,4 +1,4 @@
-import {type CSSProperties, Fragment, useCallback, useRef} from 'react';
+import {Fragment, useCallback, useRef, type CSSProperties} from 'react';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';

@@ -11,7 +11,7 @@ jest.mock('sentry/actionCreators/events', () => ({
   doEventsRequest: jest.fn(),
 }));
 
-describe('OnDemandMetricRequest', function () {
+describe('OnDemandMetricRequest', () => {
   const organization = OrganizationFixture();
   const mock = jest.fn(() => null);
 
@@ -29,8 +29,8 @@ describe('OnDemandMetricRequest', function () {
     sampleRate: SAMPLE_RATE,
   };
 
-  describe('with props changes', function () {
-    beforeAll(function () {
+  describe('with props changes', () => {
+    beforeAll(() => {
       jest.mocked(doEventsRequest).mockImplementation(() =>
         Promise.resolve({
           isMetricsData: true,
@@ -39,7 +39,7 @@ describe('OnDemandMetricRequest', function () {
       );
     });
 
-    it('makes requests', async function () {
+    it('makes requests', async () => {
       render(<OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>);
       expect(mock).toHaveBeenNthCalledWith(
         1,
@@ -67,7 +67,7 @@ describe('OnDemandMetricRequest', function () {
       expect(doEventsRequest).toHaveBeenCalled();
     });
 
-    it('makes a new request if projects prop changes', async function () {
+    it('makes a new request if projects prop changes', async () => {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
@@ -87,7 +87,7 @@ describe('OnDemandMetricRequest', function () {
       );
     });
 
-    it('makes a new request if environments prop changes', async function () {
+    it('makes a new request if environments prop changes', async () => {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
@@ -107,7 +107,7 @@ describe('OnDemandMetricRequest', function () {
       );
     });
 
-    it('makes a new request if period prop changes', async function () {
+    it('makes a new request if period prop changes', async () => {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );

@@ -10,7 +10,7 @@ import {Default} from 'sentry/components/events/interfaces/breadcrumbs/breadcrum
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
-describe('Breadcrumb Data Default', function () {
+describe('Breadcrumb Data Default', () => {
   const project = ProjectFixture({
     id: '0',
   });
@@ -34,7 +34,7 @@ describe('Breadcrumb Data Default', function () {
     ProjectsStore.loadInitialData([project]);
   });
 
-  it('display redacted message', async function () {
+  it('display redacted message', async () => {
     render(
       <Default
         meta={{
@@ -88,7 +88,7 @@ describe('Breadcrumb Data Default', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  it('display redacted data', async function () {
+  it('display redacted data', async () => {
     render(
       <Default
         meta={{

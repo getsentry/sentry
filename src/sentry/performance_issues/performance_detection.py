@@ -9,7 +9,6 @@ from typing import Any
 import sentry_sdk
 
 from sentry import features, nodestore, options, projectoptions
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -20,6 +19,7 @@ from sentry.performance_issues.detectors.experiments.n_plus_one_db_span_detector
     NPlusOneDBSpanExperimentalDetector,
 )
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
@@ -402,6 +402,7 @@ def _detect_performance_problems(
             detectors,
             sdk_span,
             organization,
+            project,
             standalone=standalone,
         )
 
@@ -506,6 +507,7 @@ def report_metrics_for_detectors(
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
     organization: Organization,
+    project: Project,
     standalone: bool = False,
 ) -> None:
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
@@ -593,7 +595,15 @@ def report_metrics_for_detectors(
 
         set_tag(f"_pi_{detector_key}", span_id)
 
-        op_tags = {"is_standalone_spans": standalone}
+        op_tags = {
+            "is_standalone_spans": standalone,
+            "is_creation_allowed": all(
+                [
+                    detector.is_creation_allowed_for_organization(organization),
+                    detector.is_creation_allowed_for_project(project),
+                ]
+            ),
+        }
         for problem in detected_problems.values():
             op = problem.op
             op_tags[f"op_{op}"] = True

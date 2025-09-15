@@ -1,9 +1,8 @@
 import {Fragment, useCallback} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
-import type {LineSeriesOption} from 'echarts';
-import type {TopLevelFormatterParams} from 'echarts/types/src/component/tooltip/TooltipModel';
+import type {LineSeriesOption, TooltipComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import Feature from 'sentry/components/acl/feature';
@@ -43,7 +42,6 @@ import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -419,33 +417,28 @@ export default function MetricChart({
                 <QueryFilters>{queryFilter}</QueryFilters>
               </Tooltip>
             </ChartFilters>
-            {getDynamicText({
-              value: (
-                <ChartZoom
-                  start={start}
-                  end={end}
-                  onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
-                >
-                  {zoomRenderProps => (
-                    <AreaChart
-                      {...zoomRenderProps}
-                      {...chartOption}
-                      showTimeInTooltip
-                      minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-                      additionalSeries={additionalSeries}
-                      tooltip={getMetricChartTooltipFormatter({
-                        formattedAggregate,
-                        rule,
-                        interval,
-                        comparisonSeriesName,
-                        theme,
-                      })}
-                    />
-                  )}
-                </ChartZoom>
-              ),
-              fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-            })}
+            <ChartZoom
+              start={start}
+              end={end}
+              onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+            >
+              {zoomRenderProps => (
+                <AreaChart
+                  {...zoomRenderProps}
+                  {...chartOption}
+                  showTimeInTooltip
+                  minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+                  additionalSeries={additionalSeries}
+                  tooltip={getMetricChartTooltipFormatter({
+                    formattedAggregate,
+                    rule,
+                    interval,
+                    comparisonSeriesName,
+                    theme,
+                  })}
+                />
+              )}
+            </ChartZoom>
           </StyledPanelBody>
           {renderChartActions(
             totalDuration,
@@ -539,7 +532,7 @@ export function getMetricChartTooltipFormatter({
 }): AreaChartProps['tooltip'] {
   const {dateModified, timeWindow} = rule;
 
-  function formatter(seriesParams: TopLevelFormatterParams) {
+  const formatter: TooltipComponentOption['formatter'] = seriesParams => {
     // seriesParams can be object instead of array
     const pointSeries = toArray(seriesParams);
     // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
@@ -617,7 +610,7 @@ export function getMetricChartTooltipFormatter({
     ]
       .filter(e => e)
       .join('');
-  }
+  };
 
   return {formatter};
 }

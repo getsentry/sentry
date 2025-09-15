@@ -12,9 +12,9 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
+  DisplayType,
   type DashboardDetails,
   type DashboardListItem,
-  DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
@@ -125,7 +125,7 @@ export async function updateDashboardFavorite(
       queryKey: getQueryKey(organization),
     });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
-  } catch (response) {
+  } catch (response: any) {
     const errorResponse = response?.responseJSON ?? null;
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});

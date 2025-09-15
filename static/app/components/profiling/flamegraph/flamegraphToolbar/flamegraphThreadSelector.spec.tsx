@@ -1,7 +1,7 @@
 import {compareProfiles} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
 
-describe('compareProfiles', function () {
-  it('should thread appropriately', function () {
+describe('compareProfiles', () => {
+  it('should thread appropriately', () => {
     const namedA = {
       name: 'a',
       threadId: 1,
@@ -31,7 +31,7 @@ describe('compareProfiles', function () {
     expect(sortedProfiles).toEqual([active, namedA, namedB, namedC, unnamed4, unnamed5]);
   });
 
-  it('should work with no active thread id', function () {
+  it('should work with no active thread id', () => {
     const namedA = {
       name: 'a',
       threadId: 1,

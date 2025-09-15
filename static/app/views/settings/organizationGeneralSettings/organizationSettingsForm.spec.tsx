@@ -11,12 +11,12 @@ import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralS
 jest.mock('sentry/components/forms/formIndicators');
 jest.mock('sentry/utils/regions');
 
-describe('OrganizationSettingsForm', function () {
+describe('OrganizationSettingsForm', () => {
   const {organization, routerProps} = initializeOrg();
   let putMock: jest.Mock;
   const onSave = jest.fn();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
@@ -32,7 +32,7 @@ describe('OrganizationSettingsForm', function () {
     onSave.mockReset();
   });
 
-  it('can change a form field', async function () {
+  it('can change a form field', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -105,7 +105,7 @@ describe('OrganizationSettingsForm', function () {
     expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('can change slug', async function () {
+  it('can change slug', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -140,7 +140,7 @@ describe('OrganizationSettingsForm', function () {
     );
   });
 
-  it('can enable codecov', async function () {
+  it('can enable codecov', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -175,7 +175,7 @@ describe('OrganizationSettingsForm', function () {
     );
   });
 
-  it('can toggle "Show Generative AI Features"', async function () {
+  it('can toggle "Show Generative AI Features"', async () => {
     // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
     const hiddenAiOrg = OrganizationFixture({hideAiFeatures: true});
     render(
@@ -223,7 +223,7 @@ describe('OrganizationSettingsForm', function () {
     });
   });
 
-  it('shows hideAiFeatures togglefor DE region', function () {
+  it('shows hideAiFeatures togglefor DE region', () => {
     // Mock the region util to return DE region
     jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
@@ -249,7 +249,7 @@ describe('OrganizationSettingsForm', function () {
     expect(toggle).toBeEnabled();
   });
 
-  it('renders PR Review and Test Generation field', function () {
+  it('renders Prevent AI field', () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -258,12 +258,12 @@ describe('OrganizationSettingsForm', function () {
       />
     );
 
-    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
 
     expect(screen.getByText('beta')).toBeInTheDocument();
 
     expect(
-      screen.getByText('Use AI to generate feedback and tests in pull requests')
+      screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
     ).toBeInTheDocument();
 
     const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
@@ -274,7 +274,7 @@ describe('OrganizationSettingsForm', function () {
     );
   });
 
-  it('hides PR Review and Test Generation field when AI features are disabled', function () {
+  it('hides Prevent AI field when AI features are disabled', () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -284,15 +284,15 @@ describe('OrganizationSettingsForm', function () {
       />
     );
 
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
     expect(
-      screen.queryByText('Enable PR Review and Test Generation')
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Use AI to generate feedback and tests in pull requests')
+      screen.queryByText(
+        'Use AI to review, find bugs, and generate tests in pull requests'
+      )
     ).not.toBeInTheDocument();
   });
 
-  it('shows PR Review and Test Generation field when AI features are enabled', function () {
+  it('shows PR Review and Test Generation field when AI features are enabled', () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -301,13 +301,13 @@ describe('OrganizationSettingsForm', function () {
       />
     );
 
-    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
     expect(
-      screen.getByText('Use AI to generate feedback and tests in pull requests')
+      screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
     ).toBeInTheDocument();
   });
 
-  it('shows/hides PR Review field when toggling AI features', async function () {
+  it('shows/hides PR Review field when toggling AI features', async () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -322,21 +322,17 @@ describe('OrganizationSettingsForm', function () {
     });
 
     // Initially AI features are disabled, so PR Review field should be hidden
-    expect(
-      screen.queryByText('Enable PR Review and Test Generation')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
 
     const aiToggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     await userEvent.click(aiToggle);
 
     // PR Review field should now be visible
-    expect(screen.getByText('Enable PR Review and Test Generation')).toBeInTheDocument();
+    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
 
     await userEvent.click(aiToggle);
 
     // PR Review field should be hidden again
-    expect(
-      screen.queryByText('Enable PR Review and Test Generation')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
   });
 });

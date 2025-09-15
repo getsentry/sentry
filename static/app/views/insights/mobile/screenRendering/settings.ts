@@ -8,4 +8,4 @@ export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/mobile/'
 
 export const BASE_URL = 'screen-rendering';
 
-export const MODULE_FEATURES = ['insights-addon-modules'];
+export const MODULE_FEATURES = ['insight-modules'];

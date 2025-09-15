@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 SOURCE_MAPPING_URL_RE = re.compile(b"//# sourceMappingURL=(.*)$")
 

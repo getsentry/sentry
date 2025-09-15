@@ -16,7 +16,7 @@ jest.mock('sentry/utils/useLocation');
 
 describe('ScreensOverview', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules'],
+    features: ['insight-modules'],
   });
   const project = ProjectFixture();
 
@@ -115,7 +115,7 @@ describe('ScreensOverview', () => {
       },
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.mobile-screens-screen-table-metrics',
+          referrer: 'api.insights.mobile-screens-screen-table-metrics',
         }),
       ],
     });
@@ -163,7 +163,7 @@ describe('ScreensOverview', () => {
       },
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.mobile-screens-screen-table-span-metrics',
+          referrer: 'api.insights.mobile-screens-screen-table-span-metrics',
         }),
       ],
     });

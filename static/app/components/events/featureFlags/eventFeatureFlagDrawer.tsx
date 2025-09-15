@@ -19,10 +19,10 @@ import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSo
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
-  type OrderBy,
   SORT_BY_OPTIONS,
-  type SortBy,
   sortedFlags,
+  type OrderBy,
+  type SortBy,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
 import {

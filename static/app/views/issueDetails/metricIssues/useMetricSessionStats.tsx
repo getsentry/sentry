@@ -1,8 +1,8 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

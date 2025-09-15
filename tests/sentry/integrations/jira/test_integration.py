@@ -19,10 +19,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.shared_integrations.exceptions import (
-    IntegrationError,
-    IntegrationInstallationConfigurationError,
-)
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
@@ -888,7 +885,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
         responses.add(responses.PUT, assign_issue_url, status=401, json={})
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as excinfo:
+        with pytest.raises(IntegrationConfigurationError) as excinfo:
             installation.sync_assignee_outbound(external_issue, user)
 
         assert str(excinfo.value) == "Insufficient permissions to assign user to the Jira issue."

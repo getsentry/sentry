@@ -7,18 +7,20 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {
   useExploreAggregateSortBys,
   useExploreDataset,
-  useExploreGroupBys,
-  useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -39,7 +41,7 @@ export const useExploreTimeseries = ({
   enabled: boolean;
   query: string;
 }) => {
-  const visualizes = useExploreVisualizes();
+  const visualizes = useQueryParamsVisualizes();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
 
@@ -65,9 +67,9 @@ function useExploreTimeseriesImpl({
   queryExtras,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
   const dataset = useExploreDataset();
-  const groupBys = useExploreGroupBys();
+  const groupBys = useQueryParamsGroupBys();
   const sortBys = useExploreAggregateSortBys();
-  const visualizes = useExploreVisualizes({validate: true});
+  const visualizes = useQueryParamsVisualizes({validate: true});
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
 
@@ -121,18 +123,20 @@ function useExploreTimeseriesImpl({
 
 function shouldTriggerHighAccuracy(
   data: ReturnType<typeof useSortedTimeSeries>['data'],
-  visualizes: Visualize[],
+  visualizes: readonly Visualize[],
   isTopN: boolean
 ) {
-  const hasData = computeVisualizeSampleTotals(visualizes, data, isTopN).some(
-    total => total > 0
-  );
+  const hasData = computeVisualizeSampleTotals(
+    visualizes.map(visualize => visualize.yAxis),
+    data,
+    isTopN
+  ).some(total => total > 0);
   return !hasData && _checkCanQueryForMoreData(data, visualizes, isTopN);
 }
 
 function _checkCanQueryForMoreData(
   data: ReturnType<typeof useSortedTimeSeries>['data'],
-  visualizes: Visualize[],
+  visualizes: readonly Visualize[],
   isTopN: boolean
 ) {
   return visualizes.some(visualize => {

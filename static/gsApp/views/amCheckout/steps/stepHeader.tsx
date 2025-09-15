@@ -12,6 +12,8 @@ import type {PlanTier} from 'getsentry/types';
 import LegacyPlanToggle from 'getsentry/views/amCheckout/legacyPlanToggle';
 import {getToggleTier} from 'getsentry/views/amCheckout/utils';
 
+// TODO(checkout v3): Remove isActive/isCompleted/onEdit/canSkip
+// these were only necessary when steps were shown one by one
 type Props = {
   isActive: boolean;
   isCompleted: boolean;
@@ -23,7 +25,16 @@ type Props = {
    */
   canSkip?: boolean;
   checkoutTier?: PlanTier;
+  isNewCheckout?: boolean;
+  /**
+   * For checkout v3, whether the step is toggled open or closed
+   */
+  isOpen?: boolean;
   onToggleLegacy?: (tier: string) => void;
+  /**
+   * For checkout v3, called when toggling the step open or closed
+   */
+  onToggleStep?: (isOpen: boolean) => void;
   organization?: Organization;
   trailingItems?: React.ReactNode;
 };
@@ -39,17 +50,40 @@ function StepHeader({
   onToggleLegacy,
   checkoutTier,
   organization,
+  isNewCheckout,
+  isOpen,
+  onToggleStep,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
   const toggleTier = getToggleTier(checkoutTier);
   const onEditClick = canEdit ? () => onEdit(stepNumber) : undefined;
+  const dataTestId = `header-${kebabCase(title)}`;
+
+  if (isNewCheckout) {
+    return (
+      <Flex justify="between" align="center">
+        <Flex justify="start" align="center">
+          <Button
+            borderless
+            icon={<IconChevron direction={isOpen ? 'down' : 'right'} />}
+            aria-label={isOpen ? t('Collapse section') : t('Expand section')}
+            onClick={() => onToggleStep?.(!isOpen)}
+          />
+          <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
+            {title}
+          </NewCheckoutStepTitle>
+        </Flex>
+        {trailingItems && <div>{trailingItems}</div>}
+      </Flex>
+    );
+  }
 
   return (
     <Header
       isActive={isActive}
       canEdit={canEdit}
       onClick={onEditClick}
-      data-test-id={`header-${kebabCase(title)}`}
+      data-test-id={dataTestId}
     >
       <Flex justify="between">
         <StepTitle>
@@ -118,4 +152,9 @@ const EditStep = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const NewCheckoutStepTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize['2xl']};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

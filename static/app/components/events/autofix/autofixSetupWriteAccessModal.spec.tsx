@@ -5,8 +5,8 @@ import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 
-describe('AutofixSetupWriteAccessModal', function () {
-  it('displays help text when repos are not all installed', async function () {
+describe('AutofixSetupWriteAccessModal', () => {
+  it('displays help text when repos are not all installed', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/autofix/setup/?check_write_access=true',
       body: AutofixSetupFixture({
@@ -57,7 +57,7 @@ describe('AutofixSetupWriteAccessModal', function () {
     ).toHaveAttribute('href', 'https://github.com/apps/seer-by-sentry/installations/new');
   });
 
-  it('displays success text when installed repos for github app text', async function () {
+  it('displays success text when installed repos for github app text', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/autofix/setup/?check_write_access=true',
       body: AutofixSetupFixture({

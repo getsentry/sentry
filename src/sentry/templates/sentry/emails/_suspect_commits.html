@@ -1,0 +1,23 @@
+{% load sentry_avatars %}
+{% if commits and not enhanced_privacy %}
+<div class="committers">
+  <h3 class="title" style="margin-bottom: 10px">Suspect Commits</h3>
+  <table class="table commit-table">
+  {% for commit in commits %}
+    <tr>
+      <td style="padding:0;width:32px;">{% email_avatar commit.author.name commit.author.email 32 %}</td>
+      <td>
+        <h5 class="truncate">{{ commit.subject }}</h5>
+        <div><small>{{ commit.shortId }}&nbsp;&mdash;&nbsp;
+          {% if commit.author %}
+            <strong>{{ commit.author.name }}</strong>
+          {% else %}
+            <strong>Unknown Author</strong>
+          {% endif %}
+        </small></div>
+      </td>
+    </tr>
+  {% endfor %}
+  </table>
+</div>
+{% endif %}

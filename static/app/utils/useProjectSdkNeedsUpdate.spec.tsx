@@ -7,13 +7,16 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const MOCK_ORG = OrganizationFixture();
 const MOCK_PROJECT = ProjectFixture();
 
 function wrapper({children}: {children?: ReactNode}) {
   return (
-    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+    <OrganizationContext value={MOCK_ORG}>
+      <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+    </OrganizationContext>
   );
 }
 
@@ -47,7 +50,6 @@ describe('useProjectSdkNeedsUpdate', () => {
       wrapper,
       initialProps: {
         minVersion: '1.0.0',
-        organization: MOCK_ORG,
         projectId: [MOCK_PROJECT.id],
       },
     });
@@ -55,9 +57,7 @@ describe('useProjectSdkNeedsUpdate', () => {
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
     });
-    await waitFor(() => {
-      expect(result.current.isFetching).toBeFalsy();
-    });
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.needsUpdate).toBeFalsy();
   });
 
@@ -73,20 +73,17 @@ describe('useProjectSdkNeedsUpdate', () => {
       wrapper,
       initialProps: {
         minVersion: '8.0.0',
-        organization: MOCK_ORG,
         projectId: [MOCK_PROJECT.id],
       },
     });
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
     });
-    await waitFor(() => {
-      expect(result.current.isFetching).toBeFalsy();
-    });
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.needsUpdate).toBeTruthy();
   });
 
-  it('should return needsUpdate if multiple projects', async () => {
+  it('should return needsUpdate if all projects are below minSdk', async () => {
     mockCurrentVersion([
       {
         projectId: '1',
@@ -102,7 +99,6 @@ describe('useProjectSdkNeedsUpdate', () => {
       wrapper,
       initialProps: {
         minVersion: '8.0.0',
-        organization: MOCK_ORG,
         projectId: ['1', '2'],
       },
     });
@@ -110,9 +106,7 @@ describe('useProjectSdkNeedsUpdate', () => {
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
     });
-    await waitFor(() => {
-      expect(result.current.isFetching).toBeFalsy();
-    });
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.needsUpdate).toBeTruthy();
   });
 
@@ -132,7 +126,6 @@ describe('useProjectSdkNeedsUpdate', () => {
       wrapper,
       initialProps: {
         minVersion: '8.0.0',
-        organization: MOCK_ORG,
         projectId: ['1', '2'],
       },
     });
@@ -140,9 +133,7 @@ describe('useProjectSdkNeedsUpdate', () => {
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
     });
-    await waitFor(() => {
-      expect(result.current.isFetching).toBeFalsy();
-    });
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.needsUpdate).toBeFalsy();
   });
 });

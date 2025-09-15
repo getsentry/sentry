@@ -6,14 +6,14 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 
-describe('FormField + model', function () {
+describe('FormField + model', () => {
   let model!: FormModel;
 
-  beforeEach(function () {
+  beforeEach(() => {
     model = new FormModel();
   });
 
-  it('renders with Form', function () {
+  it('renders with Form', () => {
     render(
       <Form model={model}>
         <TextField name="fieldName" />
@@ -21,7 +21,7 @@ describe('FormField + model', function () {
     );
   });
 
-  it('sets initial data in model', function () {
+  it('sets initial data in model', () => {
     render(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" />
@@ -31,7 +31,7 @@ describe('FormField + model', function () {
     expect(model.initialData.fieldName).toBe('test');
   });
 
-  it('has `defaultValue` from field', function () {
+  it('has `defaultValue` from field', () => {
     render(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" />
@@ -42,7 +42,7 @@ describe('FormField + model', function () {
     expect(model.fields.get('fieldName')).toBe('foo');
   });
 
-  it('does not use `defaultValue` when there is initial data', function () {
+  it('does not use `defaultValue` when there is initial data', () => {
     render(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" defaultValue="foo" />
@@ -53,7 +53,7 @@ describe('FormField + model', function () {
     expect(model.fields.get('fieldName')).toBe('test');
   });
 
-  it('transforms `defaultValue` from field with `setValue`', function () {
+  it('transforms `defaultValue` from field with `setValue`', () => {
     render(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" setValue={v => `${v}${v}`} />
@@ -64,7 +64,7 @@ describe('FormField + model', function () {
     expect(model.fields.get('fieldName')).toBe('foofoo');
   });
 
-  it('sets field descriptor in model', function () {
+  it('sets field descriptor in model', () => {
     render(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
@@ -74,7 +74,7 @@ describe('FormField + model', function () {
     expect(model.getDescriptor('fieldName', 'required')).toBe(true);
   });
 
-  it('removes field descriptor in model on unmount', function () {
+  it('removes field descriptor in model on unmount', () => {
     const wrapper = render(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
@@ -86,7 +86,7 @@ describe('FormField + model', function () {
     expect(model.fieldDescriptor.has('fieldName')).toBe(false);
   });
 
-  it('preserves current value when softRemove field is unmounted and remounted', async function () {
+  it('preserves current value when softRemove field is unmounted and remounted', async () => {
     const initialData = {
       firstName: 'first',
       lastName: 'last',

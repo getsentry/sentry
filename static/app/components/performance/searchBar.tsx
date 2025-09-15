@@ -168,7 +168,7 @@ function SearchBar(props: SearchBarProps) {
             sort: '-count()',
             query: conditions.formatString(),
             statsPeriod,
-            referrer: 'api.performance.transaction-name-search-bar',
+            referrer: 'api.insights.transaction-name-search-bar',
           });
 
           const parsedResults = results.data.reduce(

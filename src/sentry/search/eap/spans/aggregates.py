@@ -23,7 +23,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
-from sentry.search.eap.utils import literal_validator, number_validator
+from sentry.search.eap.validator import literal_validator, number_validator
 
 
 def count_processor(count_value: int | None) -> int:
@@ -53,8 +53,28 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     aggregate_key = cast(AttributeKey, args[0])
     key = cast(AttributeKey, args[1])
     operator = cast(str, args[2])
-    value = cast(str, args[3])
-    attr_value = AttributeValue(val_str=value)
+
+    value = args[3]
+    assert isinstance(
+        value, str
+    ), "Value must be a String"  # This should always be a string. Assertion to deal with typing errors.
+
+    try:
+        if key.type == AttributeKey.TYPE_DOUBLE:
+            attr_value = AttributeValue(val_double=float(value))
+        elif key.type == AttributeKey.TYPE_FLOAT:
+            attr_value = AttributeValue(val_float=float(value))
+        elif key.type == AttributeKey.TYPE_INT:
+            attr_value = AttributeValue(val_int=int(value))
+        else:
+            attr_value = AttributeValue(val_str=value)
+    except ValueError:
+        expected_type = "string"
+        if key.type in [AttributeKey.TYPE_FLOAT, AttributeKey.TYPE_DOUBLE]:
+            expected_type = "number"
+        if key.type == AttributeKey.TYPE_INT:
+            expected_type = "integer"
+        raise InvalidSearchQuery(f"Invalid parameter '{value}'. Must be of type {expected_type}.")
 
     if key.type == AttributeKey.TYPE_BOOLEAN:
         lower_value = value.lower()
@@ -67,11 +87,7 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     trace_filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=key,
-            op=(
-                ComparisonFilter.OP_EQUALS
-                if operator == "equals"
-                else ComparisonFilter.OP_NOT_EQUALS
-            ),
+            op=constants.LITERAL_OPERATOR_MAP[operator],
             value=attr_value,
         )
     )
@@ -164,23 +180,44 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     ),
     "count_if": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
-        default_search_type="duration",
+        infer_search_type_from_arguments=False,
+        default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
                 default_arg="span.self_time",
                 field_allowlist={"is_transaction"},
             ),
-            AttributeArgumentDefinition(attribute_types={"string"}),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                }
+            ),
             ValueArgumentDefinition(
                 argument_types={"string"},
-                validator=literal_validator(["equals", "notEquals"]),
+                validator=literal_validator(
+                    [
+                        "equals",
+                        "notEquals",
+                        "lessOrEquals",
+                        "greaterOrEquals",
+                        "less",
+                        "greater",
+                    ]
+                ),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
@@ -195,6 +232,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -217,6 +255,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -239,6 +278,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -261,6 +301,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -283,6 +324,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -305,6 +347,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -327,6 +370,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -349,6 +393,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -410,6 +455,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -427,6 +473,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "percentage",
                     "integer",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -444,6 +491,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -464,6 +512,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -482,6 +531,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -500,6 +550,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -516,6 +567,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -534,6 +586,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -551,6 +604,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -568,6 +622,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -585,6 +640,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -602,6 +658,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -619,6 +676,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -636,6 +694,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -693,6 +752,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -709,6 +769,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -725,6 +786,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -741,6 +803,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -757,6 +820,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -773,6 +837,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -789,6 +854,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -805,6 +871,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -821,6 +888,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                     "percentage",
+                    "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },

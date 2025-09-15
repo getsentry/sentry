@@ -13,6 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
+import {hasLogsOnReplays} from 'sentry/views/explore/logs/hasLogsOnReplays';
 
 function getReplayTabs({
   isVideoReplay,
@@ -26,7 +27,9 @@ function getReplayTabs({
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
     [TabKey.AI]:
-      organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed ? (
+      organization.features.includes('replay-ai-summaries') &&
+      areAiFeaturesAllowed &&
+      !isVideoReplay ? (
         <Flex align="center" gap="sm">
           {t('Summary')}
           <Tooltip
@@ -40,6 +43,7 @@ function getReplayTabs({
       ) : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
+    [TabKey.LOGS]: hasLogsOnReplays(organization) ? t('Logs') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: t('Trace'),
@@ -79,7 +83,11 @@ export default function FocusTabs({isVideoReplay}: Props) {
       >
         <TabList hideBorder>
           {tabs.map(([tab, label]) => (
-            <TabList.Item key={tab} data-test-id={`replay-details-${tab}-btn`}>
+            <TabList.Item
+              key={tab}
+              textValue={tab}
+              data-test-id={`replay-details-${tab}-btn`}
+            >
               {label}
             </TabList.Item>
           ))}

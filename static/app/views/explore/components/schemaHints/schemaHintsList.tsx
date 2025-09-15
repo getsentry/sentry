@@ -17,12 +17,12 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
 import {
-  type AggregationKey,
-  type FieldDefinition,
   FieldKind,
   FieldValueType,
   getFieldDefinition,
   prettifyTagKey,
+  type AggregationKey,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,6 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
+  onlyShowSchemaHintsKeys,
   removeHiddenSchemaHintsKeys,
   SchemaHintsSources,
   USER_IDENTIFIER_KEY,
@@ -161,7 +162,7 @@ function SchemaHintsList({
   }, [supportedAggregates]);
 
   // sort tags by the order they show up in the query builder
-  const filterTagsSorted = useMemo(() => {
+  const fullFilterTagsSorted = useMemo(() => {
     const filterTags = removeHiddenSchemaHintsKeys({
       ...functionTags,
       ...numberTags,
@@ -185,6 +186,11 @@ function SchemaHintsList({
 
     return [...schemaHintsPresetTags, ...sectionSortedTags, ...otherTags];
   }, [functionTags, numberTags, stringTags, source]);
+
+  // In the bar, we can limit the schema hints shown to ONLY be ones in the list order set (eg. logs), but should still show the fullFilterTagsSorted in the drawer.
+  const filterTagsSorted = useMemo(() => {
+    return onlyShowSchemaHintsKeys(fullFilterTagsSorted, source);
+  }, [fullFilterTagsSorted, source]);
 
   const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
   const [tagListState, setTagListState] = useState<{
@@ -307,7 +313,7 @@ function SchemaHintsList({
           openDrawer(
             () => (
               <SchemaHintsDrawer
-                hints={filterTagsSorted}
+                hints={fullFilterTagsSorted}
                 exploreQuery={query}
                 searchBarDispatch={dispatch}
                 queryRef={queryRef}
@@ -401,7 +407,7 @@ function SchemaHintsList({
       isDrawerOpen,
       searchBarWrapperRef,
       openDrawer,
-      filterTagsSorted,
+      fullFilterTagsSorted,
       location.pathname,
       location.query,
     ]

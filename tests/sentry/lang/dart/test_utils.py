@@ -412,28 +412,29 @@ def test_deobfuscate_exception_type_instance_of_pattern() -> None:
     ):
         deobfuscate_exception_type(data)
 
-        # Only exception types should be deobfuscated, values remain unchanged
+        # Exception types should be deobfuscated
         assert data["exception"]["values"][0]["type"] == "NetworkException"
-        assert data["exception"]["values"][0]["value"] == "Instance of 'xyz'"
+        # Value starts with pattern: quoted symbol should be deobfuscated
+        assert data["exception"]["values"][0]["value"] == "Instance of 'NetworkException'"
 
         assert data["exception"]["values"][1]["type"] == "DatabaseException"
+        # Pattern can appear anywhere: deobfuscate occurrences
         assert (
             data["exception"]["values"][1]["value"]
-            == "Unhandled Exception: Instance of 'abc' was thrown"
+            == "Unhandled Exception: Instance of 'DatabaseException' was thrown"
         )
 
         assert data["exception"]["values"][2]["type"] == "FileException"
-        # No 'Instance of' pattern, so value should remain unchanged
+        # No pattern, value should remain unchanged
         assert (
             data["exception"]["values"][2]["value"]
             == "Error: def occurred outside of Instance pattern"
         )
 
         assert data["exception"]["values"][3]["type"] == "IOException"
-        # Values remain unchanged
         assert (
             data["exception"]["values"][3]["value"]
-            == "Instance of 'xyz' and Instance of 'ghi' both occurred"
+            == "Instance of 'NetworkException' and Instance of 'IOException' both occurred"
         )
 
 
@@ -480,58 +481,61 @@ def test_deobfuscate_exception_type_special_regex_chars() -> None:
     ):
         deobfuscate_exception_type(data)
 
-        # Exception types deobfuscated, values remain unchanged
+        # Exception types deobfuscated; values with the pattern are updated
         assert data["exception"]["values"][0]["type"] == "NetworkException"
-        assert data["exception"]["values"][0]["value"] == "Instance of 'a.b'"
+        assert data["exception"]["values"][0]["value"] == "Instance of 'NetworkException'"
 
         assert data["exception"]["values"][1]["type"] == "MathException"
-        assert data["exception"]["values"][1]["value"] == "Instance of 'x+y' occurred"
+        assert data["exception"]["values"][1]["value"] == "Instance of 'MathException' occurred"
 
         assert data["exception"]["values"][2]["type"] == "ArrayException"
-        # Values remain unchanged
         assert (
             data["exception"]["values"][2]["value"]
-            == "Instance of 'test[0]' and Instance of 'other' patterns"
+            == "Instance of 'ArrayException' and Instance of 'other' patterns"
         )
 
 
-# @mock.patch("sentry.lang.dart.utils.generate_dart_symbols_map", return_value=MOCK_DEBUG_MAP)
-# @mock.patch("sentry.lang.dart.utils.get_debug_meta_image_ids", return_value=["test-uuid"])
-# def test_view_hierarchy_deobfuscation(
-#     mock_images: mock.MagicMock, mock_map: mock.MagicMock
-# ) -> None:
-#     test_view_hierarchy = {
-#         "windows": [
-#             {
-#                 "type": "mD",
-#                 "children": [
-#                     {
-#                         "type": "er",
-#                         "children": [
-#                             {"type": "_YMa<er>", "children": [{"type": "_NativeInteger"}]}
-#                         ],
-#                     },
-#                 ],
-#             }
-#         ]
-#     }
-#     _deobfuscate_view_hierarchy(mock.Mock(), mock.Mock(), test_view_hierarchy)
+def test_deobfuscate_exception_value_without_type() -> None:
+    """Values should be deobfuscated even if the exception type is missing or None."""
+    mock_project = mock.Mock(id=123)
 
-#     assert test_view_hierarchy == {
-#         "windows": [
-#             {
-#                 "type": "ButtonTheme",
-#                 "children": [
-#                     {
-#                         "type": "SemanticsAction",
-#                         "children": [
-#                             {
-#                                 "type": "_entry<SemanticsAction>",
-#                                 "children": [{"type": "_NativeInteger"}],
-#                             }
-#                         ],
-#                     }
-#                 ],
-#             }
-#         ]
-#     }
+    data: dict[str, Any] = {
+        "project": 123,
+        "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
+        "exception": {
+            "values": [
+                {"type": None, "value": "Instance of 'xyz'"},
+                {"value": "Unhandled Exception: Instance of 'xyz' was thrown"},
+                {"type": None, "value": "No pattern here"},
+            ]
+        },
+    }
+
+    mock_map = {"xyz": "NetworkException"}
+
+    with (
+        mock.patch(
+            "sentry.models.Project.objects.get_from_cache",
+            return_value=mock_project,
+        ),
+        mock.patch(
+            "sentry.lang.dart.utils.generate_dart_symbols_map",
+            return_value=mock_map,
+        ),
+    ):
+        deobfuscate_exception_type(data)
+
+        # First: type is None, value should be deobfuscated, type remains None
+        assert data["exception"]["values"][0]["type"] is None
+        assert data["exception"]["values"][0]["value"] == "Instance of 'NetworkException'"
+
+        # Second: type key missing, value should be deobfuscated
+        assert (
+            data["exception"]["values"][1]["value"]
+            == "Unhandled Exception: Instance of 'NetworkException' was thrown"
+        )
+        assert "type" not in data["exception"]["values"][1]
+
+        # Third: no pattern; unchanged
+        assert data["exception"]["values"][2]["type"] is None
+        assert data["exception"]["values"][2]["value"] == "No pattern here"

@@ -28,7 +28,7 @@ describe('getWidgetExploreUrl', () => {
 
     // Note: for table widgets the mode is set to samples and the fields are propagated
     expectUrl(url).toMatch({
-      path: '/organizations/org-slug/traces/',
+      path: '/organizations/org-slug/explore/traces/',
       params: [
         ['field', 'span.description'],
         ['field', 'span.duration'],
@@ -37,6 +37,41 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+      ],
+    });
+  });
+
+  it('returns the correct aggregate mode url for table widgets with equations sort', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          fields: ['span.description', 'equation|avg(span.duration) + 100'],
+          aggregates: ['equation|avg(span.duration) + 100'],
+          columns: ['span.description'],
+          conditions: '',
+          orderby: '-equation[0]',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+
+    // Note: for table widgets the mode is set to samples and the fields are propagated
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'span.description'],
+        ['groupBy', 'span.description'],
+        ['interval', '30m'],
+        ['mode', 'aggregate'],
+        ['statsPeriod', '14d'],
+        ['sort', '-equation|avg(span.duration) + 100'],
+        [
+          'visualize',
+          JSON.stringify({chartType: 1, yAxes: ['equation|avg(span.duration) + 100']}),
+        ],
       ],
     });
   });
@@ -60,7 +95,7 @@ describe('getWidgetExploreUrl', () => {
 
     // Note: for table widgets the mode is set to samples and the fields are propagated
     expectUrl(url).toMatch({
-      path: '/organizations/org-slug/traces/',
+      path: '/organizations/org-slug/explore/traces/',
       params: [
         ['field', 'span.description'],
         ['field', 'span.duration'],
@@ -91,7 +126,7 @@ describe('getWidgetExploreUrl', () => {
     // Note: for line widgets the mode is set to aggregate
     // The chart type is set to 1 for area charts
     expectUrl(url).toMatch({
-      path: '/organizations/org-slug/traces/',
+      path: '/organizations/org-slug/explore/traces/',
       params: [
         ['field', 'span.description'],
         ['field', 'span.duration'],
@@ -124,7 +159,7 @@ describe('getWidgetExploreUrl', () => {
     // Note: for line widgets the mode is set to aggregate
     // The chart type is set to 1 for area charts
     expectUrl(url).toMatch({
-      path: '/organizations/org-slug/traces/',
+      path: '/organizations/org-slug/explore/traces/',
       params: [
         ['field', 'span.duration'],
         ['groupBy', ''],
@@ -156,7 +191,7 @@ describe('getWidgetExploreUrl', () => {
 
     // The URL should have the sort and another visualize to plot the sort
     expectUrl(url).toMatch({
-      path: '/organizations/org-slug/traces/',
+      path: '/organizations/org-slug/explore/traces/',
       params: [
         ['field', 'span.description'],
         ['field', 'span.duration'],
@@ -197,7 +232,7 @@ describe('getWidgetExploreUrl', () => {
 
     // Assert that the query contains the dashboard filters in its resulting URL
     expectUrl(url).toMatch({
-      path: '/organizations/org-slug/traces/',
+      path: '/organizations/org-slug/explore/traces/',
       params: [
         ['field', 'span.description'],
         ['field', 'span.duration'],
@@ -258,6 +293,48 @@ describe('getWidgetExploreUrl', () => {
     expect(query2.fields).toEqual([]);
     expect(query2.groupBys).toEqual(['span.description']);
     expect(query2.query).toBe('is_transaction:false');
+  });
+
+  it('adds referrer query parameter if provided', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          fields: [],
+          aggregates: ['avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'span.description:test',
+          orderby: '-avg(span.duration)',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(
+      widget,
+      {},
+      selection,
+      organization,
+      undefined,
+      'test-referrer'
+    );
+
+    // Assert that the query contains the dashboard filters in its resulting URL
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'span.description'],
+        ['field', 'span.duration'],
+        ['groupBy', 'span.description'],
+        ['interval', '30m'],
+        ['mode', 'aggregate'],
+        ['query', 'span.description:test'],
+        ['sort', '-avg(span.duration)'],
+        ['statsPeriod', '14d'],
+        ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['referrer', 'test-referrer'],
+      ],
+    });
   });
 });
 

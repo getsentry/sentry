@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class DisabledMemberViewTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-organization-disabled-member", args=[self.org.slug])
 
     def setUp(self) -> None:
@@ -19,7 +19,7 @@ class DisabledMemberViewTest(TestCase):
         self.user = self.create_user()
         self.login_as(self.user)
 
-    def create_one_member(self, flags=None):
+    def create_one_member(self, flags=None) -> None:
         self.create_member(user=self.user, organization=self.org, role="member", flags=flags)
 
     def test_member_missing(self) -> None:

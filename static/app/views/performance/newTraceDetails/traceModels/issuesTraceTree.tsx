@@ -23,8 +23,11 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata): IssuesTraceTree {
-    const t = makeExampleTrace(metadata);
+  static Loading(
+    metadata: TraceTree.Metadata,
+    organization: Organization
+  ): IssuesTraceTree {
+    const t = makeExampleTrace(metadata, organization);
     const tree = new IssuesTraceTree();
     tree.root = t.root;
     tree.type = 'loading';
@@ -32,8 +35,11 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static Error(metadata: TraceTree.Metadata): IssuesTraceTree {
-    const t = makeExampleTrace(metadata);
+  static Error(
+    metadata: TraceTree.Metadata,
+    organization: Organization
+  ): IssuesTraceTree {
+    const t = makeExampleTrace(metadata, organization);
     const tree = new IssuesTraceTree();
     tree.root = t.root;
     tree.type = 'error';
@@ -45,6 +51,7 @@ export class IssuesTraceTree extends TraceTree {
     trace: TraceTree.Trace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
+      organization: Organization;
       replay: HydratedReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
@@ -82,15 +89,12 @@ export class IssuesTraceTree extends TraceTree {
         }
 
         for (const o of n.occurrences) {
-          if (isTransactionNode(n)) {
-            if (o.event_id === event.eventID) {
-              return true;
-            }
-          } else if (o.event_id === event.occurrence?.id) {
+          if (o.event_id === event.eventID) {
             return true;
           }
         }
       }
+
       return false;
     });
 

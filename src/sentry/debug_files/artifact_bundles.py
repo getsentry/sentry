@@ -32,8 +32,6 @@ MAX_BUNDLES_QUERY = 5
 # A value of 3 means that the third upload will trigger indexing and backfill.
 INDEXING_THRESHOLD = 3
 
-# Number of days that determine whether an artifact bundle is ready for being renewed.
-AVAILABLE_FOR_RENEWAL_DAYS = 30
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
 # optimize it based on the time taken to perform the indexing (on average).
@@ -215,7 +213,9 @@ def refresh_artifact_bundles_in_use():
     redis_client = get_redis_cluster_for_artifact_bundles()
 
     now = timezone.now()
-    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+    threshold_date = now - timedelta(
+        days=options.get("system.debug-files-renewal-age-threshold-days")
+    )
 
     for _ in range(LOOP_TIMES):
         artifact_bundle_ids = redis_client.spop(get_refresh_key(), IDS_PER_LOOP)
@@ -236,7 +236,9 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
-    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+    threshold_date = now - timedelta(
+        days=options.get("system.debug-files-renewal-age-threshold-days")
+    )
 
     for artifact_bundle_id, date_added in used_artifact_bundles.items():
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.

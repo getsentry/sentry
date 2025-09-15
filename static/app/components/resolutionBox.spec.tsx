@@ -10,7 +10,7 @@ import {GroupActivityType} from 'sentry/types/group';
 
 import ResolutionBox from './resolutionBox';
 
-describe('ResolutionBox', function () {
+describe('ResolutionBox', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const release = ReleaseFixture({version: '1.0'});
@@ -34,13 +34,13 @@ describe('ResolutionBox', function () {
     });
   });
 
-  it('handles default', function () {
+  it('handles default', () => {
     const {container} = render(
       <ResolutionBox statusDetails={{}} project={project} organization={organization} />
     );
     expect(container).toHaveTextContent('This issue has been marked as resolved.');
   });
-  it('handles inNextRelease', function () {
+  it('handles inNextRelease', () => {
     const {container} = render(
       <ResolutionBox
         statusDetails={{inNextRelease: true}}
@@ -52,7 +52,7 @@ describe('ResolutionBox', function () {
       'This issue has been marked as resolved in the upcoming release.'
     );
   });
-  it('handles inNextRelease with actor', function () {
+  it('handles inNextRelease with actor', () => {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
@@ -73,7 +73,7 @@ describe('ResolutionBox', function () {
       'David Cramer marked this issue as resolved in the upcoming release.'
     );
   });
-  it('handles in next release (semver current_release_version)', function () {
+  it('handles in next release (semver current_release_version)', () => {
     const currentReleaseVersion = '1.2.0';
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/${currentReleaseVersion}/`,
@@ -110,7 +110,7 @@ describe('ResolutionBox', function () {
       'Foo Bar marked this issue as resolved in versions greater than 1.2.0'
     );
   });
-  it('handles inRelease', function () {
+  it('handles inRelease', () => {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
@@ -124,7 +124,7 @@ describe('ResolutionBox', function () {
       `This issue has been marked as resolved in version ${release.version}.`
     );
   });
-  it('handles inRelease with actor', function () {
+  it('handles inRelease with actor', () => {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
@@ -145,7 +145,7 @@ describe('ResolutionBox', function () {
       `David Cramer marked this issue as resolved in version ${release.version}.`
     );
   });
-  it('handles inCommit', function () {
+  it('handles inCommit', () => {
     const {container} = render(
       <ResolutionBox
         statusDetails={{

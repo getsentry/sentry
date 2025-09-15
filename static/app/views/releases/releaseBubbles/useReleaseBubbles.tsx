@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {
   CustomSeriesOption,
   CustomSeriesRenderItem,
@@ -595,15 +595,19 @@ export function useReleaseBubbles({
         trackLegend(params);
       };
 
-      if (echartsInstance) {
+      // @ts-expect-error `getModel` is private, but we access it to prevent binding mouse events to an instance of ECharts that hasn't been fully initialized. A more robust pattern is to attach mouse events using `onChartReady` instead of `ref`, but that causes manually bound mouse events to be overridden by the contents of the `onEvents` prop, since `onChartReady` only fires once, while the `ref` fires more often, and the manual events are re-added.
+      if (echartsInstance?.getModel()) {
         /**
          * MouseListeners for echarts. This includes drawing a highlighted area on the
          * main chart when a release bubble is hovered over.
          *
          * Attach directly to instance to avoid collisions with React props
          */
+        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('click', handleSeriesClick);
+        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseover', handleMouseOver);
+        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseout', handleMouseOut);
         echartsInstance.on('globalout', handleGlobalOut);
         // @ts-expect-error ECharts types `params` as unknown

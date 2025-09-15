@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import {
-  type DataCondition,
   DataConditionType,
+  type DataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {
   AgeComparisonDetails,

@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class AuthLogoutTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-logout")
 
     def test_get_shows_page(self) -> None:

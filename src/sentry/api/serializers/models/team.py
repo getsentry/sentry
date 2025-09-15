@@ -19,6 +19,7 @@ from sentry.auth.access import (
     maybe_singular_rpc_access_org_context,
 )
 from sentry.auth.superuser import is_active_superuser
+from sentry.core.endpoints.scim.constants import SCIM_SCHEMA_GROUP
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
@@ -27,7 +28,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 from sentry.roles import organization_roles, team_roles
-from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.query import RangeQuerySetWrapper

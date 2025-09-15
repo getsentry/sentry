@@ -170,6 +170,8 @@
 
       {% block stacktrace %}{% endblock %}
 
+      {% include "sentry/emails/_suspect_commits.html" %}
+
       {% if tags %}
         <h3>Tags</h3>
 

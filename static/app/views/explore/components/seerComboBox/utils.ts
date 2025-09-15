@@ -40,7 +40,7 @@ export function formatQueryToNaturalLanguage(query: string): string {
   const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
   const formattedTokens = tokens.map(formatToken);
 
-  return formattedTokens.reduce((result, token, index) => {
+  const formattedQuery = formattedTokens.reduce((result, token, index) => {
     if (index === 0) return token;
 
     const currentOriginalToken = tokens[index] || '';
@@ -64,6 +64,9 @@ export function formatQueryToNaturalLanguage(query: string): string {
 
     return `${result} ${token}`;
   }, '');
+
+  // add a space at the end of the query to give space for the cursor
+  return `${formattedQuery} `;
 }
 
 export function generateQueryTokensString({

@@ -8,9 +8,9 @@ import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata
 import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissableInfoAlert';
 import {t, tct} from 'sentry/locale';
 import {
+  ActionType,
   type Action,
   type ActionHandler,
-  ActionType,
 } from 'sentry/types/workflowEngine/actions';
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
@@ -24,8 +24,7 @@ export function DiscordDetails({
   handler: ActionHandler;
 }) {
   const integrationName =
-    handler.integrations?.find(i => i.id === action.integrationId)?.name ||
-    action.integrationId;
+    handler.integrations?.find(i => i.id === action.integrationId)?.name || t('unknown');
   const tags = String(action.data.tags);
 
   return tct(

@@ -13,7 +13,7 @@ import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('WebVitalMeters', function () {
+describe('WebVitalMeters', () => {
   const organization = OrganizationFixture();
   const projectScore: ProjectScore = {
     lcpScore: 100,
@@ -24,7 +24,7 @@ describe('WebVitalMeters', function () {
   };
   const projectData: ProjectData[] = [];
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',

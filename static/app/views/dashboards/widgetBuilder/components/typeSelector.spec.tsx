@@ -16,12 +16,12 @@ const mockUseNavigate = jest.mocked(useNavigate);
 describe('TypeSelector', () => {
   let router!: ReturnType<typeof RouterFixture>;
   let organization!: ReturnType<typeof OrganizationFixture>;
-  beforeEach(function () {
+  beforeEach(() => {
     router = RouterFixture();
     organization = OrganizationFixture();
   });
 
-  it('changes the visualization type', async function () {
+  it('changes the visualization type', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -50,7 +50,7 @@ describe('TypeSelector', () => {
     );
   });
 
-  it('displays error message when there is an error', async function () {
+  it('displays error message when there is an error', async () => {
     render(
       <WidgetBuilderProvider>
         <TypeSelector error={{displayType: 'Please select a type'}} />

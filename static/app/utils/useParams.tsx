@@ -11,6 +11,7 @@ import {useTestRouteContext} from './useRouteContext';
  * Prevents misspelling of param keys
  */
 type ParamKeys =
+  | 'alertId'
   | 'apiKey'
   | 'appId'
   | 'appSlug'
@@ -23,6 +24,7 @@ type ParamKeys =
   | 'detectorId'
   | 'docIntegrationSlug'
   | 'eventId'
+  | 'eventSlug'
   | 'fineTuneType'
   | 'groupId'
   | 'id'

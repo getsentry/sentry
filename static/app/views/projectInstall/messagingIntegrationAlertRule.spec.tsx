@@ -6,7 +6,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
-describe('MessagingIntegrationAlertRule', function () {
+describe('MessagingIntegrationAlertRule', () => {
   const slackIntegrations = [
     OrganizationIntegrationsFixture({
       name: "Moo Deng's Workspace",
@@ -52,12 +52,12 @@ describe('MessagingIntegrationAlertRule', function () {
 
   const getComponent = () => <MessagingIntegrationAlertRule {...notificationProps} />;
 
-  it('renders', function () {
+  it('renders', () => {
     render(getComponent());
     expect(screen.getAllByRole('textbox')).toHaveLength(3);
   });
 
-  it('calls setter when new integration is selected', async function () {
+  it('calls setter when new integration is selected', async () => {
     render(getComponent());
     await selectEvent.select(
       screen.getByText("Moo Deng's Workspace"),
@@ -66,7 +66,7 @@ describe('MessagingIntegrationAlertRule', function () {
     expect(mockSetIntegration).toHaveBeenCalled();
   });
 
-  it('calls setters when new provider is selected', async function () {
+  it('calls setters when new provider is selected', async () => {
     render(getComponent());
     await selectEvent.select(screen.getByText('Slack'), 'Discord');
     expect(mockSetProvider).toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe('MessagingIntegrationAlertRule', function () {
     expect(mockSetChannel).toHaveBeenCalled();
   });
 
-  it('disables provider select when there is only one provider option', function () {
+  it('disables provider select when there is only one provider option', () => {
     render(
       <MessagingIntegrationAlertRule
         {...notificationProps}
@@ -84,7 +84,7 @@ describe('MessagingIntegrationAlertRule', function () {
     expect(screen.getByLabelText('provider')).toBeDisabled();
   });
 
-  it('disables integration select when there is only one integration option', function () {
+  it('disables integration select when there is only one integration option', () => {
     render(
       <MessagingIntegrationAlertRule
         {...{

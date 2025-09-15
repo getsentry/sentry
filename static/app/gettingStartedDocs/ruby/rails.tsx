@@ -16,6 +16,7 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {getRubyProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
 import {t, tct} from 'sentry/locale';
+import {getRubyLogsOnboarding} from 'sentry/utils/gettingStartedDocs/ruby';
 
 type Params = DocsParams;
 
@@ -216,6 +217,9 @@ const docs: Docs = {
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getRubyProfilingOnboarding({frameworkPackage: 'sentry-rails'}),
+  logsOnboarding: getRubyLogsOnboarding({
+    docsPlatform: 'rails',
+  }),
 };
 
 export default docs;

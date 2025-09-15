@@ -130,7 +130,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
 
       try {
         await api.requestPromise(endpoint, {method: 'POST', data});
-      } catch (err) {
+      } catch (err: any) {
         const errorResponse = err.responseJSON;
 
         // Use the email error message if available. This inconsistently is
@@ -142,7 +142,12 @@ export default function useInviteModal({organization, initialData, source}: Prop
           : false;
 
         const orgLevelError = errorResponse?.organization;
-        const error = orgLevelError || emailError || t('Could not invite user');
+        const error =
+          orgLevelError ||
+          emailError ||
+          (errorResponse?.detail
+            ? t('Could not invite user. %s', errorResponse?.detail)
+            : t('Could not invite user.'));
 
         setState(prev => ({
           ...prev,

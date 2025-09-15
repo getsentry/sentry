@@ -7,8 +7,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {EntryType} from 'sentry/types/event';
 
-describe('Csp report entry', function () {
-  it('display redacted data', async function () {
+describe('Csp report entry', () => {
+  it('display redacted data', async () => {
     const event = EventFixture({
       entries: [{type: EntryType.CSP, data: {effective_directive: ''}}],
       _meta: {

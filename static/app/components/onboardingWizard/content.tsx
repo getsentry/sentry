@@ -19,7 +19,7 @@ import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
@@ -352,15 +352,12 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
     }
   }, [mutateOnboardingTasks, tasks]);
 
-  const markSeenOnOpen = useCallback(
-    async function () {
-      // Add a minor delay to marking tasks complete to account for the animation
-      // opening of the group
-      await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
-      markTasksAsSeen();
-    },
-    [markTasksAsSeen]
-  );
+  const markSeenOnOpen = useCallback(async () => {
+    // Add a minor delay to marking tasks complete to account for the animation
+    // opening of the group
+    await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
+    markTasksAsSeen();
+  }, [markTasksAsSeen]);
 
   useEffect(() => {
     if (unseenDoneTasks.length > 0) {

@@ -13,15 +13,18 @@ import {
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
+import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
   getVisualizesFromLocation,
   isVisualize,
-  Visualize,
+  VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const SPANS_MODE_KEY = 'mode';
@@ -33,6 +36,10 @@ const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
 const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
+
+export function isDefaultFields(location: Location): boolean {
+  return getFieldsFromLocation(location, SPANS_FIELD_KEY) ? false : true;
+}
 
 export function getReadableQueryParamsFromLocation(
   location: Location,
@@ -68,6 +75,27 @@ export function getReadableQueryParamsFromLocation(
     aggregateFields,
     aggregateSortBys,
   });
+}
+
+export function getTargetWithReadableQueryParams(
+  location: Location,
+  writableQueryParams: WritableQueryParams
+): Location {
+  const target: Location = {...location, query: {...location.query}};
+
+  updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
+
+  updateNullableLocation(target, SPANS_FIELD_KEY, writableQueryParams.fields);
+
+  updateNullableLocation(
+    target,
+    SPANS_AGGREGATE_FIELD_KEY,
+    writableQueryParams.aggregateFields?.map(aggregateField =>
+      JSON.stringify(aggregateField)
+    )
+  );
+
+  return target;
 }
 
 function defaultFields(organization: Organization): string[] {
@@ -116,8 +144,8 @@ function defaultGroupBys(): [GroupBy] {
   return [{groupBy: ''}];
 }
 
-function defaultVisualizes(): [Visualize] {
-  return [new Visualize(DEFAULT_VISUALIZATION)];
+export function defaultVisualizes(): [Visualize] {
+  return [new VisualizeFunction(DEFAULT_VISUALIZATION)];
 }
 
 function getSpansAggregateFieldsFromLocation(location: Location): AggregateField[] {

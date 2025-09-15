@@ -8,9 +8,9 @@ import PageUpsellOverlay from 'getsentry/components/features/pageUpsellOverlay';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
-describe('PageUpsellOverlay', function () {
+describe('PageUpsellOverlay', () => {
   let wrapper: any;
-  afterEach(function () {
+  afterEach(() => {
     if (wrapper) {
       wrapper.unmount();
     }
@@ -23,7 +23,7 @@ describe('PageUpsellOverlay', function () {
     body: BillingConfigFixture(PlanTier.AM2),
   });
 
-  it('renders customSecondaryCTA', function () {
+  it('renders customSecondaryCTA', () => {
     const subscription = SubscriptionFixture({
       organization: org,
       canSelfServe: true,
@@ -47,7 +47,7 @@ describe('PageUpsellOverlay', function () {
     expect(screen.getByText('My Text')).toBeInTheDocument();
     expect(screen.getByText('Upgrade Plan')).toBeInTheDocument();
   });
-  it('renders learn more', function () {
+  it('renders learn more', () => {
     const subscription = SubscriptionFixture({
       organization: org,
       canSelfServe: true,
@@ -69,7 +69,7 @@ describe('PageUpsellOverlay', function () {
     expect(screen.getByText('Learn More')).toBeInTheDocument();
     expect(screen.getByText('Upgrade Plan')).toBeInTheDocument();
   });
-  it('does not render CTA for non-self serve', function () {
+  it('does not render CTA for non-self serve', () => {
     const subscription = SubscriptionFixture({
       organization: org,
       canSelfServe: false,

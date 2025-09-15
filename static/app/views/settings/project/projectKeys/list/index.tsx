@@ -157,9 +157,9 @@ function ProjectKeys({project}: Props) {
           <KeyRow
             hasWriteAccess={hasAccess}
             key={key.id}
-            orgId={organization.slug}
             projectId={projectId}
             project={project}
+            organization={organization}
             data={key}
             onToggle={(isActive, data) =>
               handleToggleKeyMutation.mutate({isActive, data})

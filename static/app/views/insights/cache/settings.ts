@@ -14,4 +14,4 @@ export const BASE_FILTERS: SpanQueryFilters = {
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/caches/';
 
-export const MODULE_FEATURES = ['insights-addon-modules'];
+export const MODULE_FEATURES = ['insight-modules'];
