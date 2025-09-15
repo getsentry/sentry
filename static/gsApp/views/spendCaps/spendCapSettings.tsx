@@ -109,13 +109,13 @@ function formatPaygPricePerUnit({
     useUnitScaling: true,
   });
   if (isByteCategory(category)) {
-    return tct('[formattedPrice] per [units][addComma]', {
+    return tct('[formattedPrice] / [units][addComma]', {
       formattedPrice,
       units: multiplierIsOne ? 'GB' : formattedUnits,
       addComma: addComma ? ', ' : '',
     });
   }
-  return tct('[formattedPrice] per [units][addComma]', {
+  return tct('[formattedPrice] / [units][addComma]', {
     formattedPrice,
     units: `${multiplierIsOne ? '' : `${formattedUnits} `} ${multiplierIsOne ? singularName : pluralName}`,
     addComma: addComma ? ', ' : '',
@@ -219,10 +219,16 @@ function SharedSpendCapPriceTable({
   );
   return (
     <PriceTable>
-      <Grid columns="repeat(3, 1fr)" gap="md 0">
-        <Text bold>{t('Applies to')}</Text>
-        <Text bold>{t('Included volume')}</Text>
-        <Text bold>{t('Additional cost')}</Text>
+      <Grid columns="repeat(3, 1fr)" gap="md 0" background="secondary" padding="md lg">
+        <Text size="sm" bold>
+          {t('Feature')}
+        </Text>
+        <Text size="sm" bold>
+          {t('Volume included')}
+        </Text>
+        <Text size="sm" bold>
+          {t('Additional cost')}
+        </Text>
       </Grid>
 
       {baseCategories.map(category => {
@@ -241,8 +247,8 @@ function SharedSpendCapPriceTable({
           capitalize: false,
         });
         return (
-          <Grid key={category} columns="repeat(3, 1fr)" gap="md 0">
-            <Text>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</Text>
+          <Grid key={category} columns="repeat(3, 1fr)" gap="md 0" padding="md lg">
+            <Text bold>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</Text>
             <Text>
               {reserved === 0
                 ? '-'
@@ -684,13 +690,13 @@ const CategoryRow = styled('div')`
 `;
 
 const PriceTable = styled(Grid)`
-  > * {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-    border-radius: ${p => p.theme.space.xs};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  overflow: hidden;
 
-    &:nth-child(even) {
-      background: ${p => p.theme.backgroundSecondary};
-    }
+  > * + * {
+    border-top: 1px solid ${p => p.theme.border};
   }
 `;
 
