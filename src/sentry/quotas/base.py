@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
@@ -392,21 +392,33 @@ class Quota(Service):
                           attachment in bytes.
         """
 
-    def get_event_retention(self, organization):
+    def get_event_retention(self, organization, category: DataCategory = None, **kwargs):
         """
         Returns the retention for events in the given organization in days.
         Returns ``None`` if events are to be stored indefinitely.
 
         :param organization: The organization model.
+        :param category: The category to retention policy for, if available,
+                         otherwise, returns the org level retention.
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
 
-    def get_downsampled_event_retention(self, organization):
+    def get_downsampled_event_retention(
+        self, organization, category: DataCategory = None, **kwargs
+    ):
         """
         Returns the retention for downsampled events in the given organization in days.
         Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
         """
         return 0
+
+    def get_retentions(self, organization: Organization, **kwargs) -> Mapping[DataCategory, int]:
+        return {}
+
+    def get_downsampled_retentions(
+        self, organization: Organization, **kwargs
+    ) -> Mapping[DataCategory, int]:
+        return {}
 
     def validate(self):
         """

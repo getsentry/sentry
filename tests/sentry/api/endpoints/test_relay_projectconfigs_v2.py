@@ -110,6 +110,14 @@ def test_internal_relays_should_receive_full_configs(
         cfg, "config", "downsampledEventRetention"
     ) == quotas.backend.get_downsampled_event_retention(default_project.organization)
 
+    retentions = quotas.backend.get_retentions(default_project.organization)
+    assert safe.get_path(cfg, "config", "retentions") == {c.name: v for c, v in retentions.items()}
+
+    downsampled_retentions = quotas.backend.get_downsampled_retentions(default_project.organization)
+    assert safe.get_path(cfg, "config", "downsampledRetentions") == {
+        c.name: v for c, v in downsampled_retentions.items()
+    }
+
 
 @django_db_all
 def test_relays_dyamic_sampling(call_endpoint, default_projectkey) -> None:
