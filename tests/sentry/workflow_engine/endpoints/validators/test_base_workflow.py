@@ -16,7 +16,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
-from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
+from tests.sentry.workflow_engine.test_base import MockActionHandler
 
 
 class TestWorkflowValidator(TestCase):
@@ -378,11 +378,7 @@ class TestWorkflowValidatorUpdate(TestCase):
             context=self.context,
         )
 
-        with mock.patch(
-            "sentry.notifications.notification_action.registry.action_validator_registry.get",
-            return_value=MockActionValidatorTranslator,
-        ):
-            validator.is_valid(raise_exception=True)
+        validator.is_valid(raise_exception=True)
         self.workflow = validator.create(validator.validated_data)
         self.context["workflow"] = self.workflow
 
