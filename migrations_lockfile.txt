@@ -9,7 +9,7 @@ discover: 0003_discover_json_field
 
 explore: 0006_add_changed_reason_field_explore
 
-feedback: 0005_feedback_fk_not_db_contstr
+feedback: 0006_safe_del_feedback_model
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
