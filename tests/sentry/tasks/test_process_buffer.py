@@ -63,8 +63,8 @@ class ScheduleDelayedWorkflowsTest(TestCase):
         mock_process_buffer_for_type: mock.MagicMock,
         mock_options_get: mock.MagicMock,
     ) -> None:
-        # Mock the config option to return False (not using process_pending_batch)
-        mock_options_get.return_value = False
+        # Mock the config option to return True (using new scheduling task)
+        mock_options_get.return_value = True
 
         with self.assertLogs("sentry.tasks.process_buffer", level="WARNING") as logger:
             lock = get_process_lock("schedule_delayed_workflows")
@@ -89,8 +89,8 @@ class ScheduleDelayedWorkflowsTest(TestCase):
         mock_process_buffer_for_type: mock.MagicMock,
         mock_options_get: mock.MagicMock,
     ) -> None:
-        # Mock the config option to return True (using process_pending_batch)
-        mock_options_get.return_value = True
+        # Mock the config option to return False (not using new scheduling task)
+        mock_options_get.return_value = False
 
         with self.assertLogs("sentry.tasks.process_buffer", level="INFO") as logger:
             schedule_delayed_workflows()
@@ -109,8 +109,8 @@ class ScheduleDelayedWorkflowsTest(TestCase):
         mock_process_buffer_for_type: mock.MagicMock,
         mock_options_get: mock.MagicMock,
     ) -> None:
-        # Mock the config option to return False (not using process_pending_batch)
-        mock_options_get.return_value = False
+        # Mock the config option to return True (using new scheduling task)
+        mock_options_get.return_value = True
 
         schedule_delayed_workflows()
 

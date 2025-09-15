@@ -85,8 +85,8 @@ def schedule_delayed_workflows() -> None:
     try:
         with lock.acquire():
             # Only process delayed_workflow type
-            use_pending_batch = options.get("workflow_engine.use_process_pending_batch")
-            if use_pending_batch:
+            use_new_scheduling = options.get("workflow_engine.use_new_scheduling_task")
+            if not use_new_scheduling:
                 logger.info(
                     "Configured to use process_pending_batch for delayed_workflow; exiting."
                 )
