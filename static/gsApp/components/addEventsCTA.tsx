@@ -14,6 +14,7 @@ import type {Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
   getBestActionToIncreaseEventLimits,
+  type UsageAction,
 } from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -23,11 +24,10 @@ import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editO
  * When a new billed category is added, all records keying on EventType
  * will error to alert the author that they need to be updated.
  *
- * TODO(data categories): move this to dataCategory.tsx
  */
 export type EventType = {
   [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
-    ? (typeof DATA_CATEGORY_INFO)[K]['name']
+    ? (typeof DATA_CATEGORY_INFO)[K]['singular']
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
 
@@ -37,6 +37,7 @@ type Props = {
   referrer: string;
   source: string;
   subscription: Subscription;
+  action?: UsageAction;
   buttonProps?: Partial<ButtonProps | LinkButtonProps>;
   eventTypes?: EventType[];
   handleRequestSent?: () => void;
@@ -55,6 +56,7 @@ function AddEventsCTA(props: Props) {
     subscription,
     organization,
     api,
+    action: _action,
     eventTypes,
     notificationType,
     referrer,
@@ -71,7 +73,8 @@ function AddEventsCTA(props: Props) {
     setBusy(false);
   };
 
-  const action = getBestActionToIncreaseEventLimits(organization, subscription);
+  const action =
+    _action ?? getBestActionToIncreaseEventLimits(organization, subscription);
   const commonProps: Partial<ButtonProps | LinkButtonProps> & {
     'data-test-id'?: string;
   } = {

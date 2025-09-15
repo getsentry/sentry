@@ -5,8 +5,6 @@ import uuid
 from enum import Enum
 from typing import Any
 
-from sentry.utils import json
-
 
 # This __must__ match the EventType enum in RRWeb, for the version of rrweb that we are using.
 # https://github.com/rrweb-io/rrweb/blob/master/packages/rrweb/src/types.ts#L18-L26
@@ -161,86 +159,72 @@ def mock_replay(
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": kwargs.pop("retention_days", 30),
-        "payload": list(
-            bytes(
-                json.dumps(
-                    {
-                        "type": "replay_event",
-                        "replay_id": replay_id,
-                        "replay_type": kwargs.pop("replay_type", "session"),
-                        "segment_id": kwargs.pop("segment_id", 0),
-                        "tags": tags,
-                        "urls": kwargs.pop("urls", []),
-                        "is_archived": kwargs.pop("is_archived", None),
-                        "error_ids": kwargs.pop(
-                            "error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]
-                        ),
-                        "trace_ids": kwargs.pop(
-                            "trace_ids", ["44916572-43ba-4dbe-bd2f-6bd62b733080"]
-                        ),
-                        "dist": kwargs.pop("dist", "abc123"),
-                        "platform": kwargs.pop("platform", "javascript"),
-                        "timestamp": sec(timestamp),
-                        "replay_start_timestamp": kwargs.pop(
-                            "replay_start_timestamp", sec(timestamp)
-                        ),
-                        "environment": kwargs.pop("environment", "production"),
-                        "release": kwargs.pop("release", "version@1.3"),
-                        "user": {
-                            "id": kwargs.pop("user_id", "123"),
-                            "username": kwargs.pop("user_name", "username"),
-                            "email": kwargs.pop("user_email", "username@example.com"),
-                            "ip_address": kwargs.pop("ipv4", "127.0.0.1"),
-                            "geo": {
-                                "city": kwargs.pop("user_geo_city", "San Francisco"),
-                                "country_code": kwargs.pop("user_geo_country_code", "USA"),
-                                "region": kwargs.pop("user_geo_region", "United States"),
-                                "subdivision": kwargs.pop("user_geo_subdivision", "California"),
-                            },
-                        },
-                        "sdk": {
-                            "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
-                            "version": kwargs.pop("sdk_version", "6.18.1"),
-                        },
-                        "contexts": {
-                            "trace": {
-                                "op": "pageload",
-                                "span_id": "affa5649681a1eeb",
-                                "trace_id": kwargs.pop(
-                                    "trace_id", "23eda6cd4b174ef8a51f0096df3bfdd1"
-                                ),
-                            },
-                            "os": {
-                                "name": kwargs.pop("os_name", "iOS"),
-                                "version": kwargs.pop("os_version", "16.2"),
-                            },
-                            "browser": {
-                                "name": kwargs.pop("browser_name", "Chrome"),
-                                "version": kwargs.pop("browser_version", "103.0.38"),
-                            },
-                            "device": {
-                                "name": kwargs.pop("device_name", "iPhone 13 Pro"),
-                                "brand": kwargs.pop("device_brand", "Apple"),
-                                "family": kwargs.pop("device_family", "iPhone"),
-                                "model": kwargs.pop("device_model", "13 Pro"),
-                            },
-                            "ota_updates": {
-                                "channel": kwargs.pop("ota_updates_channel", "test-channel"),
-                                "runtime_version": kwargs.pop(
-                                    "ota_updates_runtime_version", "test-runtime-version"
-                                ),
-                                "update_id": kwargs.pop("ota_updates_update_id", "test-update-id"),
-                            },
-                        },
-                        "request": {
-                            "url": "Doesn't matter not ingested.",
-                            "headers": {"User-Agent": kwargs.pop("user_agent", "Firefox")},
-                        },
-                        "extra": {},
-                    }
-                ).encode()
-            )
-        ),
+        "payload": {
+            "type": "replay_event",
+            "replay_id": replay_id,
+            "replay_type": kwargs.pop("replay_type", "session"),
+            "segment_id": kwargs.pop("segment_id", 0),
+            "tags": tags,
+            "urls": kwargs.pop("urls", []),
+            "is_archived": kwargs.pop("is_archived", None),
+            "error_ids": kwargs.pop("error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]),
+            "trace_ids": kwargs.pop("trace_ids", ["44916572-43ba-4dbe-bd2f-6bd62b733080"]),
+            "dist": kwargs.pop("dist", "abc123"),
+            "platform": kwargs.pop("platform", "javascript"),
+            "timestamp": sec(timestamp),
+            "replay_start_timestamp": kwargs.pop("replay_start_timestamp", sec(timestamp)),
+            "environment": kwargs.pop("environment", "production"),
+            "release": kwargs.pop("release", "version@1.3"),
+            "user": {
+                "id": kwargs.pop("user_id", "123"),
+                "username": kwargs.pop("user_name", "username"),
+                "email": kwargs.pop("user_email", "username@example.com"),
+                "ip_address": kwargs.pop("ipv4", "127.0.0.1"),
+                "geo": {
+                    "city": kwargs.pop("user_geo_city", "San Francisco"),
+                    "country_code": kwargs.pop("user_geo_country_code", "USA"),
+                    "region": kwargs.pop("user_geo_region", "United States"),
+                    "subdivision": kwargs.pop("user_geo_subdivision", "California"),
+                },
+            },
+            "sdk": {
+                "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
+                "version": kwargs.pop("sdk_version", "6.18.1"),
+            },
+            "contexts": {
+                "trace": {
+                    "op": "pageload",
+                    "span_id": "affa5649681a1eeb",
+                    "trace_id": kwargs.pop("trace_id", "23eda6cd4b174ef8a51f0096df3bfdd1"),
+                },
+                "os": {
+                    "name": kwargs.pop("os_name", "iOS"),
+                    "version": kwargs.pop("os_version", "16.2"),
+                },
+                "browser": {
+                    "name": kwargs.pop("browser_name", "Chrome"),
+                    "version": kwargs.pop("browser_version", "103.0.38"),
+                },
+                "device": {
+                    "name": kwargs.pop("device_name", "iPhone 13 Pro"),
+                    "brand": kwargs.pop("device_brand", "Apple"),
+                    "family": kwargs.pop("device_family", "iPhone"),
+                    "model": kwargs.pop("device_model", "13 Pro"),
+                },
+                "ota_updates": {
+                    "channel": kwargs.pop("ota_updates_channel", "test-channel"),
+                    "runtime_version": kwargs.pop(
+                        "ota_updates_runtime_version", "test-runtime-version"
+                    ),
+                    "update_id": kwargs.pop("ota_updates_update_id", "test-update-id"),
+                },
+            },
+            "request": {
+                "url": "Doesn't matter not ingested.",
+                "headers": {"User-Agent": kwargs.pop("user_agent", "Firefox")},
+            },
+            "extra": {},
+        },
     }
 
 
@@ -256,36 +240,30 @@ def mock_replay_click(
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": kwargs.pop("retention_days", 30),
-        "payload": list(
-            bytes(
-                json.dumps(
-                    {
-                        "type": "replay_actions",
-                        "replay_id": replay_id,
-                        "environment": kwargs.pop("environment", "production"),
-                        "clicks": [
-                            {
-                                "node_id": kwargs["node_id"],
-                                "tag": kwargs["tag"],
-                                "id": kwargs.pop("id", ""),
-                                "class": kwargs.pop("class_", []),
-                                "text": kwargs.pop("text", ""),
-                                "component_name": kwargs.pop("component_name", ""),
-                                "role": kwargs.pop("role", ""),
-                                "alt": kwargs.pop("alt", ""),
-                                "testid": kwargs.pop("testid", ""),
-                                "aria_label": kwargs.pop("aria_label", ""),
-                                "title": kwargs.pop("title", ""),
-                                "is_dead": int(kwargs.pop("is_dead", 0)),
-                                "is_rage": int(kwargs.pop("is_rage", 0)),
-                                "event_hash": str(uuid.uuid4()),
-                                "timestamp": sec(timestamp),
-                            }
-                        ],
-                    }
-                ).encode()
-            )
-        ),
+        "payload": {
+            "type": "replay_actions",
+            "replay_id": replay_id,
+            "environment": kwargs.pop("environment", "production"),
+            "clicks": [
+                {
+                    "node_id": kwargs["node_id"],
+                    "tag": kwargs["tag"],
+                    "id": kwargs.pop("id", ""),
+                    "class": kwargs.pop("class_", []),
+                    "text": kwargs.pop("text", ""),
+                    "component_name": kwargs.pop("component_name", ""),
+                    "role": kwargs.pop("role", ""),
+                    "alt": kwargs.pop("alt", ""),
+                    "testid": kwargs.pop("testid", ""),
+                    "aria_label": kwargs.pop("aria_label", ""),
+                    "title": kwargs.pop("title", ""),
+                    "is_dead": int(kwargs.pop("is_dead", 0)),
+                    "is_rage": int(kwargs.pop("is_rage", 0)),
+                    "event_hash": str(uuid.uuid4()),
+                    "timestamp": sec(timestamp),
+                }
+            ],
+        },
     }
 
 
@@ -302,15 +280,11 @@ def mock_replay_viewed(
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": retention_days,
-        "payload": list(
-            json.dumps(
-                {
-                    "type": "replay_viewed",
-                    "timestamp": timestamp,
-                    "viewed_by_id": viewed_by_id,
-                }
-            ).encode()
-        ),
+        "payload": {
+            "type": "replay_viewed",
+            "timestamp": timestamp,
+            "viewed_by_id": viewed_by_id,
+        },
     }
 
 

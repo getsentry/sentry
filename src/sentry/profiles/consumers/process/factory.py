@@ -1,5 +1,3 @@
-import time
-import zlib
 from base64 import b64encode
 from collections.abc import Iterable, Mapping
 
@@ -12,28 +10,14 @@ from arroyo.types import Commit, Message, Partition
 from sentry import options
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.profiles.task import process_profile_task
-from sentry.utils import metrics
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
     sampled = is_sampled(message.payload.headers)
 
     if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-        start_time = time.perf_counter()
-        b64encoded_compressed = b64encode(
-            zlib.compress(
-                message.payload.value,
-                level=options.get("taskworker.try_compress.profile_metrics.level"),
-            )
-        ).decode("utf-8")
-        end_time = time.perf_counter()
-        metrics.distribution(
-            "profiling.profile_metrics.compression_time",
-            end_time - start_time,
-        )
-        process_profile_task.delay(
-            payload=b64encoded_compressed, sampled=sampled, compressed_profile=True
-        )
+        b64encoded = b64encode(message.payload.value).decode("utf-8")
+        process_profile_task.delay(payload=b64encoded, sampled=sampled)
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

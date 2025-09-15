@@ -1,15 +1,16 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
+  agentMonitoringOnboarding,
   crashReportOnboardingPython,
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
@@ -17,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getPythonAiocontextvarsConfig,
   getPythonInstallConfig,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -29,7 +31,13 @@ sentry_sdk.init(
     dsn="${params.dsn.public}",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }
 )
 `;
 
@@ -101,8 +109,25 @@ async def hello_world(request):
       ),
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [] as any[];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[sanic]',
+});
 
 const docs: Docs = {
   onboarding,
@@ -111,6 +136,8 @@ const docs: Docs = {
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[sanic]'}),
+  agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

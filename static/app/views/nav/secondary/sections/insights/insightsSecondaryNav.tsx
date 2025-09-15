@@ -2,19 +2,15 @@ import {Fragment, useMemo} from 'react';
 import partition from 'lodash/partition';
 
 import Feature from 'sentry/components/acl/feature';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {
   AGENTS_LANDING_SUB_PATH,
-  AGENTS_SIDEBAR_LABEL,
+  getAISidebarLabel,
 } from 'sentry/views/insights/pages/agents/settings';
-import {
-  AI_LANDING_SUB_PATH,
-  AI_SIDEBAR_LABEL,
-} from 'sentry/views/insights/pages/ai/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_SIDEBAR_LABEL,
@@ -28,7 +24,6 @@ import {
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import {ModuleName} from 'sentry/views/insights/types';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
@@ -75,22 +70,13 @@ export function InsightsSecondaryNav() {
             {MOBILE_SIDEBAR_LABEL}
           </SecondaryNav.Item>
 
-          <AIInsightsFeature
-            organization={organization}
-            renderDisabled={() => (
-              <SecondaryNav.Item
-                to={`${baseUrl}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
-                analyticsItemName="insights_ai"
-              >
-                {AI_SIDEBAR_LABEL}
-              </SecondaryNav.Item>
-            )}
-          >
+          <AIInsightsFeature organization={organization} renderDisabled={() => null}>
             <SecondaryNav.Item
               to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
               analyticsItemName="insights_agents"
+              trailingItems={<FeatureBadge type="new" />}
             >
-              {AGENTS_SIDEBAR_LABEL}
+              {getAISidebarLabel(organization)}
             </SecondaryNav.Item>
           </AIInsightsFeature>
         </SecondaryNav.Section>

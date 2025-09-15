@@ -16,10 +16,10 @@ import FormFieldControlState from 'sentry/components/forms/formField/controlStat
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
-const NONE_SELECTED_LABEL = t('None selected');
-
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
+
+const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,
@@ -207,7 +207,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                       onConfirm: () => this.handleChange(onBlur, onChange, val),
                       message: confirm[val?.value] ?? t('Continue with these changes?'),
                     });
-                  } catch (e) {
+                  } catch (e: any) {
                     // Swallow expected error to prevent bubbling up.
                     if (e.message === 'Invalid selection. Field cannot be empty.') {
                       return;

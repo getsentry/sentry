@@ -1,10 +1,11 @@
-import type {AccuracyStats, Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import type {DataUnit} from 'sentry/utils/discover/fields';
-import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
 type AttributeValueType =
   | 'number'
   | 'integer'
+  | 'small_integer'
   | 'date'
   | 'boolean'
   | 'duration'
@@ -27,6 +28,7 @@ export type TimeSeriesMeta = {
   interval: number;
   valueType: TimeSeriesValueType;
   valueUnit: TimeSeriesValueUnit;
+  dataScanned?: 'partial' | 'full';
   isOther?: boolean;
   /**
    * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
@@ -40,32 +42,49 @@ export type TimeSeriesItem = {
    */
   timestamp: number;
   value: number | null;
+  confidence?: Confidence;
   /**
-   * A data point might be incomplete for a few reasons. One possible reason is that it's too new, and the ingestion of data for this time bucket is still going. Another reason is that it's truncated. For example, if we're plotting a data bucket from 1:00pm to 2:00pm, but the data set only includes data from 1:15pm and on, the bucket is incomplete.
+   * Indicates that the data point only contains partial data. The frontend uses this information when plotting timeseries, to indicate to the user that some of the data is not reliable. A reason may be attached.
    */
   incomplete?: boolean;
+  incompleteReason?: IncompleteReason;
+  sampleCount?: number;
+  sampleRate?: number;
 };
 
+/**
+ * Right now the only kind of incompleteness reason from the backend is ingestion delay, but others are planned or possible (e.g., falling out of retention)
+ */
+type IncompleteReason = 'INCOMPLETE_BUCKET';
+
+type TimeSeriesGroupBy = {
+  key: string;
+  /**
+   * The `value` of a `groupBy` can sometimes surprisingly be an array, because some datasets support array values. e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
+   */
+  value: string | Array<string | null> | Array<number | null>;
+};
+
+/**
+ * Time series data. Unlike other time series abstractions, this is tightly supported by both the backend and the frontend. The `/events-timeseries/` endpoint uses this as the respone data, and `TimeSeriesWidgetVisualization` plottable objects accept this as the backing data.
+ */
 export type TimeSeries = {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
   yAxis: string;
-  confidence?: Confidence;
-  dataScanned?: 'full' | 'partial';
-  sampleCount?: AccuracyStats<number>;
-  samplingRate?: AccuracyStats<number | null>;
+  groupBy?: TimeSeriesGroupBy[];
 };
 
 export type TabularValueType = AttributeValueType;
 export type TabularValueUnit = AttributeValueUnit;
-type TabularMeta<TFields extends string = string> = {
+export type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
   units: Record<TFields, TabularValueUnit>;
 };
 
 export type TabularRow<TFields extends string = string> = Record<
   TFields,
-  number | string | string[] | null
+  number | string | string[] | boolean | null
 >;
 
 export type TabularData<TFields extends string = string> = {
@@ -75,7 +94,7 @@ export type TabularData<TFields extends string = string> = {
 
 export type TabularColumn<TFields extends string = string> = {
   key: TFields;
-  name: TFields;
+  sortable?: boolean;
   type?: AttributeValueType;
   width?: number;
 };

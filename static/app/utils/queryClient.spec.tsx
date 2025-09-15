@@ -2,7 +2,12 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {
+  parseQueryKey,
+  useApiQuery,
+  type ApiQueryKey,
+  type InfiniteApiQueryKey,
+} from 'sentry/utils/queryClient';
 
 type ResponseData = {
   value: number;
@@ -12,9 +17,63 @@ beforeEach(() => {
   jest.restoreAllMocks();
 });
 
-describe('queryClient', function () {
-  describe('useQuery', function () {
-    it('can do a simple fetch', async function () {
+describe('queryClient', () => {
+  describe('parseQueryKey', () => {
+    it('can parse a undefined', () => {
+      const result = parseQueryKey(undefined);
+      expect(result).toEqual({
+        isInfinite: false,
+        url: undefined,
+        options: undefined,
+      });
+    });
+    it('can parse a simple query key, without options', () => {
+      const queryKey: ApiQueryKey = ['/some/test/path/'];
+      const result = parseQueryKey(queryKey);
+      expect(result).toEqual({
+        isInfinite: false,
+        url: '/some/test/path/',
+        options: undefined,
+      });
+    });
+
+    it('can parse a simple query key, with options', () => {
+      const queryKey: ApiQueryKey = ['/some/test/path/', {query: {filter: 'red'}}];
+      const result = parseQueryKey(queryKey);
+      expect(result).toEqual({
+        isInfinite: false,
+        url: '/some/test/path/',
+        options: {query: {filter: 'red'}},
+      });
+    });
+
+    it('can parse an infinite query key, without options', () => {
+      const queryKey: InfiniteApiQueryKey = ['infinite', '/some/test/path/'];
+      const result = parseQueryKey(queryKey);
+      expect(result).toEqual({
+        isInfinite: true,
+        url: '/some/test/path/',
+        options: undefined,
+      });
+    });
+
+    it('can parse a infinite query key, with options', () => {
+      const queryKey: InfiniteApiQueryKey = [
+        'infinite',
+        '/some/test/path/',
+        {query: {filter: 'red'}},
+      ];
+      const result = parseQueryKey(queryKey);
+      expect(result).toEqual({
+        isInfinite: true,
+        url: '/some/test/path/',
+        options: {query: {filter: 'red'}},
+      });
+    });
+  });
+
+  describe('useQuery', () => {
+    it('can do a simple fetch', async () => {
       const mock = MockApiClient.addMockResponse({
         url: '/some/test/path/',
         body: {value: 5},
@@ -47,7 +106,7 @@ describe('queryClient', function () {
       expect(mock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
     });
 
-    it('can do a fetch with provided query object', async function () {
+    it('can do a fetch with provided query object', async () => {
       const mock = MockApiClient.addMockResponse({
         url: '/some/test/path/',
         body: {value: 5},
@@ -76,7 +135,7 @@ describe('queryClient', function () {
       );
     });
 
-    it('can return error state', async function () {
+    it('can return error state', async () => {
       MockApiClient.addMockResponse({
         url: '/some/test/path',
         statusCode: 500,

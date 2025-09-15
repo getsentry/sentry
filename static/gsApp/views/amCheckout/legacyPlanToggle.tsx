@@ -55,7 +55,7 @@ function LegacyPlanToggle({onClick, subscription, checkoutTier}: Props) {
       setPlanMigrations(response);
       setIsLoading(false);
     } catch (err) {
-      setError(err);
+      setError(err as Error);
       Sentry.captureException(err);
       setIsLoading(false);
     }
@@ -115,7 +115,7 @@ const ToggleWrapper = styled('div')`
 const ToggleLink = styled('a')`
   margin-right: ${space(0.5)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   &:active,
   &:focus,

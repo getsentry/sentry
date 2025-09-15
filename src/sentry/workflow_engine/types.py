@@ -8,12 +8,14 @@ from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
-    from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
     from sentry.issues.issue_occurrence import IssueOccurrence
     from sentry.issues.status_change_message import StatusChangeMessage
+    from sentry.models.activity import Activity
     from sentry.models.environment import Environment
+    from sentry.models.group import Group
     from sentry.models.organization import Organization
+    from sentry.services.eventstore.models import GroupEvent
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
@@ -60,7 +62,8 @@ class DetectorEvaluationResult:
 
 @dataclass(frozen=True)
 class WorkflowEventData:
-    event: GroupEvent
+    event: GroupEvent | Activity
+    group: Group
     group_state: GroupState | None = None
     has_reappeared: bool | None = None
     has_escalated: bool | None = None

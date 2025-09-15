@@ -9,8 +9,8 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
 import sentry_sdk
+from django.http.request import HttpRequest
 from rest_framework.exceptions import NotFound
-from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.exceptions import InvalidIdentity
@@ -19,10 +19,6 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.pipeline_types import (
-    IntegrationPipelineProviderT,
-    IntegrationPipelineViewT,
-)
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.team import Team
 from sentry.organizations.services.organization import (
@@ -30,6 +26,8 @@ from sentry.organizations.services.organization import (
     RpcOrganizationSummary,
     organization_service,
 )
+from sentry.pipeline.provider import PipelineProvider
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -50,6 +48,7 @@ from sentry.utils.audit import create_audit_entry
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
+    from sentry.integrations.pipeline import IntegrationPipeline  # noqa: F401
     from sentry.integrations.services.integration import RpcOrganizationIntegration
     from sentry.integrations.services.integration.model import RpcIntegration
 
@@ -121,6 +120,7 @@ class IntegrationFeatures(StrEnum):
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
+    CODING_AGENT = "coding-agent"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -135,6 +135,7 @@ class IntegrationDomain(StrEnum):
     SOURCE_CODE_MANAGEMENT = "source_code_management"
     ON_CALL_SCHEDULING = "on_call_scheduling"
     IDENTITY = "identity"  # for identity pipelines
+    GENERAL = "general"  # for processes that span multiple integration domains
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
@@ -181,7 +182,7 @@ class IntegrationData(TypedDict):
     provider: NotRequired[str]  # maybe unused ???
 
 
-class IntegrationProvider(IntegrationPipelineProviderT, abc.ABC):
+class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
 
@@ -259,7 +260,7 @@ class IntegrationProvider(IntegrationPipelineProviderT, abc.ABC):
         return cls.integration_cls(model, organization_id, **kwargs)
 
     @property
-    def integration_key(self) -> str | None:
+    def integration_key(self) -> str:
         return self._integration_key or self.key
 
     def get_logger(self) -> logging.Logger:
@@ -278,7 +279,7 @@ class IntegrationProvider(IntegrationPipelineProviderT, abc.ABC):
         self,
         integration: Integration,
         organization: RpcOrganizationSummary,
-        request: Request,
+        request: HttpRequest,
         action: str,
         extra: Any | None = None,
     ) -> None:
@@ -296,7 +297,9 @@ class IntegrationProvider(IntegrationPipelineProviderT, abc.ABC):
 
     def get_pipeline_views(
         self,
-    ) -> Sequence[IntegrationPipelineViewT | Callable[[], IntegrationPipelineViewT]]:
+    ) -> Sequence[
+        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
+    ]:
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.
@@ -412,7 +415,7 @@ class IntegrationInstallation(abc.ABC):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def get_config_data(self) -> Mapping[str, str]:
+    def get_config_data(self) -> Mapping[str, Any]:
         if not self.org_integration:
             return {}
         return self.org_integration.config
@@ -502,7 +505,6 @@ class IntegrationInstallation(abc.ABC):
         elif isinstance(exc, IntegrationError):
             raise
         else:
-            self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
     def is_rate_limited_error(self, exc: ApiError) -> bool:
@@ -537,7 +539,7 @@ def is_response_error(resp: Any) -> bool:
     return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
 
 
-def get_integration_types(provider: str):
+def get_integration_types(provider: str) -> list[IntegrationDomain]:
     types = []
     for integration_type, providers in INTEGRATION_TYPE_TO_PROVIDER.items():
         if provider in providers:

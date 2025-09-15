@@ -55,8 +55,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
-
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
@@ -118,10 +116,6 @@ export function getThresholdUnitSelectOptions(
   }
 
   return [];
-}
-
-export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolean {
-  return Object.keys(thresholdsConfig.max_values).length > 0;
 }
 
 export function normalizeUnit(value: number, unit: string, dataType: string): number {
@@ -191,7 +185,7 @@ export function getWidgetInterval(
   const MAX_BIN_COUNT = 66;
 
   let interval =
-    widget.widgetType === WidgetType.SPANS
+    widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
       ? // For span based widgets, we want to permit non 1d bar charts.
         undefined
       : // Bars charts are daily totals to aligned with discover. It also makes them
@@ -221,7 +215,9 @@ export function getWidgetInterval(
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
     const highInterval = getInterval(
       datetimeObj,
-      widget.widgetType === WidgetType.SPANS ? 'spans' : 'high'
+      widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+        ? 'spans'
+        : 'high'
     );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {

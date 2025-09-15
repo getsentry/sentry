@@ -40,7 +40,6 @@ export function ProjectLoadingError({
     return (
       <Alert
         type="error"
-        showIcon
         trailingItems={
           <LinkButton href={ssoLoginUrl} size="xs">
             {t('Log in')}

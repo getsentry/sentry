@@ -6,7 +6,7 @@ from sentry.testutils.helpers.features import with_feature
 
 class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_get_org_sample_rate_from_target_sample_rate(self):
+    def test_get_org_sample_rate_from_target_sample_rate(self) -> None:
         org1 = self.create_organization("test-org")
 
         OrganizationOption.objects.create(
@@ -18,7 +18,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert sample_rate == 0.5
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_get_org_sample_rate_from_target_sample_rate_missing(self):
+    def test_get_org_sample_rate_from_target_sample_rate_missing(self) -> None:
         org1 = self.create_organization("test-org")
 
         sample_rate, success = get_org_sample_rate(org1.id, None)
@@ -26,7 +26,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert sample_rate == 1.0
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_get_org_sample_rate_from_target_sample_rate_missing_default(self):
+    def test_get_org_sample_rate_from_target_sample_rate_missing_default(self) -> None:
         org1 = self.create_organization("test-org")
 
         sample_rate, success = get_org_sample_rate(org1.id, 0.7)

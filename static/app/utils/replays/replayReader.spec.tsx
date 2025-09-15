@@ -1,3 +1,4 @@
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {
   ReplayClickEventFixture,
   ReplayConsoleEventFixture,
@@ -18,7 +19,6 @@ import {
   RRWebFullSnapshotFrameEventFixture,
   RRWebIncrementalSnapshotFrameEventFixture,
 } from 'sentry-fixture/replay/rrweb';
-import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -411,20 +411,20 @@ describe('ReplayReader', () => {
       },
     });
 
-    const error1 = ReplayErrorFixture({
+    const error1 = RawReplayErrorFixture({
       id: '1',
       issue: '100',
-      timestamp: '2024-01-01T00:02:30',
+      timestamp: new Date('2024-01-01T00:02:30'),
     });
-    const error2 = ReplayErrorFixture({
+    const error2 = RawReplayErrorFixture({
       id: '2',
       issue: '200',
-      timestamp: '2024-01-01T00:03:06',
+      timestamp: new Date('2024-01-01T00:03:06'),
     });
-    const error3 = ReplayErrorFixture({
+    const error3 = RawReplayErrorFixture({
       id: '1',
       issue: '100',
-      timestamp: '2024-01-01T00:03:30',
+      timestamp: new Date('2024-01-01T00:03:30'),
     });
 
     const replay = ReplayReader.factory({

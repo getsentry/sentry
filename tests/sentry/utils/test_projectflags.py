@@ -12,7 +12,7 @@ test_signal = BetterSignal()
 
 class SetProjectFlagsAndSignalTest(TestCase):
     @patch.object(test_signal, "send_robust")
-    def test_basic(self, mock_send_robust: Mock):
+    def test_basic(self, mock_send_robust: Mock) -> None:
         assert not self.project.flags.has_transactions
         assert set_project_flag_and_signal(self.project, "has_transactions", test_signal) == 1
         mock_send_robust.assert_called_once_with(project=self.project, sender=Project)
@@ -20,7 +20,7 @@ class SetProjectFlagsAndSignalTest(TestCase):
         assert self.project.flags.has_transactions
 
     @patch.object(test_signal, "send_robust")
-    def test_flag_already_set(self, mock_send_robust: Mock):
+    def test_flag_already_set(self, mock_send_robust: Mock) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
         assert self.project.flags.has_transactions
         assert set_project_flag_and_signal(self.project, "has_transactions", test_signal) == 0
@@ -28,7 +28,7 @@ class SetProjectFlagsAndSignalTest(TestCase):
         assert self.project.flags.has_transactions
 
     @patch.object(test_signal, "send_robust")
-    def test_signal_kwargs(self, mock_send_robust: Mock):
+    def test_signal_kwargs(self, mock_send_robust: Mock) -> None:
         assert not self.project.flags.has_transactions
         assert (
             set_project_flag_and_signal(self.project, "has_transactions", test_signal, a=1, b="xyz")

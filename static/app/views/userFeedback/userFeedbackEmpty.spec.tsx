@@ -5,17 +5,17 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
-describe('UserFeedbackEmpty', function () {
+describe('UserFeedbackEmpty', () => {
   const project = ProjectFixture({id: '1'});
   const projectWithReports = ProjectFixture({id: '2', hasUserReports: true});
   const projectWithoutReports = ProjectFixture({id: '3'});
 
-  it('renders empty', function () {
+  it('renders empty', () => {
     render(<UserFeedbackEmpty />);
   });
 
-  it('renders landing for project with no user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project]));
+  it('renders landing for project with no user feedback', () => {
+    act(() => ProjectsStore.loadInitialData([project]));
 
     render(<UserFeedbackEmpty />);
 
@@ -24,8 +24,8 @@ describe('UserFeedbackEmpty', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders warning for project with any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([projectWithReports]));
+  it('renders warning for project with any user feedback', () => {
+    act(() => ProjectsStore.loadInitialData([projectWithReports]));
 
     render(<UserFeedbackEmpty />);
 
@@ -34,8 +34,8 @@ describe('UserFeedbackEmpty', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders warning for projects with any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithReports]));
+  it('renders warning for projects with any user feedback', () => {
+    act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
     render(<UserFeedbackEmpty />);
 
@@ -44,8 +44,8 @@ describe('UserFeedbackEmpty', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders warning for project query with user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithReports]));
+  it('renders warning for project query with user feedback', () => {
+    act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
     render(<UserFeedbackEmpty projectIds={[projectWithReports.id]} />);
 
@@ -54,8 +54,8 @@ describe('UserFeedbackEmpty', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders landing for project query without any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithReports]));
+  it('renders landing for project query without any user feedback', () => {
+    act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
     render(<UserFeedbackEmpty projectIds={[project.id]} />);
 
@@ -64,8 +64,8 @@ describe('UserFeedbackEmpty', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders warning for multi project query with any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithReports]));
+  it('renders warning for multi project query with any user feedback', () => {
+    act(() => ProjectsStore.loadInitialData([project, projectWithReports]));
 
     render(<UserFeedbackEmpty projectIds={[project.id, projectWithReports.id]} />);
 
@@ -74,8 +74,8 @@ describe('UserFeedbackEmpty', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders landing for multi project query without any user feedback', function () {
-    act(() => void ProjectsStore.loadInitialData([project, projectWithoutReports]));
+  it('renders landing for multi project query without any user feedback', () => {
+    act(() => ProjectsStore.loadInitialData([project, projectWithoutReports]));
 
     render(<UserFeedbackEmpty projectIds={[project.id, projectWithoutReports.id]} />);
 

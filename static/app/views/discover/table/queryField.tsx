@@ -1,5 +1,5 @@
 import {Component, createRef} from 'react';
-import {type Theme, withTheme} from '@emotion/react';
+import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -844,7 +844,7 @@ const BlankSpace = styled('div')`
   justify-content: center;
 
   &:after {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     content: '${t('No parameter')}';
     color: ${p => p.theme.subText};
   }
@@ -860,7 +860,7 @@ const QueryField = withTheme(_QueryField);
 
 export {QueryField};
 
-export function appendFieldIfUnknown(
+function appendFieldIfUnknown(
   fieldOptions: FieldOptions,
   field: FieldValue | null
 ): FieldOptions {

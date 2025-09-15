@@ -17,5 +17,5 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
         ("whatever", "other"),
     ],
 )
-def test_get_grouping_family_for_platform(input, output):
+def test_get_grouping_family_for_platform(input: str, output: str) -> None:
     assert get_behavior_family_for_platform(input) == output

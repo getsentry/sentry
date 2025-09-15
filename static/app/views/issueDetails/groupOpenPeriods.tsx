@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';

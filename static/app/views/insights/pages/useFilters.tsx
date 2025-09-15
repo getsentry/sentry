@@ -1,5 +1,5 @@
 import {useLocation} from 'sentry/utils/useLocation';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
+import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -8,14 +8,14 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 export type DomainView =
   | typeof FRONTEND_LANDING_SUB_PATH
   | typeof BACKEND_LANDING_SUB_PATH
-  | typeof AI_LANDING_SUB_PATH
+  | typeof AGENTS_LANDING_SUB_PATH
   | typeof MOBILE_LANDING_SUB_PATH;
 
-const domainViews = [
+export const domainViews: DomainView[] = [
   FRONTEND_LANDING_SUB_PATH,
   BACKEND_LANDING_SUB_PATH,
-  AI_LANDING_SUB_PATH,
   MOBILE_LANDING_SUB_PATH,
+  AGENTS_LANDING_SUB_PATH,
 ];
 
 export type DomainViewFilters = {
@@ -30,9 +30,9 @@ export const useDomainViewFilters = () => {
   const indexOfInsights = pathSegments.indexOf(DOMAIN_VIEW_BASE_URL);
   const isInDomainView = indexOfInsights !== -1;
   const view = pathSegments[indexOfInsights + 1] as DomainViewFilters['view'];
-  const isInOverviewPage = pathSegments.length === indexOfInsights + 2; // TODO: remove this with `useInsightsEap`, only needed to seperately control eap on overview page
+  const isInOverviewPage = pathSegments.length === indexOfInsights + 2; // Used to check if is in laravel/nextjs page
 
-  if (!domainViews.includes(view || '')) {
+  if (!view || !domainViews.includes(view)) {
     return {isInDomainView: false};
   }
 

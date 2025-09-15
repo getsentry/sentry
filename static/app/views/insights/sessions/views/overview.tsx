@@ -16,8 +16,8 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
-  type DomainView,
   useDomainViewFilters,
+  type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/chartPlacement';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
@@ -156,7 +156,7 @@ const FilterWrapper = styled('div')`
   gap: ${space(1)};
   display: grid;
   grid-template-columns: auto 1fr;
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-rows: auto auto;
   }
 `;

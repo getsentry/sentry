@@ -8,8 +8,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model
 from sentry.db.models.base import sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
-from sentry.types.grouphash_metadata import HashingMetadata
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 
 # The current version of the metadata schema. Any record encountered whose schema version is earlier
 # than this will have its data updated and its version set to this value. Stored as a string for
@@ -96,9 +95,7 @@ class GroupHashMetadata(Model):
     # Metadata about the inputs to the hashing process and the hashing process itself (what
     # fingerprinting rules were matched? did we parameterize the message? etc.). For the specific
     # data stored, see the class definitions of the `HashingMetadata` subtypes.
-    hashing_metadata: models.Field[HashingMetadata | None, HashingMetadata | None] = JSONField(
-        null=True
-    )
+    hashing_metadata = LegacyTextJSONField(null=True)
 
     # SEER
 

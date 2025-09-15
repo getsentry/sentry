@@ -3,8 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import Any
 
+from sentry import analytics
+from sentry.analytics.events.missing_members_nudge import MissingMembersNudgeEvent
 from sentry.db.models.base import Model
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
@@ -13,13 +15,17 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.types.actor import Actor
 
-PROVIDER_TO_URL = {"github": "https://github.com/"}
+PROVIDER_TO_URL = {IntegrationProviderSlug.GITHUB.value: "https://github.com/"}
 
 
 class MissingMembersNudgeNotification(BaseNotification):
     metrics_key = "missing_members_nudge"
-    analytics_event = "missing_members_nudge.sent"
     template_path = "sentry/emails/missing-members-nudge"
+
+    def get_specific_analytics_event(self, provider: ExternalProviders) -> analytics.Event | None:
+        return MissingMembersNudgeEvent(
+            organization_id=self.organization.id,
+        )
 
     RoleBasedRecipientStrategyClass = MemberWriteRoleRecipientStrategy
     notification_setting_type_enum = NotificationSettingEnum.APPROVAL

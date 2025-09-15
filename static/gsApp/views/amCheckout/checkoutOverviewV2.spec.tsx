@@ -8,18 +8,17 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
-import {type CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
-describe('CheckoutOverviewV2', function () {
+describe('CheckoutOverviewV2', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
-  const params = {};
 
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
@@ -43,14 +42,14 @@ describe('CheckoutOverviewV2', function () {
     });
   });
 
-  it('initializes with business plan and default budget when on AM3 developer plan', async function () {
+  it('initializes with business plan and default budget when on AM3 developer plan', async () => {
     render(
       <AMCheckout
         {...routerProps}
         api={api}
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
@@ -66,7 +65,7 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getByText('Total Monthly Charges')).toBeInTheDocument();
   });
 
-  it('renders with existing plan', function () {
+  it('renders with existing plan', () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {
@@ -132,7 +131,7 @@ describe('CheckoutOverviewV2', function () {
     ).toBeInTheDocument();
   });
 
-  it('shows zero state when payg budget is set to zero', function () {
+  it('shows zero state when payg budget is set to zero', () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {
@@ -165,7 +164,7 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getAllByText('Product not available')[0]).toBeInTheDocument();
   });
 
-  it('does not show product when not selected', function () {
+  it('does not show product when not selected', () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {
@@ -200,7 +199,7 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.queryByTestId('seer-reserved')).not.toBeInTheDocument();
   });
 
-  it('does not show selectable product when not included in formData', function () {
+  it('does not show selectable product when not included in formData', () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from abc import ABC
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.models.group import Group
+from sentry.services.eventstore.models import Event, GroupEvent
 
 
 class SlackMessageBuilder(ABC):

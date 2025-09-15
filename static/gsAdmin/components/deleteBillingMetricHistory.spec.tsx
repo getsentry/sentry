@@ -8,17 +8,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import ModalStore from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 
-describe('DeleteBillingMetricHistory', function () {
+describe('DeleteBillingMetricHistory', () => {
   // Add afterEach to clean up after tests
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.restoreAllMocks();
-    ModalStore.reset();
   });
 
   const organization = OrganizationFixture({
@@ -35,7 +33,7 @@ describe('DeleteBillingMetricHistory', function () {
     renderGlobalModal();
   };
 
-  it('renders modal with billing config data', async function () {
+  it('renders modal with billing config data', async () => {
     // Mock the billing config API call
     const billingConfigMock = MockApiClient.addMockResponse({
       url: '/api/0/billing-config/',
@@ -101,7 +99,7 @@ describe('DeleteBillingMetricHistory', function () {
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 
-  it('successfully deletes billing metric history when form is submitted', async function () {
+  it('successfully deletes billing metric history when form is submitted', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
       url: '/api/0/billing-config/',
@@ -188,7 +186,7 @@ describe('DeleteBillingMetricHistory', function () {
     expect(onSuccess).toHaveBeenCalled();
   });
 
-  it('shows error message when API request fails', async function () {
+  it('shows error message when API request fails', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
       url: '/api/0/billing-config/',
@@ -258,7 +256,7 @@ describe('DeleteBillingMetricHistory', function () {
     });
   });
 
-  it('disables Submit button when no data category is selected', async function () {
+  it('disables Submit button when no data category is selected', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
       url: '/api/0/billing-config/',
@@ -305,7 +303,7 @@ describe('DeleteBillingMetricHistory', function () {
     expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
   });
 
-  it('closes modal when Cancel button is clicked', async function () {
+  it('closes modal when Cancel button is clicked', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
       url: '/api/0/billing-config/',
@@ -350,8 +348,8 @@ describe('DeleteBillingMetricHistory', function () {
   });
 });
 
-describe('deleteBillingMetricHistory export function', function () {
-  it('opens modal with correct props', function () {
+describe('deleteBillingMetricHistory export function', () => {
+  it('opens modal with correct props', () => {
     const organization = OrganizationFixture();
     const onSuccess = jest.fn();
     const openModalMock = jest.spyOn(require('sentry/actionCreators/modal'), 'openModal');

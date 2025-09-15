@@ -97,7 +97,7 @@ function SegmentedIssueViewSaveButton({
       )}
     >
       {({hasFeature}) => (
-        <ButtonBar merged>
+        <ButtonBar merged gap="0">
           <PrimarySaveButton
             priority={buttonPriority}
             data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
@@ -135,7 +135,12 @@ function SegmentedIssueViewSaveButton({
               <DropdownTrigger
                 {...props}
                 disabled={!hasFeature || isSaving}
-                icon={<IconChevron direction="down" color="subText" />}
+                icon={
+                  <IconChevron
+                    direction="down"
+                    color={buttonPriority === 'primary' ? undefined : 'subText'}
+                  />
+                }
                 aria-label={t('More save options')}
                 priority={buttonPriority}
               />

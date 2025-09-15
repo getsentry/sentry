@@ -19,13 +19,13 @@ export function GroupPreviewHovercard({
 }: GroupPreviewHovercardProps) {
   const theme = useTheme();
   const handleStackTracePreviewClick = useCallback(
-    (e: React.MouseEvent) => void e.stopPropagation(),
+    (e: React.MouseEvent) => e.stopPropagation(),
     []
   );
 
   // No need to preview on hover for small devices
-  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.large})`);
-  const shouldShowPositionTop = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.lg})`);
+  const shouldShowPositionTop = useMedia(`(max-width: ${theme.breakpoints.xl})`);
 
   return (
     <StyledHovercardWithBodyClass

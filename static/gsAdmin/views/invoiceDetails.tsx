@@ -2,16 +2,16 @@ import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';

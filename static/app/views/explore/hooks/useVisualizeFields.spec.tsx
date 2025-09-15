@@ -41,13 +41,14 @@ function useWrapper(yAxis: string) {
     numberTags,
     stringTags,
     parsedFunction: parseFunction(yAxis) ?? undefined,
+    traceItemType: TraceItemDataset.SPANS,
   });
 }
 
 describe('useVisualizeFields', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({

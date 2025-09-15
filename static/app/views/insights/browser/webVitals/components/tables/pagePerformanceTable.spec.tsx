@@ -18,13 +18,13 @@ import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/comp
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PagePerformanceTable', function () {
+describe('PagePerformanceTable', () => {
   const organization = OrganizationFixture();
   const router = RouterFixture();
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue(router.location);
 
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
@@ -55,8 +55,7 @@ describe('PagePerformanceTable', function () {
             'count_scores(measurements.score.inp)': 985,
             'count_scores(measurements.score.total)': 985,
             'performance_score(measurements.score.total)': 0.847767385770207,
-            'total_opportunity_score()': 6.956683571915815e-5,
-            'opportunity_score(measurements.score.total)': 179.76662400002692,
+            'opportunity_score(measurements.score.total)': 0.0001,
             'p75(measurements.inp)': 144.0,
             'p75(measurements.ttfb)': 783.125,
             'p75(measurements.lcp)': 700.2999782562256,
@@ -79,7 +78,7 @@ describe('PagePerformanceTable', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -104,7 +103,7 @@ describe('PagePerformanceTable', function () {
     );
   });
 
-  it('renders a list of pages', async function () {
+  it('renders a list of pages', async () => {
     render(<PagePerformanceTable />, {
       organization,
     });
@@ -133,7 +132,7 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/projects/frontend/?project=11276'
+      '/organizations/org-slug/insights/projects/frontend/?project=11276'
     );
     expect(screen.getByRole('cell', {name: '492'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '700ms'})).toBeInTheDocument();

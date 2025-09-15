@@ -38,7 +38,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 
 @freeze_time(MOCK_DATETIME)
 class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         release_1 = self.create_release(
@@ -947,7 +947,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_meta[0]["has_more"]
         assert second_meta[0]["order"] == "DESC"
 
-    def test_query_with_custom_set(self):
+    def test_query_with_custom_set(self) -> None:
         mri = "s:transactions/User.Click.2@none"
         for user in ("marco", "marco", "john"):
             self.store_metric(
@@ -1031,7 +1031,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_different_namespaces(self):
+    def test_query_with_different_namespaces(self) -> None:
         query_1 = self.mql(
             "min",
             TransactionMRI.DURATION.value,
@@ -1054,7 +1054,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_different_metric_types(self):
+    def test_query_with_different_metric_types(self) -> None:
         query_1 = self.mql("count", "c:transactions/page_click@none")
         query_2 = self.mql("max", "d:transactions/app_load@millisecond")
 
@@ -1074,7 +1074,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_different_group_bys(self):
+    def test_query_with_different_group_bys(self) -> None:
         query_1 = self.mql(
             "min", "d:transactions/page_click@none", group_by="transaction, environment"
         )
@@ -1098,7 +1098,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_complex_group_by(self):
+    def test_query_with_complex_group_by(self) -> None:
         query_1 = self.mql("min", "d:transactions/page_click@none", group_by="environment")
         query_2 = self.mql("max", "d:transactions/app_load@millisecond", group_by="transaction")
 
@@ -1120,7 +1120,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_basic_formula(self):
+    def test_query_with_basic_formula(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -1144,7 +1144,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 4.0, 3.0]
         assert data[0][0]["totals"] == 3.5
 
-    def test_query_with_complex_formula(self):
+    def test_query_with_complex_formula(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -1173,7 +1173,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 136.0, 127.0]
         assert data[0][0]["totals"] == 226.0
 
-    def test_query_with_formula_and_group_by(self):
+    def test_query_with_formula_and_group_by(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -1207,7 +1207,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[2]["series"] == [None, 5.0, 4.0]
         assert first_query[2]["totals"] == 18.0
 
-    def test_query_with_formula_and_filter(self):
+    def test_query_with_formula_and_filter(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value, filters="platform:android")
         query_2 = self.mql("sum", TransactionMRI.DURATION.value, filters="platform:ios")
 
@@ -1235,7 +1235,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 7.0, 4.0]
         assert data[0][0]["totals"] == 11.0
 
-    def test_query_with_basic_formula_and_coercible_units(self):
+    def test_query_with_basic_formula_and_coercible_units(self) -> None:
         mri_1 = "d:transactions/page_load@nanosecond"
         mri_2 = "d:transactions/image_load@microsecond"
         for mri, value in ((mri_1, 20), (mri_1, 10), (mri_2, 15), (mri_2, 5)):
@@ -1292,7 +1292,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert meta[0][1]["unit"] == "nanosecond"
             assert meta[0][1]["scaling_factor"] is None
 
-    def test_query_with_basic_formula_and_non_coercible_units(self):
+    def test_query_with_basic_formula_and_non_coercible_units(self) -> None:
         mri_1 = "d:transactions/page_load@nanosecond"
         mri_2 = "d:transactions/page_size@byte"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
@@ -1333,7 +1333,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    def test_query_with_basic_formula_and_unitless_aggregates(self):
+    def test_query_with_basic_formula_and_unitless_aggregates(self) -> None:
         mri_1 = "d:transactions/page_load@nanosecond"
         mri_2 = "d:transactions/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
@@ -1374,7 +1374,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    def test_query_with_basic_formula_and_unknown_units(self):
+    def test_query_with_basic_formula_and_unknown_units(self) -> None:
         mri_1 = "d:transactions/cost@bananas"
         mri_2 = "d:transactions/speed@mangos"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
@@ -1415,7 +1415,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    def test_query_with_basic_formula_and_coefficient_operators(self):
+    def test_query_with_basic_formula_and_coefficient_operators(self) -> None:
         mri_1 = "d:transactions/page_load@nanosecond"
         mri_2 = "d:transactions/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):

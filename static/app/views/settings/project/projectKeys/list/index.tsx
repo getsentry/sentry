@@ -7,8 +7,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -157,9 +157,9 @@ function ProjectKeys({project}: Props) {
           <KeyRow
             hasWriteAccess={hasAccess}
             key={key.id}
-            orgId={organization.slug}
             projectId={projectId}
             project={project}
+            organization={organization}
             data={key}
             onToggle={(isActive, data) =>
               handleToggleKeyMutation.mutate({isActive, data})

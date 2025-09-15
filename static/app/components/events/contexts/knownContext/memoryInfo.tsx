@@ -1,6 +1,6 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
-import {type MemoryInfoContext, MemoryInfoContextKey} from 'sentry/types/event';
+import {MemoryInfoContextKey, type MemoryInfoContext} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
@@ -25,6 +25,14 @@ export function getMemoryInfoContext({
           key: ctxKey,
           subject: t('Allocated Bytes'),
           value: data.allocated_bytes ? formatMemory(data.allocated_bytes) : undefined,
+        };
+      case MemoryInfoContextKey.TOTAL_ALLOCATED_BYTES:
+        return {
+          key: ctxKey,
+          subject: t('Total Allocated Bytes'),
+          value: data.total_allocated_bytes
+            ? formatMemory(data.total_allocated_bytes)
+            : undefined,
         };
       case MemoryInfoContextKey.FRAGMENTED_BYTES:
         return {

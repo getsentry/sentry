@@ -113,7 +113,7 @@ describe('UsageCard', () => {
     expect(screen.queryByText('Reserved')).not.toBeInTheDocument();
     expect(screen.getByText('On-Demand')).toBeInTheDocument();
     expect(screen.queryByText('Included In Subscription')).not.toBeInTheDocument();
-    expect(screen.getByTestId('current-monthly-spend')).toHaveTextContent('$960');
+    expect(screen.getByTestId('current-monthly-spend')).toHaveTextContent('$0');
   });
 
   it('should not render anything for orgs with no spend', () => {

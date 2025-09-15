@@ -3,7 +3,7 @@ from sentry.utils.email.signer import _CaseInsensitiveSigner
 
 
 class CaseInsensitiveSignerTests(TestCase):
-    def test_it_works(self):
+    def test_it_works(self) -> None:
         with self.settings(SECRET_KEY="a"):
             # the default salt is the module path
             # the class was moved at some point so this sets a constant salt

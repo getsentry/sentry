@@ -6,8 +6,8 @@ import pick from 'lodash/pick';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
@@ -379,7 +379,7 @@ const Wrapper = styled('div')`
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     flex-wrap: wrap;
     flex-direction: row;
   }
@@ -391,12 +391,12 @@ const Title = styled('div')`
   gap: ${space(0.5)};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
   height: 32px;
   flex: 1;
 
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     margin-bottom: ${space(1)};
   }
 `;
@@ -407,7 +407,7 @@ const StyledPanelTable = styled(PanelTable)`
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints.xxlarge}) {
+  @media (min-width: ${props => props.theme.breakpoints['2xl']}) {
     overflow: visible;
   }
 `;

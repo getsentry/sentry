@@ -11,6 +11,7 @@ import {
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getHasTag} from 'sentry/components/events/searchBar';
@@ -26,15 +27,13 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -44,12 +43,7 @@ import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  DEVICE_CLASS_TAG_VALUES,
-  FieldKind,
-  isDeviceClass,
-} from 'sentry/utils/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
 import {
   getMeasurements,
   type MeasurementCollection,
@@ -71,8 +65,13 @@ import {
   DEPRECATED_TRANSACTION_ALERTS,
   getSupportedAndOmittedTags,
 } from 'sentry/views/alerts/wizard/options';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {SESSIONS_FILTER_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
@@ -84,6 +83,7 @@ import {
   DEFAULT_TRANSACTION_AGGREGATE,
   getTimeWindowOptions,
 } from './constants';
+import type {EventTypes} from './types';
 import {AlertRuleComparisonType, Dataset, Datasource} from './types';
 
 type Props = {
@@ -93,6 +93,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  eventTypes: EventTypes[];
   isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid: any) => void;
@@ -137,16 +138,29 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.project.id === this.props.project.id) {
-      return;
+    if (prevProps.dataset !== this.props.dataset || prevProps.tags !== this.props.tags) {
+      const filterKeys = this.getFilterKeys();
+      this.setState({filterKeys});
     }
 
-    this.fetchData();
+    if (prevProps.project.id !== this.props.project.id) {
+      this.fetchData();
+    }
   }
 
   getFilterKeys = () => {
     const {organization, dataset, tags} = this.props;
     const {measurements} = this.state;
+
+    if (dataset === Dataset.METRICS) {
+      return Object.values(SESSIONS_FILTER_TAGS)
+        .filter(key => key !== 'project') // Already have the project selector
+        .reduce<TagCollection>((acc, key) => {
+          acc[key] = {key, name: key};
+          return acc;
+        }, {});
+    }
+
     const measurementsWithKind = Object.keys(measurements).reduce(
       (measurement_tags, key) => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -464,6 +478,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       onTimeWindowChange,
       isEditing,
+      eventTypes,
     } = this.props;
 
     return (
@@ -495,6 +510,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               alertType={alertType}
               required
               isEditing={isEditing}
+              eventTypes={eventTypes}
               disabledReason={
                 this.disableTransactionAlertType
                   ? this.transactionAlertDisabledMessage
@@ -532,6 +548,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       isLowConfidenceChartData,
       isOnDemandLimitReached,
+      eventTypes,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -546,8 +563,28 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     const confidenceEnabled = hasEAPAlerts(organization);
 
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
+    const deprecateTransactionsAlertsWarning =
+      organization.features.includes('performance-transaction-deprecation-banner') &&
+      DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
+
     return (
       <Fragment>
+        {deprecateTransactionsAlertsWarning && (
+          <Alert.Container>
+            <Alert type="warning">
+              {tctCode(
+                'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+                {
+                  FAQLink: (
+                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
@@ -561,7 +598,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Fragment>
             <TraceItemAttributeProvider
               projects={[project]}
-              traceItemType={TraceItemDataset.SPANS}
+              traceItemType={traceItemType ?? TraceItemDataset.SPANS}
               enabled={
                 organization.features.includes('visibility-explore-view') &&
                 isEapAlertType(alertType)
@@ -576,7 +613,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
                 <Alert.Container>
-                  <Alert showIcon type="warning">
+                  <Alert type="warning">
                     {t(
                       'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                     )}
@@ -634,20 +671,18 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
                     return isEapAlertType(alertType) ? (
-                      <EAPSpanSearchQueryBuilderWithContext
+                      <EAPSearchQueryBuilderWithContext
                         initialQuery={value ?? ''}
                         onSearch={(query, {parsedQuery}) => {
                           onFilterSearch(query, parsedQuery);
                           onChange(query, {});
                         }}
                         project={project}
+                        traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                       />
                     ) : (
                       <SearchContainer>
                         <SearchQueryBuilder
-                          searchOnChange={organization.features.includes(
-                            'ui-search-on-change'
-                          )}
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
                           placeholder={this.searchPlaceholder}
@@ -764,30 +799,37 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 }
 
-interface EAPSpanSearchQueryBuilderWithContextProps {
+interface EAPSearchQueryBuilderWithContextProps {
   initialQuery: string;
   onSearch: (query: string, isQueryValid: any) => void;
   project: Project;
+  traceItemType: TraceItemDataset;
 }
 
-function EAPSpanSearchQueryBuilderWithContext({
+function EAPSearchQueryBuilderWithContext({
   initialQuery,
   onSearch,
   project,
-}: EAPSpanSearchQueryBuilderWithContextProps) {
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  return (
-    <EAPSpanSearchQueryBuilder
-      numberTags={numberTags}
-      stringTags={stringTags}
-      initialQuery={initialQuery}
-      searchSource="alerts"
-      onSearch={onSearch}
-      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      projects={[parseInt(project.id, 10)]}
-    />
-  );
+  traceItemType,
+}: EAPSearchQueryBuilderWithContextProps) {
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+
+  const tracesItemSearchQueryBuilderProps = {
+    initialQuery,
+    searchSource: 'alerts',
+    onSearch,
+    numberAttributes,
+    stringAttributes,
+    itemType: traceItemType,
+    projects: [parseInt(project.id, 10)],
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+  };
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
 const StyledListTitle = styled('div')`
@@ -830,7 +872,7 @@ const SearchContainer = styled('div')`
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   line-height: 1.3;
 `;
 

@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -15,7 +15,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {getHighlightedSpanAttributes} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
@@ -33,8 +32,9 @@ import {
   isValidJson,
   prettyPrintJsonString,
 } from 'sentry/views/insights/database/utils/jsonUtils';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
 import SpanSummaryLink from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
@@ -53,11 +53,13 @@ export function SpanDescription({
   organization,
   location,
   project,
+  hideNodeActions,
 }: {
   location: Location;
   node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
   project: Project | undefined;
+  hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
     eventId: node.event?.eventID,
@@ -89,7 +91,7 @@ export function SpanDescription({
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
+    organization.features.includes('insight-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
   const groupHash = hasNewSpansUIFlag
@@ -112,14 +114,14 @@ export function SpanDescription({
         project_id={node.event?.projectID}
         organization={organization}
       />
-      <Link
+      <StyledLink
         to={
           hasExploreEnabled
             ? getSearchInExploreTarget(
                 organization,
                 location,
                 node.event?.projectID,
-                SpanIndexedField.SPAN_DESCRIPTION,
+                SpanFields.SPAN_DESCRIPTION,
                 span.description!,
                 TraceDrawerActionKind.INCLUDE
               )
@@ -135,7 +137,7 @@ export function SpanDescription({
           if (hasExploreEnabled) {
             traceAnalytics.trackExploreSearch(
               organization,
-              SpanIndexedField.SPAN_DESCRIPTION,
+              SpanFields.SPAN_DESCRIPTION,
               span.description!,
               TraceDrawerActionKind.INCLUDE,
               'drawer'
@@ -154,11 +156,11 @@ export function SpanDescription({
           }
         }}
       >
-        <StyledIconGraph type="scatter" size="xs" />
+        <IconGraph type="scatter" size="xs" />
         {hasNewSpansUIFlag || hasExploreEnabled
           ? t('More Samples')
           : t('View Similar Spans')}
-      </Link>
+      </StyledLink>
     </BodyContentWrapper>
   ) : null;
 
@@ -200,7 +202,6 @@ export function SpanDescription({
             <CopyToClipboardButton
               borderless
               size="zero"
-              iconSize="xs"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
             />
@@ -219,11 +220,11 @@ export function SpanDescription({
       avgDuration={averageSpanDuration ? averageSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
+      hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         organization,
         attributes: span.data,
         op: span.op,
-        description: span.description,
       })}
     />
   );
@@ -302,7 +303,6 @@ function ResourceImage(props: {
         <CopyToClipboardButton
           borderless
           size="zero"
-          iconSize="xs"
           text={fileName}
           title={t('Copy file name')}
         />
@@ -356,10 +356,6 @@ const CodeSnippetWrapper = styled('div')`
   flex: 1;
 `;
 
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
-`;
-
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
   gap: ${space(1)};
@@ -375,7 +371,7 @@ const StyledCodeSnippet = styled(CodeSnippet)`
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: baseline;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
@@ -388,4 +384,10 @@ const DescriptionWrapper = styled('div')`
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
   padding: ${space(1)};
   justify-content: center;
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

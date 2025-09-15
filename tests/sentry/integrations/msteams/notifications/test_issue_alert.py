@@ -18,7 +18,7 @@ pytestmark = [requires_snuba]
 )
 @patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
 class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
-    def test_issue_alert_user(self, mock_send_card: MagicMock):
+    def test_issue_alert_user(self, mock_send_card: MagicMock) -> None:
         """Test that issue alerts are sent to a MS Teams user."""
 
         event = self.store_event(
@@ -71,7 +71,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
-    def test_issue_alert_owners(self, mock_send_card: MagicMock):
+    def test_issue_alert_owners(self, mock_send_card: MagicMock) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )

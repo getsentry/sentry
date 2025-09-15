@@ -7,6 +7,7 @@ from sentry import digests
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import DigestInfo, event_to_record, unsplit_key
 from sentry.integrations.types import ExternalProviders
+from sentry.models.activity import Activity
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
@@ -20,6 +21,7 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.plugins.base.structs import Notification
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
@@ -40,10 +42,10 @@ class MailAdapter:
 
     def rule_notify(
         self,
-        event: Any,
+        event: Event | GroupEvent,
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
-        target_identifier: str | None = None,
+        target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,
         skip_digests: bool = False,
         notification_uuid: str | None = None,
@@ -69,17 +71,17 @@ class MailAdapter:
                 "The default behavior for notification de-duplication does not support args"
             )
 
-        project = event.group.project
+        group = event.group
+        assert group is not None
+        project = group.project
         extra["project_id"] = project.id
 
         if digests.backend.enabled(project) and not skip_digests:
 
-            def get_digest_option(key):
+            def get_digest_option(key: str) -> int | None:
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
 
-            digest_key = unsplit_key(
-                event.group.project, target_type, target_identifier, fallthrough_choice
-            )
+            digest_key = unsplit_key(project, target_type, target_identifier, fallthrough_choice)
             extra["digest_key"] = digest_key
             immediate_delivery = digests.backend.add(
                 digest_key,
@@ -101,7 +103,7 @@ class MailAdapter:
         logger.info("mail.adapter.notification.%s", log_event, extra=extra)
 
     @staticmethod
-    def get_sendable_user_objects(project):
+    def get_sendable_user_objects(project: Project) -> set[Actor]:
         """
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
@@ -115,21 +117,23 @@ class MailAdapter:
             organization_id=project.organization_id,
             actor_type=ActorType.USER,
         )
-        return recipients.get(ExternalProviders.EMAIL)
+        result = recipients.get(ExternalProviders.EMAIL)
+        assert result is not None
+        return result
 
-    def get_sendable_user_ids(self, project):
+    def get_sendable_user_ids(self, project: Project) -> list[int]:
         users = self.get_sendable_user_objects(project)
         return [user.id for user in users]
 
     @staticmethod
     def notify(
-        notification,
-        target_type,
-        target_identifier=None,
-        fallthrough_choice=None,
+        notification: Notification,
+        target_type: ActionTargetType,
+        target_identifier: int | None = None,
+        fallthrough_choice: FallthroughChoiceType | None = None,
         notification_uuid: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         AlertRuleNotification(
             notification,
             target_type,
@@ -158,7 +162,7 @@ class MailAdapter:
         ).send()
 
     @staticmethod
-    def notify_about_activity(activity):
+    def notify_about_activity(activity: Activity) -> None:
         metrics.incr("mail_adapter.notify_about_activity")
         email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
@@ -168,6 +172,6 @@ class MailAdapter:
         email_cls(activity).send()
 
     @staticmethod
-    def handle_user_report(report: Mapping[str, Any], project: Project):
+    def handle_user_report(report: Mapping[str, Any], project: Project) -> None:
         metrics.incr("mail_adapter.handle_user_report")
         return UserReportNotification(project, report).send()

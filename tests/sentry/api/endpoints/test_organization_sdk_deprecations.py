@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class TestOrganizationSdkDeprecations(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -15,14 +15,14 @@ class TestOrganizationSdkDeprecations(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_no_event_type(self):
+    def test_no_event_type(self) -> None:
         response = self.client.get(self.url, format="json")
         assert response.status_code == 400, response.content
         assert response.data == {
             "event_type": [ErrorDetail(string="This field is required.", code="required")],
         }
 
-    def test_unknown_event_type(self):
+    def test_unknown_event_type(self) -> None:
         response = self.client.get(
             self.url,
             {"event_type": "foo"},
@@ -35,7 +35,7 @@ class TestOrganizationSdkDeprecations(APITestCase):
             ],
         }
 
-    def test_no_sdks_seen(self):
+    def test_no_sdks_seen(self) -> None:
         response = self.client.get(
             self.url,
             {"event_type": "profile"},
@@ -44,7 +44,7 @@ class TestOrganizationSdkDeprecations(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"data": []}
 
-    def test_sdk_non_semver_version(self):
+    def test_sdk_non_semver_version(self) -> None:
         ProjectSDK.objects.create(
             project=self.project,
             event_type=EventType.PROFILE_CHUNK.value,
@@ -59,7 +59,7 @@ class TestOrganizationSdkDeprecations(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"data": []}
 
-    def test_malformed_sdk_name(self):
+    def test_malformed_sdk_name(self) -> None:
         ProjectSDK.objects.create(
             project=self.project,
             event_type=EventType.PROFILE_CHUNK.value,
@@ -74,7 +74,7 @@ class TestOrganizationSdkDeprecations(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"data": []}
 
-    def test_sdk_with_no_minimum_version(self):
+    def test_sdk_with_no_minimum_version(self) -> None:
         ProjectSDK.objects.create(
             project=self.project,
             event_type=EventType.PROFILE_CHUNK.value,
@@ -89,7 +89,7 @@ class TestOrganizationSdkDeprecations(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"data": []}
 
-    def test_up_to_date_sdk(self):
+    def test_up_to_date_sdk(self) -> None:
         ProjectSDK.objects.create(
             project=self.project,
             event_type=EventType.PROFILE_CHUNK.value,
@@ -104,7 +104,7 @@ class TestOrganizationSdkDeprecations(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"data": []}
 
-    def test_deprecated_sdk(self):
+    def test_deprecated_sdk(self) -> None:
         ProjectSDK.objects.create(
             project=self.project,
             event_type=EventType.PROFILE_CHUNK.value,
@@ -128,7 +128,7 @@ class TestOrganizationSdkDeprecations(APITestCase):
             ]
         }
 
-    def test_mixed_sdks(self):
+    def test_mixed_sdks(self) -> None:
         ProjectSDK.objects.create(
             project=self.project,
             event_type=EventType.PROFILE_CHUNK.value,

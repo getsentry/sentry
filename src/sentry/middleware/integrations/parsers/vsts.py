@@ -9,6 +9,7 @@ from django.http.response import HttpResponseBase
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.vsts.webhooks import WorkItemWebhook, get_vsts_external_id
 from sentry.silo.base import control_silo_function
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class VstsRequestParser(BaseRequestParser):
-    provider = "vsts"
+    provider = IntegrationProviderSlug.AZURE_DEVOPS.value
     webhook_identifier = WebhookProviderIdentifier.VSTS
 
     region_view_classes = [WorkItemWebhook]

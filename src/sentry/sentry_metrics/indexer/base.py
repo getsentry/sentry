@@ -393,7 +393,7 @@ def to_use_case_id(use_case: UseCaseID | UseCaseKey) -> UseCaseID:
 
 
 def metric_path_key_compatible_resolve(
-    resolve_func: Callable[[Any, UseCaseID, int, str], int | None]
+    resolve_func: Callable[[Any, UseCaseID, int, str], int | None],
 ) -> Callable[[Any, UseCaseID | UseCaseKey, int, str], int | None]:
     @wraps(resolve_func)
     def wrapper(
@@ -406,7 +406,7 @@ def metric_path_key_compatible_resolve(
 
 
 def metric_path_key_compatible_rev_resolve(
-    rev_resolve_func: Callable[[Any, UseCaseID, int, int], str | None]
+    rev_resolve_func: Callable[[Any, UseCaseID, int, int], str | None],
 ) -> Callable[[Any, UseCaseID | UseCaseKey, int, int], str | None]:
     @wraps(rev_resolve_func)
     def wrapper(self: Any, use_case_id: UseCaseID | UseCaseKey, org_id: int, id: int) -> str | None:
@@ -498,7 +498,7 @@ class StringIndexer(Service):
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
     ) -> Mapping[int, str]:
-        """Lookup the stored strings for multiple ids belonging to the same use-case and organisation.
+        """Lookup the stored strings for multiple ids belonging to the same use-case and organization.
 
         Returns a mapping between the ids and their corresponding string values.
         If an id can't be mapped the return value will not contain any entry for this id.
@@ -507,15 +507,15 @@ class StringIndexer(Service):
 
     def resolve_shared_org(self, string: str) -> int | None:
         """
-        Look up the index for a shared (cross organisation) string.
+        Look up the index for a shared (cross organization) string.
 
         Typically, this function will only lookup strings that are statically defined but
-        regardless of the mechanism these are strings that are not organisation or use-case specific.
+        regardless of the mechanism these are strings that are not organization or use-case specific.
         """
         raise NotImplementedError()
 
     def reverse_shared_org_resolve(self, id: int) -> str | None:
-        """Lookup the stored string given integer for a shared (cross organisation) ID.
+        """Lookup the stored string given integer for a shared (cross organization) ID.
 
         Returns None if the entry cannot be found.
         """

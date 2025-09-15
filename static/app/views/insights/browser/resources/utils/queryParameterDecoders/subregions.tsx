@@ -1,5 +1,5 @@
 import {decodeList} from 'sentry/utils/queryString';
-import {type SubregionCode, subregionCodeToName} from 'sentry/views/insights/types';
+import {subregionCodeToName, type SubregionCode} from 'sentry/views/insights/types';
 
 const OPTIONS = Object.keys(subregionCodeToName) as SubregionCode[];
 

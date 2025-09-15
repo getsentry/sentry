@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './svelte';
 
-describe('javascript-svelte onboarding docs', function () {
+describe('javascript-svelte onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -86,5 +86,38 @@ describe('javascript-svelte onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
+  });
+
+  it('enables logs by setting enableLogs to true', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).toBeInTheDocument();
+  });
+
+  it('shows Logging Integrations in next steps when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+      ],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
 });

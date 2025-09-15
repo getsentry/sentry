@@ -64,9 +64,7 @@ type ButtonElementProps = Omit<
 >;
 
 interface BaseButtonProps extends DO_NOT_USE_CommonButtonProps, ButtonElementProps {
-  href?: never;
   ref?: React.Ref<HTMLButtonElement>;
-  to?: never;
 }
 
 interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {

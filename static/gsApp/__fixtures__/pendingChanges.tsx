@@ -7,11 +7,7 @@ export function PendingChangesFixture(
 ): Subscription['pendingChanges'] {
   return {
     customPrice: null,
-    customPriceAttachments: null,
-    customPriceErrors: null,
     customPricePcss: null,
-    customPriceTransactions: null,
-    // TODO:categories remove customPrice{Categories}
     customPrices: {},
     effectiveDate: '2021-02-01',
     onDemandBudgets: null,
@@ -23,12 +19,7 @@ export function PendingChangesFixture(
       contractInterval: MONTHLY,
     }),
     planName: 'Team',
-    // TODO:categories remove reserved{Categories}
     reserved: {},
-    reservedAttachments: null,
-    reservedErrors: null,
-    reservedEvents: 0,
-    reservedTransactions: null,
     reservedBudgets: [],
     reservedCpe: {},
     ...fields,

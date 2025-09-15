@@ -12,9 +12,11 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {
-  type QueryFieldValue,
+  getAggregations,
   SPAN_OP_BREAKDOWN_FIELDS,
   TRANSACTION_FIELDS,
+  TRANSACTIONS_AGGREGATION_FUNCTIONS,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {
   DiscoverQueryExtras,
@@ -22,11 +24,12 @@ import type {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {AggregationKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
-  type OnDemandControlContext,
   shouldUseOnDemandMetrics,
+  type OnDemandControlContext,
 } from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -37,7 +40,7 @@ import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
-import {type DatasetConfig, handleOrderByReset} from './base';
+import {handleOrderByReset, type DatasetConfig} from './base';
 import {
   doOnDemandMetricsRequest,
   filterAggregateParams,
@@ -135,6 +138,7 @@ function getEventsTableFieldOptions(
   customMeasurements?: CustomMeasurementCollection
 ) {
   const measurements = getMeasurements();
+  const aggregates = getAggregations(DiscoverDatasets.TRANSACTIONS);
 
   return generateFieldOptions({
     organization,
@@ -147,6 +151,13 @@ function getEventsTableFieldOptions(
         functions,
       })
     ),
+    aggregations: Object.keys(aggregates)
+      .filter(key => TRANSACTIONS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
+      .reduce((obj, key) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        obj[key] = aggregates[key];
+        return obj;
+      }, {}),
     fieldKeys: TRANSACTION_FIELDS,
   });
 }

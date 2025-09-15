@@ -13,36 +13,36 @@ from tools import docker_memory_check
         ("never", False),
     ),
 )
-def test_should_use_color_forced(option, expected):
+def test_should_use_color_forced(option: str, expected: bool) -> None:
     assert docker_memory_check.should_use_color(option) is expected
 
 
-def test_should_use_color_determined_by_CI_variable_missing():
+def test_should_use_color_determined_by_CI_variable_missing() -> None:
     with mock.patch.dict(os.environ, clear=True):
         assert docker_memory_check.should_use_color("auto") is True
 
 
-def test_should_use_color_determined_by_CI_variable_empty():
+def test_should_use_color_determined_by_CI_variable_empty() -> None:
     with mock.patch.dict(os.environ, {"CI": ""}):
         assert docker_memory_check.should_use_color("auto") is True
 
 
-def test_should_use_color_determined_by_CI_variable_present():
+def test_should_use_color_determined_by_CI_variable_present() -> None:
     with mock.patch.dict(os.environ, {"CI": ""}):
         assert docker_memory_check.should_use_color("1") is False
 
 
-def test_color_using_color():
+def test_color_using_color() -> None:
     ret = docker_memory_check.color("hello hello", "\033[33m", use_color=True)
     assert ret == "\033[33mhello hello\033[m"
 
 
-def test_color_not_using_color():
+def test_color_not_using_color() -> None:
     ret = docker_memory_check.color("hello hello", "\033[33m", use_color=False)
     assert ret == "hello hello"
 
 
-def test_check_ignored_file_does_not_exist(capsys, tmp_path):
+def test_check_ignored_file_does_not_exist(capsys, tmp_path) -> None:
     json_file = tmp_path.joinpath("settings.json")
 
     assert docker_memory_check.main(("--settings-file", str(json_file))) == 0
@@ -50,7 +50,7 @@ def test_check_ignored_file_does_not_exist(capsys, tmp_path):
     assert out == err == ""
 
 
-def test_check_ignored_file_is_not_json(capsys, tmp_path):
+def test_check_ignored_file_is_not_json(capsys, tmp_path) -> None:
     json_file = tmp_path.joinpath("settings.json")
     json_file.write_text("not json")
 
@@ -59,7 +59,7 @@ def test_check_ignored_file_is_not_json(capsys, tmp_path):
     assert out == err == ""
 
 
-def test_check_ignored_file_missing_field(capsys, tmp_path):
+def test_check_ignored_file_missing_field(capsys, tmp_path) -> None:
     json_file = tmp_path.joinpath("settings.json")
     json_file.write_text("{}")
 
@@ -68,7 +68,7 @@ def test_check_ignored_file_missing_field(capsys, tmp_path):
     assert out == err == ""
 
 
-def test_check_ignored_memory_limit_not_int(capsys, tmp_path):
+def test_check_ignored_memory_limit_not_int(capsys, tmp_path) -> None:
     json_file = tmp_path.joinpath("settings.json")
     json_file.write_text('{"memoryMiB": "lots"}')
 
@@ -77,7 +77,7 @@ def test_check_ignored_memory_limit_not_int(capsys, tmp_path):
     assert out == err == ""
 
 
-def test_check_has_enough_configured_memory(capsys, tmp_path):
+def test_check_has_enough_configured_memory(capsys, tmp_path) -> None:
     json_file = tmp_path.joinpath("settings.json")
     json_file.write_text('{"memoryMiB": 9001}')
 
@@ -87,7 +87,7 @@ def test_check_has_enough_configured_memory(capsys, tmp_path):
     assert out == err == ""
 
 
-def test_check_insufficient_configured_memory(capsys, tmp_path):
+def test_check_insufficient_configured_memory(capsys, tmp_path) -> None:
     json_file = tmp_path.joinpath("settings.json")
     json_file.write_text('{"memoryMiB": 7000}')
 

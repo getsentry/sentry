@@ -2,9 +2,8 @@ import argparse
 import glob
 import os.path
 import re
-from collections.abc import Sequence
-
 import tomllib
+from collections.abc import Sequence
 
 
 def _glob_to_re(s: str) -> str:
@@ -36,6 +35,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             if stronglist_re.fullmatch(mod):
                 print(f"{filename}: {mod} is in the typing errors allowlist *and* stronglist")
                 retv = 1
+
+        prev = ""
+        for pat in stronglist["module"]:
+            if prev.endswith(".*") and pat.startswith(prev[:-1]):
+                print(f"{filename}: {pat} in stronglist is redundant with {prev}")
+                retv = 1
+            elif pat == f"{prev}.*":
+                print(f"{filename}: {prev} in stronglist is redundant with {pat}")
+                retv = 1
+            elif pat.endswith("*") and not pat.endswith(".*"):
+                print(
+                    f"{filename}: {pat} in stronglist is malformatted; patterns must be fully-qualified module names, optionally with '*' in some components"
+                )
+                retv = 1
+            else:
+                prev = pat
 
         for pat in stronglist["module"]:
             orig_pat = pat

@@ -12,23 +12,23 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {
-  BooleanOperator,
-  ParseResult,
-  SearchConfig,
-  TermOperator,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
 import {
   FilterType,
   InvalidReason,
   parseSearch,
+  TermOperator,
   Token,
+  wildcardOperators,
+  type BooleanOperator,
+  type ParseResult,
+  type SearchConfig,
+  type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
   getKeyName,
   isOperator,
+  isWildcardOperator,
   isWithinToken,
   treeResultLocator,
 } from 'sentry/components/searchSyntax/utils';
@@ -92,7 +92,10 @@ const generateOpAutocompleteGroup = (
   tagName: string
 ): AutocompleteGroup => {
   const operatorMap = generateOperatorEntryMap(tagName);
-  const operatorItems = validOps.map(op => operatorMap[op]);
+  const operatorItems = validOps
+    .filter(op => !(isWildcardOperator(op) && wildcardOperators.includes(op)))
+    .map(op => operatorMap[op])
+    .filter(defined);
   return {
     searchItems: operatorItems,
     recentSearchItems: undefined,
@@ -2121,7 +2124,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
         </InputWrapper>
 
-        <ActionsBar gap={0.5}>
+        <ActionsBar gap="xs">
           {query !== '' && !disabled && (
             <ActionButton
               type="button"
@@ -2274,7 +2277,7 @@ const Highlight = styled('div')`
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 24px;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.familyMono};
 `;
 
@@ -2289,7 +2292,7 @@ const SearchInput = styled('textarea')`
   line-height: 25px;
   margin-bottom: -1px;
   background: transparent;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.familyMono};
   caret-color: ${p => p.theme.subText};
   color: transparent;

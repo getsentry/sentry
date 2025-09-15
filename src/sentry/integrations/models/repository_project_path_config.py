@@ -35,7 +35,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
         db_table = "sentry_repositoryprojectpathconfig"
         unique_together = (("project", "stack_root"),)
 
-    def __repr__(self) -> str:  # type: ignore[override]
+    def __repr__(self) -> str:
         return (
             f"RepositoryProjectPathConfig(repo={self.repository.name}, "
             + f"branch={self.default_branch}, "

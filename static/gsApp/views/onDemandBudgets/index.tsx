@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import {openEditCreditCard} from 'getsentry/actionCreators/modal';
@@ -144,14 +145,16 @@ class OnDemandBudgets extends Component<Props> {
           {getOnDemandCategories({
             plan: subscription.planDetails,
             budgetMode: onDemandBudgets.budgetMode,
-          }).map(category => (
-            <Category key={category}>
-              <DetailTitle>
-                {getPlanCategoryName({plan: subscription.planDetails, category})}
-              </DetailTitle>
-              <Amount>{formatCurrency(onDemandBudgets.budgets[category] ?? 0)}</Amount>
-            </Category>
-          ))}
+          })
+            .filter(category => category !== DataCategory.LOG_BYTE)
+            .map(category => (
+              <Category key={category}>
+                <DetailTitle>
+                  {getPlanCategoryName({plan: subscription.planDetails, category})}
+                </DetailTitle>
+                <Amount>{formatCurrency(onDemandBudgets.budgets[category] ?? 0)}</Amount>
+              </Category>
+            ))}
         </PerCategoryBudgetContainer>
       );
     }
@@ -210,7 +213,11 @@ class OnDemandBudgets extends Component<Props> {
       categories: getOnDemandCategories({
         plan: subscription.planDetails,
         budgetMode: onDemandBudgets.budgetMode,
-      }),
+      }).filter(category =>
+        onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+          ? category !== DataCategory.LOG_BYTE
+          : true
+      ),
     });
     let description = t('Applies to %s.', oxfordCategories);
 
@@ -263,7 +270,7 @@ const Label = styled('div')`
 
 const DetailTitle = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
   white-space: nowrap;
@@ -271,7 +278,7 @@ const DetailTitle = styled('div')`
 
 const Amount = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const PerCategoryBudgetContainer = styled('div')`

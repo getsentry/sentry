@@ -11,10 +11,10 @@ import {
 
 import ProjectTags from 'sentry/views/settings/projectTags';
 
-describe('ProjectTags', function () {
+describe('ProjectTags', () => {
   const {organization: org, project, routerProps} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -32,11 +32,11 @@ describe('ProjectTags', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(<ProjectTags {...routerProps} />);
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -53,7 +53,7 @@ describe('ProjectTags', function () {
     expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
-  it('disables delete button for users without access', async function () {
+  it('disables delete button for users without access', async () => {
     render(<ProjectTags {...routerProps} />, {
       organization: OrganizationFixture({access: []}),
     });
@@ -63,7 +63,7 @@ describe('ProjectTags', function () {
     );
   });
 
-  it('deletes tag', async function () {
+  it('deletes tag', async () => {
     render(<ProjectTags {...routerProps} />);
 
     // First tag exists

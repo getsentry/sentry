@@ -1,9 +1,8 @@
 import {Fragment, useCallback} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
-import type {LineSeriesOption} from 'echarts';
-import type {TopLevelFormatterParams} from 'echarts/types/src/component/tooltip/TooltipModel';
+import type {LineSeriesOption, TooltipComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import Feature from 'sentry/components/acl/feature';
@@ -43,7 +42,6 @@ import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -68,7 +66,10 @@ import {
 } from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
@@ -158,6 +159,11 @@ export default function MetricChart({
   const organization = useOrganization();
   const shouldUseSessionsStats = isCrashFreeAlert(rule.dataset);
 
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(
+    rule.dataset,
+    rule.eventTypes
+  );
+
   const handleZoom = useCallback(
     (start: DateString, end: DateString) => {
       navigate({
@@ -233,6 +239,7 @@ export default function MetricChart({
         query,
         dataset,
         openInDiscoverDataset,
+        traceItemType,
       });
 
       const resolvedPercent =
@@ -287,7 +294,13 @@ export default function MetricChart({
             </Fragment>
           </StyledInlineContainer>
           {!isSessionAggregate(rule.aggregate) &&
-            (isEapAlertType(getAlertTypeFromAggregateDataset(rule)) ? (
+            (isEapAlertType(
+              getAlertTypeFromAggregateDataset({
+                ...rule,
+                eventTypes: rule.eventTypes,
+                organization,
+              })
+            ) ? (
               <Feature features="visibility-explore-view">
                 <LinkButton size="sm" {...props}>
                   {buttonText}
@@ -303,7 +316,7 @@ export default function MetricChart({
         </StyledChartControls>
       );
     },
-    [rule, organization, project, timePeriod, query]
+    [query, rule, organization, project, timePeriod, traceItemType]
   );
 
   const renderChart = useCallback(
@@ -377,7 +390,14 @@ export default function MetricChart({
           <StyledPanelBody withPadding>
             <ChartHeader>
               <HeaderTitleLegend>
-                {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
+                {
+                  AlertWizardAlertNames[
+                    getAlertTypeFromAggregateDataset({
+                      ...rule,
+                      organization,
+                    })
+                  ]
+                }
               </HeaderTitleLegend>
             </ChartHeader>
             <ChartFilters>
@@ -397,33 +417,28 @@ export default function MetricChart({
                 <QueryFilters>{queryFilter}</QueryFilters>
               </Tooltip>
             </ChartFilters>
-            {getDynamicText({
-              value: (
-                <ChartZoom
-                  start={start}
-                  end={end}
-                  onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
-                >
-                  {zoomRenderProps => (
-                    <AreaChart
-                      {...zoomRenderProps}
-                      {...chartOption}
-                      showTimeInTooltip
-                      minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-                      additionalSeries={additionalSeries}
-                      tooltip={getMetricChartTooltipFormatter({
-                        formattedAggregate,
-                        rule,
-                        interval,
-                        comparisonSeriesName,
-                        theme,
-                      })}
-                    />
-                  )}
-                </ChartZoom>
-              ),
-              fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-            })}
+            <ChartZoom
+              start={start}
+              end={end}
+              onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+            >
+              {zoomRenderProps => (
+                <AreaChart
+                  {...zoomRenderProps}
+                  {...chartOption}
+                  showTimeInTooltip
+                  minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+                  additionalSeries={additionalSeries}
+                  tooltip={getMetricChartTooltipFormatter({
+                    formattedAggregate,
+                    rule,
+                    interval,
+                    comparisonSeriesName,
+                    theme,
+                  })}
+                />
+              )}
+            </ChartZoom>
           </StyledPanelBody>
           {renderChartActions(
             totalDuration,
@@ -517,7 +532,7 @@ export function getMetricChartTooltipFormatter({
 }): AreaChartProps['tooltip'] {
   const {dateModified, timeWindow} = rule;
 
-  function formatter(seriesParams: TopLevelFormatterParams) {
+  const formatter: TooltipComponentOption['formatter'] = seriesParams => {
     // seriesParams can be object instead of array
     const pointSeries = toArray(seriesParams);
     // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
@@ -595,7 +610,7 @@ export function getMetricChartTooltipFormatter({
     ]
       .filter(e => e)
       .join('');
-  }
+  };
 
   return {formatter};
 }
@@ -626,7 +641,7 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 `;
 
 const ChartFilters = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.textColor};
   display: inline-grid;

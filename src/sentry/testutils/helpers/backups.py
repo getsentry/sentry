@@ -15,8 +15,11 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
 from django.utils import timezone
+from fido2.ctap2 import AuthenticatorData
+from fido2.utils import sha256
 from sentry_relay.auth import generate_key_pair
 
+from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.backup.crypto import LocalFileDecryptor, LocalFileEncryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     NormalizedModelName,
@@ -36,7 +39,6 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
-from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
     ExploreSavedQuery,
@@ -56,7 +58,12 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -92,9 +99,9 @@ from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
-from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tempest.models import TempestCredentials
@@ -372,7 +379,38 @@ class ExhaustiveFixtures(Fixtures):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
-        Authenticator.objects.create(user=user, type=1, config={})
+        Authenticator.objects.create(
+            user=user,
+            type=1,
+            config={
+                "devices": [
+                    {
+                        "binding": {
+                            "publicKey": "publickey",
+                            "keyHandle": "aowerkoweraowerkkro",
+                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                        },
+                        "name": "Sentry",
+                        "ts": 1512505334,
+                    },
+                    {
+                        "name": "Alert Escargot",
+                        "ts": 1512505334,
+                        "binding": AuthenticatorData.create(
+                            sha256(b"test"),
+                            0x41,
+                            1,
+                            create_credential_object(
+                                {
+                                    "publicKey": "webauthn",
+                                    "keyHandle": "webauthn",
+                                }
+                            ),
+                        ),
+                    },
+                ]
+            },
+        )
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
@@ -533,13 +571,17 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             organization=org,
         )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard,
+            member=invited,
+            last_visited=timezone.now(),
+        )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
         )
         permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title=f"Test Widget for {slug}",
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -619,13 +661,6 @@ class ExhaustiveFixtures(Fixtures):
                 group=group,
                 user_id=owner_id,
             )
-
-        # DataSecrecyWaiver
-        DataSecrecyWaiver.objects.create(
-            organization=org,
-            access_start=timezone.now(),
-            access_end=timezone.now() + timedelta(days=1),
-        )
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
@@ -752,7 +787,7 @@ class ExhaustiveFixtures(Fixtures):
             provider="slack", name=f"Slack for {org.slug}", external_id=f"slack:{org.slug}"
         )
         return OrganizationIntegration.objects.create(
-            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
+            organization_id=org.id, integration=integration, config={"hello": "hello"}
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)

@@ -18,5 +18,5 @@ export default List;
 const Wrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

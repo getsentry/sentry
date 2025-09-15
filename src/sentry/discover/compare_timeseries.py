@@ -27,7 +27,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_enhanced_performance import timeseries_query
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import run_timeseries_query
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -83,10 +83,10 @@ def make_rpc_request(
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
     query_parts = QueryParts(selected_columns=[aggregate], query=query, equations=[], orderby=[])
-    query_parts = translate_mep_to_eap(query_parts)
+    query_parts, dropped_fields = translate_mep_to_eap(query_parts)
 
-    results = run_timeseries_query(
-        snuba_params,
+    results = Spans.run_timeseries_query(
+        params=snuba_params,
         query_string=query_parts["query"],
         y_axes=query_parts["selected_columns"],
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,

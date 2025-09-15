@@ -15,7 +15,7 @@ from sentry.utils.integrationdocs import SuspiciousDocPathOperation, load_doc
         "../../../etc/passwd",
     ],
 )
-def test_path_traversal_attempt_on_load_doc_raises_exception(path):
+def test_path_traversal_attempt_on_load_doc_raises_exception(path: str) -> None:
     with pytest.raises(SuspiciousDocPathOperation) as excinfo:
         load_doc(path)
 

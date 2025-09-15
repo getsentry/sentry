@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import UserMisery from 'sentry/components/userMisery';
@@ -51,7 +51,7 @@ function UserStats({
   );
   const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
 
-  const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
+  const hasWebVitalsFlag = organization.features.includes('insight-modules');
 
   let userMisery = error === null ? <Placeholder height="34px" /> : <div>{'\u2014'}</div>;
 

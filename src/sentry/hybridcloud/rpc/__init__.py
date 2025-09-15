@@ -180,7 +180,7 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
 
 
 def silo_mode_delegation(
-    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]],
 ) -> ServiceInterface:
     """
     Simply creates a DelegatedBySiloMode from a mapping object, but casts it as a ServiceInterface matching
@@ -193,7 +193,7 @@ def silo_mode_delegation(
 
 
 def get_delegated_constructors(
-    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]],
 ) -> Mapping[SiloMode, Callable[[], ServiceInterface]]:
     """
     Creates a new constructor mapping by replacing the monolith constructor with a DelegatedByOpenTransaction

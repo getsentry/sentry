@@ -1,7 +1,7 @@
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';

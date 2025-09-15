@@ -1,12 +1,12 @@
 import {useTheme} from '@emotion/react';
 
-import type {Aliases, Color, IconSize} from 'sentry/utils/theme';
+import type {ColorOrAlias, IconSize} from 'sentry/utils/theme';
 
 import {useIconDefaults} from './useIconDefaults';
 
 export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   className?: string;
-  color?: Color | keyof Aliases | 'currentColor';
+  color?: ColorOrAlias | 'currentColor';
   /**
    * DO NOT USE THIS! Please use the `size` prop
    *
@@ -52,14 +52,14 @@ export function SvgIcon(props: IconProps) {
     return (
       <svg
         role="img"
-        viewBox={'1.25 1.25 13.5 13.5'}
+        viewBox={'1 1 14 14'}
         height={size}
         width={size}
         fill="none"
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.25px"
+        strokeWidth="1px"
         {...rest}
       />
     );

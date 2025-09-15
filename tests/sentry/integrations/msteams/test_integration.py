@@ -21,7 +21,7 @@ tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
 class MsTeamsIntegrationTest(IntegrationTestCase):
     provider = MsTeamsIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start_time = 1594768808
         self.pipeline_state = {
@@ -104,9 +104,9 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 self.assert_personal_installation_post_install()
 
     @responses.activate
-    def test_team_installation(self):
+    def test_team_installation(self) -> None:
         self.assert_setup_flow(installation_type="team")
 
     @responses.activate
-    def test_personal_installation(self):
+    def test_personal_installation(self) -> None:
         self.assert_setup_flow(installation_type="tenant")

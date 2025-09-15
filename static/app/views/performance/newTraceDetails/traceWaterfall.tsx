@@ -1,5 +1,6 @@
 import type React from 'react';
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -31,20 +32,23 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
-import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
+import {
+  TraceLinkNavigationButton,
+  TraceLinkNavigationButtonPlaceHolder,
+} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
-import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
-import type {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
+import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -62,9 +66,8 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
-import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
-import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
+import {traceAnalytics} from './traceAnalytics';
 import {
   isAutogroupedNode,
   isEAPTraceNode,
@@ -79,11 +82,10 @@ import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
-import TraceTypeWarnings from './traceTypeWarnings';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {getScrollToPath, useTraceScrollToPath} from './useTraceScrollToPath';
+import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -100,12 +102,9 @@ export interface TraceWaterfallProps {
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
-  traceWaterfallModels: ReturnType<typeof useTraceWaterfallModels>;
-  traceWaterfallScrollHandlers: ReturnType<typeof useTraceWaterfallScroll>;
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
-  isVisible?: boolean;
   replayTraces?: ReplayTrace[];
 }
 
@@ -125,20 +124,28 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
 
-  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
-  const {onScrollToNode, scrollRowIntoView} = props.traceWaterfallScrollHandlers;
+  const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
+  const {onScrollToNode, scrollRowIntoView} = useTraceWaterfallScroll({
+    organization,
+    tree: props.tree,
+    viewManager,
+  });
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath();
+  const scrollQueueRef = useTraceScrollToPath({traceSlug: props.traceSlug});
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
 
-  const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
+  const showLinkedTraces =
+    organization?.features.includes('trace-view-linked-traces') &&
+    // Don't show the linked traces buttons when the waterfall is embedded in the replay
+    // detail page, as it already contains all traces of the replay session.
+    props.source !== 'replay';
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
@@ -409,26 +416,46 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     [onScrollToNode, setRowAsFocused]
   );
 
-  const {
-    data: {hasExceededPerformanceUsageLimit},
-    isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
+  useEffect(() => {
+    if (props.tree.type !== 'trace' || props.meta.status !== 'success') {
+      return;
+    }
 
-  const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
+    const traceNode = props.tree.root.children[0];
+
+    // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
+    // with the correct spans count for EAP traces.
+    if (
+      traceNode &&
+      isEAPTraceNode(traceNode) &&
+      props.tree.eap_spans_count !== props.meta?.data?.span_count
+    ) {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
+        scope.captureMessage(
+          'EAP spans count from /trace/ and /trace-meta/ are not equal'
+        );
+      });
+    }
+  }, [props.tree, props.meta]);
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    if (!isLoadingSubscriptionDetails) {
-      traceAnalytics.trackTraceShape(
-        props.tree,
-        projectsRef.current,
-        props.organization,
-        hasExceededPerformanceUsageLimit,
-        source
-      );
+    const traceNode = props.tree.root.children[0];
+
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
     }
+
+    traceScheduler.dispatch('initialize trace space', [
+      props.tree.root.space[0],
+      0,
+      props.tree.root.space[1],
+      1,
+    ]);
+
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
@@ -440,6 +467,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     TraceTree.ApplyPreferences(props.tree.root, {
       preferences: traceStateRef.current.preferences,
+      organization: props.organization,
     });
 
     // Construct the visual representation of the tree
@@ -447,7 +475,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     const eventId = scrollQueueRef.current?.eventId;
     const [type, path] = scrollQueueRef.current?.path?.[0]?.split('-') ?? [];
-    scrollQueueRef.current = null;
 
     let node =
       (path === 'root' && props.tree.root.children[0]) ||
@@ -506,6 +533,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
       previouslyScrolledToNodeRef.current = node;
 
+      traceDispatch({type: 'minimize drawer', payload: false});
       setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
       traceDispatch({
         type: 'set roving index',
@@ -523,23 +551,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     scrollQueueRef,
     props.tree,
     props.organization,
-    isLoadingSubscriptionDetails,
-    hasExceededPerformanceUsageLimit,
-    source,
   ]);
-
-  // We re-init the view to sync back with URL params
-  // as they might have changed while the waterfall was hidden
-  const isMountedRef = useIsMountedRef();
-  useLayoutEffect(() => {
-    if (props.isVisible && isMountedRef.current) {
-      scrollQueueRef.current = getScrollToPath();
-      onTraceLoad();
-    }
-
-    // Only run if isVisible changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.isVisible]);
 
   // Setup the middleware for the trace reducer
   useLayoutEffect(() => {
@@ -631,7 +643,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     onTraceLoad,
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
-    meta: props.meta,
   });
 
   // Sync part of the state with the URL
@@ -645,7 +656,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     if (value) {
       let autogroupCount = 0;
-      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
+      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root, {
+        organization: props.organization,
+      });
       autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
       addSuccessMessage(
         autogroupCount > 0
@@ -725,11 +738,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   return (
     <Flex direction="column" flex={1}>
-      <TraceTypeWarnings
-        tree={props.tree}
-        traceSlug={props.traceSlug}
-        organization={organization}
-      />
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceOpenInExploreButton
@@ -776,9 +784,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         </DemoTourElement>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
-          <TraceWaterfallState.Loading />
+          <TraceWaterfallState.Loading trace={props.trace} />
         ) : props.tree.type === 'error' ? (
-          <TraceWaterfallState.Error />
+          <TraceWaterfallState.Error trace={props.trace} />
         ) : props.tree.type === 'empty' ? (
           <TraceWaterfallState.Empty />
         ) : null}
@@ -797,27 +805,29 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           traceEventView={props.traceEventView}
         />
       </TraceGrid>
-      {showLinkedTraces && !isTraceItemDetailsResponse(props.rootEventResults.data) && (
+      {showLinkedTraces && (
         <TraceLinksNavigationContainer>
-          <TraceLinkNavigationButton
-            direction={'previous'}
-            isLoading={props.rootEventResults.isLoading}
-            traceContext={props.rootEventResults.data?.contexts.trace}
-            currentTraceTimestamps={{
-              start: props.rootEventResults.data?.startTimestamp,
-              end: props.rootEventResults.data?.endTimestamp,
-            }}
-          />
-          <TraceLinkNavigationButton
-            direction={'next'}
-            isLoading={props.rootEventResults.isLoading}
-            projectID={props.rootEventResults.data?.projectID ?? ''}
-            traceContext={props.rootEventResults.data?.contexts.trace}
-            currentTraceTimestamps={{
-              start: props.rootEventResults.data?.startTimestamp,
-              end: props.rootEventResults.data?.endTimestamp,
-            }}
-          />
+          {isTraceItemDetailsResponse(props.rootEventResults.data) &&
+          props.rootEventResults.data.timestamp ? (
+            <Fragment>
+              <TraceLinkNavigationButton
+                direction={'previous'}
+                attributes={props.rootEventResults.data.attributes}
+                currentTraceStartTimestamp={
+                  new Date(props.rootEventResults.data.timestamp).getTime() / 1000
+                }
+              />
+              <TraceLinkNavigationButton
+                direction={'next'}
+                attributes={props.rootEventResults.data.attributes}
+                currentTraceStartTimestamp={
+                  new Date(props.rootEventResults.data.timestamp).getTime() / 1000
+                }
+              />
+            </Fragment>
+          ) : (
+            <TraceLinkNavigationButtonPlaceHolder />
+          )}
         </TraceLinksNavigationContainer>
       )}
     </Flex>
@@ -842,16 +852,7 @@ const TraceLinksNavigationContainer = styled('div')`
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
-  --info: ${p => p.theme.purple400};
-  --warning: ${p => p.theme.yellow300};
-  --debug: ${p => p.theme.blue300};
-  --error: ${p => p.theme.error};
-  --fatal: ${p => p.theme.error};
-  --default: ${p => p.theme.gray300};
-  --unknown: ${p => p.theme.gray300};
-  --profile: ${p => p.theme.purple300};
-  --autogrouped: ${p => p.theme.blue300};
-  --occurence: ${p => p.theme.blue300};
+  ${traceGridCssVariables}
 
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};

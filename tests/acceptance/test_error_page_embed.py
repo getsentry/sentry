@@ -9,7 +9,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class ErrorPageEmbedTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.key = self.create_project_key(project=self.project)
@@ -20,7 +20,7 @@ class ErrorPageEmbedTest(AcceptanceTestCase):
             quote(self.key.dsn_public),
         )
 
-    def wait_for_error_page_embed(self):
+    def wait_for_error_page_embed(self) -> None:
         script = f"""
             const script = window.document.createElement('script');
             script.async = true;
@@ -36,17 +36,17 @@ class ErrorPageEmbedTest(AcceptanceTestCase):
         self.browser.driver.execute_script(script)
         self.browser.wait_until(".sentry-error-embed")
 
-    def wait_for_reportdialog_closed_message(self):
+    def wait_for_reportdialog_closed_message(self) -> None:
         self.browser.wait_until_script_execution(
             """return window.__error_page_embed_received_message__ === '__sentry_reportdialog_closed__'"""
         )
 
-    def test_closed_message_received_on_close_button_click(self):
+    def test_closed_message_received_on_close_button_click(self) -> None:
         self.wait_for_error_page_embed()
         self.browser.click(".sentry-error-embed button.close")
         self.wait_for_reportdialog_closed_message()
 
-    def test_closed_message_received_on_outside_click(self):
+    def test_closed_message_received_on_outside_click(self) -> None:
         # in order to click outside we need to set a sufficiently large window size
         with self.browser.full_viewport(width=900, height=1330, fit_content=False):
             self.wait_for_error_page_embed()

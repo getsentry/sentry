@@ -22,12 +22,14 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.webhook import SCMWebhook
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.releases.commits import create_commit
 from sentry.utils.email import parse_email
 
 logger = logging.getLogger("sentry.webhooks")
@@ -74,7 +76,7 @@ class WebhookInvalidSignatureException(SentryAPIException):
 class BitbucketWebhook(SCMWebhook, ABC):
     @property
     def provider(self) -> str:
-        return "bitbucket"
+        return IntegrationProviderSlug.BITBUCKET.value
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
@@ -143,9 +145,9 @@ class PushEventWebhook(BitbucketWebhook):
                     author = authors[author_email]
                 try:
                     with transaction.atomic(router.db_for_write(Commit)):
-                        Commit.objects.create(
-                            repository_id=repo.id,
-                            organization_id=organization.id,
+                        create_commit(
+                            organization=organization,
+                            repo_id=repo.id,
                             key=commit["hash"],
                             message=commit["message"],
                             author=author,

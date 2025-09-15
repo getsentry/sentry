@@ -26,7 +26,7 @@ const Header = styled('div')`
 `;
 const HeaderTitle = styled('h3')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
   color: ${p => p.theme.textColor};
 `;

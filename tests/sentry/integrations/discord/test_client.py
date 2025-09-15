@@ -20,7 +20,7 @@ from sentry.testutils.cases import TestCase
 
 
 class DiscordClientTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.application_id = "application-id"
         self.bot_token = "bot-token"
         options.set("discord.application-id", self.application_id)
@@ -33,12 +33,12 @@ class DiscordClientTest(TestCase):
         )
         self.discord_client = DiscordClient()
 
-    def test_prepare_auth_header(self):
+    def test_prepare_auth_header(self) -> None:
         expected = {"Authorization": f"Bot {self.bot_token}"}
         assert self.discord_client.prepare_auth_header() == expected
 
     @responses.activate
-    def test_set_application_command(self):
+    def test_set_application_command(self) -> None:
         responses.add(
             responses.POST,
             url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
@@ -52,7 +52,7 @@ class DiscordClientTest(TestCase):
         self.discord_client.set_application_command(command={"command": "test"})
 
     @responses.activate
-    def test_has_application_commands(self):
+    def test_has_application_commands(self) -> None:
         responses.add(
             responses.GET,
             url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
@@ -66,7 +66,7 @@ class DiscordClientTest(TestCase):
         assert self.discord_client.has_application_commands() is True
 
     @responses.activate
-    def test_get_guild_name(self):
+    def test_get_guild_name(self) -> None:
         guild_id = self.integration.external_id
         server_name = self.integration.name
 
@@ -84,7 +84,7 @@ class DiscordClientTest(TestCase):
         assert guild_name == "Cool server"
 
     @responses.activate
-    def test_get_access_token(self):
+    def test_get_access_token(self) -> None:
         responses.add(
             responses.POST,
             url=f"{DISCORD_BASE_URL}/oauth2/token",
@@ -97,7 +97,7 @@ class DiscordClientTest(TestCase):
         assert access_token == "access_token"
 
     @responses.activate
-    def test_get_user_id(self):
+    def test_get_user_id(self) -> None:
         responses.add(
             responses.GET,
             url=f"{DISCORD_BASE_URL}/users/@me",
@@ -108,7 +108,7 @@ class DiscordClientTest(TestCase):
         assert user_id == "user_id"
 
     @responses.activate
-    def test_leave_guild(self):
+    def test_leave_guild(self) -> None:
         guild_id = self.integration.external_id
 
         responses.add(
@@ -121,7 +121,7 @@ class DiscordClientTest(TestCase):
         self.discord_client.leave_guild(guild_id)
 
     @responses.activate
-    def test_get_channel(self):
+    def test_get_channel(self) -> None:
         channel_id = "channel-id"
         responses.add(
             responses.GET,
@@ -135,7 +135,7 @@ class DiscordClientTest(TestCase):
         assert response == {"id": "channel-id"}
 
     @responses.activate
-    def test_send_message(self):
+    def test_send_message(self) -> None:
         channel_id = "channel-id"
         responses.add(
             responses.POST,

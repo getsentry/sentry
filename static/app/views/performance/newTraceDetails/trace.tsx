@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -73,6 +73,8 @@ import {
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
+  isUptimeCheckNode,
+  isUptimeCheckTimingNode,
 } from './traceGuards';
 import type {TraceReducerState} from './traceState';
 
@@ -250,14 +252,8 @@ export function Trace({
 
       treeRef.current.expand(node, value);
       rerenderRef.current();
-
-      if (traceStateRef.current.search.query) {
-        // If a query exists, we want to reapply the search after expanding
-        // so that new nodes are also highlighted if they match a query
-        onTraceSearch(traceStateRef.current.search.query, node, 'persist');
-      }
     },
-    [onTraceSearch]
+    []
   );
 
   const onRowKeyDown = useCallback(
@@ -663,7 +659,12 @@ function RenderTraceRow(props: {
     return <TraceTransactionRow {...rowProps} node={node} />;
   }
 
-  if (isSpanNode(node) || isEAPSpanNode(node)) {
+  if (
+    isSpanNode(node) ||
+    isEAPSpanNode(node) ||
+    isUptimeCheckNode(node) ||
+    isUptimeCheckTimingNode(node)
+  ) {
     return <TraceSpanRow {...rowProps} node={node} />;
   }
 
@@ -912,7 +913,7 @@ const TraceStylingWrapper = styled('div')`
     text-align: center;
     position: absolute;
     font-size: 10px;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     color: ${p => p.theme.textColor};
     background-color: ${p => p.theme.background};
     border-radius: 100px;
@@ -1085,7 +1086,7 @@ const TraceStylingWrapper = styled('div')`
       pointer-events: none;
 
       .TraceIndicatorLabelContainer {
-        font-weight: ${p => p.theme.fontWeightNormal};
+        font-weight: ${p => p.theme.fontWeight.normal};
         min-width: 0;
         top: 22px;
         width: auto;
@@ -1104,15 +1105,15 @@ const TraceStylingWrapper = styled('div')`
   &.light {
     .TracePattern {
       &.info {
-        --pattern-odd: #d1dff9;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
       &.warning {
-        --pattern-odd: #a5752c;
+        --pattern-odd: ${p => p.theme.yellow400};
         --pattern-even: ${p => p.theme.yellow300};
       }
       &.occurence {
-        --pattern-odd: #063690;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
 
@@ -1121,14 +1122,15 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: transparent;
       }
 
+      /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: #dedae3;
-        --pattern-even: #f4f2f7;
+        --pattern-odd: ${p => p.theme.backgroundTertiary};
+        --pattern-even: ${p => p.theme.background};
       }
 
       &.error,
       &.fatal {
-        --pattern-odd: #872d32;
+        --pattern-odd: ${p => p.theme.red400};
         --pattern-even: ${p => p.theme.red300};
       }
 
@@ -1145,15 +1147,15 @@ const TraceStylingWrapper = styled('div')`
   &.dark {
     .TracePattern {
       &.info {
-        --pattern-odd: #d1dff9;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
       &.warning {
-        --pattern-odd: #a5752c;
+        --pattern-odd: ${p => p.theme.yellow400};
         --pattern-even: ${p => p.theme.yellow300};
       }
       &.occurence {
-        --pattern-odd: #063690;
+        --pattern-odd: ${p => p.theme.blue400};
         --pattern-even: ${p => p.theme.blue300};
       }
 
@@ -1162,14 +1164,15 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: transparent;
       }
 
+      /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: #4b4550;
-        --pattern-even: #1c1521;
+        --pattern-odd: ${p => p.theme.surface100};
+        --pattern-even: ${p => p.theme.surface300};
       }
 
       &.error,
       &.fatal {
-        --pattern-odd: #510d10;
+        --pattern-odd: ${p => p.theme.red400};
         --pattern-even: ${p => p.theme.red300};
       }
       /* stylelint-disable */
@@ -1188,7 +1191,7 @@ const TraceStylingWrapper = styled('div')`
     height: 24px;
     width: 100%;
     transition: none;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     transform: translateZ(0);
 
     --row-background-odd: ${p => p.theme.backgroundSecondary};
@@ -1384,7 +1387,7 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.blue300};
 
       .TraceDescription {
-        font-weight: ${p => p.theme.fontWeightBold};
+        font-weight: ${p => p.theme.fontWeight.bold};
       }
 
       .TraceChildrenCountWrapper {
@@ -1506,7 +1509,7 @@ const TraceStylingWrapper = styled('div')`
     background-color: transparent;
     border: none;
     transition: 60ms ease-out;
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     color: ${p => p.theme.subText};
     padding: 0 2px;
     display: flex;
@@ -1528,7 +1531,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceBarDuration {
     display: inline-block;
     transform-origin: left center;
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     color: ${p => p.theme.subText};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -1700,7 +1703,13 @@ const TraceStylingWrapper = styled('div')`
     margin-left: 4px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
+  }
+
+  .TraceName {
+    margin-left: 4px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .TraceEmDash {

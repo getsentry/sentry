@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './nuxt';
 
-describe('javascript-nuxt onboarding docs', function () {
+describe('javascript-nuxt onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 

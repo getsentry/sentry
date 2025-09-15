@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import CommitLink from 'sentry/components/commitLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -591,7 +590,7 @@ export default function getGroupActivityItem(
         const {oldGroupId, eventCount} = data;
 
         return {
-          title: t('Resprocessed Events'),
+          title: t('Reprocessed Events'),
           message: tct('by [author]. [new-events]', {
             author,
             ['new-events']: (
@@ -683,12 +682,12 @@ function ActivityRelease({project, version}: {project: Project; version: string}
 }
 
 const Subtext = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const CodeWrapper = styled('div')`
   overflow-wrap: anywhere;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledRuleSpan = styled('span')`

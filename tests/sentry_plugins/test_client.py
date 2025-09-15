@@ -17,7 +17,7 @@ from sentry_plugins.client import ApiClient, AuthApiClient
 
 class ApiClientTest(TestCase):
     @responses.activate
-    def test_get(self):
+    def test_get(self) -> None:
         responses.add(responses.GET, "http://example.com", json={})
 
         resp = ApiClient().get("http://example.com")
@@ -25,7 +25,7 @@ class ApiClientTest(TestCase):
         assert resp.status_code == 200
 
     @responses.activate
-    def test_post(self):
+    def test_post(self) -> None:
         responses.add(responses.POST, "http://example.com", json={})
 
         resp = ApiClient().post("http://example.com")
@@ -33,7 +33,7 @@ class ApiClientTest(TestCase):
         assert resp.status_code == 200
 
     @responses.activate
-    def test_delete(self):
+    def test_delete(self) -> None:
         responses.add(responses.DELETE, "http://example.com", json={})
 
         resp = ApiClient().delete("http://example.com")
@@ -41,7 +41,7 @@ class ApiClientTest(TestCase):
         assert resp.status_code == 200
 
     @responses.activate
-    def test_put(self):
+    def test_put(self) -> None:
         responses.add(responses.PUT, "http://example.com", json={})
 
         resp = ApiClient().put("http://example.com")
@@ -49,7 +49,7 @@ class ApiClientTest(TestCase):
         assert resp.status_code == 200
 
     @responses.activate
-    def test_patch(self):
+    def test_patch(self) -> None:
         responses.add(responses.PATCH, "http://example.com", json={})
 
         resp = ApiClient().patch("http://example.com")
@@ -59,7 +59,7 @@ class ApiClientTest(TestCase):
 
 class AuthApiClientTest(TestCase):
     @responses.activate
-    def test_without_authorization(self):
+    def test_without_authorization(self) -> None:
         responses.add(responses.GET, "http://example.com", json={})
 
         resp = AuthApiClient().get("http://example.com")
@@ -70,7 +70,7 @@ class AuthApiClientTest(TestCase):
         assert not request.headers.get("Authorization")
 
     @responses.activate
-    def test_with_authorization(self):
+    def test_with_authorization(self) -> None:
         responses.add(responses.GET, "http://example.com", json={})
 
         auth = self.create_usersocialauth(extra_data={"access_token": "access-token"})
@@ -84,7 +84,7 @@ class AuthApiClientTest(TestCase):
         assert request.headers.get("Authorization") == "Bearer access-token"
 
     @responses.activate
-    def test_with_authorization_and_no_auth(self):
+    def test_with_authorization_and_no_auth(self) -> None:
         responses.add(responses.GET, "http://example.com", json={})
 
         auth = self.create_usersocialauth(extra_data={"access_token": "access-token"})
@@ -98,7 +98,7 @@ class AuthApiClientTest(TestCase):
         assert not request.headers.get("Authorization")
 
     @responses.activate
-    def test_with_authorized_token_refresh(self):
+    def test_with_authorized_token_refresh(self) -> None:
         # First attempt
         responses.add(responses.GET, "http://example.com", json={}, status=401)
         # After refresh
@@ -118,24 +118,24 @@ class AuthApiClientTest(TestCase):
         assert request.headers.get("Authorization") == "Bearer access-token"
 
     @responses.activate
-    def test_invalid_host(self):
+    def test_invalid_host(self) -> None:
         with pytest.raises(ApiHostError):
             AuthApiClient().get("http://example.com")
 
     @responses.activate
-    def test_unauthorized(self):
+    def test_unauthorized(self) -> None:
         responses.add(responses.GET, "http://example.com", status=404)
         with pytest.raises(ApiError):
             AuthApiClient().get("http://example.com")
 
     @responses.activate
-    def test_forbidden(self):
+    def test_forbidden(self) -> None:
         responses.add(responses.GET, "http://example.com", status=401)
         with pytest.raises(ApiUnauthorized):
             AuthApiClient().get("http://example.com")
 
     @responses.activate
-    def test_invalid_plaintext(self):
+    def test_invalid_plaintext(self) -> None:
         responses.add(responses.GET, "http://example.com", body="")
         with pytest.raises(UnsupportedResponseType):
             AuthApiClient().get("http://example.com")

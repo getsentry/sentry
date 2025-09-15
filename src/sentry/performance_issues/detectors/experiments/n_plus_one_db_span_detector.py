@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from sentry.issues.grouptype import PerformanceNPlusOneExperimentalGroupType
+from sentry import features
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -75,7 +76,9 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         return True
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True  # This detector is fully rolled out
+        return features.has(
+            "organizations:experimental-n-plus-one-db-detector-rollout", organization
+        )
 
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
@@ -184,15 +187,15 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
             return
 
         fingerprint = self._fingerprint(
-            parent_op=parent_span.get("op", None),
-            parent_hash=parent_span.get("hash", None),
-            source_hash=self.source_span.get("hash", None),
-            n_hash=self.n_spans[0].get("hash", None),
+            parent_op=parent_span.get("op", ""),
+            parent_hash=parent_span.get("hash", ""),
+            source_hash=self.source_span.get("hash", ""),
+            n_hash=self.n_spans[0].get("hash", ""),
         )
         if fingerprint not in self.stored_problems:
             self._metrics_for_extra_matching_spans()
 
-            offender_span_ids = [span.get("span_id", None) for span in self.n_spans]
+            offender_span_ids = [span["span_id"] for span in self.n_spans]
             first_span_description = get_valid_db_span_description(self.n_spans[0])
             if not first_span_description:
                 metrics.incr("performance.performance_issue.invalid_description")
@@ -202,9 +205,9 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
                 fingerprint=fingerprint,
                 op="db",
                 desc=first_span_description,
-                type=PerformanceNPlusOneExperimentalGroupType,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
-                cause_span_ids=[self.source_span.get("span_id", None)],
+                cause_span_ids=[self.source_span["span_id"]],
                 offender_span_ids=offender_span_ids,
                 evidence_display=[
                     IssueEvidence(
@@ -253,7 +256,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     def _fingerprint(self, parent_op: str, parent_hash: str, source_hash: str, n_hash: str) -> str:
         # XXX: this has to be a hardcoded string otherwise grouping will break
         # For the experiment, we also need to modify the hardcoded string so that after re-GA, new groups send notifications.
-        problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES_EXPERIMENTAL"
+        problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
         full_fingerprint = hashlib.sha1(
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
         ).hexdigest()
@@ -262,11 +265,11 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
 
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
-    query = span.get("description", None)
+    query = span.get("description")
     if is_source and query:
         return True
     else:
-        return query and not query.endswith("...")
+        return bool(query and not query.endswith("..."))
 
 
 def get_valid_db_span_description(span: Span) -> str | None:
@@ -280,7 +283,9 @@ def get_valid_db_span_description(span: Span) -> str | None:
     # Trigger pathway on `mongodb`, `mongoose`, etc...
     if "mongo" in db_system:
         description = span.get("sentry_tags", {}).get("description")
-        return description if "{" in description else None
+        if not description or "{" not in description:
+            return None
+        return description
     return default_description
 
 

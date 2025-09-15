@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class OrganizationAvatarTestCase(TestCase):
-    def test_set_null(self):
+    def test_set_null(self) -> None:
         org = self.create_organization()
         afile = File.objects.create(name="avatar.png", type=OrganizationAvatar.FILE_TYPE)
         avatar = OrganizationAvatar.objects.create(organization=org, file_id=afile.id)

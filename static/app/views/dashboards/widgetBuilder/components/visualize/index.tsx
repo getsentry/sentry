@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css} from '@emotion/react';
@@ -37,6 +37,7 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
+import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {
   ColumnCompactSelect,
@@ -45,12 +46,13 @@ import {
 import VisualizeGhostField from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
-import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
@@ -82,7 +84,7 @@ function formatColumnOptions(
       return {
         value: option.value.meta.name,
         label:
-          dataset === WidgetType.SPANS
+          dataset === WidgetType.SPANS || dataset === WidgetType.LOGS
             ? prettifyTagKey(option.value.meta.name)
             : option.value.meta.name,
 
@@ -132,7 +134,11 @@ export function getColumnOptions(
   filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
-  if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
+  if (
+    selectedField.kind !== FieldValueKind.FUNCTION ||
+    dataset === WidgetType.SPANS ||
+    dataset === WidgetType.LOGS
+  ) {
     return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
       .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
       .sort(_sortFn);
@@ -240,7 +246,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
-  let tags = useTags();
+  const tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
   const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
     fields: {selectedAggregate: decodeScalar},
@@ -250,6 +256,7 @@ function Visualize({error, setError}: VisualizeProps) {
   );
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
+  const disableTransactionWidget = useDisableTransactionWidget();
 
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
@@ -261,17 +268,13 @@ function Visualize({error, setError}: VisualizeProps) {
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let spanColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
-  if (state.dataset === WidgetType.SPANS) {
-    // Explicitly merge numeric and string tags to ensure filtering
-    // compatibility for timeseries chart types.
-    tags = {...numericSpanTags, ...stringSpanTags};
-
+  let traceItemColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
+  if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
     const columns =
       state.fields
         ?.filter(field => field.kind === FieldValueKind.FIELD)
         .map(field => field.field) ?? [];
-    spanColumnOptions = [
+    traceItemColumnOptions = [
       // Columns that are not in the tag responses, e.g. old tags
       ...columns
         .filter(
@@ -284,7 +287,6 @@ function Visualize({error, setError}: VisualizeProps) {
           return {
             label: prettifyTagKey(column),
             value: column,
-            textValue: column,
             trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
@@ -292,20 +294,18 @@ function Visualize({error, setError}: VisualizeProps) {
         return {
           label: tag.name,
           value: tag.key,
-          textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.TAG} />,
         };
       }),
       ...Object.values(numericSpanTags).map(tag => {
         return {
-          label: tag.name,
+          label: prettifyTagKey(tag.name),
           value: tag.key,
-          textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
         };
       }),
     ];
-    spanColumnOptions.sort(_sortFn);
+    traceItemColumnOptions.sort(_sortFn);
   }
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
@@ -315,10 +315,26 @@ function Visualize({error, setError}: VisualizeProps) {
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 
-  const fieldOptions = useMemo(
-    () => datasetConfig.getTableFieldOptions(organization, tags, customMeasurements),
-    [organization, tags, customMeasurements, datasetConfig]
-  );
+  const fieldOptions = useMemo(() => {
+    // Explicitly merge numeric and string tags to ensure filtering
+    // compatibility for timeseries chart types.
+    if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+      return datasetConfig.getTableFieldOptions(
+        organization,
+        {...numericSpanTags, ...stringSpanTags},
+        customMeasurements
+      );
+    }
+    return datasetConfig.getTableFieldOptions(organization, tags, customMeasurements);
+  }, [
+    state.dataset,
+    datasetConfig,
+    organization,
+    tags,
+    customMeasurements,
+    numericSpanTags,
+    stringSpanTags,
+  ]);
 
   const aggregates = useMemo(
     () =>
@@ -342,6 +358,10 @@ function Visualize({error, setError}: VisualizeProps) {
     fields?.length && fields.length > 1 && state.displayType !== DisplayType.BIG_NUMBER;
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
+
+  const hasExploreEquations = organization.features.includes(
+    'visibility-explore-equations'
+  );
 
   return (
     <Fragment>
@@ -414,9 +434,10 @@ function Visualize({error, setError}: VisualizeProps) {
                     ? datasetConfig.filterAggregateParams
                     : datasetConfig.filterTableOptions;
                 const columnOptions =
-                  state.dataset === WidgetType.SPANS &&
+                  (state.dataset === WidgetType.SPANS ||
+                    state.dataset === WidgetType.LOGS) &&
                   field.kind !== FieldValueKind.FUNCTION
-                    ? spanColumnOptions
+                    ? traceItemColumnOptions
                     : getColumnOptions(
                         state.dataset ?? WidgetType.ERRORS,
                         field,
@@ -449,9 +470,12 @@ function Visualize({error, setError}: VisualizeProps) {
                   if (state.dataset === WidgetType.ISSUE) {
                     // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
                     aggregateOptions = baseOptions;
-                  } else if (state.dataset === WidgetType.SPANS) {
+                  } else if (
+                    state.dataset === WidgetType.SPANS ||
+                    state.dataset === WidgetType.LOGS
+                  ) {
                     // Add span column options for Spans dataset
-                    aggregateOptions = [...baseOptions, ...spanColumnOptions];
+                    aggregateOptions = [...baseOptions, ...traceItemColumnOptions];
                   } else if (state.dataset === WidgetType.RELEASE) {
                     aggregateOptions = [
                       ...(canDelete ? baseOptions : aggregateOptions),
@@ -568,33 +592,64 @@ function Visualize({error, setError}: VisualizeProps) {
                           )}
                         <FieldBar data-testid={'field-bar'}>
                           {field.kind === FieldValueKind.EQUATION ? (
-                            <StyledArithmeticInput
-                              name="arithmetic"
-                              key="parameter:text"
-                              type="text"
-                              value={field.field}
-                              onUpdate={value => {
-                                dispatch({
-                                  type: updateAction,
-                                  payload: fields.map((_field, i) =>
-                                    i === index ? {..._field, field: value} : _field
-                                  ),
-                                });
-                                setError?.({...error, queries: []});
-                                trackAnalytics('dashboards_views.widget_builder.change', {
-                                  builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                  field: 'visualize.updateEquation',
-                                  from: source,
-                                  new_widget: !isEditing,
-                                  value: '',
-                                  widget_type: state.dataset ?? '',
-                                  organization,
-                                });
-                              }}
-                              options={fields}
-                              placeholder={t('Equation')}
-                              aria-label={t('Equation')}
-                            />
+                            state.dataset === WidgetType.SPANS ? (
+                              <ExploreArithmeticBuilder
+                                equation={field.field}
+                                onUpdate={value => {
+                                  dispatch({
+                                    type: updateAction,
+                                    payload: fields.map((_field, i) =>
+                                      i === index ? {..._field, field: value} : _field
+                                    ),
+                                  });
+                                  setError?.({...error, queries: []});
+                                  trackAnalytics(
+                                    'dashboards_views.widget_builder.change',
+                                    {
+                                      builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                      field: 'visualize.updateEquation',
+                                      from: source,
+                                      new_widget: !isEditing,
+                                      value: '',
+                                      widget_type: state.dataset ?? '',
+                                      organization,
+                                    }
+                                  );
+                                }}
+                              />
+                            ) : (
+                              <StyledArithmeticInput
+                                name="arithmetic"
+                                key="parameter:text"
+                                type="text"
+                                value={field.field}
+                                disabled={disableTransactionWidget}
+                                onUpdate={value => {
+                                  dispatch({
+                                    type: updateAction,
+                                    payload: fields.map((_field, i) =>
+                                      i === index ? {..._field, field: value} : _field
+                                    ),
+                                  });
+                                  setError?.({...error, queries: []});
+                                  trackAnalytics(
+                                    'dashboards_views.widget_builder.change',
+                                    {
+                                      builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                      field: 'visualize.updateEquation',
+                                      from: source,
+                                      new_widget: !isEditing,
+                                      value: '',
+                                      widget_type: state.dataset ?? '',
+                                      organization,
+                                    }
+                                  );
+                                }}
+                                options={fields}
+                                placeholder={t('Equation')}
+                                aria-label={t('Equation')}
+                              />
+                            )
                           ) : (
                             <Fragment>
                               <SelectRow
@@ -612,6 +667,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                 fieldOptions={fieldOptions}
                                 columnFilterMethod={columnFilterMethod}
                                 aggregates={aggregates}
+                                disabled={disableTransactionWidget}
                               />
                               {field.kind === FieldValueKind.FUNCTION &&
                                 parameterRefinements.length > 0 && (
@@ -679,16 +735,25 @@ function Visualize({error, setError}: VisualizeProps) {
                         <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
                           {!isChartWidget && !isBigNumberWidget && (
                             <LegendAliasInput
-                              type="text"
-                              name="name"
+                              name="alias"
                               placeholder={t('Add Alias')}
                               value={field.alias ?? ''}
+                              disabled={disableTransactionWidget}
                               onChange={e => {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
-                                dispatch({type: updateAction, payload: newFields});
+                                dispatch(
+                                  {type: updateAction, payload: newFields},
+                                  {updateUrl: false}
+                                );
                               }}
-                              onBlur={() => {
+                              onBlur={e => {
+                                const newFields = cloneDeep(fields);
+                                newFields[index]!.alias = e.target.value;
+                                dispatch(
+                                  {type: updateAction, payload: newFields},
+                                  {updateUrl: true}
+                                );
                                 trackAnalytics('dashboards_views.widget_builder.change', {
                                   builder_version: WidgetBuilderVersion.SLIDEOUT,
                                   field: 'visualize.legendAlias',
@@ -770,6 +835,7 @@ function Visualize({error, setError}: VisualizeProps) {
       <AddButtons>
         <AddButton
           priority="link"
+          disabled={disableTransactionWidget}
           aria-label={
             isChartWidget
               ? t('Add Series')
@@ -800,30 +866,36 @@ function Visualize({error, setError}: VisualizeProps) {
               ? t('+ Add Field')
               : t('+ Add Column')}
         </AddButton>
-        {datasetConfig.enableEquations && (
-          <AddButton
-            priority="link"
-            aria-label={t('Add Equation')}
-            onClick={() => {
-              dispatch({
-                type: updateAction,
-                payload: [...(fields ?? []), {kind: FieldValueKind.EQUATION, field: ''}],
-              });
+        {datasetConfig.enableEquations &&
+          (state.dataset !== WidgetType.SPANS ||
+            (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
+            <AddButton
+              priority="link"
+              disabled={disableTransactionWidget}
+              aria-label={t('Add Equation')}
+              onClick={() => {
+                dispatch({
+                  type: updateAction,
+                  payload: [
+                    ...(fields ?? []),
+                    {kind: FieldValueKind.EQUATION, field: ''},
+                  ],
+                });
 
-              trackAnalytics('dashboards_views.widget_builder.change', {
-                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                field: 'visualize.addEquation',
-                from: source,
-                new_widget: !isEditing,
-                value: '',
-                widget_type: state.dataset ?? '',
-                organization,
-              });
-            }}
-          >
-            {t('+ Add Equation')}
-          </AddButton>
-        )}
+                trackAnalytics('dashboards_views.widget_builder.change', {
+                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                  field: 'visualize.addEquation',
+                  from: source,
+                  new_widget: !isEditing,
+                  value: '',
+                  widget_type: state.dataset ?? '',
+                  organization,
+                });
+              }}
+            >
+              {t('+ Add Equation')}
+            </AddButton>
+          )}
       </AddButtons>
     </Fragment>
   );
@@ -959,6 +1031,7 @@ export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   flex-direction: row;
   gap: ${space(1)};
   flex: ${p => (p.isChartWidget ? '0' : '1')};
+  align-items: center;
 `;
 
 const AddButton = styled(Button)`

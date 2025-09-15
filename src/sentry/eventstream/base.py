@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event, GroupEvent
+    from sentry.services.eventstore.models import Event, GroupEvent
 
 
 class ForwarderNotRequired(NotImplementedError):
@@ -77,7 +77,6 @@ class EventStream(Service):
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
         else:
             cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
-
             post_process_group.apply_async(
                 kwargs={
                     "is_new": is_new,
@@ -148,7 +147,11 @@ class EventStream(Service):
         pass
 
     def start_merge(
-        self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
+        self,
+        project_id: int,
+        previous_group_ids: Sequence[int],
+        new_group_id: int,
+        new_group_first_seen: datetime | None = None,
     ) -> dict[str, Any]:
         raise NotImplementedError
 

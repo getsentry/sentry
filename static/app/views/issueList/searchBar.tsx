@@ -195,9 +195,7 @@ function IssueListSearchBar({
       filterKeys={filterKeys}
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators
-      showUnsubmittedIndicator
       searchSource={searchSource}
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       {...props}
     />
   );

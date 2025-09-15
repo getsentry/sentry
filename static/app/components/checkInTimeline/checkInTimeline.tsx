@@ -24,7 +24,7 @@ interface CheckInTimelineConfig<Status extends string> {
   /**
    * Configures the styling of the tooltip labels
    */
-  statusStyle: Record<Status, TickStyle>;
+  statusStyle: TickStyle<Status>;
   timeWindowConfig: TimeWindowConfig;
   className?: string;
   style?: React.CSSProperties;
@@ -161,7 +161,6 @@ const JobTick = styled('div')<{
   position: absolute;
   width: 4px;
   height: 14px;
-  opacity: 0.7;
 
   ${p =>
     p.roundedLeft &&

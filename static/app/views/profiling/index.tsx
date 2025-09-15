@@ -1,3 +1,5 @@
+import {Outlet} from 'react-router-dom';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -9,11 +11,7 @@ import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
 const profilingFeature = ['profiling'];
 
-type Props = {
-  children: React.ReactNode;
-};
-
-function ProfilingContainer({children}: Props) {
+function ProfilingContainer() {
   const organization = useOrganization();
 
   const redirectPath = useRedirectNavV2Routes({
@@ -33,12 +31,16 @@ function ProfilingContainer({children}: Props) {
       renderDisabled={() => (
         <Layout.Page withPadding>
           <Alert.Container>
-            <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+            <Alert type="warning" showIcon={false}>
+              {t("You don't have access to this feature")}
+            </Alert>
           </Alert.Container>
         </Layout.Page>
       )}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <Outlet />
+      </NoProjectMessage>
     </Feature>
   );
 }

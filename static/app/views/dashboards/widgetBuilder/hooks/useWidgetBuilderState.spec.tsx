@@ -84,6 +84,24 @@ describe('useWidgetBuilderState', () => {
     );
   });
 
+  it('does not update the url when the updateUrl option is false', () => {
+    const {result} = renderHook(() => useWidgetBuilderState(), {
+      wrapper: WidgetBuilderProvider,
+    });
+
+    act(() => {
+      result.current.dispatch(
+        {
+          type: BuilderStateAction.SET_TITLE,
+          payload: 'new title',
+        },
+        {updateUrl: false}
+      );
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   describe('display type', () => {
     it('returns the display type from the query params', () => {
       mockedUsedLocation.mockReturnValue(
@@ -1672,6 +1690,34 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'asc'}]);
+    });
+
+    it('correctly reverses sort between events (freq) and last seen (date) field', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            sort: ['freq'],
+            dataset: WidgetType.ISSUE,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // We expect desc even though freq doesn't use '-'
+      expect(result.current.state.sort).toEqual([{field: 'freq', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SORT,
+          payload: [{field: 'date', kind: 'desc'}],
+        });
+      });
+
+      // Expect it to switch back to asc for other issue fields
+      expect(result.current.state.sort).toEqual([{field: 'date', kind: 'asc'}]);
     });
   });
 

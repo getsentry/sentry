@@ -166,14 +166,14 @@ const TextBreak = styled('span')`
 const Subtitle = styled('p')`
   margin: 0;
   font-weight: normal;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: inline;
 `;
 
 const Timestamp = styled('div')`
   margin-right: ${space(1)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 50px;
   text-align: right;
   span {

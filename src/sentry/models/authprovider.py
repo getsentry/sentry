@@ -86,7 +86,7 @@ class AuthProvider(ReplicatedControlModel):
 
     __repr__ = sane_repr("organization_id", "provider")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.provider
 
     def get_provider(self):

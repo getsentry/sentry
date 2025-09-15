@@ -49,7 +49,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
 const Wrapper = styled('div')`
   padding: ${space(0.5)} ${space(1.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     padding: ${space(1)} ${space(3)} ${space(2)};
   }
 `;
@@ -73,7 +73,7 @@ const Register = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     text-align: right;
   }
 `;

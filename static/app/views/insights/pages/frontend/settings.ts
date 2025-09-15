@@ -2,13 +2,14 @@ import {frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 import type {ValidSort} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
-import {type EAPSpanProperty, ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
 
 export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend');
 export const FRONTEND_SIDEBAR_LABEL = t('Frontend');
 
-export const EAP_OVERVIEW_PAGE_ALLOWED_OPS = [
+// span.ops required to compute web vitals score
+export const WEB_VITALS_OPS = [
   'ui.render',
   'interaction',
   'ui.interaction',
@@ -18,6 +19,7 @@ export const EAP_OVERVIEW_PAGE_ALLOWED_OPS = [
   'ui.interaction.press',
   'ui.webvital.cls',
   'ui.webvital.fcp',
+  'pageload',
 ];
 
 export const OVERVIEW_PAGE_ALLOWED_OPS = [
@@ -42,7 +44,7 @@ export const FRONTEND_PLATFORMS: PlatformKey[] = frontend.filter(
 );
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'sum_if(span.duration,is_transaction,true)' satisfies EAPSpanProperty,
+  field: 'sum_if(span.duration,is_transaction,equals,true)' satisfies SpanProperty,
   kind: 'desc',
 };
 

@@ -172,13 +172,13 @@ const TemplateCard = styled('div')<{selected: boolean}>`
 `;
 
 const WidgetTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(0.25)};
 `;
 
 const WidgetDescription = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin-bottom: 0;
 `;

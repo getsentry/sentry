@@ -32,20 +32,33 @@ function WidgetBuilderNameAndDescription({
 
   return (
     <Fragment>
-      <SectionHeader title={t('Widget Name & Description')} />
+      <SectionHeader
+        title={t('Display Name')}
+        tooltipText={t('This will appear in the header of your widget.')}
+      />
       <StyledTextField
-        name={t('Widget Name')}
+        autoComplete="off"
+        name="widget-name"
         size="md"
         placeholder={t('Name')}
-        title={t('Widget Name')}
-        aria-label={t('Widget Name')}
+        title={t('Name')}
+        aria-label={t('Name')}
         value={state.title}
         onChange={(newTitle: any) => {
           // clear error once user starts typing
-          setError?.({...error, title: undefined});
-          dispatch({type: BuilderStateAction.SET_TITLE, payload: newTitle});
+          if (error?.title) {
+            setError?.({...error, title: undefined});
+          }
+          dispatch(
+            {type: BuilderStateAction.SET_TITLE, payload: newTitle},
+            {updateUrl: false}
+          );
         }}
-        onBlur={() => {
+        onBlur={value => {
+          dispatch(
+            {type: BuilderStateAction.SET_TITLE, payload: value},
+            {updateUrl: true}
+          );
           trackAnalytics('dashboards_views.widget_builder.change', {
             from: source,
             widget_type: state.dataset ?? '',
@@ -63,26 +76,37 @@ function WidgetBuilderNameAndDescription({
       {!isDescSelected && (
         <Button
           priority="link"
-          aria-label={t('Add Widget Description')}
+          aria-label={t('Add Description')}
           onClick={() => {
             setIsDescSelected(true);
           }}
           data-test-id={'add-description'}
         >
-          {t('+ Add Widget Description')}
+          {t('+ Add Description')}
         </Button>
       )}
       {isDescSelected && (
-        <DescriptionTextArea
+        <TextArea
+          autoComplete="off"
           placeholder={t('Description')}
-          aria-label={t('Widget Description')}
+          aria-label={t('Description')}
           autosize
           rows={4}
           value={state.description}
           onChange={e => {
-            dispatch({type: BuilderStateAction.SET_DESCRIPTION, payload: e.target.value});
+            dispatch(
+              {type: BuilderStateAction.SET_DESCRIPTION, payload: e.target.value},
+              {updateUrl: false}
+            );
           }}
-          onBlur={() => {
+          onBlur={e => {
+            dispatch(
+              {
+                type: BuilderStateAction.SET_DESCRIPTION,
+                payload: e.target.value,
+              },
+              {updateUrl: true}
+            );
             trackAnalytics('dashboards_views.widget_builder.change', {
               from: source,
               widget_type: state.dataset ?? '',
@@ -105,8 +129,4 @@ const StyledTextField = styled(TextField)`
   margin-bottom: ${space(1)};
   padding: 0;
   border: none;
-`;
-
-const DescriptionTextArea = styled(TextArea)`
-  margin: ${space(2)} 0;
 `;

@@ -11,6 +11,7 @@ stored in extra_data field, check OAuthBackend class for details on how to
 extend it.
 """
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.utils import json
 from social_auth.backends import BaseOAuth1, OAuthBackend
 from social_auth.utils import dsa_urlopen
@@ -27,7 +28,7 @@ BITBUCKET_USER_DATA_URL = "https://%s/users/" % BITBUCKET_SERVER
 class BitbucketBackend(OAuthBackend):
     """Bitbucket OAuth authentication backend"""
 
-    name = "bitbucket"
+    name = IntegrationProviderSlug.BITBUCKET.value
     EXTRA_DATA = [
         ("username", "username"),
         ("expires", "expires"),
@@ -109,4 +110,4 @@ class BitbucketAuth(BaseOAuth1):
 
 
 # Backend definition
-BACKENDS = {"bitbucket": BitbucketAuth}
+BACKENDS = {IntegrationProviderSlug.BITBUCKET.value: BitbucketAuth}

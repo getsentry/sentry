@@ -30,12 +30,8 @@ export type EventGroupComponent = {
 };
 export type EventGroupingConfig = {
   base: string | null;
-  changelog: string;
   delegates: string[];
-  hidden: boolean;
   id: string;
-  latest: boolean;
-  risk: number;
   strategies: string[];
 };
 
@@ -54,11 +50,11 @@ type VariantEvidence = {
 export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
-  CUSTOM_FINGERPRINT = 'custom-fingerprint',
-  BUILT_IN_FINGERPRINT = 'built-in-fingerprint',
+  CUSTOM_FINGERPRINT = 'custom_fingerprint',
+  BUILT_IN_FINGERPRINT = 'built_in_fingerprint',
   COMPONENT = 'component',
-  SALTED_COMPONENT = 'salted-component',
-  PERFORMANCE_PROBLEM = 'performance-problem',
+  SALTED_COMPONENT = 'salted_component',
+  PERFORMANCE_PROBLEM = 'performance_problem',
 }
 
 interface BaseVariant {
@@ -548,6 +544,7 @@ export interface UnityContext {
 
 export enum MemoryInfoContextKey {
   ALLOCATED_BYTES = 'allocated_bytes',
+  TOTAL_ALLOCATED_BYTES = 'total_allocated_bytes',
   FRAGMENTED_BYTES = 'fragmented_bytes',
   HEAP_SIZE_BYTES = 'heap_size_bytes',
   HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
@@ -580,6 +577,7 @@ export interface MemoryInfoContext {
   [MemoryInfoContextKey.PAUSE_TIME_PERCENTAGE]?: number;
   [MemoryInfoContextKey.INDEX]?: number;
   [MemoryInfoContextKey.ALLOCATED_BYTES]?: number;
+  [MemoryInfoContextKey.TOTAL_ALLOCATED_BYTES]?: number;
   [MemoryInfoContextKey.FRAGMENTED_BYTES]?: number;
   [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
   [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;

@@ -1,4 +1,7 @@
+import {Fragment} from 'react';
+
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -10,7 +13,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
+import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import {SidebarMenu} from 'sentry/views/nav/primary/components';
 import {
   StackedNavigationTourReminder,
@@ -28,7 +31,7 @@ function getContactSupportItem({
     return null;
   }
 
-  if (zendeskIsLoaded()) {
+  if (hasZendesk()) {
     return {
       key: 'support',
       label: t('Contact Support'),
@@ -128,19 +131,6 @@ export function PrimaryNavigationHelp() {
                   startTour();
                 },
               },
-              {
-                key: 'new-ui',
-                label: t('Switch to old navigation'),
-                onAction() {
-                  mutateUserOptions({prefersStackedNavigation: false});
-                  trackAnalytics(
-                    'navigation.help_menu_opt_out_stacked_navigation_clicked',
-                    {
-                      organization,
-                    }
-                  );
-                },
-              },
               organization?.features?.includes('chonk-ui')
                 ? user.options.prefersChonkUI
                   ? {
@@ -155,7 +145,12 @@ export function PrimaryNavigationHelp() {
                     }
                   : {
                       key: 'new-chonk-ui',
-                      label: t('Try our new look'),
+                      label: (
+                        <Fragment>
+                          {t('Try our new look')} <FeatureBadge type="beta" />
+                        </Fragment>
+                      ),
+                      textValue: 'Try our new look',
                       onAction() {
                         mutateUserOptions({prefersChonkUI: true});
                         trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {

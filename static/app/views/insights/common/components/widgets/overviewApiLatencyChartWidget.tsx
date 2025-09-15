@@ -9,7 +9,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -29,7 +29,7 @@ export default function OverviewApiLatencyChartWidget(props: LoadableChartWidget
 
   const fullQuery = `span.op:http.server ${query}`.trim();
 
-  const {data, isLoading, error} = useEAPSeries(
+  const {data, isLoading, error} = useSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,

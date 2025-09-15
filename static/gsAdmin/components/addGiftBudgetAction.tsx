@@ -39,7 +39,7 @@ function AddGiftBudgetModal({
   const [notes, setNotes] = useState<string | null>(null);
 
   const reservedBudgetOptions = useMemo(
-    () => subscription.reservedBudgets ?? [],
+    () => subscription.reservedBudgets?.filter(b => b.reservedBudget > 0) ?? [],
     [subscription.reservedBudgets]
   );
 

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import cast
 from unittest.mock import patch
 
@@ -17,7 +17,6 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
 )
-from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
@@ -35,11 +34,10 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 @freeze_time(MOCK_DATETIME)
 class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return MOCK_DATETIME
 
-    def test_simple_one_org_one_project(self):
-        context = TaskContext("rebalancing", 20)
+    def test_simple_one_org_one_project(self) -> None:
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
 
@@ -61,12 +59,11 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
+            org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
-    def test_deleted_projects_are_not_queried(self):
-        context = TaskContext("rebalancing", 20)
+    def test_deleted_projects_are_not_queried(self) -> None:
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
         p2 = self.create_project(organization=org1)
@@ -91,12 +88,12 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             )
         p2.delete()
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
+            org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_simple_one_org_one_project_task_sliding_window_sample_rate(self):
+    def test_simple_one_org_one_project_task_sliding_window_sample_rate(self) -> None:
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
 
@@ -134,7 +131,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert sample_rate == 1.0
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_simple_one_org_one_project_task_target_sample_rate(self):
+    def test_simple_one_org_one_project_task_target_sample_rate(self) -> None:
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
 
@@ -169,7 +166,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert (sample_rate, got_value) == (0.5, True)
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_project_mode_sampling_with_query(self):
+    def test_project_mode_sampling_with_query(self) -> None:
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
 
@@ -215,7 +212,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert get_guarded_project_sample_rate(org1, p1) == 0.2
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_project_mode_sampling_with_query_zero_metrics(self):
+    def test_project_mode_sampling_with_query_zero_metrics(self) -> None:
         organization = self.create_organization("test-org")
         project = self.create_project(organization=organization)
 
@@ -230,8 +227,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                 boost_low_volume_projects.delay()
             assert not mock_run.called
 
-    def test_complex(self):
-        context = TaskContext("rebalancing", 20)
+    def test_complex(self) -> None:
         org1 = self.create_organization("test-org1")
         p1_1 = self.create_project(organization=org1, name="p1_1")
         p1_2 = self.create_project(organization=org1, name="p1_2")
@@ -268,7 +264,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     org_id=org.id,
                 )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id, org2.id], measure=SamplingMeasure.TRANSACTIONS
+            org_ids=[org1.id, org2.id], measure=SamplingMeasure.TRANSACTIONS
         )
 
         assert len(results) == 2  # two orgs

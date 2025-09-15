@@ -1,10 +1,12 @@
+import styled from '@emotion/styled';
+
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
 export default function PeopleSection({
   userParticipants,
@@ -19,10 +21,12 @@ export default function PeopleSection({
   const hasViewers = viewers.length > 0;
 
   return (
-    <div>
-      <SidebarSectionTitle>{t('People')}</SidebarSectionTitle>
+    <SidebarFoldSection
+      title={<Title>{t('People')}</Title>}
+      sectionKey={SectionKey.PEOPLE}
+    >
       {hasParticipants && (
-        <Flex gap={space(0.5)} align="center">
+        <Flex gap="xs" align="center">
           <ParticipantList
             users={userParticipants}
             teams={teamParticipants}
@@ -32,11 +36,15 @@ export default function PeopleSection({
         </Flex>
       )}
       {hasViewers && (
-        <Flex gap={space(0.5)} align="center">
+        <Flex gap="xs" align="center">
           <ParticipantList users={viewers} />
           {t('viewed')}
         </Flex>
       )}
-    </div>
+    </SidebarFoldSection>
   );
 }
+
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSize.md};
+`;

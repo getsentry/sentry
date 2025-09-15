@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
@@ -18,8 +19,7 @@ export function ReplayOnboardingLayout({
   docsConfig,
   dsn,
   platformKey,
-  projectId,
-  projectSlug,
+  project,
   newOrg,
   projectKeyId,
   configType = 'onboarding',
@@ -43,8 +43,8 @@ export function ReplayOnboardingLayout({
       dsn,
       organization,
       platformKey,
-      projectId,
-      projectSlug,
+      project,
+      isLogsSelected: false,
       isFeedbackSelected: false,
       isPerformanceSelected: false,
       isProfilingSelected: false,
@@ -79,8 +79,7 @@ export function ReplayOnboardingLayout({
     newOrg,
     organization,
     platformKey,
-    projectId,
-    projectSlug,
+    project,
     registryData,
     selectedOptions,
     configType,
@@ -93,7 +92,7 @@ export function ReplayOnboardingLayout({
   ]);
 
   return (
-    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+    <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>

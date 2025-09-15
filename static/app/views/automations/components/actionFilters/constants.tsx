@@ -37,6 +37,19 @@ export enum AgeComparison {
   NEWER = 'newer',
 }
 
+export enum TimeUnit {
+  MINUTES = 'minute',
+  HOURS = 'hour',
+  DAYS = 'day',
+  WEEKS = 'week',
+}
+
+export enum TargetType {
+  UNASSIGNED = 'Unassigned',
+  TEAM = 'Team',
+  MEMBER = 'Member',
+}
+
 export enum ModelAge {
   OLDEST = 'oldest',
   NEWEST = 'newest',
@@ -80,7 +93,7 @@ export enum Level {
   SAMPLING = 0,
 }
 
-enum Interval {
+export enum Interval {
   ONE_MINUTE = '1m',
   FIVE_MINUTES = '5m',
   FIFTEEN_MINUTES = '15m',

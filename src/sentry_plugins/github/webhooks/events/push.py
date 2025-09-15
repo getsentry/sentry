@@ -15,6 +15,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
+from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry_plugins.github.client import GithubPluginClient
@@ -37,6 +38,11 @@ class PushEventWebhook(Webhook):
                 external_id=str(event["repository"]["id"]),
             )
         except Repository.DoesNotExist:
+            raise Http404()
+
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
             raise Http404()
 
         # We need to track GitHub's "full_name" which is the repository slug.
@@ -141,26 +147,49 @@ class PushEventWebhook(Webhook):
 
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c = Commit.objects.create(
-                        repository_id=repo.id,
-                        organization_id=organization_id,
+                    c, _ = create_commit(
+                        organization=organization,
+                        repo_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
+
+                    file_changes = []
+
                     for fname in commit["added"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="A"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="A",
+                            )
                         )
+
                     for fname in commit["removed"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="D"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="D",
+                            )
                         )
                     for fname in commit["modified"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="M"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="M",
+                            )
                         )
+
+                    if file_changes:
+                        bulk_create_commit_file_changes(organization, file_changes)
+
             except IntegrityError:
                 pass
 

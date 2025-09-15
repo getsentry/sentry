@@ -11,13 +11,13 @@ from sentry.testutils.cases import TestCase
 
 
 class GetErrorCountTimeseriesTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.project = self.create_project(name="foo", organization=self.org)
 
     @mock.patch("sentry.api.endpoints.release_thresholds.utils.snuba.raw_snql_query")
-    def test_errors_timeseries_snuba_fetch(self, mock_snql_query):
+    def test_errors_timeseries_snuba_fetch(self, mock_snql_query: mock.MagicMock) -> None:
         now = timezone.now()
         get_errors_counts_timeseries_by_project_and_release(
             end=now,
@@ -30,7 +30,9 @@ class GetErrorCountTimeseriesTest(TestCase):
         assert mock_snql_query.call_count == 1
 
     @mock.patch("sentry.api.endpoints.release_thresholds.utils.snuba.raw_snql_query")
-    def test_errors_timeseries_snuba_fetch_called_with_env(self, mock_snql_query):
+    def test_errors_timeseries_snuba_fetch_called_with_env(
+        self, mock_snql_query: mock.MagicMock
+    ) -> None:
         now = timezone.now()
         env_list = ["foo"]
         get_errors_counts_timeseries_by_project_and_release(

@@ -9,7 +9,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {MessageType, type TempestCredentials} from './types';
 
@@ -24,7 +23,7 @@ export function CredentialRow({
 }) {
   return (
     <Fragment>
-      <Flex align="center" gap={space(1)}>
+      <Flex align="center" gap="md">
         {credential.clientId}
       </Flex>
 
@@ -40,7 +39,7 @@ export function CredentialRow({
         {credential.createdByEmail ? credential.createdByEmail : '\u2014'}
       </Flex>
 
-      <Flex align="center" justify="flex-end">
+      <Flex align="center" justify="end">
         <Tooltip
           title={t('You must be an organization admin to remove credentials.')}
           disabled={!!removeCredential}

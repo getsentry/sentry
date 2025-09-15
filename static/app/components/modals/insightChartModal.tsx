@@ -10,10 +10,17 @@ import {ChartRenderingContext} from 'sentry/views/insights/common/components/cha
 export type InsightChartModalOptions = {
   children: React.ReactNode;
   title: React.ReactNode;
+  footer?: React.ReactNode;
 };
 type Props = ModalRenderProps & InsightChartModalOptions;
 
-export default function InsightChartModal({Header, title, children}: Props) {
+export default function InsightChartModal({
+  Header,
+  title,
+  children,
+  Footer,
+  footer,
+}: Props) {
   return (
     <Fragment>
       <Container>
@@ -24,6 +31,8 @@ export default function InsightChartModal({Header, title, children}: Props) {
         <ChartRenderingContext value={{height: 300, isFullscreen: true}}>
           {children}
         </ChartRenderingContext>
+
+        {footer && <Footer>{footer}</Footer>}
       </Container>
     </Fragment>
   );

@@ -24,6 +24,8 @@ enum DiscardReason {
   INVALID_REPLAY_VIDEO = 'invalid_replay_video',
   PAYLOAD = 'payload',
   INVALID_COMPRESSION = 'invalid_compression',
+  INVALID_SIGNATURE = 'invalid_signature',
+  MISSING_SIGNATURE = 'missing_signature',
   TOO_LARGE = 'too_large', // Left for backwards compatibility
   // All the too_large we want to communicate to the end-user
   TOO_LARGE_EVENT = 'too_large:event',
@@ -89,6 +91,9 @@ enum RateLimitedReason {
   KEY_QUOTA = 'key_quota',
   SPIKE_PROTECTION = 'spike_protection',
   SMART_RATE_LIMIT = 'smart_rate_limit',
+  PROJECT_ABUSE_LIMIT = 'project_abuse_limit',
+  ORG_ABUSE_LIMIT = 'org_abuse_limit',
+  GLOBAL_ABUSE_LIMIT = 'global_abuse_limit',
 }
 
 // Invalid reasons should not be exposed directly, but instead in the following groups:
@@ -115,6 +120,7 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
     DiscardReason.INVALID_REPLAY_RECORDING,
     DiscardReason.INVALID_REPLAY_VIDEO,
   ],
+  invalid_signature: [DiscardReason.INVALID_SIGNATURE, DiscardReason.MISSING_SIGNATURE],
   payload: [DiscardReason.PAYLOAD, DiscardReason.INVALID_COMPRESSION],
   too_large_other: [DiscardReason.TOO_LARGE],
   too_large_event: [DiscardReason.TOO_LARGE_EVENT],
@@ -206,6 +212,12 @@ function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): stri
     case RateLimitedReason.SPIKE_PROTECTION:
     case RateLimitedReason.SMART_RATE_LIMIT:
       return 'spike protection';
+    case RateLimitedReason.PROJECT_ABUSE_LIMIT:
+      return 'project abuse limit';
+    case RateLimitedReason.ORG_ABUSE_LIMIT:
+      return 'org abuse limit';
+    case RateLimitedReason.GLOBAL_ABUSE_LIMIT:
+      return 'global abuse limit';
     default:
       return 'internal';
   }

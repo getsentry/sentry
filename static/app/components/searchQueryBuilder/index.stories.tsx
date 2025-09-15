@@ -687,32 +687,6 @@ export default Storybook.story('SearchQueryBuilder', story => {
     );
   });
 
-  story('Unsubmitted search indicator', () => {
-    const [query, setQuery] = useState('is:unresolved assigned:me');
-
-    return (
-      <Fragment>
-        <p>
-          You can display an indicator when the search query has been modified but not
-          fully submitted using the <code>showUnsubmittedIndicator</code> prop. This can
-          be useful to remind the user that they have unsaved changes for use cases which
-          require manual submission.
-        </p>
-        <p>
-          Current query: <code>{query}</code>
-        </p>
-        <SearchQueryBuilder
-          initialQuery={query}
-          filterKeys={FILTER_KEYS}
-          getTagValues={getTagValues}
-          searchSource="storybook"
-          showUnsubmittedIndicator
-          onSearch={setQuery}
-        />
-      </Fragment>
-    );
-  });
-
   story('Disabled', () => {
     return (
       <SearchQueryBuilder
@@ -736,6 +710,83 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <ProvidedFormattedQuery
           query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
           filterKeys={FILTER_KEYS}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Match key suggestions', () => {
+    return (
+      <Fragment>
+        <p>
+          If you would like to show suggestions for keys when the user types a value, you
+          can do so by passing the <code>matchKeySuggestions</code> prop, which requires a
+          key and a value regex pattern.
+        </p>
+        <p>
+          The suggestions will be the values for the provided keys. The following example,
+          will show suggestions for the <code>id</code> key when the user types a value
+          that matches the regex pattern <code>{`/^[0-9]{3}$/`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          matchKeySuggestions={[{key: 'id', valuePattern: /^[0-9]{3}$/}]}
+        />
+        <p>
+          You can also pass multiple values in the prop to show suggestions for multiple
+          keys.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          matchKeySuggestions={[
+            {key: 'test-1.id', valuePattern: /^[0-9]{3}$/},
+            {key: 'test-2.id', valuePattern: /^[0-9]{3}$/},
+          ]}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Raw search replacement', () => {
+    return (
+      <Fragment>
+        <p>
+          If you would like to replace raw search for your{' '}
+          <Storybook.JSXNode name="SearchQueryBuilder" /> component, you can do so by
+          passing the <code>replaceRawSearchKeys</code> prop.
+        </p>
+        <p>
+          The raw search will be replaced with option(s) in the dropdown. The options will
+          be the values for the provided keys. The following example shows the prop set as{' '}
+          <code>{`replaceRawSearchKeys={['span.description']}`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          replaceRawSearchKeys={['span.description']}
+        />
+        <p>
+          You can also pass multiple values in the prop to replace multiple keys.{' '}
+          <code>{`replaceRawSearchKeys={['span.op', 'span.description']}`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          replaceRawSearchKeys={['span.op', 'span.description']}
         />
       </Fragment>
     );

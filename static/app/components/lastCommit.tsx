@@ -88,7 +88,7 @@ const Meta = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

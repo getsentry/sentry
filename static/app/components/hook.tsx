@@ -1,4 +1,4 @@
-import {Component, type ComponentType, memo} from 'react';
+import {Component, memo, type ComponentType} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';

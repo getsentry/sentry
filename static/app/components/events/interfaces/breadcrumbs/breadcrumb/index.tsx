@@ -130,7 +130,7 @@ const Wrapper = styled('div')<{
     padding: ${space(1)} ${space(2)};
   }
 
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, auto);
     grid-template-columns: max-content 1fr 74px 82px;
 

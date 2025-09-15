@@ -30,8 +30,10 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
@@ -42,7 +44,7 @@ class ExpectNoProcessingError:
 
 
 class MonitorConsumerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
 
@@ -205,7 +207,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.trace_id.hex == self.trace_id
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.process_checkin_group")
-    def test_parallel(self, process_checkin_group) -> None:
+    def test_parallel(self, process_checkin_group: mock.MagicMock) -> None:
         """
         Validates that the consumer in parallel mode correctly groups check-ins
         into groups by their monitor slug / environment
@@ -273,7 +275,7 @@ class MonitorConsumerTest(TestCase):
         # the expected time should not include the margin of 5 minutes
         assert checkin.expected_time == monitor_environment.next_checkin
 
-    def test_failing(self):
+    def test_failing(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="error")
 
@@ -290,7 +292,7 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_muted(self):
+    def test_muted(self) -> None:
         monitor = self._create_monitor(is_muted=True)
         self.send_checkin(monitor.slug, status="error")
 
@@ -310,7 +312,7 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_check_in_no_in_progress(self):
+    def test_check_in_no_in_progress(self) -> None:
         now = datetime.now()
 
         monitor = self._create_monitor(slug="my-monitor")
@@ -320,7 +322,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.date_added == now.replace(tzinfo=UTC)
 
-    def test_check_date_updated(self):
+    def test_check_date_updated(self) -> None:
         now = datetime.now()
         guid = uuid.uuid4().hex
 
@@ -348,7 +350,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.date_added == now.replace(tzinfo=UTC)
         assert checkin.date_updated == now.replace(tzinfo=UTC) + timedelta(seconds=20)
 
-    def test_check_in_date_clock(self):
+    def test_check_in_date_clock(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
         item_ts = now
@@ -359,7 +361,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.date_added == ts.replace(tzinfo=UTC)
         assert checkin.date_clock == item_ts.replace(second=0, microsecond=0, tzinfo=UTC)
 
-    def test_check_in_date_in_progress(self):
+    def test_check_in_date_in_progress(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
         now_tz = now.replace(tzinfo=UTC)
@@ -391,7 +393,7 @@ class MonitorConsumerTest(TestCase):
         checkin2 = MonitorCheckIn.objects.get(guid=guid2)
         assert checkin2.date_in_progress == now_tz + timedelta(minutes=1)
 
-    def test_check_in_timeout_at(self):
+    def test_check_in_timeout_at(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")
 
@@ -422,7 +424,7 @@ class MonitorConsumerTest(TestCase):
         timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(minutes=5)
         assert checkin.timeout_at == timeout_at
 
-    def test_check_in_timeout_late(self):
+    def test_check_in_timeout_late(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
         self.send_checkin(monitor.slug, status="in_progress", ts=now)
@@ -441,7 +443,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.TIMEOUT
         assert checkin.duration == 5000
 
-    def test_check_in_update(self):
+    def test_check_in_update(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")
         self.send_checkin(monitor.slug, guid=self.guid)
@@ -449,7 +451,7 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
 
-    def test_check_in_update_with_reversed_dates(self):
+    def test_check_in_update_with_reversed_dates(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
         self.send_checkin(monitor.slug, status="in_progress", ts=now)
@@ -459,7 +461,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.duration == 5000
 
-    def test_check_in_existing_guid(self):
+    def test_check_in_existing_guid(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         other_monitor = self._create_monitor(slug="other-monitor")
 
@@ -473,7 +475,7 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
 
-    def test_check_in_update_terminal_in_progress(self):
+    def test_check_in_update_terminal_in_progress(self) -> None:
         now = datetime.now()
         now_tz = now.replace(tzinfo=UTC)
 
@@ -510,7 +512,7 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration == int(20.0 * 1000)
 
-    def test_check_in_update_terminal_user_terminal(self):
+    def test_check_in_update_terminal_user_terminal(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, duration=10.0)
         self.send_checkin(monitor.slug, guid=self.guid, status="in_progress")
@@ -531,7 +533,7 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration == int(20.0 * 1000)
 
-    def test_monitor_environment(self):
+    def test_monitor_environment(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, environment="jungle")
 
@@ -549,7 +551,7 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_monitor_create(self):
+    def test_monitor_create(self) -> None:
         self.send_checkin(
             "my-new-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
@@ -571,8 +573,9 @@ class MonitorConsumerTest(TestCase):
             monitor_environment.next_checkin_latest
             == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
+        assert get_detector_for_monitor(monitor_environment.monitor) is not None
 
-    def test_monitor_create_owner(self):
+    def test_monitor_create_owner(self) -> None:
         self.send_checkin(
             "my-new-monitor",
             monitor_config={
@@ -591,7 +594,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor.owner_user_id == self.user.id
         assert "owner" not in monitor.config
 
-    def test_monitor_create_owner_invalid(self):
+    def test_monitor_create_owner_invalid(self) -> None:
         bad_user = self.create_user()
         self.send_checkin(
             "my-new-monitor",
@@ -611,7 +614,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor.owner_user_id is None
         assert "owner" not in monitor.config
 
-    def test_monitor_update_owner(self):
+    def test_monitor_update_owner(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(
             "my-monitor",
@@ -630,7 +633,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor.owner_user_id == self.user.id
         assert "owner" not in monitor.config
 
-    def test_monitor_update_owner_to_team(self):
+    def test_monitor_update_owner_to_team(self) -> None:
         monitor = self._create_monitor(slug="my-monitor", owner_user_id=self.user.id)
         self.send_checkin(
             "my-monitor",
@@ -650,7 +653,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor.owner_team_id == self.team.id
         assert "owner" not in monitor.config
 
-    def test_monitor_update(self):
+    def test_monitor_update(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(
             "my-monitor",
@@ -677,7 +680,7 @@ class MonitorConsumerTest(TestCase):
             == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
 
-    def test_check_in_empty_id(self):
+    def test_check_in_empty_id(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(
             "my-monitor",
@@ -688,7 +691,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.guid.int != 0
 
-    def test_check_in_empty_id_update(self):
+    def test_check_in_empty_id_update(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(
             "my-monitor",
@@ -715,11 +718,11 @@ class MonitorConsumerTest(TestCase):
         assert closed_checkin.status == CheckInStatus.OK
         assert closed_checkin.guid != uuid.UUID(int=0)
 
-    def test_rate_limit(self):
+    def test_rate_limit(self) -> None:
         now = datetime.now()
         monitor = self._create_monitor(slug="my-monitor")
 
-        with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
+        with override_options({"crons.per_monitor_rate_limit": 1}):
             # Try to ingest two the second will be rate limited
             self.send_checkin("my-monitor", ts=now)
             self.send_checkin(
@@ -745,7 +748,7 @@ class MonitorConsumerTest(TestCase):
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 3
 
-    def test_invalid_guid_environment_match(self):
+    def test_invalid_guid_environment_match(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")
 
@@ -772,7 +775,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.IN_PROGRESS
         assert checkin.monitor_environment.get_environment().name != "test"
 
-    def test_invalid_duration(self):
+    def test_invalid_duration(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
 
         # Test invalid explicit durations
@@ -880,7 +883,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.IN_PROGRESS
         assert checkin.duration is None
 
-    def test_monitor_upsert(self):
+    def test_monitor_upsert(self) -> None:
         self.send_checkin(
             "my-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
@@ -923,7 +926,7 @@ class MonitorConsumerTest(TestCase):
         assert not monitor.is_upserting
         assert monitor.schedule.crontab == "13 * * * *"
 
-    def test_monitor_upsert_empty_timezone(self):
+    def test_monitor_upsert_empty_timezone(self) -> None:
         self.send_checkin(
             "my-monitor",
             monitor_config={
@@ -940,7 +943,50 @@ class MonitorConsumerTest(TestCase):
         assert monitor is not None
         assert "timezone" not in monitor.config
 
-    def test_monitor_upsert_invalid_slug(self):
+    def test_team_name_as_owner(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor", owner_user_id=self.user.id)
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"team:{self.team.name}",
+            },
+        )
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        monitor.refresh_from_db()
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id == self.team.id
+
+    def test_user_name_as_owner(self) -> None:
+        named_user = self.create_user(
+            "admin2@localhost",
+            username="test_user",
+            is_superuser=True,
+            is_staff=True,
+            is_sentry_app=False,
+        )
+        monitor = self._create_monitor(slug="my-monitor", owner_user_id=named_user.id)
+
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "owner": f"user:{named_user.username}",
+            },
+        )
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor.owner_user_id == named_user.id
+        assert monitor.owner_team_id is None
+
+    def test_monitor_upsert_invalid_slug(self) -> None:
         self.send_checkin(
             "some/slug@with-weird|stuff",
             monitor_config={"schedule": {"type": "crontab", "value": "0 * * * *"}},
@@ -950,7 +996,7 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="someslugwith-weirdstuff")
         assert monitor is not None
 
-    def test_monitor_upsert_checkin_margin_zero(self):
+    def test_monitor_upsert_checkin_margin_zero(self) -> None:
         """
         As part of GH-56526 we changed the minimum value allowed for the
         checkin_margin to 1 from 0. Some monitors may still be upserting with a
@@ -969,7 +1015,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor.exists()
         assert monitor[0].config["checkin_margin"] == 1
 
-    def test_monitor_invalid_config(self):
+    def test_monitor_invalid_config(self) -> None:
         # 6 value schedule
         self.send_checkin(
             "my-invalid-monitor",
@@ -1020,7 +1066,7 @@ class MonitorConsumerTest(TestCase):
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
-    def test_monitor_limits(self):
+    def test_monitor_limits(self) -> None:
         for i in range(settings.MAX_MONITORS_PER_ORG + 2):
             expected_error = None
             if i > settings.MAX_MONITORS_PER_ORG:
@@ -1042,7 +1088,7 @@ class MonitorConsumerTest(TestCase):
         assert len(monitors) == settings.MAX_MONITORS_PER_ORG
 
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
-    def test_monitor_environment_limits(self):
+    def test_monitor_environment_limits(self) -> None:
         monitor_slug = "my-monitor"
         for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 2):
             expected_error = None
@@ -1069,7 +1115,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == settings.MAX_ENVIRONMENTS_PER_MONITOR
 
-    def test_monitor_environment_validation(self):
+    def test_monitor_environment_validation(self) -> None:
         invalid_name = "x" * 65
         monitor_slug = "my-monitor"
 
@@ -1094,7 +1140,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == 0
 
-    def test_monitor_disabled(self):
+    def test_monitor_disabled(self) -> None:
         monitor = self._create_monitor(status=ObjectStatus.DISABLED, slug="my-monitor")
         self.send_checkin(
             "my-monitor",
@@ -1107,7 +1153,7 @@ class MonitorConsumerTest(TestCase):
         checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
         assert len(checkins) == 0
 
-    def test_organization_killswitch(self):
+    def test_organization_killswitch(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
 
         opt_val = killswitches.validate_user_input(
@@ -1125,14 +1171,14 @@ class MonitorConsumerTest(TestCase):
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
-    def test_monitor_update_check_in_volumne(self, update_check_in_volume):
+    def test_monitor_update_check_in_volumne(self, update_check_in_volume: mock.MagicMock) -> None:
         monitor = self._create_monitor(slug="my-monitor")
 
         self.send_checkin(monitor.slug)
         assert update_check_in_volume.call_count == 1
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
-    def test_monitor_tasks_trigger(self, try_monitor_clock_tick):
+    def test_monitor_tasks_trigger(self, try_monitor_clock_tick: mock.MagicMock) -> None:
         monitor = self._create_monitor(slug="my-monitor")
 
         now = datetime.now().replace(second=0, microsecond=0)
@@ -1154,7 +1200,9 @@ class MonitorConsumerTest(TestCase):
             try_monitor_clock_tick.side_effect = None
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
-    def test_parallel_monitor_update_check_in_volume(self, update_check_in_volume):
+    def test_parallel_monitor_update_check_in_volume(
+        self, update_check_in_volume: mock.MagicMock
+    ) -> None:
         factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
@@ -1182,7 +1230,7 @@ class MonitorConsumerTest(TestCase):
         ]
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
-    def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick):
+    def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick: mock.MagicMock) -> None:
         factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
@@ -1204,7 +1252,7 @@ class MonitorConsumerTest(TestCase):
         assert try_monitor_clock_tick.call_count == 1
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
-    def test_monitor_quotas_accept(self, check_accept_monitor_checkin):
+    def test_monitor_quotas_accept(self, check_accept_monitor_checkin: mock.MagicMock) -> None:
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPT
 
         # Explicitly leaving off the "disabled" status to validate that we're
@@ -1218,7 +1266,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
-    def test_monitor_quotas_drop(self, check_accept_monitor_checkin):
+    def test_monitor_quotas_drop(self, check_accept_monitor_checkin: mock.MagicMock) -> None:
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
 
         # Explicitly leaving off the "disabled" status to validate that we're

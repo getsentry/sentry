@@ -14,7 +14,7 @@ ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
 class TimeseriesBase(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.one_min_ago = before_now(minutes=1)
@@ -54,7 +54,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
 
 
 class DiscoverTimeseriesQueryTest(TimeseriesBase):
-    def test_invalid_field_in_function(self):
+    def test_invalid_field_in_function(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
                 selected_columns=["min(transaction)"],
@@ -68,7 +68,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
                 rollup=1800,
             )
 
-    def test_missing_start_and_end(self):
+    def test_missing_start_and_end(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
                 selected_columns=["count()"],
@@ -78,7 +78,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
                 rollup=1800,
             )
 
-    def test_no_aggregations(self):
+    def test_no_aggregations(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
                 selected_columns=["transaction", "title"],
@@ -92,7 +92,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
                 rollup=1800,
             )
 
-    def test_field_alias(self):
+    def test_field_alias(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
@@ -104,7 +104,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         )
         assert len(result.data["data"]) == 3
 
-    def test_failure_rate_field_alias(self):
+    def test_failure_rate_field_alias(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["failure_rate()"],
             query="event.type:transaction transaction:api.issue.delete",
@@ -116,7 +116,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         )
         assert len(result.data["data"]) == 3
 
-    def test_aggregate_function(self):
+    def test_aggregate_function(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query="",
@@ -145,7 +145,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert "count_unique_user" in keys
         assert "time" in keys
 
-    def test_comparison_aggregate_function_invalid(self):
+    def test_comparison_aggregate_function_invalid(self) -> None:
         with pytest.raises(
             InvalidSearchQuery, match="Only one column can be selected for comparison queries"
         ):
@@ -162,7 +162,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
                 comparison_delta=timedelta(days=1),
             )
 
-    def test_comparison_aggregate_function(self):
+    def test_comparison_aggregate_function(self) -> None:
         self.store_event(
             data={
                 "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
@@ -247,7 +247,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             for val in result.data["data"]
         ]
 
-    def test_count_miserable(self):
+    def test_count_miserable(self) -> None:
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
@@ -288,7 +288,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             if "count_miserable_user" in val
         ]
 
-    def test_count_miserable_with_arithmetic(self):
+    def test_count_miserable_with_arithmetic(self) -> None:
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
@@ -327,7 +327,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             val["equation[0]"] for val in result.data["data"] if "equation[0]" in val
         ]
 
-    def test_equation_function(self):
+    def test_equation_function(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["equation|count() / 100"],
             query="",
@@ -356,7 +356,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert "equation[0]" in keys
         assert "time" in keys
 
-    def test_zerofilling(self):
+    def test_zerofilling(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query="",
@@ -371,7 +371,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             val["count"] for val in result.data["data"] if "count" in val
         ], result.data["data"]
 
-    def test_conditional_filter(self):
+    def test_conditional_filter(self) -> None:
         project2 = self.create_project(organization=self.organization)
         project3 = self.create_project(organization=self.organization)
 
@@ -402,7 +402,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             if "count" in d:
                 assert d["count"] == 1
 
-    def test_nested_conditional_filter(self):
+    def test_nested_conditional_filter(self) -> None:
         project2 = self.create_project(organization=self.organization)
         self.store_event(
             data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},

@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class OrganizationReposDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
         project = self.create_project(name="foo", organization=organization, teams=[])
         self.create_repo(project=project, name="getsentry/sentry")
@@ -17,7 +17,7 @@ class OrganizationReposDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 

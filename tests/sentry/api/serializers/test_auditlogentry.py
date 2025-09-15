@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class AuditLogEntrySerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         datetime = timezone.now()
         log = AuditLogEntry.objects.create(
             organization_id=self.organization.id,
@@ -27,7 +27,7 @@ class AuditLogEntrySerializerTest(TestCase):
         assert result["dateCreated"] == datetime
         assert result["data"] == {"slug": "New Team"}
 
-    def test_data_field_filtering(self):
+    def test_data_field_filtering(self) -> None:
         """Test that only allowed fields are present in the data field"""
         log = AuditLogEntry.objects.create(
             organization_id=self.organization.id,
@@ -54,7 +54,7 @@ class AuditLogEntrySerializerTest(TestCase):
         assert "sensitive_field" not in result["data"]
         assert "another_field" not in result["data"]
 
-    def test_data_field_empty_when_no_required_fields(self):
+    def test_data_field_empty_when_no_required_fields(self) -> None:
         """Test that data field is empty when none of the required fields are present"""
         log = AuditLogEntry.objects.create(
             organization_id=self.organization.id,
@@ -72,7 +72,7 @@ class AuditLogEntrySerializerTest(TestCase):
 
         assert result["data"] == {}
 
-    def test_scim_logname(self):
+    def test_scim_logname(self) -> None:
         uuid_prefix = "681d6e"
         user = self.create_user(
             username=f"scim-internal-integration-{uuid_prefix}-ad37e179-501c-4639-bc83-9780ca1",
@@ -91,7 +91,7 @@ class AuditLogEntrySerializerTest(TestCase):
 
         assert result["actor"]["name"] == f"SCIM Internal Integration ({uuid_prefix})"
 
-    def test_invalid_template(self):
+    def test_invalid_template(self) -> None:
         log = AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("MEMBER_INVITE"),

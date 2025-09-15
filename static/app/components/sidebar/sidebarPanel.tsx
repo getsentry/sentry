@@ -155,6 +155,6 @@ const PanelClose = styled(IconClose)`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
 `;

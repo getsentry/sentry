@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T22:03:15.258775+00:00'
+created: '2025-06-23T19:43:15.891338+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -22,7 +22,7 @@ variants:
   app:
     component:
       contributes: false
-      hint: custom fingerprint takes precedence
+      hint: custom server fingerprint takes precedence
     type: component
   custom_fingerprint:
     matched_rule: type:"SymCacheError" function:"symbolicator::actors::symcaches::*"
@@ -33,5 +33,5 @@ variants:
   system:
     component:
       contributes: false
-      hint: custom fingerprint takes precedence
+      hint: custom server fingerprint takes precedence
     type: component

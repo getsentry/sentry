@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework.exceptions import NotFound
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -29,7 +31,7 @@ from sentry.taskworker.retry import Retry
     ),
 )
 @retry(on=(Commit.DoesNotExist,))
-def code_owners_auto_sync(commit_id: int, **kwargs):
+def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 
     from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
@@ -86,7 +88,9 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
         if not codeowner_contents:
             return AutoSyncNotification(code_mapping.project).send()
 
-        codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
+        codeowners: ProjectCodeOwners = ProjectCodeOwners.objects.get(
+            repository_project_path_config=code_mapping
+        )
         organization = Organization.objects.get(id=code_mapping.organization_id)
         codeowners.update_schema(
             organization=organization,

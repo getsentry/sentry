@@ -7,10 +7,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
-    CHECKSTATUS_FAILURE,
-    CHECKSTATUS_SUCCESS,
-)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -18,7 +14,6 @@ from sentry.db.models import (
     DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
-    JSONField,
     region_silo_model,
 )
 from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
@@ -31,28 +26,14 @@ from sentry.types.actor import Actor
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-    ProjectUptimeSubscriptionMode,
+    UptimeMonitorMode,
 )
 from sentry.utils.function_cache import cache_func, cache_func_for_models
-from sentry.utils.json import JSONEncoder
-from sentry.workflow_engine.models import (
-    Condition,
-    DataCondition,
-    DataConditionGroup,
-    DataSource,
-    DataSourceDetector,
-    Detector,
-)
+from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
-
-headers_json_encoder = JSONEncoder(
-    separators=(",", ":"),
-    # We sort the keys here so that we can deterministically compare headers
-    sort_keys=True,
-).encode
 
 SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
@@ -109,7 +90,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     )
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
-    headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
+    headers = models.JSONField(db_default=[])
     # HTTP body to send when performing the check
     # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     body = models.TextField(null=True)
@@ -184,8 +165,8 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         choices=ObjectStatus.as_choices(), db_default=ObjectStatus.ACTIVE
     )
     mode = models.SmallIntegerField(
-        default=ProjectUptimeSubscriptionMode.MANUAL.value,
-        db_default=ProjectUptimeSubscriptionMode.MANUAL.value,
+        default=UptimeMonitorMode.MANUAL.value,
+        db_default=UptimeMonitorMode.MANUAL.value,
     )
     # Date of the last time we updated the status for this monitor
     name = models.TextField()
@@ -211,15 +192,15 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
             models.UniqueConstraint(
                 fields=["project_id", "uptime_subscription"],
                 name="uptime_projectuptimesubscription_unique_manual_project_subscription",
-                condition=Q(mode=ProjectUptimeSubscriptionMode.MANUAL.value),
+                condition=Q(mode=UptimeMonitorMode.MANUAL.value),
             ),
             models.UniqueConstraint(
                 fields=["project_id", "uptime_subscription"],
                 name="uptime_projectuptimesubscription_unique_auto_project_subscription",
                 condition=Q(
                     mode__in=(
-                        ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-                        ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE.value,
+                        UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
+                        UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
                     )
                 ),
             ),
@@ -251,11 +232,12 @@ def get_org_from_detector(detector: Detector) -> tuple[Organization]:
 @cache_func_for_models([(Detector, get_org_from_detector)])
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
     return Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
         type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         project__organization=organization,
         config__mode__in=[
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
 
@@ -272,22 +254,6 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
             .values_list("host_provider_name", flat=True)[:limit],
         )
     )
-
-
-@cache_func_for_models(
-    [(ProjectUptimeSubscription, lambda project_sub: (project_sub.uptime_subscription_id,))],
-    recalculate=False,
-    cache_ttl=timedelta(hours=4),
-)
-def get_project_subscription_for_uptime_subscription(
-    uptime_subscription_id: int,
-) -> ProjectUptimeSubscription | None:
-    try:
-        return ProjectUptimeSubscription.objects.select_related(
-            "project", "project__organization"
-        ).get(uptime_subscription_id=uptime_subscription_id)
-    except ProjectUptimeSubscription.DoesNotExist:
-        return None
 
 
 @cache_func_for_models(
@@ -348,21 +314,24 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         raise NotImplementedError
 
 
-def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+def get_detector(uptime_subscription: UptimeSubscription, prefetch_workflow_data=False) -> Detector:
     """
     Fetches a workflow_engine Detector given an existing uptime_subscription.
     This is used during the transition period moving uptime to detector.
     """
-    try:
-        data_source = DataSource.objects.get(
-            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-            source_id=str(uptime_subscription.id),
-        )
-        return Detector.objects.get(
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source
-        )
-    except (DataSource.DoesNotExist, Detector.DoesNotExist):
-        return None
+    data_source = DataSource.objects.filter(
+        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        source_id=str(uptime_subscription.id),
+    )
+    qs = Detector.objects_for_deletion.filter(
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
+    )
+    select_related = ["project", "project__organization"]
+    if prefetch_workflow_data:
+        select_related.append("workflow_condition_group")
+        qs = qs.prefetch_related("workflow_condition_group__conditions")
+    qs = qs.select_related(*select_related)
+    return qs.get()
 
 
 def get_uptime_subscription(detector: Detector) -> UptimeSubscription:
@@ -383,44 +352,27 @@ def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:
     return ProjectUptimeSubscription.objects.get(uptime_subscription_id=int(data_source.source_id))
 
 
-def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
-    """
-    Creates a uptime detector and associated data-source given a
-    ProjectUptimeSubscription.
-    """
-    data_source = DataSource.objects.create(
-        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-        organization=project_sub.project.organization,
-        source_id=str(project_sub.uptime_subscription_id),
-    )
-    condition_group = DataConditionGroup.objects.create(
-        organization=project_sub.project.organization,
-    )
-    DataCondition.objects.create(
-        comparison=CHECKSTATUS_FAILURE,
-        type=Condition.EQUAL,
-        condition_result=DetectorPriorityLevel.HIGH,
-        condition_group=condition_group,
-    )
-    DataCondition.objects.create(
-        comparison=CHECKSTATUS_SUCCESS,
-        type=Condition.EQUAL,
-        condition_result=DetectorPriorityLevel.OK,
-        condition_group=condition_group,
-    )
-    env = project_sub.environment.name if project_sub.environment else None
-    detector = Detector.objects.create(
-        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-        project=project_sub.project,
-        name=project_sub.name,
-        owner_user_id=project_sub.owner_user_id,
-        owner_team_id=project_sub.owner_team_id,
-        config={
-            "environment": env,
-            "mode": project_sub.mode,
-        },
-        workflow_condition_group=condition_group,
-    )
-    DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+def get_audit_log_data(detector: Detector):
+    """Get audit log data from a detector instead of a ProjectUptimeSubscription instance."""
+    uptime_subscription = get_uptime_subscription(detector)
 
-    return detector
+    owner_user_id = None
+    owner_team_id = None
+    if detector.owner:
+        if detector.owner.is_user:
+            owner_user_id = detector.owner.id
+        elif detector.owner.is_team:
+            owner_team_id = detector.owner.id
+
+    return {
+        "project": detector.project_id,
+        "name": detector.name,
+        "owner_user_id": owner_user_id,
+        "owner_team_id": owner_team_id,
+        "url": uptime_subscription.url,
+        "interval_seconds": uptime_subscription.interval_seconds,
+        "timeout": uptime_subscription.timeout_ms,
+        "method": uptime_subscription.method,
+        "headers": uptime_subscription.headers,
+        "body": uptime_subscription.body,
+    }

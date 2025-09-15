@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 
 @control_silo_test
 class TimeSeriesValueSerializerTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         time_series_value = TimeSeriesValue(datetime.now(), 30)
         result = serialize([time_series_value], self.user, TimeSeriesValueSerializer())
         assert result == [
@@ -32,7 +32,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 
-    def test(self):
+    def test(self) -> None:
         rule = Rule.objects.create(project=self.event.project)
         rule_2 = Rule.objects.create(project=self.event.project)
         history = []

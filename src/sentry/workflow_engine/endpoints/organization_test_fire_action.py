@@ -17,6 +17,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
+from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.endpoints.validators.base.action import BaseActionValidator
 from sentry.workflow_engine.models import Action, Detector
@@ -104,13 +105,14 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
         # This can happen if the user is rate limited
         return HTTP_400_BAD_REQUEST, {"detail": "No test event was generated"}
 
-    workflow_id = -1
+    workflow_id = TEST_NOTIFICATION_ID
     workflow_event_data = WorkflowEventData(
         event=test_event,
+        group=test_event.group,
     )
 
     detector = Detector(
-        id=-1,
+        id=TEST_NOTIFICATION_ID,
         project=project,
         name="Test Detector",
         enabled=True,
@@ -120,7 +122,7 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
     for action_data in actions:
         # Create a temporary Action object (not saved to database)
         action = Action(
-            id=-1,
+            id=TEST_NOTIFICATION_ID,
             type=action_data["type"],
             integration_id=action_data.get("integration_id"),
             data=action_data.get("data", {}),

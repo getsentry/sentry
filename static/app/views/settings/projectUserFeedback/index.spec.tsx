@@ -5,11 +5,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectUserFeedback from 'sentry/views/settings/projectUserFeedback';
 
-describe('ProjectUserFeedback', function () {
+describe('ProjectUserFeedback', () => {
   const {routerProps, organization, project} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url,
@@ -23,7 +23,7 @@ describe('ProjectUserFeedback', function () {
     });
   });
 
-  it('can toggle sentry branding option', async function () {
+  it('can toggle sentry branding option', async () => {
     render(
       <ProjectUserFeedback
         {...routerProps}
@@ -53,11 +53,11 @@ describe('ProjectUserFeedback', function () {
   });
 });
 
-describe('ProjectUserFeedbackProcessing', function () {
+describe('ProjectUserFeedbackProcessing', () => {
   const {routerProps, organization, project} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url,
@@ -72,7 +72,7 @@ describe('ProjectUserFeedbackProcessing', function () {
     organization.features = [];
   });
 
-  it('cannot toggle spam detection', function () {
+  it('cannot toggle spam detection', () => {
     render(
       <ProjectUserFeedback
         {...routerProps}
@@ -86,7 +86,7 @@ describe('ProjectUserFeedbackProcessing', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('can toggle spam detection', async function () {
+  it('can toggle spam detection', async () => {
     organization.features.push('user-feedback-spam-ingest');
 
     render(

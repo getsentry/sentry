@@ -9,7 +9,7 @@ class DeleteOrganizationSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-search-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     @cached_property
@@ -21,7 +21,7 @@ class DeleteOrganizationSearchTest(APITestCase):
     def get_response(self, *args, **params):
         return super().get_response(*((self.organization.slug,) + args), **params)
 
-    def test_owner_can_delete_org_searches(self):
+    def test_owner_can_delete_org_searches(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.create_user().id,
@@ -33,7 +33,7 @@ class DeleteOrganizationSearchTest(APITestCase):
         assert response.status_code == 204, response.content
         assert not SavedSearch.objects.filter(id=search.id).exists()
 
-    def test_owners_can_delete_their_searches(self):
+    def test_owners_can_delete_their_searches(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.user.id,
@@ -46,7 +46,7 @@ class DeleteOrganizationSearchTest(APITestCase):
         assert response.status_code == 204, response.content
         assert not SavedSearch.objects.filter(id=search.id).exists()
 
-    def test_member_can_delete_their_searches(self):
+    def test_member_can_delete_their_searches(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.member.id,
@@ -60,7 +60,7 @@ class DeleteOrganizationSearchTest(APITestCase):
         assert response.status_code == 204, response.content
         assert not SavedSearch.objects.filter(id=search.id).exists()
 
-    def test_owners_cannot_delete_searches_they_do_not_own(self):
+    def test_owners_cannot_delete_searches_they_do_not_own(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.create_user().id,
@@ -73,7 +73,7 @@ class DeleteOrganizationSearchTest(APITestCase):
         assert response.status_code == 404, response.content
         assert SavedSearch.objects.filter(id=search.id).exists()
 
-    def test_owners_cannot_delete_global_searches(self):
+    def test_owners_cannot_delete_global_searches(self) -> None:
         search = SavedSearch.objects.create(
             name="foo",
             query="",
@@ -85,7 +85,7 @@ class DeleteOrganizationSearchTest(APITestCase):
         assert response.status_code == 404, response.content
         assert SavedSearch.objects.filter(id=search.id).exists()
 
-    def test_members_cannot_delete_shared_searches(self):
+    def test_members_cannot_delete_shared_searches(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.user.id,
@@ -104,7 +104,7 @@ class PutOrganizationSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-search-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     @cached_property
@@ -113,7 +113,7 @@ class PutOrganizationSearchTest(APITestCase):
         self.create_member(organization=self.organization, user=user)
         return user
 
-    def test_owner_can_edit_shared_search(self):
+    def test_owner_can_edit_shared_search(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.create_user().id,
@@ -135,7 +135,7 @@ class PutOrganizationSearchTest(APITestCase):
         assert updated_obj.name == "foo"
         assert updated_obj.query == "test"
 
-    def test_member_cannot_edit_org_search(self):
+    def test_member_cannot_edit_org_search(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.user.id,
@@ -154,7 +154,7 @@ class PutOrganizationSearchTest(APITestCase):
         )
         assert response.status_code == 403, response.content
 
-    def test_member_can_edit_personal_search(self):
+    def test_member_can_edit_personal_search(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.member.id,
@@ -177,7 +177,7 @@ class PutOrganizationSearchTest(APITestCase):
         assert updated_obj.name == "foo"
         assert updated_obj.query == "test"
 
-    def test_member_cannot_switch_personal_search_to_org(self):
+    def test_member_cannot_switch_personal_search_to_org(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.member.id,
@@ -196,7 +196,7 @@ class PutOrganizationSearchTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_exists(self):
+    def test_exists(self) -> None:
         SavedSearch.objects.create(
             type=SearchType.ISSUE.value,
             name="Some global search",
@@ -242,7 +242,7 @@ class PutOrganizationSearchTest(APITestCase):
         assert response.status_code == 400, response.content
         assert "already exists" in response.data["detail"]
 
-    def test_can_edit_without_changing_query(self):
+    def test_can_edit_without_changing_query(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.create_user().id,

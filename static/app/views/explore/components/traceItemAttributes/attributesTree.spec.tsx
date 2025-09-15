@@ -7,15 +7,13 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {
-  type AttributesFieldRendererProps,
   AttributesTree,
+  type AttributesFieldRendererProps,
 } from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
 describe('attributesTree', () => {
-  const organization = OrganizationFixture({
-    features: ['trace-view-v1'],
-  });
+  const organization = OrganizationFixture();
 
   const location = LocationFixture();
 

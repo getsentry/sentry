@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
@@ -50,7 +50,7 @@ export function TransactionCell({
         column: {kind: 'field', field: 'transaction'},
       }}
       dataRow={dataRow as any}
-      allowActions={[Actions.ADD]}
+      allowActions={[Actions.ADD, Actions.OPEN_INTERNAL_LINK]}
       handleCellAction={() => setTransactionFilter(transaction)}
     >
       <CellWrapper>

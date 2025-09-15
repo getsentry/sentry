@@ -32,7 +32,7 @@ class BitbucketRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_routing_endpoints(self):
+    def test_routing_endpoints(self) -> None:
         self.get_integration()
         control_routes = [
             reverse("sentry-extensions-bitbucket-descriptor"),
@@ -58,7 +58,7 @@ class BitbucketRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_routing_webhook_no_regions(self):
+    def test_routing_webhook_no_regions(self) -> None:
         region_route = reverse(
             "sentry-extensions-bitbucket-webhook", kwargs={"organization_id": self.organization.id}
         )
@@ -78,7 +78,7 @@ class BitbucketRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_routing_webhook_with_regions(self):
+    def test_routing_webhook_with_regions(self) -> None:
         self.get_integration()
         region_route = reverse(
             "sentry-extensions-bitbucket-webhook", kwargs={"organization_id": self.organization.id}

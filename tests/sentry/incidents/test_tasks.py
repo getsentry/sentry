@@ -15,6 +15,7 @@ from sentry.incidents.models.incident import IncidentActivityType, IncidentStatu
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_kafka, requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
@@ -40,7 +41,7 @@ class HandleTriggerActionTest(TestCase):
             self.trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
         )
 
-    def test_missing_trigger_action(self):
+    def test_missing_trigger_action(self) -> None:
         with self.tasks():
             handle_trigger_action.delay(
                 1000, 1001, self.project.id, "hello", IncidentStatus.CRITICAL.value
@@ -49,7 +50,7 @@ class HandleTriggerActionTest(TestCase):
             "incidents.alert_rules.action.skipping_missing_action"
         )
 
-    def test_missing_incident(self):
+    def test_missing_incident(self) -> None:
         with self.tasks():
             handle_trigger_action.delay(
                 self.action.id, 1001, self.project.id, "hello", IncidentStatus.CRITICAL.value
@@ -58,7 +59,7 @@ class HandleTriggerActionTest(TestCase):
             "incidents.alert_rules.action.skipping_missing_incident"
         )
 
-    def test_missing_project(self):
+    def test_missing_project(self) -> None:
         incident = self.create_incident()
         with self.tasks():
             handle_trigger_action.delay(
@@ -68,7 +69,7 @@ class HandleTriggerActionTest(TestCase):
             "incidents.alert_rules.action.skipping_missing_project"
         )
 
-    def test(self):
+    def test(self) -> None:
         with TemporaryAlertRuleTriggerActionRegistry.registry_patched():
             mock_handler = Mock()
             AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
@@ -99,3 +100,24 @@ class HandleTriggerActionTest(TestCase):
                 metric_value=metric_value,
                 notification_uuid=str(activity.notification_uuid),
             )
+
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    def test_when_workflow_engine_is_enabled(self) -> None:
+        with TemporaryAlertRuleTriggerActionRegistry.registry_patched():
+            mock_handler = Mock()
+            AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
+                mock_handler
+            )
+            incident = self.create_incident()
+            metric_value = 1234
+            with self.tasks():
+                handle_trigger_action.delay(
+                    self.action.id,
+                    incident.id,
+                    self.project.id,
+                    "fire",
+                    IncidentStatus.CRITICAL.value,
+                    metric_value=metric_value,
+                )
+            # We should not fire the action if the workflow engine is enabled
+            mock_handler.assert_not_called()

@@ -65,7 +65,7 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-interface CompositeSelectProps extends ControlProps {
+export interface CompositeSelectProps extends ControlProps {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
    * self-contained selectable list (each renders as a `ul` with its own list state)

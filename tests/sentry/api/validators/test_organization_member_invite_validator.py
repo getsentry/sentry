@@ -8,7 +8,7 @@ from sentry.testutils.helpers import with_feature
 
 
 class OrganizationMemberInviteRequestValidatorTest(TestCase):
-    def test_valid(self):
+    def test_valid(self) -> None:
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("member")],
@@ -23,7 +23,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
         assert serializer.is_valid()
         assert serializer.validated_data["teams"][0] == self.team
 
-    def test_member_with_email_exists(self):
+    def test_member_with_email_exists(self) -> None:
         org = self.create_organization()
         user = self.create_user()
         self.create_member(organization=org, user=user)
@@ -39,7 +39,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
 
-    def test_invite_with_email_exists(self):
+    def test_invite_with_email_exists(self) -> None:
         email = "mifu@email.com"
         self.create_member_invite(organization=self.organization, email=email)
         context = {
@@ -53,7 +53,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == {"email": [f"The user {email} has already been invited"]}
 
-    def test_invalid_team_invites(self):
+    def test_invalid_team_invites(self) -> None:
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("member")],
@@ -66,7 +66,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == {"teams": ["Invalid teams"]}
 
-    def test_invalid_org_role(self):
+    def test_invalid_org_role(self) -> None:
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("member")],
@@ -81,7 +81,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
             "orgRole": ["You do not have permission to invite a member with that org-level role"]
         }
 
-    def test_cannot_invite_with_existing_request(self):
+    def test_cannot_invite_with_existing_request(self) -> None:
         email = "test@gmail.com"
 
         self.create_member_invite(
@@ -103,7 +103,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
         }
 
     @with_feature("organizations:team-roles")
-    def test_deprecated_org_role_with_flag(self):
+    def test_deprecated_org_role_with_flag(self) -> None:
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("admin"), roles.get("member")],
@@ -120,7 +120,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
         }
 
     @with_feature({"organizations:team-roles": False})
-    def test_deprecated_org_role_without_flag(self):
+    def test_deprecated_org_role_without_flag(self) -> None:
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("admin"), roles.get("member")],
@@ -132,7 +132,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
         assert serializer.is_valid()
 
     @with_feature("organizations:invite-billing")
-    def test_valid_invite_billing_member(self):
+    def test_valid_invite_billing_member(self) -> None:
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("member")],
@@ -147,7 +147,7 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
         serializer = OrganizationMemberInviteRequestValidator(context=context, data=data)
         assert serializer.is_valid()
 
-    def test_invalid_invite_billing_member(self):
+    def test_invalid_invite_billing_member(self) -> None:
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("member")],

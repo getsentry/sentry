@@ -23,7 +23,7 @@ from sentry.users.services.user.service import user_service
 
 
 class ReleaseTestCase(ActivityTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user5_alt_email = "privateEmail@gmail.com"
@@ -109,7 +109,7 @@ class ReleaseTestCase(ActivityTestCase):
                 value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         mail.outbox.clear()
         email = ReleaseActivityNotification(
             Activity(
@@ -166,7 +166,7 @@ class ReleaseTestCase(ActivityTestCase):
             self.user5.email,
         }
 
-    def test_prevent_duplicate_projects(self):
+    def test_prevent_duplicate_projects(self) -> None:
         email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
@@ -185,7 +185,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
 
-    def test_does_not_generate_on_no_release(self):
+    def test_does_not_generate_on_no_release(self) -> None:
         email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
@@ -197,7 +197,7 @@ class ReleaseTestCase(ActivityTestCase):
 
         assert email.release is None
 
-    def test_no_committers(self):
+    def test_no_committers(self) -> None:
         mail.outbox.clear()
         Release.objects.all().delete()
         release, deploy = self.another_release("b")
@@ -239,7 +239,7 @@ class ReleaseTestCase(ActivityTestCase):
 
         assert sent_email_addresses == {self.user3.email}
 
-    def test_uses_default(self):
+    def test_uses_default(self) -> None:
         user6 = self.create_user()
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 

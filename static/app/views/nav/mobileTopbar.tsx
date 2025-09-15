@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,6 +13,7 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
@@ -25,6 +26,7 @@ function MobileTopbar() {
   const location = useLocation();
   const organization = useOrganization();
   const activeGroup = useActiveNavGroup();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ActiveView>('closed');
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {
@@ -48,12 +50,13 @@ function MobileTopbar() {
   return (
     <Topbar showSuperuserWarning={showSuperuserWarning}>
       <Left>
-        <OrgDropdown />
+        <OrgDropdown onClick={() => setView('closed')} />
         {showSuperuserWarning && (
           <Hook name="component:superuser-warning" organization={organization} />
         )}
       </Left>
       <Button
+        ref={closeButtonRef}
         onClick={handleClick}
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
@@ -63,6 +66,8 @@ function MobileTopbar() {
       {view === 'closed' ? null : (
         <NavigationOverlayPortal
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
+          setView={setView}
+          closeButtonRef={closeButtonRef}
         >
           {view === 'primary' ? <PrimaryNavigationItems /> : null}
           {view === 'secondary' ? (
@@ -97,12 +102,26 @@ function updateNavStyleAttributes(view: ActiveView) {
 function NavigationOverlayPortal({
   children,
   label,
+  setView,
+  closeButtonRef,
 }: {
   children: React.ReactNode;
+  closeButtonRef: React.RefObject<HTMLButtonElement | null>;
   label: string;
+  setView: (view: ActiveView) => void;
 }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useOnClickOutside(ref, e => {
+    // Without this check the menu will reopen when the click event triggers
+    if (closeButtonRef.current?.contains(e.target as Node)) {
+      return;
+    }
+    setView('closed');
+  });
   return createPortal(
-    <NavigationOverlay aria-label={label}>{children}</NavigationOverlay>,
+    <NavigationOverlay ref={ref} aria-label={label}>
+      {children}
+    </NavigationOverlay>,
     document.body
   );
 }

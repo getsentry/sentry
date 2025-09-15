@@ -3,9 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationRestore from 'sentry/views/organizationRestore';
 
-describe('OrganizationRestore', function () {
+describe('OrganizationRestore', () => {
   let mockUpdate!: jest.Mock;
   let mockGet!: jest.Mock;
   const pendingDeleteOrg = OrganizationFixture({
@@ -65,7 +66,7 @@ describe('OrganizationRestore', function () {
     await userEvent.click(button);
 
     expect(mockUpdate).toHaveBeenCalled();
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       `/organizations/${pendingDeleteOrg.slug}/issues/`
     );
   });

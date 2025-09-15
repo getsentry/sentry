@@ -13,11 +13,11 @@ from sentry.utils.sms import InvalidPhoneNumber, phone_number_as_e164
 
 @control_silo_test
 class SmsInterfaceTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="test@example.com", is_superuser=False)
 
     @responses.activate
-    def test_activate(self):
+    def test_activate(self) -> None:
         request = HttpRequest()
         request.user = self.user
         request.META["REMOTE_ADDR"] = "127.0.0.1"
@@ -63,7 +63,7 @@ class SmsInterfaceTest(TestCase):
         )
 
     @responses.activate
-    def test_ratelimit_exception(self):
+    def test_ratelimit_exception(self) -> None:
         request = HttpRequest()
         request.user = self.user
         request.META["REMOTE_ADDR"] = "127.0.0.1"
@@ -113,10 +113,10 @@ class SmsInterfaceTest(TestCase):
                     == "A confirmation code was sent to <strong>(***) ***-**00</strong>. It is valid for 45 seconds."
                 )
 
-    def test_invalid_phone_number(self):
+    def test_invalid_phone_number(self) -> None:
         with pytest.raises(InvalidPhoneNumber):
             phone_number_as_e164("+15555555555")
 
-    def test_valid_phone_number(self):
+    def test_valid_phone_number(self) -> None:
         formatted_number = phone_number_as_e164("2345678900")
         assert "+12345678900" == formatted_number

@@ -49,7 +49,7 @@ from sentry.utils.math import ExponentialMovingAverage
         ),
     ],
 )
-def test_moving_average_detector_state_to_redis_dict(state, expected):
+def test_moving_average_detector_state_to_redis_dict(state, expected) -> None:
     assert state.to_redis_dict() == expected
 
 
@@ -103,7 +103,7 @@ def test_moving_average_detector_state_to_redis_dict(state, expected):
         ),
     ],
 )
-def test_moving_average_detector_state_from_redis_dict(data, expected):
+def test_moving_average_detector_state_from_redis_dict(data, expected) -> None:
     assert MovingAverageDetectorState.from_redis_dict(data) == expected
 
 
@@ -183,7 +183,7 @@ def test_moving_average_detector_state_from_redis_dict(data, expected):
         ),
     ],
 )
-def test_moving_average_detector_state_from_redis_dict_error(data, error):
+def test_moving_average_detector_state_from_redis_dict_error(data, error) -> None:
     with pytest.raises(error):
         MovingAverageDetectorState.from_redis_dict(data)
 

@@ -7,10 +7,10 @@ import type {AlertProps} from 'sentry/components/core/alert';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconDocs} from 'sentry/icons/iconDocs';
@@ -244,7 +244,7 @@ function InformationCard({
   return (
     <Fragment>
       <Flex align="center">
-        <Flex.Item grow={1}>
+        <IntegrationDescription>
           <Description text={description} />
           <FeatureList
             features={features}
@@ -254,14 +254,14 @@ function InformationCard({
           {permissions}
           {alerts.map((alert, i) => (
             <Alert.Container key={i}>
-              <Alert key={i} type={alert.type} showIcon>
+              <Alert key={i} type={alert.type}>
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
                 />
               </Alert>
             </Alert.Container>
           ))}
-        </Flex.Item>
+        </IntegrationDescription>
         <Metadata>
           {author && (
             <AuthorInfo>
@@ -309,6 +309,10 @@ const IntegrationLayout = {
 
 export default IntegrationLayout;
 
+const IntegrationDescription = styled('div')`
+  flex-grow: 1;
+`;
+
 const TopSectionWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -323,7 +327,7 @@ const NameContainer = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 1.4em;
   margin-bottom: ${space(0.5)};
 `;
@@ -368,6 +372,7 @@ const Metadata = styled('div')`
   margin-left: ${space(4)};
   margin-right: 100px;
   align-self: flex-start;
+  flex-shrink: 0;
 `;
 
 const AuthorInfo = styled('div')`
@@ -378,7 +383,7 @@ const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 12px;
 `;
 

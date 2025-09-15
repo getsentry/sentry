@@ -22,7 +22,6 @@ import {
 } from 'sentry/components/core/input/inputGroup.chonk';
 import type {TextAreaProps} from 'sentry/components/core/textarea';
 import {TextArea as _TextArea} from 'sentry/components/core/textarea';
-import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 interface InputContext {
@@ -247,7 +246,7 @@ const StyledTextArea = withChonk(
 
 const InputLeadingItemsWrap = withChonk(
   styled(InputItemsWrap)<{
-    size: FormSize;
+    size: NonNullable<InputStyleProps['size']>;
     disablePointerEvents?: boolean;
   }>`
     left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
@@ -258,7 +257,7 @@ const InputLeadingItemsWrap = withChonk(
 
 const InputTrailingItemsWrap = withChonk(
   styled(InputItemsWrap)<{
-    size: FormSize;
+    size: NonNullable<InputStyleProps['size']>;
     disablePointerEvents?: boolean;
   }>`
     right: ${p => p.theme.formPadding[p.size].paddingRight * 0.75 + 1}px;

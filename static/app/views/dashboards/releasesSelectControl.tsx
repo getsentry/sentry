@@ -120,7 +120,7 @@ const StyledBadge = styled(Badge)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 300px;
   }
 `;

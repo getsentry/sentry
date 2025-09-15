@@ -18,8 +18,8 @@ import {ANNUAL, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import * as usePlanMigrations from 'getsentry/hooks/usePlanMigrations';
 import {CohortId, OnDemandBudgetMode} from 'getsentry/types';
 
-describe('PendingChanges', function () {
-  it('renders null pendingChanges)', function () {
+describe('PendingChanges', () => {
+  it('renders null pendingChanges)', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
     });
@@ -27,7 +27,7 @@ describe('PendingChanges', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders empty pendingChanges', function () {
+  it('renders empty pendingChanges', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: null,
@@ -36,7 +36,7 @@ describe('PendingChanges', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders pending changes', function () {
+  it('renders pending changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       customPrice: 0,
@@ -49,15 +49,8 @@ describe('PendingChanges', function () {
         }),
         plan: 'am1_team_ent',
         planName: 'Team (Enterprise)',
-        reservedEvents: 15000000,
-        reservedErrors: 15000000,
-        reservedTransactions: 20000000,
-        reservedAttachments: 25,
         reserved: {errors: 15000000, transactions: 20000000, attachments: 25},
         customPrice: 5000000,
-        customPriceErrors: 2000000,
-        customPriceTransactions: 2900000,
-        customPriceAttachments: 50000,
         customPrices: {errors: 2000000, transactions: 2900000, attachments: 50000},
         customPricePcss: 50000,
         onDemandMaxSpend: 50000,
@@ -97,7 +90,7 @@ describe('PendingChanges', function () {
     expect(container).toHaveTextContent('On-demand maximum — $0.00 → $500.00');
   });
 
-  it('renders pending changes with all categories', function () {
+  it('renders pending changes with all categories', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       customPrice: 0,
@@ -110,15 +103,8 @@ describe('PendingChanges', function () {
         }),
         plan: 'am3_team_ent',
         planName: 'Team (Enterprise)',
-        reservedEvents: 15000000,
-        reservedErrors: 15000000,
-        reservedTransactions: 0,
-        reservedAttachments: 25,
         reserved: {errors: 15000000, spans: 20000000, attachments: 25},
         customPrice: 5000000,
-        customPriceErrors: 2000000,
-        customPriceTransactions: 0,
-        customPriceAttachments: 50000,
         customPrices: {errors: 2000000, spans: 200000, attachments: 50000},
         customPricePcss: 50000,
         onDemandMaxSpend: 50000,
@@ -157,7 +143,7 @@ describe('PendingChanges', function () {
     expect(container).toHaveTextContent('On-demand maximum — $0.00 → $500.00');
   });
 
-  it('renders on-demand budgets', function () {
+  it('renders on-demand budgets', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       onDemandBudgets: {
@@ -181,10 +167,6 @@ describe('PendingChanges', function () {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-          errorsBudget: 300,
-          transactionsBudget: 200,
-          replaysBudget: 0,
-          attachmentsBudget: 100,
           budgets: {errors: 300, transactions: 200, replays: 0, attachments: 100},
         },
         onDemandMaxSpend: 50000,
@@ -211,7 +193,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('combines regular and on-demand changes', function () {
+  it('combines regular and on-demand changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       onDemandBudgets: {
@@ -235,10 +217,6 @@ describe('PendingChanges', function () {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-          errorsBudget: 300,
-          transactionsBudget: 200,
-          replaysBudget: 0,
-          attachmentsBudget: 100,
           budgets: {errors: 300, transactions: 200, replays: 0, attachments: 100},
         },
         onDemandMaxSpend: 50000,
@@ -263,7 +241,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders pending changes for plan migration', function () {
+  it('renders pending changes for plan migration', () => {
     const organization = OrganizationFixture();
     const am2BusinessPlan = PlanDetailsLookupFixture('am2_business_auf');
     const subscription = SubscriptionFixture({
@@ -287,7 +265,6 @@ describe('PendingChanges', function () {
             DataCategory.MONITOR_SEATS,
           ],
         }),
-        reservedEvents: 50_000,
         reserved: {
           errors: 50_000,
           spans: 10_000_000,
@@ -334,7 +311,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders reserved budgets with existing budgets', function () {
+  it('renders reserved budgets with existing budgets', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: PendingChangesFixture({
@@ -348,8 +325,14 @@ describe('PendingChanges', function () {
         reservedCpe: {
           spans: 12.345678,
           spansIndexed: 87.654321,
+          seerAutofix: 1_00,
+          seerScanner: 1,
         },
         reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
           {
             reservedBudget: 50_000_00,
             categories: {spans: true, spansIndexed: true},
@@ -373,11 +356,11 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — $0.02000000 → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for spans budget → $50,000.00 for spans budget'
+      'Reserved budgets — $0.00 for seer budget, $100,000.00 for spans budget → $0.00 for seer budget, $50,000.00 for spans budget'
     );
   });
 
-  it('does not render reserved budgets with mocked values', function () {
+  it('does not render reserved budgets with mocked values', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       reservedBudgets: [
@@ -410,7 +393,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders reserved budgets without existing budgets', function () {
+  it('renders reserved budgets without existing budgets', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       plan: 'am3_business',
@@ -425,8 +408,14 @@ describe('PendingChanges', function () {
         reservedCpe: {
           spans: 12.345678,
           spansIndexed: 87.654321,
+          seerAutofix: 1_00,
+          seerScanner: 1,
         },
         reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
           {
             reservedBudget: 50_000_00,
             categories: {spans: true, spansIndexed: true},
@@ -454,11 +443,11 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — None → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — None → $50,000.00 for spans budget'
+      'Reserved budgets — $0.00 for seer budget → $0.00 for seer budget, $50,000.00 for spans budget'
     );
   });
 
-  it('renders reserved budgets to reserved volume', function () {
+  it('renders reserved budgets to reserved volume', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: PendingChangesFixture({
@@ -467,6 +456,16 @@ describe('PendingChanges', function () {
         reserved: {
           spans: 10_000_000,
         },
+        reservedCpe: {
+          seerAutofix: 1_00,
+          seerScanner: 1,
+        },
+        reservedBudgets: [
+          {
+            reservedBudget: 0,
+            categories: {seerAutofix: true, seerScanner: true},
+          },
+        ],
       }),
     });
 
@@ -491,11 +490,11 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for spansIndexed — $0.02000000 → None'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for spans budget → None'
+      'Reserved budgets — $0.00 for seer budget, $100,000.00 for spans budget → $0.00 for seer budget'
     );
   });
 
-  it('does not render reserved budgets if there are no changes', function () {
+  it('does not render reserved budgets if there are no changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
     });

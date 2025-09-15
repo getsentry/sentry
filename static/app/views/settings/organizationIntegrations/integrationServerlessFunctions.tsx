@@ -13,10 +13,10 @@ import type {
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {IntegrationServerlessRow} from 'sentry/views/settings/organizationIntegrations/integrationServerlessRow';
@@ -51,7 +51,7 @@ export function IntegrationServerlessFunctions({
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="info">
+        <Alert type="info" showIcon={false}>
           {t(
             'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
           )}

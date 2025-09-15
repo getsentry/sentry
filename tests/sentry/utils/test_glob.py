@@ -57,5 +57,5 @@ class GlobInput(NamedTuple):
         [GlobInput.make("foo:\nbar", "foo:*", allow_newline=False), False],
     ],
 )
-def test_glob_match(glob_input, expect):
+def test_glob_match(glob_input: GlobInput, expect: bool) -> None:
     assert glob_input() == expect

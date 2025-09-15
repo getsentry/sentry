@@ -8,14 +8,15 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DatabaseLandingPage} from 'sentry/views/insights/database/views/databaseLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('DatabaseLandingPage', function () {
-  const organization = OrganizationFixture({features: ['insights-initial-modules']});
+describe('DatabaseLandingPage', () => {
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   let spanListRequestMock: jest.Mock;
   let spanChartsRequestMock: jest.Mock;
@@ -57,7 +58,7 @@ describe('DatabaseLandingPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -75,7 +76,7 @@ describe('DatabaseLandingPage', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      match: [MockApiClient.matchQuery({referrer: 'api.starfish.get-span-actions'})],
+      match: [MockApiClient.matchQuery({referrer: 'api.insights.get-span-actions'})],
       body: {
         data: [{'span.action': 'SELECT', count: 1}],
       },
@@ -84,7 +85,7 @@ describe('DatabaseLandingPage', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      match: [MockApiClient.matchQuery({referrer: 'api.starfish.get-span-domains'})],
+      match: [MockApiClient.matchQuery({referrer: 'api.insights.get-span-domains'})],
       body: {
         data: [{'span.domain': ['sentry_users'], count: 1}],
       },
@@ -93,7 +94,7 @@ describe('DatabaseLandingPage', function () {
     spanListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      match: [MockApiClient.matchQuery({referrer: 'api.starfish.use-span-list'})],
+      match: [MockApiClient.matchQuery({referrer: 'api.insights.use-span-list'})],
       body: {
         data: [
           {
@@ -122,11 +123,11 @@ describe('DatabaseLandingPage', function () {
     });
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('fetches module data', async function () {
+  it('fetches module data', async () => {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
@@ -138,7 +139,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -165,7 +167,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -190,7 +193,8 @@ describe('DatabaseLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
             'project.id',
@@ -205,7 +209,7 @@ describe('DatabaseLandingPage', function () {
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
-          referrer: 'api.starfish.use-span-list',
+          referrer: 'api.insights.use-span-list',
           sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
@@ -215,7 +219,7 @@ describe('DatabaseLandingPage', function () {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
-  it('renders a list of queries', async function () {
+  it('renders a list of queries', async () => {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
@@ -228,7 +232,7 @@ describe('DatabaseLandingPage', function () {
     ).toBeInTheDocument();
   });
 
-  it('filters by category and action', async function () {
+  it('filters by category and action', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -256,7 +260,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -283,7 +288,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -308,7 +314,8 @@ describe('DatabaseLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
             'project.id',
@@ -323,7 +330,7 @@ describe('DatabaseLandingPage', function () {
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
-          referrer: 'api.starfish.use-span-list',
+          referrer: 'api.insights.use-span-list',
           sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
@@ -331,7 +338,7 @@ describe('DatabaseLandingPage', function () {
     );
   });
 
-  it('displays the correct domain label for SQL systems', async function () {
+  it('displays the correct domain label for SQL systems', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -355,7 +362,7 @@ describe('DatabaseLandingPage', function () {
     expect(domainSelector).toHaveTextContent('Table');
   });
 
-  it('displays the correct domain label for NoSQL systems', async function () {
+  it('displays the correct domain label for NoSQL systems', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',

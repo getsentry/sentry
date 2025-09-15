@@ -12,7 +12,7 @@ BITBUCKET_IP = "34.198.178.64"
 
 
 class WebhookTest(APITestCase):
-    def test_get(self):
+    def test_get(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
@@ -21,7 +21,7 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 405
 
-    def test_unregistered_event(self):
+    def test_unregistered_event(self) -> None:
         project = self.project  # force creation
         url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
 
@@ -45,7 +45,7 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-    def test_invalid_signature_ip(self):
+    def test_invalid_signature_ip(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
@@ -62,7 +62,7 @@ class WebhookTest(APITestCase):
 
 
 class PushEventWebhookTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
@@ -102,7 +102,7 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
 
-    def test_anonymous_lookup(self):
+    def test_anonymous_lookup(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"

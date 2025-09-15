@@ -12,6 +12,7 @@ from sentry.integrations.messaging.spec import (
     MessagingIdentityLinkViewSet,
     MessagingIntegrationSpec,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.rules.actions import IntegrationEventAction
@@ -20,7 +21,7 @@ from sentry.rules.actions import IntegrationEventAction
 class SlackMessagingSpec(MessagingIntegrationSpec):
     @property
     def provider_slug(self) -> str:
-        return "slack"
+        return IntegrationProviderSlug.SLACK.value
 
     @property
     def action_service(self) -> ActionService:

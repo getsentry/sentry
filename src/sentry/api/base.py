@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
+from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
@@ -170,7 +171,7 @@ def apply_cors_headers(
     # to be sent.
     basehost = options.get("system.base-hostname")
     if basehost and origin:
-        if (
+        if "," not in origin and (
             origin.endswith(("://" + basehost, "." + basehost))
             or origin in settings.ALLOWED_CREDENTIAL_ORIGINS
         ):
@@ -186,7 +187,9 @@ class BaseEndpointMixin(abc.ABC):
     """
 
     @abc.abstractmethod
-    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
+    def create_audit_entry(
+        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
+    ):
         pass
 
     @abc.abstractmethod
@@ -330,8 +333,10 @@ class Endpoint(APIView):
 
         return response
 
-    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
-        return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
+    def create_audit_entry(
+        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
+    ):
+        return create_audit_entry(request, transaction_id, audit_logger, data=data, **kwargs)
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
@@ -373,7 +378,8 @@ class Endpoint(APIView):
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
 
-        sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
+        if request.META.get("HTTP_REFERER"):
+            sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER"))
 
         start_time = time.time()
 
@@ -643,13 +649,17 @@ class StatsMixin:
 
 class ReleaseAnalyticsMixin:
     def track_set_commits_local(self, request: Request, organization_id=None, project_ids=None):
-        analytics.record(
-            "release.set_commits_local",
-            user_id=request.user.id if request.user and request.user.id else None,
-            organization_id=organization_id,
-            project_ids=project_ids,
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-        )
+        try:
+            analytics.record(
+                ReleaseSetCommitsLocalEvent(
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=organization_id,
+                    project_ids=project_ids,
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 class EndpointSiloLimit(SiloLimit):

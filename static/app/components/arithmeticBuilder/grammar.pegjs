@@ -5,14 +5,29 @@
 tokens = token*
 
 token
-  = spaces token:(paren / op / func / free_text) spaces {
+  = spaces token:(paren / literal / op / func / free_text) spaces {
     return token;
   }
 
 func
-  = func:name "(" spaces attr:attr spaces ")" {
-    return tc.tokenFunction(func, attr, location());
+  = func:name "(" args:args spaces ")" {
+    return tc.tokenFunction(func, args, location());
   }
+
+args = arg_list / no_arg
+
+no_arg
+  = spaces {
+    return [];
+  }
+
+arg_list
+  = head:yes_arg tail:("," @yes_arg)* { return [head, ...tail]; }
+
+yes_arg
+  = spaces arg:arg spaces { return arg }
+
+arg = attr
 
 attr = typed_attr / untyped_attr
 
@@ -56,6 +71,11 @@ name
 type_name
   = [a-z]+ {
     return text();
+  }
+
+literal
+  = [+-]?[0-9]+ ("." [0-9]*)? {
+    return tc.tokenLiteral(text(), location());
   }
 
 op = plus / minus / multiply / divide

@@ -60,10 +60,10 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrameMeasurements} from 'sentry/utils/profiling/uiFrames';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {
+  formatTo,
   fromNanoJoulesToWatts,
   type ProfilingFormatterUnit,
 } from 'sentry/utils/profiling/units/units';
-import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
@@ -79,6 +79,8 @@ import {FlamegraphChart} from './flamegraphChart';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
+
+const PROFILE_TYPE = 'continuous profile' as const;
 
 function collectAllSpanEntriesFromTransaction(
   transaction: EventTransaction
@@ -1427,6 +1429,7 @@ export function ContinuousFlamegraph(): ReactElement {
           profileGroup={profileGroup}
           threadId={flamegraphProfiles.threadId}
           onThreadIdChange={onThreadIdChange}
+          profileType={PROFILE_TYPE}
         />
         <FlamegraphViewSelectMenu
           view={view}
@@ -1439,7 +1442,10 @@ export function ContinuousFlamegraph(): ReactElement {
           flamegraphs={flamegraphs}
           canvasPoolManager={canvasPoolManager}
         />
-        <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
+        <FlamegraphOptionsMenu
+          canvasPoolManager={canvasPoolManager}
+          profileType={PROFILE_TYPE}
+        />
       </FlamegraphToolbar>
 
       <FlamegraphLayout
@@ -1573,6 +1579,7 @@ export function ContinuousFlamegraph(): ReactElement {
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
+              profileType={PROFILE_TYPE}
             />
           </Fragment>
         }

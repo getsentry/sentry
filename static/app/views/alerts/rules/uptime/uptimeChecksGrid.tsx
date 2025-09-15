@@ -2,20 +2,19 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
   statusToText,
@@ -23,8 +22,8 @@ import {
 } from 'sentry/views/insights/uptime/timelineConfig';
 
 type Props = {
+  traceSampling: boolean;
   uptimeChecks: UptimeCheck[];
-  uptimeRule: UptimeRule;
 };
 
 /**
@@ -33,10 +32,10 @@ type Props = {
  */
 const EMPTY_TRACE = '00000000000000000000000000000000';
 
-export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
+export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
   const traceIds = uptimeChecks?.map(check => check.traceId) ?? [];
 
-  const {data: spanCounts, isPending: spanCountLoading} = useEAPSpans(
+  const {data: spanCounts, isPending: spanCountLoading} = useSpans(
     {
       limit: 10,
       enabled: traceIds.length > 0,
@@ -73,7 +72,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
             column={column as GridColumnOrder<keyof UptimeCheck>}
-            uptimeRule={uptimeRule}
+            traceSampling={traceSampling}
             check={dataRow}
             spanCount={traceSpanCounts?.[dataRow.traceId]}
           />
@@ -87,12 +86,12 @@ function CheckInBodyCell({
   check,
   column,
   spanCount,
-  uptimeRule,
+  traceSampling,
 }: {
   check: UptimeCheck;
   column: GridColumnOrder<keyof UptimeCheck>;
   spanCount: number | undefined;
-  uptimeRule: UptimeRule;
+  traceSampling: boolean;
 }) {
   const theme = useTheme();
 
@@ -137,9 +136,9 @@ function CheckInBodyCell({
       return <Cell>{httpStatusCode}</Cell>;
     }
     case 'checkStatus': {
-      const colorKey = tickStyle[checkStatus].labelColor ?? 'textColor';
+      const color = tickStyle(theme)[checkStatus].labelColor ?? theme.textColor;
       return (
-        <Cell style={{color: theme[colorKey] as string}}>
+        <Cell style={{color}}>
           {statusToText[checkStatus]}{' '}
           {checkStatusReason &&
             tct('([reason])', {
@@ -164,7 +163,7 @@ function CheckInBodyCell({
           <Tooltip
             isHoverable
             title={
-              uptimeRule.traceSampling
+              traceSampling
                 ? tct(
                     'No spans found in this trace. Configure your SDKs to see correlated spans across services. [learnMore:Learn more].',
                     {learnMore}
@@ -183,11 +182,17 @@ function CheckInBodyCell({
 
       return (
         <TraceCell>
-          {spanCount ? (
-            <Link to={`/performance/trace/${traceId}/`}>{getShortEventId(traceId)}</Link>
-          ) : (
-            getShortEventId(traceId)
-          )}
+          <Link
+            to={{
+              pathname: `/performance/trace/${traceId}/`,
+              query: {
+                includeUptime: '1',
+                timestamp: new Date(timestamp).getTime() / 1000,
+              },
+            }}
+          >
+            {getShortEventId(traceId)}
+          </Link>
           {badge}
         </TraceCell>
       );

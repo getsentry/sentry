@@ -11,8 +11,8 @@ import {Button} from 'sentry/components/core/button';
 import type {InputStylesProps} from 'sentry/components/core/input';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {FormSize} from 'sentry/utils/theme';
 
 interface NumberInputProps
   extends InputStylesProps,
@@ -79,19 +79,29 @@ export function NumberInput({
       />
       <InputGroup.TrailingItems>
         <StepWrap size={size}>
-          <StepButton ref={incrementButtonRef} size="zero" borderless {...incrementProps}>
-            <StyledIconChevron direction="up" />
-          </StepButton>
-          <StepButton ref={decrementButtonRef} size="zero" borderless {...decrementProps}>
-            <StyledIconChevron direction="down" />
-          </StepButton>
+          <StepButton
+            ref={incrementButtonRef}
+            size="zero"
+            borderless
+            {...incrementProps}
+            aria-label={incrementProps['aria-label'] ?? t('Increment')}
+            icon={<StyledIconChevron direction="up" />}
+          />
+          <StepButton
+            ref={decrementButtonRef}
+            size="zero"
+            borderless
+            {...decrementProps}
+            aria-label={decrementProps['aria-label'] ?? t('Decrement')}
+            icon={<StyledIconChevron direction="down" />}
+          />
         </StepWrap>
       </InputGroup.TrailingItems>
     </InputGroup>
   );
 }
 
-const StepWrap = styled('div')<{size?: FormSize}>`
+const StepWrap = styled('div')<{size?: NonNullable<NumberInputProps['size']>}>`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -103,6 +113,7 @@ const StepButton = styled(Button)`
   display: flex;
   height: 50%;
   padding: 0 ${space(0.25)};
+  min-height: 0;
   color: ${p => p.theme.subText};
 `;
 

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import {Badge} from 'sentry/components/core/badge';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
@@ -99,21 +98,19 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                   {t('Give Feedback')}
                 </SidebarMenuItem>
               ) : null}
-              {organization?.features?.includes('navigation-sidebar-v2') && (
-                <SidebarMenuItem
-                  onClick={() => {
-                    mutateUserOptions({prefersStackedNavigation: true});
-                    trackAnalytics(
-                      'navigation.help_menu_opt_in_stacked_navigation_clicked',
-                      {
-                        organization,
-                      }
-                    );
-                  }}
-                >
-                  {t('Try New Navigation')} <FeatureBadge type="new" />
-                </SidebarMenuItem>
-              )}
+              <SidebarMenuItem
+                onClick={() => {
+                  mutateUserOptions({prefersStackedNavigation: true});
+                  trackAnalytics(
+                    'navigation.help_menu_opt_in_stacked_navigation_clicked',
+                    {
+                      organization,
+                    }
+                  );
+                }}
+              >
+                {t('Try New Navigation')} <FeatureBadge type="new" />
+              </SidebarMenuItem>
               {organization?.features?.includes('chonk-ui') ? (
                 user.options.prefersChonkUI ? (
                   <SidebarMenuItem
@@ -135,7 +132,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                       });
                     }}
                   >
-                    {t('Try Our New Look')} <Badge type="internal">{t('Internal')}</Badge>
+                    {t('Try Our New Look')} <FeatureBadge type="beta" />
                   </SidebarMenuItem>
                 )
               ) : null}

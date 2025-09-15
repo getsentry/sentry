@@ -5,15 +5,19 @@ from unittest.mock import patch
 
 import pytest
 from django.db import router
+from django.http.response import HttpResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.repository import Repository
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
@@ -21,13 +25,16 @@ from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory
 from sentry.users.models.identity import Identity
+from sentry.workflow_engine.models.action import Action
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -85,7 +92,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
                 mapping = OrganizationMapping.objects.get(organization_id=org.id)
                 mapping.update(region_name="na")
 
-    def test_with_data(self, *args):
+    def test_with_data(self, *args) -> None:
         data = {
             "external_id": self.external_id,
             "name": "Name",
@@ -94,6 +101,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = data
         resp = self.pipeline.finish_pipeline()
 
+        assert isinstance(resp, HttpResponse)
         self.assertDialogSuccess(resp)
         assert b"document.origin);" in resp.content
 
@@ -106,7 +114,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
 
-    def test_with_customer_domain(self, *args):
+    def test_with_customer_domain(self, *args) -> None:
         with self.feature({"system:multi-region": True}):
             data = {
                 "external_id": self.external_id,
@@ -116,6 +124,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             self.pipeline.state.data = data
             resp = self.pipeline.finish_pipeline()
 
+            assert isinstance(resp, HttpResponse)
             self.assertDialogSuccess(resp)
             assert (
                 f', "{generate_organization_url(self.organization.slug)}");'.encode()
@@ -132,7 +141,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             ).exists()
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_provider_should_check_region_violation(self, *args):
+    def test_provider_should_check_region_violation(self, *args) -> None:
         """Ensures we validate regions if `provider.is_region_restricted` is set to True"""
         self.provider.is_region_restricted = True
         self.pipeline.state.data = {"external_id": self.external_id}
@@ -143,7 +152,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert mock_check_violation.called
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_provider_should_not_check_region_violation(self, *args):
+    def test_provider_should_not_check_region_violation(self, *args) -> None:
         """Ensures we don't reject regions if `provider.is_region_restricted` is set to False"""
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch(
@@ -153,7 +162,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert not mock_check_violation.called
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_is_violating_region_restriction_success(self, *args):
+    def test_is_violating_region_restriction_success(self, *args) -> None:
         """Ensures pipeline can complete if all integration organizations reside in one region."""
         self._setup_region_restriction()
 
@@ -173,7 +182,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert success
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_is_violating_region_restriction_failure(self, *args):
+    def test_is_violating_region_restriction_failure(self, *args) -> None:
         """Ensures pipeline can produces an error if all integration organizations do not reside in one region."""
         self._setup_region_restriction()
 
@@ -186,6 +195,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = {"external_id": self.external_id}
         with override_regions(self.regions):
             response = self.pipeline.finish_pipeline()
+            assert isinstance(response, HttpResponse)
             error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
             assert error_message in response.content.decode()
 
@@ -194,7 +204,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 assert error_message in response.content.decode()
 
-    def test_aliased_integration_key(self, *args):
+    def test_aliased_integration_key(self, *args) -> None:
         self.provider = AliasedIntegrationProvider
         self.setUp()
 
@@ -213,7 +223,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             provider=self.provider.integration_key, external_id=self.external_id
         ).exists()
 
-    def test_with_expect_exists(self, *args):
+    def test_with_expect_exists(self, *args) -> None:
         old_integration = self.create_provider_integration(
             provider=self.provider.key, external_id=self.external_id, name="Tester"
         )
@@ -229,7 +239,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
 
-    def test_expect_exists_does_not_update(self, *args):
+    def test_expect_exists_does_not_update(self, *args) -> None:
         old_integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
@@ -254,7 +264,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
 
-    def test_with_default_id(self, *args):
+    def test_with_default_id(self, *args) -> None:
         self.provider.needs_default_identity = True
         data = {
             "external_id": self.external_id,
@@ -286,7 +296,8 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert org_integration.default_auth_id is not None
         assert Identity.objects.filter(id=org_integration.default_auth_id).exists()
 
-    def test_default_identity_does_update(self, *args):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_default_identity_does_update(self, mock_record, *args) -> None:
         self.provider.needs_default_identity = True
         old_identity_id = 234567
         integration = self.create_provider_integration(
@@ -325,7 +336,17 @@ class FinishPipelineTestCase(IntegrationTestCase):
         identity = Identity.objects.get(external_id="AccountId")
         assert org_integration.default_auth_id == identity.id
 
-    def test_existing_identity_becomes_default_auth_on_new_orgintegration(self, *args):
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+
+    def test_existing_identity_becomes_default_auth_on_new_orgintegration(self, *args) -> None:
         # The reinstall flow will result in an existing identity provider, identity
         # and integration records. Ensure that the new organizationintegration gets
         # a default_auth_id set.
@@ -365,7 +386,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         )
         assert org_integration.default_auth_id == identity.id
 
-    def test_new_external_id_same_user(self, *args):
+    def test_new_external_id_same_user(self, *args) -> None:
         # we need to make sure any other org_integrations have the same
         # identity that we use for the new one
         self.provider.needs_default_identity = True
@@ -406,7 +427,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         for org_integration in org_integrations:
             assert org_integration.default_auth_id == identity.id
 
-    def test_different_user_same_external_id_no_default_needed(self, *args):
+    def test_different_user_same_external_id_no_default_needed(self, *args) -> None:
         new_user = self.create_user()
         integration = self.create_provider_integration(
             provider=self.provider.key,
@@ -437,7 +458,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     @patch("sentry.plugins.migrator.Migrator.run")
-    def test_disabled_plugin_when_fully_migrated(self, run, *args):
+    def test_disabled_plugin_when_fully_migrated(self, run, *args) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             Repository.objects.create(
                 organization_id=self.organization.id,
@@ -458,7 +479,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert run.called
 
     @patch("sentry.integrations.pipeline.logger")
-    def test_disallow_with_no_permission(self, mock_logger, *args):
+    def test_disallow_with_no_permission(self, mock_logger, *args) -> None:
         member_user = self.create_user()
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user)
@@ -487,6 +508,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # attempt to finish pipeline with no 'org:integrations' scope
         resp = self.pipeline.finish_pipeline()
+        assert isinstance(resp, HttpResponse)
         assert (
             "You must be an organization owner, manager or admin to install this integration."
             in resp.content.decode()
@@ -500,7 +522,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         }
         mock_logger.info.assert_called_with("build-integration.permission_error", extra=extra)
 
-    def test_allow_with_superuser(self, *args):
+    def test_allow_with_superuser(self, *args) -> None:
         member_user = self.create_user(is_superuser=True)
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user, superuser=True)
@@ -530,7 +552,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_allow_with_superuser_su_split(self, *args):
+    def test_allow_with_superuser_su_split(self, *args) -> None:
         member_user = self.create_user(is_superuser=True)
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user, superuser=True)
@@ -559,8 +581,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
         resp = self.pipeline.finish_pipeline()
         self.assertDialogSuccess(resp)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.pipeline.logger")
-    def test_disallow_with_removed_membership(self, mock_logger, *args):
+    def test_disallow_with_removed_membership(self, mock_logger, mock_record, *args) -> None:
         member_user = self.create_user()
         om = self.create_member(user=member_user, organization=self.organization, role="manager")
         self.login_as(member_user)
@@ -591,6 +614,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # attempt to finish pipeline without org membership
         resp = self.pipeline.finish_pipeline()
+        assert isinstance(resp, HttpResponse)
         assert (
             "You must be an organization owner, manager or admin to install this integration."
             in resp.content.decode()
@@ -604,6 +628,74 @@ class FinishPipelineTestCase(IntegrationTestCase):
         }
         mock_logger.info.assert_called_with("build-integration.permission_error", extra=extra)
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+
+    @with_feature("organizations:update-action-status")
+    def test_enable_actions_called_on_successful_install(self, *args) -> None:
+        """Test that actions are enabled when integration is successfully installed."""
+        org = self.create_organization()
+        integration, _ = self.create_provider_integration_for(
+            org, self.user, provider="slack", name="Test Integration"
+        )
+        # Create a second integration to ensure that actions are not enabled for it
+        integration2, _ = self.create_provider_integration_for(
+            org, self.user, provider="slack", name="Test Integration 2", external_id="123456"
+        )
+
+        # Create a data condition group
+        condition_group = self.create_data_condition_group(organization=org)
+
+        # Create an action linked to this integration
+        action = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id=integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "123",
+                "target_display": "Test Integration",
+            },
+        )
+
+        # Create an action linked to the second integration
+        action2 = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id=integration2.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "123",
+                "target_display": "Test Integration 2",
+            },
+            status=ObjectStatus.DISABLED,
+        )
+
+        # Link action to condition group
+        self.create_data_condition_group_action(condition_group=condition_group, action=action)
+        self.create_data_condition_group_action(condition_group=condition_group, action=action2)
+
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+        resp = self.pipeline.finish_pipeline()
+
+        self.assertDialogSuccess(resp)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            action = Action.objects.get(id=action.id)
+            assert action.status == ObjectStatus.ACTIVE
+            # Ensure that the second action is still disabled
+            assert action2.status == ObjectStatus.DISABLED
+
 
 @control_silo_test
 @patch(
@@ -614,7 +706,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     external_id = "dummy_id-123"
 
-    def test_different_user_same_external_id(self, *args):
+    def test_different_user_same_external_id(self, *args) -> None:
         new_user = self.create_user()
         self.setUp()
         integration = self.create_provider_integration(
@@ -640,5 +732,6 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
             },
         }
         resp = self.pipeline.finish_pipeline()
+        assert isinstance(resp, HttpResponse)
         assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
         assert "account is linked to a different Sentry user" in resp.content.decode()

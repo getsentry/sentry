@@ -1,12 +1,15 @@
 import styled from '@emotion/styled';
 
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
+  AskSeerItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
+  RawSearchFilterIsValueItem,
   RawSearchItem,
   RecentQueryItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -22,7 +25,7 @@ import {
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {type FieldDefinition, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
@@ -143,6 +146,24 @@ export function createFilterValueItem(key: string, value: string): FilterValueIt
   };
 }
 
+export function createRawSearchFilterIsValueItem(
+  key: string,
+  value: string
+): RawSearchFilterIsValueItem {
+  const filter = `${key}:${escapeFilterValue(value)}`;
+
+  return {
+    key: getEscapedKey(`${key}:${value}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-is-value',
+  };
+}
+
 export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
   const key = getKeyName(filter.key);
   return {
@@ -175,6 +196,17 @@ export function createRecentQueryItem({
         fieldDefinitionGetter={getFieldDefinition}
       />
     ),
+    hideCheck: true,
+  };
+}
+
+export function createAskSeerItem(): AskSeerItem {
+  return {
+    key: getEscapedKey(ASK_SEER_ITEM_KEY),
+    value: ASK_SEER_ITEM_KEY,
+    textValue: 'Ask Seer',
+    type: 'ask-seer' as const,
+    label: t('Ask Seer'),
     hideCheck: true,
   };
 }

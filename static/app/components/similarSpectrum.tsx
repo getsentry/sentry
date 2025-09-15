@@ -24,7 +24,7 @@ function BaseSimilarSpectrum({className, highSpectrumLabel, lowSpectrumLabel}: P
 
 const SimilarSpectrum = styled(BaseSimilarSpectrum)`
   display: flex;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 type ItemProps = {

@@ -43,7 +43,7 @@ pytestmark = [requires_kafka]
 
 @freeze_time()
 class HandleSnubaQueryUpdateTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.topic = Topic.METRICS_SUBSCRIPTIONS_RESULTS
         self.orig_registry = deepcopy(subscriber_registry)
@@ -59,7 +59,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         create_topics(self.cluster, [self.real_topic])
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
@@ -190,7 +190,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         built_message = message_builder.build(self.user.email)
         assert out.body == built_message.body
 
-    def test_arroyo(self):
+    def test_arroyo(self) -> None:
         from sentry.consumers import get_stream_processor
 
         consumer = get_stream_processor(

@@ -75,7 +75,6 @@ function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
     <Alert.Container>
       <StyledAlert
         type="error"
-        showIcon
         expand={
           <List symbol="bullet">
             {errorsWithMessage.map((error, i) => (

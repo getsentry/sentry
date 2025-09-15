@@ -8,7 +8,6 @@ from django.urls import reverse
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.pushover.plugin import PushoverPlugin
 
 SUCCESS = """{"status":1,"request":"e460545a8b333d0da2f3602aff3133d6"}"""
@@ -18,16 +17,12 @@ def test_conf_key() -> None:
     assert PushoverPlugin().conf_key == "pushover"
 
 
-def test_entry_point() -> None:
-    assert_plugin_installed("pushover", PushoverPlugin())
-
-
 class PushoverPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> PushoverPlugin:
         return PushoverPlugin()
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("apikey", "abcdef", self.project)
         assert self.plugin.is_configured(self.project) is False
@@ -35,7 +30,7 @@ class PushoverPluginTest(PluginTestCase):
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add("POST", "https://api.pushover.net/1/messages.json", body=SUCCESS)
         self.plugin.set_option("userkey", "abcdef", self.project)
         self.plugin.set_option("apikey", "ghijkl", self.project)
@@ -70,7 +65,7 @@ class PushoverPluginTest(PluginTestCase):
         }
 
     @responses.activate
-    def test_emergency_notification(self):
+    def test_emergency_notification(self) -> None:
         responses.add("POST", "https://api.pushover.net/1/messages.json", body=SUCCESS)
         self.plugin.set_option("userkey", "abcdef", self.project)
         self.plugin.set_option("apikey", "ghijkl", self.project)
@@ -107,7 +102,7 @@ class PushoverPluginTest(PluginTestCase):
             "retry": ["30"],
         }
 
-    def test_no_secrets(self):
+    def test_no_secrets(self) -> None:
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")

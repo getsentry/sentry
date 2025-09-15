@@ -2,11 +2,14 @@ import dataclasses
 import logging
 from typing import TypeVar
 
+import sentry_sdk
+
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
 from sentry.workflow_engine.types import DataConditionResult
+from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,17 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
+@scopedstats.timer()
+def _get_data_conditions_for_group_shim(data_condition_group_id: int) -> list[DataCondition]:
+    """
+    Wrapper for single item use case so we can easily time it.
+    We can't timer() get_data_conditions_for_group because it's a CachedFunction, and
+    decorating it would turn it into a regular function and make `.batch()` unusable.
+    """
+    return get_data_conditions_for_group(data_condition_group_id)
+
+
+@sentry_sdk.trace
 def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
 ) -> dict[int, list[DataCondition]]:
@@ -99,13 +113,14 @@ def evaluate_condition_group_results(
     )
 
 
+@scopedstats.timer()
 def evaluate_data_conditions(
     conditions_to_evaluate: list[tuple[DataCondition, T]],
     logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionGroup:
     """
-    Evaluate a list of conditions, each condition is a tuple with the value to evalute the condition against.
-    Then we apply the logic_type to get the results of the list of conditions.
+    Evaluate a list of conditions. Each condition is a tuple with the value to evaluate the condition against.
+    Next we apply the logic_type to get the results of the list of conditions.
     """
     condition_results: list[ProcessedDataCondition] = []
 
@@ -147,15 +162,12 @@ def evaluate_data_conditions(
     )
 
 
+@scopedstats.timer()
 def process_data_condition_group(
     group: DataConditionGroup,
     value: T,
-    is_fast: bool = True,
+    data_conditions_for_group: list[DataCondition] | None = None,
 ) -> DataConditionGroupResult:
-    invalid_group = ProcessedDataConditionGroup(logic_result=False, condition_results=[])
-    remaining_conditions: list[DataCondition] = []
-    invalid_group_result: DataConditionGroupResult = (invalid_group, remaining_conditions)
-
     condition_results: list[ProcessedDataCondition] = []
 
     try:
@@ -165,26 +177,32 @@ def process_data_condition_group(
             "Invalid DataConditionGroup.logic_type found in process_data_condition_group",
             extra={"logic_type": group.logic_type},
         )
-        return invalid_group_result
+        return ProcessedDataConditionGroup(logic_result=False, condition_results=[]), []
 
-    conditions = get_data_conditions_for_group(group.id)
-
-    if is_fast:
-        conditions, remaining_conditions = split_conditions_by_speed(conditions)
+    # Check if conditions are already prefetched before using cache
+    all_conditions: list[DataCondition]
+    if data_conditions_for_group is not None:
+        all_conditions = data_conditions_for_group
+    elif (
+        hasattr(group, "_prefetched_objects_cache")
+        and "conditions" in group._prefetched_objects_cache
+    ):
+        all_conditions = list(group.conditions.all())
     else:
-        _, conditions = split_conditions_by_speed(conditions)
-        remaining_conditions = []
+        all_conditions = _get_data_conditions_for_group_shim(group.id)
 
-    if not conditions and remaining_conditions:
+    split_conds = split_conditions_by_speed(all_conditions)
+
+    if not split_conds.fast and split_conds.slow:
         # there are only slow conditions to evaluate, do not evaluate an empty list of conditions
         # which would evaluate to True
         condition_group_result = ProcessedDataConditionGroup(
             logic_result=False,
             condition_results=condition_results,
         )
-        return condition_group_result, remaining_conditions
+        return condition_group_result, split_conds.slow
 
-    conditions_to_evaluate = [(condition, value) for condition in conditions]
+    conditions_to_evaluate = [(condition, value) for condition in split_conds.fast]
     processed_condition_group = evaluate_data_conditions(conditions_to_evaluate, logic_type)
 
     logic_result = processed_condition_group.logic_result
@@ -200,6 +218,6 @@ def process_data_condition_group(
         # if we have a logic type of all and a False result,
         # or if we have a logic type of any and a True result, then
         #  we can short-circuit any remaining conditions since we have a completed logic result
-        remaining_conditions = []
+        return processed_condition_group, []
 
-    return processed_condition_group, remaining_conditions
+    return processed_condition_group, split_conds.slow

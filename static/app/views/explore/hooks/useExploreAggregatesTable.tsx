@@ -3,10 +3,8 @@ import {useCallback, useMemo} from 'react';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  useExploreAggregateFields,
   useExploreDataset,
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -14,6 +12,7 @@ import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggrega
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {SpansRPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useQueryParamsAggregateFields} from 'sentry/views/explore/queryParams/context';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreAggregatesTableOptions {
@@ -60,7 +59,7 @@ function useExploreAggregatesTableImp({
   const {selection} = usePageFilters();
 
   const dataset = useExploreDataset();
-  const aggregateFields = useExploreAggregateFields();
+  const aggregateFields = useQueryParamsAggregateFields({validate: true});
   const sorts = useExploreSortBys();
 
   const fields = useMemo(() => {
@@ -86,19 +85,12 @@ function useExploreAggregatesTableImp({
   }, [aggregateFields]);
 
   const eventView = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Aggregates',
       fields,
       orderby: sorts.map(formatSort),
-      query: search.formatString(),
+      query,
       version: 2,
       dataset,
     };

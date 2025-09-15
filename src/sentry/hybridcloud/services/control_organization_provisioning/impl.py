@@ -1,8 +1,9 @@
 from copy import deepcopy
 
 from django.db import router, transaction
+from django.utils import timezone as django_timezone
 
-from sentry import roles
+from sentry import features, roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
 from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
@@ -12,6 +13,7 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
     serialize_slug_reservation,
 )
+from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -19,6 +21,7 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.utils.snowflake import generate_snowflake_id
@@ -226,6 +229,17 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 region_name=region_name,
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
             ).save(unsafe_write=True)
+
+            org_mapping = OrganizationMapping.objects.filter(
+                organization_id=organization_id
+            ).first()
+            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
+            if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
+                # Changing a slug invalidates all org tokens, so revoke them all.
+                auth_tokens = OrgAuthToken.objects.filter(
+                    organization_id=organization_id, date_deactivated__isnull=True
+                )
+                auth_tokens.update(date_deactivated=django_timezone.now())
 
         primary_slug = self._validate_primary_slug_updated(
             organization_id=organization_id, slug_base=slug_base

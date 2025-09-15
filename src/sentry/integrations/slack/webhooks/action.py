@@ -32,19 +32,17 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.metrics import (
-    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-    SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-)
+from sentry.integrations.slack.message_builder.routing import decode_action_id
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
-from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
@@ -52,7 +50,6 @@ from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAct
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import metrics
 
 _logger = logging.getLogger(__name__)
 
@@ -120,13 +117,20 @@ def update_group(
     return resp
 
 
-def get_rule(slack_request: SlackActionRequest) -> Rule | None:
+def get_rule(
+    slack_request: SlackActionRequest, organization: Organization, group_type: int
+) -> Rule | None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     """Get the rule that fired"""
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
     try:
         rule = Rule.objects.get(id=rule_id)
+        if should_fire_workflow_actions(organization, group_type):
+            # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
     except Rule.DoesNotExist:
         return None
     return rule
@@ -344,8 +348,7 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        rule = get_rule(slack_request)
-
+        rule = get_rule(slack_request, group.organization, group.type)
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
@@ -370,6 +373,12 @@ class SlackActionEndpoint(Endpoint):
             with self.record_event(
                 MessagingInteractionType.VIEW_SUBMISSION, group, request
             ).capture() as lifecycle:
+                lifecycle.add_extras(
+                    {
+                        "integration_id": slack_request.integration.id,
+                        "organization_id": group.project.organization_id,
+                    }
+                )
 
                 # Masquerade a status action
                 selection = None
@@ -389,11 +398,7 @@ class SlackActionEndpoint(Endpoint):
                     lifecycle.record_failure(MessageInteractionFailureReason.MISSING_ACTION)
                     return self.respond()
 
-                lifecycle.add_extra(
-                    "selection",
-                    selection,
-                )
-
+                lifecycle.add_extra("selection", selection)
                 status_action = MessageAction(name="status", value=selection)
 
                 try:
@@ -425,26 +430,8 @@ class SlackActionEndpoint(Endpoint):
                     webhook_client.send(
                         blocks=blocks.get("blocks"), delete_original=False, replace_original=True
                     )
-                    metrics.incr(
-                        SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                        sample_rate=1.0,
-                        tags={"type": "submit_modal"},
-                    )
                 except SlackApiError as e:
                     lifecycle.record_failure(e)
-                    metrics.incr(
-                        SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                        sample_rate=1.0,
-                        tags={"type": "submit_modal"},
-                    )
-                    _logger.exception(
-                        "slack.webhook.view_submission.response-error",
-                        extra={
-                            "error": str(e),
-                            "integration_id": slack_request.integration.id,
-                            "organization_id": group.project.organization_id,
-                        },
-                    )
 
                 return self.respond()
 
@@ -521,25 +508,14 @@ class SlackActionEndpoint(Endpoint):
                 delete_original=False,
                 replace_original=True,
             )
+        except SlackApiError:
             _logger.info(
-                "slack.webhook.update_status.success",
+                "slack.webhook.update_status.response-error",
                 extra={
                     "integration_id": slack_request.integration.id,
                     "blocks": response.get("blocks"),
                 },
             )
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "update_message"},
-            )
-        except SlackApiError:
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "update_message"},
-            )
-            _logger.exception("slack.webhook.update_status.response-error")
 
         return self.respond(response)
 
@@ -575,18 +551,20 @@ class SlackActionEndpoint(Endpoint):
     @classmethod
     def get_action_list(cls, slack_request: SlackActionRequest) -> list[BlockKitMessageAction]:
         action_data = slack_request.data.get("actions")
-        if (
-            not action_data
-            or not isinstance(action_data, list)
-            or not action_data[0].get("action_id")
-        ):
+        if not action_data or not isinstance(action_data, list):
             return []
 
         action_list = []
         for action_data in action_data:
+            routing_data = decode_action_id(action_data.get("action_id", ""))
+            action_name = routing_data.action
+
+            if not action_name:
+                continue
+
             if action_data.get("type") in ("static_select", "external_select"):
                 action = BlockKitMessageAction(
-                    name=action_data["action_id"],
+                    name=action_name,
                     label=action_data["selected_option"]["text"]["text"],
                     type=action_data["type"],
                     value=action_data["selected_option"]["value"],
@@ -599,7 +577,7 @@ class SlackActionEndpoint(Endpoint):
                 # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
             else:
                 action = BlockKitMessageAction(
-                    name=action_data["action_id"],
+                    name=action_name,
                     label=action_data["text"]["text"],
                     type=action_data["type"],
                     value=action_data["value"],
@@ -730,7 +708,9 @@ class SlackActionEndpoint(Endpoint):
         original_status = InviteStatus(member.invite_status)
         try:
             if action == "approve_member":
-                member.approve_member_invitation(identity_user, referrer="slack")
+                member.approve_member_invitation(
+                    identity_user, referrer=IntegrationProviderSlug.SLACK.value
+                )
             else:
                 member.reject_member_invitation(identity_user)
         except Exception:
@@ -861,17 +841,11 @@ class _ModalDialog(ABC):
             # If the external_id is not found, Slack we send `not_found` error
             # https://api.slack.com/methods/views.update
             if unpack_slack_api_error(e) == MODAL_NOT_FOUND:
-                metrics.incr(
-                    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"type": "update_modal"},
-                )
                 logging_data = slack_request.get_logging_data()
-                _logger.exception(
+                _logger.info(
                     "slack.action.update-modal-not-found",
                     extra={
                         **logging_data,
-                        "trigger_id": slack_request.data["trigger_id"],
                         "dialog": self.dialog_type,
                     },
                 )
@@ -896,7 +870,6 @@ class _ModalDialog(ABC):
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
         org = group.project.organization
-
         callback_id_dict = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
@@ -927,24 +900,13 @@ class _ModalDialog(ABC):
             else:
                 self._update_modal(slack_client, external_id, modal_payload, slack_request)
 
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": f"{self.dialog_type}_modal_open"},
-            )
-        except SlackApiError:
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": f"{self.dialog_type}_modal_open"},
-            )
-            _logger.exception(
+        except SlackApiError as e:
+            _logger.info(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
                     "integration_id": slack_request.integration.id,
-                    "trigger_id": slack_request.data["trigger_id"],
-                    "dialog": self.dialog_type,
+                    "exec_summary": repr(e),
                 },
             )
 

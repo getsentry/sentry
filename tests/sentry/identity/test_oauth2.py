@@ -1,7 +1,7 @@
 from collections import namedtuple
 from functools import cached_property
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
@@ -10,9 +10,10 @@ from requests.exceptions import SSLError
 
 import sentry.identity
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
 
@@ -22,13 +23,13 @@ MockResponse = namedtuple("MockResponse", ["headers", "content"])
 @control_silo_test
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class OAuth2CallbackViewTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
         super().setUp()
         self.request = RequestFactory().get("/")
         self.request.subdomain = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
@@ -41,12 +42,12 @@ class OAuth2CallbackViewTest(TestCase):
         )
 
     @responses.activate
-    def test_exchange_token_success(self, mock_record):
+    def test_exchange_token_success(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
         )
 
-        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
         result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" in result
@@ -66,12 +67,12 @@ class OAuth2CallbackViewTest(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
-    def test_exchange_token_success_customer_domains(self, mock_record):
+    def test_exchange_token_success_customer_domains(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
         )
         self.request.subdomain = "albertos-apples"
-        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
         result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" in result
@@ -91,14 +92,14 @@ class OAuth2CallbackViewTest(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
-    def test_exchange_token_ssl_error(self, mock_record):
+    def test_exchange_token_ssl_error(self, mock_record: MagicMock) -> None:
         def ssl_error(request):
             raise SSLError("Could not build connection")
 
         responses.add_callback(
             responses.POST, "https://example.org/oauth/token", callback=ssl_error
         )
-        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
         result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" not in result
@@ -109,14 +110,14 @@ class OAuth2CallbackViewTest(TestCase):
         assert_failure_metric(mock_record, "ssl_error")
 
     @responses.activate
-    def test_connection_error(self, mock_record):
+    def test_connection_error(self, mock_record: MagicMock) -> None:
         def connection_error(request):
             raise ConnectionError("Name or service not known")
 
         responses.add_callback(
             responses.POST, "https://example.org/oauth/token", callback=connection_error
         )
-        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
         result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" not in result
@@ -127,9 +128,9 @@ class OAuth2CallbackViewTest(TestCase):
         assert_failure_metric(mock_record, "connection_error")
 
     @responses.activate
-    def test_exchange_token_no_json(self, mock_record):
+    def test_exchange_token_no_json(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, "https://example.org/oauth/token", body="")
-        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
         result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" not in result
@@ -139,17 +140,34 @@ class OAuth2CallbackViewTest(TestCase):
 
         assert_failure_metric(mock_record, "json_error")
 
+    @responses.activate
+    def test_api_error(self, mock_record: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "https://example.org/oauth/token",
+            json={"token": "a-fake-token"},
+            status=401,
+        )
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        code = "auth-code"
+        result = self.view.exchange_token(self.request, pipeline, code)
+        assert "token" not in result
+        assert "error" in result
+        assert "401" in result["error"]
+
+        assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
         super().setUp()
         self.request = RequestFactory().get("/")
         self.request.session = Client().session
         self.request.subdomain = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
@@ -161,8 +179,8 @@ class OAuth2LoginViewTest(TestCase):
             scope="all-the-things",
         )
 
-    def test_simple(self):
-        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+    def test_simple(self) -> None:
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         response = self.view.dispatch(self.request, pipeline)
 
         assert response.status_code == 302
@@ -176,9 +194,9 @@ class OAuth2LoginViewTest(TestCase):
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
 
-    def test_customer_domains(self):
+    def test_customer_domains(self) -> None:
         self.request.subdomain = "albertos-apples"
-        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         response = self.view.dispatch(self.request, pipeline)
 
         assert response.status_code == 302

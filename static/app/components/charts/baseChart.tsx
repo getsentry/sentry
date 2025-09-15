@@ -2,6 +2,7 @@ import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
+import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
 
 import {useId, useMemo} from 'react';
@@ -22,10 +23,10 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
+import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';
@@ -97,7 +98,7 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
-interface TooltipOption
+export interface TooltipOption
   extends Omit<TooltipComponentOption, 'valueFormatter'>,
     Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
@@ -110,6 +111,7 @@ interface TooltipOption
     bucketSize: number | undefined,
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
+  formatter?: TooltipComponentOption['formatter'];
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
   /**
@@ -269,9 +271,9 @@ export interface BaseChartProps {
    */
   toolBox?: EChartsOption['toolbox'];
   /**
-   * Tooltip options
+   * Tooltip options. Pass `null` to disable tooltip.
    */
-  tooltip?: TooltipOption;
+  tooltip?: TooltipOption | null;
   /**
    * If true and there's only one datapoint in series.data, we show a bar chart to increase the visibility.
    * Especially useful with line / area charts, because you can't draw line with single data point and one alone point is hard to spot.
@@ -416,7 +418,7 @@ function BaseChart({
       (hasSinglePoints && transformSinglePointToBar
         ? (series as LineSeriesOption[] | undefined)?.map(s => ({
             ...s,
-            type: 'bar',
+            type: 'bar' as const,
             barWidth: 40,
             barGap: 0,
             itemStyle: {...s.areaStyle},
@@ -424,7 +426,7 @@ function BaseChart({
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
-              type: 'line',
+              type: 'line' as const,
               itemStyle: {...s.lineStyle},
               markLine:
                 (s?.data?.[0] as any)?.[1] === undefined
@@ -567,7 +569,7 @@ function BaseChart({
     return {
       ...options,
       useUTC: utc,
-      color,
+      color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
       legend: legend ? Legend({theme, ...legend}) : undefined,
@@ -690,7 +692,7 @@ function BaseChart({
         echarts={echarts}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
-        theme={echartsTheme}
+        theme={echartsTheme ?? 'v5'}
         onChartReady={onChartReady}
         onEvents={eventsMap}
         style={chartStyles}
@@ -711,6 +713,8 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
     border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+    cursor: pointer;
+    font-size: ${p.theme.fontSize.sm};
   }
   .tooltip-release.tooltip-series > div,
   .tooltip-release.tooltip-footer {
@@ -720,7 +724,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.textColor};
   }
   .tooltip-release-timerange {
-    font-size: ${p.theme.fontSizeExtraSmall};
+    font-size: ${p.theme.fontSize.xs};
     color: ${p.theme.textColor};
   }
   .tooltip-series {
@@ -735,7 +739,7 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     ${p.theme.overflowEllipsis};
   }
   .tooltip-label strong {
-    font-weight: ${p.theme.fontWeightNormal};
+    font-weight: ${p.theme.fontWeight.normal};
     color: ${p.theme.textColor};
   }
   .tooltip-label-value {
@@ -818,8 +822,8 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: ${p.theme.fontWeightBold};
-    font-size: ${p.theme.fontSizeSmall};
+    font-weight: ${p.theme.fontWeight.bold};
+    font-size: ${p.theme.fontSize.sm};
     line-height: 1.4;
     font-family: ${p.theme.text.family};
     max-width: 230px;

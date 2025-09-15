@@ -140,7 +140,7 @@ class Tags extends Component<Props, State> {
         tags = [...this.state.tags, ...tags];
       }
       this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
-    } catch (err) {
+    } catch (err: any) {
       if (
         err.status !== 400 &&
         err.responseJSON?.detail !==

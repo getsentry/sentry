@@ -5,12 +5,18 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
+from django.db import router
+from django.db.models import Q
+
 from sentry.constants import ObjectStatus
 from sentry.db.models.base import Model
+from sentry.silo.safety import unguarded_write
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.query import bulk_delete_objects
+
+logger = logging.getLogger(__name__)
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
@@ -61,12 +67,8 @@ class ModelRelation(BaseRelation):
         model: type[ModelT],
         query: Mapping[str, Any],
         task: type[BaseDeletionTask[Any]] | None = None,
-        partition_key: str | None = None,
     ) -> None:
         params = {"model": model, "query": query}
-
-        if partition_key:
-            params["partition_key"] = partition_key
 
         super().__init__(params=params, task=task)
 
@@ -101,7 +103,7 @@ class BaseDeletionTask(Generic[ModelT]):
             self.actor_id,
         )
 
-    def chunk(self) -> bool:
+    def chunk(self, apply_filter: bool = False) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if the entity has been removed.
@@ -206,7 +208,14 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             self.actor_id,
         )
 
-    def chunk(self) -> bool:
+    def get_query_filter(self) -> None | Q:
+        """
+        Override this to add additional filters to the queryset.
+        Returns a Q object or None.
+        """
+        return None
+
+    def chunk(self, apply_filter: bool = False) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if all matching entities have been removed.
@@ -214,8 +223,14 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         query_limit = self.query_limit
         remaining = self.chunk_size
 
-        while remaining > 0:
+        while remaining >= 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
+
+            if apply_filter:
+                query_filter = self.get_query_filter()
+                if query_filter is not None:
+                    queryset = queryset.filter(query_filter)
+
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
 
@@ -239,7 +254,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             model_name = type(instance).__name__
             if not _leaf_re.search(model_name):
                 self.logger.info(
-                    "object.delete.executed",
+                    f"object.delete.executed ({model_name})",
                     extra={
                         "object_id": instance_id,
                         "transaction_id": self.transaction_id,
@@ -270,36 +285,24 @@ class BulkModelDeletionTask(ModelDeletionTask[ModelT]):
 
     DEFAULT_CHUNK_SIZE = 10000
 
-    def __init__(
-        self,
-        manager: DeletionTaskManager,
-        model: type[ModelT],
-        query: Mapping[str, Any],
-        partition_key: str | None = None,
-        **kwargs: Any,
-    ):
-        super().__init__(manager, model, query, **kwargs)
-
-        self.partition_key = partition_key
-
-    def chunk(self) -> bool:
+    def chunk(self, apply_filter: bool = False) -> bool:
         return self._delete_instance_bulk()
 
     def _delete_instance_bulk(self) -> bool:
         try:
-            return bulk_delete_objects(
-                model=self.model,
-                limit=self.chunk_size,
-                transaction_id=self.transaction_id,
-                partition_key=self.partition_key,
-                **self.query,
-            )
+            with unguarded_write(using=router.db_for_write(self.model)):
+                return bulk_delete_objects(
+                    model=self.model,
+                    limit=self.chunk_size,
+                    transaction_id=self.transaction_id,
+                    **self.query,
+                )
         finally:
             # Don't log Group and Event child object deletions.
             model_name = self.model.__name__
             if not _leaf_re.search(model_name):
                 self.logger.info(
-                    "object.delete.bulk_executed",
+                    f"object.delete.bulk_executed ({model_name})",
                     extra=dict(
                         {
                             "transaction_id": self.transaction_id,

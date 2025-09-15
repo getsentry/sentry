@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -39,7 +39,7 @@ type Props = {
 };
 
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
-  const {hasVitals} = useTraceContextSections({tree, rootEventResults, logs: undefined});
+  const {hasVitals} = useTraceContextSections({tree, logs: undefined});
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 
@@ -128,7 +128,7 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
       <div>{description}</div>
       {status === 'none' ? null : (
         <Fragment>
-          <SectionDivider />
+          <SectionDivider orientation="horizontal" />
           <div>
             {formattedMeterValueText} - {STATUS_TEXT[status]}
           </div>
@@ -140,79 +140,61 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
   const acronym = vitalDetails.acronym ?? vitalDetails.name;
   return (
     <VitalPillContainer>
-      <Tooltip title={toolTipTitle}>
-        <VitalPillName status={status}>{`${acronym}`}</VitalPillName>
-      </Tooltip>
+      <VitalPillName status={status}>
+        <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
+      </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </VitalPillContainer>
   );
 }
 
+const VitalMetersContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
 const VitalPillContainer = styled('div')`
   display: flex;
-  flex-direction: row;
-  max-width: 'auto';
-  height: 28px;
 `;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;
   align-items: center;
-  position: relative;
-  width: max-content;
-
-  height: 100%;
-  padding: 0 ${space(1)};
+  justify-content: center;
   border: solid 1px
     ${p =>
       p.status === 'none'
         ? p.theme.border
         : makePerformanceScoreColors(p.theme)[p.status].border};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
-
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: ${space(0.25)};
   text-decoration-thickness: 1px;
-
-  cursor: pointer;
+  padding: 0 ${space(1)};
 `;
 
 const VitalPillValue = styled('div')`
   display: flex;
-  flex: 1;
   align-items: center;
-  justify-content: flex-end;
-
-  height: 100%;
-  padding: 0 ${space(0.5)};
+  justify-content: center;
   border: 1px solid ${p => p.theme.border};
   border-left: none;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-
-  font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const VitalMetersContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: ${space(1)};
-  width: 'auto';
+  font-size: ${p => p.theme.fontSize.lg};
+  padding: 0 ${space(1)};
 `;
 
 const SecondaryVitalsCount = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SecondaryVitalsCountContainer = styled('div')`
@@ -235,11 +217,11 @@ function getPrimaryVitalsCount(
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.xxlarge, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints['2xl'], 10)) {
     return totalCount;
   }
 
-  if (containerWidth > parseInt(theme.breakpoints.small, 10)) {
+  if (containerWidth > parseInt(theme.breakpoints.sm, 10)) {
     if (type === 'web') {
       return totalCount;
     }

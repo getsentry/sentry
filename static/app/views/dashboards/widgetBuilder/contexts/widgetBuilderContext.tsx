@@ -1,9 +1,8 @@
 import type React from 'react';
 import {createContext, useContext} from 'react';
 
+import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useWidgetBuilderState from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-
-import {UrlParamBatchProvider} from './urlParamBatchContext';
 
 const WidgetBuilderContext = createContext<
   ReturnType<typeof useWidgetBuilderState> | undefined

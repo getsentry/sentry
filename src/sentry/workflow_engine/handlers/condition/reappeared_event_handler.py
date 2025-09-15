@@ -12,8 +12,8 @@ class ReappearedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        has_reappeared = event_data.has_reappeared
-        if has_reappeared is None:
+        has_escalated = event_data.has_escalated
+        if has_escalated is None:
             return False
 
-        return has_reappeared == comparison
+        return has_escalated == comparison

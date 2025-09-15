@@ -7,9 +7,9 @@ import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button, StyledButton} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -24,7 +24,7 @@ import type {
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;

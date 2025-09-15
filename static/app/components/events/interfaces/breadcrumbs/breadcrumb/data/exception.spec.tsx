@@ -9,7 +9,7 @@ import {Exception} from 'sentry/components/events/interfaces/breadcrumbs/breadcr
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
-describe('Breadcrumb Data Exception', function () {
+describe('Breadcrumb Data Exception', () => {
   const project = ProjectFixture({id: '0'});
 
   const {organization, router} = initializeOrg({
@@ -31,7 +31,7 @@ describe('Breadcrumb Data Exception', function () {
     ProjectsStore.loadInitialData([project]);
   });
 
-  it('display redacted message', async function () {
+  it('display redacted message', async () => {
     render(
       <Exception
         meta={{
@@ -83,7 +83,7 @@ describe('Breadcrumb Data Exception', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  it('display redacted data', async function () {
+  it('display redacted data', async () => {
     render(
       <Exception
         meta={{

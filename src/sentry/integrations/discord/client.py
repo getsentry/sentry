@@ -11,7 +11,9 @@ from rest_framework import status
 
 from sentry import options
 from sentry.integrations.client import ApiClient
+from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.exceptions import ApiError
 
 # to avoid a circular import
@@ -43,7 +45,7 @@ USER_URL = "/users/@me"
 
 
 class DiscordClient(ApiClient):
-    integration_name: str = "discord"
+    integration_name: str = IntegrationProviderSlug.DISCORD.value
     base_url: str = DISCORD_BASE_URL
     _METRICS_FAILURE_KEY: str = "sentry.integrations.discord.failure"
     _METRICS_SUCCESS_KEY: str = "sentry.integrations.discord.success"
@@ -105,7 +107,7 @@ class DiscordClient(ApiClient):
 
         # We only want information about guild_id and check the user's permission in the guild, but we can't currently do that
         # https://github.com/discord/discord-api-docs/discussions/6846
-        # TODO(iamrajjoshi): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
+        # TODO(ecosystem): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
         # Instead, we check if the user in a member of the guild
 
         try:
@@ -230,7 +232,7 @@ class DiscordClient(ApiClient):
         )
         self.logger.info("handled discord success", extra=log_params)
 
-    def send_message(self, channel_id: str, message: dict[str, object]) -> None:
+    def send_message(self, channel_id: str, message: DiscordMessage) -> None:
         """
         Send a message to the specified channel.
         """

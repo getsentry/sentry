@@ -8,7 +8,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SentryAppDetailsDocsTest(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.project = self.create_project(organization=self.org)
         self.group = self.create_group(project=self.project)
@@ -33,7 +33,7 @@ class SentryAppDetailsDocsTest(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         response = self.client.delete(self.url)
         request = RequestFactory().delete(self.url)
 

@@ -5,9 +5,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
+const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanFields;
 
 function RenderBlockingSelector({value}: {value?: string}) {
   const navigate = useNavigate();

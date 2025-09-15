@@ -48,5 +48,5 @@ export default EventOrGroupTitle;
 
 const Title = styled('span')`
   position: relative;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

@@ -106,21 +106,16 @@ function ActionSet({
 
   const nestReview = !FOR_REVIEW_QUERIES.includes(query);
 
+  const handleMergeClick = () => {
+    openConfirmModal({
+      bypass: !onShouldConfirm(ConfirmAction.MERGE),
+      onConfirm: onMerge,
+      message: confirm({action: ConfirmAction.MERGE, canBeUndone: false}),
+      confirmText: label('merge'),
+    });
+  };
+
   const menuItems: MenuItemProps[] = [
-    {
-      key: 'merge',
-      label: t('Merge'),
-      disabled: mergeDisabled,
-      details: makeMergeTooltip(),
-      onAction: () => {
-        openConfirmModal({
-          bypass: !onShouldConfirm(ConfirmAction.MERGE),
-          onConfirm: onMerge,
-          message: confirm({action: ConfirmAction.MERGE, canBeUndone: false}),
-          confirmText: label('merge'),
-        });
-      },
-    },
     {
       key: 'mark-reviewed',
       label: t('Mark Reviewed'),
@@ -223,6 +218,14 @@ function ActionSet({
         confirmLabel={label('archive')}
         disabled={ignoreDisabled}
       />
+      <Button
+        size="xs"
+        onClick={handleMergeClick}
+        disabled={mergeDisabled}
+        title={makeMergeTooltip()}
+      >
+        {t('Merge')}
+      </Button>
       <DropdownMenu
         triggerLabel={t('Set Priority')}
         size="xs"

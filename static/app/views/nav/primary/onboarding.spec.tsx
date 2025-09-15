@@ -3,13 +3,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
-import * as useOnboardingSidebar from 'sentry/views/onboarding/useOnboardingSidebar';
-
-const userMock = UserFixture();
 
 jest.mock('framer-motion', () => ({
   ...jest.requireActual('framer-motion'),
@@ -33,17 +29,10 @@ function renderMockRequests(organization: Organization) {
   return {getOnboardingTasksMock, mutateUserOptionsMock};
 }
 
-describe('Onboarding Status', function () {
+describe('Onboarding Status', () => {
   const organizationId = OrganizationFixture().id;
 
-  beforeEach(function () {
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {...userMock.options, quickStartDisplay: {[organizationId]: 2}},
-      })
-    );
-
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -60,7 +49,7 @@ describe('Onboarding Status', function () {
     });
   });
 
-  it('displays pending tasks', async function () {
+  it('displays pending tasks', async () => {
     const organization = OrganizationFixture({
       id: organizationId,
       features: ['onboarding'],
@@ -108,83 +97,5 @@ describe('Onboarding Status', function () {
     await waitFor(() =>
       expect(screen.queryByTestId('pending-seen-indicator')).not.toBeInTheDocument()
     );
-  });
-
-  it("overlay is not automatically opened because the user option 'quickStartDisplay' is not set", async function () {
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {...userMock.options, quickStartDisplay: {}},
-      })
-    );
-
-    const organization = OrganizationFixture({
-      id: organizationId,
-      features: ['onboarding'],
-    });
-
-    const {mutateUserOptionsMock} = renderMockRequests(organization);
-
-    const mockActivateSidebar = jest.fn();
-
-    jest.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
-      activateSidebar: mockActivateSidebar,
-    });
-
-    render(<PrimaryNavigationOnboarding />, {
-      organization,
-    });
-
-    await waitFor(() =>
-      expect(mutateUserOptionsMock).toHaveBeenCalledWith(
-        '/users/me/',
-        expect.objectContaining({
-          data: {
-            options: {quickStartDisplay: {[organizationId]: 1}},
-          },
-        })
-      )
-    );
-
-    expect(mockActivateSidebar).not.toHaveBeenCalled();
-  });
-
-  it("overlay is automatically opened because the user option 'quickStartDisplay' is set to 1", async function () {
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {...userMock.options, quickStartDisplay: {[organizationId]: 1}},
-      })
-    );
-
-    const organization = OrganizationFixture({
-      id: organizationId,
-      features: ['onboarding'],
-    });
-
-    const {mutateUserOptionsMock} = renderMockRequests(organization);
-
-    const mockActivateSidebar = jest.fn();
-
-    jest.spyOn(useOnboardingSidebar, 'useOnboardingSidebar').mockReturnValue({
-      activateSidebar: mockActivateSidebar,
-    });
-
-    render(<PrimaryNavigationOnboarding />, {
-      organization,
-    });
-
-    await waitFor(() =>
-      expect(mutateUserOptionsMock).toHaveBeenCalledWith(
-        '/users/me/',
-        expect.objectContaining({
-          data: {
-            options: {quickStartDisplay: {[organizationId]: 2}},
-          },
-        })
-      )
-    );
-
-    expect(mockActivateSidebar).toHaveBeenCalled();
   });
 });

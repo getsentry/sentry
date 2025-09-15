@@ -12,14 +12,14 @@ from .test_project_templates_index import ProjectTemplateAPIBase
 class ProjectTemplateDetailTest(ProjectTemplateAPIBase):
     endpoint = "sentry-api-0-organization-project-template-detail"
 
-    def test_get__no_feature(self):
+    def test_get__no_feature(self) -> None:
         response = self.get_error_response(
             self.organization.id, self.project_template.id, status_code=404
         )
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_get(self):
+    def test_get(self) -> None:
         self.project_template.options.create(
             project_template=self.project_template, key="sentry:release_track", value="test"
         )
@@ -29,7 +29,7 @@ class ProjectTemplateDetailTest(ProjectTemplateAPIBase):
         assert response.data["options"] == {"sentry:release_track": "test"}
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_get__not_found(self):
+    def test_get__not_found(self) -> None:
         response = self.get_error_response(self.organization.id, 100, status_code=404)
         assert response.status_code == 404
         assert response.data == {
@@ -39,7 +39,7 @@ class ProjectTemplateDetailTest(ProjectTemplateAPIBase):
         }
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_get__wrong_id(self):
+    def test_get__wrong_id(self) -> None:
         org_two = self.create_organization()
         project_template = self.create_project_template(organization=org_two)
 
@@ -54,7 +54,7 @@ class ProjectTemplateDetailTest(ProjectTemplateAPIBase):
         }
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_get__no_access(self):
+    def test_get__no_access(self) -> None:
         # Create a new organization and project template
         org_two = self.create_organization()
         project_template = self.create_project_template(organization=org_two)
@@ -68,14 +68,14 @@ class ProjectTemplateUpdateTest(ProjectTemplateAPIBase):
     endpoint = "sentry-api-0-organization-project-template-detail"
     method = "put"
 
-    def test_put__no_feature(self):
+    def test_put__no_feature(self) -> None:
         response = self.get_error_response(
             self.organization.id, self.project_template.id, status_code=404
         )
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_put__only_name(self):
+    def test_put__only_name(self) -> None:
         response = self.get_success_response(
             self.organization.id,
             self.project_template.id,
@@ -89,7 +89,7 @@ class ProjectTemplateUpdateTest(ProjectTemplateAPIBase):
         assert self.project_template.name == "Updated"
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_put__only_options(self):
+    def test_put__only_options(self) -> None:
         options = {"sentry:release_track": "test"}
         response = self.get_success_response(
             self.organization.id, self.project_template.id, options=options
@@ -105,7 +105,7 @@ class ProjectTemplateUpdateTest(ProjectTemplateAPIBase):
         }
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_put__name_and_options(self):
+    def test_put__name_and_options(self) -> None:
         options = {"sentry:release_track": "test"}
         response = self.get_success_response(
             self.organization.id,
@@ -125,7 +125,7 @@ class ProjectTemplateUpdateTest(ProjectTemplateAPIBase):
         }
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_put__not_found(self):
+    def test_put__not_found(self) -> None:
         response = self.get_error_response(self.organization.id, 100, status_code=404)
 
         assert response.status_code == 404
@@ -140,14 +140,14 @@ class ProjectTemplateDetailDeleteTest(ProjectTemplateAPIBase):
     endpoint = "sentry-api-0-organization-project-template-detail"
     method = "delete"
 
-    def test_delete__no_feature(self):
+    def test_delete__no_feature(self) -> None:
         response = self.get_error_response(
             self.organization.id, self.project_template.id, status_code=404
         )
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_delete(self):
+    def test_delete(self) -> None:
         template_id = self.project_template.id
         response = self.get_success_response(self.organization.id, template_id, status_code=204)
         assert response.status_code == 204
@@ -156,7 +156,7 @@ class ProjectTemplateDetailDeleteTest(ProjectTemplateAPIBase):
             ProjectTemplate.objects.get(id=template_id)
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_delete__with_options(self):
+    def test_delete__with_options(self) -> None:
         template_id = self.project_template.id
         self.project_template.options.create(
             project_template=self.project_template, key="sentry:release_track", value="test"
@@ -177,7 +177,7 @@ class ProjectTemplateDetailDeleteTest(ProjectTemplateAPIBase):
         assert ProjectTemplateOption.objects.filter(project_template_id=template_id).count() == 0
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_delete__as_member_without_permission(self):
+    def test_delete__as_member_without_permission(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="member")
         self.login_as(user)

@@ -6,30 +6,35 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useExploreMode} from 'sentry/views/explore/contexts/pageParamsContext';
+import {
+  ToolbarHeader,
+  ToolbarLabel,
+  ToolbarRow,
+  ToolbarSection,
+} from 'sentry/views/explore/components/toolbar/styles';
+import {
+  useExploreFields,
+  useExploreSortBys,
+  useSetExploreSortBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 
-import {ToolbarHeader, ToolbarLabel, ToolbarRow, ToolbarSection} from './styles';
+export function ToolbarSortBy() {
+  const mode = useQueryParamsMode();
+  const fields = useExploreFields();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
 
-interface ToolbarSortByProps {
-  fields: string[];
-  groupBys: string[];
-  setSorts: (newSorts: Sort[]) => void;
-  sorts: Sort[];
-  visualizes: Visualize[];
-}
+  const sorts = useExploreSortBys();
+  const setSorts = useSetExploreSortBys();
 
-export function ToolbarSortBy({
-  fields,
-  groupBys,
-  setSorts,
-  sorts,
-  visualizes,
-}: ToolbarSortByProps) {
-  const mode = useExploreMode();
   const [tab] = useTab();
 
   // traces table is only sorted by timestamp so disable the sort by

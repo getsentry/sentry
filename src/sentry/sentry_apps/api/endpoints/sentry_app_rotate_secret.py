@@ -27,7 +27,7 @@ class SentryAppRotateSecretPermission(DemoSafePermission):
         "POST": ["org:write", "org:admin"],
     }
 
-    def has_object_permission(self, request: Request, view: object, sentry_app: SentryApp):
+    def has_object_permission(self, request: Request, view: object, sentry_app: SentryApp) -> bool:
         log_info = {
             "user_id": request.user.id,
             "sentry_app_name": sentry_app.name,

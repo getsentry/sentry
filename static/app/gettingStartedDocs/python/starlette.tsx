@@ -1,6 +1,6 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -10,13 +10,15 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
-  AlternativeConfiguration,
+  agentMonitoringOnboarding,
   crashReportOnboardingPython,
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
+  AlternativeConfiguration,
   getPythonInstallConfig,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -31,6 +33,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -139,8 +147,25 @@ app = Starlette(routes=[
       ),
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [] as any[];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[starlette]',
+});
 
 const docs: Docs = {
   onboarding,
@@ -151,6 +176,8 @@ const docs: Docs = {
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
+  agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

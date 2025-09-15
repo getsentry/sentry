@@ -1,3 +1,4 @@
+from enum import StrEnum
 from typing import Any, Union
 
 from sentry.issues.grouptype import GroupCategory
@@ -6,6 +7,20 @@ from sentry.issues.grouptype import GroupCategory
 SlackAttachment = dict[str, Any]
 SlackBlock = dict[str, Any]
 SlackBody = Union[SlackAttachment, SlackBlock]
+
+
+class SlackAction(StrEnum):
+    """
+    These are encoded into the action_id of a Slack block (see `encode_action_id` in `routing.py`).
+    Keep in mind that Slack requires each action in a message to have a unique action_id.
+    """
+
+    STATUS = "status"
+    UNRESOLVED_ONGOING = "unresolved:ongoing"
+    RESOLVE_DIALOG = "resolve_dialog"
+    ARCHIVE_DIALOG = "archive_dialog"
+    ASSIGN = "assign"
+
 
 INCIDENT_COLOR_MAPPING = {
     "Resolved": "_incident_resolved",

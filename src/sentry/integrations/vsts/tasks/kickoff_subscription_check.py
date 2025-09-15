@@ -3,6 +3,7 @@ from time import time
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -29,7 +30,7 @@ def kickoff_vsts_subscription_check() -> None:
     from sentry.integrations.vsts.tasks import vsts_subscription_check
 
     organization_integrations = OrganizationIntegration.objects.filter(
-        integration__provider="vsts",
+        integration__provider=IntegrationProviderSlug.AZURE_DEVOPS.value,
         integration__status=ObjectStatus.ACTIVE,
         status=ObjectStatus.ACTIVE,
     ).select_related("integration")

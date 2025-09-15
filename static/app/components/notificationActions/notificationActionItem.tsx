@@ -285,7 +285,7 @@ function NotificationActionItem({
         return (
           <NotificationActionFormContainer>
             <NotificationActionCell>{renderDescription()}</NotificationActionCell>
-            <ButtonBar gap={0.5}>
+            <ButtonBar gap="xs">
               <Button onClick={handleCancel} size="xs">
                 {t('Cancel')}
               </Button>
@@ -390,7 +390,7 @@ const NotificationActionFormContainer = styled('div')`
 
 const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.borderRadius};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export default NotificationActionItem;

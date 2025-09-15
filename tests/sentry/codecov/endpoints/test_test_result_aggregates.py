@@ -1,4 +1,4 @@
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 from django.urls import reverse
 
@@ -8,8 +8,16 @@ from sentry.testutils.cases import APITestCase
 class TestResultsAggregatesEndpointTest(APITestCase):
     endpoint_name = "sentry-api-0-test-results-aggregates"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
+        self.user = self.create_user(email="user@example.com")
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="1234",
+            name="testowner",
+            provider="github",
+        )
         self.login_as(user=self.user)
 
     def reverse_url(self, owner="testowner", repository="testrepo"):
@@ -17,15 +25,16 @@ class TestResultsAggregatesEndpointTest(APITestCase):
         return reverse(
             self.endpoint_name,
             kwargs={
-                "owner": owner,
+                "organization_id_or_slug": self.organization.slug,
+                "owner": self.integration.id,
                 "repository": repository,
             },
         )
 
     @patch(
-        "sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates.CodecovApiClient"
+        "sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates.CodecovApiClient"
     )
-    def test_get_returns_mock_response(self, mock_codecov_client_class):
+    def test_get_returns_mock_response(self, mock_codecov_client_class: MagicMock) -> None:
         mock_graphql_response = {
             "data": {
                 "owner": {
@@ -85,9 +94,9 @@ class TestResultsAggregatesEndpointTest(APITestCase):
         assert response.data["flakeRatePercentChange"] == 0.1
 
     @patch(
-        "sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates.CodecovApiClient"
+        "sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates.CodecovApiClient"
     )
-    def test_get_with_interval_query_param(self, mock_codecov_client_class):
+    def test_get_with_interval_query_param(self, mock_codecov_client_class: MagicMock) -> None:
         mock_graphql_response = {
             "data": {
                 "owner": {
@@ -125,7 +134,7 @@ class TestResultsAggregatesEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        response = self.client.get(url, {"interval": "INTERVAL_7_DAY"})
+        response = self.client.get(url, {"interval": "INTERVAL_7_DAY", "branch": "main"})
 
         assert response.status_code == 200
         mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
@@ -134,6 +143,7 @@ class TestResultsAggregatesEndpointTest(APITestCase):
             variables={
                 "owner": "testowner",
                 "repo": "testrepo",
+                "branch": "main",
                 "interval": "INTERVAL_7_DAY",
             },
         )

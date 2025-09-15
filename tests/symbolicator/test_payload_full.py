@@ -8,7 +8,6 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry import eventstore
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -17,6 +16,7 @@ from sentry.models.artifactbundle import (
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
+from sentry.services import eventstore
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
@@ -102,7 +102,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
     def get_event(self, event_id):
         return eventstore.backend.get_event_by_id(self.project.id, event_id)
 
-    def test_real_resolving(self):
+    def test_real_resolving(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -139,7 +139,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         insta_snapshot_native_stacktrace_data(self, event.data)
 
-    def test_debug_id_resolving(self):
+    def test_debug_id_resolving(self) -> None:
         file = File.objects.create(
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
         )
@@ -203,14 +203,14 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         insta_snapshot_native_stacktrace_data(self, event.data)
 
     @pytest.mark.skip(reason="flaky: #93040")
-    def test_missing_dsym(self):
+    def test_missing_dsym(self) -> None:
         self.login_as(user=self.user)
 
         event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
         assert event.data["culprit"] == "unknown"
         insta_snapshot_native_stacktrace_data(self, event.data)
 
-    def test_missing_debug_images(self):
+    def test_missing_debug_images(self) -> None:
         self.login_as(user=self.user)
 
         payload = dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA)
@@ -220,7 +220,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         assert event.data["culprit"] == "unknown"
         insta_snapshot_native_stacktrace_data(self, event.data)
 
-    def test_resolving_with_candidates_sentry_source(self):
+    def test_resolving_with_candidates_sentry_source(self) -> None:
         # Checks the candidates with a sentry source URI for location
         file = File.objects.create(
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
@@ -278,7 +278,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         redact_location(candidates)
         self.insta_snapshot(candidates)
 
-    def test_resolve_mixed_stack_trace(self):
+    def test_resolve_mixed_stack_trace(self) -> None:
         # JS debug files:
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 

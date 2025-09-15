@@ -40,6 +40,29 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
       </Fragment>
     );
   });
+  story('Default example with trailing items', () => {
+    return (
+      <FoldSection
+        title="Default Section"
+        sectionKey={SectionKey.HIGHLIGHTS}
+        actions={
+          <ButtonBar>
+            <Button size="xs" icon={<IconAdd />}>
+              Add
+            </Button>
+            <Button size="xs" icon={<IconSubtract />}>
+              Remove
+            </Button>
+            <Button size="xs" icon={<IconCopy />}>
+              Copy
+            </Button>
+          </ButtonBar>
+        }
+      >
+        <Lorem />
+      </FoldSection>
+    );
+  });
 
   story('Preventing user from collapsing the section', () => {
     return (
@@ -91,7 +114,7 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         <FoldSection
           title="Header with Actions"
           actions={
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <Button size="xs" icon={<IconAdd />}>
                 Add
               </Button>

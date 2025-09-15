@@ -10,14 +10,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import QueuesSummaryLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryLatencyChartWidget';
 import QueuesSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -29,6 +31,8 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
 function DestinationSummaryPage() {
+  const moduleTitle = useModuleTitle(ModuleName.QUEUE);
+  const moduleURL = useModuleURL(ModuleName.QUEUE);
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -53,12 +57,17 @@ function DestinationSummaryPage() {
         headerTitle={destination}
         breadcrumbs={[
           {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
             label: DESTINATION_TITLE,
           },
         ]}
         module={ModuleName.QUEUE}
+        hideDefaultTabs
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
+      <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -83,7 +92,9 @@ function DestinationSummaryPage() {
                       />
                       <MetricReadout
                         title={t('Avg Processing Time')}
-                        value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
+                        value={
+                          data[0]?.['avg_if(span.duration,span.op,equals,queue.process)']
+                        }
                         unit={DurationUnit.MILLISECOND}
                         isLoading={isPending}
                       />
@@ -136,7 +147,7 @@ function DestinationSummaryPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </Fragment>
   );
 }

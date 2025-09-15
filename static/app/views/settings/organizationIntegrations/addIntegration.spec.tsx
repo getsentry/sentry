@@ -3,12 +3,13 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
-describe('AddIntegration', function () {
+describe('AddIntegration', () => {
   const provider = GitHubIntegrationProviderFixture();
   const integration = GitHubIntegrationFixture();
   let configState: Config;
@@ -24,7 +25,7 @@ describe('AddIntegration', function () {
     }
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     configState = ConfigStore.getState();
     ConfigStore.loadInitialData({
       ...configState,
@@ -40,16 +41,16 @@ describe('AddIntegration', function () {
       },
     });
 
-    window.location.assign('https://foobar.sentry.io');
+    setWindowLocation('https://foobar.sentry.io');
     window.addEventListener('message', interceptMessageEvent);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     window.removeEventListener('message', interceptMessageEvent);
     ConfigStore.loadInitialData(configState);
   });
 
-  it('Adds an integration on dialog completion', async function () {
+  it('Adds an integration on dialog completion', async () => {
     const onAdd = jest.fn();
 
     const focus = jest.fn();

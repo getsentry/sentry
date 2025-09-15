@@ -3,20 +3,27 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.functional import cached_property
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -33,6 +40,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
@@ -44,14 +52,12 @@ from sentry.testutils.silo import assume_test_silo_mode
 # on a per-class method basis
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    UptimeStatus,
-    UptimeSubscription,
-    UptimeSubscriptionRegion,
-    create_detector_from_project_subscription,
+from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    UptimeMonitorMode,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -142,7 +148,7 @@ class Fixtures:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def integration(self):
         integration = Integration.objects.create(
-            provider="github",
+            provider=IntegrationProviderSlug.GITHUB.value,
             name="GitHub",
             external_id="github:1",
             metadata={
@@ -275,6 +281,18 @@ class Fixtures:
     def create_commit_file_change(self, *args, **kwargs):
         return Factories.create_commit_file_change(*args, **kwargs)
 
+    def create_pull_request(self, *args, **kwargs):
+        return Factories.create_pull_request(*args, **kwargs)
+
+    def create_pull_request_comment(self, *args, **kwargs):
+        return Factories.create_pull_request_comment(*args, **kwargs)
+
+    def create_pull_request_commit(self, *args, **kwargs):
+        return Factories.create_pull_request_commit(*args, **kwargs)
+
+    def create_release_commit(self, *args, **kwargs):
+        return Factories.create_release_commit(*args, **kwargs)
+
     def create_user(self, *args, **kwargs) -> User:
         return Factories.create_user(*args, **kwargs)
 
@@ -310,6 +328,28 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
+
+    def create_group_activity(self, group=None, *args, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_activity(group, *args, **kwargs)
+
+    def create_n_groups_with_hashes(
+        self, number_of_groups: int, project: Project, group_type: int | None = None
+    ) -> list[Group]:
+        groups = []
+        for _ in range(number_of_groups):
+            if group_type:
+                group = self.create_group(
+                    project=project, status=GroupStatus.RESOLVED, type=group_type
+                )
+            else:
+                group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+            hash = uuid4().hex
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+            groups.append(group)
+
+        return groups
 
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)
@@ -451,8 +491,13 @@ class Fixtures:
         else:
             project_id = kwargs.pop("project").id
 
+        if "organization" in kwargs:
+            organization = kwargs.pop("organization")
+        else:
+            organization = self.organization
+
         return Monitor.objects.create(
-            organization_id=self.organization.id,
+            organization_id=organization.id,
             project_id=project_id,
             config={
                 "schedule": "* * * * *",
@@ -493,6 +538,9 @@ class Fixtures:
         return Factories.create_external_team(
             team=team, organization=team.organization, integration_id=integration.id, **kwargs
         )
+
+    def create_data_access_grant(self, **kwargs):
+        return Factories.create_data_access_grant(**kwargs)
 
     def create_codeowners(self, project=None, code_mapping=None, **kwargs):
         if not project:
@@ -664,6 +712,9 @@ class Fixtures:
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
 
+    def create_detector_group(self, *args, **kwargs):
+        return Factories.create_detector_group(*args, **kwargs)
+
     def create_alert_rule_detector(self, *args, **kwargs):
         # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_detector(*args, **kwargs)
@@ -749,30 +800,98 @@ class Fixtures:
     ):
         Factories.create_uptime_subscription_region(subscription, region_slug, mode)
 
-    def create_project_uptime_subscription(
+    def create_uptime_detector(
         self,
         project: Project | None = None,
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         status: int = ObjectStatus.ACTIVE,
-        mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        enabled: bool = True,
+        mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
         uptime_status_update_date: datetime | None = None,
         id: int | None = None,
-    ) -> ProjectUptimeSubscription:
+    ) -> Detector:
         if project is None:
             project = self.project
         if env is None:
             env = self.environment
+
+        actor = Actor.from_object(owner) if owner else None
+        owner_team_id = None
+        owner_user_id = None
+        if actor:
+            if actor.is_team:
+                owner_team_id = actor.id
+            elif actor.is_user:
+                owner_user_id = actor.id
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription(
                 uptime_status=uptime_status,
                 uptime_status_update_date=uptime_status_update_date,
             )
-        monitor = Factories.create_project_uptime_subscription(
+
+        data_source = Factories.create_data_source(
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+            organization=project.organization,
+            source_id=str(uptime_subscription.id),
+        )
+        condition_group = Factories.create_data_condition_group(
+            organization=project.organization,
+        )
+        Factories.create_data_condition(
+            comparison=CHECKSTATUS_FAILURE,
+            type=Condition.EQUAL,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=condition_group,
+        )
+        Factories.create_data_condition(
+            comparison=CHECKSTATUS_SUCCESS,
+            type=Condition.EQUAL,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=condition_group,
+        )
+        env_name = env.name if env else None
+        detector = Factories.create_detector(
+            id=id,
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            project=project,
+            name=name,
+            status=status,
+            enabled=enabled,
+            owner_user_id=owner_user_id,
+            owner_team_id=owner_team_id,
+            config={
+                "environment": env_name,
+                "mode": mode,
+            },
+            workflow_condition_group=condition_group,
+        )
+        Factories.create_data_source_detector(
+            data_source=data_source,
+            detector=detector,
+        )
+
+        # Create DetectorState based on the uptime_status from the uptime_subscription
+        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+            Factories.create_detector_state(
+                detector=detector,
+                state=DetectorPriorityLevel.HIGH,
+                is_triggered=True,
+            )
+        else:
+            Factories.create_detector_state(
+                detector=detector,
+                state=DetectorPriorityLevel.OK,
+                is_triggered=False,
+            )
+
+        # TODO(epurkhiser): Dual create a ProjectUptimeSubscription as well,
+        # can be removed once we completely remove ProjectUptimeSubscription
+        Factories.create_project_uptime_subscription(
             project,
             env,
             uptime_subscription,
@@ -782,11 +901,8 @@ class Fixtures:
             Actor.from_object(owner) if owner else None,
             id,
         )
-        # TODO(epurkhiser): Dual create a detector as well, can be removed
-        # once we completely remove ProjectUptimeSubscription
-        create_detector_from_project_subscription(monitor)
 
-        return monitor
+        return detector
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

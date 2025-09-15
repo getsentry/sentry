@@ -5,13 +5,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 
 jest.mock('sentry/utils/usePageFilters');
 
-describe('MetricsRibbon', function () {
+describe('MetricsRibbon', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
@@ -46,7 +45,7 @@ describe('MetricsRibbon', function () {
     ],
   });
 
-  it('makes a request to discover with the correct dataset and fields', async function () {
+  it('makes a request to discover with the correct dataset and fields', async () => {
     const mockEventsQuery = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -56,7 +55,6 @@ describe('MetricsRibbon', function () {
 
     render(
       <MobileMetricsRibbon
-        dataset={DiscoverDatasets.SPANS_METRICS}
         filters={[
           'duration:>0',
           'transaction.op:ui.load',
@@ -87,7 +85,7 @@ describe('MetricsRibbon', function () {
         query: expect.objectContaining({
           query: 'duration:>0 transaction.op:ui.load transaction:test-transaction',
           referrer: 'test-referrer',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           field: ['count()', 'avg(span.duration)'],
         }),
       })

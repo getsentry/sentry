@@ -1,7 +1,7 @@
 import {Fragment, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -263,17 +263,17 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
 `;
 
 const ScheduleLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(2)};
 `;
 
 const Label = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 
 const SubHeading = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};
@@ -305,7 +305,7 @@ const IntervalInputs = styled(MultiColumnInput)`
 
 const CronstrueText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;
 `;

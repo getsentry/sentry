@@ -10,7 +10,7 @@ from sentry.api.fields.serializedfile import FileUpload, SerializedFileField
 
 # XXX: ideally we'd have an integration test covering this field, but at the time of writing its unused in this codebase
 class SerializedFileFieldTest(unittest.TestCase):
-    def test_to_representation(self):
+    def test_to_representation(self) -> None:
         field = SerializedFileField()
 
         assert field.to_representation(None) == ""
@@ -23,7 +23,7 @@ class SerializedFileFieldTest(unittest.TestCase):
         )
         assert result == ["filename.txt", "aGVsbG8gd29ybGQ="]
 
-    def test_to_internal_value(self):
+    def test_to_internal_value(self) -> None:
         field = SerializedFileField()
 
         assert field.to_internal_value("") is None

@@ -36,14 +36,13 @@ describe('AlertWizard', () => {
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
     await userEvent.click(screen.getByText('Set Conditions'));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/alerts/new/metric/',
+      pathname: '/organizations/org-slug/issues/alerts/new/metric/',
       query: {
         aggregate:
           'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
         dataset: 'metrics',
         eventTypes: 'session',
         project: 'project-slug',
-        referrer: undefined,
       },
     });
   });
@@ -56,7 +55,7 @@ describe('AlertWizard', () => {
           'incidents',
           'performance-view',
           'crash-rate-alerts',
-          'insights-addon-modules',
+          'insight-modules',
           'uptime',
         ],
         access: ['org:write', 'alerts:write'],
@@ -180,6 +179,67 @@ describe('AlertWizard', () => {
     expect(
       screen.getByText(/Throughput is the total number of spans/)
     ).toBeInTheDocument();
+  });
+
+  it('hides logs aggregate alerts according to feature flag', () => {
+    const {organization, project, routerProps, router} = initializeOrg({
+      organization: {
+        features: [
+          'alert-crash-free-metrics',
+          'incidents',
+          'performance-view',
+          'crash-rate-alerts',
+          'visibility-explore-view',
+          'performance-transaction-deprecation-alerts',
+        ],
+        access: ['org:write', 'alerts:write'],
+      },
+    });
+
+    render(
+      <AlertWizard
+        organization={organization}
+        projectId={project.slug}
+        {...routerProps}
+      />,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+  });
+
+  it('shows logs aggregate alerts according to feature flag', () => {
+    const {organization, project, routerProps, router} = initializeOrg({
+      organization: {
+        features: [
+          'alert-crash-free-metrics',
+          'incidents',
+          'performance-view',
+          'visibility-explore-view',
+          'ourlogs-enabled',
+        ],
+        access: ['org:write', 'alerts:write'],
+      },
+    });
+
+    render(
+      <AlertWizard
+        organization={organization}
+        projectId={project.slug}
+        {...routerProps}
+      />,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(screen.getAllByText('Logs')).toHaveLength(2);
   });
 
   it('shows transaction aggregate alerts according to feature flag', async () => {

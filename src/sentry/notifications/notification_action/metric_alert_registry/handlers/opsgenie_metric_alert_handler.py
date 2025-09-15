@@ -1,3 +1,5 @@
+import logging
+
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -11,6 +13,8 @@ from sentry.models.project import Project
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.workflow_engine.models import Action
+
+logger = logging.getLogger(__name__)
 
 
 @metric_alert_handler_registry.register(Action.Type.OPSGENIE)
@@ -27,6 +31,13 @@ class OpsgenieMetricAlertHandler(BaseMetricAlertHandler):
         organization: Organization,
         project: Project,
     ) -> None:
+
+        logger.info(
+            "notification_action.execute_via_metric_alert_handler.opsgenie",
+            extra={
+                "action_id": alert_context.action_identifier_id,
+            },
+        )
 
         send_incident_alert_notification(
             notification_context=notification_context,

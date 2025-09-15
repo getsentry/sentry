@@ -9,10 +9,10 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 
 class ConcurrentLimiterTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = ConcurrentRateLimiter()
 
-    def test_add_and_remove(self):
+    def test_add_and_remove(self) -> None:
         """Test the basic adding and removal of requests to the concurrent
         rate limiter, no concurrency testing done here"""
         limit = 8
@@ -34,7 +34,7 @@ class ConcurrentLimiterTest(TestCase):
             self.backend.finish_request("foo", "request_id1")
             assert self.backend.get_concurrent_requests("foo") == limit - 1
 
-    def test_fails_open(self):
+    def test_fails_open(self) -> None:
         class FakeClient:
             def __init__(self, real_client):
                 self._client = real_client
@@ -52,7 +52,7 @@ class ConcurrentLimiterTest(TestCase):
             assert failed_request.limit_exceeded is False
             limiter.finish_request("key", "some_uid")
 
-    def test_cleanup_stale(self):
+    def test_cleanup_stale(self) -> None:
         limit = 10
         num_stale = 5
         request_date = datetime(2000, 1, 1)
@@ -70,11 +70,11 @@ class ConcurrentLimiterTest(TestCase):
                 self.backend.start_request("foo", limit, "updated_request").current_executions == 1
             )
 
-    def test_finish_non_existent(self):
+    def test_finish_non_existent(self) -> None:
         # this shouldn't crash
         self.backend.finish_request("fasdlfkdsalfkjlasdkjlasdkjflsakj", "fsdlkajflsdakjsda")
 
-    def test_concurrent(self):
+    def test_concurrent(self) -> None:
         def do_request():
             uid = uuid.uuid4().hex
             meta = self.backend.start_request("foo", 3, uid)

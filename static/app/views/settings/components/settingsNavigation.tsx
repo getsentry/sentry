@@ -126,7 +126,7 @@ const PositionStickyWrapper = styled('div')<{stickyTop: string}>`
   padding: ${space(4)};
   padding-right: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     position: sticky;
     top: ${p => p.stickyTop};
     overflow: scroll;

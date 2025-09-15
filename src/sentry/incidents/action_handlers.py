@@ -7,11 +7,13 @@ from typing import Any
 from urllib.parse import urlencode
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
 from sentry import analytics, features
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
@@ -25,6 +27,7 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializer,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
@@ -43,7 +46,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -102,16 +105,20 @@ class ActionHandler(metaclass=abc.ABCMeta):
         external_id: int | str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
-        analytics.record(
-            "alert.sent",
-            organization_id=organization_id,
-            project_id=project_id,
-            provider=self.provider,
-            alert_id=alert_id,
-            alert_type="metric_alert",
-            external_id=str(external_id) if external_id is not None else "",
-            notification_uuid=notification_uuid or "",
-        )
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    organization_id=organization_id,
+                    project_id=project_id,
+                    provider=self.provider,
+                    alert_id=alert_id,
+                    alert_type="metric_alert",
+                    external_id=str(external_id) if external_id is not None else "",
+                    notification_uuid=notification_uuid or "",
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 class DefaultActionHandler(ActionHandler):
@@ -318,15 +325,15 @@ class EmailActionHandler(ActionHandler):
 
 
 @AlertRuleTriggerAction.register_type(
-    "pagerduty",
+    IntegrationProviderSlug.PAGERDUTY.value,
     AlertRuleTriggerAction.Type.PAGERDUTY,
     [AlertRuleTriggerAction.TargetType.SPECIFIC],
-    integration_provider="pagerduty",
+    integration_provider=IntegrationProviderSlug.PAGERDUTY.value,
 )
 class PagerDutyActionHandler(DefaultActionHandler):
     @property
     def provider(self) -> str:
-        return "pagerduty"
+        return IntegrationProviderSlug.PAGERDUTY.value
 
     def send_alert(
         self,
@@ -499,13 +506,19 @@ def generate_incident_trigger_email_context(
     alert_context: AlertContext,
     open_period_context: OpenPeriodContext,
     trigger_status: TriggerStatus,
-    trigger_threshold: float,
+    trigger_threshold: float | None,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
-):
+) -> dict[str, Any]:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
+
     snuba_query = metric_issue_context.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
-    is_threshold_type_above = alert_context.threshold_type == AlertRuleThresholdType.ABOVE
+    is_threshold_type_above = (
+        alert_context.threshold_type == AlertRuleThresholdType.ABOVE
+        or alert_context.threshold_type == AnomalyDetectionThresholdType.ABOVE
+    )
     subscription = metric_issue_context.subscription
     alert_link_params = {
         "referrer": "metric_alert_email",
@@ -579,7 +592,7 @@ def generate_incident_trigger_email_context(
             ),
             query=urlencode(alert_link_params),
         )
-    elif features.has("organizations:workflow-engine-trigger-actions", organization):
+    elif should_fire_workflow_actions(organization, MetricIssue.type_id):
         # lookup the incident_id from the open_period_identifier
         try:
             incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
@@ -676,7 +689,8 @@ def email_users(
         user = users[index]
         # TODO(iamrajjoshi): Temporarily assert that alert_threshold is not None
         # This should be removed when we update the typing and fetch the trigger_threshold in the new system
-        assert alert_context.alert_threshold is not None
+        if trigger_status == TriggerStatus.ACTIVE:
+            assert alert_context.alert_threshold is not None
 
         email_context = generate_incident_trigger_email_context(
             project=project,

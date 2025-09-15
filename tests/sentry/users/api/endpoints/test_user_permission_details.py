@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.api.permissions import StaffPermission
 from sentry.testutils.cases import APITestCase
@@ -11,7 +11,7 @@ from sentry.users.models.userpermission import UserPermission
 class UserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-user-permission-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.superuser = self.create_user(is_superuser=True)
         self.add_user_permission(self.superuser, "users.admin")
@@ -22,13 +22,13 @@ class UserDetailsTest(APITestCase):
         self.normal_user = self.create_user(is_superuser=False, is_staff=False)
 
     # For each request method testcase, ensure regular users fail
-    def test_fails_without_superuser_or_staff(self):
+    def test_fails_without_superuser_or_staff(self) -> None:
         self.login_as(self.normal_user)
         response = self.get_response("me", "broadcasts.admin")
         assert response.status_code == 403
 
     # For each request method testcase, ensure superuser+staff without users.admin fail
-    def test_fails_without_users_admin_permission(self):
+    def test_fails_without_users_admin_permission(self) -> None:
         self.superuser_and_staff = self.create_user(is_superuser=True, is_staff=True)
         self.login_as(self.superuser_and_staff, superuser=True, staff=True)
 
@@ -41,18 +41,18 @@ class UserDetailsTest(APITestCase):
 class UserPermissionDetailsGetTest(UserDetailsTest):
     method = "GET"
 
-    def test_superuser_with_permission(self):
+    def test_superuser_with_permission(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.add_user_permission(self.superuser, "broadcasts.admin")
         self.get_success_response("me", "broadcasts.admin", status_code=204)
 
-    def test_superuser_without_permission(self):
+    def test_superuser_without_permission(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.get_error_response("me", "broadcasts.admin", status_code=404)
 
     @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
-    def test_staff_with_permission(self, mock_has_permission):
+    def test_staff_with_permission(self, mock_has_permission: MagicMock) -> None:
         self.login_as(self.staff_user, staff=True)
         self.add_user_permission(self.staff_user, "broadcasts.admin")
 
@@ -62,7 +62,7 @@ class UserPermissionDetailsGetTest(UserDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
-    def test_staff_without_permission(self, mock_has_permission):
+    def test_staff_without_permission(self, mock_has_permission: MagicMock) -> None:
         self.login_as(self.staff_user, staff=True)
 
         self.get_error_response("me", "broadcasts.admin", status_code=404)
@@ -74,7 +74,7 @@ class UserPermissionDetailsGetTest(UserDetailsTest):
 class UserPermissionDetailsPostTest(UserDetailsTest):
     method = "POST"
 
-    def test_superuser_with_permission(self):
+    def test_superuser_with_permission(self) -> None:
         self.login_as(self.superuser, superuser=True)
 
         self.get_success_response("me", "broadcasts.admin", status_code=201)
@@ -82,7 +82,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
             user=self.superuser, permission="broadcasts.admin"
         ).exists()
 
-    def test_superuser_duplicate_permission(self):
+    def test_superuser_duplicate_permission(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.add_user_permission(self.superuser, "broadcasts.admin")
 
@@ -93,7 +93,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
-    def test_staff_with_permission(self, mock_has_permission):
+    def test_staff_with_permission(self, mock_has_permission: MagicMock) -> None:
         self.login_as(self.staff_user, staff=True)
 
         self.get_success_response("me", "broadcasts.admin", status_code=201)
@@ -105,7 +105,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
-    def test_staff_duplicate_permission(self, mock_has_permission):
+    def test_staff_duplicate_permission(self, mock_has_permission: MagicMock) -> None:
         self.login_as(self.staff_user, staff=True)
         self.add_user_permission(self.staff_user, "broadcasts.admin")
 
@@ -121,7 +121,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
 class UserPermissionDetailsDeleteTest(UserDetailsTest):
     method = "DELETE"
 
-    def test_superuser_with_permission(self):
+    def test_superuser_with_permission(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.add_user_permission(self.superuser, "broadcasts.admin")
 
@@ -130,7 +130,7 @@ class UserPermissionDetailsDeleteTest(UserDetailsTest):
             user=self.superuser, permission="broadcasts.admin"
         ).exists()
 
-    def test_superuser_without_permission(self):
+    def test_superuser_without_permission(self) -> None:
         self.login_as(self.superuser, superuser=True)
 
         self.get_error_response("me", "broadcasts.admin", status_code=404)
@@ -140,7 +140,7 @@ class UserPermissionDetailsDeleteTest(UserDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
-    def test_staff_with_permission(self, mock_has_permission):
+    def test_staff_with_permission(self, mock_has_permission: MagicMock) -> None:
         self.login_as(self.staff_user, staff=True)
         self.add_user_permission(self.staff_user, "broadcasts.admin")
 
@@ -153,7 +153,7 @@ class UserPermissionDetailsDeleteTest(UserDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
-    def test_staff_without_permission(self, mock_has_permission):
+    def test_staff_without_permission(self, mock_has_permission: MagicMock) -> None:
         self.login_as(self.staff_user, staff=True)
 
         self.get_error_response("me", "broadcasts.admin", status_code=404)

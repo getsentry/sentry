@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import GroupList from 'sentry/components/issues/groupList';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -120,6 +120,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
             canSelectGroups={false}
             withChart={false}
             withColumns={['event']}
+            numPlaceholderRows={4}
           />
         </Fragment>
       ) : null}
@@ -176,7 +177,7 @@ const getLinkButton = (to: LocationDescriptor, eventName: string, eventKey: stri
 export {GroupRelatedIssues};
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(0.75)};
 `;
 

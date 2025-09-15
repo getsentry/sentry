@@ -5,10 +5,9 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
+from google.api_core.exceptions import DeadlineExceeded
 from sentry_sdk import set_tag, set_user
 
-from sentry import eventstore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
@@ -21,6 +20,8 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
@@ -104,18 +105,20 @@ def fetch_event(
     project_id: int, event_id: str, group_id: int, extra: dict[str, Any]
 ) -> GroupEvent | Event | None:
     event: GroupEvent | Event | None = None
+    failure_reason = None
     try:
         event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
         if event is None:
-            metrics.incr(
-                key=f"{METRIC_PREFIX}.failure", tags={"reason": "event_not_found"}, sample_rate=1.0
-            )
+            failure_reason = "event_not_found"
+    except DeadlineExceeded:
+        failure_reason = "nodestore_deadline_exceeded"
     except Exception:
         logger.exception("Error fetching event.", extra=extra)
+        failure_reason = "event_fetching_exception"
+
+    if failure_reason:
         metrics.incr(
-            key=f"{METRIC_PREFIX}.failure",
-            tags={"reason": "event_fetching_exception"},
-            sample_rate=1.0,
+            key=f"{METRIC_PREFIX}.failure", tags={"reason": failure_reason}, sample_rate=1.0
         )
     return event
 
@@ -151,13 +154,10 @@ def process_error(error: ApiError, extra: dict[str, Any]) -> None:
         logger.warning("Github has blocked this org. We will not continue.", extra=extra)
         return
 
-    # Logging the exception and returning is better than re-raising the error
+    # Logging the warning and returning is better than re-raising the error
     # Otherwise, API errors would not group them since the HTTPError in the stack
     # has unique URLs, thus, separating the errors
-    logger.error(
-        "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
-        extra=extra,
-    )
+    logger.warning("Unhandled ApiError occurred. Multiple issues grouped.", extra=extra)
 
 
 def get_trees_for_org(
@@ -173,6 +173,8 @@ def get_trees_for_org(
     with SCMIntegrationInteractionEvent(
         SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
         provider_key=installation.model.provider,
+        organization_id=org.id,
+        integration_id=installation.org_integration.integration_id,
     ).capture() as lifecycle:
         try:
             with lock.acquire():

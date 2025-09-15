@@ -112,7 +112,6 @@ class EapCheckEntry:
     """
 
     uptime_check_id: str
-    uptime_subscription_id: int
     timestamp: datetime
     scheduled_check_time: datetime
     check_status: CheckStatus
@@ -125,7 +124,21 @@ class EapCheckEntry:
     region: str
 
 
-class ProjectUptimeSubscriptionMode(enum.IntEnum):
+@dataclass(frozen=True)
+class UptimeSummary:
+    """
+    Represents data used for uptime summary
+    """
+
+    total_checks: int
+    failed_checks: int
+    downtime_checks: int
+    missed_window_checks: int
+    # TODO(epurkhiser): Remove None option once we're only using the uptime results table
+    avg_duration_us: float | None
+
+
+class UptimeMonitorMode(enum.IntEnum):
     # Manually created by a user
     MANUAL = 1
     # Auto-detected by our system and in the onboarding stage

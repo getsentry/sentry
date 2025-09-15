@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
@@ -374,7 +374,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
 const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   border: 0;
   background: none;
   color: ${p => {

@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CommitFileChangeSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -39,7 +39,10 @@ class CommitFileChangeSerializerTest(TestCase):
             order=1,
         )
         cfc = CommitFileChange.objects.create(
-            organization_id=project.organization_id, commit=commit, filename=".gitignore", type="M"
+            organization_id=project.organization_id,
+            commit_id=commit.id,
+            filename=".gitignore",
+            type="M",
         )
         result = serialize(cfc, user)
 
@@ -47,7 +50,7 @@ class CommitFileChangeSerializerTest(TestCase):
         assert result["commitMessage"] == "waddap"
         assert result["author"] == {"name": "stebe", "email": "stebe@sentry.io"}
 
-    def test_no_author(self):
+    def test_no_author(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -71,7 +74,10 @@ class CommitFileChangeSerializerTest(TestCase):
             order=1,
         )
         cfc = CommitFileChange.objects.create(
-            organization_id=project.organization_id, commit=commit, filename=".gitignore", type="M"
+            organization_id=project.organization_id,
+            commit_id=commit.id,
+            filename=".gitignore",
+            type="M",
         )
 
         result = serialize(cfc, user)

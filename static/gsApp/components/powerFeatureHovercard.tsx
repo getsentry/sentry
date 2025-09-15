@@ -1,8 +1,9 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Hovercard} from 'sentry/components/hovercard';
-import {linkStyles} from 'sentry/components/links/link';
+import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -16,7 +17,7 @@ import {PlanTier} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
+interface PowerFeatureHovercardProps {
   /**
    * The set of features that are required for this feature. Used to
    * determine which plan is required for the feature.
@@ -46,102 +47,91 @@ type Props = {
    */
   partial?: boolean;
 
-  upsellDefaultSelection?: string;
-
   /**
    * Replaces the default learn more button with a more subtle link text that
    * opens the upsell modal.
    */
   useLearnMoreLink?: boolean;
-};
+}
 
-class PowerFeatureHovercard extends Component<Props> {
-  recordAnalytics() {
-    const {id, organization, subscription} = this.props;
+function PowerFeatureHovercard({
+  id,
+  containerClassName,
+  containerDisplayMode,
+  organization,
+  subscription,
+  partial,
+  features,
+  children,
+}: PowerFeatureHovercardProps) {
+  const recordAnalytics = () => {
     trackGetsentryAnalytics('power_icon.clicked', {
       organization,
       subscription,
       source: id,
     });
-  }
+  };
 
-  handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    const {organization, id} = this.props;
 
-    this.recordAnalytics();
+    recordAnalytics();
     openUpsellModal({
       organization,
       source: id ?? '',
-      defaultSelection: this.props.upsellDefaultSelection,
     });
   };
 
-  render() {
-    const {
-      containerClassName,
-      containerDisplayMode,
-      organization,
-      subscription,
-      partial,
-      features,
-      children,
-    } = this.props;
+  const hoverBody = (
+    <PlanFeature
+      features={features}
+      organization={organization}
+      subscription={subscription}
+    >
+      {({plan, tierChange}) => {
+        let planName = displayPlanName(plan);
 
-    const hoverBody = (
-      <PlanFeature features={features} {...{organization, subscription}}>
-        {({plan, tierChange}) => {
-          let planName = displayPlanName(plan);
+        if (tierChange === PlanTier.AM1) {
+          planName = `Performance ${planName}`;
+        }
 
-          if (tierChange === PlanTier.AM1) {
-            planName = `Performance ${planName}`;
-          }
-
-          return (
-            <LearnMoreTextBody data-test-id="power-hovercard">
+        return (
+          <LearnMoreTextBody data-test-id="power-hovercard">
+            <Flex direction="column" gap="md">
               <div>
                 {partial
                   ? t('Better With %s Plan', planName)
                   : t('Requires %s Plan', planName)}
               </div>
-              <LearnMoreLink onClick={this.handleClick} data-test-id="power-learn-more">
+              <Button
+                priority="primary"
+                onClick={handleClick}
+                data-test-id="power-learn-more"
+                size="xs"
+                icon={<IconLightning size="xs" />}
+              >
                 {t('Learn More')}
-              </LearnMoreLink>
-            </LearnMoreTextBody>
-          );
-        }}
-      </PlanFeature>
-    );
+              </Button>
+            </Flex>
+          </LearnMoreTextBody>
+        );
+      }}
+    </PlanFeature>
+  );
 
-    return (
-      <StyledHovercard
-        containerClassName={containerClassName}
-        containerDisplayMode={containerDisplayMode}
-        bodyClassName="power-icon"
-        body={hoverBody}
-        position="right"
-        delay={200}
-      >
-        {children}
-      </StyledHovercard>
-    );
-  }
+  return (
+    <StyledHovercard
+      containerClassName={containerClassName}
+      containerDisplayMode={containerDisplayMode}
+      bodyClassName="power-icon"
+      body={hoverBody}
+      position="right"
+      delay={200}
+    >
+      {children}
+    </StyledHovercard>
+  );
 }
-
-const LearnMoreLink = styled('button')`
-  ${p => linkStyles({theme: p.theme})}
-  background: none;
-  border: none;
-  padding: 0;
-
-  color: ${p => p.theme.subText};
-  text-decoration: underline;
-
-  &:hover {
-    color: ${p => p.theme.subText};
-    text-decoration: none;
-  }
-`;
 
 const LearnMoreTextBody = styled('div')`
   padding: ${space(1)};

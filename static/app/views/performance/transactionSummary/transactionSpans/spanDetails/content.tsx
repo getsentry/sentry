@@ -55,7 +55,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
+    organization.features.includes('insight-modules');
 
   // TODO: When this feature is rolled out to GA, we will no longer need the entire `spanDetails` directory and can switch to `spanSummary`
   if (hasNewSpansUIFlag) {
@@ -95,7 +95,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
             eventView={getTotalsView(eventView)}
             orgSlug={organization.slug}
             location={location}
-            referrer="api.performance.transaction-spans"
+            referrer="api.insights.transaction-spans"
             cursor="0:0:1"
             noPagination
           >
@@ -137,7 +137,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
                           project={project}
                           eventView={eventView}
                           spanSlug={spanSlug}
-                          transactionName={transactionName}
                           totalCount={totalCount}
                           suspectSpansResults={suspectSpansResults}
                           spanExamplesResults={spanExamplesResults}
@@ -164,7 +163,6 @@ type ContentProps = {
   spanSlug: SpanSlug;
   suspectSpansResults: SuspectSpansProps;
   totalCount: number;
-  transactionName: string;
 };
 
 function SpanDetailsContent(props: ContentProps) {
@@ -174,7 +172,6 @@ function SpanDetailsContent(props: ContentProps) {
     project,
     eventView,
     spanSlug,
-    transactionName,
     totalCount,
     suspectSpansResults,
     spanExamplesResults,
@@ -210,7 +207,6 @@ function SpanDetailsContent(props: ContentProps) {
         organization={organization}
         project={project}
         suspectSpan={suspectSpan}
-        transactionName={transactionName}
         isLoading={spanExamplesResults.isLoading}
         examples={examples ?? []}
         pageLinks={spanExamplesResults.pageLinks}

@@ -4,7 +4,7 @@ from sentry.llm.exceptions import InvalidModelError, InvalidProviderError, Inval
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 
 
-def test_complete_prompt(set_sentry_option):
+def test_complete_prompt(set_sentry_option) -> None:
     with (
         set_sentry_option("llm.provider.options", {"preview": {"models": ["stub-1.0"]}}),
         set_sentry_option(
@@ -23,7 +23,7 @@ def test_complete_prompt(set_sentry_option):
     assert res == ""
 
 
-def test_invalid_usecase_config(set_sentry_option):
+def test_invalid_usecase_config(set_sentry_option) -> None:
     with (
         set_sentry_option("llm.provider.options", {"preview": {"models": ["stub-1.0"]}}),
         set_sentry_option(
@@ -41,7 +41,7 @@ def test_invalid_usecase_config(set_sentry_option):
             )
 
 
-def test_invalid_provider_config(set_sentry_option):
+def test_invalid_provider_config(set_sentry_option) -> None:
     with (
         set_sentry_option("llm.provider.options", {"badinput": {"models": ["stub-1.0"]}}),
         set_sentry_option(
@@ -59,7 +59,7 @@ def test_invalid_provider_config(set_sentry_option):
             )
 
 
-def test_invalid_model(set_sentry_option):
+def test_invalid_model(set_sentry_option) -> None:
     with (
         set_sentry_option("llm.provider.options", {"preview": {"models": ["stub-1.0"]}}),
         set_sentry_option(
@@ -77,7 +77,7 @@ def test_invalid_model(set_sentry_option):
             )
 
 
-def test_invalid_temperature(set_sentry_option):
+def test_invalid_temperature(set_sentry_option) -> None:
     with (
         set_sentry_option("llm.provider.options", {"preview": {"models": ["stub-1.0"]}}),
         set_sentry_option(

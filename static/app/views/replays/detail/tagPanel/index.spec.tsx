@@ -3,6 +3,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
@@ -24,9 +25,11 @@ const mockReplay = ReplayReader.factory({
 
 const renderComponent = (replay: ReplayReader | null) => {
   return render(
-    <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
-      <TagPanel />
-    </ReplayContextProvider>
+    <ReplayReaderProvider replay={replay}>
+      <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
+        <TagPanel />
+      </ReplayContextProvider>
+    </ReplayReaderProvider>
   );
 };
 
@@ -61,11 +64,11 @@ describe('TagPanel', () => {
 
     expect(screen.getByText('bar').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/?query=foo%3A%22bar%22'
+      '/organizations/org-slug/explore/replays/?query=foo%3A%22bar%22'
     );
     expect(screen.getByText('baz').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/?query=foo%3A%22baz%22'
+      '/organizations/org-slug/explore/replays/?query=foo%3A%22baz%22'
     );
   });
 
@@ -74,7 +77,7 @@ describe('TagPanel', () => {
 
     expect(screen.getByText('a wordy value').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/?query=my_custom_tag%3A%22a%20wordy%20value%22'
+      '/organizations/org-slug/explore/replays/?query=my_custom_tag%3A%22a%20wordy%20value%22'
     );
   });
 

@@ -1,6 +1,7 @@
 from unittest.mock import patch
+from uuid import uuid4
 
-from sentry.deletions.tasks.groups import delete_groups
+from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -12,7 +13,7 @@ pytestmark = [requires_snuba]
 
 
 class DeleteGroupHashTest(TestCase):
-    def test_deleting_group_deletes_grouphash_and_metadata(self):
+    def test_deleting_group_deletes_grouphash_and_metadata(self) -> None:
         event = self.store_event(data={"message": "Dogs are great!"}, project_id=self.project.id)
         assert event.group
         group_id = event.group.id
@@ -24,13 +25,15 @@ class DeleteGroupHashTest(TestCase):
         assert grouphash_metadata
 
         with self.tasks():
-            delete_groups(object_ids=[group_id])
+            delete_groups_for_project(
+                object_ids=[group_id], transaction_id=uuid4().hex, project_id=self.project.id
+            )
 
         assert not Group.objects.filter(id=group_id).exists()
         assert not GroupHash.objects.filter(group_id=group_id).exists()
         assert not GroupHashMetadata.objects.filter(grouphash_id=grouphash.id).exists()
 
-    def test_deleting_grouphash_matched_by_seer(self):
+    def test_deleting_grouphash_matched_by_seer(self) -> None:
         existing_event = self.store_event(
             data={"message": "Dogs are great!"}, project_id=self.project.id
         )
@@ -58,14 +61,18 @@ class DeleteGroupHashTest(TestCase):
             assert new_grouphash.metadata.seer_matched_grouphash == existing_grouphash
 
         with self.tasks():
-            delete_groups(object_ids=[existing_group_id])
+            delete_groups_for_project(
+                object_ids=[existing_group_id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
         assert not Group.objects.filter(id=existing_group_id).exists()
         assert not GroupHash.objects.filter(group_id=existing_group_id).exists()
         assert not GroupHashMetadata.objects.filter(grouphash_id=existing_grouphash.id).exists()
         assert not GroupHashMetadata.objects.filter(grouphash_id=new_grouphash.id).exists()
 
-    def test_deleting_grouphash_matched_by_seer_after_unmerge(self):
+    def test_deleting_grouphash_matched_by_seer_after_unmerge(self) -> None:
         """
         Ensure that `seer_matched_grouphash` references aren't left dangling (and causing integrity
         errors) when the matched grouphash is deleted.
@@ -122,7 +129,11 @@ class DeleteGroupHashTest(TestCase):
         )
 
         with self.tasks():
-            delete_groups(object_ids=[existing_event.group.id])
+            delete_groups_for_project(
+                object_ids=[existing_event.group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
         assert not Group.objects.filter(id=existing_event.group.id).exists()
         assert not GroupHash.objects.filter(group_id=existing_event.group.id).exists()

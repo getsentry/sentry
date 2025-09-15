@@ -7,7 +7,7 @@ export function renderMain() {
   try {
     renderDom(Main, `#${ROOT_ELEMENT}`, {});
   } catch (err) {
-    if (err.message === 'URI malformed') {
+    if (err instanceof URIError) {
       // eslint-disable-next-line no-console
       console.error(
         new Error(

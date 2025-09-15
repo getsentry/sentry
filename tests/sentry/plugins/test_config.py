@@ -19,7 +19,7 @@ class DummyPlugin(Plugin2):
 
 
 class ConfigTest(TestCase):
-    def test_get_config(self):
+    def test_get_config(self) -> None:
         project = self.create_project()
         plugin = DummyPlugin()
         config = plugin.get_config(project=project)
@@ -71,7 +71,7 @@ class ConfigTest(TestCase):
             "type": "url",
         }
 
-    def test_validate_url(self):
+    def test_validate_url(self) -> None:
         project = self.create_project()
         plugin = DummyPlugin()
         with pytest.raises(PluginError):

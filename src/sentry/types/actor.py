@@ -165,8 +165,14 @@ class Actor(RpcModel):
     @classmethod
     def from_identifier(cls, id: int | str) -> "Actor": ...
 
+    @overload
     @classmethod
-    def from_identifier(cls, id: str | int | None) -> "Actor | None":
+    def from_identifier(cls, id: int | str, organization_id: int) -> "Actor": ...
+
+    @classmethod
+    def from_identifier(
+        cls, id: str | int | None, organization_id: int | None = None
+    ) -> "Actor | None":
         """
         Parse an actor identifier into an Actor
 
@@ -174,10 +180,13 @@ class Actor(RpcModel):
             1231 -> look up User by id
             "1231" -> look up User by id
             "user:1231" -> look up User by id
+            "user:maiseythedog" -> look up user by username
             "team:1231" -> look up Team by id
+            "team:team-name" -> look up Team by name (must provide organization_id)
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
         """
+        from sentry.models.team import Team
         from sentry.users.services.user.service import user_service
 
         if not id:
@@ -192,10 +201,25 @@ class Actor(RpcModel):
             return cls(id=int(id), actor_type=ActorType.USER)
 
         if id.startswith("user:"):
-            return cls(id=int(id[5:]), actor_type=ActorType.USER)
+            remainder = id[5:]
+            if remainder.isdigit():
+                return cls(id=int(remainder), actor_type=ActorType.USER)
+            # pass this on to get to the user lookup below
+            id = remainder
 
         if id.startswith("team:"):
-            return cls(id=int(id[5:]), actor_type=ActorType.TEAM)
+            remainder = id[5:]
+            if remainder.isdigit():
+                return cls(id=int(remainder), actor_type=ActorType.TEAM)
+
+            if organization_id is not None:
+                try:
+                    team = Team.objects.get(name=remainder, organization_id=organization_id)
+                    return cls(id=team.id, actor_type=ActorType.TEAM)
+                except Team.DoesNotExist:
+                    pass
+
+            raise cls.InvalidActor(f"Unable to resolve team name: {remainder}")
 
         try:
             user = user_service.get_by_username(username=id)[0]
@@ -280,7 +304,7 @@ def parse_and_validate_actor(actor_identifier: str | None, organization_id: int)
         return None
 
     try:
-        actor = Actor.from_identifier(actor_identifier)
+        actor = Actor.from_identifier(actor_identifier, organization_id)
     except Exception:
         raise serializers.ValidationError(
             "Could not parse actor. Format should be `type:id` where type is `team` or `user`."

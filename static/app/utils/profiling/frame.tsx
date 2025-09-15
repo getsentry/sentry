@@ -1,3 +1,4 @@
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
 
@@ -159,8 +160,9 @@ export class Frame {
   }
 
   getSourceLocation(): string {
+    const trimmedPackage = this.package ? trimPackage(this.package) : this.package;
     const packageFileOrPath: string =
-      this.file ?? this.module ?? this.package ?? this.path ?? '<unknown>';
+      this.file ?? this.module ?? trimmedPackage ?? this.path ?? '<unknown>';
 
     const line = typeof this.line === 'number' ? this.line : '<unknown line>';
     const column = typeof this.column === 'number' ? this.column : '<unknown column>';

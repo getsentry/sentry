@@ -14,13 +14,13 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationQuickStartTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
     @with_feature("organizations:onboarding")
-    def test_quick_start_sidebar_is_not_automatically_opened_after_project_creation(self):
+    def test_quick_start_sidebar_is_not_automatically_opened_after_project_creation(self) -> None:
         settings.PRIVACY_URL = "https://sentry.io/privacy/"
         settings.TERMS_URL = "https://sentry.io/terms/"
 
@@ -39,7 +39,7 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
         assert not self.browser.element_exists_by_test_id("quick-start-content")
 
     @with_feature("organizations:onboarding")
-    def test_quick_start_not_rendered_because_all_tasks_completed_and_overdue(self):
+    def test_quick_start_not_rendered_because_all_tasks_completed_and_overdue(self) -> None:
         # Record tasks with all marked as COMPLETE, all overdue
         for task in list(OrganizationOnboardingTask.TASK_KEY_MAP.keys()):
             OrganizationOnboardingTask.objects.record(
@@ -50,13 +50,12 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
             )
 
         self.browser.get(f"/organizations/{self.organization.slug}/")
-        assert not self.browser.element_exists(xpath='//h1[text()="Oops! Something went wrong"]')
-        assert not self.browser.element_exists('[aria-label="Onboarding"]')
+        self.browser.wait_until_not('[aria-label="Onboarding"]')
 
     @with_feature("organizations:onboarding")
     def test_quick_start_renders_even_when_all_tasks_are_overdue_but_one_is_missing_to_complete(
         self,
-    ):
+    ) -> None:
         excluded_required_task = OnboardingTask.FIRST_TRANSACTION
         tasks_to_process = list(
             OrganizationOnboardingTask.TASK_KEY_MAP.keys() - {excluded_required_task}
@@ -74,7 +73,7 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
         self.browser.wait_until('[aria-label="Onboarding"]')
 
     @with_feature("organizations:onboarding")
-    def test_record_works_when_already_exists(self):
+    def test_record_works_when_already_exists(self) -> None:
         OrganizationOnboardingTask.objects.create(
             organization_id=self.organization.id,
             task=OnboardingTask.FIRST_TRANSACTION,

@@ -10,7 +10,7 @@ class TestEvaluationContext:
     # Identity fields tests are mainly upholding that our hashing strategy does
     # not change in the future, and that we calculate the id using the correct
     # context values and keys in order.
-    def test_adds_identity_fields(self):
+    def test_adds_identity_fields(self) -> None:
         eval_context = EvaluationContext({}, set())
         assert eval_context.id == 1245845410931227995499360226027473197403882391305
 
@@ -32,7 +32,7 @@ class TestEvaluationContext:
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"whoops", "test"})
         assert eval_context.id == expected_id
 
-    def test_no_identity_fields_included(self):
+    def test_no_identity_fields_included(self) -> None:
         eval_context = EvaluationContext({})
         assert eval_context.id == 1245845410931227995499360226027473197403882391305
 
@@ -44,7 +44,7 @@ class TestEvaluationContext:
         expected_id = 1395427532315258482176540981434194664973697472186
         assert eval_context.id == expected_id
 
-    def test_get_has_data(self):
+    def test_get_has_data(self) -> None:
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo"})
 
         assert eval_context.has("foo") is True
@@ -63,13 +63,13 @@ class ContextData:
 
 
 class TestContextBuilder:
-    def test_empty_context_builder(self):
+    def test_empty_context_builder(self) -> None:
         context_builder = ContextBuilder[ContextData]()
         context = context_builder.build()
 
         assert context.size() == 0
 
-    def test_static_transformer(self):
+    def test_static_transformer(self) -> None:
         def static_transformer(_data: ContextData) -> dict[str, Any]:
             return dict(foo="bar", baz=1)
 
@@ -83,7 +83,7 @@ class TestContextBuilder:
         assert eval_context.get("foo") == "bar"
         assert eval_context.get("baz") == 1
 
-    def test_transformer_with_data(self):
+    def test_transformer_with_data(self) -> None:
         def transformer_with_data(data: ContextData) -> dict[str, Any]:
             return dict(foo="bar", baz=getattr(data, "baz", None))
 
@@ -97,7 +97,7 @@ class TestContextBuilder:
         assert eval_context.get("foo") == "bar"
         assert eval_context.get("baz") == 2
 
-    def test_multiple_context_transformers(self):
+    def test_multiple_context_transformers(self) -> None:
         def transformer_one(data: ContextData) -> dict[str, Any]:
             return dict(foo="overwrite_me", baz=2, buzz=getattr(data, "buzz"))
 
@@ -116,7 +116,7 @@ class TestContextBuilder:
         assert eval_context.get("baz") == 2
         assert eval_context.get("buzz") == {1, 2, 3}
 
-    def test_with_exception_handler(self):
+    def test_with_exception_handler(self) -> None:
         exc_message = "oh noooooo"
 
         def broken_transformer(_data: ContextData) -> EvaluationContextDict:
@@ -138,7 +138,7 @@ class TestContextBuilder:
 
     # This is nearly identical to the evaluation context around identity fields,
     # just to ensure we compile and pass the correct list
-    def test_identity_fields_passing(self):
+    def test_identity_fields_passing(self) -> None:
         def transformer_with_data(_data: ContextData) -> dict[str, Any]:
             return dict(foo="bar", baz="barfoo")
 

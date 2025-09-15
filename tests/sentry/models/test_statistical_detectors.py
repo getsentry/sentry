@@ -10,5 +10,5 @@ from sentry.models.statistical_detectors import RegressionType
         pytest.param(RegressionType.FUNCTION, "f", id="endpoint"),
     ],
 )
-def test_regression_type_abbreviation(regression_type, abbreviation):
+def test_regression_type_abbreviation(regression_type: RegressionType, abbreviation: str) -> None:
     assert regression_type.abbreviate() == abbreviation

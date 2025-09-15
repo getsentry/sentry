@@ -9,7 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -75,7 +75,7 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
         return self.store_event(data, project_id=self.project.id)
 
     @pytest.mark.skip("setting snuba config is too slow")
-    def test_basic(self):
+    def test_basic(self) -> None:
         self.create_event()
 
         response = self.client.get(

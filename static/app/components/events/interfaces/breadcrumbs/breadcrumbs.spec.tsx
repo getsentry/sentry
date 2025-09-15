@@ -22,7 +22,11 @@ describe('Breadcrumbs', () => {
 
     props = {
       organization: OrganizationFixture(),
-      event: EventFixture({entries: [], projectID: project.id}),
+      event: EventFixture({
+        entries: [],
+        projectID: project.id,
+        contexts: {trace: {trace_id: 'trace-id'}},
+      }),
       data: {
         values: [
           {
@@ -80,6 +84,7 @@ describe('Breadcrumbs', () => {
             title: '/settings/',
             'project.name': 'javascript',
             id: 'abcdabcdabcdabcdabcdabcdabcdabcd',
+            trace: 'trace-id',
           },
         ],
         meta: {},
@@ -87,8 +92,8 @@ describe('Breadcrumbs', () => {
     });
   });
 
-  describe('filterCrumbs', function () {
-    it('should filter crumbs based on crumb message', async function () {
+  describe('filterCrumbs', () => {
+    it('should filter crumbs based on crumb message', async () => {
       render(<Breadcrumbs {...props} />);
 
       await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
@@ -108,7 +113,7 @@ describe('Breadcrumbs', () => {
       expect(screen.getAllByText(textWithMarkupMatcher('sup'))).toHaveLength(3);
     });
 
-    it('should filter crumbs based on crumb level', async function () {
+    it('should filter crumbs based on crumb level', async () => {
       render(<Breadcrumbs {...props} />);
 
       await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
@@ -118,7 +123,7 @@ describe('Breadcrumbs', () => {
       expect(screen.getAllByText(textWithMarkupMatcher('Warning'))).toHaveLength(5);
     });
 
-    it('should filter crumbs based on crumb category', async function () {
+    it('should filter crumbs based on crumb category', async () => {
       render(<Breadcrumbs {...props} />);
 
       await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
@@ -127,8 +132,8 @@ describe('Breadcrumbs', () => {
     });
   });
 
-  describe('render', function () {
-    it('should display the correct number of crumbs with no filter', async function () {
+  describe('render', () => {
+    it('should display the correct number of crumbs with no filter', async () => {
       props.data.values = props.data.values.slice(0, 4);
 
       render(<Breadcrumbs {...props} />);
@@ -139,7 +144,7 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should display the correct number of crumbs with a filter', async function () {
+    it('should display the correct number of crumbs with a filter', async () => {
       props.data.values = props.data.values.slice(0, 4);
 
       render(<Breadcrumbs {...props} />);
@@ -153,7 +158,7 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should not crash if data contains a toString attribute', async function () {
+    it('should not crash if data contains a toString attribute', async () => {
       // Regression test: A "toString" property in data should not falsely be
       // used to coerce breadcrumb data to string. This would cause a TypeError.
       const data = {nested: {toString: 'hello'}};
@@ -176,7 +181,7 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should render Sentry Transactions crumb', async function () {
+    it('should render Sentry Transactions crumb', async () => {
       props.organization.features = ['performance-view'];
       props.data.values = [
         {
@@ -209,7 +214,7 @@ describe('Breadcrumbs', () => {
 
       expect(screen.getByText('/settings/')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/backend/project-slug:abcdabcdabcdabcdabcdabcdabcdabcd/?referrer=breadcrumbs'
+        '/organizations/org-slug/explore/traces/trace/trace-id/?referrer=breadcrumbs&statsPeriod=14d'
       );
     });
   });

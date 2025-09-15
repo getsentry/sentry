@@ -1,8 +1,8 @@
 import type {DateString} from 'sentry/types/core';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';

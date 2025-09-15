@@ -234,11 +234,11 @@ export default ThreadSelector;
 const ThreadName = styled('div')`
   display: flex;
   gap: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const ActiveThreadName = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   max-width: 200px;
   ${p => p.theme.overflowEllipsis};
 `;
@@ -247,7 +247,7 @@ const StyledGrid = styled(ThreadSelectorGrid)`
   padding-left: 36px;
   padding-right: 20px;
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: ${space(0.5)};
 `;

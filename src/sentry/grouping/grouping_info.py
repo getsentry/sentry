@@ -1,48 +1,24 @@
 import logging
 from typing import Any
 
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouping.api import GroupingConfigNotFound
-from sentry.grouping.variants import BaseVariant, PerformanceProblemVariant
+from sentry.grouping.strategies.base import StrategyConfiguration
+from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
-from sentry.performance_issues.performance_detection import EventPerformanceProblem
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
 def get_grouping_info(
-    config_name: str | None, project: Project, event: Event | GroupEvent
+    grouping_config: StrategyConfiguration, project: Project, event: Event | GroupEvent
 ) -> dict[str, dict[str, Any]]:
     # We always fetch the stored hashes here. The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
     # produced hashes that would normally also appear in the event.
     hashes = event.get_hashes()
 
-    try:
-        if event.get_event_type() == "transaction":
-            # Transactions events are grouped using performance detection. They
-            # are not subject to grouping configs, and the only relevant
-            # grouping variant is `PerformanceProblemVariant`.
-
-            problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes])
-
-            # Create a variant for every problem associated with the event
-            # TODO: Generate more unique keys, in case this event has more than
-            # one problem of a given type
-            variants: dict[str, BaseVariant] = {
-                problem.problem.type.slug: PerformanceProblemVariant(problem)
-                for problem in problems
-                if problem
-            }
-        else:
-            variants = event.get_grouping_variants(
-                force_config=config_name, normalize_stacktraces=True
-            )
-
-    except GroupingConfigNotFound:
-        raise ResourceDoesNotExist(detail="Unknown grouping config")
+    variants = event.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
     grouping_info = get_grouping_info_from_variants(variants)
 

@@ -1,8 +1,12 @@
+import sentry_sdk
 from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
 from sentry import analytics
+from sentry.analytics.events.metric_alert_with_ui_component_created import (
+    MetricAlertWithUiComponentCreatedEvent,
+)
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.auth.access import Access
 from sentry.incidents.logic import (
@@ -14,7 +18,7 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, STRING_TO_ACTION_TARGET_TYPE
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
-from sentry.integrations.slack.utils.channel import validate_channel_id
+from sentry.integrations.slack.utils.channel import validate_slack_entity_id
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService
@@ -188,7 +192,11 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         should_validate_channel_id = self.context.get("validate_channel_id", True)
         # validate_channel_id is assumed to be true unless explicitly passed as false
         if attrs["input_channel_id"] and should_validate_channel_id:
-            validate_channel_id(identifier, attrs["integration_id"], attrs["input_channel_id"])
+            validate_slack_entity_id(
+                integration_id=attrs["integration_id"],
+                input_name=identifier,
+                input_id=attrs["input_channel_id"],
+            )
         return attrs
 
     def create(self, validated_data):
@@ -204,12 +212,16 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             # invalid action type
             raise serializers.ValidationError(str(e))
 
-        analytics.record(
-            "metric_alert_with_ui_component.created",
-            user_id=getattr(self.context["user"], "id", None),
-            alert_rule_id=getattr(self.context["alert_rule"], "id"),
-            organization_id=getattr(self.context["organization"], "id"),
-        )
+        try:
+            analytics.record(
+                MetricAlertWithUiComponentCreatedEvent(
+                    user_id=getattr(self.context["user"], "id", None),
+                    alert_rule_id=getattr(self.context["alert_rule"], "id"),
+                    organization_id=getattr(self.context["organization"], "id"),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         return action
 

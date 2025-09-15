@@ -7,7 +7,6 @@ from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_model, region_silo_model, sane_repr
-from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.options.manager import UpdateChannel
 
 
@@ -36,7 +35,7 @@ class BaseOption(OverwritableConfigMixin, Model):
     class Meta:
         abstract = True
 
-    value = PickledObjectField()
+    value = models.JSONField(null=True)
 
     __repr__ = sane_repr("key", "value")
 

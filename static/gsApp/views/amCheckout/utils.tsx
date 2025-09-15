@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/react';
+import {type PaymentIntentResult, type Stripe} from '@stripe/stripe-js';
+import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
 import {
@@ -12,7 +14,11 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
 
 import {
   DEFAULT_TIER,
@@ -21,23 +27,35 @@ import {
   SUPPORTED_TIERS,
 } from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {
-  EventBucket,
-  OnDemandBudgets,
-  Plan,
+import {
+  InvoiceItemType,
   PlanTier,
-  PreviewData,
-  ReservedBudgetCategoryType,
-  Subscription,
+  type EventBucket,
+  type InvoiceItem,
+  type OnDemandBudgets,
+  type Plan,
+  type PreviewData,
+  type PreviewInvoiceItem,
+  type ReservedBudgetCategoryType,
+  type Subscription,
 } from 'getsentry/types';
-import {InvoiceItemType} from 'getsentry/types';
-import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
+import {
+  getAmPlanTier,
+  getSlot,
+  hasPartnerMigrationFeature,
+  isBizPlanFamily,
+  isTeamPlanFamily,
+  isTrialPlan,
+} from 'getsentry/utils/billing';
+import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import {
+  SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
-  SelectableProduct,
+  type PlanContent,
   type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
@@ -330,7 +348,10 @@ export function getShortInterval(billingInterval: string): string {
   return billingInterval === MONTHLY ? 'mo' : 'yr';
 }
 
-function getAttachmentsWithUnit(gigabytes: number): string {
+function getWithBytes(gigabytes: number): string {
+  if (gigabytes >= 1000) {
+    return `${(gigabytes / 1000).toLocaleString()} TB`;
+  }
   return `${gigabytes.toLocaleString()} GB`;
 }
 
@@ -345,8 +366,8 @@ export function getEventsWithUnit(
     return null;
   }
 
-  if (dataType === DataCategory.ATTACHMENTS) {
-    return getAttachmentsWithUnit(events).replace(' ', '');
+  if (isByteCategory(dataType)) {
+    return getWithBytes(events).replace(' ', '');
   }
 
   if (events >= 1_000_000_000) {
@@ -362,6 +383,14 @@ export function getEventsWithUnit(
   return events;
 }
 
+type CheckoutData = {
+  plan: string;
+} & Partial<Record<DataCategory, number>>;
+
+type PreviousData = {
+  previous_plan: string;
+} & Partial<Record<`previous_${DataCategory}`, number>>;
+
 function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
@@ -370,36 +399,36 @@ function recordAnalytics(
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
 
-  const currentData = {
-    // TODO(data categories): check if these can be parsed
+  const currentData: CheckoutData = {
     plan: data.plan,
-    errors: data.reservedErrors,
-    transactions: data.reservedTransactions,
-    attachments: data.reservedAttachments,
-    replays: data.reservedReplays,
-    monitorSeats: data.reservedMonitorSeats,
-    spans: data.reservedSpans,
-    profileDuration: data.reservedProfileDuration,
-    uptime: data.reservedUptime,
   };
 
-  const previousData = {
-    plan: subscription.plan,
-    errors: subscription.categories.errors?.reserved || undefined,
-    transactions: subscription.categories.transactions?.reserved || undefined,
-    attachments: subscription.categories.attachments?.reserved || undefined,
-    replays: subscription.categories.replays?.reserved || undefined,
-    monitorSeats: subscription.categories.monitorSeats?.reserved || undefined,
-    profileDuration: subscription.categories.profileDuration?.reserved || undefined,
-    spans: subscription.categories.spans?.reserved || undefined,
-    uptime: subscription.categories.uptime?.reserved || undefined,
+  Object.keys(data).forEach(key => {
+    if (key.startsWith('reserved')) {
+      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
+      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+    }
+  });
+
+  const previousData: PreviousData = {
+    previous_plan: subscription.plan,
   };
 
-  // TODO(data categories): in future, we should just be able to pass data.selectedProducts
+  Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
+    if (
+      subscription.planDetails.checkoutCategories.includes(category as DataCategory) &&
+      metricHistory.reserved !== null &&
+      metricHistory.reserved !== undefined
+    ) {
+      (previousData as any)[`previous_${category}`] = metricHistory.reserved;
+    }
+  });
+
+  // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
   const selectableProductData = {
     [SelectableProduct.SEER]: {
       enabled: data.seer ?? false,
-      previously_enabled: isTrialPlan(previousData.plan) // don't count trial budgets
+      previously_enabled: isTrialPlan(previousData.previous_plan) // don't count trial budgets
         ? false
         : (subscription.reservedBudgets?.some(
             budget =>
@@ -412,15 +441,7 @@ function recordAnalytics(
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
-    previous_plan: previousData.plan,
-    previous_errors: previousData.errors,
-    previous_transactions: previousData.transactions,
-    previous_attachments: previousData.attachments,
-    previous_replays: previousData.replays,
-    previous_monitorSeats: previousData.monitorSeats,
-    previous_profileDuration: previousData.profileDuration,
-    previous_spans: previousData.spans,
-    previous_uptime: previousData.uptime,
+    ...previousData,
     ...currentData,
   });
 
@@ -443,16 +464,17 @@ function recordAnalytics(
     );
   }
 
+  // TODO: remove this analytic event; this can be inferred from the `checkout.upgrade` event
   if (
     currentData.transactions &&
-    previousData.transactions &&
-    currentData.transactions > previousData.transactions
+    previousData.previous_transactions &&
+    currentData.transactions > previousData.previous_transactions
   ) {
     trackGetsentryAnalytics('checkout.transactions_upgrade', {
       organization,
       subscription,
       plan: data.plan,
-      previous_transactions: previousData.transactions,
+      previous_transactions: previousData.previous_transactions,
       transactions: currentData.transactions,
     });
   }
@@ -470,7 +492,7 @@ function recordAnalytics(
 
 export function stripeHandleCardAction(
   intentDetails: IntentDetails,
-  stripeInstance?: stripe.Stripe,
+  stripeInstance: Stripe | null,
   onSuccess?: () => void,
   onError?: (errorMessage?: string) => void
 ) {
@@ -481,7 +503,7 @@ export function stripeHandleCardAction(
   // This allows us to complete 3DS and MFA during checkout.
   stripeInstance
     .handleCardAction(intentDetails.paymentSecret)
-    .then((result: stripe.PaymentIntentResponse) => {
+    .then((result: PaymentIntentResult) => {
       if (result.error) {
         let message =
           'Your payment could not be authorized. Please try a different card, or try again later.';
@@ -510,20 +532,14 @@ export function getCheckoutAPIData({
 }: APIDataProps) {
   const formatReservedData = (value: number | null | undefined) => value ?? undefined;
 
-  const reservedData = {
-    // TODO(data categories): check if these can be parsed
-    reservedErrors: formatReservedData(formData.reserved.errors),
-    reservedTransactions: formatReservedData(formData.reserved.transactions),
-    reservedAttachments: formatReservedData(formData.reserved.attachments),
-    reservedReplays: formatReservedData(formData.reserved.replays),
-    reservedMonitorSeats: formatReservedData(formData.reserved.monitorSeats),
-    reservedProfileDuration: formatReservedData(formData.reserved.profileDuration),
-    reservedSpans: formatReservedData(formData.reserved.spans),
-    reservedUptime: formatReservedData(formData.reserved.uptime),
-  } satisfies Partial<
-    // Enforce plural spelling against the enums in DataCategory
-    Record<`reserved${Capitalize<DataCategory>}`, number | undefined>
-  >;
+  const reservedData = Object.fromEntries(
+    Object.entries(formData.reserved).map(([category, value]) => [
+      `reserved${toTitleCase(category, {
+        allowInnerUpperCase: true,
+      })}`,
+      formatReservedData(value),
+    ])
+  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)
@@ -578,6 +594,160 @@ export async function fetchPreviewData(
   }
 }
 
+export function normalizeAndGetCheckoutAPIData({
+  formData,
+  previewToken,
+  paymentIntent,
+  referrer = 'billing',
+  shouldUpdateOnDemand = true,
+}: Pick<
+  APIDataProps,
+  'formData' | 'previewToken' | 'paymentIntent' | 'referrer' | 'shouldUpdateOnDemand'
+>): CheckoutAPIData {
+  let {onDemandBudget} = formData;
+  if (onDemandBudget) {
+    onDemandBudget = normalizeOnDemandBudget(onDemandBudget);
+  }
+  return getCheckoutAPIData({
+    formData,
+    onDemandBudget,
+    previewToken,
+    paymentIntent,
+    referrer,
+    shouldUpdateOnDemand,
+  });
+}
+
+export function useSubmitCheckout({
+  organization,
+  subscription,
+  previewData,
+  onErrorMessage,
+  onSubmitting,
+  onHandleCardAction,
+  onFetchPreviewData,
+  onSuccess,
+  referrer = 'billing',
+}: {
+  onErrorMessage: (message: string) => void;
+  onFetchPreviewData: () => void;
+  onHandleCardAction: ({intentDetails}: {intentDetails: IntentDetails}) => void;
+  onSubmitting: (b: boolean) => void;
+  onSuccess: ({
+    isSubmitted,
+    invoice,
+    nextQueryParams,
+    previewData,
+  }: Pick<
+    CheckoutState,
+    'invoice' | 'nextQueryParams' | 'isSubmitted' | 'previewData'
+  >) => void;
+  organization: Organization;
+  subscription: Subscription;
+  previewData?: PreviewData;
+  referrer?: string;
+}) {
+  const api = useApi({});
+
+  // this is necessary for recording partner billing migration-specific analytics after
+  // the migration is successful (during which the flag is flipped off)
+  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
+
+  return useMutation({
+    mutationFn: ({data}: {data: CheckoutAPIData}) => {
+      return api.requestPromise(
+        `/customers/${organization.slug}/subscription/?expand=invoice`,
+        {
+          method: 'PUT',
+          data,
+        }
+      );
+    },
+    onSuccess: (response, _variables) => {
+      recordAnalytics(
+        organization,
+        subscription,
+        _variables.data,
+        isMigratingPartnerAccount
+      );
+
+      // seer automation alert
+      const alreadyHasSeer =
+        !isTrialPlan(subscription.plan) &&
+        subscription.reservedBudgets?.some(
+          budget =>
+            (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+            budget.reservedBudget > 0
+        );
+      const justBoughtSeer = _variables.data.seer && !alreadyHasSeer;
+
+      // refresh org and subscription state
+      // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
+      // request doesn't get cancelled
+      fetchOrganizationDetails(new Client(), organization.slug);
+      SubscriptionStore.loadData(organization.slug);
+
+      const {invoice} = response;
+      const nextQueryParams = [referrer];
+      if (justBoughtSeer) {
+        nextQueryParams.push('showSeerAutomationAlert=true');
+      }
+      onSuccess({isSubmitted: true, invoice, nextQueryParams, previewData});
+    },
+    onError: (error: RequestError, _variables) => {
+      const body = error.responseJSON;
+
+      if (body?.previewToken) {
+        onErrorMessage(
+          t('Your preview expired, please review changes and submit again.')
+        );
+        onFetchPreviewData?.();
+      } else if (body?.paymentIntent && body?.paymentSecret && body?.detail) {
+        // When an error response contains payment intent information
+        // we can retry the payment using the client-side confirmation flow
+        // in stripe.
+        // We don't re-enable the button here as we don't want users clicking it
+        // while there are UI transitions happening.
+        if (typeof body.detail === 'string') {
+          onErrorMessage(body.detail);
+        } else {
+          onErrorMessage(
+            body.detail.message ??
+              t('An unknown error occurred while saving your subscription')
+          );
+        }
+        const intent: IntentDetails = {
+          paymentIntent: body.paymentIntent as string,
+          paymentSecret: body.paymentSecret as string,
+        };
+        onHandleCardAction?.({intentDetails: intent});
+      } else {
+        if (typeof body?.detail === 'string') {
+          onErrorMessage(body.detail);
+        } else {
+          onErrorMessage(
+            body?.detail?.message ??
+              t('An unknown error occurred while saving your subscription')
+          );
+        }
+        onSubmitting?.(false);
+
+        // Don't capture 402 errors as that status code is used for
+        // customer credit card failures.
+        if (error.status !== 402) {
+          Sentry.withScope(scope => {
+            scope.setExtras({data: _variables.data});
+            Sentry.captureException(error);
+          });
+        }
+      }
+    },
+  });
+}
+
+/**
+ * @deprecated use useSubmitCheckout instead
+ */
 export async function submitCheckout(
   organization: Organization,
   subscription: Subscription,
@@ -593,20 +763,12 @@ export async function submitCheckout(
 ) {
   const endpoint = `/customers/${organization.slug}/subscription/`;
 
-  let {onDemandBudget} = formData;
-  if (onDemandBudget) {
-    onDemandBudget = normalizeOnDemandBudget(onDemandBudget);
-  }
-
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
 
-  const data = getCheckoutAPIData({
+  const data = normalizeAndGetCheckoutAPIData({
     formData,
-    onDemandBudget,
     previewToken: previewData?.previewToken,
     paymentIntent: intentId,
     referrer,
@@ -646,7 +808,7 @@ export async function submitCheckout(
         }`
       )
     );
-  } catch (error) {
+  } catch (error: any) {
     const body = error.responseJSON;
 
     if (body?.previewToken) {
@@ -701,4 +863,125 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   }
 
   return SUPPORTED_TIERS[tierIndex + 1];
+}
+
+export function hasCheckoutV3(organization: Organization) {
+  return organization.features.includes('checkout-v3');
+}
+
+export function getContentForPlan(plan: Plan): PlanContent {
+  if (isBizPlanFamily(plan)) {
+    return {
+      description: t(
+        'Everything in the Team plan + deeper insight into your application health.'
+      ),
+      features: {
+        discover: t('Advanced analytics with Discover'),
+        enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
+        dashboard: t('Unlimited custom dashboards'),
+        ...(getAmPlanTier(plan.id) === PlanTier.AM3 && {
+          application_insights: t('Application Insights'),
+        }),
+        advanced_filtering: t('Advanced server-side filtering'),
+        saml: t('SAML support'),
+      },
+      hasMoreLink: true,
+    };
+  }
+
+  if (isTeamPlanFamily(plan)) {
+    return {
+      description: t('Resolve errors and track application performance as a team.'),
+      features: {
+        unlimited_members: t('Unlimited members'),
+        integrations: t('Third-party integrations'),
+        metric_alerts: t('Metric alerts'),
+      },
+    };
+  }
+
+  // TODO(checkout v3): update copy
+  return {
+    description: t('For solo devs working on small projects'),
+    features: {
+      errors: t('5K Errors'),
+      replays: t('50 Replays'),
+      spans: t('5M Spans'),
+      attachments: t('1GB Attachments'),
+      monitorSeats: t('1 Cron Monitor'),
+      uptime: t('1 Uptime Monitor'),
+      logBytes: t('5GB Logs'),
+    },
+  };
+}
+
+export function invoiceItemTypeToDataCategory(
+  type: InvoiceItemType
+): DataCategory | null {
+  if (!type.startsWith('reserved_') && !type.startsWith('ondemand_')) {
+    return null;
+  }
+  return camelCase(
+    type.replace('reserved_', '').replace('ondemand_', '')
+  ) as DataCategory;
+}
+
+export function invoiceItemTypeToProduct(
+  type: InvoiceItemType
+): SelectableProduct | null {
+  // TODO(checkout v3): update this to support more products
+  if (type !== InvoiceItemType.RESERVED_SEER_BUDGET) {
+    return null;
+  }
+  return camelCase(
+    type.replace('reserved_', '').replace('_budget', '')
+  ) as SelectableProduct;
+}
+
+export function getFees({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [InvoiceItemType.CANCELLATION_FEE, InvoiceItemType.SALES_TAX].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+  );
+}
+
+export function getCredits({
+  invoiceItems,
+}: {
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  return invoiceItems.filter(
+    item =>
+      [
+        InvoiceItemType.SUBSCRIPTION_CREDIT,
+        InvoiceItemType.CREDIT_APPLIED, // TODO(isabella): This is deprecated and replaced by BALANCE_CHANGE
+        InvoiceItemType.DISCOUNT,
+        InvoiceItemType.RECURRING_DISCOUNT,
+      ].includes(item.type) ||
+      (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount < 0)
+  );
+}
+
+/**
+ * Returns the credit applied to an invoice or preview data.
+ * If the invoice items contain a BALANCE_CHANGE item with a negative amount,
+ * the invoice/preview data already accounts for the credit applied, so we return 0.
+ */
+export function getCreditApplied({
+  creditApplied,
+  invoiceItems,
+}: {
+  creditApplied: number;
+  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+}) {
+  const credits = getCredits({invoiceItems});
+  if (credits.some(item => item.type === InvoiceItemType.BALANCE_CHANGE)) {
+    return 0;
+  }
+  return creditApplied;
 }

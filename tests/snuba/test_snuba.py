@@ -148,7 +148,7 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
         ]
 
     @mock.patch("sentry.utils.snuba._bulk_snuba_query", side_effect=snuba._bulk_snuba_query)
-    def test_cache(self, _bulk_snuba_query):
+    def test_cache(self, _bulk_snuba_query: mock.MagicMock) -> None:
         one_min_ago = before_now(minutes=1).isoformat()
         event_1 = self.store_event(
             data={"fingerprint": ["group-1"], "message": "hello", "timestamp": one_min_ago},

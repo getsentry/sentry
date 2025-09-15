@@ -1,4 +1,4 @@
-""" Helper functions for sentry.options """
+"""Helper functions for sentry.options"""
 
 import logging
 

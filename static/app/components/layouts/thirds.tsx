@@ -51,7 +51,7 @@ export const Header = styled('header')<{
       border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
     `}
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -65,8 +65,14 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  overflow: hidden;
+  margin-bottom: ${space(1)};
   max-width: 100%;
+
+  ${p =>
+    p.unified &&
+    css`
+      margin-bottom: 0;
+    `}
 `;
 
 /**
@@ -80,7 +86,7 @@ export const HeaderActions = styled('div')`
   min-width: max-content;
   margin-top: ${space(0.25)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     width: max-content;
     margin-bottom: ${space(2)};
   }
@@ -124,11 +130,11 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;

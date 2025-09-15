@@ -1,19 +1,7 @@
-import type {Release} from 'sentry/types/release';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
 
-function getReleaseQueryKey({
-  orgSlug,
-  projectSlug,
-  releaseVersion,
-}: {
-  orgSlug: string;
-  projectSlug: string;
-  releaseVersion: string;
-}): ApiQueryKey {
-  return [
-    `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(releaseVersion)}/`,
-  ];
-}
+import {apiOptions} from 'sentry/api/apiOptions';
+import type {Release} from 'sentry/types/release';
 
 export function useRelease({
   orgSlug,
@@ -26,11 +14,18 @@ export function useRelease({
   releaseVersion: string;
   enabled?: boolean;
 }) {
-  return useApiQuery<Release>(
-    getReleaseQueryKey({orgSlug, projectSlug, releaseVersion}),
-    {
-      enabled,
-      staleTime: Infinity,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<Release>()(
+      '/projects/$orgSlug/$projectSlug/releases/$releaseVersion/',
+      {
+        path: {
+          orgSlug,
+          projectSlug,
+          releaseVersion,
+        },
+        staleTime: Infinity,
+      }
+    ),
+    enabled,
+  });
 }

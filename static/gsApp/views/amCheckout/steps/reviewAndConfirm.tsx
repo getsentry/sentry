@@ -11,14 +11,14 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import type {PreviewData, Subscription} from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
-import {loadStripe} from 'getsentry/utils/stripe';
+import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepPropsWithApi} from 'getsentry/views/amCheckout/types';
 import type {IntentDetails} from 'getsentry/views/amCheckout/utils';
@@ -61,10 +61,8 @@ function ReviewAndConfirm({
     submitting: false,
   });
   const title = t('Review & Confirm');
-  const [stripe, setStripe] = useState<stripe.Stripe>();
-  const hasPartnerMigrationFeature = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const stripe = useStripeInstance();
+  const isMigratingPartner = hasPartnerMigrationFeature(organization);
 
   const fetchPreview = useCallback(async () => {
     await fetchPreviewData(
@@ -99,14 +97,6 @@ function ReviewAndConfirm({
       fetchPreview();
     }
   }, [isActive, formData, fetchPreview]);
-
-  useEffect(() => {
-    loadStripe(Stripe => {
-      const apiKey = ConfigStore.get('getsentry.stripePublishKey');
-      const instance = Stripe(apiKey);
-      setStripe(instance);
-    });
-  }, []);
 
   function handleConfirm(applyNow?: boolean) {
     if (applyNow) {
@@ -160,12 +150,12 @@ function ReviewAndConfirm({
             loading={state.loading}
             loadError={state.loadError}
             cardActionError={state.cardActionError}
-            hasPartnerMigrationFeature={hasPartnerMigrationFeature}
+            isMigratingPartner={isMigratingPartner}
             subscription={subscription}
           />
         </StyledPanelBody>
       )}
-      {hasPartnerMigrationFeature && isActive && (
+      {isMigratingPartner && isActive && (
         <MigrateNowBody
           handleComplete={handleConfirm}
           submitting={state.submitting}
@@ -180,7 +170,7 @@ function ReviewAndConfirm({
           submitting={state.submitting}
           previewData={state.previewData}
           cardActionError={state.cardActionError}
-          hasMigrateNowButton={hasPartnerMigrationFeature}
+          hasMigrateNowButton={isMigratingPartner}
         />
       )}
     </Panel>
@@ -189,17 +179,17 @@ function ReviewAndConfirm({
 
 function ReviewAndConfirmHeader({
   previewData,
-  hasPartnerMigrationFeature,
+  isMigratingPartner,
   subscription,
 }: Pick<State, 'previewData'> & {
-  hasPartnerMigrationFeature: boolean;
+  isMigratingPartner: boolean;
   subscription: Subscription;
 }) {
   if (!previewData) {
     return null;
   }
 
-  if (hasPartnerMigrationFeature) {
+  if (isMigratingPartner) {
     return (
       <Header>
         {t('Effective changes')}
@@ -298,10 +288,10 @@ function ReviewAndConfirmBody({
   loading,
   loadError,
   previewData,
-  hasPartnerMigrationFeature,
+  isMigratingPartner,
   subscription,
 }: Pick<State, 'cardActionError' | 'loading' | 'loadError' | 'previewData'> & {
-  hasPartnerMigrationFeature: boolean;
+  isMigratingPartner: boolean;
   subscription: Subscription;
 }) {
   if (loading) {
@@ -327,12 +317,14 @@ function ReviewAndConfirmBody({
     <Preview>
       <ReviewAndConfirmHeader
         previewData={previewData}
-        hasPartnerMigrationFeature={hasPartnerMigrationFeature}
+        isMigratingPartner={isMigratingPartner}
         subscription={subscription}
       />
       {cardActionError && (
         <Alert.Container>
-          <Alert type="error">{cardActionError}</Alert>
+          <Alert type="error" showIcon={false}>
+            {cardActionError}
+          </Alert>
         </Alert.Container>
       )}
       <ReviewAndConfirmItems previewData={previewData} />
@@ -399,16 +391,16 @@ const StyledPanelBody = styled(PanelBody)`
 
 const Preview = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Header = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
 `;
 
 const SubText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   font-weight: normal;
 `;
@@ -447,7 +439,7 @@ const PreviewItem = styled(BaseItem)`
 
 const PreviewTotal = styled(BaseItem)`
   padding-top: ${space(3)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StepFooter = styled(PanelFooter)`
@@ -472,7 +464,7 @@ const MigrateNowAlertContext = styled('div')`
 
 const MigrateNowButton = styled(Button)`
   padding: 6px ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-height: 0;
   height: min-content;
 `;

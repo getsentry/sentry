@@ -24,7 +24,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
             )
         )
 
-    def test_note_block(self):
+    def test_note_block(self) -> None:
         """
         Tests that a Slack message is sent with the expected payload when a comment is made on an issue
         with block kit enabled.
@@ -49,7 +49,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    def test_note_performance_issue_block(self):
+    def test_note_performance_issue_block(self) -> None:
         """
         Tests that a Slack message is sent with the expected payload when a comment is made on a performance issue
         with block kit enabled.
@@ -77,11 +77,11 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_note_generic_issue_block(self, occurrence):
+    def test_note_generic_issue_block(self, occurrence: mock.MagicMock) -> None:
         """
         Test that a Slack message is sent with the expected payload when a comment is made on a generic issue type
         """

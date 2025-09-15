@@ -28,5 +28,5 @@ def _call(data, histogram_from, histogram_to, histogram_buckets, output):
         _call([(1, 2, 3)], 0, 2, 1, output=[(0.0, 2.0, 3)]),
     ],
 )
-def test_basic(kwargs, output):
+def test_basic(kwargs, output) -> None:
     assert rebucket_histogram(**kwargs) == output

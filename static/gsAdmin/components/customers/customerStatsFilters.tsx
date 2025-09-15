@@ -16,12 +16,9 @@ import useRouter from 'sentry/utils/useRouter';
 
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
-export type DataType =
-  (typeof DATA_CATEGORY_INFO)[keyof typeof DATA_CATEGORY_INFO]['apiName'];
-
 type Props = {
-  dataType: DataType;
-  onChange: (dataType: DataType) => void;
+  dataType: DataCategoryExact;
+  onChange: (dataType: DataCategoryExact) => void;
   organization: Organization;
   onDemandPeriodEnd?: string;
   onDemandPeriodStart?: string;
@@ -110,7 +107,7 @@ export function CustomerStatsFilters({
         options={Object.entries(DATA_CATEGORY_INFO)
           .filter(([_, categoryInfo]) => categoryInfo.statsInfo.showInternalStats)
           .map(([category, categoryInfo]) => ({
-            value: categoryInfo.apiName,
+            value: categoryInfo.name,
             label:
               category === DataCategoryExact.SPAN
                 ? 'Accepted Spans'

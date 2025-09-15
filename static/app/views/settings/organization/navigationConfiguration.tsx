@@ -130,7 +130,7 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
           title: t('Dynamic Sampling'),
           description: t('Manage your sampling rate'),
-          badge: () => 'new',
+          badge: () => 'alpha',
           show: ({organization}) =>
             !!organization && hasDynamicSamplingCustomFeature(organization),
         },
@@ -138,14 +138,15 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
           description: t('Set up feature flag integrations'),
-          badge: () => (
-            <FeatureBadge
-              type="beta"
-              tooltipProps={{
-                title: t('This feature is currently in open beta and may change'),
-              }}
-            />
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/`,
+          title: t('Seer Automation'),
+          description: t(
+            "Manage settings for Seer's automated analysis across your organization"
           ),
+          show: ({organization}) => !!organization && !organization.hideAiFeatures,
+          id: 'seer',
         },
         {
           path: `${organizationSettingsPathPrefix}/stats/`,

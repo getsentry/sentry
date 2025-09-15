@@ -6,6 +6,7 @@ import {
   featureFlagOnboardingPlatforms,
   feedbackOnboardingPlatforms,
   replayPlatforms,
+  withLoggingOnboarding,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
@@ -16,7 +17,7 @@ import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 type Props = {
   orgSlug: Organization['slug'];
   platform: PlatformIntegration;
-  productType?: 'feedback' | 'replay' | 'performance' | 'featureFlags';
+  productType?: 'feedback' | 'replay' | 'performance' | 'featureFlags' | 'logs';
   projSlug?: Project['slug'];
 };
 
@@ -38,6 +39,7 @@ export function useLoadGettingStarted({
   );
 
   const projectKeys = useProjectKeys({orgSlug, projSlug});
+
   const platformPath = getPlatformPath(platform);
 
   useEffect(() => {
@@ -47,6 +49,7 @@ export function useLoadGettingStarted({
         !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
         (productType === 'performance' && !withPerformanceOnboarding.has(platform.id)) ||
+        (productType === 'logs' && !withLoggingOnboarding.has(platform.id)) ||
         (productType === 'feedback' &&
           !feedbackOnboardingPlatforms.includes(platform.id)) ||
         (productType === 'featureFlags' &&

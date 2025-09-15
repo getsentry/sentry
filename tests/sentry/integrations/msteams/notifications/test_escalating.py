@@ -15,7 +15,7 @@ pytestmark = [requires_snuba]
 )
 @patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
 class MSTeamsEscalatingNotificationTest(MSTeamsActivityNotificationTest):
-    def test_note(self, mock_send_card: MagicMock):
+    def test_note(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly when a comment is made on an issue.
         """

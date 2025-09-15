@@ -18,7 +18,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 
 @pytest.mark.django_db
 class DBMainThreadDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -27,7 +27,7 @@ class DBMainThreadDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_detects_db_main_thread(self):
+    def test_detects_db_main_thread(self) -> None:
         event = get_event("db-on-main-thread")
 
         assert self.find_problems(event) == [
@@ -49,7 +49,7 @@ class DBMainThreadDetectorTest(TestCase):
             )
         ]
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         event = get_event("db-on-main-thread")
         event["project_id"] = project.id
@@ -70,19 +70,19 @@ class DBMainThreadDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    def test_does_not_detect_db_main_thread(self):
+    def test_does_not_detect_db_main_thread(self) -> None:
         event = get_event("db-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = False
 
         assert self.find_problems(event) == []
 
-    def test_gives_problem_correct_title(self):
+    def test_gives_problem_correct_title(self) -> None:
         event = get_event("db-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         problem = self.find_problems(event)[0]
         assert problem.title == "DB on Main Thread"
 
-    def test_duplicate_calls_do_not_change_callstack(self):
+    def test_duplicate_calls_do_not_change_callstack(self) -> None:
         event = get_event("db-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         single_span_problem = self.find_problems(event)[0]

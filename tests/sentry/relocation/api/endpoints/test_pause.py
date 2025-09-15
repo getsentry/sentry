@@ -21,7 +21,7 @@ class PauseRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-pause"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
@@ -43,7 +43,7 @@ class PauseRelocationTest(APITestCase):
         )
 
     @override_options({"staff.ga-rollout": True})
-    def test_good_staff_pause_asap(self):
+    def test_good_staff_pause_asap(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
 
@@ -51,7 +51,7 @@ class PauseRelocationTest(APITestCase):
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.VALIDATING.name
 
-    def test_good_pause_asap(self):
+    def test_good_pause_asap(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
 
@@ -59,7 +59,7 @@ class PauseRelocationTest(APITestCase):
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.VALIDATING.name
 
-    def test_good_pause_at_next_step(self):
+    def test_good_pause_at_next_step(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             self.relocation.uuid, atStep=Relocation.Step.VALIDATING.name, status_code=200
@@ -69,7 +69,7 @@ class PauseRelocationTest(APITestCase):
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.VALIDATING.name
 
-    def test_good_pause_at_future_step(self):
+    def test_good_pause_at_future_step(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
             self.relocation.uuid, atStep=Relocation.Step.NOTIFYING.name, status_code=200
@@ -79,7 +79,7 @@ class PauseRelocationTest(APITestCase):
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.NOTIFYING.name
 
-    def test_good_already_paused(self):
+    def test_good_already_paused(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
@@ -91,14 +91,14 @@ class PauseRelocationTest(APITestCase):
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.IMPORTING.name
 
-    def test_bad_not_found(self):
+    def test_bad_not_found(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
         response = self.client.put(f"/api/0/relocations/{str(does_not_exist_uuid)}/pause/")
 
         assert response.status_code == 404
 
-    def test_bad_already_completed(self):
+    def test_bad_already_completed(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.FAILURE.value
         self.relocation.save()
@@ -109,7 +109,7 @@ class PauseRelocationTest(APITestCase):
             status=Relocation.Status.FAILURE.name
         )
 
-    def test_bad_invalid_step(self):
+    def test_bad_invalid_step(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
             self.relocation.uuid, atStep="nonexistent", status_code=400
@@ -120,7 +120,7 @@ class PauseRelocationTest(APITestCase):
             step="nonexistent"
         )
 
-    def test_bad_unknown_step(self):
+    def test_bad_unknown_step(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
             self.relocation.uuid, atStep=Relocation.Step.UNKNOWN.name, status_code=400
@@ -131,7 +131,7 @@ class PauseRelocationTest(APITestCase):
             step=Relocation.Step.UNKNOWN.name
         )
 
-    def test_bad_current_step(self):
+    def test_bad_current_step(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
             self.relocation.uuid, atStep=Relocation.Step.PREPROCESSING.name, status_code=400
@@ -142,7 +142,7 @@ class PauseRelocationTest(APITestCase):
             step=Relocation.Step.PREPROCESSING.name
         )
 
-    def test_bad_past_step(self):
+    def test_bad_past_step(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
             self.relocation.uuid, atStep=Relocation.Step.UPLOADING.name, status_code=400
@@ -153,7 +153,7 @@ class PauseRelocationTest(APITestCase):
             step=Relocation.Step.UPLOADING.name
         )
 
-    def test_bad_last_step_specified(self):
+    def test_bad_last_step_specified(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
             self.relocation.uuid, atStep=Relocation.Step.COMPLETED.name, status_code=400
@@ -164,7 +164,7 @@ class PauseRelocationTest(APITestCase):
             step=Relocation.Step.COMPLETED.name
         )
 
-    def test_bad_last_step_automatic(self):
+    def test_bad_last_step_automatic(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.NOTIFYING.value
         self.relocation.save()
@@ -173,9 +173,9 @@ class PauseRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_COULD_NOT_PAUSE_RELOCATION
 
-    def test_bad_no_auth(self):
+    def test_bad_no_auth(self) -> None:
         self.get_error_response(self.relocation.uuid, status_code=401)
 
-    def test_bad_no_superuser(self):
+    def test_bad_no_superuser(self) -> None:
         self.login_as(user=self.superuser, superuser=False)
         self.get_error_response(self.relocation.uuid, status_code=403)

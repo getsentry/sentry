@@ -303,9 +303,7 @@ def build_instance_from_options(
     return constructor(**options.get("options", {}))
 
 
-def build_instance_from_options_of_type[
-    T
-](
+def build_instance_from_options_of_type[T](
     tp: type[T],
     options: ServiceOptions,
     *,

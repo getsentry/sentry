@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -164,12 +163,12 @@ export function CodeSnippet({
                 </Tab>
               ))}
             </TabsWrapper>
-            <Flex.Item grow={1} />
+            <FlexSpacer />
           </Fragment>
         )}
         {icon}
         {filename && <FileName>{filename}</FileName>}
-        {!hasTabs && <Flex.Item grow={1} />}
+        {!hasTabs && <FlexSpacer />}
         {!hideCopyButton && (
           <CopyButton
             type="button"
@@ -207,6 +206,10 @@ export function CodeSnippet({
   return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
 
+const FlexSpacer = styled('div')`
+  flex-grow: 1;
+`;
+
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   background: var(--prism-block-background);
@@ -228,7 +231,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.codeFontSize};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   z-index: 2;
 
   ${p =>
@@ -246,7 +249,7 @@ const Header = styled('div')<{isFloating: boolean}>`
         `
       : css`
           gap: ${space(0.75)};
-          padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
+          padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
           border-bottom: solid 1px ${p.theme.border};
         `}
 `;

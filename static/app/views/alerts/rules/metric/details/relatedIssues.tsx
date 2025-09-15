@@ -20,6 +20,7 @@ import {
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 
 import type {TimePeriodType} from './constants';
 
@@ -65,6 +66,10 @@ function RelatedIssues({
         rule,
         query,
         timePeriod,
+        traceItemType: getTraceItemTypeForDatasetAndEventType(
+          rule.dataset,
+          rule.eventTypes
+        ),
       });
       return <RelatedIssuesNotAvailable buttonTo={to} buttonText={buttonText} />;
     }
@@ -126,6 +131,7 @@ function RelatedIssues({
           customStatsPeriod={timePeriod}
           useTintRow={false}
           source="alerts-related-issues"
+          numPlaceholderRows={queryParams.limit}
         />
       </TableWrapper>
     </Fragment>

@@ -6,8 +6,8 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useProjects from 'sentry/utils/useProjects';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
 type Props = {
   allPlatforms: readonly PlatformKey[];

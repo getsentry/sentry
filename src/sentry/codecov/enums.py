@@ -10,7 +10,7 @@ class OrderingParameter(Enum):
     AVG_DURATION = "AVG_DURATION"
     FLAKE_RATE = "FLAKE_RATE"
     FAILURE_RATE = "FAILURE_RATE"
-    COMMITS_WHERE_FAIL = "COMMITS_WHERE_FAIL"
+    RUNS_FAILED = "RUNS_FAILED"
     UPDATED_AT = "UPDATED_AT"
 
 
@@ -25,3 +25,8 @@ class MeasurementInterval(Enum):
     INTERVAL_30_DAY = "INTERVAL_30_DAY"
     INTERVAL_7_DAY = "INTERVAL_7_DAY"
     INTERVAL_1_DAY = "INTERVAL_1_DAY"
+
+
+class NavigationParameter(Enum):
+    NEXT = "next"
+    PREV = "prev"

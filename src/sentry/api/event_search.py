@@ -23,6 +23,7 @@ from sentry.search.events.constants import (
     SIZE_UNITS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    WILDCARD_OPERATOR_MAP,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -129,10 +130,10 @@ has_filter = negation? &"has:" search_key sep (text_key / search_value)
 is_filter = negation? &"is:" search_key sep search_value
 
 # in filter key:[val1, val2]
-text_in_filter = negation? text_key sep text_in_list
+text_in_filter = negation? text_key sep wildcard_op? text_in_list
 
 # standard key:val filter
-text_filter = negation? text_key sep operator? search_value
+text_filter = negation? text_key sep wildcard_op? operator? search_value
 
 key         = ~r"[a-zA-Z0-9_.-]+"
 escaped_key = ~r"[a-zA-Z0-9_.:-]+"
@@ -166,6 +167,7 @@ numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
+wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -202,6 +204,11 @@ open_bracket         = "["
 closed_bracket       = "]"
 sep                  = ":"
 negation             = "!"
+# Note: wildcard unicode is defined in src/sentry/search/events/constants.py
+wildcard_unicode     = "\uF00D"
+contains             = "Contains"
+starts_with          = "StartsWith"
+ends_with            = "EndsWith"
 comma                = ","
 spaces               = " "*
 
@@ -331,9 +338,9 @@ def remove_optional_nodes[T](children: list[T]) -> list[T]:
     ]
 
 
-def process_list[
-    T
-](first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]) -> list[T]:
+def process_list[T](
+    first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]
+) -> list[T]:
     # Empty values become blank nodes
     if any(isinstance(item[4], Node) for item in remaining):
         raise InvalidSearchQuery("Lists should not have empty values")
@@ -369,6 +376,48 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
         return operator[0]
     else:
         return operator
+
+
+def has_wildcard_op(node: Node | Sequence[Node]) -> bool:
+    if isinstance(node, Node):
+        return node.text in WILDCARD_OPERATOR_MAP.values()
+    if isinstance(node, Sequence) and len(node) > 0:
+        return node[0].text in WILDCARD_OPERATOR_MAP.values()
+    return False
+
+
+def get_wildcard_op(node: Node | Sequence[Node]) -> str:
+    if isinstance(node, Node):
+        return node.text
+    if isinstance(node, Sequence) and len(node) > 0:
+        return node[0].text
+    return ""
+
+
+def add_leading_wildcard(value: str) -> str:
+    if value.startswith('"') and value.endswith('"'):
+        return f"*{value[1:-1]}"
+    return f"*{value}"
+
+
+def add_trailing_wildcard(value: str) -> str:
+    if value.startswith('"') and value.endswith('"'):
+        return f"{value[1:-1]}*"
+    return f"{value}*"
+
+
+def gen_wildcard_value(value: str, wildcard_op: str) -> str:
+    if value == "" or wildcard_op == "":
+        return value
+    value = re.sub(r"(?<!\\)\*", r"\\*", value)
+    if wildcard_op == WILDCARD_OPERATOR_MAP["contains"]:
+        value = add_leading_wildcard(value)
+        value = add_trailing_wildcard(value)
+    elif wildcard_op == WILDCARD_OPERATOR_MAP["starts_with"]:
+        value = add_trailing_wildcard(value)
+    elif wildcard_op == WILDCARD_OPERATOR_MAP["ends_with"]:
+        value = add_leading_wildcard(value)
+    return value
 
 
 class SearchBoolean:
@@ -453,7 +502,28 @@ class SearchValue(NamedTuple):
         # If we're using the raw value only it'll never be a wildcard
         if self.use_raw_value:
             return False
+        if self.is_str_sequence():
+            return isinstance(self.raw_value, list) and any(
+                _is_wildcard(value) for value in self.raw_value
+            )
         return _is_wildcard(self.raw_value)
+
+    def is_str_sequence(self) -> bool:
+        return isinstance(self.raw_value, list) and all(isinstance(e, str) for e in self.raw_value)
+
+    def split_wildcards(self) -> tuple[list[str], list[str]] | None:
+        if not self.is_str_sequence():
+            return None
+        wildcards = []
+        non_wildcards = []
+        assert isinstance(self.raw_value, list)
+        for s in self.raw_value:
+            assert isinstance(s, str)
+            if _is_wildcard(s) is True:
+                wildcards.append(s)
+            else:
+                non_wildcards.append(s)
+        return (non_wildcards, wildcards)
 
     def classify_and_format_wildcard(
         self,
@@ -566,32 +636,16 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-# https://github.com/python/mypy/issues/18520
-# without this mypy thinks that AggregateFilter and SearchFilter are
-# structurally equivalent and will refuse to narrow them
-if TYPE_CHECKING:
+class AggregateFilter(NamedTuple):
+    key: AggregateKey
+    operator: str
+    value: SearchValue
 
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-        DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
+    def to_query_string(self) -> str:
+        return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
-        def to_query_string(self) -> str:
-            return ""
-
-else:  # real implementation here!
-
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-
-        def to_query_string(self) -> str:
-            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
-
-        def __str__(self) -> str:
-            return f"{self.key.name}{self.operator}{self.value.raw_value}"
+    def __str__(self) -> str:
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 @dataclass  # pycqa/pycodestyle#1277
@@ -644,12 +698,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
         *,
@@ -659,12 +711,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
         **overrides: Any,
@@ -1307,14 +1357,24 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node | tuple[Node],  # ! if present
             SearchKey,
             Node,  # :
+            Node | Sequence[Node],  # wildcard_op if present
             list[str],
         ],
     ) -> SearchFilter:
-        (negation, search_key, _, search_value_lst) = children
+        (negation, search_key, _sep, wildcard_op, search_value_lst) = children
         operator = "IN"
         search_value = SearchValue(search_value_lst)
 
         operator = handle_negation(negation, operator)
+
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
+            wildcarded_values = []
+            found_wildcard_op = get_wildcard_op(wildcard_op)
+            for value in search_value.raw_value:
+                if isinstance(value, str):
+                    wildcarded_values.append(gen_wildcard_value(value, found_wildcard_op))
+
+            search_value = search_value._replace(raw_value=wildcarded_values)
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
@@ -1325,16 +1385,17 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node | tuple[Node],  # ! if present
             SearchKey,
             Node,  # :
+            Node | Sequence[Node],  # wildcard_op if present
             Node | tuple[str],  # operator if present
             SearchValue,
         ],
     ) -> SearchFilter:
-        (negation, search_key, _, operator, search_value) = children
+        (negation, search_key, _sep, wildcard_op, operator, search_value) = children
         operator_s = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
         # we can tell the difference between an empty quoted string and no string
-        if not search_value.raw_value and not node.children[4].text:
+        if not search_value.raw_value and not node.children[5].text:
             raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
         if operator_s not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
@@ -1344,6 +1405,12 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             operator_s = "="
 
         operator_s = handle_negation(negation, operator_s)
+
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
+            wildcarded_value = gen_wildcard_value(
+                search_value.raw_value, get_wildcard_op(wildcard_op)
+            )
+            search_value = search_value._replace(raw_value=wildcarded_value)
 
         return self._handle_basic_filter(search_key, operator_s, search_value)
 
@@ -1662,6 +1729,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         return node
 
     def visit_negation(self, node: Node, children: object) -> Node:
+        return node
+
+    def visit_wildcard_op(self, node: Node, children: object) -> Node:
         return node
 
     def visit_comma(self, node: Node, children: object) -> Node:

@@ -9,24 +9,24 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
-  SpanIndexedField;
+  SpanFields;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('SampleImages', function () {
+describe('SampleImages', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   beforeEach(() => {
     setupMocks();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 
@@ -85,9 +85,7 @@ const setupMockRequests = (
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
     method: 'GET',
-    match: [
-      MockApiClient.matchQuery({referrer: 'api.performance.resources.sample-images'}),
-    ],
+    match: [MockApiClient.matchQuery({referrer: 'api.insights.resources.sample-images'})],
     body: {
       data: [
         {

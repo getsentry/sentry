@@ -9,14 +9,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {PlanTier} from 'getsentry/types';
 import {UsageLog} from 'getsentry/views/subscriptionPage/usageLog';
 
-describe('Subscription Usage Log', function () {
+describe('Subscription Usage Log', () => {
   const organization = OrganizationFixture({
     access: ['org:billing'],
   });
   const sub = SubscriptionFixture({organization});
   const mockLocation = LocationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -70,7 +70,7 @@ describe('Subscription Usage Log', function () {
     'trial.extended',
   ];
 
-  it('renders usage log', async function () {
+  it('renders usage log', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/usage-logs/`,
       method: 'GET',
@@ -87,7 +87,7 @@ describe('Subscription Usage Log', function () {
     expect(screen.getByText(/Trial Extended/i)).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/usage-logs/`,
       method: 'GET',
@@ -100,7 +100,7 @@ describe('Subscription Usage Log', function () {
     expect(screen.getByText(/No entries available/i)).toBeInTheDocument();
   });
 
-  it('keeps hypens in on-demand and PAYG', async function () {
+  it('keeps hypens in on-demand and PAYG', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/usage-logs/`,
       method: 'GET',

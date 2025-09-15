@@ -1,24 +1,35 @@
 from __future__ import annotations
 
-import atexit
 import logging
 import multiprocessing
 import queue
+import signal
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkContext, SpawnContext
 from multiprocessing.process import BaseProcess
+from pathlib import Path
 from typing import Any
 
 import grpc
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
-from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry import options
+from sentry.taskworker.client.client import (
+    HealthCheckSettings,
+    HostTemporarilyUnavailable,
+    TaskworkerClient,
+)
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
-from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
+from sentry.taskworker.constants import (
+    DEFAULT_REBALANCE_AFTER,
+    DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
+    DEFAULT_WORKER_QUEUE_SIZE,
+    MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE,
+)
 from sentry.taskworker.workerchild import child_process
 from sentry.utils import metrics
 
@@ -40,8 +51,7 @@ class TaskWorker:
 
     def __init__(
         self,
-        rpc_host: str,
-        num_brokers: int | None,
+        broker_hosts: list[str],
         max_child_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
@@ -50,13 +60,23 @@ class TaskWorker:
         rebalance_after: int = DEFAULT_REBALANCE_AFTER,
         processing_pool_name: str | None = None,
         process_type: str = "spawn",
+        health_check_file_path: str | None = None,
+        health_check_sec_per_touch: float = DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
         self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host, num_brokers, rebalance_after)
+        self.client = TaskworkerClient(
+            broker_hosts,
+            rebalance_after,
+            health_check_settings=(
+                None
+                if health_check_file_path is None
+                else HealthCheckSettings(Path(health_check_file_path), health_check_sec_per_touch)
+            ),
+        )
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")
         elif process_type == "spawn":
@@ -81,9 +101,6 @@ class TaskWorker:
 
         self._processing_pool_name: str = processing_pool_name or "unknown"
 
-    def __del__(self) -> None:
-        self.shutdown()
-
     def do_imports(self) -> None:
         for module in settings.TASKWORKER_IMPORTS:
             __import__(module)
@@ -99,10 +116,20 @@ class TaskWorker:
         self.start_result_thread()
         self.start_spawn_children_thread()
 
-        atexit.register(self.shutdown)
+        # Convert signals into KeyboardInterrupt.
+        # Running shutdown() within the signal handler can lead to deadlocks
+        def signal_handler(*args: Any) -> None:
+            raise KeyboardInterrupt()
 
-        while True:
-            self.run_once()
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        try:
+            while True:
+                self.run_once()
+        except KeyboardInterrupt:
+            self.shutdown()
+            raise
 
     def run_once(self) -> None:
         """Access point for tests to run a single worker loop"""
@@ -113,21 +140,25 @@ class TaskWorker:
         Shutdown cleanly
         Activate the shutdown event and drain results before terminating children.
         """
-        if self._shutdown_event.is_set():
-            return
-
-        logger.info("taskworker.worker.shutdown")
+        logger.info("taskworker.worker.shutdown.start")
         self._shutdown_event.set()
 
+        logger.info("taskworker.worker.shutdown.spawn_children")
+        if self._spawn_children_thread:
+            self._spawn_children_thread.join()
+
+        logger.info("taskworker.worker.shutdown.children")
         for child in self._children:
             child.terminate()
+        for child in self._children:
             child.join()
 
+        logger.info("taskworker.worker.shutdown.result")
         if self._result_thread:
-            self._result_thread.join()
+            # Use a timeout as sometimes this thread can deadlock on the Event.
+            self._result_thread.join(timeout=5)
 
-        # Drain remaining results synchronously, as the thread will have terminated
-        # when shutdown_event was set.
+        # Drain any remaining results synchronously
         while True:
             try:
                 result = self._processed_tasks.get_nowait()
@@ -135,14 +166,26 @@ class TaskWorker:
             except queue.Empty:
                 break
 
-        if self._spawn_children_thread:
-            self._spawn_children_thread.join()
+        logger.info("taskworker.worker.shutdown.complete")
 
     def _add_task(self) -> bool:
         """
         Add a task to child tasks queue. Returns False if no new task was fetched.
         """
         if self._child_tasks.full():
+            # I want to see how this differs between pools that operate well,
+            # and those that are not as effective. I suspect that with a consistent
+            # load of slowish tasks (like 5-15 seconds) that this will happen
+            # infrequently, resulting in the child tasks queue being full
+            # causing processing deadline expiration.
+            # Whereas in pools that have consistent short tasks, this happens
+            # more frequently, allowing workers to run more smoothly.
+            metrics.incr(
+                "taskworker.worker.add_tasks.child_tasks_full",
+                tags={"processing_pool": self._processing_pool_name},
+            )
+            # If we weren't able to add a task, backoff for a bit
+            time.sleep(0.1)
             return False
 
         inflight = self.fetch_task()
@@ -156,6 +199,10 @@ class TaskWorker:
                     tags={"processing_pool": self._processing_pool_name},
                 )
             except queue.Full:
+                metrics.incr(
+                    "taskworker.worker.child_tasks.put.full",
+                    tags={"processing_pool": self._processing_pool_name},
+                )
                 logger.warning(
                     "taskworker.add_task.child_task_queue_full",
                     extra={
@@ -179,13 +226,17 @@ class TaskWorker:
         """
 
         def result_thread() -> None:
-            logger.debug("taskworker.worker.result_thread_started")
+            logger.debug("taskworker.worker.result_thread.started")
             iopool = ThreadPoolExecutor(max_workers=self._concurrency)
             with iopool as executor:
                 while not self._shutdown_event.is_set():
+                    fetch_next = self._processing_pool_name not in options.get(
+                        "taskworker.fetch_next.disabled_pools"
+                    )
+
                     try:
                         result = self._processed_tasks.get(timeout=1.0)
-                        executor.submit(self._send_result, result)
+                        executor.submit(self._send_result, result, fetch_next)
                     except queue.Empty:
                         metrics.incr(
                             "taskworker.worker.result_thread.queue_empty",
@@ -193,7 +244,9 @@ class TaskWorker:
                         )
                         continue
 
-        self._result_thread = threading.Thread(target=result_thread)
+        self._result_thread = threading.Thread(
+            name="send-result", target=result_thread, daemon=True
+        )
         self._result_thread.start()
 
     def _send_result(self, result: ProcessingResult, fetch: bool = True) -> bool:
@@ -253,6 +306,7 @@ class TaskWorker:
         )
         # Use the shutdown_event as a sleep mechanism
         self._shutdown_event.wait(self._setstatus_backoff_seconds)
+
         try:
             next_task = self.client.update_task(result, fetch_next)
             self._setstatus_backoff_seconds = 0
@@ -261,12 +315,15 @@ class TaskWorker:
             self._setstatus_backoff_seconds = min(self._setstatus_backoff_seconds + 1, 10)
             if e.code() == grpc.StatusCode.UNAVAILABLE:
                 self._processed_tasks.put(result)
-            logger.exception(
+            logger.warning(
                 "taskworker.send_update_task.failed",
                 extra={"task_id": result.task_id, "error": e},
             )
             return None
         except HostTemporarilyUnavailable as e:
+            self._setstatus_backoff_seconds = min(
+                self._setstatus_backoff_seconds + 4, MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE
+            )
             logger.info(
                 "taskworker.send_update_task.temporarily_unavailable",
                 extra={"task_id": result.task_id, "error": str(e)},
@@ -276,7 +333,7 @@ class TaskWorker:
 
     def start_spawn_children_thread(self) -> None:
         def spawn_children_thread() -> None:
-            logger.debug("taskworker.worker.spawn_children_thread_started")
+            logger.debug("taskworker.worker.spawn_children_thread.started")
             while not self._shutdown_event.is_set():
                 self._children = [child for child in self._children if child.is_alive()]
                 if len(self._children) >= self._concurrency:
@@ -284,6 +341,7 @@ class TaskWorker:
                     continue
                 for i in range(self._concurrency - len(self._children)):
                     process = self.mp_context.Process(
+                        name=f"taskworker-child-{i}",
                         target=child_process,
                         args=(
                             self._child_tasks,
@@ -300,8 +358,14 @@ class TaskWorker:
                         "taskworker.spawn_child",
                         extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
                     )
+                    metrics.incr(
+                        "taskworker.worker.spawn_child",
+                        tags={"processing_pool": self._processing_pool_name},
+                    )
 
-        self._spawn_children_thread = threading.Thread(target=spawn_children_thread)
+        self._spawn_children_thread = threading.Thread(
+            name="spawn-children", target=spawn_children_thread, daemon=True
+        )
         self._spawn_children_thread.start()
 
     def fetch_task(self) -> InflightTaskActivation | None:
@@ -315,7 +379,9 @@ class TaskWorker:
                 extra={"error": e, "processing_pool": self._processing_pool_name},
             )
 
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 2, 10)
+            self._gettask_backoff_seconds = min(
+                self._gettask_backoff_seconds + 4, MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE
+            )
             return None
 
         if not activation:
@@ -327,8 +393,7 @@ class TaskWorker:
                 "taskworker.fetch_task.not_found",
                 extra={"processing_pool": self._processing_pool_name},
             )
-
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 5)
             return None
 
         self._gettask_backoff_seconds = 0

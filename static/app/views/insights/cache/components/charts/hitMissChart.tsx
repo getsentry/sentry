@@ -5,7 +5,7 @@ import {Referrer} from 'sentry/views/insights/cache/referrers';
 // TODO(release-drawer): Only used in cache/components/samplePanel
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -20,7 +20,7 @@ export function CacheHitMissChart({search}: Props) {
     data,
     isPending: isCacheHitRateLoading,
     error,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search,
       yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],

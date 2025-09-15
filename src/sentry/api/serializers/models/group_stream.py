@@ -122,7 +122,11 @@ class GroupStatsMixin:
         pass
 
     def get_stats(
-        self, item_list: Sequence[Group], user, stats_query_args: GroupStatsQueryArgs, **kwargs
+        self,
+        item_list: Sequence[Group],
+        user,
+        stats_query_args: GroupStatsQueryArgs,
+        **kwargs,
     ):
         if stats_query_args and stats_query_args.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
@@ -166,7 +170,12 @@ class GroupStatsMixin:
                     "rollup": int(interval.total_seconds()),
                 }
 
-            return self.query_tsdb(item_list, query_params, user=user, **kwargs)
+            return self.query_tsdb(
+                item_list,
+                query_params,
+                user=user,
+                **kwargs,
+            )
 
 
 class _MaybeStats(TypedDict, total=False):
@@ -261,6 +270,14 @@ class _SeenStatsFunc(Protocol):
     ) -> Mapping[str, Any]: ...
 
 
+class _Filtered(TypedDict):
+    count: str
+    userCount: int
+    firstSeen: datetime | None
+    lastSeen: datetime | None
+    stats: NotRequired[dict[str, Any]]
+
+
 class StreamGroupSerializerSnubaResponse(TypedDict):
     id: str
     # from base response
@@ -294,15 +311,15 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     annotations: NotRequired[list[GroupAnnotation]]
     # from base response optional
     isUnhandled: NotRequired[bool]
-    count: NotRequired[int]
+    count: NotRequired[str]
     userCount: NotRequired[int]
-    firstSeen: NotRequired[datetime]
-    lastSeen: NotRequired[datetime]
+    firstSeen: NotRequired[datetime | None]
+    lastSeen: NotRequired[datetime | None]
 
     # from the serializer itself
     stats: NotRequired[dict[str, Any]]
     lifetime: NotRequired[dict[str, Any]]
-    filtered: NotRequired[dict[str, Any] | None]
+    filtered: NotRequired[_Filtered | None]
     sessionCount: NotRequired[int]
     inbox: NotRequired[InboxDetails]
     owners: NotRequired[OwnersSerialized]
@@ -347,6 +364,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period = stats_period
         self.stats_period_start = stats_period_start
         self.stats_period_end = stats_period_end
+        self.project_ids = project_ids
 
     def get_attrs(
         self,
@@ -505,14 +523,26 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 result["stats"] = {self.stats_period: attrs["stats"]}
 
             if not self._collapse("lifetime"):
-                result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
+                seen_stats = self._convert_seen_stats(attrs["lifetime"])
+                result["lifetime"] = {
+                    "count": seen_stats["count"],
+                    "userCount": seen_stats["userCount"],
+                    "firstSeen": seen_stats["firstSeen"],
+                    "lastSeen": seen_stats["lastSeen"],
+                }
                 if self.stats_period:
                     # Not needed in current implementation
                     result["lifetime"]["stats"] = None
 
             if not self._collapse("filtered"):
                 if self.conditions:
-                    filtered = self._convert_seen_stats(attrs["filtered"])
+                    seen_stats = self._convert_seen_stats(attrs["filtered"])
+                    filtered: _Filtered = {
+                        "count": seen_stats["count"],
+                        "userCount": seen_stats["userCount"],
+                        "firstSeen": seen_stats["firstSeen"],
+                        "lastSeen": seen_stats["lastSeen"],
+                    }
                     if self.stats_period:
                         filtered["stats"] = {self.stats_period: attrs["filtered_stats"]}
                     result["filtered"] = filtered
@@ -552,6 +582,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         conditions=None,
         environment_ids=None,
         user=None,
+        aggregation_override: str | None = None,
         **kwargs,
     ):
         if not groups:
@@ -571,6 +602,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
             tenant_ids={"organization_id": self.organization_id},
+            project_ids=self.project_ids,
             **query_params,
         )
 

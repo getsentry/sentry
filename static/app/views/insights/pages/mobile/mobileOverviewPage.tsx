@@ -26,18 +26,19 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {Am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/am1OverviewPage';
 import {
   isAValidSort,
   MobileOverviewTable,
   type ValidSort,
 } from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {OldMobileOverviewPage} from 'sentry/views/insights/pages/mobile/oldMobileOverviewPage';
+import {Referrer} from 'sentry/views/insights/pages/mobile/referrers';
 import {
   DEFAULT_SORT,
   MOBILE_LANDING_TITLE,
@@ -46,7 +47,7 @@ import {
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {
   generateGenericPerformanceEventView,
   generateMobilePerformanceEventView,
@@ -130,7 +131,7 @@ function EAPMobileOverviewPage() {
       ]
     );
   }
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
   if (organization.features.includes('starfish-mobile-appstart')) {
@@ -140,7 +141,7 @@ function EAPMobileOverviewPage() {
     );
   }
 
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
   }
 
@@ -182,7 +183,7 @@ function EAPMobileOverviewPage() {
 
   const sorts: [ValidSort, ValidSort] = [
     {
-      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      field: 'is_starred_transaction' satisfies SpanProperty,
       kind: 'desc',
     },
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -190,7 +191,7 @@ function EAPMobileOverviewPage() {
 
   existingQuery.addFilterValue('is_transaction', 'true');
 
-  const response = useEAPSpans(
+  const response = useSpans(
     {
       search: existingQuery,
       sorts,
@@ -208,7 +209,7 @@ function EAPMobileOverviewPage() {
         'sum(span.duration)',
       ],
     },
-    'api.performance.landing-table'
+    Referrer.MOBILE_LANDING_TABLE
   );
 
   const searchBarProjectsIds = [...selectedMobileProjects, ...selectedOtherProjects].map(
@@ -276,7 +277,7 @@ function MobileOverviewPageWithProviders() {
   const useEap = useInsightsEap();
   return (
     <DomainOverviewPageProviders>
-      {useEap ? <EAPMobileOverviewPage /> : <OldMobileOverviewPage />}
+      {useEap ? <EAPMobileOverviewPage /> : <Am1MobileOverviewPage />}
     </DomainOverviewPageProviders>
   );
 }

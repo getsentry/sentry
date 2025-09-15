@@ -15,19 +15,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  useMetrics,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {DEFAULT_SORT} from 'sentry/views/insights/mobile/screens/settings';
-import {
-  type MetricsProperty,
-  SpanMetricsField,
-  type SpanMetricsProperty,
-} from 'sentry/views/insights/types';
+import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 const getQueryString = (
@@ -57,22 +50,22 @@ const getQueryString = (
 };
 
 const transactionMetricsFields = [
-  SpanMetricsField.PROJECT_ID,
-  SpanMetricsField.TRANSACTION,
+  SpanFields.PROJECT_ID,
+  SpanFields.TRANSACTION,
   `count()`,
   'avg(measurements.app_start_cold)',
   'avg(measurements.app_start_warm)',
   `avg(measurements.time_to_initial_display)`,
   `avg(measurements.time_to_full_display)`,
-] as const satisfies MetricsProperty[];
+] as const satisfies SpanProperty[];
 
 const spanMetricsFields = [
-  SpanMetricsField.PROJECT_ID,
-  SpanMetricsField.TRANSACTION,
+  SpanFields.PROJECT_ID,
+  SpanFields.TRANSACTION,
   `division(mobile.slow_frames,mobile.total_frames)`,
   `division(mobile.frozen_frames,mobile.total_frames)`,
   `avg(mobile.frames_delay)`,
-] as const satisfies SpanMetricsProperty[];
+] as const satisfies SpanProperty[];
 
 export function ScreensOverview() {
   const navigate = useNavigate();
@@ -119,17 +112,17 @@ export function ScreensOverview() {
   const spanMetricsSorts = isSpanPrimary ? [sort] : [];
   const metricsSorts = isSpanPrimary ? [] : [sort];
 
-  const spanMetricsResult = useSpanMetrics(
+  const spanMetricsResult = useSpans(
     {
       search: spanMetricsQuery,
       fields: spanMetricsFields,
       sorts: spanMetricsSorts,
       enabled: isSpanPrimary || hasVisibleScreens,
     },
-    Referrer.SCREENS_SCREEN_TABLE
+    Referrer.SCREENS_SCREEN_TABLE_SPAN_METRICS
   );
 
-  const metricsResult = useMetrics(
+  const metricsResult = useSpans(
     {
       search: metricsQuery,
       fields: transactionMetricsFields,

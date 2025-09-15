@@ -6,14 +6,15 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry import eventstore
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.eventattachment import EventAttachment
+from sentry.services import eventstore
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.safe import get_path
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
@@ -31,6 +32,7 @@ pytestmark = [requires_symbolicator, requires_kafka]
 
 
 @pytest.mark.snuba
+@thread_leak_allowlist(reason="kafka testutils", issue=97046)
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server, reset_snuba):
@@ -77,7 +79,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         "organizations:custom-symbol-sources": False,
     }
 
-    def test_full_minidump(self):
+    def test_full_minidump(self) -> None:
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
@@ -114,7 +116,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert minidump.name == "windows.dmp"
         assert minidump.sha1 == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
-    def test_full_minidump_json_extra(self):
+    def test_full_minidump_json_extra(self) -> None:
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
@@ -129,7 +131,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert event.data.get("extra") == {"foo": "bar"}
         # Other assertions are performed by `test_full_minidump`
 
-    def test_full_minidump_invalid_extra(self):
+    def test_full_minidump_invalid_extra(self) -> None:
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
@@ -144,7 +146,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert event.data.get("extra") == {"foo": "bar"}
         # Other assertions are performed by `test_full_minidump`
 
-    def test_missing_dsym(self):
+    def test_missing_dsym(self) -> None:
         with self.feature(self._FEATURES):
             with open(get_fixture_path("native", "windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
@@ -154,7 +156,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         insta_snapshot_native_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
 
-    def test_reprocessing(self):
+    def test_reprocessing(self) -> None:
         # NOTE:
         # When running this test against a local symbolicator instance,
         # make sure that instance has its caches disabled. This test assumes
@@ -198,7 +200,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             assert minidump.name == "windows.dmp"
             assert minidump.sha1 == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
-    def test_minidump_threadnames(self):
+    def test_minidump_threadnames(self) -> None:
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
         with self.feature(self._FEATURES):

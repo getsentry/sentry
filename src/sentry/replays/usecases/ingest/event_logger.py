@@ -1,17 +1,16 @@
 import logging
-from collections.abc import Generator
-from typing import Any, TypedDict
+import random
+import uuid
+from collections.abc import Callable, Generator
+from hashlib import md5
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.dom_index import (
-    ReplayActionsEvent,
-    ReplayActionsEventPayload,
-    ReplayActionsEventPayloadClick,
-    _initialize_publisher,
-    encode_as_uuid,
-)
+from sentry.replays.lib.eap.write import write_trace_items
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
@@ -20,6 +19,44 @@ from sentry.replays.usecases.ingest.issue_creation import (
 from sentry.utils import json, metrics
 
 logger = logging.getLogger()
+
+
+ReplayActionsEventPayloadClick = TypedDict(
+    "ReplayActionsEventPayloadClick",
+    {
+        "alt": str,
+        "aria_label": str,
+        "class": list[str],
+        "event_hash": str,
+        "id": str,
+        "node_id": int,
+        "component_name": str,
+        "role": str,
+        "tag": str,
+        "testid": str,
+        "text": str,
+        "timestamp": int,
+        "title": str,
+        "is_dead": int,
+        "is_rage": int,
+    },
+)
+
+
+class ReplayActionsEventPayload(TypedDict):
+    environment: str
+    clicks: list[ReplayActionsEventPayloadClick]
+    replay_id: str
+    type: Literal["replay_actions"]
+
+
+class ReplayActionsEvent(TypedDict):
+    payload: ReplayActionsEventPayload
+    project_id: int
+    replay_id: str
+    retention_days: int
+    start_time: float
+    type: Literal["replay_event"]
 
 
 @sentry_sdk.trace
@@ -70,12 +107,10 @@ def emit_click_events(
         "retention_days": retention_days,
         "start_time": start_time,
         "type": "replay_event",
-        "payload": list(json.dumps(payload).encode()),
+        "payload": payload,
     }
 
-    publisher = _initialize_publisher()
-    publisher.publish("ingest-replay-events", json.dumps(action))
-    publisher.flush()
+    publish_replay_event(json.dumps(action))
 
 
 @sentry_sdk.trace
@@ -127,6 +162,75 @@ def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: s
         log["project_id"] = project_id
         log["replay_id"] = replay_id
         logger.info("sentry.replays.slow_click", extra=log)
+
+
+@sentry_sdk.trace
+def log_multiclick_events(
+    event_meta: ParsedEventMeta,
+    project_id: int,
+    replay_id: str,
+    # Sample multiclick events at 0.2% rate
+    should_sample: Callable[[], bool] = lambda: random.random() < 0.002,
+) -> None:
+    for multiclick in event_meta.multiclick_events:
+        if not should_sample():
+            continue
+
+        log = {
+            "event_type": "multi_click",
+            "project_id": project_id,
+            "replay_id": replay_id,
+            "alt": multiclick.click_event.alt,
+            "aria_label": multiclick.click_event.aria_label,
+            "classes": multiclick.click_event.classes,
+            "component_name": multiclick.click_event.component_name,
+            "id": multiclick.click_event.id,
+            "node_id": multiclick.click_event.node_id,
+            "role": multiclick.click_event.role,
+            "selector": multiclick.click_event.selector,
+            "tag": multiclick.click_event.tag,
+            "testid": multiclick.click_event.testid,
+            "text": multiclick.click_event.text[:100],  # Truncate text for logging
+            "timestamp": multiclick.click_event.timestamp,
+            "url": multiclick.click_event.url or "",
+            "title": multiclick.click_event.title,
+            "click_count": multiclick.click_count,
+        }
+        logger.info("sentry.replays.slow_click", extra=log)
+
+
+@sentry_sdk.trace
+def log_rage_click_events(
+    event_meta: ParsedEventMeta,
+    project_id: int,
+    replay_id: str,
+    # Sample rage multiclick events at 0.2% rate
+    should_sample: Callable[[], bool] = lambda: random.random() < 0.002,
+) -> None:
+    for click in event_meta.click_events:
+        if click.is_rage and should_sample():
+            log = {
+                "event_type": "rage_click",
+                "project_id": project_id,
+                "replay_id": replay_id,
+                "alt": click.alt,
+                "aria_label": click.aria_label,
+                "classes": click.classes,
+                "component_name": click.component_name,
+                "id": click.id,
+                "is_rage_click": True,
+                "is_dead_click": bool(click.is_dead),
+                "node_id": click.node_id,
+                "role": click.role,
+                "selector": click.selector,
+                "tag": click.tag,
+                "testid": click.testid,
+                "text": click.text[:100],  # Truncate text for logging
+                "timestamp": click.timestamp,
+                "url": click.url or "",
+                "title": click.title,
+            }
+            logger.info("sentry.replays.slow_click", extra=log)
 
 
 @sentry_sdk.trace
@@ -230,6 +334,11 @@ def report_rage_click(
 
 
 @sentry_sdk.trace
+def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
+    write_trace_items(trace_items)
+
+
+@sentry_sdk.trace
 def _should_report_hydration_error_issue(project: Project) -> bool:
     """
     Checks the project option, controlled by a project owner.
@@ -243,3 +352,7 @@ def _should_report_rage_click_issue(project: Project) -> bool:
     Checks the project option, controlled by a project owner.
     """
     return project.get_option("sentry:replay_rage_click_issues")
+
+
+def encode_as_uuid(message: str) -> str:
+    return str(uuid.UUID(md5(message.encode()).hexdigest()))

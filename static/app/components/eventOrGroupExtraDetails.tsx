@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {
   getAutofixRunExists,
   isIssueQuickFixable,
@@ -13,8 +14,6 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -169,7 +168,7 @@ const GroupExtra = styled('div')`
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
   line-height: 1.2;
   min-height: ${space(2)};
@@ -178,7 +177,7 @@ const GroupExtra = styled('div')`
     color: ${p => p.theme.subText};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     line-height: 1;
   }
 `;
@@ -224,7 +223,7 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
 `;
 
 const Location = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   min-width: 10px;
   ${p => p.theme.overflowEllipsis};

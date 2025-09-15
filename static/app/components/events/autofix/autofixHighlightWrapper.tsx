@@ -5,6 +5,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
+import {t} from 'sentry/locale';
 
 interface AutofixHighlightWrapperProps {
   children: React.ReactNode;
@@ -54,7 +55,7 @@ export function AutofixHighlightWrapper({
         ref={containerRef}
         className={className}
         isSelected={!!selection}
-        title={selection ? undefined : 'Click to chat about this with Seer'}
+        title={selection ? undefined : t('Click to chat about this with Seer')}
       >
         {children}
       </Wrapper>

@@ -6,9 +6,7 @@ from django.utils.encoding import force_bytes, force_str
 from packaging.version import Version
 from rest_framework.exceptions import NotFound, ParseError
 
-from sentry import eventstore
-from sentry.api.endpoints.project_release_files import ArtifactSource
-from sentry.eventstore.models import BaseEvent
+from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.interfaces.exception import Exception as ExceptionInterface
 from sentry.interfaces.stacktrace import Frame
 from sentry.models.distribution import Distribution
@@ -16,6 +14,9 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
+from sentry.releases.endpoints.project_release_files import ArtifactSource
+from sentry.services import eventstore
+from sentry.services.eventstore.models import BaseEvent
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.urls import non_standard_url_join
 
@@ -293,6 +294,7 @@ def _get_releasefiles(release: Release, organization_id: int) -> list[ReleaseFil
     file_list = file_list.select_related("file").order_by("name")
 
     data_sources.extend(list(file_list.order_by("name")))
+    maybe_renew_releasefiles(data_sources)
 
     dists = Distribution.objects.filter(organization_id=organization_id, release=release)
     for dist in list(dists) + [None]:

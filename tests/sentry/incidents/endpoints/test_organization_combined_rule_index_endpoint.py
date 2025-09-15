@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.actor import Actor
 from sentry.uptime.models import UptimeStatus
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -50,7 +50,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.login_as(self.user)
         self.combined_rules_url = f"/api/0/organizations/{self.organization.slug}/combined-rules/"
 
-    def setup_rules(self):
+    def setup_rules(self) -> None:
         self.alert_rule = self.create_alert_rule(
             name="alert rule",
             organization=self.organization,
@@ -83,7 +83,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             owner=Actor.from_id(user_id=None, team_id=self.team2.id),
         )
 
-    def test_no_cron_monitor_rules(self):
+    def test_no_cron_monitor_rules(self) -> None:
         """
         Tests that the shadow cron monitor rules are NOT returned as part of
         the the list of alert rules.
@@ -101,7 +101,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(resp.data) == 1
         assert cron_rule.id not in (r["id"] for r in resp.data), resp.data
 
-    def test_no_perf_alerts(self):
+    def test_no_perf_alerts(self) -> None:
         self.create_alert_rule()
         perf_alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
         with self.feature("organizations:incidents"):
@@ -112,7 +112,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             resp = self.get_success_response(self.organization.slug)
             assert perf_alert_rule.id in [int(x["id"]) for x in list(resp.data)]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.setup_rules()
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": self.project_ids}
@@ -128,7 +128,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.alert_rule_2, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
 
-    def test_snoozed_rules(self):
+    def test_snoozed_rules(self) -> None:
         """
         Test that we properly serialize snoozed rules with and without an owner
         """
@@ -175,7 +175,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.alert_rule, result[4], skip_dates=True)
         assert result[4]["snooze"]
 
-    def test_invalid_limit(self):
+    def test_invalid_limit(self) -> None:
         self.setup_rules()
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "notaninteger"}
@@ -184,7 +184,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 400
 
-    def test_limit_higher_than_results_no_cursor(self):
+    def test_limit_higher_than_results_no_cursor(self) -> None:
         self.setup_rules()
         # Test limit above result count (which is 4), no cursor.
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -201,7 +201,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.alert_rule_2, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
 
-    def test_limit_as_1_with_paging_sort_name(self):
+    def test_limit_as_1_with_paging_sort_name(self) -> None:
         self.setup_rules()
         # Test Limit as 1, no cursor:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -240,7 +240,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert result[0]["id"] == str(self.issue_rule.id)
         assert result[0]["type"] == "rule"
 
-    def test_limit_as_1_with_paging_sort_name_urlencode(self):
+    def test_limit_as_1_with_paging_sort_name_urlencode(self) -> None:
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]
@@ -298,7 +298,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(result) == 1
         assert result[0]["id"] == str(alert_rule1.id)
 
-    def test_limit_as_1_with_paging(self):
+    def test_limit_as_1_with_paging(self) -> None:
         self.setup_rules()
 
         # Test Limit as 1, no cursor:
@@ -330,7 +330,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert result[0]["id"] == str(self.issue_rule.id)
         assert result[0]["type"] == "rule"
 
-    def test_limit_as_2_with_paging(self):
+    def test_limit_as_2_with_paging(self) -> None:
         self.setup_rules()
 
         # Test Limit as 2, no cursor:
@@ -380,7 +380,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = response.data
         assert len(result) == 0
 
-    def test_offset_pagination(self):
+    def test_offset_pagination(self) -> None:
         self.setup_rules()
 
         date_added = before_now(minutes=1)
@@ -429,7 +429,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(two_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule_team2, result[1], skip_dates=True)
 
-    def test_filter_by_project(self):
+    def test_filter_by_project(self) -> None:
         self.setup_rules()
 
         date_added = before_now(minutes=1)
@@ -446,8 +446,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         three_alert_rule = self.create_alert_rule(
             organization=self.organization, projects=[self.project2]
         )
-        proj_uptime_monitor = self.create_project_uptime_subscription(project=self.project)
-        proj2_uptime_monitor = self.create_project_uptime_subscription(project=self.project2)
+        uptime_detector = self.create_uptime_detector(project=self.project)
+        uptime_detector2 = self.create_uptime_detector(project=self.project2)
 
         proj_cron_monitor = self.create_monitor(project=self.project)
         proj2_cron_monitor = self.create_monitor(project=self.project2)
@@ -468,7 +468,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
         assert [r["id"] for r in result] == [
             f"{proj_cron_monitor.guid}",
-            f"{proj_uptime_monitor.id}",
+            f"{uptime_detector.id}",
             f"{one_alert_rule.id}",
             f"{two_alert_rule.id}",
             f"{self.alert_rule_team2.id}",
@@ -491,7 +491,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = response.data
         assert [r["id"] for r in result] == [
             f"{proj2_cron_monitor.guid}",
-            f"{proj2_uptime_monitor.id}",
+            f"{uptime_detector2.id}",
             f"{three_alert_rule.id}",
             f"{one_alert_rule.id}",
             f"{self.alert_rule_2.id}",
@@ -514,7 +514,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.get_error_response(self.organization.slug, project=[other_project.id])
             assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_team_filter(self):
+    def test_team_filter(self) -> None:
         self.setup_rules()
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": [self.project.id]}
@@ -641,12 +641,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = response.data
         assert len(result) == 2
 
-        team_uptime_monitor = self.create_project_uptime_subscription(
-            owner=self.team, name="Uptime owned"
-        )
-        unowned_uptime_monitor = self.create_project_uptime_subscription(
-            name="Uptime unowned",
-        )
+        team_uptime_detector = self.create_uptime_detector(owner=self.team, name="Uptime owned")
+        unowned_uptime_detector = self.create_uptime_detector(name="Uptime unowned")
 
         team_cron_monitor = self.create_monitor(
             owner_user_id=None,
@@ -677,7 +673,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = response.data
         assert [r["id"] for r in result] == [
             f"{team_cron_monitor.guid}",
-            f"{team_uptime_monitor.id}",
+            f"{team_uptime_detector.id}",
             f"{issue_rule2.id}",
             f"{self.alert_rule.id}",
         ]
@@ -700,12 +696,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = response.data
         assert [r["id"] for r in result] == [
             f"{unowned_cron_monitor.guid}",
-            f"{unowned_uptime_monitor.id}",
+            f"{unowned_uptime_detector.id}",
             f"{an_unassigned_alert_rule.id}",
             f"{self.issue_rule.id}",
         ]
 
-    def test_myteams_filter_superuser(self):
+    def test_myteams_filter_superuser(self) -> None:
         superuser = self.create_user(is_superuser=True)
         another_org = self.create_organization(owner=superuser, name="Rowdy Tiger")
         another_org_rules_url = f"/api/0/organizations/{another_org.slug}/combined-rules/"
@@ -758,7 +754,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         assert len(response.data) == 2  # We are not on this team, but we are a superuser.
 
-    def test_team_filter_no_cross_org_access(self):
+    def test_team_filter_no_cross_org_access(self) -> None:
         self.setup_rules()
         another_org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
@@ -775,7 +771,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(response.data) == 1
         assert response.data[0]["owner"] == f"team:{self.team.id}"
 
-    def test_team_filter_no_access(self):
+    def test_team_filter_no_access(self) -> None:
         self.setup_rules()
 
         # disable Open Membership
@@ -802,10 +798,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response.data["detail"] == "Error: You do not have permission to access Mariachi Band"
         )
 
-    def test_name_filter(self):
+    def test_name_filter(self) -> None:
         self.setup_rules()
-        uptime_monitor = self.create_project_uptime_subscription(name="Uptime")
-        another_uptime_monitor = self.create_project_uptime_subscription(name="yet another Uptime")
+        uptime_detector = self.create_uptime_detector(name="Uptime")
+        another_uptime_detector = self.create_uptime_detector(name="yet another Uptime")
         cron_monitor = self.create_monitor(name="Cron")
         another_cron_monitor = self.create_monitor(name="yet another Cron")
 
@@ -827,7 +823,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = response.data
         assert [r["id"] for r in result] == [
             f"{another_cron_monitor.guid}",
-            f"{another_uptime_monitor.id}",
+            f"{another_uptime_detector.id}",
             f"{self.alert_rule_team2.id}",
         ]
 
@@ -920,8 +916,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = response.data
         assert [r["id"] for r in result] == [
-            f"{another_uptime_monitor.id}",
-            f"{uptime_monitor.id}",
+            f"{another_uptime_detector.id}",
+            f"{uptime_detector.id}",
         ]
 
         with self.feature(
@@ -945,7 +941,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{cron_monitor.guid}",
         ]
 
-    def test_status_and_date_triggered_sort_order(self):
+    def test_status_and_date_triggered_sort_order(self) -> None:
         self.setup_rules()
 
         alert_rule_critical = self.create_alert_rule(
@@ -1002,8 +998,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             alert_rule_trigger=trigger3,
             status=TriggerStatus.ACTIVE.value,
         )
-        uptime_monitor = self.create_project_uptime_subscription()
-        failed_uptime_monitor = self.create_project_uptime_subscription(
+        uptime_detector = self.create_uptime_detector()
+        failed_uptime_detector = self.create_uptime_detector(
             uptime_status=UptimeStatus.FAILED,
         )
         ok_cron_monitor = self.create_monitor(
@@ -1052,8 +1048,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         # Assert failed uptime monitor is first, critical rule is next, then warnings (sorted by triggered date),
         # then issue rules and finally uptime monitors in ok status.
         assert [r["id"] for r in result] == [
-            f"{failed_uptime_monitor.id}",
             f"{failed_cron_monitor.guid}",
+            f"{failed_uptime_detector.id}",
             f"{alert_rule_critical.id}",
             f"{another_alert_rule_warning.id}",
             f"{alert_rule_warning.id}",
@@ -1061,8 +1057,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{self.alert_rule_2.id}",
             f"{self.alert_rule_team2.id}",
             f"{self.issue_rule.id}",
-            f"{uptime_monitor.id}",
             f"{ok_cron_monitor.guid}",
+            f"{uptime_detector.id}",
         ]
 
         # Test paging with the status setup:
@@ -1083,8 +1079,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200, response.content
         result = response.data
         assert [r["id"] for r in result] == [
-            f"{failed_uptime_monitor.id}",
             f"{failed_cron_monitor.guid}",
+            f"{failed_uptime_detector.id}",
             f"{alert_rule_critical.id}",
         ]
 
@@ -1116,15 +1112,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{self.alert_rule.id}",
         ]
 
-    def test_uptime_feature(self):
+    def test_uptime_feature(self) -> None:
         self.setup_rules()
-        uptime_monitor = self.create_project_uptime_subscription(name="Uptime Monitor")
-        other_uptime_monitor = self.create_project_uptime_subscription(
-            name="Other Uptime Monitor",
-        )
-        self.create_project_uptime_subscription(
+        uptime_detector = self.create_uptime_detector(name="Uptime Monitor")
+        other_uptime_detector = self.create_uptime_detector(name="Other Uptime Monitor")
+        self.create_uptime_detector(
             name="Onboarding Uptime monitor",
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
         )
 
         request_data = {"name": "Uptime", "project": [self.project.id]}
@@ -1134,19 +1128,19 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200, response.content
         result = response.data
         assert [r["id"] for r in result] == [
-            f"{other_uptime_monitor.id}",
-            f"{uptime_monitor.id}",
+            f"{other_uptime_detector.id}",
+            f"{uptime_detector.id}",
         ]
 
-    def test_uptime_feature_name_sort(self):
+    def test_uptime_feature_name_sort(self) -> None:
         self.setup_rules()
-        self.create_project_uptime_subscription(name="Uptime Monitor")
-        self.create_project_uptime_subscription(
+        self.create_uptime_detector(name="Uptime Monitor")
+        self.create_uptime_detector(
             name="Other Uptime Monitor",
         )
-        self.create_project_uptime_subscription(
+        self.create_uptime_detector(
             name="Onboarding Uptime monitor",
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
         )
 
         request_data = {"project": [self.project.id], "sort": "name"}
@@ -1163,7 +1157,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             "alert rule",
         ]
 
-    def test_expand_latest_incident(self):
+    def test_expand_latest_incident(self) -> None:
         self.setup_rules()
 
         alert_rule_critical = self.create_alert_rule(
@@ -1198,7 +1192,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(result) == 4
         assert result[0]["latestIncident"]["id"] == str(crit_incident.id)
 
-    def test_non_existing_owner(self):
+    def test_non_existing_owner(self) -> None:
         self.setup_rules()
         team = self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule(
@@ -1231,7 +1225,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.data[0]["owner"] is None
 
     @freeze_time()
-    def test_last_triggered(self):
+    def test_last_triggered(self) -> None:
         rule = self.create_issue_alert_rule(
             data={
                 "project": self.project,
@@ -1248,7 +1242,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 
-    def test_project_deleted(self):
+    def test_project_deleted(self) -> None:
         from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
         from sentry.deletions.tasks.scheduled import run_deletion
 
@@ -1265,7 +1259,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
         self.get_success_response(org.slug)
 
-    def test_active_and_disabled_rules(self):
+    def test_active_and_disabled_rules(self) -> None:
         """Test that we return both active and disabled rules"""
         self.setup_rules()
         disabled_alert = self.create_project_rule(name="disabled rule")
@@ -1280,7 +1274,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             if data["name"] == disabled_alert.label:
                 assert data["status"] == "disabled"
 
-    def test_dataset_filter(self):
+    def test_dataset_filter(self) -> None:
         self.create_alert_rule(dataset=Dataset.Metrics)
         transaction_rule = self.create_alert_rule(dataset=Dataset.Transactions)
         events_rule = self.create_alert_rule(dataset=Dataset.Events)
@@ -1302,7 +1296,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             res = self.get_success_response(self.organization.slug)
             self.assert_alert_rule_serialized(events_rule, res.data[0], skip_dates=True)
 
-    def test_alert_type_filter(self):
+    def test_alert_type_filter(self) -> None:
         # Setup one of each type of alert rule
         metric_rule = self.create_alert_rule()
         issue_rule = self.create_issue_alert_rule(
@@ -1315,7 +1309,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "date_added": before_now(minutes=4),
             }
         )
-        uptime_rule = self.create_project_uptime_subscription(project=self.project)
+        uptime_rule = self.create_uptime_detector(project=self.project)
         cron_rule = self.create_monitor(project=self.project)
 
         features = [

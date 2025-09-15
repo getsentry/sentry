@@ -7,7 +7,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class UserAuthenticatorIndexTest(APITestCase):
-    def test_list_all_authenticators(self):
+    def test_list_all_authenticators(self) -> None:
         user = self.create_user(email="a@example.com", is_superuser=True)
         self.login_as(user=user, superuser=True)
         url = reverse("sentry-api-0-user-authenticator-index", kwargs={"user_id": "me"})

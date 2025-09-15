@@ -9,7 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -48,7 +48,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
 
 
 class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends",
@@ -56,7 +56,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.features = {"organizations:performance-view": True}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -86,7 +86,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-    def test_web_vital(self):
+    def test_web_vital(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -118,7 +118,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-    def test_p75(self):
+    def test_p75(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -148,7 +148,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-    def test_p95(self):
+    def test_p95(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -178,7 +178,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-    def test_p99(self):
+    def test_p99(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -208,7 +208,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-    def test_trend_percentage_query_alias(self):
+    def test_trend_percentage_query_alias(self) -> None:
         queries = [
             ("trend_percentage():>0%", "regression", 1),
             ("trend_percentage():392%", "regression", 1),
@@ -237,7 +237,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
             assert len(events["data"]) == query_data[2], query_data
 
-    def test_trend_percentage_query_alias_as_sort(self):
+    def test_trend_percentage_query_alias_as_sort(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -259,7 +259,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
         assert len(events["data"]) == 1
 
-    def test_trend_difference_query_alias(self):
+    def test_trend_difference_query_alias(self) -> None:
         queries = [
             ("trend_difference():>7s", "regression", 1),
             ("trend_difference():7.84s", "regression", 1),
@@ -288,7 +288,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
             assert len(events["data"]) == query_data[2], query_data
 
-    def test_avg_trend_function(self):
+    def test_avg_trend_function(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -318,7 +318,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-    def test_invalid_trend_function(self):
+    def test_invalid_trend_function(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -334,7 +334,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
             )
             assert response.status_code == 400
 
-    def test_divide_by_zero(self):
+    def test_divide_by_zero(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -366,7 +366,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-    def test_auto_aggregation(self):
+    def test_auto_aggregation(self) -> None:
         # absolute_correlation is automatically added, and not a part of data otherwise
         with self.feature(self.features):
             response = self.client.get(
@@ -401,7 +401,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
 
 class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends-stats",
@@ -409,7 +409,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.features = {"organizations:performance-view": True}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -446,7 +446,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 2000}],
         ]
 
-    def test_web_vital(self):
+    def test_web_vital(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -484,7 +484,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 2000}],
         ]
 
-    def test_p75(self):
+    def test_p75(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -522,7 +522,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 6000}],
         ]
 
-    def test_p95(self):
+    def test_p95(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -560,7 +560,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 9200}],
         ]
 
-    def test_p99(self):
+    def test_p99(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -598,7 +598,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 9840}],
         ]
 
-    def test_avg_trend_function(self):
+    def test_avg_trend_function(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -636,7 +636,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 4000}],
         ]
 
-    def test_alias_in_conditions(self):
+    def test_alias_in_conditions(self) -> None:
         query_parts = [
             "event.type:transaction",
             "count_percentage():>0.25",
@@ -682,7 +682,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
                 [{"count": 4000}],
             ]
 
-    def test_trend_with_middle(self):
+    def test_trend_with_middle(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -723,7 +723,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 4000}],
         ]
 
-    def test_invalid_middle_date(self):
+    def test_invalid_middle_date(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -770,7 +770,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             )
             assert response.status_code == 400
 
-    def test_invalid_trend_function(self):
+    def test_invalid_trend_function(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -786,7 +786,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             )
             assert response.status_code == 400
 
-    def test_divide_by_zero(self):
+    def test_divide_by_zero(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -830,7 +830,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
 
 
 class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(
@@ -866,7 +866,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
             attrs["href"] = url
         return links
 
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -895,7 +895,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
             assert links["next"]["results"] == "false"
             assert len(response.data["events"]["data"]) == 5
 
-    def test_pagination_with_query(self):
+    def test_pagination_with_query(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,

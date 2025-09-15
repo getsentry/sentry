@@ -30,7 +30,7 @@ const PriceHeader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const Price = styled('div')`
@@ -50,7 +50,7 @@ const Amount = styled('div')<{promo?: boolean}>`
 `;
 
 const BillingInterval = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding-bottom: 7px;
   align-self: end;
 `;

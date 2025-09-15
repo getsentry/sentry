@@ -354,7 +354,7 @@ const TooltipWrapper = styled('span')`
 const AdoptionEnvironment = styled('span')`
   color: ${p => p.theme.textColor};
   margin-left: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const RelativeBox = styled('div')`

@@ -55,8 +55,10 @@ export function getPricingDocsLinkForEventType(event: DataCategoryExact) {
       return 'https://docs.sentry.io/pricing/quotas/manage-ui-profile-hours/';
     case DataCategoryExact.SEER_AUTOFIX:
     case DataCategoryExact.SEER_SCANNER:
-      // TODO(seer): Replace with actual Seer budget quota docs link
       return 'https://docs.sentry.io/pricing/quotas/manage-seer-budget/';
+    case DataCategoryExact.LOG_BYTE:
+    case DataCategoryExact.LOG_ITEM:
+      return 'https://docs.sentry.io/pricing/quotas/manage-logs-quota/';
     default:
       return 'https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/';
   }

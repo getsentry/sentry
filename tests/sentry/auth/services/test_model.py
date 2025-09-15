@@ -6,11 +6,11 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestRpcApiToken(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
 
-    def test_serializes_correct_fields(self):
+    def test_serializes_correct_fields(self) -> None:
         internal_app = self.create_internal_integration(organization=self.org)
         api_token = self.create_internal_integration_token(
             user=self.user, internal_integration=internal_app
@@ -22,11 +22,11 @@ class TestRpcApiToken(TestCase):
 
 @control_silo_test
 class TestRpcApiKey(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
 
-    def test_serializes_correct_fields(self):
+    def test_serializes_correct_fields(self) -> None:
         key = ApiKey.objects.create(
             organization_id=self.create_organization().id, scope_list=["org:read"]
         )

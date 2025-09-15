@@ -94,20 +94,8 @@
     }
   ],
   "paths": {
-    "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/stats/": {
-      "$ref": "paths/teams/stats.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/eventids/{event_id}/": {
-      "$ref": "paths/organizations/event-id-lookup.json"
-    },
     "/api/0/organizations/{organization_id_or_slug}/repos/": {
       "$ref": "paths/organizations/repos.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/repos/{repo_id}/commits/": {
-      "$ref": "paths/organizations/repo-commits.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/shortids/{issue_id}/": {
-      "$ref": "paths/organizations/shortid.json"
     },
     "/api/0/projects/": {
       "$ref": "paths/projects/index.json"
@@ -171,9 +159,6 @@
     },
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/commitfiles/": {
       "$ref": "paths/releases/organization-release-commit-files.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/releases/{version}/deploys/": {
-      "$ref": "paths/releases/deploys.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/sentry-app-installations/": {
       "$ref": "paths/integration-platform/sentry-app-installations.json"

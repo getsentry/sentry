@@ -3,8 +3,8 @@ import type {Project} from 'sentry/types/project';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,6 +18,7 @@ import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import type {
   SamplingMode,
   SpansRPCQueryExtras,
@@ -67,7 +68,14 @@ export function useMetricEventStats(
   const organization = useOrganization();
   const location = useLocation();
 
-  const {dataset, aggregate, query: ruleQuery, environment: ruleEnvironment} = rule;
+  const {
+    dataset,
+    aggregate,
+    query: ruleQuery,
+    environment: ruleEnvironment,
+    eventTypes: storedEventTypes,
+  } = rule;
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, storedEventTypes);
   const interval = getPeriodInterval(timePeriod, rule);
   const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, ruleQuery);
   const eventType = extractEventTypeFilterFromRule(rule);
@@ -89,6 +97,7 @@ export function useMetricEventStats(
     dataset,
     newAlertOrQuery: false,
     useOnDemandMetrics: isOnDemandAlert,
+    traceItemType,
   });
 
   const queryObject: EventRequestQueryParams = Object.fromEntries(

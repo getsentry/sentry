@@ -173,7 +173,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
           {step.image}
           <TourHeader>{step.title}</TourHeader>
           {step.body}
-          <TourButtonBar gap={1}>
+          <TourButtonBar>
             {step.actions && step.actions}
             {hasNext && (
               <Button priority="primary" onClick={this.handleAdvance}>
@@ -222,8 +222,8 @@ const TourButtonBar = styled(ButtonBar)`
 
 const StepCounter = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 

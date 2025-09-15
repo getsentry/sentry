@@ -25,7 +25,7 @@ def send_task(
     consumer: ProcessingStrategy[KafkaPayload],
     ts: datetime,
     task: MonitorsClockTasks,
-):
+) -> None:
     value = BrokerValue(
         KafkaPayload(b"fake-key", MONITORS_CLOCK_TASKS_CODEC.encode(task), []),
         partition,
@@ -36,7 +36,7 @@ def send_task(
 
 
 @mock.patch("sentry.monitors.consumers.clock_tasks_consumer.mark_environment_missing")
-def test_dispatch_mark_missing(mock_mark_environment_missing):
+def test_dispatch_mark_missing(mock_mark_environment_missing: mock.MagicMock) -> None:
     ts = timezone.now().replace(second=0, microsecond=0)
 
     consumer = create_consumer()
@@ -51,7 +51,7 @@ def test_dispatch_mark_missing(mock_mark_environment_missing):
 
 
 @mock.patch("sentry.monitors.consumers.clock_tasks_consumer.mark_checkin_timeout")
-def test_dispatch_mark_timeout(mock_mark_checkin_timeout):
+def test_dispatch_mark_timeout(mock_mark_checkin_timeout: mock.MagicMock) -> None:
     ts = timezone.now().replace(second=0, microsecond=0)
 
     consumer = create_consumer()
@@ -71,7 +71,7 @@ def test_dispatch_mark_timeout(mock_mark_checkin_timeout):
 
 
 @mock.patch("sentry.monitors.consumers.clock_tasks_consumer.mark_checkin_unknown")
-def test_dispatch_mark_unknown(mock_mark_checkin_unknown):
+def test_dispatch_mark_unknown(mock_mark_checkin_unknown: mock.MagicMock) -> None:
     ts = timezone.now().replace(second=0, microsecond=0)
 
     consumer = create_consumer()

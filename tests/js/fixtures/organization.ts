@@ -83,12 +83,12 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     scrubIPAddresses: false,
     sensitiveFields: [],
     aggregatedDataConsent: false,
+    enableSeerCoding: true,
     storeCrashReports: 0,
     trustedRelays: [],
     defaultAutofixAutomationTuning: 'off',
-    ...params,
-
     orgRoleList: OrgRoleListFixture(),
     teamRoleList: TeamRoleListFixture(),
+    ...params,
   };
 }

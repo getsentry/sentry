@@ -4,6 +4,6 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectKeySerializerTest(TestCase):
-    def test_dynamic_sdk_serializer_attrs(self):
+    def test_dynamic_sdk_serializer_attrs(self) -> None:
         s = DynamicSdkLoaderOptionSerializer()
         assert set(s.fields.keys()) == {option.value for option in DynamicSdkLoaderOption}

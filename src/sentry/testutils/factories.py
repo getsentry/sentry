@@ -8,7 +8,7 @@ import random
 import zipfile
 from base64 import b64encode
 from binascii import hexlify
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import UTC, datetime
 from enum import Enum
 from hashlib import sha1
@@ -30,8 +30,8 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -105,6 +105,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projecttemplate import ProjectTemplate
+from sentry.models.pullrequest import PullRequestCommit
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -140,6 +141,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
+from sentry.services.eventstore.models import Event
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -159,7 +161,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -186,6 +188,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
@@ -339,6 +342,22 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
     for path in extra_files or {}:
         manifest["files"][path] = {"url": path}
     return orjson.dumps(manifest).decode()
+
+
+def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, Any]) -> None:
+    """Set 'sample_rate' on normalized_data if contexts.error_sampling.client_sample_rate is present and valid."""
+    client_sample_rate = None
+    try:
+        client_sample_rate = (
+            normalized_data.get("contexts", {}).get("error_sampling", {}).get("client_sample_rate")
+        )
+    except Exception:
+        pass
+    if client_sample_rate:
+        try:
+            normalized_data["sample_rate"] = float(client_sample_rate)
+        except Exception:
+            pass
 
 
 # TODO(dcramer): consider moving to something more scalable like factoryboy
@@ -552,6 +571,11 @@ class Factories:
             project_template = ProjectTemplate.objects.create(organization=organization, **kwargs)
 
         return project_template
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_data_access_grant(**kwargs):
+        return DataAccessGrant.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -907,9 +931,77 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_pull_request(
+        repository_id=None, organization_id=None, key=None, title=None, message=None, author=None
+    ):
+        from sentry.models.pullrequest import PullRequest
+
+        return PullRequest.objects.create(
+            repository_id=repository_id,
+            organization_id=organization_id,
+            key=key or str(uuid4().hex[:8]),
+            title=title or make_sentence(),
+            message=message or make_sentence(),
+            author=author,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_pull_request_comment(
+        pull_request,
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+        group_ids=None,
+        comment_type=None,
+        reactions=None,
+    ):
+        from django.utils import timezone
+
+        from sentry.models.pullrequest import CommentType, PullRequestComment
+
+        if created_at is None:
+            created_at = timezone.now()
+        if updated_at is None:
+            updated_at = created_at
+        if group_ids is None:
+            group_ids = []
+        if comment_type is None:
+            comment_type = CommentType.MERGED_PR
+
+        return PullRequestComment.objects.create(
+            pull_request=pull_request,
+            external_id=external_id or uuid4().int % (10**9),
+            created_at=created_at,
+            updated_at=updated_at,
+            group_ids=group_ids,
+            comment_type=comment_type,
+            reactions=reactions,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_pull_request_commit(pull_request, commit):
+        return PullRequestCommit.objects.create(
+            pull_request=pull_request,
+            commit=commit,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_file_change(commit, filename):
         return CommitFileChange.objects.get_or_create(
-            organization_id=commit.organization_id, commit=commit, filename=filename, type="M"
+            organization_id=commit.organization_id, commit_id=commit.id, filename=filename, type="M"
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_release_commit(release, commit, order=1):
+        return ReleaseCommit.objects.create(
+            organization_id=release.organization_id,
+            release=release,
+            commit=commit,
+            order=order,
         )
 
     @staticmethod
@@ -969,6 +1061,8 @@ class Factories:
             provider = "asana"
         if not uid:
             uid = "abc-123"
+        if extra_data is None:
+            extra_data = {}
         usa = UserSocialAuth(user=user, provider=provider, uid=uid, extra_data=extra_data)
         usa.save()
         return usa
@@ -1029,6 +1123,9 @@ class Factories:
             assert not errors, errors
 
         normalized_data = manager.get_data()
+
+        _set_sample_rate_from_error_sampling(normalized_data)
+
         event = None
 
         # When fingerprint is present on transaction, inject performance problems
@@ -1088,6 +1185,11 @@ class Factories:
                 )
 
         return group
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_group_activity(group, *args, **kwargs):
+        return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1961,7 +2063,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
+    def create_webhook_payload(
+        mailbox_name: str, region_name: str | None, **kwargs
+    ) -> WebhookPayload:
         payload_kwargs = {
             "request_method": "POST",
             "request_path": "/extensions/github/webhook/",
@@ -2023,7 +2127,7 @@ class Factories:
         env: Environment | None,
         uptime_subscription: UptimeSubscription,
         status: int,
-        mode: ProjectUptimeSubscriptionMode,
+        mode: UptimeMonitorMode,
         name: str | None,
         owner: Actor | None,
         id: int | None,
@@ -2084,7 +2188,6 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_dashboard_widget(
-        order: int,
         dashboard: Dashboard | None = None,
         title: str | None = None,
         display_type: int | None = None,
@@ -2098,7 +2201,7 @@ class Factories:
             title = petname.generate(2, " ", letters=10).title()
 
         return DashboardWidget.objects.create(
-            dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
+            dashboard=dashboard, title=title, display_type=display_type, **kwargs
         )
 
     @staticmethod
@@ -2110,7 +2213,7 @@ class Factories:
         **kwargs,
     ):
         if widget is None:
-            widget = Factories.create_dashboard_widget(order=order)
+            widget = Factories.create_dashboard_widget()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)
@@ -2269,6 +2372,15 @@ class Factories:
         if workflow is None:
             workflow = Factories.create_workflow()
         return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_group(
+        detector: Detector,
+        group: Group,
+        **kwargs,
+    ) -> DetectorGroup:
+        return DetectorGroup.objects.create(detector=detector, group=group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

@@ -6,11 +6,11 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import DropdownButton from 'sentry/components/dropdownButton';
-import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -23,6 +23,7 @@ import type {DateString} from 'sentry/types/core';
 import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getInternalDate} from 'sentry/utils/dates';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -57,7 +58,7 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   if (logEntryUser?.isSuperuser) {
     return (
       <Name data-test-id="actor-name">
-        <Flex align="center" gap={space(1)}>
+        <Flex align="center" gap="md">
           {logEntryUser.name}
           <Tag>{t('Sentry Staff')}</Tag>
         </Flex>
@@ -297,7 +298,7 @@ function AuditLogList({
   const {displayStart, displayEnd} = getDisplayValues();
 
   const headerActions = (
-    <ButtonBar gap={2}>
+    <ButtonBar gap="xl">
       <TimeRangeSelector
         start={start}
         end={end}
@@ -307,7 +308,7 @@ function AuditLogList({
           allTime,
         }}
         utc={utc}
-        maxPickableDays={Infinity}
+        maxPickableDays={getDaysSinceDate(organization.dateCreated)}
         trigger={(triggerProps, isOpen) => {
           const currentValue = statsPeriod || allTime;
           let displayLabel: React.ReactNode;
@@ -402,7 +403,7 @@ const SentryAvatar = styled(ActivityAvatar)`
 `;
 
 const Name = styled('strong')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const EventSelector = styled(Select)`
@@ -413,7 +414,7 @@ const UserInfo = styled('div')`
   display: flex;
   align-items: center;
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
 `;
 
@@ -424,7 +425,7 @@ const NameContainer = styled('div')`
 `;
 
 const Note = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   margin-top: ${space(0.5)};
 `;
@@ -435,7 +436,7 @@ const IpAddressOverflow = styled('div')`
 `;
 
 const MonoDetail = styled('code')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   white-space: no-wrap;
 `;
 
@@ -443,7 +444,7 @@ const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export default AuditLogList;

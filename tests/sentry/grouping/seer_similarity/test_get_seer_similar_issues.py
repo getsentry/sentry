@@ -2,7 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 from sentry import options
-from sentry.eventstore.models import Event
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.grouping.ingest.seer import get_seer_similar_issues
@@ -10,9 +10,9 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 

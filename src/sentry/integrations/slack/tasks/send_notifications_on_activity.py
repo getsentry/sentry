@@ -25,6 +25,7 @@ _TASK_QUEUED_METRIC = (
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def send_activity_notifications_to_slack_threads(activity_id) -> None:

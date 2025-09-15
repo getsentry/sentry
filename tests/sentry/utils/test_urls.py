@@ -23,19 +23,19 @@ from sentry.utils.urls import (
         ("apsunknown://example.com/foo", "//aha/uhu", "apsunknown://aha/uhu"),
     ],
 )
-def test_non_standard_url_join(base, to_join, expected):
+def test_non_standard_url_join(base, to_join, expected) -> None:
     assert non_standard_url_join(base, to_join) == expected
 
 
 class AddParamsToUrlTest(TestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         url = "https://sentry.io?myparam=value#hash-param"
         new_url = add_params_to_url(url, {"new_param": "another"})
         assert new_url == "https://sentry.io?myparam=value&new_param=another#hash-param"
 
 
 class ParseLinkTest(TestCase):
-    def test_parse_link(self):
+    def test_parse_link(self) -> None:
         assert (
             parse_link(
                 "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&query=is%3Aunresolved"

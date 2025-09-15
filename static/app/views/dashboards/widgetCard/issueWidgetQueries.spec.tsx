@@ -9,7 +9,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 
-describe('IssueWidgetQueries', function () {
+describe('IssueWidgetQueries', () => {
   const widget: Widget = {
     id: '1',
     title: 'Issues Widget',
@@ -44,7 +44,7 @@ describe('IssueWidgetQueries', function () {
   } as Parameters<typeof initializeOrg>[0]);
   const api = new MockApiClient();
 
-  it('does an issue query and passes correct tableResults to child component', async function () {
+  it('does an issue query and passes correct tableResults to child component', async () => {
     const mockFunction = jest.fn(() => {
       return <div />;
     });
@@ -119,7 +119,7 @@ describe('IssueWidgetQueries', function () {
     );
   });
 
-  it('appends dashboard filters to issue request', async function () {
+  it('appends dashboard filters to issue request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [],

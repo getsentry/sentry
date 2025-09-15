@@ -1,11 +1,10 @@
 import {Fragment, useState} from 'react';
+import types from '!!type-loader!sentry/components/core/slider';
 import styled from '@emotion/styled';
 
 import {Slider} from 'sentry/components/core/slider';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
-
-import types from '!!type-loader!sentry/components/core/slider';
 
 export default Storybook.story('Slider', (story, APIReference) => {
   APIReference(types.Slider);

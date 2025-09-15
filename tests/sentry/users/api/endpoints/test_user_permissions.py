@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.api.permissions import StaffPermission
 from sentry.testutils.cases import APITestCase
@@ -14,7 +14,7 @@ class UserPermissionsTest(APITestCase):
 class UserPermissionsGetTest(UserPermissionsTest):
     method = "GET"
 
-    def test_superuser_lookup_self(self):
+    def test_superuser_lookup_self(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
         self.login_as(user=self.superuser, superuser=True)
 
@@ -28,7 +28,7 @@ class UserPermissionsGetTest(UserPermissionsTest):
 
     @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
-    def test_staff_lookup_self(self, mock_has_permission):
+    def test_staff_lookup_self(self, mock_has_permission: MagicMock) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(staff_user, staff=True)
 

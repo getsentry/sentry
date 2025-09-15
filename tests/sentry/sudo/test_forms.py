@@ -13,34 +13,34 @@ from sudo.forms import SudoForm
     ]
 )
 class SudoFormTestCase(BaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login()
 
-    def test_integration_empty(self):
+    def test_integration_empty(self) -> None:
         self.assertFalse(SudoForm(self.user).is_valid())
 
-    def test_integration_invalid_password(self):
+    def test_integration_invalid_password(self) -> None:
         self.assertFalse(SudoForm(self.user, {"password": "lol"}).is_valid())
 
-    def test_integration_valid_password(self):
+    def test_integration_valid_password(self) -> None:
         self.assertTrue(SudoForm(self.user, {"password": "foo"}).is_valid())
 
-    def test_integration_secondary_auth_valid_password(self):
+    def test_integration_secondary_auth_valid_password(self) -> None:
         self.assertTrue(SudoForm(self.user, {"password": "stub"}).is_valid())
 
-    def test_clean_password_invalid_password(self):
+    def test_clean_password_invalid_password(self) -> None:
         with pytest.raises(ValidationError):
             SudoForm(self.user, {"password": "lol"}).clean_password()
 
-    def test_clean_password_valid_password(self):
+    def test_clean_password_valid_password(self) -> None:
         password = "foo"
         self.assertEqual(SudoForm(self.user, {"password": password}).clean_password(), password)
 
-    def test_clean_password_secondary_auth_valid_password(self):
+    def test_clean_password_secondary_auth_valid_password(self) -> None:
         password = "stub"
         self.assertEqual(SudoForm(self.user, {"password": password}).clean_password(), password)
 
-    def test_integration_custom_user(self):
+    def test_integration_custom_user(self) -> None:
         self.login(EmailUser)
         self.assertTrue(SudoForm(self.user, {"password": "foo"}).is_valid())

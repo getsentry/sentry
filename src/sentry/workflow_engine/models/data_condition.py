@@ -15,6 +15,7 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
+from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
 
@@ -92,13 +93,13 @@ SLOW_CONDITIONS = [
 
 # Conditions that are not supported in the UI
 LEGACY_CONDITIONS = [
-    Condition.EVERY_EVENT,
     Condition.EVENT_CREATED_BY_DETECTOR,
     Condition.EVENT_SEEN_COUNT,
     Condition.NEW_HIGH_PRIORITY_ISSUE,
     Condition.EXISTING_HIGH_PRIORITY_ISSUE,
     Condition.ISSUE_CATEGORY,
     Condition.ISSUE_RESOLUTION_CHANGE,
+    Condition.ISSUE_PRIORITY_EQUALS,
 ]
 
 
@@ -118,7 +119,7 @@ class DataCondition(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    __repr__ = sane_repr("type", "condition", "condition_group")
+    __repr__ = sane_repr("type", "comparison", "condition_result", "condition_group_id")
 
     # The comparison is the value that the condition is compared to for the evaluation, this must be a primitive value
     comparison = models.JSONField()
@@ -162,36 +163,27 @@ class DataCondition(DefaultFieldsModel):
 
         return None
 
-    def evaluate_value(self, value: T) -> DataConditionResult:
+    def _evaluate_operator(self, condition_type: Condition, value: T) -> DataConditionResult:
+        # If the condition is a base type, handle it directly
+        op = CONDITION_OPS[condition_type]
+        result = None
         try:
-            condition_type = Condition(self.type)
-        except ValueError:
+            result = op(cast(Any, value), self.comparison)
+        except TypeError:
             logger.exception(
-                "Invalid condition type",
-                extra={"type": self.type, "id": self.id},
+                "Invalid comparison for data condition",
+                extra={
+                    "comparison": self.comparison,
+                    "value": value,
+                    "type": self.type,
+                    "condition_id": self.id,
+                },
             )
-            return None
 
-        if condition_type in CONDITION_OPS:
-            # If the condition is a base type, handle it directly
-            op = CONDITION_OPS[Condition(self.type)]
-            result = None
-            try:
-                result = op(cast(Any, value), self.comparison)
-            except TypeError:
-                logger.exception(
-                    "Invalid comparison for data condition",
-                    extra={
-                        "comparison": self.comparison,
-                        "value": value,
-                        "type": self.type,
-                        "condition_id": self.id,
-                    },
-                )
+        return result
 
-            return self.get_condition_result() if result else None
-
-        # Otherwise, we need to get the handler and evaluate the value
+    @scopedstats.timer()
+    def _evaluate_condition(self, condition_type: Condition, value: T) -> DataConditionResult:
         try:
             handler = condition_handler_registry.get(condition_type)
         except registry.NoRegistrationExistsError:
@@ -204,7 +196,11 @@ class DataCondition(DefaultFieldsModel):
         should_be_fast = not is_slow_condition(self)
         start_time = time.time()
         try:
-            result = handler.evaluate_value(value, self.comparison)
+            with metrics.timer(
+                "workflow_engine.data_condition.evaluation_duration",
+                tags={"type": self.type, "speed_category": "fast" if should_be_fast else "slow"},
+            ):
+                result = handler.evaluate_value(value, self.comparison)
         except DataConditionEvaluationException as e:
             metrics.incr("workflow_engine.data_condition.evaluation_error")
             logger.info(
@@ -233,7 +229,28 @@ class DataCondition(DefaultFieldsModel):
                     },
                 )
 
+        return result
+
+    def evaluate_value(self, value: T) -> DataConditionResult:
+        try:
+            condition_type = Condition(self.type)
+        except ValueError:
+            logger.exception(
+                "Invalid condition type",
+                extra={"type": self.type, "id": self.id},
+            )
+            return None
+
+        result: DataConditionResult
+        if condition_type in CONDITION_OPS:
+            result = self._evaluate_operator(condition_type, value)
+        else:
+            result = self._evaluate_condition(condition_type, value)
+
+        metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
+
         if isinstance(result, bool):
+            # If the result is True, get the result from `.condition_result`
             return self.get_condition_result() if result else None
 
         return result

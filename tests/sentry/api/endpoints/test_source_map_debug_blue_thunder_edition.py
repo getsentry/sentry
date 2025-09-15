@@ -80,7 +80,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         self.login_as(self.user)
         return super().setUp()
 
-    def test_missing_event(self):
+    def test_missing_event(self) -> None:
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -91,7 +91,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Event not found"
 
-    def test_empty_exceptions_array(self):
+    def test_empty_exceptions_array(self) -> None:
         event = self.store_event(data=create_event([]), project_id=self.project.id)
         resp = self.get_success_response(
             self.organization.slug,
@@ -100,7 +100,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert resp.data["exceptions"] == []
 
-    def test_has_debug_ids_true(self):
+    def test_has_debug_ids_true(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
@@ -121,7 +121,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert resp.data["has_debug_ids"]
 
-    def test_has_debug_ids_false(self):
+    def test_has_debug_ids_false(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
@@ -136,7 +136,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert not resp.data["has_debug_ids"]
 
-    def test_sdk_version(self):
+    def test_sdk_version(self) -> None:
         event = self.store_event(
             data=create_event(sdk={"name": "sentry.javascript.react", "version": "7.66.0"}),
             project_id=self.project.id,
@@ -148,7 +148,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert resp.data["sdk_version"] == "7.66.0"
 
-    def test_no_sdk_version(self):
+    def test_no_sdk_version(self) -> None:
         event = self.store_event(data=create_event(), project_id=self.project.id)
         resp = self.get_success_response(
             self.organization.slug,
@@ -157,7 +157,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert resp.data["sdk_version"] is None
 
-    def test_sdk_debug_id_support_full(self):
+    def test_sdk_debug_id_support_full(self) -> None:
         event = self.store_event(
             data=create_event(sdk={"name": "sentry.javascript.react", "version": "7.66.0"}),
             project_id=self.project.id,
@@ -169,7 +169,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert resp.data["sdk_debug_id_support"] == "full"
 
-    def test_sdk_debug_id_support_needs_upgrade(self):
+    def test_sdk_debug_id_support_needs_upgrade(self) -> None:
         event = self.store_event(
             data=create_event(sdk={"name": "sentry.javascript.react", "version": "7.47.0"}),
             project_id=self.project.id,
@@ -183,7 +183,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             resp.data["sdk_debug_id_support"] == "needs-upgrade"
         ), MIN_JS_SDK_VERSION_FOR_DEBUG_IDS
 
-    def test_sdk_debug_id_support_unsupported(self):
+    def test_sdk_debug_id_support_unsupported(self) -> None:
         event = self.store_event(
             data=create_event(sdk={"name": "sentry.javascript.cordova", "version": "7.47.0"}),
             project_id=self.project.id,
@@ -195,7 +195,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert resp.data["sdk_debug_id_support"] == "not-supported"
 
-    def test_sdk_debug_id_support_community_sdk(self):
+    def test_sdk_debug_id_support_community_sdk(self) -> None:
         event = self.store_event(
             data=create_event(
                 sdk={"name": "sentry.javascript.some-custom-identifier", "version": "7.47.0"}
@@ -209,7 +209,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert resp.data["sdk_debug_id_support"] == "unofficial-sdk"
 
-    def test_release_has_some_artifact_positive(self):
+    def test_release_has_some_artifact_positive(self) -> None:
         event = self.store_event(
             data=create_event(release="some-release"),
             project_id=self.project.id,
@@ -232,7 +232,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert resp.data["release_has_some_artifact"]
 
-    def test_release_has_some_artifact_negative(self):
+    def test_release_has_some_artifact_negative(self) -> None:
         event = self.store_event(
             data=create_event(release="some-release"),
             project_id=self.project.id,
@@ -246,7 +246,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert not resp.data["release_has_some_artifact"]
 
-    def test_project_has_some_artifact_bundle_positive(self):
+    def test_project_has_some_artifact_bundle_positive(self) -> None:
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
             file=File.objects.create(name="artifact-bundle.zip", type="dummy.file"),
@@ -272,7 +272,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert resp.data["project_has_some_artifact_bundle"]
 
-    def test_project_has_some_artifact_bundle_negative(self):
+    def test_project_has_some_artifact_bundle_negative(self) -> None:
         event = self.store_event(
             data=create_event(),
             project_id=self.project.id,
@@ -286,7 +286,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert not resp.data["project_has_some_artifact_bundle"]
 
-    def test_project_has_some_artifact_bundle_with_a_debug_id_positive(self):
+    def test_project_has_some_artifact_bundle_with_a_debug_id_positive(self) -> None:
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
             file=File.objects.create(name="artifact-bundle.zip", type="dummy.file"),
@@ -319,7 +319,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
-    def test_project_has_some_artifact_bundle_with_a_debug_id_negative(self):
+    def test_project_has_some_artifact_bundle_with_a_debug_id_negative(self) -> None:
         event = self.store_event(
             data=create_event(),
             project_id=self.project.id,
@@ -333,7 +333,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
-    def test_multiple_exceptions(self):
+    def test_multiple_exceptions(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -350,7 +350,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         )
         assert len(resp.data["exceptions"]) == 2
 
-    def test_frame_debug_id_no_debug_id(self):
+    def test_frame_debug_id_no_debug_id(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
@@ -377,7 +377,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
-    def test_frame_debug_id_no_uploaded_source_no_uploaded_source_map(self):
+    def test_frame_debug_id_no_uploaded_source_no_uploaded_source_map(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
@@ -404,7 +404,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
-    def test_frame_debug_id_uploaded_source_no_uploaded_source_map(self):
+    def test_frame_debug_id_uploaded_source_no_uploaded_source_map(self) -> None:
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
             file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
@@ -450,7 +450,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
-    def test_frame_debug_id_no_uploaded_source_uploaded_source_map(self):
+    def test_frame_debug_id_no_uploaded_source_uploaded_source_map(self) -> None:
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
             file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
@@ -496,7 +496,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
-    def test_frame_debug_id_uploaded_source_uploaded_source_map(self):
+    def test_frame_debug_id_uploaded_source_uploaded_source_map(self) -> None:
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
             file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
@@ -549,7 +549,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
-    def test_frame_release_process_release_file_matching_source_file_names(self):
+    def test_frame_release_process_release_file_matching_source_file_names(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -573,7 +573,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             "~/bundle.js",
         ]
 
-    def test_frame_release_process_release_file_source_map_reference(self):
+    def test_frame_release_process_release_file_source_map_reference(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -608,7 +608,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["matching_source_map_name"] == "~/bundle.js.map"
         assert release_process_result["source_map_reference"] == "bundle.js.map"
 
-    def test_frame_release_process_release_file_data_protocol_source_map_reference(self):
+    def test_frame_release_process_release_file_data_protocol_source_map_reference(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -648,7 +648,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "Inline Sourcemap"
         assert release_process_result["matching_source_map_name"] is None
 
-    def test_frame_release_process_release_file_source_file_not_found(self):
+    def test_frame_release_process_release_file_source_file_not_found(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -672,7 +672,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] is None
         assert release_process_result["matching_source_map_name"] is None
 
-    def test_frame_release_process_release_file_source_file_wrong_dist(self):
+    def test_frame_release_process_release_file_source_file_wrong_dist(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -710,7 +710,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] is None
         assert release_process_result["matching_source_map_name"] is None
 
-    def test_frame_release_process_release_file_source_file_successful(self):
+    def test_frame_release_process_release_file_source_file_successful(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -747,7 +747,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "bundle.js.map"
         assert release_process_result["matching_source_map_name"] == "~/bundle.js.map"
 
-    def test_frame_release_process_release_file_source_map_wrong_dist(self):
+    def test_frame_release_process_release_file_source_map_wrong_dist(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -801,7 +801,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "bundle.js.map"
         assert release_process_result["matching_source_map_name"] == "~/bundle.js.map"
 
-    def test_frame_release_process_release_file_source_map_successful(self):
+    def test_frame_release_process_release_file_source_map_successful(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -859,7 +859,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "../bundle.js.map"
         assert release_process_result["matching_source_map_name"] == "~/bundle.js.map"
 
-    def test_frame_release_process_artifact_bundle_data_protocol_source_map_reference(self):
+    def test_frame_release_process_artifact_bundle_data_protocol_source_map_reference(self) -> None:
         compressed = BytesIO(b"SYSB")
         with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/bundle.min.js", b'console.log("hello world");')
@@ -932,7 +932,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "Inline Sourcemap"
         assert release_process_result["matching_source_map_name"] is None
 
-    def test_frame_release_process_artifact_bundle_source_file_wrong_dist(self):
+    def test_frame_release_process_artifact_bundle_source_file_wrong_dist(self) -> None:
         compressed = BytesIO(b"SYSB")
         with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr(
@@ -1005,7 +1005,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert release_process_result["source_file_lookup_result"] == "wrong-dist"
 
-    def test_frame_release_process_artifact_bundle_source_file_successful(self):
+    def test_frame_release_process_artifact_bundle_source_file_successful(self) -> None:
         compressed = BytesIO(b"SYSB")
         with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr(
@@ -1077,7 +1077,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert release_process_result["source_file_lookup_result"] == "found"
 
-    def test_frame_release_process_artifact_bundle_source_map_not_found(self):
+    def test_frame_release_process_artifact_bundle_source_map_not_found(self) -> None:
         compressed = BytesIO(b"SYSB")
         with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr(
@@ -1166,7 +1166,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "bundle.min.js.map"
         assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
 
-    def test_frame_release_process_artifact_bundle_source_map_wrong_dist(self):
+    def test_frame_release_process_artifact_bundle_source_map_wrong_dist(self) -> None:
         compressed = BytesIO(b"SYSB")
         with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr(
@@ -1282,7 +1282,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "bundle.min.js.map"
         assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
 
-    def test_frame_release_process_artifact_bundle_source_map_successful(self):
+    def test_frame_release_process_artifact_bundle_source_map_successful(self) -> None:
         compressed = BytesIO(b"SYSB")
         with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr(
@@ -1371,7 +1371,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "bundle.min.js.map"
         assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
 
-    def test_frame_release_file_success(self):
+    def test_frame_release_file_success(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -1489,7 +1489,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_map_reference"] == "bundle.min.js.map"
         assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
 
-    def test_frame_release_file_wrong_dist(self):
+    def test_frame_release_file_wrong_dist(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -1598,7 +1598,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         assert release_process_result["source_file_lookup_result"] == "wrong-dist"
         assert release_process_result["source_map_lookup_result"] == "unsuccessful"
 
-    def test_has_scraping_data_flag_true(self):
+    def test_has_scraping_data_flag_true(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[],
@@ -1620,7 +1620,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert resp.data["has_scraping_data"]
 
-    def test_has_scraping_data_flag_false(self):
+    def test_has_scraping_data_flag_false(self) -> None:
         event = self.store_event(
             data=create_event(exceptions=[]),
             project_id=self.project.id,
@@ -1634,7 +1634,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         assert not resp.data["has_scraping_data"]
 
-    def test_scraping_result_source_file(self):
+    def test_scraping_result_source_file(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[
@@ -1689,7 +1689,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         }
         assert resp.data["exceptions"][0]["frames"][3]["scraping_process"]["source_file"] is None
 
-    def test_scraping_result_source_map(self):
+    def test_scraping_result_source_map(self) -> None:
         event = self.store_event(
             data=create_event(
                 exceptions=[

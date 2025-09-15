@@ -37,6 +37,11 @@ function renderReleaseBundlesMockRequests({
         ],
   });
 
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/releases/`,
+    body: [],
+  });
+
   return {sourceMaps};
 }
 
@@ -62,9 +67,9 @@ function renderDebugIdBundlesMockRequests({
   return {artifactBundles, artifactBundlesDeletion};
 }
 
-describe('ProjectSourceMaps', function () {
-  describe('Artifact Bundles', function () {
-    it('renders default state', async function () {
+describe('ProjectSourceMaps', () => {
+  describe('Artifact Bundles', () => {
+    it('renders default state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {
@@ -141,7 +146,7 @@ describe('ProjectSourceMaps', function () {
       });
     });
 
-    it('renders empty state', async function () {
+    it('renders empty state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {

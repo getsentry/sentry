@@ -8,7 +8,7 @@ from social_auth.utils import ctype_to_model, model_to_ctype
 
 @no_silo_test
 class TestSocialAuthUtils(TestCase):
-    def test_model_to_ctype(self):
+    def test_model_to_ctype(self) -> None:
         val = model_to_ctype(1)
         assert val == 1
 
@@ -23,7 +23,7 @@ class TestSocialAuthUtils(TestCase):
         val = model_to_ctype(rpc_user)
         assert val == rpc_user.dict()
 
-    def test_ctype_to_model(self):
+    def test_ctype_to_model(self) -> None:
         val = ctype_to_model(1)
         assert val == 1
 

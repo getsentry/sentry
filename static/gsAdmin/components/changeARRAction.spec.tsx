@@ -8,14 +8,14 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ChangeARRAction from 'admin/components/changeARRAction';
 
-describe('ChangeARRAction', function () {
+describe('ChangeARRAction', () => {
   const onAction = jest.fn();
 
-  it('renders empty', function () {
+  it('renders empty', () => {
     render(<ChangeARRAction customer={{}} onAction={onAction} />);
   });
 
-  it('renders default ACV value', async function () {
+  it('renders default ACV value', async () => {
     render(<ChangeARRAction customer={{acv: 1000000}} onAction={onAction} />);
 
     await userEvent.click(screen.getByRole('button'));
@@ -28,7 +28,7 @@ describe('ChangeARRAction', function () {
     ).toBeInTheDocument();
   });
 
-  it('can change ACV value', async function () {
+  it('can change ACV value', async () => {
     render(<ChangeARRAction customer={{acv: 1000000}} onAction={onAction} />);
 
     await userEvent.click(screen.getByRole('button'));

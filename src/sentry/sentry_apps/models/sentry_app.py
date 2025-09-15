@@ -25,38 +25,19 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
+from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
 from sentry.types.region import find_all_region_names, find_regions_for_sentry_app
 from sentry.utils import metrics
-
-# When a developer selects to receive "<Resource> Webhooks" it really means
-# listening to a list of specific events. This is a mapping of what those
-# specific events are for each resource.
-EVENT_EXPANSION = {
-    "issue": [
-        "issue.assigned",
-        "issue.created",
-        "issue.ignored",
-        "issue.resolved",
-        "issue.unresolved",
-    ],
-    "error": ["error.created"],
-    "comment": ["comment.created", "comment.deleted", "comment.updated"],
-}
-
-# We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
-# per-event-type (issue.created, project.deleted, etc.). These are valid
-# resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = ("issue", "error", "comment")
 
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",
     "error": "event:read",
+    "seer": "event:read",
     "project": "project:read",
     "member": "member:read",
     "organization": "org:read",
@@ -144,7 +125,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     events = ArrayField(models.TextField(), default=list)
 
     overview = models.TextField(null=True)
-    schema = JSONField(default=dict)
+    schema = models.JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
@@ -156,7 +137,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     creator_label = models.TextField(null=True)
 
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
-    metadata = JSONField(default=dict)
+    metadata = models.JSONField(default=dict)
 
     objects: ClassVar[SentryAppManager] = SentryAppManager()
 

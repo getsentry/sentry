@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import parse_qsl
 
-import orjson
 from django.core.exceptions import PermissionDenied
-from django.http.request import HttpRequest
+from requests import Response
 
 from sentry import http, options
-from sentry.http import safe_urlopen, safe_urlread
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider, record_event
-from sentry.identity.pipeline_types import IdentityPipelineT, IdentityPipelineViewT
-from sentry.integrations.utils.metrics import IntegrationPipelineViewType
+from sentry.http import safe_urlopen
+from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
+from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
@@ -47,7 +47,7 @@ def get_user_info(access_token):
 
 
 class VSTSIdentityProvider(OAuth2Provider):
-    key = "vsts"
+    key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
 
     oauth_access_token_url = "https://app.vssps.visualstudio.com/oauth2/token"
@@ -62,7 +62,7 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
-    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
+    def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
             OAuth2LoginView(
                 authorize_url=self.oauth_authorize_url,
@@ -80,7 +80,7 @@ class VSTSIdentityProvider(OAuth2Provider):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
     def get_refresh_token_params(
-        self, refresh_token: str, identity: Identity, **kwargs: Any
+        self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
         client_secret = options.get("vsts.client-secret")
 
@@ -91,6 +91,11 @@ class VSTSIdentityProvider(OAuth2Provider):
         # If "vso.code" is missing from the identity.scopes, we know that we installed
         # using the "vsts-limited.client-secret" and therefore should use that to refresh
         # the token.
+
+        # TODO(ecosystem): We should not use scopes to determine which client_secret to use
+        assert isinstance(
+            identity, Identity
+        ), "Legacy VSTS identity provider only supports Identity"
         if "vso.code" not in identity.scopes:
             client_secret = options.get("vsts-limited.client-secret")
 
@@ -113,7 +118,7 @@ class VSTSIdentityProvider(OAuth2Provider):
         user = get_user_info(access_token)
 
         return {
-            "type": "vsts",
+            "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
             "id": user["id"],
             "email": user["emailAddress"],
             "email_verified": True,
@@ -124,33 +129,22 @@ class VSTSIdentityProvider(OAuth2Provider):
 
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
-    def exchange_token(
-        self, request: HttpRequest, pipeline: IdentityPipelineT, code: str
-    ) -> dict[str, str]:
-        with record_event(
-            IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
-        ).capture():
-            req = safe_urlopen(
-                url=self.access_token_url,
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Content-Length": "1322",
-                },
-                data={
-                    "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-                    "client_assertion": self.client_secret,
-                    "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                    "assertion": code,
-                    "redirect_uri": pipeline.config.get("redirect_url"),
-                },
-            )
-            body = safe_urlread(req)
-            if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
-                return dict(parse_qsl(body))
-            return orjson.loads(body)
+    def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
+        data = {
+            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            "client_assertion": self.client_secret,
+            "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "assertion": code,
+            "redirect_uri": pipeline.config.get("redirect_url"),
+        }
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Content-Length": "1322",
+        }
+        return safe_urlopen(self.access_token_url, data=data, headers=headers)
 
 
-# TODO(iamrajjoshi): Make this the default provider
+# TODO(ecosystem): Make this the default provider
 # We created this new flow in order to quickly update the DevOps integration to use
 # the new Azure AD OAuth2 flow.
 # This is a temporary solution until we can fully migrate to the new flow once customers are migrated
@@ -190,14 +184,8 @@ class VSTSNewIdentityProvider(OAuth2Provider):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
     def get_refresh_token_params(
-        self, refresh_token: str, identity: Identity, **kwargs: Any
+        self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
-        # TODO(iamrajjoshi): Fix vsts-limited here
-        # Note: ignoring the below from the original provider
-        # # If "vso.code" is missing from the identity.scopes, we know that we installed
-        # using the "vsts-limited.client-secret" and therefore should use that to refresh
-        # the token.
-
         oauth_redirect_url = kwargs.get("redirect_url")
         if oauth_redirect_url is None:
             raise ValueError("VSTS requires oauth redirect url when refreshing identity")
@@ -217,7 +205,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
         user = get_user_info(access_token)
 
         return {
-            "type": "vsts",
+            "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
             "id": user["id"],
             "email": user["emailAddress"],
             "email_verified": True,
@@ -245,27 +233,12 @@ class VSTSOAuth2LoginView(OAuth2LoginView):
 
 
 class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
-    def exchange_token(
-        self, request: HttpRequest, pipeline: IdentityPipelineT, code: str
-    ) -> dict[str, str]:
-        with record_event(
-            IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
-        ).capture():
-            req = safe_urlopen(
-                url=self.access_token_url,
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Content-Length": "1322",
-                },
-                data={
-                    "grant_type": "authorization_code",
-                    "client_id": self.client_id,
-                    "client_secret": self.client_secret,
-                    "code": code,
-                    "redirect_uri": absolute_uri(pipeline.config.get("redirect_url")),
-                },
-            )
-            body = safe_urlread(req)
-            if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
-                return dict(parse_qsl(body))
-            return orjson.loads(body)
+    def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
+        data = self.get_token_params(
+            code=code, redirect_uri=absolute_uri(pipeline.config.get("redirect_url"))
+        )
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Content-Length": "1322",
+        }
+        return safe_urlopen(self.access_token_url, data=data, headers=headers)

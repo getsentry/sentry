@@ -2,23 +2,24 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {findSuggestedColumns, viewSamplesTarget} from 'sentry/views/explore/utils';
 
-describe('viewSamplesTarget', function () {
+describe('viewSamplesTarget', () => {
   const project = ProjectFixture();
   const projects = [project];
-  const visualize = new Visualize('count(span.duration)');
+  const visualize = new VisualizeFunction('count(span.duration)');
   const sort = {
     field: 'count(span.duration)',
     kind: 'desc' as const,
   };
 
-  it('simple drill down with no group bys', function () {
+  it('simple drill down with no group bys', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
       query: '',
+      fields: ['foo'],
       groupBys: [],
       visualizes: [visualize],
       sorts: [sort],
@@ -27,7 +28,7 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '',
         sort: ['-span.duration'],
@@ -35,37 +36,38 @@ describe('viewSamplesTarget', function () {
     });
   });
 
-  it('simple drill down with single group by', function () {
+  it('simple drill down with single group by', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
       query: '',
-      groupBys: ['foo'],
+      fields: ['foo'],
+      groupBys: ['bar'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {foo: 'foo', 'count(span.duration)': 10},
+      row: {bar: 'bar', 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
       query: {
         field: ['foo', 'span.duration'],
         mode: 'samples',
-        query: 'foo:foo',
+        query: 'bar:bar',
         sort: ['-span.duration'],
       },
     });
   });
 
-  it('simple drill down with multiple group bys', function () {
+  it('simple drill down with multiple group bys', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
       query: '',
-      groupBys: ['foo', 'bar', 'baz'],
+      fields: ['foo'],
+      groupBys: ['bar', 'baz'],
       visualizes: [visualize],
       sorts: [sort],
       row: {
-        foo: 'foo',
         bar: 'bar',
         baz: 'baz',
         'count(span.duration)': 10,
@@ -74,19 +76,20 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['foo', 'bar', 'baz', 'span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
-        query: 'foo:foo bar:bar baz:baz',
+        query: 'bar:bar baz:baz',
         sort: ['-span.duration'],
       },
     });
   });
 
-  it('simple drill down with on environment', function () {
+  it('simple drill down with on environment', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
       query: '',
+      fields: ['foo'],
       groupBys: ['environment'],
       visualizes: [visualize],
       sorts: [sort],
@@ -98,7 +101,7 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['environment', 'span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '',
         environment: 'prod',
@@ -107,11 +110,12 @@ describe('viewSamplesTarget', function () {
     });
   });
 
-  it('simple drill down with on project id', function () {
+  it('simple drill down with on project id', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
       query: '',
+      fields: ['foo'],
       groupBys: ['project.id'],
       visualizes: [visualize],
       sorts: [sort],
@@ -123,7 +127,7 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['project.id', 'span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '',
         project: '1',
@@ -132,11 +136,12 @@ describe('viewSamplesTarget', function () {
     });
   });
 
-  it('simple drill down with on project slug', function () {
+  it('simple drill down with on project slug', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
       query: '',
+      fields: ['foo'],
       groupBys: ['project'],
       visualizes: [visualize],
       sorts: [sort],
@@ -148,7 +153,7 @@ describe('viewSamplesTarget', function () {
     });
     expect(target).toMatchObject({
       query: {
-        field: ['project', 'span.duration'],
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '',
         project: String(project.id),
@@ -158,7 +163,7 @@ describe('viewSamplesTarget', function () {
   });
 });
 
-describe('findSuggestedColumns', function () {
+describe('findSuggestedColumns', () => {
   it.each([
     {
       cols: [],
@@ -267,7 +272,7 @@ describe('findSuggestedColumns', function () {
     },
   ])(
     'should inject $cols when changing from `$oldQuery` to `$newQuery`',
-    function ({cols, oldQuery, newQuery}) {
+    ({cols, oldQuery, newQuery}) => {
       const oldSearch = new MutableSearch(oldQuery);
       const newSearch = new MutableSearch(newQuery);
       const suggestion = findSuggestedColumns(newSearch, oldSearch, {

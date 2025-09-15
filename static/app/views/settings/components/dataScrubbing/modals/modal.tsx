@@ -29,7 +29,7 @@ function Modal({
       </Header>
       <Body>{content}</Body>
       <Footer>
-        <ButtonBar gap={1.5}>
+        <ButtonBar gap="lg">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button onClick={onSave} disabled={disabled} priority="primary">
             {t('Save Rule')}

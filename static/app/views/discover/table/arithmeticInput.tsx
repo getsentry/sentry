@@ -440,8 +440,8 @@ const DropdownTitle = styled('header')`
 
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
 
   margin: 0;
   padding: ${space(1)} ${space(2)};
@@ -453,7 +453,7 @@ const DropdownTitle = styled('header')`
 
 const DropdownListItem = styled(ListItem)`
   scroll-margin: 40px 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 
@@ -465,8 +465,8 @@ const DropdownListItem = styled(ListItem)`
 
 const DropdownItemTitleWrapper = styled('div')`
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
   ${p => p.theme.overflowEllipsis};
@@ -475,7 +475,7 @@ const DropdownItemTitleWrapper = styled('div')`
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
 
   &:not(:last-child) {

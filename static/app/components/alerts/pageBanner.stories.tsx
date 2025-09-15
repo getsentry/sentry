@@ -6,7 +6,7 @@ import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-chang
 import PageBanner from 'sentry/components/alerts/pageBanner';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {IconBroadcast} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -123,5 +123,5 @@ export default Storybook.story('PageBanner', story => {
 
 const Green = styled('span')`
   color: ${p => p.theme.green400};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

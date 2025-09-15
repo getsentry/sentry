@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -87,7 +88,7 @@ function AutofixInsightCard({
   const truncatedTitleHtml = useMemo(() => {
     let truncatedTitle = displayedInsightTitle;
     if (newlineIndex !== -1 && newlineIndex < displayedInsightTitle.length - 1) {
-      truncatedTitle = displayedInsightTitle.substring(0, newlineIndex) + '...';
+      truncatedTitle = ellipsize(truncatedTitle, newlineIndex);
     }
     return {
       __html: singleLineRenderer(truncatedTitle),
@@ -151,7 +152,7 @@ function AutofixInsightCard({
                         }
                       }}
                     />
-                    <ButtonBar merged>
+                    <ButtonBar merged gap="0">
                       <Button
                         type="button"
                         size="sm"
@@ -295,6 +296,7 @@ interface AutofixInsightCardsProps {
   insights: AutofixInsight[];
   runId: string;
   stepIndex: number;
+  shouldCollapseByDefault?: boolean;
 }
 
 interface CollapsibleChainLinkProps {
@@ -402,7 +404,7 @@ function CollapsibleChainLink({
                       }
                     }}
                   />
-                  <ButtonBar merged>
+                  <ButtonBar merged gap="0">
                     <Button
                       type="button"
                       size="sm"
@@ -455,8 +457,9 @@ function AutofixInsightCards({
   stepIndex,
   groupId,
   runId,
+  shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(shouldCollapseByDefault ?? false);
   const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
   const previousInsightsRef = useRef<AutofixInsight[]>([]);
   const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
@@ -601,7 +604,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
       });
-      addSuccessMessage(t('Rethinking this...'));
+      addLoadingMessage(t('Rethinking this...'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Seer your message.'));
@@ -654,9 +657,9 @@ const CardsStack = styled('div')`
 `;
 
 const ContextMarkedText = styled(MarkedText)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   code {
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 `;
 
@@ -708,7 +711,7 @@ const VerticalLine = styled('div')`
   transform: translateX(-50%);
   top: 0;
   bottom: 0;
-  width: 2px;
+  width: 1px;
   background-color: ${p => p.theme.subText};
   transition: background-color 0.2s ease;
   z-index: 0;
@@ -754,6 +757,10 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
   flex: 1;
   word-break: break-word;
   color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
+
+  code {
+    color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
+  }
 `;
 
 const ContextBody = styled('div')`
@@ -837,7 +844,7 @@ const CollapseIconChevron = styled(IconChevron)`
 
 const CollapsedCount = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const AddEditContainer = styled('div')`
@@ -860,7 +867,7 @@ const AddButton = styled(Button)`
   }
 `;
 
-function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
+export function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
   return <CheckpointIcon {...props}>{'\u21A9'}</CheckpointIcon>;
 }
 
@@ -874,7 +881,7 @@ const CheckpointIcon = styled('span')`
 const RethinkLabel = styled('span')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-right: ${space(0.5)};
 `;

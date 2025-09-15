@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {ClickFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -12,7 +12,9 @@ export default function SelectorList({frame}: {frame: ClickFrame}) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const componentName = frame.data.node?.attributes['data-sentry-component'];
+  // There's a rare case where `frame.data` is undefined, either SDK error or
+  // user creating bad breadcrumbs
+  const componentName = frame.data?.node?.attributes['data-sentry-component'];
   const indexOfArrow = frame.message?.lastIndexOf('>') ?? -1;
   const lastComponentIndex = indexOfArrow === -1 ? 0 : indexOfArrow + 2;
 

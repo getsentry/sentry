@@ -22,7 +22,7 @@ const enum CallTreeTableClassNames {
 }
 
 export const CallTreeTable = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin: 0;
   overflow: auto;
   max-height: 100%;
@@ -378,12 +378,12 @@ const TEXT_ALIGN_RIGHT: React.CSSProperties = {textAlign: 'right'};
 
 interface CallTreeTableRowProps {
   children: React.ReactNode;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLElement>) => void;
   onContextMenu: (e: React.MouseEvent) => void;
-  onKeyDown: (event: React.KeyboardEvent) => void;
-  onMouseEnter: () => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+  onMouseEnter: (e: React.MouseEvent<HTMLElement>) => void;
   tabIndex: number;
-  top: string;
+  top: React.CSSProperties['top'];
   ref?: React.Ref<HTMLDivElement>;
 }
 export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {

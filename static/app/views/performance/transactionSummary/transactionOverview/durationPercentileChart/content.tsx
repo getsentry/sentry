@@ -66,7 +66,7 @@ function Content({
   apiPayload = {
     ...apiPayload,
     ...queryExtras,
-    referrer: 'api.performance.durationpercentilechart',
+    referrer: 'api.insights.durationpercentilechart',
   };
 
   const {

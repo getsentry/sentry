@@ -5,7 +5,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
 
-describe('SpanSummaryPage', function () {
+describe('SpanSummaryPage', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const initialRouterConfig = {
@@ -29,7 +29,7 @@ describe('SpanSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-duration-chart',
+          referrer: 'api.insights.span-summary-duration-chart',
         }),
       ],
       body: {
@@ -67,7 +67,7 @@ describe('SpanSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-throughput-chart',
+          referrer: 'api.insights.span-summary-throughput-chart',
         }),
       ],
       body: {
@@ -105,7 +105,7 @@ describe('SpanSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-transaction-throughput-chart',
+          referrer: 'api.insights.span-summary-transaction-throughput-chart',
         }),
       ],
       body: {
@@ -180,7 +180,7 @@ describe('SpanSummaryPage', function () {
     });
   });
 
-  it('correctly renders the details in the header', async function () {
+  it('correctly renders the details in the header', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/spans/fields/',
       body: [],
@@ -214,7 +214,7 @@ describe('SpanSummaryPage', function () {
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
         },
       },
     });

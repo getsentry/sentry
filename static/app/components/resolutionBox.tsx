@@ -84,15 +84,6 @@ export function renderResolutionReason({
         })
       : t('This issue has been marked as resolved in the upcoming release.');
   }
-
-  if (statusDetails.inUpcomingRelease) {
-    return actor
-      ? tct('[actor] marked this issue as resolved in the upcoming release.', {
-          actor,
-        })
-      : t('This issue has been marked as resolved in the upcoming release.');
-  }
-
   if (statusDetails.inRelease) {
     const version = (
       <VersionHoverCard
@@ -151,7 +142,7 @@ function ResolutionBox(props: Props) {
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StreamlinedTimeSince = styled(TimeSince)`
@@ -166,7 +157,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
   margin-top: 0 !important;
   align-self: center;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: ${space(0.5)} !important;
     align-self: flex-start;
   }
@@ -174,7 +165,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
 
 const StreamlinedVersion = styled(Version)`
   color: ${p => p.theme.green400};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   &:hover {
@@ -185,7 +176,7 @@ const StreamlinedVersion = styled(Version)`
 
 const StreamlinedCommitLink = styled(CommitLink)`
   color: ${p => p.theme.green400};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   margin-right: ${space(0.5)};

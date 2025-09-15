@@ -22,7 +22,7 @@ import {
   updateLocationWithId,
 } from 'sentry/views/explore/contexts/pageParamsContext/id';
 
-import type {AggregateField, BaseAggregateField, GroupBy} from './aggregateFields';
+import type {AggregateField, GroupBy} from './aggregateFields';
 import {
   defaultAggregateFields,
   getAggregateFieldsFromLocation,
@@ -31,6 +31,11 @@ import {
   isVisualize,
   updateLocationWithAggregateFields,
 } from './aggregateFields';
+import {
+  defaultAggregateSortBys,
+  getAggregateSortBysFromLocation,
+  updateLocationWithAggregateSortBys,
+} from './aggregateSortBys';
 import {
   defaultDataset,
   getDatasetFromLocation,
@@ -54,22 +59,24 @@ import type {BaseVisualize, Visualize} from './visualizes';
 
 interface ReadablePageParamsOptions {
   aggregateFields: AggregateField[];
+  aggregateSortBys: Sort[];
   dataset: DiscoverDatasets | undefined;
   fields: string[];
   mode: Mode;
   query: string;
-  sortBys: Sort[];
+  sampleSortBys: Sort[];
   id?: string;
   title?: string;
 }
 
 class ReadablePageParams {
   aggregateFields: AggregateField[];
+  aggregateSortBys: Sort[];
   dataset: DiscoverDatasets | undefined;
   fields: string[];
   mode: Mode;
   query: string;
-  sortBys: Sort[];
+  sampleSortBys: Sort[];
   id?: string;
   title?: string;
   private _groupBys: string[];
@@ -77,11 +84,12 @@ class ReadablePageParams {
 
   constructor(options: ReadablePageParamsOptions) {
     this.aggregateFields = options.aggregateFields;
+    this.aggregateSortBys = options.aggregateSortBys;
     this.dataset = options.dataset;
     this.fields = options.fields;
     this.mode = options.mode;
     this.query = options.query;
-    this.sortBys = options.sortBys;
+    this.sampleSortBys = options.sampleSortBys;
     this.id = options.id;
     this.title = options.title;
 
@@ -89,6 +97,10 @@ class ReadablePageParams {
       .filter(isGroupBy)
       .map(groupBy => groupBy.groupBy);
     this._visualizes = this.aggregateFields.filter(isVisualize);
+  }
+
+  get sortBys(): Sort[] {
+    return this.mode === Mode.AGGREGATE ? this.aggregateSortBys : this.sampleSortBys;
   }
 
   get groupBys(): string[] {
@@ -102,12 +114,13 @@ class ReadablePageParams {
 
 interface WritablePageParams {
   aggregateFields?: Array<GroupBy | BaseVisualize> | null;
+  aggregateSortBys?: Sort[] | null;
   dataset?: DiscoverDatasets | null;
   fields?: string[] | null;
   id?: string | null;
   mode?: Mode | null;
   query?: string | null;
-  sortBys?: Sort[] | null;
+  sampleSortBys?: Sort[] | null;
   title?: string | null;
 }
 
@@ -119,19 +132,19 @@ function defaultPageParams(): ReadablePageParams {
   const query = defaultQuery();
   const title = defaultTitle();
   const id = defaultId();
-  const sortBys = defaultSortBys(
-    mode,
-    fields,
+  const sortBys = defaultSortBys(fields);
+  const aggregateSortBys = defaultAggregateSortBys(
     aggregateFields.filter(isVisualize).map(visualize => visualize.yAxis)
   );
 
   return new ReadablePageParams({
     aggregateFields,
+    aggregateSortBys,
     dataset,
     fields,
     mode,
     query,
-    sortBys,
+    sampleSortBys: sortBys,
     title,
     id,
   });
@@ -184,17 +197,23 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
     const query = getQueryFromLocation(location);
     const groupBys = aggregateFields.filter(isGroupBy).map(groupBy => groupBy.groupBy);
     const visualizes = aggregateFields.filter(isVisualize);
-    const sortBys = getSortBysFromLocation(location, mode, fields, groupBys, visualizes);
+    const sortBys = getSortBysFromLocation(location, fields);
+    const aggregateSortBys = getAggregateSortBysFromLocation(
+      location,
+      groupBys,
+      visualizes
+    );
     const title = getTitleFromLocation(location);
     const id = getIdFromLocation(location);
 
     return new ReadablePageParams({
       aggregateFields,
+      aggregateSortBys,
       dataset,
       fields,
       mode,
       query,
-      sortBys,
+      sampleSortBys: sortBys,
       title,
       id,
     });
@@ -227,27 +246,12 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
-  return DiscoverDatasets.SPANS_EAP_RPC;
-}
-
-export function useExploreAggregateFields(): AggregateField[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.aggregateFields;
+  return DiscoverDatasets.SPANS;
 }
 
 export function useExploreFields(): string[] {
   const pageParams = useExplorePageParams();
   return pageParams.fields;
-}
-
-export function useExploreGroupBys(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.groupBys;
-}
-
-export function useExploreMode(): Mode {
-  const pageParams = useExplorePageParams();
-  return pageParams.mode;
 }
 
 export function useExploreQuery(): string {
@@ -257,7 +261,14 @@ export function useExploreQuery(): string {
 
 export function useExploreSortBys(): Sort[] {
   const pageParams = useExplorePageParams();
-  return pageParams.sortBys;
+  return pageParams.mode === Mode.AGGREGATE
+    ? pageParams.aggregateSortBys
+    : pageParams.sortBys;
+}
+
+export function useExploreAggregateSortBys(): Sort[] {
+  const pageParams = useExplorePageParams();
+  return pageParams.aggregateSortBys;
 }
 
 export function useExploreTitle(): string | undefined {
@@ -270,22 +281,18 @@ export function useExploreId(): string | undefined {
   return pageParams.id;
 }
 
-export function useExploreVisualizes(): Visualize[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.visualizes;
-}
-
 export function newExploreTarget(
   location: Location,
   pageParams: WritablePageParams
 ): Location {
   const target = {...location, query: {...location.query}};
   updateLocationWithAggregateFields(target, pageParams.aggregateFields);
+  updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
   updateLocationWithDataset(target, pageParams.dataset);
   updateLocationWithFields(target, pageParams.fields);
   updateLocationWithMode(target, pageParams.mode);
   updateLocationWithQuery(target, pageParams.query);
-  updateLocationWithSortBys(target, pageParams.sortBys);
+  updateLocationWithSortBys(target, pageParams.sampleSortBys);
   updateLocationWithTitle(target, pageParams.title);
   updateLocationWithId(target, pageParams.id);
   return target;
@@ -501,16 +508,6 @@ export function useSetExplorePageParams(): (
   );
 }
 
-export function useSetExploreAggregateFields() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (aggregateFields: BaseAggregateField[]) => {
-      setPageParams({aggregateFields});
-    },
-    [setPageParams]
-  );
-}
-
 export function useSetExploreFields() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
@@ -527,20 +524,40 @@ export function useSetExploreGroupBys() {
   return useCallback(
     (groupBys: string[], mode?: Mode) => {
       const aggregateFields = [];
-      let i = 0;
+
+      let seenVisualizes = false;
+      let groupByAfterVisualizes = false;
+
+      for (const aggregateField of pageParams.aggregateFields) {
+        if (isGroupBy(aggregateField) && seenVisualizes) {
+          groupByAfterVisualizes = true;
+          break;
+        } else if (isVisualize(aggregateField)) {
+          seenVisualizes = true;
+        }
+      }
+
+      const iter = groupBys[Symbol.iterator]();
+
       for (const aggregateField of pageParams.aggregateFields) {
         if (isGroupBy(aggregateField)) {
-          if (i < groupBys.length) {
-            const groupBy: GroupBy = {groupBy: groupBys[i++]!};
-            aggregateFields.push(groupBy);
+          const {value: groupBy, done} = iter.next();
+          if (!done) {
+            aggregateFields.push({groupBy});
           }
         } else {
+          if (!groupByAfterVisualizes) {
+            // no existing group by appears after a visualize, so any additional
+            // group bys will be inserted before any visualizes as well
+            for (const groupBy of iter) {
+              aggregateFields.push({groupBy});
+            }
+          }
           aggregateFields.push(aggregateField.toJSON());
         }
       }
-      for (; i < groupBys.length; i++) {
-        const groupBy = {groupBy: groupBys[i]!};
-        aggregateFields.push(groupBy);
+      for (const groupBy of iter) {
+        aggregateFields.push({groupBy});
       }
 
       setPageParams({aggregateFields, mode});
@@ -589,12 +606,17 @@ export function useSetExploreQuery() {
 }
 
 export function useSetExploreSortBys() {
+  const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
   return useCallback(
     (sortBys: Sort[]) => {
-      setPageParams({sortBys});
+      setPageParams(
+        pageParams.mode === Mode.AGGREGATE
+          ? {aggregateSortBys: sortBys}
+          : {sampleSortBys: sortBys}
+      );
     },
-    [setPageParams]
+    [pageParams, setPageParams]
   );
 }
 

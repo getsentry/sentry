@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from django.http.request import HttpRequest
 
@@ -8,6 +9,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.authidentity import AuthIdentity
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
@@ -21,15 +23,17 @@ class GitHubOAuth2Provider(OAuth2Provider):
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
     name = "GitHub"
-    key = "github"
+    key = IntegrationProviderSlug.GITHUB.value
 
-    def get_client_id(self):
+    def get_client_id(self) -> str:
+        assert isinstance(CLIENT_ID, str)
         return CLIENT_ID
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
+        assert isinstance(CLIENT_SECRET, str)
         return CLIENT_SECRET
 
-    def __init__(self, org=None, **config) -> None:
+    def __init__(self, org: RpcOrganization | dict[str, Any] | None = None, **config: Any) -> None:
         super().__init__(**config)
         self.org = org
 
@@ -60,7 +64,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
-    def build_config(self, state):
+    def build_config(self, state: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
         """
         On configuration, we determine which provider organization to configure SSO for
         This configuration is then stored and passed into the pipeline instances during SSO
@@ -68,7 +72,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
         """
         return {"org": {"id": state["org"]["id"], "name": state["org"]["login"]}}
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         data = state["data"]
         user_data = state["user"]
         return {
@@ -81,7 +85,10 @@ class GitHubOAuth2Provider(OAuth2Provider):
     def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         with GitHubClient(auth_identity.data["access_token"]) as client:
             try:
-                if not client.is_org_member(self.org["id"]):
+                if not self.org:
+                    raise IdentityNotValid
+                org_id = self.org.id if isinstance(self.org, RpcOrganization) else self.org["id"]
+                if not client.is_org_member(org_id):
                     raise IdentityNotValid
             except GitHubApiError as e:
                 raise IdentityNotValid(e)

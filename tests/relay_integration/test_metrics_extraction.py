@@ -1,4 +1,3 @@
-import time
 import uuid
 
 import confluent_kafka as kafka
@@ -11,6 +10,7 @@ from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 
 pytestmark = [requires_kafka]
@@ -19,7 +19,7 @@ pytestmark = [requires_kafka]
 class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip("breaks in Relay for unknown reasons")
     @override_options({"relay.transaction-names-client-based": 1.0})
-    def test_all_transaction_metrics_emitted(self):
+    def test_all_transaction_metrics_emitted(self) -> None:
         with Feature(
             {
                 "organizations:transaction-metrics-extraction": True,
@@ -82,8 +82,8 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             self.post_and_retrieve_event(event_data)
 
             strings_emitted = set()
-            for _ in range(1000):
-                message = consumer.poll(timeout=1.0)
+            for attempt in range(1000):
+                message = consumer.poll(timeout=5.0 if attempt == 0 else 0.1)
                 if message is None:
                     break
                 message = json.loads(message.value())
@@ -108,7 +108,8 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             non_common_strings = strings_emitted - SHARED_STRINGS.keys()
             assert non_common_strings == known_non_common_strings
 
-    def test_histogram_outliers(self):
+    @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
+    def test_histogram_outliers(self) -> None:
         with Feature(
             {
                 "organizations:transaction-metrics-extraction": True,
@@ -150,9 +151,9 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
 
             histogram_outlier_tags = {}
             buckets = []
-            t0 = time.monotonic()
+
             for attempt in range(1000):
-                message = consumer.poll(timeout=1.0)
+                message = consumer.poll(timeout=5.0 if attempt == 0 else 0.1)
                 if message is None:
                     break
                 bucket = json.loads(message.value())
@@ -167,8 +168,4 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                 "d:transactions/duration@millisecond": "inlier",
                 "d:transactions/measurements.fcp@millisecond": "outlier",
                 "d:transactions/measurements.lcp@millisecond": "inlier",
-            }, {
-                "attempts": attempt,
-                "time_elapsed": time.monotonic() - t0,
-                "bucket_count": len(buckets),
             }

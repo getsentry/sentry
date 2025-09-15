@@ -1,7 +1,6 @@
 from collections.abc import MutableMapping, Sequence
 from typing import Any, Literal, TypedDict, cast, override
 
-from django.db.models import prefetch_related_objects
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
     CheckStatus,
     CheckStatusReasonType,
@@ -10,12 +9,51 @@ from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.types.actor import Actor
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import UptimeStatus, UptimeSubscription
 from sentry.uptime.subscriptions.regions import get_region_config
-from sentry.uptime.types import EapCheckEntry, IncidentStatus
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    EapCheckEntry,
+    IncidentStatus,
+    UptimeSummary,
+)
+from sentry.workflow_engine.models import DataSourceDetector, DetectorState
+from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.types import DetectorPriorityLevel
+
+DETECTOR_PRIORITY_TO_UPTIME_STATUS = {
+    DetectorPriorityLevel.OK: UptimeStatus.OK,
+    DetectorPriorityLevel.HIGH: UptimeStatus.FAILED,
+}
 
 
-class ProjectUptimeSubscriptionSerializerResponse(TypedDict):
+class UptimeSubscriptionSerializerResponse(TypedDict):
+    url: str
+    method: str
+    body: str | None
+    headers: Sequence[tuple[str, str]]
+    intervalSeconds: int
+    timeoutMs: int
+    traceSampling: bool
+
+
+@register(UptimeSubscription)
+class UptimeSubscriptionSerializer(Serializer):
+
+    @override
+    def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
+        return {
+            "url": obj.url,
+            "method": obj.method,
+            "body": obj.body,
+            "headers": obj.headers,
+            "intervalSeconds": obj.interval_seconds,
+            "timeoutMs": obj.timeout_ms,
+            "traceSampling": obj.trace_sampling,
+        }
+
+
+class UptimeDetectorSerializerResponse(UptimeSubscriptionSerializerResponse):
     id: str
     projectSlug: str
     environment: str | None
@@ -23,57 +61,78 @@ class ProjectUptimeSubscriptionSerializerResponse(TypedDict):
     status: str
     uptimeStatus: int
     mode: int
-    url: str
-    method: str
-    body: str | None
-    headers: Sequence[tuple[str, str]]
-    intervalSeconds: int
-    timeoutMs: int
     owner: ActorSerializerResponse
-    traceSampling: bool
 
 
-@register(ProjectUptimeSubscription)
-class ProjectUptimeSubscriptionSerializer(Serializer):
-    def __init__(self, expand=None):
-        self.expand = expand
-
+class UptimeDetectorSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[ProjectUptimeSubscription], user: Any, **kwargs: Any
+        self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
-        prefetch_related_objects(item_list, "uptime_subscription", "project", "environment")
-        owners = list(filter(None, [item.owner for item in item_list]))
+        detector_state_lookup = {
+            ds.detector_id: ds for ds in DetectorState.objects.filter(detector__in=item_list)
+        }
+
+        # Get uptime subscriptions through data source detectors
+        data_source_detectors = DataSourceDetector.objects.filter(
+            detector__in=item_list,
+            data_source__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        ).select_related("data_source")
+
+        subscription_by_id = {
+            str(sub.id): sub
+            for sub in UptimeSubscription.objects.filter(
+                id__in=[dsd.data_source.source_id for dsd in data_source_detectors]
+            )
+        }
+
+        detector_to_subscription = {
+            dsd.detector_id: subscription_by_id.get(dsd.data_source.source_id)
+            for dsd in data_source_detectors
+        }
+
+        # Serialize owners
+        owners = [detector.owner for detector in item_list if detector.owner]
         owners_serialized = serialize(
             Actor.resolve_many(owners, filter_none=False), user, ActorSerializer()
         )
-        serialized_owner_lookup = {
-            owner: serialized_owner for owner, serialized_owner in zip(owners, owners_serialized)
-        }
+        owner_lookup = {owner: serialized for owner, serialized in zip(owners, owners_serialized)}
 
         return {
-            item: {"owner": serialized_owner_lookup.get(item.owner) if item.owner else None}
-            for item in item_list
+            detector: {
+                "uptime_subscription": detector_to_subscription.get(detector.id),
+                "detector_state": detector_state_lookup.get(detector.id),
+                "owner": detector.owner and owner_lookup.get(detector.owner) or None,
+            }
+            for detector in item_list
         }
 
-    def serialize(
-        self, obj: ProjectUptimeSubscription, attrs, user, **kwargs
-    ) -> ProjectUptimeSubscriptionSerializerResponse:
+    def serialize(self, obj: Detector, attrs, user, **kwargs) -> UptimeDetectorSerializerResponse:
+        uptime_subscription = attrs["uptime_subscription"]
+        detector_state = attrs["detector_state"]
+
+        if not uptime_subscription:
+            # Handle case where we can't find the associated uptime subscription
+            raise ValueError(f"Could not find UptimeSubscription for detector {obj.id}")
+
+        serialized_subscription: UptimeSubscriptionSerializerResponse = serialize(
+            uptime_subscription
+        )
+
+        if detector_state and detector_state.state in DETECTOR_PRIORITY_TO_UPTIME_STATUS:
+            uptime_status = DETECTOR_PRIORITY_TO_UPTIME_STATUS[detector_state.state]
+        else:
+            uptime_status = UptimeStatus.OK
+
         return {
             "id": str(obj.id),
             "projectSlug": obj.project.slug,
-            "environment": obj.environment.name if obj.environment else None,
-            "name": obj.name or f"Uptime Monitoring for {obj.uptime_subscription.url}",
-            "status": obj.get_status_display(),
-            "uptimeStatus": obj.uptime_subscription.uptime_status,
-            "mode": obj.mode,
-            "url": obj.uptime_subscription.url,
-            "headers": obj.uptime_subscription.headers,
-            "body": obj.uptime_subscription.body,
-            "method": obj.uptime_subscription.method,
-            "intervalSeconds": obj.uptime_subscription.interval_seconds,
-            "timeoutMs": obj.uptime_subscription.timeout_ms,
+            "environment": obj.config.get("environment"),
+            "name": obj.name or f"Uptime Monitoring for {uptime_subscription.url}",
+            "status": "active" if obj.enabled else "disabled",
+            "uptimeStatus": uptime_status,
+            "mode": obj.config.get("mode", 1),  # Default to MANUAL mode
             "owner": attrs["owner"],
-            "traceSampling": obj.uptime_subscription.trace_sampling,
+            **serialized_subscription,
         }
 
 
@@ -87,8 +146,6 @@ failed as part of an uptime incident.
 
 class EapCheckEntrySerializerResponse(TypedDict):
     uptimeCheckId: str
-    uptimeSubscriptionId: int
-    projectUptimeSubscriptionId: int
     timestamp: str
     scheduledCheckTime: str
     checkStatus: SerializedCheckStatus
@@ -120,8 +177,6 @@ class EapCheckEntrySerializer(Serializer):
 
         return {
             "uptimeCheckId": obj.uptime_check_id,
-            "uptimeSubscriptionId": obj.uptime_subscription_id,
-            "projectUptimeSubscriptionId": obj.uptime_subscription_id,
             "timestamp": obj.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "scheduledCheckTime": obj.scheduled_check_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checkStatus": check_status,
@@ -136,31 +191,24 @@ class EapCheckEntrySerializer(Serializer):
         }
 
 
-class UptimeSubscriptionSerializerResponse(TypedDict):
-    timeoutMs: int
-    intervalSeconds: int
-    method: str
-    url: str
-    urlDomain: str
-    urlDomainSuffix: str
-    traceSampling: bool
-    hostProviderId: str
-    hostProviderName: str
+class UptimeSummarySerializerResponse(TypedDict):
+    totalChecks: int
+    failedChecks: int
+    downtimeChecks: int
+    missedWindowChecks: int
+    avgDurationUs: float | None
 
 
-@register(UptimeSubscription)
-class UptimeSubscriptionSerializer(Serializer):
-
+@register(UptimeSummary)
+class UptimeSummarySerializer(Serializer):
     @override
-    def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: UptimeSummary, attrs: Any, user: Any, **kwargs: Any
+    ) -> UptimeSummarySerializerResponse:
         return {
-            "timeoutMs": obj.timeout_ms,
-            "intervalSeconds": obj.interval_seconds,
-            "method": obj.method,
-            "url": obj.url,
-            "urlDomain": obj.url_domain,
-            "urlDomainSuffix": obj.url_domain_suffix,
-            "traceSampling": obj.trace_sampling,
-            "hostProviderId": obj.host_provider_id,
-            "hostProviderName": obj.host_provider_name,
+            "totalChecks": obj.total_checks,
+            "failedChecks": obj.failed_checks,
+            "downtimeChecks": obj.downtime_checks,
+            "missedWindowChecks": obj.missed_window_checks,
+            "avgDurationUs": obj.avg_duration_us,
         }

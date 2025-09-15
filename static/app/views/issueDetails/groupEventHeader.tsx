@@ -24,7 +24,7 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
 const StyledDataSection = styled(DataSection)`
   padding: ${space(1)} ${space(2)} 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(1.5)} ${space(4)} 0;
   }
 `;

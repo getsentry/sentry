@@ -11,7 +11,7 @@ import {
 import {CollapsedNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceCollapsedNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {makeExampleTrace} from './makeExampleTrace';
 import type {TraceTreeNode} from './traceTreeNode';
@@ -23,8 +23,11 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata): IssuesTraceTree {
-    const t = makeExampleTrace(metadata);
+  static Loading(
+    metadata: TraceTree.Metadata,
+    organization: Organization
+  ): IssuesTraceTree {
+    const t = makeExampleTrace(metadata, organization);
     const tree = new IssuesTraceTree();
     tree.root = t.root;
     tree.type = 'loading';
@@ -32,8 +35,11 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static Error(metadata: TraceTree.Metadata): IssuesTraceTree {
-    const t = makeExampleTrace(metadata);
+  static Error(
+    metadata: TraceTree.Metadata,
+    organization: Organization
+  ): IssuesTraceTree {
+    const t = makeExampleTrace(metadata, organization);
     const tree = new IssuesTraceTree();
     tree.root = t.root;
     tree.type = 'error';
@@ -45,13 +51,16 @@ export class IssuesTraceTree extends TraceTree {
     trace: TraceTree.Trace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
-      replay: ReplayRecord | null;
+      organization: Organization;
+      replay: HydratedReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): IssuesTraceTree {
-    const tree = super.FromTrace(trace, options);
+    const baseTree = super.FromTrace(trace, options);
     const issuesTree = new IssuesTraceTree();
-    issuesTree.root = tree.root;
+
+    Object.assign(issuesTree, baseTree);
+
     return issuesTree;
   }
 
@@ -80,15 +89,12 @@ export class IssuesTraceTree extends TraceTree {
         }
 
         for (const o of n.occurrences) {
-          if (isTransactionNode(n)) {
-            if (o.event_id === event.eventID) {
-              return true;
-            }
-          } else if (o.event_id === event.occurrence?.id) {
+          if (o.event_id === event.eventID) {
             return true;
           }
         }
       }
+
       return false;
     });
 

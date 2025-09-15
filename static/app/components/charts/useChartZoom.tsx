@@ -162,9 +162,9 @@ export function useChartZoom({
       if (usePageDate) {
         const newQuery = {
           ...location.query,
-          pageStart: startFormatted,
-          pageEnd: endFormatted,
-          pageStatsPeriod: newPeriod.period ?? undefined,
+          start: startFormatted,
+          end: endFormatted,
+          statsPeriod: newPeriod.period ?? undefined,
         };
 
         // Only push new location if query params has changed because this will cause a heavy re-render

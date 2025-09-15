@@ -9,7 +9,7 @@ import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/type
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import type {AvatarUser} from 'sentry/types/user';
+import {StacktraceOrder, type AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -130,7 +130,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
     data.headers
       ?.filter(defined)
       // sort headers
-      .sort(function (a, b) {
+      .sort((a, b) => {
         return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
       }) ?? [];
 
@@ -233,7 +233,7 @@ export function objectToSortedTupleArray(obj: Record<string, string | string[]>)
           : ([[k, val]] as Array<[string, string]>) // key has single value
       );
     }, [])
-    .sort(function ([keyA, valA], [keyB, valB]) {
+    .sort(([keyA, valA], [keyB, valB]) => {
       // if keys are identical, sort on value
       if (keyA === keyB) {
         return valA < valB ? -1 : 1;
@@ -382,11 +382,11 @@ export function isStacktraceNewestFirst() {
   }
 
   switch (user.options.stacktraceOrder) {
-    case 2:
+    case StacktraceOrder.MOST_RECENT_FIRST:
       return true;
-    case 1:
+    case StacktraceOrder.MOST_RECENT_LAST:
       return false;
-    case -1:
+    case StacktraceOrder.DEFAULT:
     default:
       return true;
   }
@@ -439,4 +439,29 @@ export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
   }
 
   return event.platform ?? 'other';
+}
+
+const timestampsFieldCandidates = [
+  'dateCreated',
+  'startTimestamp',
+  'timestamp',
+  'endTimestamp',
+];
+
+export function getEventTimestampInSeconds(event: Event): number | undefined {
+  for (const key of timestampsFieldCandidates) {
+    if (key in event) {
+      const value = event[key as keyof Event];
+
+      if (typeof value === 'number') {
+        return value;
+      }
+
+      if (typeof value === 'string') {
+        return new Date(value).getTime() / 1_000;
+      }
+    }
+  }
+
+  return undefined;
 }

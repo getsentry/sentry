@@ -151,7 +151,7 @@ def decode_optional_list_str(value: str | None) -> Sequence[Any] | None:
 
 
 def get_task_kwargs_for_message_from_headers(
-    headers: Sequence[tuple[str, bytes | None]]
+    headers: Sequence[tuple[str, bytes | None]],
 ) -> dict[str, Any] | None:
     """
     Same as get_task_kwargs_for_message but gets the required information from

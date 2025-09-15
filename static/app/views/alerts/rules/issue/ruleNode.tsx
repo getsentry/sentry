@@ -7,9 +7,9 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -18,6 +18,7 @@ import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
   IssueAlertRuleCondition,
+  TicketActionData,
 } from 'sentry/types/alerts';
 import {
   AssigneeTargetType,
@@ -423,7 +424,7 @@ function RuleNode({
                 {...deps}
                 link={node.link}
                 ticketType={node.ticketType}
-                instance={data}
+                instance={data as unknown as TicketActionData}
                 onSubmitAction={updateParentFromTicketRule}
               />
             ))
@@ -499,7 +500,6 @@ function RuleNode({
       return (
         <FooterAlert
           type="info"
-          showIcon
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -515,7 +515,6 @@ function RuleNode({
       return (
         <FooterAlert
           type="info"
-          showIcon
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
@@ -553,7 +552,7 @@ function RuleNode({
       return null;
     }
     return (
-      <FooterAlert type="error" showIcon>
+      <FooterAlert type="error">
         {t(
           'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}

@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.plugins.base import plugins
 
@@ -23,7 +24,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List one or more plugin configurations, including a `projectList` for each plugin which contains
         all the projects that have that specific plugin both configured and enabled.
@@ -58,7 +59,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         # Get all the project options for org that have truthy values
         project_options = ProjectOption.objects.filter(
             key__in=keys_to_check, project__organization=organization
-        ).exclude(value__in=[False, ""])
+        )
 
         """
         This map stores info about whether a plugin is configured and/or enabled
@@ -70,6 +71,8 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         """
         info_by_plugin_project: dict[str, dict[int, dict[str, bool]]] = {}
         for project_option in project_options:
+            if not project_option.value:
+                continue
             [slug, field] = project_option.key.split(":")
             project_id = project_option.project_id
 

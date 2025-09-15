@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import requests
 from django.conf import settings
@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 @patch("sentry.seer.services.test_generation.impl.requests.post")
 @django_db_all
 @control_silo_test
-def test_start_unit_test_generation(posts_mock):
+def test_start_unit_test_generation(posts_mock: MagicMock) -> None:
     response_object: requests.Response = requests.Response()
     response_object.json = Mock(method="json", return_value={})  # type: ignore[method-assign]
     response_object.status_code = 200

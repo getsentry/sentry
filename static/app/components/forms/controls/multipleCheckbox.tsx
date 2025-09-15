@@ -119,7 +119,7 @@ const MultipleCheckboxWrapper = styled('div')`
 const Label = styled('label')`
   display: inline-flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   white-space: nowrap;
   margin-right: 10px;
   margin-bottom: 10px;
@@ -133,13 +133,13 @@ const CheckboxLabel = styled('span')`
 const LabelContainer = styled('div')`
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 50%;
   }
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 33.333%;
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 25%;
   }
 `;

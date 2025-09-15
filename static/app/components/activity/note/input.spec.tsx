@@ -7,19 +7,19 @@ import {NoteInput} from 'sentry/components/activity/note/input';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-describe('NoteInput', function () {
+describe('NoteInput', () => {
   beforeEach(() => {
     TeamStore.reset();
     MemberListStore.reset();
   });
 
-  describe('New item', function () {
-    it('renders', function () {
+  describe('New item', () => {
+    it('renders', () => {
       render(<NoteInput />);
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
 
-    it('submits when meta + enter is pressed', async function () {
+    it('submits when meta + enter is pressed', async () => {
       const onCreate = jest.fn();
       render(<NoteInput onCreate={onCreate} />);
 
@@ -27,7 +27,7 @@ describe('NoteInput', function () {
       expect(onCreate).toHaveBeenCalled();
     });
 
-    it('submits when ctrl + enter is pressed', async function () {
+    it('submits when ctrl + enter is pressed', async () => {
       const onCreate = jest.fn();
       render(<NoteInput onCreate={onCreate} />);
 
@@ -35,7 +35,7 @@ describe('NoteInput', function () {
       expect(onCreate).toHaveBeenCalled();
     });
 
-    it('does not submit when nothing is entered', async function () {
+    it('does not submit when nothing is entered', async () => {
       const onCreate = jest.fn();
       render(<NoteInput onCreate={onCreate} />);
 
@@ -44,7 +44,7 @@ describe('NoteInput', function () {
       expect(onCreate).not.toHaveBeenCalled();
     });
 
-    it('handles errors', async function () {
+    it('handles errors', async () => {
       const errorJSON = {detail: {message: 'Note is bad', code: 401, extra: ''}};
       render(<NoteInput error={!!errorJSON} errorJSON={errorJSON} />);
 
@@ -52,20 +52,20 @@ describe('NoteInput', function () {
       expect(screen.getByText('Note is bad')).toBeInTheDocument();
     });
 
-    it('has a disabled submit button when no text is entered', function () {
+    it('has a disabled submit button when no text is entered', () => {
       render(<NoteInput />);
 
       expect(screen.getByRole('button', {name: 'Post Comment'})).toBeDisabled();
     });
 
-    it('enables the submit button when text is entered', async function () {
+    it('enables the submit button when text is entered', async () => {
       render(<NoteInput />);
       await userEvent.type(screen.getByRole('textbox'), 'something');
 
       expect(screen.getByRole('button', {name: 'Post Comment'})).toBeEnabled();
     });
 
-    it('can mention a team', async function () {
+    it('can mention a team', async () => {
       TeamStore.loadInitialData([TeamFixture()]);
       const onCreate = jest.fn();
       render(<NoteInput onCreate={onCreate} />);
@@ -79,7 +79,7 @@ describe('NoteInput', function () {
       });
     });
 
-    it('can mention a member', async function () {
+    it('can mention a member', async () => {
       MemberListStore.loadInitialData([UserFixture()], false, null);
       const onCreate = jest.fn();
       render(<NoteInput onCreate={onCreate} />);
@@ -94,13 +94,13 @@ describe('NoteInput', function () {
     });
   });
 
-  describe('Existing Item', function () {
+  describe('Existing Item', () => {
     const props = {
       noteId: 'item-id',
       text: 'an existing item',
     };
 
-    it('edits existing message', async function () {
+    it('edits existing message', async () => {
       const onUpdate = jest.fn();
       render(<NoteInput {...props} onUpdate={onUpdate} />);
 
@@ -123,7 +123,7 @@ describe('NoteInput', function () {
       });
     });
 
-    it('canels editing and moves to preview mode', async function () {
+    it('canels editing and moves to preview mode', async () => {
       const onEditFinish = jest.fn();
       render(<NoteInput {...props} onEditFinish={onEditFinish} />);
 

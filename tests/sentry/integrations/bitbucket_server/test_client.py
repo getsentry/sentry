@@ -32,7 +32,7 @@ BITBUCKET_SERVER_CODEOWNERS = {
 )
 @control_silo_test
 class BitbucketServerClientTest(TestCase, BaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = self.create_provider_integration(
             provider="bitbucket_server",
             name="Bitbucket Server",
@@ -72,7 +72,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
                 integration_id=self.integration.id,
             )
 
-    def test_authorize_request(self):
+    def test_authorize_request(self) -> None:
         method = "GET"
         request = Request(
             method=method,
@@ -92,7 +92,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             assert hc in request.headers["Authorization"]
 
     @responses.activate
-    def test_get_repo_authentication(self):
+    def test_get_repo_authentication(self) -> None:
         responses.add(
             responses.GET,
             f"{self.bb_server_client.base_url}{BitbucketServerAPIPath.repository.format(project='laurynsentry', repo='helloworld')}",
@@ -108,7 +108,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         assert "oauth_consumer_key" in responses.calls[0].request.headers["Authorization"]
 
     @responses.activate
-    def test_check_file(self):
+    def test_check_file(self) -> None:
         path = "src/sentry/integrations/bitbucket_server/client.py"
         version = "master"
         url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_source(
@@ -129,7 +129,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         assert resp.status_code == 200
 
     @responses.activate
-    def test_check_no_file(self):
+    def test_check_no_file(self) -> None:
         path = "src/santry/integrations/bitbucket_server/client.py"
         version = "master"
         url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_source(
@@ -149,7 +149,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             self.bb_server_client.check_file(self.repo, path, version)
 
     @responses.activate
-    def test_get_file(self):
+    def test_get_file(self) -> None:
         path = "src/sentry/integrations/bitbucket_server/client.py"
         version = "master"
         url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_raw(
@@ -170,7 +170,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         assert resp == "Hello, world!"
 
     @responses.activate
-    def test_get_stacktrace_link(self):
+    def test_get_stacktrace_link(self) -> None:
         path = "src/sentry/integrations/bitbucket/client.py"
         version = "master"
         url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_source(
@@ -193,7 +193,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         )
 
     @responses.activate
-    def test_get_codeowner_file(self):
+    def test_get_codeowner_file(self) -> None:
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,

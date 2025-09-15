@@ -104,10 +104,11 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
             re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
+                name=f"sentry-api-0-plugins-{self.slug}-autocomplete",
             )
         ]
 
-    def get_url_module(self):
+    def get_url_module(self) -> str:
         return "sentry_plugins.github.urls"
 
     def is_configured(self, project) -> bool:
@@ -469,12 +470,12 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
 
         for repo in self.get_repositories(integration):
             # TODO(jess): figure out way to migrate from github --> github apps
-            Repository.objects.create_or_update(
+            Repository.objects.update_or_create(
                 organization_id=organization.id,
                 name=repo["name"],
                 external_id=repo["external_id"],
                 provider="github_apps",
-                values={
+                defaults={
                     "integration_id": integration.id,
                     "url": repo["url"],
                     "config": repo["config"],

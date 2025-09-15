@@ -1,23 +1,42 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import type {PageFilters} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import PageOverview from 'sentry/views/insights/browser/webVitals/views/pageOverview';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PageOverview', function () {
+describe('PageOverview', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
+    const pageFilters: PageFilters = {
+      projects: [1],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
+      },
+    };
+    PageFiltersStore.onInitializeUrlState(pageFilters, new Set());
+    const project = ProjectFixture({id: '1', slug: 'project-slug'});
+    ProjectsStore.loadInitialData([project]);
+
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -29,6 +48,16 @@ describe('PageOverview', function () {
     });
 
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/preferences/',
+      method: 'GET',
+      body: {},
+    });
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -57,7 +86,7 @@ describe('PageOverview', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -69,7 +98,7 @@ describe('PageOverview', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
@@ -79,7 +108,7 @@ describe('PageOverview', function () {
             'count()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -89,7 +118,7 @@ describe('PageOverview', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
@@ -111,7 +140,7 @@ describe('PageOverview', function () {
             `count_scores(measurements.score.inp)`,
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -119,7 +148,7 @@ describe('PageOverview', function () {
 
   it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['insights-initial-modules'],
+      features: ['insight-modules'],
     });
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
@@ -139,7 +168,8 @@ describe('PageOverview', function () {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            dataset: 'spansIndexed',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             field: [
               'measurements.inp',
               'measurements.score.ratio.inp',
@@ -161,6 +191,7 @@ describe('PageOverview', function () {
               'span.op',
               'lcp.element',
               'cls.source.1',
+              'id',
             ],
             query:
               'has:message !span.description:<unknown> transaction:/  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press] ',
@@ -172,7 +203,7 @@ describe('PageOverview', function () {
 
   it('escapes transaction name before querying discover', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['insights-initial-modules'],
+      features: ['insight-modules'],
     });
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
@@ -195,7 +226,8 @@ describe('PageOverview', function () {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            dataset: 'spansIndexed',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             field: [
               'measurements.inp',
               'measurements.score.ratio.inp',
@@ -217,6 +249,7 @@ describe('PageOverview', function () {
               'span.op',
               'lcp.element',
               'cls.source.1',
+              'id',
             ],
             query:
               'has:message !span.description:<unknown> transaction:"/page-with-a-\\*/"  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press] ',

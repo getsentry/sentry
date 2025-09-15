@@ -29,7 +29,7 @@ def fake_http_request(user):
 
 @all_silo_test
 class CreateAuditEntryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(username=username)
         self.req = fake_http_request(self.user)
         self.org = self.create_organization(owner=self.user)
@@ -42,25 +42,25 @@ class CreateAuditEntryTest(TestCase):
             assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
             assert not DeletedProject.objects.filter(slug=self.project.slug).exists()
 
-    def test_audit_entry_api(self):
+    def test_audit_entry_api(self) -> None:
         org = self.create_organization()
         apikey = self.create_api_key(org, allowed_origins="*")
 
         req = fake_http_request(AnonymousUser())
         req.auth = apikey
 
-        entry = create_audit_entry(req, organization_id=org.id)
+        entry = create_audit_entry(req, organization_id=org.id, data={"thing": "to True"})
         assert entry.actor_key == apikey
         assert entry.actor is None
         assert entry.ip_address == req.META["REMOTE_ADDR"]
 
         self.assert_no_delete_log_created()
 
-    def test_audit_entry_frontend(self):
+    def test_audit_entry_frontend(self) -> None:
         org = self.create_organization()
 
         req = fake_http_request(self.create_user())
-        entry = create_audit_entry(req, organization_id=org.id)
+        entry = create_audit_entry(req, organization_id=org.id, data={"thing": "to True"})
 
         assert entry.actor == req.user
         assert entry.actor_key is None
@@ -68,7 +68,7 @@ class CreateAuditEntryTest(TestCase):
 
         self.assert_no_delete_log_created()
 
-    def test_audit_entry_org_add_log(self):
+    def test_audit_entry_org_add_log(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
 
@@ -88,7 +88,7 @@ class CreateAuditEntryTest(TestCase):
         audit_log_event = audit_log.get(entry.event)
         assert audit_log_event.render(entry) == "created the organization"
 
-    def test_audit_entry_org_add_log_with_channel(self):
+    def test_audit_entry_org_add_log_with_channel(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
 
@@ -111,7 +111,7 @@ class CreateAuditEntryTest(TestCase):
         audit_log_event = audit_log.get(entry.event)
         assert audit_log_event.render(entry) == "created the organization with vercel integration"
 
-    def test_audit_entry_org_delete_log(self):
+    def test_audit_entry_org_delete_log(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
 
@@ -133,7 +133,7 @@ class CreateAuditEntryTest(TestCase):
         deleted_org = DeletedOrganization.objects.get(slug=self.org.slug)
         self.assert_valid_deleted_log(deleted_org, self.org)
 
-    def test_audit_entry_org_restore_log(self):
+    def test_audit_entry_org_restore_log(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
@@ -190,7 +190,7 @@ class CreateAuditEntryTest(TestCase):
                 assert entry2.target_object == self.org.id
                 assert entry2.event == audit_log.get_event_id("ORG_EDIT")
 
-    def test_audit_entry_team_delete_log(self):
+    def test_audit_entry_team_delete_log(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
 
@@ -209,7 +209,7 @@ class CreateAuditEntryTest(TestCase):
         deleted_team = DeletedTeam.objects.get(slug=self.team.slug)
         self.assert_valid_deleted_log(deleted_team, self.team)
 
-    def test_audit_entry_api_key(self):
+    def test_audit_entry_api_key(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
 
@@ -222,6 +222,7 @@ class CreateAuditEntryTest(TestCase):
                 organization=self.organization,
                 target_object=self.project.id,
                 event=audit_log.get_event_id("PROJECT_ADD"),
+                data={"thing": "to True"},
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -230,7 +231,7 @@ class CreateAuditEntryTest(TestCase):
                 == key.key
             )
 
-    def test_audit_entry_project_delete_log(self):
+    def test_audit_entry_project_delete_log(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
 
@@ -252,7 +253,7 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_project, self.project)
         assert deleted_project.platform == self.project.platform
 
-    def test_audit_entry_project_delete_with_origin_log(self):
+    def test_audit_entry_project_delete_with_origin_log(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
 
@@ -277,7 +278,7 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_project, self.project)
         assert deleted_project.platform == self.project.platform
 
-    def test_audit_entry_project_create_with_origin_log(self):
+    def test_audit_entry_project_create_with_origin_log(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return
 
@@ -297,7 +298,7 @@ class CreateAuditEntryTest(TestCase):
             audit_log_event.render(entry) == "created project" + " " + self.project.slug + " via ui"
         )
 
-    def test_audit_entry_project_edit_log(self):
+    def test_audit_entry_project_edit_log(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -312,7 +313,7 @@ class CreateAuditEntryTest(TestCase):
         assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
         assert audit_log_event.render(entry) == "renamed project slug from old to new"
 
-    def test_audit_entry_project_edit_log_regression(self):
+    def test_audit_entry_project_edit_log_regression(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -327,7 +328,7 @@ class CreateAuditEntryTest(TestCase):
         assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
         assert audit_log_event.render(entry) == "edited project settings in new_slug to new"
 
-    def test_audit_entry_project_performance_setting_disable_detection(self):
+    def test_audit_entry_project_performance_setting_disable_detection(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -345,7 +346,7 @@ class CreateAuditEntryTest(TestCase):
             == "edited project performance issue detector settings to disable detection of File IO on Main Thread issue"
         )
 
-    def test_audit_entry_project_performance_setting_enable_detection(self):
+    def test_audit_entry_project_performance_setting_enable_detection(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -363,12 +364,13 @@ class CreateAuditEntryTest(TestCase):
             == "edited project performance issue detector settings to enable detection of File IO on Main Thread issue"
         )
 
-    def test_audit_entry_project_ownership_rule_edit(self):
+    def test_audit_entry_project_ownership_rule_edit(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
             target_object=self.project.id,
             event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
+            data={"thing": "to True"},
         )
         audit_log_event = audit_log.get(entry.event)
 
@@ -377,7 +379,7 @@ class CreateAuditEntryTest(TestCase):
         assert entry.event == audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT")
         assert audit_log_event.render(entry) == "modified ownership rules"
 
-    def test_audit_entry_project_key_edit(self):
+    def test_audit_entry_project_key_edit(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -396,7 +398,7 @@ class CreateAuditEntryTest(TestCase):
         assert entry.event == audit_log.get_event_id("PROJECTKEY_EDIT")
         assert audit_log_event.render(entry) == "edited project key KEY"
 
-    def test_audit_entry_project_key_rate_limit_edit(self):
+    def test_audit_entry_project_key_rate_limit_edit(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -420,7 +422,7 @@ class CreateAuditEntryTest(TestCase):
             == "edited project key KEY: rate limit count from None to 6, rate limit window from None to 60"
         )
 
-    def test_audit_entry_project_key_rate_limit_window_edit(self):
+    def test_audit_entry_project_key_rate_limit_window_edit(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -443,7 +445,7 @@ class CreateAuditEntryTest(TestCase):
             == "edited project key KEY: rate limit window from None to 60"
         )
 
-    def test_audit_entry_project_key_rate_limit_count_edit(self):
+    def test_audit_entry_project_key_rate_limit_count_edit(self) -> None:
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -466,7 +468,7 @@ class CreateAuditEntryTest(TestCase):
             == "edited project key KEY: rate limit count from None to 6"
         )
 
-    def test_audit_entry_integration_log(self):
+    def test_audit_entry_integration_log(self) -> None:
         project = self.create_project()
         self.login_as(user=self.user)
 
@@ -526,7 +528,7 @@ class CreateAuditEntryTest(TestCase):
         assert entry4.target_object == self.project.id
         assert entry4.event == audit_log.get_event_id("INTEGRATION_REMOVE")
 
-    def test_create_system_audit_entry(self):
+    def test_create_system_audit_entry(self) -> None:
         entry = create_system_audit_entry(
             organization=self.org,
             target_object=self.org.id,

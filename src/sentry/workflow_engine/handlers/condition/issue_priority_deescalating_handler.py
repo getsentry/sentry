@@ -14,7 +14,7 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group = event_data.event.group
+        group = event_data.group
 
         # we will fire actions on de-escalation if the priority seen is >= the threshold
         # priority specified in the comparison

@@ -1,4 +1,5 @@
 {
+  "platform": "javascript",
   "stacktrace": {
     "frames": [
       {
@@ -6,7 +7,10 @@
         "abs_path": "foo.py",
         "lineno": 1,
         "context_line": "foo bar",
-        "filename": "foo.py"
+        "filename": "foo.py",
+        "data": {
+          "sourcemap": "http://dogs.are.great/sit/stay.js.map"
+        }
       }
     ]
   }

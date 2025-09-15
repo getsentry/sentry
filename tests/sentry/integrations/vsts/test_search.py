@@ -1,5 +1,5 @@
 from time import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -20,7 +20,7 @@ class VstsSearchTest(APITestCase):
     provider = "vsts"
     endpoint = "sentry-extensions-vsts-search"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(self.user)
@@ -61,7 +61,7 @@ class VstsSearchTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_issues(self, mock_record):
+    def test_search_issues(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             f"https://{self.vsts_account_name.lower()}.almsearch.visualstudio.com/_apis/search/workitemsearchresults",

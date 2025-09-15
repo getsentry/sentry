@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TeamManagerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user("foo@example.com")
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")

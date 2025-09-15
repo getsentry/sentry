@@ -2,10 +2,10 @@ import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
-  type ApiQueryKey,
   useMutation,
   useQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';

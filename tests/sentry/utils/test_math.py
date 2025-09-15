@@ -35,7 +35,7 @@ from sentry.utils.math import ExponentialMovingAverage, nice_int
         (75001, 100001, 100000),
     ],
 )
-def test_nice_int(start, stop, expected):
+def test_nice_int(start: int, stop: int, expected: int) -> None:
     for x in range(start, stop):
         assert nice_int(x) == expected, "{} was rounded to {}, not {}".format(
             x, nice_int(x), expected
@@ -54,7 +54,7 @@ def test_nice_int(start, stop, expected):
         ([i for i in range(10)], 5.239),
     ],
 )
-def test_exponential_moving_average(sequence, expected):
+def test_exponential_moving_average(sequence: list[int], expected: int | float) -> None:
     avg = ExponentialMovingAverage(2 / 11)
     t = 0.0
     for i, x in enumerate(sequence):

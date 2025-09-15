@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 
 START_TIME = 1562873192.624
 END_TIME = 1562873194.624
@@ -15,17 +15,17 @@ def make_spans_snapshot(insta_snapshot):
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("spans")
-
+        assert interface is not None
         insta_snapshot({"errors": evt.data.get("errors"), "to_json": interface.to_json()})
 
     return inner
 
 
-def test_empty(make_spans_snapshot):
+def test_empty(make_spans_snapshot) -> None:
     make_spans_snapshot([])
 
 
-def test_single_invalid(make_spans_snapshot):
+def test_single_invalid(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -38,7 +38,7 @@ def test_single_invalid(make_spans_snapshot):
     )
 
 
-def test_single_incomplete(make_spans_snapshot):
+def test_single_incomplete(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -51,7 +51,7 @@ def test_single_incomplete(make_spans_snapshot):
     )
 
 
-def test_single_full(make_spans_snapshot):
+def test_single_full(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -68,7 +68,7 @@ def test_single_full(make_spans_snapshot):
     )
 
 
-def test_multiple_full(make_spans_snapshot):
+def test_multiple_full(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {

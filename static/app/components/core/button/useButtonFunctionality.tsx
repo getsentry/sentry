@@ -1,5 +1,4 @@
-// eslint-disable-next-line boundaries/element-types
-import HookStore from 'sentry/stores/hookStore';
+import {useButtonTracking} from 'sentry/components/core/trackingContext';
 
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
@@ -13,29 +12,6 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
   const accessibleLabel =
     props['aria-label'] ??
     (typeof props.children === 'string' ? props.children : undefined);
-
-  const useButtonTrackingLogger = () => {
-    const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
-    const hasCustomAnalytics =
-      props.analyticsEventName || props.analyticsEventKey || props.analyticsParams;
-    if (!hasCustomAnalytics || !hasAnalyticsDebug) {
-      return () => {};
-    }
-
-    return () => {
-      // eslint-disable-next-line no-console
-      console.log('buttonAnalyticsEvent', {
-        eventKey: props.analyticsEventKey,
-        eventName: props.analyticsEventName,
-        priority: props.priority,
-        href: 'href' in props ? props.href : undefined,
-        ...props.analyticsParams,
-      });
-    };
-  };
-
-  const useButtonTracking =
-    HookStore.get('react-hook:use-button-tracking')[0] ?? useButtonTrackingLogger;
 
   const buttonTracking = useButtonTracking({
     analyticsEventName: props.analyticsEventName,

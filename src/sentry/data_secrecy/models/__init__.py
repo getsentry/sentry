@@ -1,5 +1,5 @@
-from .datasecrecywaiver import DataSecrecyWaiver  # NOQA
+from .data_access_grant import DataAccessGrant
 
 __all__ = [
-    "DataSecrecyWaiver",
+    "DataAccessGrant",
 ]

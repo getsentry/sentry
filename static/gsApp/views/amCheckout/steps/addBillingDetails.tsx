@@ -71,7 +71,7 @@ function AddBillingDetails({
           billingDetails: response,
           useExisting: response.addressType === AddressType.STRUCTURED,
         }));
-      } catch (error) {
+      } catch (error: any) {
         setState(prevState => ({...prevState, loadError: error, isLoading: false}));
         if (error.status !== 401 && error.status !== 403) {
           Sentry.captureException(error);
@@ -150,8 +150,8 @@ function AddBillingDetails({
           onSubmitSuccess={() => onCompleteStep(stepNumber)}
           onSubmitError={err => setState({...state, submitError: err})}
           submitLabel={t('Continue')}
-          fieldProps={fieldProps}
           footerStyle={footerStyle}
+          fieldProps={fieldProps}
         />
       </FormWrapper>
     );
@@ -271,13 +271,13 @@ const Heading = styled('div')`
 `;
 
 const DetailsText = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 0px;
   font-weight: 600;
 `;
 
 const SubText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   line-height: 1.2;
   font-weight: normal;

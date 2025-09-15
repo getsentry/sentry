@@ -4,7 +4,7 @@ import zoneinfo
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, overload
 
-from dateutil.parser import ParserError, parse
+from dateutil.parser import parse
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
 
@@ -76,6 +76,14 @@ def parse_date(datestr: str, timestr: str) -> datetime | None:
             return None
 
 
+@overload  # TODO: deprecate
+def parse_timestamp(value: None) -> None: ...
+
+
+@overload
+def parse_timestamp(value: datetime | int | float | str | bytes) -> datetime: ...
+
+
 def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datetime | None:
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if not value:
@@ -85,13 +93,9 @@ def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datet
     elif isinstance(value, (int, float)):
         return datetime.fromtimestamp(value, UTC)
 
-    try:
-        if isinstance(value, bytes):
-            value = value.decode()
-        return parse(value, ignoretz=True).replace(tzinfo=UTC)
-    except (ParserError, ValueError):
-        logger.exception("parse_timestamp")
-        return None
+    if isinstance(value, bytes):
+        value = value.decode()
+    return parse(value, ignoretz=True).replace(tzinfo=UTC)
 
 
 def parse_stats_period(period: str) -> timedelta | None:

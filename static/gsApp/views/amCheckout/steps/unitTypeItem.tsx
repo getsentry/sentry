@@ -41,11 +41,11 @@ const UnitColumn = styled('div')`
 
 const UnitName = styled('div')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 0px;
   font-weight: normal;
   color: ${p => p.theme.subText};
@@ -53,7 +53,7 @@ const Description = styled('p')`
 
 const UnitTitle = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: 600;
 `;

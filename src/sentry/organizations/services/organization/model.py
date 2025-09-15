@@ -143,7 +143,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     email: str = ""
     invitation_link: str | None = None
 
-    def get_audit_log_metadata(self, user_email: str | None = None) -> Mapping[str, Any]:
+    def get_audit_log_metadata(self, user_email: str | None = None) -> dict[str, Any]:
         from sentry.models.organizationmember import invite_status_names
 
         team_ids = [mt.team_id for mt in self.member_teams]

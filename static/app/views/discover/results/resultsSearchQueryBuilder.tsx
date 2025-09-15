@@ -1,11 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import omit from 'lodash/omit';
 
-import {
-  fetchFeatureFlagValues,
-  fetchSpanFieldValues,
-  fetchTagValues,
-} from 'sentry/actionCreators/tags';
+import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {
   STATIC_FIELD_TAGS,
@@ -124,6 +120,7 @@ const getHasTag = (tags: TagCollection) => ({
 type Props = {
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
+  disabled?: boolean;
   fields?: readonly Field[];
   includeSessionTagsValues?: boolean;
   includeTransactions?: boolean;
@@ -152,6 +149,7 @@ function ResultsSearchQueryBuilder(props: Props) {
     includeTransactions = true,
     placeholder,
     portalTarget,
+    disabled,
   } = props;
 
   const api = useApi();
@@ -272,30 +270,20 @@ function ResultsSearchQueryBuilder(props: Props) {
       if (isDeviceClass(tag.key)) {
         return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
       }
-      const fetchPromise =
-        dataset === DiscoverDatasets.SPANS_INDEXED
-          ? fetchSpanFieldValues({
-              api,
-              endpointParams: dateTimeParams,
-              orgSlug: organization.slug,
-              fieldKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-            })
-          : fetchTagValues({
-              api,
-              endpointParams: dateTimeParams,
-              orgSlug: organization.slug,
-              tagKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-              // allows searching for tags on transactions as well
-              includeTransactions,
-              // allows searching for tags on sessions as well
-              includeSessions: includeSessionTagsValues,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
-            });
+      const fetchPromise = fetchTagValues({
+        api,
+        endpointParams: dateTimeParams,
+        orgSlug: organization.slug,
+        tagKey: tag.key,
+        search: query,
+        projectIds: projectIdStrings,
+        // allows searching for tags on transactions as well
+        includeTransactions,
+        // allows searching for tags on sessions as well
+        includeSessions: includeSessionTagsValues,
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
+      });
 
       try {
         const results = await fetchPromise;
@@ -350,8 +338,8 @@ function ResultsSearchQueryBuilder(props: Props) {
 
   return (
     <SearchQueryBuilder
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       placeholder={placeholderText}
+      disabled={disabled}
       filterKeys={getTagList}
       initialQuery={props.query ?? ''}
       onSearch={props.onSearch}
@@ -361,7 +349,6 @@ function ResultsSearchQueryBuilder(props: Props) {
       getTagValues={getEventFieldValues}
       recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
       portalTarget={portalTarget}
-      showUnsubmittedIndicator
     />
   );
 }

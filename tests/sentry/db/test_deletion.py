@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase, TransactionTestCase
 
 
 class BulkDeleteQueryTest(TestCase):
-    def test_project_restriction(self):
+    def test_project_restriction(self) -> None:
         project1 = self.create_project()
         group1_1 = self.create_group(project1, create_open_period=False)
         group1_2 = self.create_group(project1, create_open_period=False)
@@ -26,7 +26,7 @@ class BulkDeleteQueryTest(TestCase):
         assert not Group.objects.filter(id=group1_1.id).exists()
         assert not Group.objects.filter(id=group1_2.id).exists()
 
-    def test_datetime_restriction(self):
+    def test_datetime_restriction(self) -> None:
         now = timezone.now()
         project1 = self.create_project()
         group1_1 = self.create_group(
@@ -43,7 +43,7 @@ class BulkDeleteQueryTest(TestCase):
 
 
 class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
-    def test_iteration(self):
+    def test_iteration(self) -> None:
         target_project = self.project
         expected_group_ids = {self.create_group().id for i in range(2)}
 

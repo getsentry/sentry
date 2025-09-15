@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {Link} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
@@ -15,7 +16,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -72,6 +72,8 @@ import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
+
+const PROFILE_TYPE = 'transaction aggregate flamegraph';
 
 const noop = () => void 0;
 
@@ -195,7 +197,7 @@ const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 interface ProfileFiltersProps {
@@ -452,6 +454,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                               scheduler={scheduler}
                               status={status}
                               onResetFilter={onResetFrameFilter}
+                              profileType={PROFILE_TYPE}
                             />
                           ) : (
                             <AggregateFlamegraphTreeTable
@@ -459,6 +462,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                               expanded={false}
                               frameFilter={frameFilter}
                               canvasPoolManager={canvasPoolManager}
+                              profileType={PROFILE_TYPE}
                             />
                           )}
                         </AggregateFlamegraphContainer>
@@ -593,7 +597,6 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(1)} ${space(0.5)};
-  background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header
@@ -785,8 +788,8 @@ const ProfileDigestHeader = styled('div')`
 
 const ProfileDigestLabel = styled('span')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
 `;
 

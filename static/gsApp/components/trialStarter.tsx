@@ -1,9 +1,8 @@
-import {Component} from 'react';
+import {useState} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -18,7 +17,6 @@ type ChildProps = {
   trialStarting: boolean;
 };
 type Props = {
-  api: Client;
   children: (args: ChildProps) => React.ReactNode;
   organization: Organization;
   source: string;
@@ -29,27 +27,15 @@ type Props = {
   requestData?: Record<string, unknown>;
 };
 
-type State = {
-  trialFailed: boolean;
-  trialStarted: boolean;
-  trialStarting: boolean;
-};
+function TrialStarter(props: Props) {
+  const api = useApi({persistInFlight: true});
+  const [trialStarting, setTrialStarting] = useState(false);
+  const [trialStarted, setTrialStarted] = useState(false);
+  const [trialFailed, setTrialFailed] = useState(false);
 
-class TrialStarter extends Component<Props, State> {
-  static defaultProps = {
-    onTrialFailed: () => {},
-    onTrialStarted: () => {},
-  };
-
-  state: State = {
-    trialStarting: false,
-    trialStarted: false,
-    trialFailed: false,
-  };
-
-  handleStartTrial = async () => {
-    const {organization, source, onTrialStarted, onTrialFailed, requestData} = this.props;
-    this.setState({trialStarting: true});
+  const handleStartTrial = async () => {
+    const {organization, source, requestData} = props;
+    setTrialStarting(true);
     let data: any;
     let url: any;
     if (requestData) {
@@ -61,45 +47,44 @@ class TrialStarter extends Component<Props, State> {
     }
 
     try {
-      await this.props.api.requestPromise(url, {
+      await api.requestPromise(url, {
         method: 'PUT',
         data,
       });
     } catch (err) {
-      onTrialFailed?.(err);
-      this.setState({trialStarting: false, trialFailed: true});
+      props.onTrialFailed?.(err as Error);
+      setTrialStarting(false);
+      setTrialFailed(true);
       return;
     }
 
-    this.setState({trialStarting: false, trialStarted: true});
+    setTrialStarting(false);
+    setTrialStarted(true);
     trackMarketingEvent('Start Trial');
-    onTrialStarted?.();
+    props.onTrialStarted?.();
 
     // Refresh organization and subscription state
     SubscriptionStore.loadData(organization.slug, null, {markStartedTrial: true});
-    fetchOrganizationDetails(this.props.api, organization.slug);
+    fetchOrganizationDetails(api, organization.slug);
 
     // we showed the "new" icon for the upsell that wasn't the actual dashboard
     // we should clear this so folks can see "new" for the actual dashboard
     localStorage.removeItem('sidebar-new-seen:customizable-dashboards');
   };
 
-  render() {
-    const {trialStarted, trialStarting, trialFailed} = this.state;
-    const {subscription, children} = this.props;
+  const {subscription, children} = props;
 
-    return children({
-      startTrial: this.handleStartTrial,
-      trialStarting,
-      trialStarted,
-      trialFailed,
-      subscription,
-    });
-  }
+  return children({
+    startTrial: handleStartTrial,
+    trialStarting,
+    trialStarted,
+    trialFailed,
+    subscription,
+  });
 }
 
 // We enable the persistInFlight on the withApi wrapper to ensure that we don't
 // cancel the in-flight requests to reload the organization details after the
 // trial has been started. Otherwise if this component is unmounted as a result
 // of starting the trial.
-export default withSubscription(withApi(TrialStarter, {persistInFlight: true}));
+export default withSubscription(TrialStarter);

@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 export enum TabKey {
   AI = 'ai',
@@ -11,17 +11,18 @@ export enum TabKey {
   NETWORK = 'network',
   TAGS = 'tags',
   TRACE = 'trace',
+  LOGS = 'logs',
 }
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
   const supportedVideoTabs = [
-    TabKey.AI,
     TabKey.TAGS,
     TabKey.ERRORS,
     TabKey.BREADCRUMBS,
     TabKey.NETWORK,
     TabKey.CONSOLE,
     TabKey.TRACE,
+    TabKey.LOGS,
   ];
 
   if (isVideoReplay) {
@@ -33,6 +34,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
 
 function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const defaultTab = TabKey.BREADCRUMBS;
+
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
   const paramValue = getParamValue()?.toLowerCase() ?? '';

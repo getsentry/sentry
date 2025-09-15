@@ -82,7 +82,9 @@ describe('EventNavigation', () => {
       expect(discoverButton).toBeInTheDocument();
       expect(discoverButton).toHaveAttribute(
         'href',
-        expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
+        expect.stringContaining(
+          `/organizations/${organization.slug}/explore/discover/results/`
+        )
       );
 
       const closeButton = screen.getByRole('button', {name: 'Return to event details'});
@@ -91,6 +93,53 @@ describe('EventNavigation', () => {
         'href',
         expect.stringContaining(`/organizations/${organization.slug}/issues/${group.id}/`)
       );
+    });
+
+    it('supplies the default timestamp sort when no sort is set in the query params', () => {
+      const allEventsRouter = RouterFixture({
+        params: {groupId: group.id},
+        routes: [{path: TabPaths[Tab.EVENTS]}],
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+        }),
+      });
+
+      render(<IssueEventNavigation {...defaultProps} />, {
+        router: allEventsRouter,
+        deprecatedRouterMocks: true,
+      });
+
+      const discoverButton = screen.getByLabelText('Open in Discover');
+      expect(discoverButton).toBeInTheDocument();
+      const url = new URL(
+        discoverButton.getAttribute('href') ?? '',
+        'https://www.example.com'
+      );
+      expect(url.searchParams.get('sort')).toBe('-timestamp');
+    });
+
+    it('supplies the sort when it is set in the query params', () => {
+      const allEventsRouter = RouterFixture({
+        params: {groupId: group.id},
+        routes: [{path: TabPaths[Tab.EVENTS]}],
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+          query: {sort: '-title'},
+        }),
+      });
+
+      render(<IssueEventNavigation {...defaultProps} />, {
+        router: allEventsRouter,
+        deprecatedRouterMocks: true,
+      });
+
+      const discoverButton = screen.getByLabelText('Open in Discover');
+      expect(discoverButton).toBeInTheDocument();
+      const url = new URL(
+        discoverButton.getAttribute('href') ?? '',
+        'https://www.example.com'
+      );
+      expect(url.searchParams.get('sort')).toBe('-title');
     });
   });
 

@@ -1,6 +1,10 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+import path from 'node:path';
 
+import remarkCallout from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -13,13 +17,16 @@ import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import fs from 'node:fs';
-import {createRequire} from 'node:module';
-import path from 'node:path';
+import rehypeExpressiveCode from 'rehype-expressive-code';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkGfm from 'remark-gfm';
+import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -52,7 +59,13 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
 // features in the Sentry UI.
+// React query devtools are disabled by default, but can be enabled by setting the USE_REACT_QUERY_DEVTOOL env var to 'true'
 const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
+// Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
+const ENABLE_SENTRY_TOOLBAR =
+  env.ENABLE_SENTRY_TOOLBAR === undefined
+    ? true
+    : Boolean(JSON.parse(env.ENABLE_SENTRY_TOOLBAR));
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -176,7 +189,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
-    coreJs: '3.41.0',
+    coreJs: '3.45.0',
     targets: packageJson.browserslist.production,
     shippedProposals: true,
   },
@@ -193,12 +206,22 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
         ],
         [
           'swc-plugin-component-annotate',
-          {
-            'annotate-fragments': false,
-            'component-attr': 'data-sentry-component',
-            'element-attr': 'data-sentry-element',
-            'source-file-attr': 'data-sentry-source-file',
-          },
+          Object.assign(
+            {},
+            {
+              'annotate-fragments': false,
+              'component-attr': 'data-sentry-component',
+              'element-attr': 'data-sentry-element',
+              'source-file-attr': 'data-sentry-source-file',
+            },
+            // We don't want to add source path attributes in production
+            // as it will unnecessarily bloat the bundle size
+            IS_PRODUCTION
+              ? {}
+              : {
+                  'source-path-attr': 'data-sentry-source-path',
+                }
+          ),
         ],
       ],
     },
@@ -261,6 +284,11 @@ const appConfig: Configuration = {
     // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
     // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
     css: false,
+    // https://rspack.dev/config/experiments#experimentslazybarrel
+    lazyBarrel: true,
+    // https://rspack.dev/config/experiments#experimentsnativewatcher
+    // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
+    nativeWatcher: false,
   },
   module: {
     /**
@@ -284,6 +312,23 @@ const appConfig: Configuration = {
           },
           {
             loader: '@mdx-js/loader',
+            options: {
+              remarkPlugins: [
+                remarkUnwrapMdxParagraphs,
+                remarkFrontmatter,
+                remarkMdxFrontmatter,
+                remarkGfm,
+                remarkCallout,
+              ],
+              rehypePlugins: [
+                [
+                  rehypeExpressiveCode,
+                  {
+                    useDarkModeMediaQuery: false,
+                  },
+                ],
+              ],
+            },
           },
         ],
       },
@@ -385,6 +430,7 @@ const appConfig: Configuration = {
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
       'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
+      'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
     }),
 
     ...(SHOULD_FORK_TS
@@ -444,6 +490,8 @@ const appConfig: Configuration = {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
+
+      ui: path.join(staticPrefix, 'app', 'components', 'core'),
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
@@ -554,6 +602,9 @@ if (
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
+      // since ngrok urls are public and can be accessed by anyone.
+      // '.ngrok.io',
     ],
     static: {
       directory: './src/sentry/static/sentry',
@@ -740,9 +791,8 @@ if (IS_UI_DEV_ONLY) {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
   };
-  appConfig.optimization = {
-    runtimeChunk: 'single',
-  };
+  // Hot reloading breaks if we aren't using a single runtime chunk
+  appConfig.optimization!.runtimeChunk = 'single';
 }
 
 if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {

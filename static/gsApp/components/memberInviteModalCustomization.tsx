@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconBusiness, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -184,7 +184,7 @@ const TrialInfo = styled('div')<{status?: string}>`
   padding: ${space(1.5)};
   margin: ${space(2)} 0;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: 3px;
   ${p => p.status === 'error' && `color: ${p.theme.red300}`};

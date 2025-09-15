@@ -7,7 +7,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DISPLAY_MODE_OPTIONS, DisplayModes} from 'sentry/utils/discover/types';
 import ResultsChart from 'sentry/views/discover/results/resultsChart';
 
-describe('Discover > ResultsChart', function () {
+describe('Discover > ResultsChart', () => {
   const features = ['discover-basic'];
   const location = LocationFixture({
     query: {query: 'tag:value'},
@@ -30,7 +30,7 @@ describe('Discover > ResultsChart', function () {
     });
   });
 
-  it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async function () {
+  it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async () => {
     render(
       <ResultsChart
         organization={organization}
@@ -62,7 +62,7 @@ describe('Discover > ResultsChart', function () {
     });
   });
 
-  it('does not display a chart if no y axis is selected', async function () {
+  it('does not display a chart if no y axis is selected', async () => {
     render(
       <ResultsChart
         organization={organization}

@@ -1,11 +1,11 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import FormSource, {
-  type FormSearchField,
   setSearchMap,
+  type FormSearchField,
 } from 'sentry/components/search/sources/formSource';
 
-describe('FormSource', function () {
+describe('FormSource', () => {
   const searchMap: FormSearchField[] = [
     {
       title: 'Test Field',
@@ -31,11 +31,11 @@ describe('FormSource', function () {
     },
   ];
 
-  beforeEach(function () {
+  beforeEach(() => {
     setSearchMap(searchMap);
   });
 
-  it('can find a form field', async function () {
+  it('can find a form field', async () => {
     const mock = jest.fn().mockReturnValue(null);
     render(<FormSource query="te">{mock}</FormSource>);
 
@@ -66,7 +66,7 @@ describe('FormSource', function () {
     );
   });
 
-  it('does not find any form field', async function () {
+  it('does not find any form field', async () => {
     const mock = jest.fn().mockReturnValue(null);
     render(<FormSource query="invalid">{mock}</FormSource>);
 

@@ -92,10 +92,20 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
-  defaultAutofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always' | null;
+  defaultAutofixAutomationTuning?:
+    | 'off'
+    | 'super_low'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'always'
+    | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
+  enableSeerCoding?: boolean;
+  enableSeerEnhancedAlerts?: boolean;
+  enabledConsolePlatforms?: string[];
   extraOptions?: {
     traces: {
       checkSpanExtractionDate: boolean;
@@ -301,7 +311,7 @@ type AccuracyStatsItem<T> = {
   value: T;
 };
 
-export type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
+type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
 
 // API response for a single Discover timeseries
 export type EventsStats = {

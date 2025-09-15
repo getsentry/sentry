@@ -71,7 +71,7 @@ type State = {
 const ALL_FEATURE_LIST: Feature[] = [
   {
     id: 'insights-modules',
-    planFeatures: ['insights-addon-modules'],
+    planFeatures: ['insight-modules'],
     name: t('Application Insights'),
     image: insightsImg,
     desc: t(
@@ -163,7 +163,7 @@ const ALL_FEATURE_LIST: Feature[] = [
   {
     id: 'custom-dashboards',
     planFeatures: ['dashboards-edit'],
-    name: t('Custom Dashboards'),
+    name: t('Unlimited Custom Dashboards'),
     image: dashboardsImg,
     desc: tct(
       `Build custom dashboards for your team with a range of rich data visualizations such as histograms, time series, tables, global maps and more.`,
@@ -456,10 +456,10 @@ class Body extends Component<Props, State> {
 
 const MainUpsell = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 200px;
     gap: ${space(4)};
   }

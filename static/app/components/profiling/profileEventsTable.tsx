@@ -1,13 +1,16 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import type {
+  GridColumnOrder,
+  GridColumnSortBy,
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -30,8 +33,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {
-  type DomainView,
   useDomainViewFilters,
+  type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -200,12 +203,10 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       <Container>
         <Link
           to={generateLinkToEventInTraceView({
-            projectSlug: project.slug,
             eventId: props.dataRow[key],
             traceSlug: props.dataRow.trace,
             timestamp: props.dataRow.timestamp,
             location: props.baggage.location,
-            transactionName: props.dataRow.transaction,
             organization: props.baggage.organization,
           })}
         >

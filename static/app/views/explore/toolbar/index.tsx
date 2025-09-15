@@ -2,12 +2,11 @@ import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
 import {
-  useExploreFields,
-  useExploreGroupBys,
-  useExploreSortBys,
-  useExploreVisualizes,
-  useSetExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+  useSetQueryParamsGroupBys,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
@@ -20,24 +19,22 @@ interface ExploreToolbarProps {
   width?: number;
 }
 
-export function ExploreToolbar({width}: ExploreToolbarProps) {
-  const fields = useExploreFields();
-  const groupBys = useExploreGroupBys();
-  const visualizes = useExploreVisualizes();
-  const sortBys = useExploreSortBys();
-  const setSortBys = useSetExploreSortBys();
+export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
+  const visualizes = useQueryParamsVisualizes();
+  const setVisualizes = useSetQueryParamsVisualizes();
+
+  const groupBys = useQueryParamsGroupBys();
+  const setGroupBys = useSetQueryParamsGroupBys();
 
   return (
-    <Container width={width}>
-      <ToolbarVisualize />
-      <ToolbarGroupBy autoSwitchToAggregates />
-      <ToolbarSortBy
-        fields={fields}
-        groupBys={groupBys}
+    <Container data-test-id="explore-span-toolbar" width={width}>
+      <ToolbarVisualize
         visualizes={visualizes}
-        sorts={sortBys}
-        setSorts={setSortBys}
+        setVisualizes={setVisualizes}
+        allowEquations={extras?.includes('equations') || false}
       />
+      <ToolbarGroupBy groupBys={groupBys} setGroupBys={setGroupBys} />
+      <ToolbarSortBy />
       <ToolbarSaveAs />
     </Container>
   );

@@ -4,9 +4,12 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
-from typing import Any, Self
+from typing import Any
+
+import sentry_sdk
 
 from sentry.grouping.utils import hash_from_values
+from sentry.utils.env import in_test_environment
 
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
@@ -25,6 +28,12 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
 
 
 def _calculate_contributes[ValuesType](values: Sequence[ValuesType]) -> bool:
+    """
+    Determine the `contributes` value based on the given `values` list.
+
+    Returns True if the values are constants or if at least one grouping component in the list
+    contributes.
+    """
     for value in values or ():
         if not isinstance(value, BaseGroupingComponent) or value.contributes:
             return True
@@ -139,16 +148,21 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         if values is not None:
             if contributes is None:
                 contributes = _calculate_contributes(values)
+
+            # Ensure components which wrap primitives only ever have one child
+            if len(values) > 0 and any(isinstance(value, (int, str)) for value in values):
+                try:
+                    assert (
+                        len(values) == 1
+                    ), f"Components which wrap primitives can wrap at most one value. Got {values}."
+                except AssertionError as e:
+                    if in_test_environment():
+                        raise
+                    sentry_sdk.capture_exception(e)
+
             self.values = values
         if contributes is not None:
             self.contributes = contributes
-
-    def shallow_copy(self) -> Self:
-        """Creates a shallow copy."""
-        copy = object.__new__(self.__class__)
-        copy.__dict__.update(self.__dict__)
-        copy.values = list(self.values)
-        return copy
 
     def iter_values(self) -> Generator[str | int]:
         """
@@ -200,7 +214,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
 
 class ContextLineGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "context-line"
+    id: str = "context_line"
 
 
 class ErrorTypeGroupingComponent(BaseGroupingComponent[str]):
@@ -219,29 +233,29 @@ class FunctionGroupingComponent(BaseGroupingComponent[str]):
     id: str = "function"
 
 
-class LineNumberGroupingComponent(BaseGroupingComponent[int]):
-    id: str = "lineno"
-
-
 class ModuleGroupingComponent(BaseGroupingComponent[str]):
     id: str = "module"
 
 
-class NSErrorGroupingComponent(BaseGroupingComponent[str | int]):
-    id: str = "ns-error"
+class NSErrorDomainGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "domain"
 
 
-class SymbolGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "symbol"
+class NSErrorCodeGroupingComponent(BaseGroupingComponent[int]):
+    id: str = "code"
+
+
+class NSErrorGroupingComponent(
+    BaseGroupingComponent[NSErrorDomainGroupingComponent | NSErrorCodeGroupingComponent]
+):
+    id: str = "ns_error"
 
 
 FrameGroupingComponentChildren = (
     ContextLineGroupingComponent
     | FilenameGroupingComponent
     | FunctionGroupingComponent
-    | LineNumberGroupingComponent  # only in legacy config
     | ModuleGroupingComponent
-    | SymbolGroupingComponent  # only in legacy config
 )
 
 
@@ -253,8 +267,8 @@ class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildre
         self,
         values: Sequence[FrameGroupingComponentChildren],
         in_app: bool,
-        hint: str | None = None,  # only passed in legacy
-        contributes: bool | None = None,  # only passed in legacy
+        hint: str | None = None,
+        contributes: bool | None = None,
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.in_app = in_app
@@ -290,6 +304,7 @@ class MessageGroupingComponent(BaseGroupingComponent[str]):
 class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent]):
     id: str = "stacktrace"
     frame_counts: Counter[str]
+    reverse_when_serializing: bool = False
 
     def __init__(
         self,
@@ -300,6 +315,14 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    def as_dict(self) -> dict[str, Any]:
+        result = super().as_dict()
+
+        if self.reverse_when_serializing:
+            result["values"].reverse()
+
+        return result
 
 
 ExceptionGroupingComponentChildren = (
@@ -326,8 +349,9 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
-    id: str = "chained-exception"
+    id: str = "chained_exception"
     frame_counts: Counter[str]
+    reverse_when_serializing: bool = False
 
     def __init__(
         self,
@@ -338,6 +362,14 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    def as_dict(self) -> dict[str, Any]:
+        result = super().as_dict()
+
+        if self.reverse_when_serializing:
+            result["values"].reverse()
+
+        return result
 
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
@@ -364,13 +396,13 @@ class CSPGroupingComponent(
 class ExpectCTGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-ct"
+    id: str = "expect_ct"
 
 
 class ExpectStapleGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-staple"
+    id: str = "expect_staple"
 
 
 class HPKPGroupingComponent(

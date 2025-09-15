@@ -6,23 +6,25 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
-  type Configuration,
-  type StepProps,
-  StepTitles,
-  StepType,
+  OnboardingCodeSnippet,
   TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
-  type DocsParams,
   ProductSolution,
+  StepType,
+  type Configuration,
+  type DocsParams,
+  type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
+import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -121,7 +123,7 @@ function StepRenderer({
 }: {
   isLastStep: boolean;
   project: Project;
-  step: StepProps;
+  step: OnboardingStep;
 }) {
   const {type, title} = step;
   const api = useApi();
@@ -272,16 +274,7 @@ export function Onboarding() {
               {project: project.slug}
             )}
           </p>
-          <LinkButton
-            size="sm"
-            href={
-              // TODO(aknaus): Go does not have profiling docs yet, so we redirect to the general profiling docs. Remove this once Go has docs.
-              currentPlatform.id === 'go'
-                ? 'https://docs.sentry.io/product/profiling/getting-started/'
-                : `${currentPlatform.link}/profiling/`
-            }
-            external
-          >
+          <LinkButton size="sm" href={`${currentPlatform.link}/profiling/`} external>
             {t('Go to Documentation')}
           </LinkButton>
         </DescriptionWrapper>
@@ -295,8 +288,8 @@ export function Onboarding() {
     dsn,
     organization,
     platformKey: project.platform || 'other',
-    projectId: project.id,
-    projectSlug: project.slug,
+    project,
+    isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: true,
@@ -333,8 +326,9 @@ export function Onboarding() {
 
   return (
     <OnboardingPanel project={project}>
-      <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
+      <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+      <ContinuousProfilingBillingRequirementBanner project={project} />
       <GuidedSteps>
         {steps
           // Only show non-optional steps
@@ -365,7 +359,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   z-index: 10;
   gap: ${space(1)};
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.pink400};
   padding-right: ${space(4)};
 `;
@@ -385,7 +379,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BulletList = styled('ul')`
@@ -409,15 +403,9 @@ const HeaderWrapper = styled('div')`
 const HeaderText = styled('div')`
   flex: 0.65;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex: 1;
   }
-`;
-
-const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(1)};
 `;
 
 const Setup = styled('div')`
@@ -454,7 +442,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
@@ -494,8 +482,8 @@ const DescriptionWrapper = styled('div')`
   && > h4,
   && > h5,
   && > h6 {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-size: ${p => p.theme.fontSize.xl};
+    font-weight: ${p => p.theme.fontWeight.bold};
     line-height: 34px;
   }
 

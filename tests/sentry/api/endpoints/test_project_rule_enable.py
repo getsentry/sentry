@@ -1,13 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from rest_framework import status
 
 from sentry import audit_log
+from sentry.analytics.events.rule_reenable import RuleReenableExplicit
 from sentry.constants import ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -16,12 +18,12 @@ class ProjectRuleEnableTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-enable"
     method = "PUT"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.create_project_rule(project=self.project)
         self.login_as(user=self.user)
 
     @patch("sentry.analytics.record")
-    def test_simple(self, record_analytics):
+    def test_simple(self, record_analytics: MagicMock) -> None:
         self.rule.status = ObjectStatus.DISABLED
         self.rule.save()
         with outbox_runner():
@@ -38,15 +40,16 @@ class ProjectRuleEnableTestCase(APITestCase):
                 target_object=self.rule.id,
                 event=audit_log.get_event_id("RULE_EDIT"),
             ).exists()
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_reenable.explicit",
-            rule_id=self.rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleReenableExplicit(
+                rule_id=self.rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
 
-    def test_rule_enabled(self):
+    def test_rule_enabled(self) -> None:
         """Test that we do not accept an enabled rule"""
         response = self.get_error_response(
             self.organization.slug,
@@ -56,7 +59,7 @@ class ProjectRuleEnableTestCase(APITestCase):
         )
         assert response.data["detail"] == "Rule is not disabled."
 
-    def test_duplicate_rule(self):
+    def test_duplicate_rule(self) -> None:
         """Test that we do not allow enabling a rule that is an exact duplicate of another rule in the same project"""
         conditions = [
             {
@@ -92,7 +95,7 @@ class ProjectRuleEnableTestCase(APITestCase):
             == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be enabled unless it's edited."
         )
 
-    def test_duplicate_rule_diff_env(self):
+    def test_duplicate_rule_diff_env(self) -> None:
         """Test that we do allow enabling a rule that's the exact duplicate of another
         rule in the same project EXCEPT that the environment is different"""
         conditions = [
@@ -135,7 +138,7 @@ class ProjectRuleEnableTestCase(APITestCase):
             status_code=status.HTTP_202_ACCEPTED,
         )
 
-    def test_duplicate_rule_one_env_one_not(self):
+    def test_duplicate_rule_one_env_one_not(self) -> None:
         """Test that we do allow enabling a rule that's the exact duplicate of another
         rule in the same project EXCEPT that the environment is set for only one"""
         conditions = [
@@ -174,7 +177,7 @@ class ProjectRuleEnableTestCase(APITestCase):
             status_code=status.HTTP_202_ACCEPTED,
         )
 
-    def test_no_action_rule(self):
+    def test_no_action_rule(self) -> None:
         """Test that we do not allow enabling a rule that has no action(s)"""
         conditions = [
             {

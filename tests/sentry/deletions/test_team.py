@@ -10,7 +10,7 @@ from sentry.types.actor import Actor
 
 
 class DeleteTeamTest(TestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         team = self.create_team(name="test")
         project1 = self.create_project(teams=[team], name="test1")
         project2 = self.create_project(teams=[team], name="test2")
@@ -27,7 +27,7 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
         assert Project.objects.filter(id=project2.id).exists()
         assert not ProjectTeam.objects.filter(team_id=team.id).exists()
 
-    def test_alert_blanking(self):
+    def test_alert_blanking(self) -> None:
         team = self.create_team(name="test")
         project = self.create_project(teams=[team], name="test1")
         rule = Rule.objects.create(label="test rule", project=project, owner_team_id=team.id)
@@ -50,7 +50,7 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
         assert alert_rule.user_id is None, "Should be blank when team is deleted."
         assert alert_rule.team_id is None, "Should be blank when team is deleted."
 
-    def test_monitor_blanking(self):
+    def test_monitor_blanking(self) -> None:
         team = self.create_team(name="test")
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,

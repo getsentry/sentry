@@ -4,20 +4,20 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
-  useLogsFields,
-  useLogsIsTableFrozen,
   useLogsSearch,
-  useSetLogsFields,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  useQueryParamsFields,
+  useSetQueryParamsFields,
+} from 'sentry/views/explore/queryParams/context';
 
-export function useLogAttributesTreeActions() {
+export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   const setLogsSearch = useSetLogsSearch();
   const search = useLogsSearch();
-  const fields = useLogsFields();
-  const setLogFields = useSetLogsFields();
-  const isTableEditingFrozen = useLogsIsTableFrozen();
+  const fields = useQueryParamsFields();
+  const setLogFields = useSetQueryParamsFields();
 
   const addSearchFilter = useCallback(
     (content: AttributesTreeContent, negated?: boolean) => {
@@ -71,7 +71,7 @@ export function useLogAttributesTreeActions() {
       {
         key: 'add-column',
         label: t('Add this as table column'),
-        hidden: isTableEditingFrozen,
+        hidden: embedded,
         disabled: fields.includes(content.originalAttribute.original_attribute_key),
         onAction: () => addColumn(content),
       },

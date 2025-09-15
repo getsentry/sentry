@@ -11,13 +11,15 @@ function TestComponent({other}: {other: string}) {
   return (
     <div>
       <span>{other}</span>
-      {releases?.map(release => <em key={release.version}>{release.version}</em>)}
+      {releases?.map(release => (
+        <em key={release.version}>{release.version}</em>
+      ))}
       {`loading: ${loading}`}
     </div>
   );
 }
 
-describe('useReleases', function () {
+describe('useReleases', () => {
   const {organization} = initializeOrg();
   const selection = {
     projects: [1],
@@ -30,7 +32,7 @@ describe('useReleases', function () {
     },
   } as PageFilters;
 
-  it("fetches releases and save values in the context's state", async function () {
+  it("fetches releases and save values in the context's state", async () => {
     const mockReleases = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [

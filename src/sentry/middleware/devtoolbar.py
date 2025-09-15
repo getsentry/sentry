@@ -1,8 +1,10 @@
 import logging
 
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 
 from sentry import analytics, options
+from sentry.api.analytics import DevToolbarApiRequestEvent
 from sentry.utils.http import origin_from_request
 from sentry.utils.http import query_string as get_query_string
 from sentry.utils.urls import parse_id_or_slug_param
@@ -47,17 +49,21 @@ def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
     origin = origin_from_request(request)
     query_string: str = get_query_string(request)  # starts with ? if non-empty
 
-    analytics.record(
-        "devtoolbar.api_request",
-        view_name=view_name,
-        route=route,
-        query_string=query_string,
-        origin=origin,
-        method=request.method,
-        status_code=response.status_code,
-        organization_id=org_id or None,
-        organization_slug=org_slug,
-        project_id=project_id or None,
-        project_slug=project_slug,
-        user_id=request.user.id if hasattr(request, "user") and request.user else None,
-    )
+    try:
+        analytics.record(
+            DevToolbarApiRequestEvent(
+                view_name=view_name,
+                route=route,
+                query_string=query_string,
+                origin=origin,
+                method=request.method,
+                status_code=response.status_code,
+                organization_id=org_id or None,
+                organization_slug=org_slug,
+                project_id=project_id or None,
+                project_slug=project_slug,
+                user_id=request.user.id if hasattr(request, "user") and request.user else None,
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)

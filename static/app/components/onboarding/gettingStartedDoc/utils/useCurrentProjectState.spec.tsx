@@ -31,7 +31,7 @@ function createWrapper(projectSlug?: string) {
       memoryRouter.navigate(`/${projectSlug}/`);
     }
 
-    return <RouterProvider router={memoryRouter} />;
+    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
   };
 }
 

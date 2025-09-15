@@ -80,7 +80,7 @@ const StatusWrapper = styled(motion.div)`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   /* Keep the wrapper in the parent grids first cell for transitions */
   grid-column: 1;
   grid-row: 1;

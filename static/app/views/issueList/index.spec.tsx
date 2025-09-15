@@ -1,15 +1,13 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import IssueListContainer from 'sentry/views/issueList';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-describe('IssueListContainer', function () {
+describe('IssueListContainer', () => {
   const defaultProps = {
     children: <div>Foo</div>,
   };
@@ -17,9 +15,6 @@ describe('IssueListContainer', function () {
   const organization = OrganizationFixture({
     features: ['enforce-stacked-navigation'],
   });
-
-  const user = UserFixture();
-  user.options.prefersStackedNavigation = true;
 
   const initialRouterConfig = {
     location: {
@@ -30,8 +25,8 @@ describe('IssueListContainer', function () {
 
   const mockGroupSearchView = GroupSearchViewFixture({id: '100'});
 
-  describe('issue views', function () {
-    beforeEach(function () {
+  describe('issue views', () => {
+    beforeEach(() => {
       PageFiltersStore.init();
       PageFiltersStore.onInitializeUrlState(
         {
@@ -41,7 +36,6 @@ describe('IssueListContainer', function () {
         },
         new Set(['projects'])
       );
-      ConfigStore.set('user', user);
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/100/',
@@ -54,7 +48,7 @@ describe('IssueListContainer', function () {
       });
     });
 
-    it('marks the current issue view as seen', async function () {
+    it('marks the current issue view as seen', async () => {
       const mockUpdateLastVisited = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/100/visit/',
         method: 'POST',
@@ -71,7 +65,7 @@ describe('IssueListContainer', function () {
       expect(mockUpdateLastVisited).toHaveBeenCalledTimes(1);
     });
 
-    it('hydrates issue view query params', async function () {
+    it('hydrates issue view query params', async () => {
       const {router} = render(<IssueListContainer {...defaultProps} />, {
         organization,
 

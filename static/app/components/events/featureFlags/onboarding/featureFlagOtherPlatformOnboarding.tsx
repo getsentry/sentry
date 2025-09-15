@@ -2,11 +2,9 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOtherPlatformOnboardingProps {
@@ -30,13 +28,15 @@ export function FeatureFlagOtherPlatformOnboarding({
       <Wrapper>
         {
           <Alert.Container>
-            <Alert type="info" showIcon>
-              <Flex gap={space(3)}>
-                {t('Read the docs to learn more about setting up evaluation tracking.')}
-                <LinkButton href={docsUrl} external>
+            <Alert
+              type="info"
+              trailingItems={
+                <LinkButton href={docsUrl} size="xs" external>
                   {t('Read the docs')}
                 </LinkButton>
-              </Flex>
+              }
+            >
+              {t('Read the docs to learn more about setting up evaluation tracking.')}
             </Alert>
           </Alert.Container>
         }

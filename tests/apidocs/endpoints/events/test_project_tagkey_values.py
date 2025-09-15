@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectTagKeyValuesDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         key = "foo"
         self.create_event("a", tags={key: "bar"})
 
@@ -20,7 +20,7 @@ class ProjectTagKeyValuesDocs(APIDocsTestCase):
             },
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 

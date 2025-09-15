@@ -3,12 +3,11 @@ import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
@@ -16,6 +15,7 @@ import Version from 'sentry/components/version';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -23,12 +23,12 @@ import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRele
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type Props = {
-  projectSlug: string;
+  project: AvatarProject;
   release: ReleaseWithHealth;
   releaseMeta: ReleaseMeta;
 };
 
-function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
+function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
@@ -52,7 +52,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
           />
           <KeyValueTableRow
             keyName={
-              <Flex gap={space(0.75)} align="center">
+              <Flex gap="sm" align="center">
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper
@@ -118,7 +118,26 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
             }
           />
           <KeyValueTableRow
-            keyName={t('Semver')}
+            keyName={
+              <Flex gap="sm" align="center">
+                {t('Semver')}
+                <Tooltip
+                  skipWrapper
+                  isHoverable
+                  title={tct(
+                    'Semver packages format their versions as [code:package@version] or [code:package@version+build]. [docs:Read more].',
+                    {
+                      code: <code />,
+                      docs: (
+                        <ExternalLink href="https://docs.sentry.io/cli/releases/#creating-releases" />
+                      ),
+                    }
+                  )}
+                >
+                  <IconInfo />
+                </Tooltip>
+              </Flex>
+            }
             value={isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')}
           />
           <KeyValueTableRow
@@ -130,11 +149,11 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
             }
           />
           <KeyValueTableRow
-            keyName={t('First Event')}
+            keyName={t('First Activity')}
             value={firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
           />
           <KeyValueTableRow
-            keyName={t('Last Event')}
+            keyName={t('Last Activity')}
             value={lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
           />
           <KeyValueTableRow
@@ -143,10 +162,10 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
               <Link
                 to={
                   isArtifactBundle
-                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/?query=${encodeURIComponent(
+                    ? `/settings/${orgSlug}/projects/${project.slug}/source-maps/?query=${encodeURIComponent(
                         version
                       )}`
-                    : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/${encodeURIComponent(
+                    : `/settings/${orgSlug}/projects/${project.slug}/source-maps/${encodeURIComponent(
                         version
                       )}/`
                 }
@@ -181,7 +200,7 @@ const ButtonContainer = styled('div')`
 `;
 
 const FinalizeButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding-inline: ${space(0.5)};
 `;
 

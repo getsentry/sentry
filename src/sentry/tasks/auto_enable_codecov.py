@@ -33,7 +33,7 @@ def enable_for_org(dry_run: bool = False) -> None:
         integration_enabled = features.has("organizations:codecov-integration", organization)
         task_enabled = features.has("organizations:auto-enable-codecov", organization)
         if not integration_enabled or not task_enabled:
-            if organization.flags.codecov_access.is_set:
+            if organization.flags.codecov_access:
                 disable_codecov_access(organization, integration_enabled, task_enabled)
             continue
 
@@ -46,7 +46,7 @@ def enable_for_org(dry_run: bool = False) -> None:
             },
         )
         try:
-            if organization.flags.codecov_access.is_set:
+            if organization.flags.codecov_access:
                 logger.info(
                     "Codecov Access flag already set",
                     extra={

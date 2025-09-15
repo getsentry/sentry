@@ -119,7 +119,7 @@ const TimestampColumns = styled('div')`
   margin-top: ${space(1)};
   text-align: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 function NodeGroup({

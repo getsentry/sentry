@@ -1,8 +1,8 @@
-import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState, type CSSProperties} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
@@ -26,9 +26,10 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  DisplayType,
+  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
-  DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
@@ -51,6 +52,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -71,6 +73,30 @@ type WidgetBuilderV2Props = {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
+function TraceItemAttributeProviderFromDataset({children}: {children: React.ReactNode}) {
+  const {state} = useWidgetBuilderContext();
+  const organization = useOrganization();
+
+  let enabled = false;
+  let traceItemType = TraceItemDataset.SPANS;
+
+  if (state.dataset === WidgetType.SPANS) {
+    enabled = organization.features.includes('visibility-explore-view');
+    traceItemType = TraceItemDataset.SPANS;
+  }
+
+  if (state.dataset === WidgetType.LOGS) {
+    enabled = isLogsEnabled(organization);
+    traceItemType = TraceItemDataset.LOGS;
+  }
+
+  return (
+    <TraceItemAttributeProvider traceItemType={traceItemType} enabled={enabled}>
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
+
 function WidgetBuilderV2({
   isOpen,
   onClose,
@@ -88,8 +114,8 @@ function WidgetBuilderV2({
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
 
   const [translate, setTranslate] = useState<WidgetDragPositioning>(
     DEFAULT_WIDGET_DRAG_POSITIONING
@@ -164,10 +190,7 @@ function WidgetBuilderV2({
                   organization={organization}
                   selection={selection}
                 >
-                  <TraceItemAttributeProvider
-                    traceItemType={TraceItemDataset.SPANS}
-                    enabled={organization.features.includes('visibility-explore-view')}
-                  >
+                  <TraceItemAttributeProviderFromDataset>
                     <ContainerWithoutSidebar
                       sidebarCollapsed={sidebarCollapsed}
                       style={
@@ -227,7 +250,7 @@ function WidgetBuilderV2({
                         )}
                       </WidgetBuilderContainer>
                     </ContainerWithoutSidebar>
-                  </TraceItemAttributeProvider>
+                  </TraceItemAttributeProviderFromDataset>
                 </CustomMeasurementsProvider>
               </WidgetBuilderProvider>
             )}
@@ -261,7 +284,7 @@ export function WidgetPreviewContainer({
   const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;
 
@@ -322,7 +345,7 @@ export function WidgetPreviewContainer({
     return PREVIEW_HEIGHT_PX;
   };
 
-  const animatedProps = {
+  const animatedProps: MotionNodeAnimationOptions = {
     initial: {opacity: 0, x: '100%', y: 0},
     animate: {opacity: 1, x: 0, y: 0},
     exit: {opacity: 0, x: '100%', y: 0},
@@ -348,15 +371,10 @@ export function WidgetPreviewContainer({
                 ref={setNodeRef}
                 id={WIDGET_PREVIEW_DRAG_ID}
                 style={draggableStyle}
-                aria-label={t('Draggable Widget Preview')}
+                aria-label={t('Draggable Preview')}
                 {...attributes}
                 {...listeners}
               >
-                {!isSmallScreen && (
-                  <WidgetPreviewTitle {...animatedProps}>
-                    {t('Widget Preview')}
-                  </WidgetPreviewTitle>
-                )}
                 <SampleWidgetCard
                   {...animatedProps}
                   style={{
@@ -446,15 +464,15 @@ const SampleWidgetCard = styled(motion.div)`
   z-index: ${p => p.theme.zIndex.initial};
   position: relative;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 40vw;
     min-width: 300px;
     z-index: ${p => p.theme.zIndex.modal};
     cursor: auto;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) and (min-width: ${p =>
-      p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
+      p.theme.breakpoints.md}) {
     width: 30vw;
     min-width: 100px;
   }
@@ -467,7 +485,7 @@ const DraggableWidgetContainer = styled(`div`)`
   margin: auto;
   cursor: auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     z-index: ${p => p.theme.zIndex.modal};
     transform: none;
     cursor: auto;
@@ -484,7 +502,7 @@ const ContainerWithoutSidebar = styled('div')<{
   right: 0;
   bottom: 0;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     left: 0;
     top: ${SIDEBAR_MOBILE_HEIGHT};
   }
@@ -520,8 +538,8 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   height: 95%;
   color: ${p => p.theme.subText};
   font-style: italic;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const WidgetPreviewPlaceholder = styled('div')`
@@ -542,27 +560,20 @@ const SurroundingWidgetContainer = styled('div')`
   align-items: center;
 `;
 
-const WidgetPreviewTitle = styled(motion.h5)`
-  margin-bottom: ${space(1)};
-  margin-left: ${space(1)};
-  color: ${p => p.theme.white};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
 const FilterBarContainer = styled(motion.div)`
   margin-top: ${space(1)};
   background-color: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 40vw;
     min-width: 300px;
     z-index: ${p => p.theme.zIndex.modal};
     cursor: auto;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) and (min-width: ${p =>
-      p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
+      p.theme.breakpoints.md}) {
     width: 30vw;
     min-width: 100px;
   }

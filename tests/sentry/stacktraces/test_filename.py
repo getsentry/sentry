@@ -25,7 +25,7 @@ def _get_filenames(event_data: dict[str, Any]) -> list[str]:
 
 
 class FilenameNormalizationTest(TestCase):
-    def test_leaves_non_js_events_alone(self):
+    def test_leaves_non_js_events_alone(self) -> None:
         filenames = ["whos_a_good_girl?.py", "maisey.py"]
         event_data = _make_event_data(filenames, "python")
 
@@ -33,7 +33,7 @@ class FilenameNormalizationTest(TestCase):
 
         assert _get_filenames(event_data) == filenames
 
-    def test_leaves_non_querystringed_js_filenames_alone(self):
+    def test_leaves_non_querystringed_js_filenames_alone(self) -> None:
         filenames = ["maisey.js", "charlie.js"]
         event_data = _make_event_data(filenames, "javascript")
 
@@ -41,7 +41,7 @@ class FilenameNormalizationTest(TestCase):
 
         assert _get_filenames(event_data) == filenames
 
-    def test_strips_querystrings_from_files_in_js_events(self):
+    def test_strips_querystrings_from_files_in_js_events(self) -> None:
         filenames = ["maisey.js?good=duh", "charlie.html"]
         event_data = _make_event_data(filenames, "javascript")
 

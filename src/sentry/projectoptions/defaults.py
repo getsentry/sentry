@@ -1,45 +1,21 @@
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.projectoptions import register
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 13
+LATEST_EPOCH = 15
 
-# grouping related configs
-#
-# The default values are hardcoded because some grouping configs might
-# only exists temporarily for testing purposes.  If we delete them from
-# the codebase and a customer still has them set in the options we want to
-# fall back to the oldest config.
-#
-# TODO: we might instead want to fall back to the latest of the project's
-# epoch instead.
-LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
-DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
-# NOTE: this is empty for now to migrate projects off the deprecated
-# `mobile` strategy via grouping auto-updates.
-BETA_GROUPING_CONFIG = ""
-# This registers the option as a valid project option
-register(
-    key="sentry:grouping_config",
-    epoch_defaults={
-        1: LEGACY_GROUPING_CONFIG,
-        3: "newstyle:2019-05-08",
-        4: DEFAULT_GROUPING_CONFIG,
-    },
-)
-
+register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
 register(key="sentry:derived_grouping_enhancements", default="")
-
-# server side fingerprinting defaults.
 register(key="sentry:fingerprinting_rules", default="")
 
 # Secondary grouping setup to run in addition for transition phase.
 #
-# To ensure we minimize unnecessary load, we ttl the secondary grouping setup
-# to 90 days, as that's when all groups should have hashes associated with
-# them.
+# To ensure we minimize unnecessary load, we TTL the secondary grouping setup
+# to `SENTRY_GROUPING_UPDATE_MIGRATION_PHASE` days
 register(key="sentry:secondary_grouping_expiry", default=0)
 register(key="sentry:secondary_grouping_config", default=None)
 
@@ -54,8 +30,7 @@ register(key="sentry:similarity_backfill_completed", default=None)
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
-    # TODO(lforst): Make v9 loader default
-    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x"},
+    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
 )
 
 # Default symbol sources.  The ios source does not exist by default and
@@ -109,6 +84,8 @@ register(key="filters:filtered-transaction", default="1")
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 
+# c.f. set_default_disabled_detectors, which can disable detectors on project creation
+# for specific platforms
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
@@ -123,7 +100,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "http_overhead_detection_enabled": True,
     "transaction_duration_regression_detection_enabled": True,
     "function_duration_regression_detection_enabled": True,
-    "database_query_injection_detection_enabled": True,
+    "db_query_injection_detection_enabled": False,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -186,14 +163,14 @@ register(
 # The available loader SDK versions
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["9.x", "8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["9.x", "8.x", "7.x"]},
+    epoch_defaults={
+        1: ["10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
+        11: ["10.x", "9.x", "8.x", "7.x"],
+    },
 )
 
 # Dynamic sampling rate in project-level "manual" configuration mode
 register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
-
-# Dynamic sampling minimum sample rate
-register(key="sentry:dynamic_sampling_minimum_sample_rate", default=False)
 
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
@@ -202,7 +179,7 @@ register(key="sentry:tempest_fetch_screenshots", default=False)
 register(key="sentry:tempest_fetch_dumps", default=False)
 
 # Should autofix run automatically on new issues
-register(key="sentry:autofix_automation_tuning", default="off")
+register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)
 
 # Should seer scanner run automatically on new issues
-register(key="sentry:seer_scanner_automation", default=False)
+register(key="sentry:seer_scanner_automation", default=True)

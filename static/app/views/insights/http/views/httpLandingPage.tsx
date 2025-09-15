@@ -10,17 +10,17 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useHttpLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingChartFilter';
 import HttpDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDurationChartWidget';
 import HttpResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpResponseCodesChartWidget';
 import HttpThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpThroughputChartWidget';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
@@ -78,7 +78,7 @@ export function HTTPLandingPage() {
     });
   };
 
-  const domainsListResponse = useSpanMetrics(
+  const domainsListResponse = useSpans(
     {
       search: MutableSearch.fromQueryObject(tableFilters),
       fields: [
@@ -109,7 +109,7 @@ export function HTTPLandingPage() {
       {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
       {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
 
-      <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
+      <ModuleFeature moduleName={ModuleName.HTTP}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -150,7 +150,7 @@ export function HTTPLandingPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }

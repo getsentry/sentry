@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
-from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
@@ -282,7 +282,7 @@ def test_detect_function_trends_options_with_str(
 
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
-def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
+def test_detect_function_trends_query_timerange(functions_query, timestamp, project) -> None:
     options = {
         "statistical_detectors.enable": True,
     }
@@ -502,7 +502,7 @@ def test_detect_transaction_trends_ratelimit(
         pytest.param(3, 4, id="three per project"),
     ],
 )
-def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx):
+def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx) -> None:
     payloads = {
         (project_id, group): DetectorPayload(
             project_id=project_id,
@@ -1343,7 +1343,7 @@ def test_redirect_escalations(
 
 
 class FunctionsTasksTest(ProfilesSnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.now = before_now(minutes=10)
@@ -1426,7 +1426,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             self.continuous_functions.append(stored)
 
     @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
-    def test_functions_query(self):
+    def test_functions_query(self) -> None:
         results = query_functions(self.projects, self.now)
         fingerprint = self.function_fingerprint({"package": "baz", "function": "baz"})
         assert results == [
@@ -1589,7 +1589,9 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         )
 
     @mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
-    def test_emit_function_regression_issue_mixed(self, mock_get_from_profiling_service):
+    def test_emit_function_regression_issue_mixed(
+        self, mock_get_from_profiling_service: mock.MagicMock
+    ) -> None:
         mock_value = mock.MagicMock()
         mock_value.status = 200
         mock_value.data = b'{"occurrences":2}'
@@ -1652,7 +1654,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
 
 @pytest.mark.sentry_metrics
 class TestTransactionsQuery(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.num_projects = 2
         self.num_transactions = 4
@@ -1724,7 +1726,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
 
 @pytest.mark.sentry_metrics
 class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.num_projects = 2
         self.num_transactions = 4

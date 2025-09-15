@@ -11,6 +11,7 @@ from sentry.api.bases import FilterParams
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.release_health.base import SessionsQueryResult
 from sentry.snuba.sessions_v2 import QueryDefinition
 
 
@@ -21,7 +22,7 @@ def fetch_sessions_data(
     end: datetime,
     start: datetime,
     field: str | None = "sum(session)",  # alternatively count_unique(user)
-):
+) -> SessionsQueryResult:
     """
     This implementation was derived from organization_sessions GET endpoint
     NOTE: Params are derived from the request query and pulls the relevant project/environment objects

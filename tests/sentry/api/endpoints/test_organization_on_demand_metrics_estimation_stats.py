@@ -61,11 +61,11 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
         )
         return self.store_event(data, project_id=self.project.id)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         """
         Tests that the volume estimation endpoint correctly looks up the data in the Db and
         returns the correct volume.
@@ -140,7 +140,7 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
                 )
                 assert pytest.approx(count, 0.001) == expected
 
-    def test_apdex(self):
+    def test_apdex(self) -> None:
         """
         Tests that the apdex calculation works as expected.
 
@@ -208,7 +208,7 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
         [[0, 1, 7], [8, 8, 8], [120, 120, 120], [0, 1 * 120 / 8, 7 * 120 / 8]],
     ],
 )
-def test_estimate_volume(indexed, base_indexed, metrics, expected):
+def test_estimate_volume(indexed, base_indexed, metrics, expected) -> None:
     """
     Tests volume estimation calculation
     """
@@ -236,7 +236,7 @@ def test_estimate_volume(indexed, base_indexed, metrics, expected):
         ("avg(measurements.cls)", False),  # First Input Delay
     ],
 )
-def test_should_scale(metric: str, should_scale: bool):
+def test_should_scale(metric: str, should_scale: bool) -> None:
     """
     Tests the _should_scale function
     """
@@ -252,7 +252,7 @@ def test_should_scale(metric: str, should_scale: bool):
         (100, StatsQualityEstimation.NO_INDEXED_DATA),
     ],
 )
-def test_estimate_stats_quality(zero_samples, expected_result):
+def test_estimate_stats_quality(zero_samples, expected_result) -> None:
     num_samples = 100
 
     start_timestamp = 1_500_000_000
@@ -270,7 +270,7 @@ def test_estimate_stats_quality(zero_samples, expected_result):
 
 
 @pytest.mark.parametrize("zero_samples", [0, 1, 5, 9, 10])
-def test_count_non_zero_intervals(zero_samples):
+def test_count_non_zero_intervals(zero_samples) -> None:
     num_samples = 10
 
     start_timestamp = 1_500_000_000

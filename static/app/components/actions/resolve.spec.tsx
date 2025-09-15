@@ -1,4 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {
@@ -11,20 +10,16 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import ResolveActions from 'sentry/components/actions/resolve';
-import ModalStore from 'sentry/stores/modalStore';
 
-describe('ResolveActions', function () {
+describe('ResolveActions', () => {
   const spy = jest.fn();
-  beforeEach(() => {
-    ModalStore.reset();
-  });
   afterEach(() => {
     spy.mockClear();
     MockApiClient.clearMockResponses();
   });
 
-  describe('disabled', function () {
-    it('does not call onUpdate when clicked', async function () {
+  describe('disabled', () => {
+    it('does not call onUpdate when clicked', async () => {
       render(
         <ResolveActions onUpdate={spy} disabled hasRelease={false} projectSlug="proj-1" />
       );
@@ -35,8 +30,8 @@ describe('ResolveActions', function () {
     });
   });
 
-  describe('disableDropdown', function () {
-    it('main button calls onUpdate when clicked and dropdown menu disabled', async function () {
+  describe('disableDropdown', () => {
+    it('main button calls onUpdate when clicked and dropdown menu disabled', async () => {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -56,8 +51,8 @@ describe('ResolveActions', function () {
     });
   });
 
-  describe('resolved', function () {
-    it('calls onUpdate with unresolved status when clicked', async function () {
+  describe('resolved', () => {
+    it('calls onUpdate with unresolved status when clicked', async () => {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -81,8 +76,8 @@ describe('ResolveActions', function () {
     });
   });
 
-  describe('auto resolved', function () {
-    it('cannot be unresolved manually', async function () {
+  describe('auto resolved', () => {
+    it('cannot be unresolved manually', async () => {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -99,8 +94,8 @@ describe('ResolveActions', function () {
     });
   });
 
-  describe('without confirmation', function () {
-    it('calls spy with resolved status when clicked', async function () {
+  describe('without confirmation', () => {
+    it('calls spy with resolved status when clicked', async () => {
       render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
       await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
@@ -112,8 +107,8 @@ describe('ResolveActions', function () {
     });
   });
 
-  describe('with confirmation step', function () {
-    it('displays confirmation modal with message provided', async function () {
+  describe('with confirmation step', () => {
+    it('displays confirmation modal with message provided', async () => {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -138,7 +133,7 @@ describe('ResolveActions', function () {
     });
   });
 
-  it('can resolve in "another version"', async function () {
+  it('can resolve in "another version"', async () => {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
@@ -165,7 +160,7 @@ describe('ResolveActions', function () {
     });
   });
 
-  it('displays if the current release version uses semver', async function () {
+  it('displays if the current release version uses semver', async () => {
     render(
       <ResolveActions
         onUpdate={spy}
@@ -181,14 +176,14 @@ describe('ResolveActions', function () {
     expect(screen.getByText('(semver)')).toBeInTheDocument();
   });
 
-  it('displays prompt to setup releases when there are no releases', async function () {
+  it('displays prompt to setup releases when there are no releases', async () => {
     render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('Resolving is better with Releases')).toBeInTheDocument();
   });
 
-  it('does not prompt to setup releases when multiple projects are selected', async function () {
+  it('does not prompt to setup releases when multiple projects are selected', async () => {
     render(
       <ResolveActions
         onUpdate={spy}
@@ -207,7 +202,7 @@ describe('ResolveActions', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('does render more resolve options', function () {
+  it('does render more resolve options', () => {
     render(
       <ResolveActions
         onUpdate={spy}
@@ -219,7 +214,7 @@ describe('ResolveActions', function () {
     expect(screen.getByLabelText('More resolve options')).toBeInTheDocument();
   });
 
-  it('does not render more resolve options', function () {
+  it('does not render more resolve options', () => {
     render(
       <ResolveActions
         onUpdate={spy}
@@ -231,7 +226,7 @@ describe('ResolveActions', function () {
     expect(screen.queryByLabelText('More resolve options')).not.toBeInTheDocument();
   });
 
-  it('does render next release option with subtitle', async function () {
+  it('does render next release option with subtitle', async () => {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
@@ -243,26 +238,6 @@ describe('ResolveActions', function () {
     expect(await screen.findByText('The next release')).toBeInTheDocument();
     expect(
       await screen.findByText('The next release after the current one')
-    ).toBeInTheDocument();
-  });
-
-  it('does render in upcoming release', async function () {
-    const organization = OrganizationFixture({
-      features: ['resolve-in-upcoming-release'],
-    });
-    const onUpdate = jest.fn();
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
-      body: [ReleaseFixture()],
-    });
-    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />, {
-      organization,
-    });
-
-    await userEvent.click(screen.getByLabelText('More resolve options'));
-    expect(await screen.findByText('The upcoming release')).toBeInTheDocument();
-    expect(
-      await screen.findByText('The next release that is not yet released')
     ).toBeInTheDocument();
   });
 });

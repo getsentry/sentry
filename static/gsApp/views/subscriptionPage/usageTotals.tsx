@@ -42,7 +42,9 @@ import {
 import {
   getChunkCategoryFromDuration,
   getPlanCategoryName,
+  isByteCategory,
   isContinuousProfiling,
+  isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
@@ -200,14 +202,14 @@ export function calculateCategoryPrepaidUsage(
     subscription.categories[category];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
-  // If reservedCpe or reservedSpend aren't provided but category is in reservedBudgetCategories,
+  // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
   // try to extract them from subscription.reservedBudgets
   let effectiveReservedCpe = reservedCpe ?? undefined;
   let effectiveReservedSpend = reservedSpend ?? undefined;
 
   if (
     (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&
-    subscription.reservedBudgetCategories?.includes(category)
+    isPartOfReservedBudget(category, subscription.reservedBudgets ?? [])
   ) {
     // Look for the category in reservedBudgets
     for (const budget of subscription.reservedBudgets || []) {
@@ -234,10 +236,9 @@ export function calculateCategoryPrepaidUsage(
     // Convert prepaid limits to the appropriate unit based on category
     prepaidTotal =
       prepaid *
-      (category === DataCategory.ATTACHMENTS
+      (isByteCategory(category)
         ? GIGABYTE
-        : category === DataCategory.PROFILE_DURATION ||
-            category === DataCategory.PROFILE_DURATION_UI
+        : isContinuousProfiling(category)
           ? MILLISECONDS_IN_HOUR
           : 1);
   }
@@ -908,7 +909,7 @@ export function CombinedUsageTotals({
 
   function getReservedInfo() {
     if (doesNotHaveProduct) {
-      // TODO(data categories): move this to backend
+      // TODO(reserved budgets): move this to frontend const similar to BILLED_DATA_CATEGORY_INFO
       if (apiName === ReservedBudgetCategoryType.SEER) {
         return t('Detect and fix issues faster with our AI debugging agent.');
       }
@@ -1291,12 +1292,12 @@ const CardBody = styled('div')`
 `;
 
 const UsageSummaryTitle = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: 0px;
   font-weight: 400;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    font-size: ${p => p.theme.fontSize.xl};
   }
 `;
 
@@ -1316,7 +1317,7 @@ const BaseRow = styled('div')`
 
 const SubText = styled('span')`
   color: ${p => p.theme.chartLabel};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const AcceptedSummary = styled('div')`
@@ -1372,12 +1373,12 @@ const CombinedLegendContainer = styled('div')`
 
 const LegendTitle = styled('div')`
   font-weight: 700;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
 const LegendPrice = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendPriceSubText = styled(LegendPrice)`

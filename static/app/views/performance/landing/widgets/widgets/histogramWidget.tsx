@@ -97,5 +97,5 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
 
 const Subtitle = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

@@ -30,6 +30,7 @@ function HomePage(props: Props) {
       pathname: '/_admin/customers/',
       query: {
         query,
+        regionUrl,
       },
     });
   };
@@ -116,7 +117,9 @@ function HomePage(props: Props) {
             label: r.name,
             value: r.url,
           }))}
-          onChange={opt => setRegionUrl(opt.value)}
+          onChange={opt => {
+            setRegionUrl(opt.value);
+          }}
         />
 
         <SearchLabel>Organizations</SearchLabel>
@@ -172,7 +175,7 @@ const Header = styled('div')`
 `;
 const HeaderTitle = styled('h3')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
   color: ${p => p.theme.textColor};
 `;

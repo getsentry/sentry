@@ -19,9 +19,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.fields import is_function, parse_arguments
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.snuba import metrics_enhanced_performance, spans_rpc
+from sentry.snuba import metrics_enhanced_performance
+from sentry.snuba.spans_rpc import Spans
+from sentry.utils.snuba import is_measurement
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +50,9 @@ class CompareTableResultDict(TypedDict):
     query: str | None
 
 
-def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPResponse):
+def compare_table_results(
+    metrics_query_result: EventsResponse, eap_result: EAPResponse
+) -> tuple[bool, list[str], CompareTableResult]:
     eap_data_row = eap_result["data"][0] if len(eap_result["data"]) > 0 else {}
     metrics_data_row = (
         metrics_query_result["data"][0] if len(metrics_query_result["data"]) > 0 else {}
@@ -69,8 +74,24 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
         for field, data in metrics_data_row.items():
             if is_equation(field):
                 continue
-            translated_field, *rest = translate_columns([field])
-            if data is not None and eap_data_row[translated_field] is None:
+            [translated_field, *rest], dropped_columns = translate_columns([field])
+            # if we're dropping the field in eap then we can skip checking for mismatches
+            if len(dropped_columns) > 0:
+                continue
+
+            arg: str | None = None
+            if match := is_function(field):
+                function = match.group("function")
+                args = parse_arguments(function, match.group("columns"))
+                if args:
+                    arg = args[0]
+
+            if data is None or (
+                arg and (arg == "transaction.duration" or is_measurement(arg)) and data == 0
+            ):
+                continue
+
+            if eap_data_row[translated_field] is None:
                 logger.info("Field %s not found in EAP response", field)
                 mismatches.append(field)
 
@@ -107,10 +128,19 @@ def compare_tables_for_dashboard_widget_queries(
         organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
     )
 
+    widget_viewer_url = (
+        generate_organization_url(organization.slug)
+        + f"/dashboard/{dashboard.id}/widget/{widget.id}/"
+    )
+
     if len(list(projects)) == 0:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
             scope.set_tag("failed_reason", CompareTableResult.NO_PROJECT.value)
+            scope.set_tag(
+                "widget_viewer_url",
+                widget_viewer_url,
+            )
             sentry_sdk.capture_message(
                 "dashboard_widget_comparison_done", level="info", scope=scope
             )
@@ -123,12 +153,30 @@ def compare_tables_for_dashboard_widget_queries(
             "query": None,
         }
 
-    fields = widget_query.fields
+    aggregates = widget_query.aggregates
+    columns = widget_query.columns
+    query_fields = widget_query.fields
+
+    fields_set = set()
+
+    if aggregates:
+        fields_set.update(aggregates)
+    if columns:
+        fields_set.update(columns)
+    if query_fields:
+        fields_set.update(query_fields)
+
+    fields = list(fields_set)
+
     if len(fields) == 0:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
             scope.set_tag("failed_reason", CompareTableResult.NO_FIELDS.value)
             scope.set_tag("widget_fields", fields)
+            scope.set_tag(
+                "widget_viewer_url",
+                widget_viewer_url,
+            )
             sentry_sdk.capture_message(
                 "dashboard_widget_comparison_done", level="info", scope=scope
             )
@@ -185,7 +233,7 @@ def compare_tables_for_dashboard_widget_queries(
         logger.info("Metrics query failed: %s", e)
         has_metrics_error = True
 
-    eap_query_parts = translate_mep_to_eap(
+    eap_query_parts, dropped_fields = translate_mep_to_eap(
         QueryParts(
             query=query,
             selected_columns=selected_columns,
@@ -195,7 +243,7 @@ def compare_tables_for_dashboard_widget_queries(
     )
 
     try:
-        eap_result = spans_rpc.run_table_query(
+        eap_result = Spans.run_table_query(
             params=snuba_params,
             query_string=eap_query_parts["query"],
             selected_columns=eap_query_parts["selected_columns"],
@@ -209,11 +257,6 @@ def compare_tables_for_dashboard_widget_queries(
     except Exception as e:
         logger.info("EAP query failed: %s", e)
         has_eap_error = True
-
-    widget_viewer_url = (
-        generate_organization_url(organization.slug)
-        + f"/dashboard/{dashboard.id}/widget/{widget.id}/"
-    )
 
     if has_metrics_error and has_eap_error:
         with sentry_sdk.isolation_scope() as scope:

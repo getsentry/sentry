@@ -99,9 +99,9 @@ function ReleaseActions({
 
   function getModalHeader(title: React.ReactNode) {
     return (
-      <h4>
+      <ModalHeaderContainer>
         <TextOverflow>{title}</TextOverflow>
-      </h4>
+      </ModalHeaderContainer>
     );
   }
 
@@ -187,8 +187,8 @@ function ReleaseActions({
   const hasNext = !!release.currentProjectMeta.nextReleaseVersion;
 
   return (
-    <ButtonBar gap={1}>
-      <ButtonBar merged>
+    <ButtonBar>
+      <ButtonBar merged gap="0">
         <LinkButton
           size="sm"
           to={replaceReleaseUrl(release.currentProjectMeta.firstReleaseVersion)}
@@ -244,6 +244,10 @@ const ProjectsWrapper = styled('div')`
     border: none !important;
     box-shadow: none !important;
   }
+`;
+
+const ModalHeaderContainer = styled('h4')`
+  max-width: 100%;
 `;
 
 export default ReleaseActions;

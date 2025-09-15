@@ -11,7 +11,8 @@ import {
 } from 'sentry/actionCreators/discoverSavedQueries';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
+import {Link} from 'sentry/components/core/link';
+import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
@@ -224,7 +225,7 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
     });
 }
 
-export function getAnalyticsCreateEventKeyName(
+function getAnalyticsCreateEventKeyName(
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
   isNewQuery: boolean,
@@ -241,7 +242,7 @@ export function getAnalyticsCreateEventKeyName(
  * Takes in a DiscoverV2 NewQuery object and returns a Partial containing
  * the desired fields to populate into reload analytics
  */
-export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
+function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
   const {projects, fields, query} = payload;
   return {
     projects,
@@ -346,4 +347,13 @@ export function getSavedQueryDatasetFromLocationOrDataset(
     default:
       return undefined;
   }
+}
+
+export function getTransactionDeprecationMessage(tracesUrl: string) {
+  return tct(
+    'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
+    {
+      traces: <Link to={tracesUrl} />,
+    }
+  );
 }

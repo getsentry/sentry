@@ -7,7 +7,7 @@ from sentry.models.organization import Organization
 from sentry.testutils.helpers.features import Feature
 
 
-def test_system_origin():
+def test_system_origin() -> None:
     result = (
         engines["django"]
         .from_string(
@@ -56,7 +56,7 @@ def test_system_origin():
         ),
     ),
 )
-def test_absolute_uri(input, output):
+def test_absolute_uri(input: str, output: str) -> None:
     prefix = "{% load sentry_helpers %}"
     result = (
         engines["django"]
@@ -82,7 +82,7 @@ def test_absolute_uri(input, output):
         ("{% org_url organization path %}", "http://testserver/organizations/sentry/issues/"),
     ),
 )
-def test_org_url(input, output):
+def test_org_url(input: str, output: str) -> None:
     prefix = "{% load sentry_helpers %}"
     org = Organization(id=1, slug="sentry", name="Sentry")
     result = (
@@ -107,7 +107,7 @@ def test_org_url(input, output):
         ),
     ),
 )
-def test_org_url_customer_domains(input, output):
+def test_org_url_customer_domains(input: str, output: str) -> None:
     prefix = "{% load sentry_helpers %}"
     org = Organization(id=1, slug="sentry", name="Sentry")
 
@@ -121,7 +121,7 @@ def test_org_url_customer_domains(input, output):
         assert result == output
 
 
-def test_querystring():
+def test_querystring() -> None:
     input = """
     {% load sentry_helpers %}
     {% querystring transaction="testing" referrer="weekly_report" space="some thing"%}
@@ -130,7 +130,7 @@ def test_querystring():
     assert result == "transaction=testing&amp;referrer=weekly_report&amp;space=some+thing"
 
 
-def test_date_handle_date_and_datetime():
+def test_date_handle_date_and_datetime() -> None:
     result = (
         engines["django"]
         .from_string(
@@ -160,13 +160,13 @@ def test_date_handle_date_and_datetime():
         ({"hello": 1}, "hello", "1"),
     ),
 )
-def test_get_item(a_dict, key, expected):
+def test_get_item(a_dict: dict[str, int], key: str, expected: str) -> None:
     prefix = '{% load sentry_helpers %} {{ something|get_item:"' + key + '" }}'
     result = engines["django"].from_string(prefix).render(context={"something": a_dict}).strip()
     assert result == expected
 
 
-def test_sanitize_periods():
+def test_sanitize_periods() -> None:
     input = '{% load sentry_helpers %} {{ "example.com"|sanitize_periods}}'
     result = engines["django"].from_string(input).render().strip()
     assert result == "example\u2060.com"

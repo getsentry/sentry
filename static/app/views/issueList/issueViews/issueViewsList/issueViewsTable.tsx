@@ -14,8 +14,8 @@ import {
   confirmDeleteIssueView,
 } from 'sentry/views/issueList/issueViews/utils';
 import {
-  type GroupSearchView,
   GroupSearchViewCreatedBy,
+  type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 
@@ -51,7 +51,7 @@ export function IssueViewsTable({
       header={
         <SavedEntityTable.Header>
           <SavedEntityTable.HeaderCell data-column="star" />
-          <SavedEntityTable.HeaderCell data-column="name">
+          <SavedEntityTable.HeaderCell data-column="name" divider={false}>
             {t('Name')}
           </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell data-column="project">
@@ -74,7 +74,7 @@ export function IssueViewsTable({
           <SavedEntityTable.HeaderCell data-column="created">
             {t('Created')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell data-column="stars" noBorder>
+          <SavedEntityTable.HeaderCell data-column="stars">
             {t('Stars')}
           </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell data-column="actions" />
@@ -221,7 +221,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
         auto auto 48px;
     `}
 
-  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+  @container (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-areas: 'star name project query creator actions';
     grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px;
 
@@ -240,7 +240,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.small}) {
+  @container (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-areas: 'star name query actions';
     grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
 

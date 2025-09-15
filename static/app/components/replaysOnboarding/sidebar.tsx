@@ -13,7 +13,8 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -35,8 +36,8 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
 export function useReplaysOnboardingDrawer() {
   const organization = useOrganization();
@@ -323,12 +324,14 @@ function OnboardingContent({
         />
       ) : (
         !mobilePlatform &&
-        docs?.platformOptions &&
+        (docs?.platformOptions?.siblingOption || docs?.platformOptions?.packageManager) &&
         !isProjKeysLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
-                <PlatformOptionDropdown platformOptions={docs?.platformOptions} />
+                <PlatformOptionDropdown
+                  platformOptions={pickPlatformOptions(docs?.platformOptions)}
+                />
               ),
             })}
           </PlatformSelect>
@@ -412,8 +415,7 @@ function OnboardingContent({
         projectKeyId={projectKeyId}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         configType={
           setupMode() === 'npm' || // switched to NPM option
           npmOnlyFramework ||
@@ -454,9 +456,9 @@ const TaskList = styled('div')`
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   margin-top: ${space(3)};
 `;

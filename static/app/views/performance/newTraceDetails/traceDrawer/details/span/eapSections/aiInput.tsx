@@ -1,22 +1,30 @@
-import {Fragment} from 'react';
+import {Fragment, useLayoutEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {StructuredData} from 'sentry/components/structuredEventData';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
+} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+
+interface AIMessage {
+  content: React.ReactNode;
+  role: string;
+}
 
 function renderTextMessages(content: any) {
   if (!Array.isArray(content)) {
@@ -24,48 +32,29 @@ function renderTextMessages(content: any) {
   }
   return content
     .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text)
+    .map((part: any) => part.text.trim())
     .join('\n');
 }
 
 function renderToolMessage(content: any) {
-  return <StructuredData value={content} maxDefaultDepth={2} withAnnotatedText />;
+  return content;
 }
 
-function parseAIMessages(messages: string) {
+function parseAIMessages(messages: string): AIMessage[] | string {
   try {
     const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
     return array
       .map((message: any) => {
-        switch (message.role) {
-          case 'system':
-            return {
-              role: 'system' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'user':
-            return {
-              role: 'user' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'assistant':
-            return {
-              role: 'assistant' as const,
-              content: renderTextMessages(message.content),
-            };
-          case 'tool':
-            return {
-              role: 'tool' as const,
-              content: renderToolMessage(message.content),
-            };
-          default:
-            Sentry.captureMessage('Unknown AI message role', {
-              extra: {
-                role: message.role,
-              },
-            });
-            return null;
+        if (!message.role || !message.content) {
+          return null;
         }
+        return {
+          role: message.role,
+          content:
+            message.role === 'tool'
+              ? renderToolMessage(message.content)
+              : renderTextMessages(message.content),
+        };
       })
       .filter(
         (message): message is Exclude<typeof message, null> =>
@@ -109,12 +98,31 @@ function transformInputMessages(inputMessages: string) {
   }
 }
 
-const roleHeadings = {
-  system: t('System'),
-  user: t('User'),
-  assistant: t('Assistant'),
-  tool: t('Tool'),
-};
+function transformPrompt(prompt: string) {
+  try {
+    const json = JSON.parse(prompt);
+    const result = [];
+    const {system, messages} = json;
+    if (system) {
+      result.push({
+        role: 'system',
+        content: system,
+      });
+    }
+    const parsedMessages = parseAIMessages(messages);
+    if (parsedMessages) {
+      result.push(...parsedMessages);
+    }
+    return JSON.stringify(result);
+  } catch (error) {
+    Sentry.captureMessage('Error parsing ai.prompt', {
+      extra: {
+        error,
+      },
+    });
+    return undefined;
+  }
+}
 
 export function AIInputSection({
   node,
@@ -143,14 +151,20 @@ export function AIInputSection({
       event,
       attributes
     );
-    promptMessages = inputMessages && transformInputMessages(inputMessages);
+    promptMessages = inputMessages && transformInputMessages(inputMessages.toString());
+  }
+  if (!promptMessages) {
+    const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
+    if (messages) {
+      promptMessages = transformPrompt(messages.toString());
+    }
   }
 
-  const messages = defined(promptMessages) && parseAIMessages(promptMessages);
+  const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
 
   const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
 
-  if (!messages && !toolArgs) {
+  if ((!messages || messages.length === 0) && !toolArgs) {
     return null;
   }
 
@@ -165,23 +179,81 @@ export function AIInputSection({
         <TraceDrawerComponents.MultilineText>
           {messages}
         </TraceDrawerComponents.MultilineText>
-      ) : messages ? (
-        <Fragment>
-          {messages.map((message, index) => (
-            <Fragment key={index}>
-              <TraceDrawerComponents.MultilineTextLabel>
-                {roleHeadings[message.role]}
-              </TraceDrawerComponents.MultilineTextLabel>
-              <TraceDrawerComponents.MultilineText>
-                {message.content}
-              </TraceDrawerComponents.MultilineText>
-            </Fragment>
-          ))}
-        </Fragment>
       ) : null}
+      {Array.isArray(messages) ? <MessagesArrayRenderer messages={messages} /> : null}
       {toolArgs ? (
         <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
       ) : null}
     </FoldSection>
   );
 }
+
+const MAX_MESSAGES_AT_START = 2;
+const MAX_MESSAGES_AT_END = 1;
+const MAX_MESSAGES_TO_SHOW = MAX_MESSAGES_AT_START + MAX_MESSAGES_AT_END;
+
+/**
+ * As the whole message history takes up too much space we only show the first two (as those often contain the system and initial user prompt)
+ * and the last messages with the option to expand
+ */
+function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
+  const [isExpanded, setIsExpanded] = useState(messages.length <= MAX_MESSAGES_TO_SHOW);
+
+  // Reset the expanded state when the messages length changes
+  const previousMessagesLength = usePrevious(messages.length);
+  useLayoutEffect(() => {
+    if (previousMessagesLength !== messages.length) {
+      setIsExpanded(messages.length <= MAX_MESSAGES_TO_SHOW);
+    }
+  }, [messages.length, previousMessagesLength]);
+
+  const renderMessage = (message: AIMessage, index: number) => {
+    return (
+      <Fragment key={index}>
+        <RoleLabel>{message.role}</RoleLabel>
+        {typeof message.content === 'string' ? (
+          <TraceDrawerComponents.MultilineText>
+            {message.content}
+          </TraceDrawerComponents.MultilineText>
+        ) : (
+          <TraceDrawerComponents.MultilineJSON
+            value={message.content}
+            maxDefaultDepth={2}
+          />
+        )}
+      </Fragment>
+    );
+  };
+
+  if (isExpanded) {
+    return messages.map(renderMessage);
+  }
+
+  return (
+    <Fragment>
+      {messages.slice(0, MAX_MESSAGES_AT_START).map(renderMessage)}
+      <ButtonDivider>
+        <Button onClick={() => setIsExpanded(true)} size="xs">
+          {t('+%s more messages', messages.length - MAX_MESSAGES_TO_SHOW)}
+        </Button>
+      </ButtonDivider>
+      {messages.slice(-MAX_MESSAGES_AT_END).map(renderMessage)}
+    </Fragment>
+  );
+}
+
+const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
+  &::first-letter {
+    text-transform: capitalize;
+  }
+`;
+
+const ButtonDivider = styled('div')`
+  height: 1px;
+  width: 100%;
+  border-bottom: 1px dashed ${p => p.theme.border};
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: ${space(4)} 0;
+`;

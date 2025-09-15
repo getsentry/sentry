@@ -9,13 +9,13 @@ from sentry.toolbar.views.iframe_view import TEMPLATE
 class IframeViewTest(APITestCase):
     view_name = "sentry-toolbar-iframe"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.view_name, args=(self.organization.slug, self.project.slug))
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_missing_project(self):
+    def test_missing_project(self) -> None:
         referrer = "https://example.com"
         url = reverse(self.view_name, args=(self.organization.slug, "abc123xyz"))
         res = self.client.get(url, HTTP_REFERER=referrer)
@@ -30,7 +30,7 @@ class IframeViewTest(APITestCase):
         assert f"const state = '{escapejs('missing-project')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_default_no_allowed_origins(self):
+    def test_default_no_allowed_origins(self) -> None:
         referrer = "https://example.com"
         res = self.client.get(self.url, HTTP_REFERER=referrer)
 
@@ -44,7 +44,7 @@ class IframeViewTest(APITestCase):
         assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_allowed_origins_basic(self):
+    def test_allowed_origins_basic(self) -> None:
         referrer = "https://sentry.io:127/replays"
         self.project.update_option("sentry:toolbar_allowed_origins", ["sentry.io"])
 
@@ -59,7 +59,7 @@ class IframeViewTest(APITestCase):
         assert f"const state = '{escapejs('logged-in')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_allowed_origins_wildcard_subdomain(self):
+    def test_allowed_origins_wildcard_subdomain(self) -> None:
         referrer = "https://foo.nugettrends.com"
         self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
 
@@ -74,7 +74,7 @@ class IframeViewTest(APITestCase):
         assert f"const state = '{escapejs('logged-in')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_only_single_wildcard_subdomain(self):
+    def test_only_single_wildcard_subdomain(self) -> None:
         referrer = "https://foo.bar.nugettrends.com"
         self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
 
@@ -89,7 +89,7 @@ class IframeViewTest(APITestCase):
         assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_no_referrer(self):
+    def test_no_referrer(self) -> None:
         self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
 
         res = self.client.get(self.url)

@@ -11,17 +11,20 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
-  type LogPageParam,
   useInfiniteLogsQuery,
+  type LogPageParam,
 } from 'sentry/views/explore/logs/useLogsQuery';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -30,6 +33,9 @@ const mockedUsedLocation = jest.mocked(useLocation);
 
 jest.mock('sentry/utils/usePageFilters');
 const mockUsePageFilters = jest.mocked(usePageFilters);
+
+jest.mock('sentry/utils/useNavigate');
+const mockUseNavigate = jest.mocked(useNavigate);
 
 type CachedQueryData = InfiniteData<ApiResult<EventsLogsResult>, LogPageParam>;
 
@@ -46,13 +52,15 @@ describe('useInfiniteLogsQuery', () => {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          >
-            <OrganizationContext.Provider value={organization}>
-              {children}
-            </OrganizationContext.Provider>
-          </LogsPageParamsProvider>
+          <LogsQueryParamsProvider source="location">
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            >
+              <OrganizationContext.Provider value={organization}>
+                {children}
+              </OrganizationContext.Provider>
+            </LogsPageParamsProvider>
+          </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
     };
@@ -183,7 +191,7 @@ describe('useInfiniteLogsQuery', () => {
           const query = options?.query || {};
           return (
             query.query.startsWith(
-              'tags[sentry.timestamp_precise,number]:<=400 !sentry.item_id:4'
+              `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=400 !${OurLogKnownFieldKey.ID}:4`
             ) && query.sort === '-timestamp'
           );
         },
@@ -299,7 +307,7 @@ function createDescendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:>=600 !sentry.item_id:6'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=600 !${OurLogKnownFieldKey.ID}:6`
           ) && query.sort === 'timestamp' // ASC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -321,7 +329,7 @@ function createDescendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:<=400 !sentry.item_id:4'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=400 !${OurLogKnownFieldKey.ID}:4`
           ) && query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -372,7 +380,7 @@ function createAscendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:>=400 !sentry.item_id:4'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=400 !${OurLogKnownFieldKey.ID}:4`
           ) && query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -394,7 +402,7 @@ function createAscendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:>=600 !sentry.item_id:6'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=600 !${OurLogKnownFieldKey.ID}:6`
           ) && query.sort === 'timestamp' // ASC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -409,3 +417,226 @@ function createAscendingMocks(organization: Organization) {
     nextPageMock,
   };
 }
+
+// Virtual Streaming Tests
+describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
+  const organization = OrganizationFixture();
+  const queryClient = makeTestQueryClient();
+
+  function createWrapper({autoRefresh = 'enabled'}: {autoRefresh?: AutoRefreshState}) {
+    return function ({children}: {children?: React.ReactNode}) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          <LogsQueryParamsProvider source="location">
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              _testContext={{
+                autoRefresh,
+                refreshInterval: 5, // Fast refresh for testing
+              }}
+            >
+              <OrganizationContext.Provider value={organization}>
+                {children}
+              </OrganizationContext.Provider>
+            </LogsPageParamsProvider>
+          </LogsQueryParamsProvider>
+        </QueryClientProvider>
+      );
+    };
+  }
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockUseNavigate.mockReturnValue(jest.fn());
+    MockApiClient.clearMockResponses();
+    queryClient.clear();
+    mockedUsedLocation.mockReturnValue(LocationFixture());
+
+    mockUsePageFilters.mockReturnValue({
+      isReady: true,
+      desyncedFilters: new Set(),
+      pinnedFilters: new Set(),
+      shouldPersist: true,
+      selection: PageFiltersFixture(),
+    });
+  });
+
+  it('should integrate with virtual streaming when auto refresh is enabled', async () => {
+    const initialResponse = createMockLogsData([
+      {id: '4', timestamp_precise: '2000000000000000000', timestamp: '2000000000000'}, // far future
+      {id: '3', timestamp_precise: '3000000000', timestamp: '3000'}, // newest
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'},
+      {id: '1', timestamp_precise: '1000000000', timestamp: '1000'}, // oldest
+    ]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: initialResponse,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper({autoRefresh: 'enabled'}),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    // With auto refresh enabled, virtual streaming should be active
+    // All data should be visible initially since all the mocked timestamps are well behind `now()`
+    expect(result.current.data).toHaveLength(3);
+  });
+
+  it('should not apply virtual streaming when auto refresh is disabled', async () => {
+    const initialResponse = createMockLogsData([
+      {id: '4', timestamp_precise: '2000000000000000000', timestamp: '2000000000000'}, // far future
+      {id: '3', timestamp_precise: '3000000000', timestamp: '3000'}, // newest
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'},
+      {id: '1', timestamp_precise: '1000000000', timestamp: '1000'}, // oldest
+    ]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: initialResponse,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper({autoRefresh: 'idle'}),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    // Without auto refresh, all data should always be visible
+    expect(result.current.data).toHaveLength(4);
+  });
+
+  it('should handle multiple pages with virtual streaming', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    // Initial page - newer timestamps (descending order)
+    const initialResponse = createMockLogsData([
+      {id: '6', timestamp_precise: '6000000000', timestamp: '6000'},
+      {id: '5', timestamp_precise: '5000000000', timestamp: '5000'},
+      {id: '4', timestamp_precise: '4000000000', timestamp: '4000'},
+    ]);
+
+    const initialMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: initialResponse,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          // TODO: Fix space in query
+          return query.query === ' timestamp_precise:<=1508208040000000000';
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    // Next page - older timestamps
+    const previousPageResponse = createMockLogsData([
+      {id: '3', timestamp_precise: '3000000000', timestamp: '3000'},
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'},
+      {id: '1', timestamp_precise: '1000000000', timestamp: '1000'},
+    ]);
+
+    const previousPageMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=6000000000 !${OurLogKnownFieldKey.ID}:6`
+          );
+        },
+      ],
+      body: previousPageResponse,
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper({autoRefresh: 'enabled'}),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    expect(result.current.data).toHaveLength(3);
+    expect(initialMock).toHaveBeenCalled();
+
+    // Fetch next page
+    await result.current.fetchPreviousPage();
+
+    await waitFor(() => {
+      expect(previousPageMock).toHaveBeenCalled();
+    });
+
+    // Should now have 6 total rows (virtual streaming will filter based on its internal state)
+    expect(result.current.data.length).toBeGreaterThan(0);
+    expect(result.current.data.length).toBeLessThanOrEqual(6);
+  });
+
+  it('should remove duplicate rows based on unique row ID', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    // Create pages with overlapping data (same ID)
+    const initialResponse = createMockLogsData([
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'},
+      {id: '1', timestamp_precise: '1000000000', timestamp: '1000'},
+    ]);
+
+    const nextPageResponse = createMockLogsData([
+      {id: '3', timestamp_precise: '3000000000', timestamp: '3000'},
+      {id: '2', timestamp_precise: '2000000000', timestamp: '2000'}, // Duplicate
+    ]);
+
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: initialResponse,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.length === 0;
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: nextPageResponse,
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.includes('timestamp_precise:<=1000');
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHook(() => useInfiniteLogsQuery(), {
+      wrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    expect(result.current.data).toHaveLength(2);
+
+    await result.current.fetchNextPage();
+
+    await waitFor(() => {
+      // Should have 3 unique rows, not 4 (duplicate ID '2' should be filtered out)
+      expect(result.current.data).toHaveLength(3);
+    });
+
+    const ids = result.current.data.map(row => row[OurLogKnownFieldKey.ID]);
+    expect(ids).toEqual(['2', '1', '3']);
+  });
+});

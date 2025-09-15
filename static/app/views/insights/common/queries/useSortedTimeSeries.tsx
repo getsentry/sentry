@@ -9,8 +9,8 @@ import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {
-  type DiscoverQueryProps,
   useGenericDiscoverQuery,
+  type DiscoverQueryProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
@@ -19,12 +19,14 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {
   isEventsStats,
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  TimeSeries,
+  TimeSeriesItem,
+} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
@@ -32,7 +34,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
+import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
 
@@ -50,7 +52,7 @@ interface Options<Fields> {
 }
 
 export const useSortedTimeSeries = <
-  Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
+  Fields extends SpanFields[] | SpanFunctions[] | string[],
 >(
   options: Options<Fields> = {},
   referrer: string,
@@ -78,7 +80,7 @@ export const useSortedTimeSeries = <
     pageFilters.selection,
     yAxis,
     topEvents,
-    dataset ?? DiscoverDatasets.SPANS_INDEXED,
+    dataset ?? DiscoverDatasets.SPANS,
     orderby
   );
 
@@ -240,10 +242,30 @@ export function convertEventsStatsToTimeSeriesData(
 ): [number, TimeSeries] {
   const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
 
-  const values = seriesData.data.map(([timestamp, countsForTimestamp]) => ({
-    timestamp: timestamp * 1000,
-    value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-  }));
+  const values: TimeSeriesItem[] = seriesData.data.map(
+    ([timestamp, countsForTimestamp], index) => {
+      const item: TimeSeriesItem = {
+        timestamp: timestamp * 1000,
+        value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+      };
+
+      if (seriesData.meta?.accuracy?.confidence) {
+        item.confidence = seriesData.meta?.accuracy?.confidence?.[index]?.value ?? null;
+      }
+
+      if (seriesData.meta?.accuracy?.sampleCount) {
+        item.sampleCount =
+          seriesData.meta?.accuracy?.sampleCount?.[index]?.value ?? undefined;
+      }
+
+      if (seriesData.meta?.accuracy?.samplingRate) {
+        item.sampleRate =
+          seriesData.meta?.accuracy?.samplingRate?.[index]?.value ?? undefined;
+      }
+
+      return item;
+    }
+  );
 
   const interval = getTimeSeriesInterval(values);
 
@@ -254,11 +276,8 @@ export function convertEventsStatsToTimeSeriesData(
       valueType: seriesData.meta?.fields?.[seriesName]!,
       valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
       interval,
+      dataScanned: seriesData.meta?.dataScanned,
     },
-    confidence: determineSeriesConfidence(seriesData),
-    sampleCount: seriesData.meta?.accuracy?.sampleCount,
-    samplingRate: seriesData.meta?.accuracy?.samplingRate,
-    dataScanned: seriesData.meta?.dataScanned,
   };
 
   if (defined(order)) {

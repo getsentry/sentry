@@ -54,7 +54,7 @@ export function OrganizationSampleRateInput({
         <HelpText>{help}</HelpText>
       </Description>
       <InputWrapper>
-        <Flex gap={space(1)}>
+        <Flex gap="md">
           {showBulkEditButton && (
             <Button
               title={t('Proportionally scale project rates')}
@@ -118,22 +118,22 @@ const Label = styled('label')`
 `;
 
 const HelpText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 
 const PreviousValue = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
 `;
 
 const ErrorMessage = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.error};
 `;
 
 const AllDataStoredMessage = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.success};
 `;
 

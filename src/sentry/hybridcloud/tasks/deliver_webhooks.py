@@ -3,6 +3,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import orjson
+import requests
 import sentry_sdk
 from django.db.models import Case, CharField, Min, Subquery, Value, When
 from django.utils import timezone
@@ -11,8 +12,14 @@ from requests.models import HTTPError
 from rest_framework import status
 
 from sentry import options
+from sentry.codecov.client import CodecovApiClient, ConfigurationError
 from sentry.exceptions import RestrictedIPAddress
-from sentry.hybridcloud.models.webhookpayload import BACKOFF_INTERVAL, MAX_ATTEMPTS, WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import (
+    BACKOFF_INTERVAL,
+    MAX_ATTEMPTS,
+    DestinationType,
+    WebhookPayload,
+)
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiConnectionResetError,
@@ -22,10 +29,11 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
+from sentry.silo.util import clean_proxy_headers
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
-from sentry.types.region import get_region_by_name
+from sentry.types.region import Region, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -236,7 +244,7 @@ def drain_mailbox(payload_id: int) -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=hybridcloud_control_tasks,
-        processing_deadline_duration=120,
+        processing_deadline_duration=180,
     ),
 )
 def drain_mailbox_parallel(payload_id: int) -> None:
@@ -411,12 +419,23 @@ def deliver_message(payload: WebhookPayload) -> None:
 
 
 def perform_request(payload: WebhookPayload) -> None:
+    destination_type = payload.destination_type
+
+    match destination_type:
+        case DestinationType.SENTRY_REGION:
+            assert payload.region_name is not None
+            region = get_region_by_name(name=payload.region_name)
+            perform_region_request(region, payload)
+        case DestinationType.CODECOV:
+            perform_codecov_request(payload)
+
+
+def perform_region_request(region: Region, payload: WebhookPayload) -> None:
     logging_context: dict[str, str | int] = {
         "payload_id": payload.id,
         "mailbox_name": payload.mailbox_name,
         "attempt": payload.attempts,
     }
-    region = get_region_by_name(name=payload.region_name)
 
     try:
         client = RegionSiloClient(region=region)
@@ -529,3 +548,87 @@ def perform_request(payload: WebhookPayload) -> None:
             extra={"error": str(err), "response_code": response_code, **logging_context},
         )
         raise DeliveryFailed() from err
+
+
+def perform_codecov_request(payload: WebhookPayload) -> None:
+    """
+    We don't retry forwarding Codecov requests for now. We want to prove out that it would work.
+    """
+    logging_context: dict[str, str | int] = {
+        "payload_id": payload.id,
+        "mailbox_name": payload.mailbox_name,
+        "attempt": payload.attempts,
+        "request_method": payload.request_method,
+        "request_path": payload.request_path,
+    }
+
+    with metrics.timer(
+        "hybridcloud.deliver_webhooks.send_request_to_codecov",
+    ):
+        # transform request to match what codecov is expecting
+        if payload.request_path.strip("/") != "extensions/github/webhook":
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.unexpected_path",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.unexpected_path",
+                extra={"error": "unexpected path", **logging_context},
+            )
+            return
+
+        # hard coding this because the endpoint path is different from the original request
+        endpoint = "/webhooks/sentry"
+
+        try:
+            client = CodecovApiClient()
+        except ConfigurationError as err:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.configuration_error",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.configuration_error",
+                extra={"error": str(err), **logging_context},
+            )
+            return
+
+        try:
+            headers = orjson.loads(payload.request_headers)
+        except orjson.JSONDecodeError as err:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.json_decode_error",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.json_decode_error",
+                extra={"error": str(err), **logging_context},
+            )
+            return
+
+        try:
+            response = client.post(
+                endpoint=endpoint,
+                data=payload.request_body,
+                headers=clean_proxy_headers(headers),
+            )
+
+            if response.status_code != 200:
+                metrics.incr(
+                    "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
+                )
+                logger.warning(
+                    "deliver_webhooks.send_request_to_codecov.failure",
+                    extra={
+                        "error": "unexpected status code",
+                        "status_code": response.status_code,
+                        **logging_context,
+                    },
+                )
+                return
+        except requests.exceptions.RequestException as err:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.failure",
+                extra={"error": str(err), **logging_context},
+            )
+            return

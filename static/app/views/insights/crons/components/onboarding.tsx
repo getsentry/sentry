@@ -1,19 +1,20 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Monitor} from 'sentry/views/insights/crons/types';
+import type {Project} from 'sentry/types/project';
 
 import MonitorQuickStartGuide from './monitorQuickStartGuide';
 
 interface Props {
-  monitor: Monitor;
+  monitorSlug: string;
+  project: Project;
 }
 
-export function MonitorOnboarding({monitor}: Props) {
+export function MonitorOnboarding({monitorSlug, project}: Props) {
   return (
     <OnboardingPanel noCenter>
       <h3>{t('Instrument your monitor')}</h3>
@@ -27,7 +28,7 @@ export function MonitorOnboarding({monitor}: Props) {
           }
         )}
       </p>
-      <MonitorQuickStartGuide monitor={monitor} />
+      <MonitorQuickStartGuide monitorSlug={monitorSlug} project={project} />
       <WaitingNotice>
         <WaitingIndicator />
         {t('Waiting for first Check-in')}
@@ -52,7 +53,7 @@ const WaitingNotice = styled('div')`
 
 const WaitingHelpText = styled('small')`
   grid-column: 2;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

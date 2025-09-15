@@ -65,17 +65,12 @@ export interface DropdownMenuListProps
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
-  /**
-   * Minimum menu width
-   */
-  minMenuWidth?: number;
   size?: MenuItemProps['size'];
 }
 
 function DropdownMenuList({
   closeOnSelect = true,
   onClose,
-  minMenuWidth,
   size,
   menuTitle,
   menuFooter,
@@ -184,9 +179,7 @@ function DropdownMenuList({
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         menuTitle={node.value.submenuTitle}
-        isDismissable={false}
         shouldCloseOnBlur={false}
-        shouldCloseOnInteractOutside={() => false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
         renderWrapAs="li"
         position="right-start"
@@ -245,7 +238,6 @@ function DropdownMenuList({
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
                 maxHeight: overlayPositionProps.style?.maxHeight,
-                minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
               }}
             >
               {renderCollection(stateCollection)}
@@ -268,7 +260,7 @@ const StyledOverlay = styled(Overlay)`
 const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
   padding: ${space(0.5)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   overflow-x: hidden;
   overflow-y: auto;
 
@@ -281,8 +273,8 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
 
 const MenuTitle = styled('div')`
   flex-shrink: 0;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
   padding: ${space(0.75)} ${space(1.5)};

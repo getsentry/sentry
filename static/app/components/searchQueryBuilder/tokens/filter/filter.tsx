@@ -23,8 +23,8 @@ import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuil
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
@@ -64,7 +64,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0]!.value)}
+            {formatFilterValue({token: items[0]!.value})}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -76,8 +76,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
-                {formatFilterValue(item.value)}
+                {formatFilterValue({token: item.value!})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -95,12 +94,13 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
     }
-    default:
+    default: {
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue(token.value)}
+          {formatFilterValue({token: token.value})}
         </FilterValueSingleTruncatedValue>
       );
+    }
   }
 }
 

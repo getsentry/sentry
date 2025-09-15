@@ -72,7 +72,7 @@ class EventsMeta(TypedDict):
     isMetricsExtractedData: NotRequired[bool]
     discoverSplitDecision: NotRequired[str]
     # only returned when debug=True
-    query: NotRequired[dict[str, Any] | str]
+    debug_info: NotRequired[dict[str, Any]]
     full_scan: NotRequired[bool]
 
 
@@ -99,6 +99,7 @@ class SnubaParams:
     teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
     sampling_mode: SAMPLING_MODES | None = None
+    debug: bool = False
 
     def __post_init__(self) -> None:
         if self.start:

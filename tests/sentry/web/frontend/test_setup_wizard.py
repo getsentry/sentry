@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SetupWizard(PermissionTestCase):
-    def test_redirect(self):
+    def test_redirect(self) -> None:
         user = self.create_user("foo@example.com", is_active=False)
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
@@ -20,7 +20,7 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 302
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_organization(owner=self.user)
 
         self.login_as(self.user)
@@ -34,7 +34,7 @@ class SetupWizard(PermissionTestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
 
-    def test_redirect_to_org(self):
+    def test_redirect_to_org(self) -> None:
         self.create_organization(owner=self.user)
 
         self.login_as(self.user)
@@ -44,7 +44,7 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 302
 
-    def test_renders_selection(self):
+    def test_renders_selection(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
@@ -65,7 +65,7 @@ class SetupWizard(PermissionTestCase):
 
         assert cached == "test"
 
-    def test_skips_selection_when_given_org_and_project_slug_and(self):
+    def test_skips_selection_when_given_org_and_project_slug_and(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
@@ -87,7 +87,7 @@ class SetupWizard(PermissionTestCase):
         cached_project = cached.get("projects")[0]
         assert cached_project.get("id") == self.project.id
 
-    def test_renders_selection_when_given_only_org_slug(self):
+    def test_renders_selection_when_given_only_org_slug(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
@@ -106,7 +106,7 @@ class SetupWizard(PermissionTestCase):
 
         assert default_cache.get(key) == "test"
 
-    def test_renders_selection_when_given_org_and_project_slug_and_project_not_in_org(self):
+    def test_renders_selection_when_given_org_and_project_slug_and_project_not_in_org(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project()
 
@@ -124,7 +124,7 @@ class SetupWizard(PermissionTestCase):
 
         assert default_cache.get(key) == "test"
 
-    def test_renders_selection_when_org_slug_cannot_be_found(self):
+    def test_renders_selection_when_org_slug_cannot_be_found(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
 
@@ -143,7 +143,7 @@ class SetupWizard(PermissionTestCase):
         assert default_cache.get(key) == "test"
 
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
-    def test_redirect_to_signup(self):
+    def test_redirect_to_signup(self) -> None:
         self.create_organization(owner=self.user)
         url = (
             reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "xyz"})
@@ -158,7 +158,7 @@ class SetupWizard(PermissionTestCase):
         )
 
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
-    def test_redirect_to_login_if_no_query_param(self):
+    def test_redirect_to_login_if_no_query_param(self) -> None:
         self.create_organization(owner=self.user)
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "xyz"})
         resp = self.client.get(url)
@@ -166,7 +166,7 @@ class SetupWizard(PermissionTestCase):
         assert resp.status_code == 302
         assert resp.headers["Location"] == "/auth/login/"
 
-    def test_post_success(self):
+    def test_post_success(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
@@ -197,7 +197,7 @@ class SetupWizard(PermissionTestCase):
         assert cached_project.get("keys")[0].get("isActive")
         assert cached_project.get("organization").get("status").get("id") == "active"
 
-    def test_post_bad_request(self):
+    def test_post_bad_request(self) -> None:
         self.login_as(self.user)
 
         # missing organizationId
@@ -218,7 +218,7 @@ class SetupWizard(PermissionTestCase):
         )
         assert resp.status_code == 400
 
-    def test_post_project_not_found(self):
+    def test_post_project_not_found(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.login_as(self.user)
 
@@ -234,7 +234,7 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 404
 
-    def test_organization_not_found(self):
+    def test_organization_not_found(self) -> None:
         self.login_as(self.user)
 
         key = f"{SETUP_WIZARD_CACHE_KEY}abc"
@@ -249,7 +249,7 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 404
 
-    def test_organization_without_membership(self):
+    def test_organization_without_membership(self) -> None:
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
         self.login_as(self.user)
@@ -266,7 +266,7 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 404
 
-    def test_post_project_not_in_org(self):
+    def test_post_project_not_in_org(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project()
         self.login_as(self.user)
@@ -284,7 +284,7 @@ class SetupWizard(PermissionTestCase):
         assert resp.status_code == 404
 
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
-    def test_post_redirect_to_signup(self):
+    def test_post_redirect_to_signup(self) -> None:
         self.create_organization(owner=self.user)
         url = (
             reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "xyz"})
@@ -299,7 +299,7 @@ class SetupWizard(PermissionTestCase):
         )
 
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
-    def test_post_redirect_to_login_if_no_query_param(self):
+    def test_post_redirect_to_login_if_no_query_param(self) -> None:
         self.create_organization(owner=self.user)
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "xyz"})
         resp = self.client.post(url)
@@ -307,7 +307,7 @@ class SetupWizard(PermissionTestCase):
         assert resp.status_code == 302
         assert resp.headers["Location"] == "/auth/login/"
 
-    def test_options_request_cors_headers(self):
+    def test_options_request_cors_headers(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project()
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
@@ -323,7 +323,7 @@ class SetupWizard(PermissionTestCase):
     @override_options(
         {"demo-mode.enabled": True, "demo-mode.users": [100], "demo-mode.orgs": [100]}
     )
-    def test_demo_user(self):
+    def test_demo_user(self) -> None:
         demo_user = self.create_user("demo@example.com", id=100)
         self.create_organization(owner=self.user, id=100)
 

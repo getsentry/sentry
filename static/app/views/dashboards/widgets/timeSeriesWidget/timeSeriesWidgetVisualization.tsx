@@ -3,7 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {SeriesOption, YAXisComponentOption} from 'echarts';
+import type {
+  EChartsOption,
+  SeriesOption,
+  ToolboxComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -20,6 +25,8 @@ import {isChartHovered, truncationFormatter} from 'sentry/components/charts/util
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {
+  EChartBrushEndHandler,
+  EChartBrushStartHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
@@ -29,7 +36,7 @@ import type {
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
+import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -55,10 +62,33 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn, info} = Sentry.logger;
+const {error, warn} = Sentry.logger;
+
+export interface BoxSelectProps {
+  /**
+   * The brush options for the chart.
+   */
+  brush: EChartsOption['brush'];
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
+   */
+  onBrushEnd: EChartBrushEndHandler;
+
+  /**
+   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
+   */
+  onBrushStart: EChartBrushStartHandler;
+
+  /**
+   * The toolBox options for the chart.
+   */
+  toolBox?: ToolboxComponentOption;
+}
 
 export interface TimeSeriesWidgetVisualizationProps
-  extends Partial<LoadableChartWidgetProps> {
+  extends Partial<LoadableChartWidgetProps>,
+    Partial<BoxSelectProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -71,6 +101,7 @@ export interface TimeSeriesWidgetVisualizationProps
    * Default: `auto`
    */
   axisRange?: 'auto' | 'dataMin';
+
   /**
    * Reference to the chart instance
    */
@@ -194,18 +225,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       : rightYAxisDataTypes.length === 1
         ? rightYAxisDataTypes.at(0)
         : FALLBACK_TYPE;
-
-  if (axisTypes.length > 0) {
-    info('`TimeSeriesWidgetVisualization` assigned axes', {
-      labels: props.plottables.map(plottable => plottable.label),
-      types: props.plottables.map(plottable => plottable.dataType),
-      units: props.plottables.map(plottable => plottable.dataUnit),
-      leftYAxisDataTypes,
-      rightYAxisDataTypes,
-      leftYAxisType,
-      rightYAxisType,
-    });
-  }
 
   // Create a map of used units by plottable data type
   const unitsByType = mapValues(plottablesByType, plottables =>
@@ -447,12 +466,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           padding: [0, 10, 0, 10],
           width: 60,
           formatter: (value: number) => {
-            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
-
-            // Adding whitespace around the label is equivalent to padding.
-            // ECharts doesn't respect padding when calculating overlaps, but it
-            // does respect whitespace. This prevents overlapping X axis labels
-            return ` ${string} `;
+            return formatXAxisTimestamp(value, {utc: utc ?? undefined});
           },
         },
         splitNumber: 5,
@@ -644,6 +658,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       yAxes={yAxes}
       {...chartZoomProps}
       onDataZoom={props.onZoom ?? onDataZoom}
+      toolBox={props.toolBox ?? chartZoomProps.toolBox}
+      brush={props.brush}
+      onBrushStart={props.onBrushStart}
+      onBrushEnd={props.onBrushEnd}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
@@ -733,7 +751,7 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMessage = styled('div')<{visible: boolean}>`
   opacity: ${p => (p.visible ? 1 : 0)};
-  height: ${p => p.theme.fontSizeSmall};
+  height: ${p => p.theme.fontSize.sm};
 `;
 
 const LoadingMask = styled(TransparentLoadingMask)`

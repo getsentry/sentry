@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
-import Link from 'sentry/components/links/link';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

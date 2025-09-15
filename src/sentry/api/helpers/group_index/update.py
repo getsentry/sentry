@@ -4,6 +4,7 @@ import logging
 import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from http import HTTPStatus
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -18,12 +19,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features, options
+from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.db.models.query import create_or_update
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
@@ -204,6 +206,15 @@ def update_groups(
     status = result.get("status")
     res_type = None
     if "priority" in result:
+        if any(
+            not get_group_type_by_type_id(group.type).enable_user_priority_changes
+            for group in groups
+        ):
+            return Response(
+                {"detail": "Cannot manually set priority of a metric issue."},
+                status=HTTPStatus.BAD_REQUEST,
+            )
+
         handle_priority(
             priority=result["priority"],
             group_list=groups,
@@ -377,17 +388,6 @@ def handle_resolve_in_release(
         new_status_details["inNextRelease"] = True
         res_type = GroupResolution.Type.in_next_release
         res_type_str = "in_next_release"
-        res_status = GroupResolution.Status.pending
-    elif status_details.get("inUpcomingRelease"):
-        if len(projects) > 1:
-            raise MultipleProjectsError()
-        release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
-        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {"version": ""}
-
-        new_status_details["inUpcomingRelease"] = True
-        res_type = GroupResolution.Type.in_upcoming_release
-        res_type_str = "in_upcoming_release"
         res_status = GroupResolution.Status.pending
     elif status_details.get("inRelease"):
         # TODO(jess): We could update validation to check if release
@@ -702,6 +702,14 @@ def handle_other_status_updates(
             status=new_status, substatus=new_substatus
         )
         GroupResolution.objects.filter(group__in=group_ids).delete()
+        # Also delete commit/PR resolution links when unresolving to prevent
+        # showing old "resolved by commit" after manual re-resolution
+        if new_status in (GroupStatus.UNRESOLVED, GroupStatus.IGNORED):
+            GroupLink.objects.filter(
+                group_id__in=group_ids,
+                linked_type=GroupLink.LinkedType.commit,
+                relationship=GroupLink.Relationship.resolves,
+            ).delete()
         if new_status == GroupStatus.IGNORED:
             if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
                 result["statusDetails"] = handle_archived_until_escalating(
@@ -742,11 +750,7 @@ def prepare_response(
     # what performance impact this might have & this possibly should be moved else where
     try:
         if len(group_list) == 1:
-            if res_type in (
-                GroupResolution.Type.in_next_release,
-                GroupResolution.Type.in_release,
-                GroupResolution.Type.in_upcoming_release,
-            ):
+            if res_type in (GroupResolution.Type.in_next_release, GroupResolution.Type.in_release):
                 result["activity"] = serialize(
                     Activity.objects.get_activities_for_group(
                         group=group_list[0], num=ACTIVITIES_COUNT
@@ -1032,23 +1036,25 @@ def handle_assigned_to(
                 group, resolved_actor, acting_user, extra=extra
             )
             analytics.record(
-                "manual.issue_assignment",
-                organization_id=project_lookup[group.project_id].organization_id,
-                project_id=group.project_id,
-                group_id=group.id,
-                assigned_by=assigned_by,
-                had_to_deassign=assignment["updated_assignment"],
+                ManualIssueAssignment(
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=assignment["updated_assignment"],
+                )
             )
         return serialize(resolved_actor, acting_user, ActorSerializer())
     else:
         for group in group_list:
             GroupAssignee.objects.deassign(group, acting_user)
             analytics.record(
-                "manual.issue_assignment",
-                organization_id=project_lookup[group.project_id].organization_id,
-                project_id=group.project_id,
-                group_id=group.id,
-                assigned_by=assigned_by,
-                had_to_deassign=True,
+                ManualIssueAssignment(
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=True,
+                )
             )
         return None

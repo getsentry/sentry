@@ -20,8 +20,6 @@ from django.http.response import HttpResponse, HttpResponseBase
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.views import View
-from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
@@ -29,6 +27,7 @@ from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
+    SSO_VERIFICATION_KEY,
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
@@ -37,6 +36,8 @@ from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.auth.superuser import is_active_superuser
+from sentry.auth.view import AuthView
+from sentry.demo_mode.utils import is_demo_org, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
@@ -49,13 +50,13 @@ from sentry.organizations.services.organization import (
     RpcOrganizationMemberFlags,
     organization_service,
 )
-from sentry.pipeline import Pipeline
-from sentry.pipeline.provider import PipelineProvider
+from sentry.pipeline.base import Pipeline
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -216,11 +217,24 @@ class AuthIdentityHandler:
 
     def _handle_membership(
         self,
-        request: Request,
+        request: HttpRequest,
         organization: RpcOrganization,
         auth_identity: AuthIdentity,
     ) -> tuple[User, RpcOrganizationMember]:
         user = User.objects.get(id=auth_identity.user_id)
+
+        if is_demo_user(user) and not is_demo_org(organization):
+            sentry_sdk.capture_message(
+                "Demo user cannot be added to an organization that is not a demo organization.",
+                level="warning",
+                extras={
+                    "user_id": user.id,
+                    "organization_id": organization.id,
+                },
+            )
+            raise Exception(
+                "Demo user cannot be added to an organization that is not a demo organization."
+            )
 
         # If the user is either currently *pending* invite acceptance (as indicated
         # from the invite token and member id in the session) OR an existing invite exists on this
@@ -300,6 +314,7 @@ class AuthIdentityHandler:
                 auth_identity = self._get_auth_identity(user_id=self.user.id)
 
             if auth_identity is None:
+                assert self.user.is_authenticated
                 auth_is_new = True
                 auth_identity = AuthIdentity.objects.create(
                     auth_provider=self.auth_provider,
@@ -371,6 +386,7 @@ class AuthIdentityHandler:
         # so that the new identifier gets used (other we'll hit a constraint)
         # violation since one might exist for (provider, user) as well as
         # (provider, ident)
+        assert self.user.is_authenticated
         with outbox_context(transaction.atomic(router.db_for_write(AuthIdentity))):
             deletion_result = (
                 AuthIdentity.objects.exclude(id=auth_identity.id)
@@ -489,28 +505,29 @@ class AuthIdentityHandler:
 
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
-        if self.request.session.get("confirm_account_verification_key"):
-            verification_key = self.request.session["confirm_account_verification_key"]
+        if verification_key := self.request.session.get(SSO_VERIFICATION_KEY):
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
                 is_account_verified = self.has_verified_account(verification_value)
-                if not is_account_verified:
-                    logger.info(
-                        "sso.login-pipeline.verification-mismatch",
-                        extra={
-                            "verification_user_id": verification_value["user_id"],
-                            "user_id": self.user.id,
-                            "request_user_id": self.request.user.id,
-                        },
-                    )
-            else:
-                logger.info(
-                    "sso.login-pipeline.missing-verification",
-                    extra={
-                        "user_id": self.user.id,
-                        "request_user_id": self.request.user.id,
-                    },
-                )
+
+            logger.info(
+                "sso.login-pipeline.verified-email-existing-session-key",
+                extra={
+                    "user_id": self.user.id,
+                    "organization_id": self.organization.id,
+                    "has_verification_value": bool(verification_value),
+                },
+            )
+
+        has_verified_email = self.user.id and cache.get(f"{SSO_VERIFICATION_KEY}:{self.user.id}")
+        if has_verified_email and not verification_key:
+            logger.info(
+                "sso.login-pipeline.verified-email-missing-session-key",
+                extra={
+                    "user_id": self.user.id,
+                    "organization_id": self.organization.id,
+                },
+            )
 
         is_new_account = not self.user.is_authenticated  # stateful
         if self._app_user and (self.identity.get("email_verified") or is_account_verified):
@@ -628,7 +645,9 @@ class AuthIdentityHandler:
                     data=self.identity.get("data", {}),
                 )
         except IntegrityError:
-            auth_identity = self._get_auth_identity(ident=self.identity["id"])
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider_id=self.auth_provider.id, ident=self.identity["id"]
+            )
             auth_identity.update(user=user, data=self.identity.get("data", {}))
 
         user.send_confirm_emails(is_new_user=True)
@@ -668,7 +687,6 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
     """
 
     pipeline_name = "pipeline"
-    provider_manager = manager
     provider_model_cls = AuthProvider
     session_store_cls = AuthHelperSessionStore
 
@@ -718,19 +736,23 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
 
         # Override superclass's type hints to be narrower
         self.organization: RpcOrganization = self.organization
-        self.provider: Provider = self.provider
 
-    def get_provider(
-        self, provider_key: str | None, *, organization: RpcOrganization | None
-    ) -> PipelineProvider[AuthProvider, AuthHelperSessionStore]:
+    def _get_provider(self, provider_key: str | None) -> Provider:
         if self.provider_model:
             return self.provider_model.get_provider()
         elif provider_key:
-            return super().get_provider(provider_key, organization=organization)
+            return manager.get(provider_key)
         else:
             raise NotImplementedError
 
-    def get_pipeline_views(self) -> Sequence[View]:
+    @cached_property
+    def provider(self) -> Provider:
+        ret = self._get_provider(self._provider_key)
+        ret.set_pipeline(self)
+        ret.update_config(self.config)
+        return ret
+
+    def get_pipeline_views(self) -> Sequence[AuthView]:
         assert isinstance(self.provider, Provider)
         if self.flow == FLOW_LOGIN:
             return self.provider.get_auth_pipeline()
@@ -772,6 +794,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
         return response
 
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
+        assert self.provider_model is not None
         return AuthIdentityHandler(
             auth_provider=self.provider_model,
             provider=self.provider,

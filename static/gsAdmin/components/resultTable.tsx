@@ -8,7 +8,7 @@ const ResultTable = styled('table')`
   line-height: 1;
 
   thead th {
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     text-transform: uppercase;
   }
 

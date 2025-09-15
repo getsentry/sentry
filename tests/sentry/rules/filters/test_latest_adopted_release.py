@@ -7,7 +7,7 @@ from sentry.testutils.cases import RuleTestCase
 class LatestAdoptedReleaseFilterTest(RuleTestCase):
     rule_cls = LatestAdoptedReleaseFilter
 
-    def test_semver(self):
+    def test_semver(self) -> None:
         event = self.get_event()
         now = datetime.now(UTC)
         prod = self.create_environment(name="prod")
@@ -77,7 +77,7 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event_4)
 
-    def test_semver_with_release_without_adoption(self):
+    def test_semver_with_release_without_adoption(self) -> None:
         event = self.get_event()
         now = datetime.now(UTC)
         prod = self.create_environment(name="prod")
@@ -126,7 +126,7 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
         # Oldest release for group is 1.9, latest adopted release for environment is 1.0
         self.assertPasses(rule, event_2)
 
-    def test_no_adopted_release(self):
+    def test_no_adopted_release(self) -> None:
         event = self.get_event()
         now = datetime.now(UTC)
         prod = self.create_environment(name="prod")
@@ -150,7 +150,7 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
         rule = self.get_rule(data=data)
         self.assertDoesNotPass(rule, event)
 
-    def test_date(self):
+    def test_date(self) -> None:
         event = self.get_event()
         now = datetime.now(UTC)
         prod = self.create_environment(name="prod")

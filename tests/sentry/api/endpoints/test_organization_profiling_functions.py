@@ -19,7 +19,7 @@ PROFILING_FEATURES = {
 class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-function-trends"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.ten_mins_ago = before_now(minutes=10)
@@ -27,11 +27,11 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
         self.project  # this is lazily created
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         org = self.create_organization(name="foo", owner=self.user)
         url = reverse(self.endpoint, args=(org.slug,))
 
@@ -41,7 +41,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert response.status_code == 200
         assert response.json() == {}
 
-    def test_missing_paramse(self):
+    def test_missing_paramse(self) -> None:
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url)
         assert response.status_code == 400
@@ -50,7 +50,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             "trend": ["This field is required."],
         }
 
-    def test_bad_trend_type(self):
+    def test_bad_trend_type(self) -> None:
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url, {"function": "avg()", "trend": "foo"})
         assert response.status_code == 400
@@ -61,7 +61,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         }
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_min_threshold(self, mock_detect_breakpoints):
+    def test_min_threshold(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         n = 25
         for i in range(n):
             self.store_functions(
@@ -142,7 +142,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert [(result["package"], result["function"]) for result in results] == [("foo", "baz")]
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_regression(self, mock_detect_breakpoints):
+    def test_regression(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         n = 25
         for i in range(n):
             self.store_functions(
@@ -228,7 +228,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             assert isinstance(data["examples"], list)
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_improvement(self, mock_detect_breakpoints):
+    def test_improvement(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         n = 25
         for i in range(n):
             self.store_functions(
@@ -314,7 +314,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             assert isinstance(data["examples"], list)
 
 
-def test_get_rollup_from_range_max_buckets():
+def test_get_rollup_from_range_max_buckets() -> None:
     max_buckets = int(MAX_ROLLUP_POINTS / TOP_FUNCTIONS_LIMIT)
 
     for days in range(90):

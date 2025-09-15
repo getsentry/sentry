@@ -2,8 +2,8 @@ import {useCallback, useMemo} from 'react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

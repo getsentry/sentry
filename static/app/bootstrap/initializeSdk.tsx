@@ -1,18 +1,17 @@
-// eslint-disable-next-line simple-import-sort/imports
-import * as Sentry from '@sentry/react';
-import type {Event} from '@sentry/core';
-
-import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import type {Config} from 'sentry/types/system';
-import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useEffect} from 'react';
 import {
   createRoutesFromChildren,
   matchRoutes,
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
-import {useEffect} from 'react';
+import type {Event} from '@sentry/core';
+import * as Sentry from '@sentry/react';
+
+import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
+import type {Config} from 'sentry/types/system';
+import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -66,6 +65,7 @@ function getSentryIntegrations() {
       matchRoutes,
       _experiments: {
         enableStandaloneClsSpans: true,
+        enableStandaloneLcpSpans: true,
       },
       linkPreviousTrace: 'session-storage',
     }),
@@ -153,7 +153,10 @@ export function initializeSdk(config: Config) {
        *
        * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
        */
-      'AbortError: Fetch is aborted',
+      /AbortError: Fetch is aborted/i,
+      /AbortError: The operation was aborted/i,
+      /AbortError: signal is aborted without reason/i,
+      /AbortError: The user aborted a request/i,
       /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page
@@ -187,9 +190,8 @@ export function initializeSdk(config: Config) {
 
       return event;
     },
-    _experiments: {
-      enableLogs: true,
-    },
+    enableLogs: true,
+    sendDefaultPii: true,
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations

@@ -1,7 +1,8 @@
-import {Children, type ReactNode, useState} from 'react';
+import {Children, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Text} from 'sentry/components/core/text';
 import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -14,6 +15,12 @@ interface Props {
   path: string;
   noBasePadding?: boolean;
   prefix?: ReactNode;
+  /**
+   * If provided, indicates the total number of children available on the
+   * server-side, which may be greater than the rendered children when data
+   * has been truncated upstream.
+   */
+  totalChildren?: number;
 }
 
 export function CollapsibleValue({
@@ -23,11 +30,14 @@ export function CollapsibleValue({
   path,
   prefix = null,
   noBasePadding,
+  totalChildren,
 }: Props) {
   const {collapse, expand, isExpanded: isInitiallyExpanded} = useExpandedState({path});
   const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
 
   const numChildren = Children.count(children);
+  const totalCount = typeof totalChildren === 'number' ? totalChildren : numChildren;
+  const hiddenCount = Math.max(0, totalCount - numChildren);
 
   const shouldShowToggleButton = numChildren > 0;
   const isBaseLevel = path === '$';
@@ -69,13 +79,19 @@ export function CollapsibleValue({
             setIsExpanded(true);
           }}
         >
-          {tn('%s item', '%s items', numChildren)}
+          {tn('%s item', '%s items', numChildren + hiddenCount)}
         </NumItemsButton>
       ) : null}
       {shouldShowToggleButton && isExpanded ? (
         <IndentedValues>{children}</IndentedValues>
       ) : null}
       <span>{closeTag}</span>
+      {isExpanded && hiddenCount > 0 ? (
+        <Text
+          variant="muted"
+          size="xs"
+        >{` (${tn('%s item truncated', '%s items truncated', hiddenCount)})`}</Text>
+      ) : null}
     </CollapsibleDataContainer>
   );
 }
@@ -98,22 +114,28 @@ const NumItemsButton = styled(Button)`
   border: none;
   padding: 0 2px;
   border-radius: 2px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
+
+  height: 18px;
+  min-height: 18px;
 `;
 
 const ToggleButton = styled(Button)`
   position: absolute;
   left: -${space(3)};
-  top: 2px;
+  top: ${p => (p.theme.isChonk ? '0px' : '2px')};
   border-radius: 2px;
   align-items: center;
   justify-content: center;
   background: none;
   border: none;
+  height: 18px;
+  width: 18px;
+  min-height: 18px;
 
   &[data-base-with-toggle='true'] {
     left: 0;

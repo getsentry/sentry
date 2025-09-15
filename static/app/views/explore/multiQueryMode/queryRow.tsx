@@ -49,7 +49,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {result: timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
+  const {result: timeseriesResult} = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
@@ -58,7 +58,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
 
   useCompareAnalytics({
     aggregatesTableResult,
-    index,
     query: queryParts,
     spansTableResult,
     timeseriesResult,
@@ -85,7 +84,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             mode={mode}
             query={queryParts}
             timeseriesResult={timeseriesResult}
-            canUsePreviousResults={canUsePreviousResults}
           />
           <MultiQueryTable
             confidences={[]}
@@ -106,7 +104,7 @@ const QueryConstructionSection = styled('div')`
   gap: ${space(1)};
   margin-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(400px, 1fr) 1fr;
   }
 `;

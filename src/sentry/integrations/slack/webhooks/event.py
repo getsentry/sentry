@@ -17,10 +17,6 @@ from sentry.api.base import all_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
-from sentry.integrations.slack.metrics import (
-    SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC,
-    SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -28,7 +24,6 @@ from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
-from sentry.utils import metrics
 
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
@@ -46,9 +41,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
     """
 
-    _METRIC_FAILURE_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC
-    _METRICS_SUCCESS_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC
-
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackEventRequest
@@ -62,13 +54,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
             "channel": slack_request.channel_id,
             "message": message,
         }
-
-        client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            client.chat_postMessage(channel=slack_request.channel_id, text=message)
-        except SlackApiError:
-            _logger.exception("reply.post-message-error", extra=logger_params)
-            metrics.incr(self._METRIC_FAILURE_KEY + ".reply.post_message", sample_rate=1.0)
+        if slack_request.channel_id is None:
+            _logger.info("reply.post-message-error", extra=logger_params)
+        else:
+            client = SlackSdkClient(integration_id=slack_request.integration.id)
+            try:
+                client.chat_postMessage(channel=slack_request.channel_id, text=message)
+            except SlackApiError:
+                _logger.info("reply.post-message-error", extra=logger_params)
 
         return self.respond()
 
@@ -89,7 +82,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
             response_url=slack_request.response_url,
         )
         if not slack_request.channel_id:
-            metrics.incr(self._METRIC_FAILURE_KEY + ".prompt_link.no_channel_id", sample_rate=1.0)
             return
 
         payload = {
@@ -109,16 +101,18 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            client.chat_postEphemeral(
-                channel=slack_request.channel_id,
-                user=slack_request.user_id,
-                text=payload["text"],
-                **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
-            )
-        except SlackApiError:
-            _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
-            metrics.incr(self._METRIC_FAILURE_KEY + ".prompt_link.post_ephemeral", sample_rate=1.0)
+        if slack_request.user_id is None:
+            _logger.error("prompt_link.post-ephemeral-error", extra=logger_params)
+        else:
+            try:
+                client.chat_postEphemeral(
+                    channel=slack_request.channel_id,
+                    user=slack_request.user_id,
+                    text=payload["text"],
+                    **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
+                )
+            except SlackApiError:
+                _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -127,7 +121,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         payload = {
             "channel": slack_request.channel_id,
-            **SlackHelpMessageBuilder(command).as_payload(),
+            **SlackHelpMessageBuilder(
+                command=command,
+                integration_id=slack_request.integration.id,
+            ).as_payload(),
         }
         logger_params = {
             "integration_id": slack_request.integration.id,
@@ -139,14 +136,19 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            client.chat_postMessage(
-                channel=slack_request.channel_id,
-                **SlackHelpMessageBuilder(command).as_payload(),
-            )
-        except SlackApiError:
-            _logger.exception("on_message.post-message-error", extra=logger_params)
-            metrics.incr(self._METRIC_FAILURE_KEY + ".on_message.post_message", sample_rate=1.0)
+        if slack_request.channel_id is None:
+            _logger.error("on_message.post-message-error", extra=logger_params)
+        else:
+            try:
+                client.chat_postMessage(
+                    channel=slack_request.channel_id,
+                    **SlackHelpMessageBuilder(
+                        command=command,
+                        integration_id=slack_request.integration.id,
+                    ).as_payload(),
+                )
+            except SlackApiError:
+                _logger.exception("on_message.post-message-error", extra=logger_params)
 
         return self.respond()
 
@@ -256,7 +258,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
             )
         except SlackApiError:
             _logger.exception("on_link_shared.unfurl-error", extra=logger_params)
-            metrics.incr(self._METRIC_FAILURE_KEY + ".unfurl", sample_rate=1.0)
 
         return True
 

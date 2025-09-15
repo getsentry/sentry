@@ -38,8 +38,8 @@ const Information = styled('div')`
 `;
 
 const Heading = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: 0;
   color: ${p => p.theme.gray500};
 `;

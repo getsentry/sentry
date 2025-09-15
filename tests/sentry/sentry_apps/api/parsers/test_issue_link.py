@@ -8,7 +8,7 @@ from sentry.sentry_apps.api.parsers.schema import validate_component
 
 
 class TestIssueLinkSchemaValidation(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.schema: dict[str, Any] = {
             "type": "issue-link",
             "link": {
@@ -46,68 +46,68 @@ class TestIssueLinkSchemaValidation(unittest.TestCase):
             },
         }
 
-    def test_valid_schema(self):
+    def test_valid_schema(self) -> None:
         validate_component(self.schema)
 
     @invalid_schema
-    def test_missing_create_fails(self):
+    def test_missing_create_fails(self) -> None:
         del self.schema["create"]
         validate_component(self.schema)
 
     @invalid_schema
-    def test_missing_create_uri(self):
+    def test_missing_create_uri(self) -> None:
         del self.schema["create"]["uri"]
         validate_component(self.schema)
 
     @invalid_schema
-    def test_missing_create_required_fields(self):
+    def test_missing_create_required_fields(self) -> None:
         del self.schema["create"]["required_fields"]
         validate_component(self.schema)
 
     @invalid_schema
-    def test_create_required_fields_no_elements(self):
+    def test_create_required_fields_no_elements(self) -> None:
         self.schema["create"]["required_fields"] = []
         validate_component(self.schema)
 
     @invalid_schema
-    def test_create_required_fields_invalid_element(self):
+    def test_create_required_fields_invalid_element(self) -> None:
         self.schema["create"]["required_fields"] = [{"type": "markdown"}]
         validate_component(self.schema)
 
-    def test_missing_create_optional_fields(self):
+    def test_missing_create_optional_fields(self) -> None:
         del self.schema["create"]["optional_fields"]
         validate_component(self.schema)
 
     @invalid_schema
-    def test_create_optional_fields_invalid_element(self):
+    def test_create_optional_fields_invalid_element(self) -> None:
         self.schema["create"]["optional_fields"] = [{"type": "markdown"}]
         validate_component(self.schema)
 
     @invalid_schema
-    def test_missing_link(self):
+    def test_missing_link(self) -> None:
         del self.schema["link"]
         validate_component(self.schema)
 
     @invalid_schema
-    def test_missing_link_uri(self):
+    def test_missing_link_uri(self) -> None:
         del self.schema["link"]["uri"]
         validate_component(self.schema)
 
     @invalid_schema
-    def test_missing_link_required_fields(self):
+    def test_missing_link_required_fields(self) -> None:
         del self.schema["link"]["required_fields"]
         validate_component(self.schema)
 
-    def test_missing_link_optional_fields(self):
+    def test_missing_link_optional_fields(self) -> None:
         del self.schema["link"]["optional_fields"]
         validate_component(self.schema)
 
     @invalid_schema
-    def test_invalid_async_option(self):
+    def test_invalid_async_option(self) -> None:
         self.schema["create"]["required_fields"][2]["async"] = "cat"
         validate_component(self.schema)
 
     @invalid_schema
-    def test_invalid_skip_load_on_open_option(self):
+    def test_invalid_skip_load_on_open_option(self) -> None:
         self.schema["create"]["required_fields"][2]["skip_load_on_open"] = "cat"
         validate_component(self.schema)

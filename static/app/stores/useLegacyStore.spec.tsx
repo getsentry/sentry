@@ -8,7 +8,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 describe('useLegacyStore', () => {
   const team = TeamFixture();
 
-  beforeEach(() => void TeamStore.reset());
+  beforeEach(() => TeamStore.reset());
 
   it('should update on change to store', () => {
     const {result} = renderHook(useLegacyStore, {initialProps: TeamStore});

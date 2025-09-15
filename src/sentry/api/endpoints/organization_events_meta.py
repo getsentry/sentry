@@ -21,11 +21,13 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
-from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
-from sentry.snuba import spans_indexed, spans_metrics, spans_rpc
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.snuba import spans_indexed, spans_metrics
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.utils import RPC_DATASETS
 
 
 @region_silo_endpoint
@@ -64,7 +66,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         return all_features
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -84,21 +86,35 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         )
 
         with handle_query_errors():
-            result = dataset.query(
-                selected_columns=["count()"],
-                snuba_params=snuba_params,
-                query=request.query_params.get("query"),
-                referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
-                has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
-                # TODO: @athena - add query_source when all datasets support it
-                # query_source=(
-                #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
-                # ),
-                fallback_to_transactions=True,
-            )
+            if dataset in RPC_DATASETS:
+                result = dataset.run_table_query(
+                    params=snuba_params,
+                    query_string=request.query_params.get("query"),
+                    selected_columns=["count()"],
+                    orderby=None,
+                    offset=0,
+                    limit=1,
+                    referrer=Referrer.API_ORGANIZATION_EVENTS_META,
+                    config=SearchResolverConfig(),
+                )
 
-        return Response({"count": result["data"][0]["count"]})
+                return Response({"count": result["data"][0]["count()"]})
+            else:
+                result = dataset.query(
+                    selected_columns=["count()"],
+                    snuba_params=snuba_params,
+                    query=request.query_params.get("query"),
+                    referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
+                    has_metrics=use_metrics,
+                    use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                    # TODO: @athena - add query_source when all datasets support it
+                    # query_source=(
+                    #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+                    # ),
+                    fallback_to_transactions=True,
+                )
+
+                return Response({"count": result["data"][0]["count"]})
 
 
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
@@ -110,10 +126,9 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
-            # events-meta is still used by events v1 which doesn't require global views
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
@@ -171,7 +186,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -184,7 +199,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         with handle_query_errors():
             if use_eap:
                 result = get_eap_span_samples(request, snuba_params, orderby)
-                dataset = spans_rpc
+                dataset = Spans
             else:
                 result = get_span_samples(request, snuba_params, orderby)
                 dataset = spans_indexed
@@ -201,7 +216,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
 
-def get_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[str] | None):
+def get_span_samples(
+    request: Request, snuba_params: SnubaParams, orderby: list[str] | None
+) -> EventsResponse:
     is_frontend = is_frontend_request(request)
     buckets = request.GET.get("intervals", 3)
     lower_bound = request.GET.get("lowerBound", 0)
@@ -281,7 +298,9 @@ def get_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[
     )
 
 
-def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[str] | None):
+def get_eap_span_samples(
+    request: Request, snuba_params: SnubaParams, orderby: list[str] | None
+) -> EAPResponse:
     lower_bound = request.GET.get("lowerBound", 0)
     first_bound = request.GET.get("firstBound")
     second_bound = request.GET.get("secondBound")
@@ -304,7 +323,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
     query_string = request.query_params.get("query")
     bounds_query_string = f"{column}:>{lower_bound}ms {column}:<{upper_bound}ms {query_string}"
 
-    rpc_res = spans_rpc.run_table_query(
+    rpc_res = Spans.run_table_query(
         params=snuba_params,
         query_string=bounds_query_string,
         config=SearchResolverConfig(),
@@ -337,7 +356,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
         f"span_id:[{','.join(span_ids)}] {query_string}" if len(span_ids) > 0 else query_string
     )
 
-    return spans_rpc.run_table_query(
+    return Spans.run_table_query(
         params=snuba_params,
         config=SearchResolverConfig(use_aggregate_conditions=False),
         offset=0,

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';

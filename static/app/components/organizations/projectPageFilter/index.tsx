@@ -5,21 +5,18 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {
   SelectOption,
   SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
-import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconOpen, IconSettings} from 'sentry/icons';
+import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,7 +29,6 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
 export interface ProjectPageFilterProps
@@ -281,6 +277,7 @@ export function ProjectPageFilter({
               borderless
               size="zero"
               icon={<IconOpen />}
+              title={t('Project Details')}
               aria-label={t('Project Details')}
               to={
                 makeProjectsPathname({
@@ -294,6 +291,7 @@ export function ProjectPageFilter({
               borderless
               size="zero"
               icon={<IconSettings />}
+              title={t('Project Settings')}
               aria-label={t('Project Settings')}
               to={`/settings/${organization.slug}/projects/${project.slug}/`}
               visible={isFocused}
@@ -414,10 +412,14 @@ export function ProjectPageFilter({
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
         hasProjectWrite && (
-          <ProjectPageFilterMenuFooter
-            handleChange={handleChange}
-            showNonMemberProjects={showNonMemberProjects}
-          />
+          <LinkButton
+            size="xs"
+            aria-label={t('Add Project')}
+            to={makeProjectsPathname({path: '/new/', organization})}
+            icon={<IconAdd isCircled />}
+          >
+            {t('Project')}
+          </LinkButton>
         )
       }
       menuFooterMessage={menuFooterMessage}
@@ -433,46 +435,21 @@ export function ProjectPageFilter({
             nonMemberProjects={nonMemberProjects}
             ready={projectsLoaded && pageFilterIsReady}
             desynced={desynced}
-            {...triggerProps}
           />
         ))
       }
-      checkboxWrapper={checkboxWrapper}
       shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
     />
   );
 }
 
 function shouldCloseOnInteractOutside(target: Element) {
-  // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
-  const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
-  return !powerHovercard?.contains(target);
-}
-
-function checkboxWrapper(
-  renderCheckbox: Parameters<NonNullable<HybridFilterProps<number>['checkboxWrapper']>>[0]
-) {
-  return (
-    <Feature
-      features="organizations:global-views"
-      hookName="feature-disabled:project-selector-checkbox"
-      renderDisabled={props => (
-        <Hovercard
-          body={
-            <FeatureDisabled
-              features={props.features}
-              hideHelpToggle
-              featureName={t('Multiple Project Selection')}
-            />
-          }
-        >
-          {typeof props.children === 'function' ? props.children(props) : props.children}
-        </Hovercard>
-      )}
-    >
-      {({hasFeature}) => renderCheckbox({disabled: !hasFeature})}
-    </Feature>
+  // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard
+  const powerHovercard = target.closest('[data-test-id="power-hovercard"]');
+  const disabledFeatureHovercard = target.closest(
+    '[data-test-id="disabled-feature-hovercard"]'
   );
+  return !powerHovercard && !disabledFeatureHovercard;
 }
 
 const TrailingButton = styled(LinkButton)<{visible: boolean}>`

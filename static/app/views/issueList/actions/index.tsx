@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -50,7 +50,7 @@ type IssueListActionsProps = {
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
 
-const animationProps: AnimationProps = {
+const animationProps: MotionNodeAnimationOptions = {
   initial: {translateY: 8, opacity: 0},
   animate: {translateY: 0, opacity: 1},
   exit: {translateY: -8, opacity: 0},
@@ -99,14 +99,12 @@ function ActionsBarPriority({
   return (
     <ActionsBarContainer>
       {!narrowViewport && (
-        <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
-          <Checkbox
-            onChange={() => SelectedGroupStore.toggleSelectAll()}
-            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-            aria-label={pageSelected ? t('Deselect all') : t('Select all')}
-            disabled={displayReprocessingActions}
-          />
-        </ActionsCheckbox>
+        <Checkbox
+          onChange={() => SelectedGroupStore.toggleSelectAll()}
+          checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+          aria-label={pageSelected ? t('Deselect all') : t('Select all')}
+          disabled={displayReprocessingActions}
+        />
       )}
       {!displayReprocessingActions && (
         <AnimatePresence initial={false} mode="wait">
@@ -129,9 +127,7 @@ function ActionsBarPriority({
               />
             </HeaderButtonsWrapper>
           ) : (
-            <NarrowHeaderButtonsWrapper>
-              <IssueStreamHeaderLabel hideDivider>{t('Issue')}</IssueStreamHeaderLabel>
-            </NarrowHeaderButtonsWrapper>
+            <IssueStreamHeaderLabel hideDivider>{t('Issue')}</IssueStreamHeaderLabel>
           )}
         </AnimatePresence>
       )}
@@ -183,9 +179,7 @@ function IssueListActions({
   const theme = useTheme();
 
   const disableActions = useMedia(
-    `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
-    })`
+    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
   const numIssues = selectedIdsSet.size;
@@ -375,8 +369,8 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <Alert system type="warning">
-          <Flex justify="center" wrap="wrap">
+        <Alert system type="warning" showIcon={false}>
+          <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(
@@ -397,7 +391,8 @@ function IssueListActions({
                   '%s issues on this page selected.',
                   numIssues
                 )}
-                <SelectAllLink onClick={() => setAllInQuerySelected(true)}>
+
+                <a onClick={() => setAllInQuerySelected(true)}>
                   {queryCount >= BULK_LIMIT
                     ? tct(
                         'Select the first [count] issues that match this search query.',
@@ -408,7 +403,7 @@ function IssueListActions({
                     : tct('Select all [count] issues that match this search query.', {
                         count: queryCount,
                       })}
-                </SelectAllLink>
+                </a>
               </Fragment>
             )}
           </Flex>
@@ -490,29 +485,23 @@ const StickyActions = styled(Sticky)`
 `;
 
 const ActionsBarContainer = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: ${space(1)};
   min-height: 36px;
   padding-top: ${space(0.5)};
   padding-bottom: ${space(0.5)};
+  padding-left: ${space(2)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: 6px 6px 0 0;
 `;
 
-const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
-  display: flex;
-  align-items: center;
-  padding-left: ${space(2)};
-  margin-bottom: 1px;
-  ${p => p.isReprocessingQuery && 'flex: 1'};
-`;
-
 const HeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 50%;
   }
-  flex: 1;
-  margin: 0 ${space(1)};
+  grid-column: 2 / -1;
   display: grid;
   gap: ${space(0.5)};
   grid-auto-flow: column;
@@ -520,25 +509,8 @@ const HeaderButtonsWrapper = styled(motion.div)`
   white-space: nowrap;
 `;
 
-const NarrowHeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    width: 50%;
-  }
-  flex: 1;
-  margin-left: ${space(1)};
-  margin-right: ${space(2)};
-  display: grid;
-  gap: ${space(0.5)};
-  grid-auto-flow: column;
-  justify-content: space-between;
-  white-space: nowrap;
-`;
-
-const SelectAllLink = styled('a')`
-  margin-left: ${space(1)};
-`;
-
 const AnimatedHeaderItemsContainer = styled(motion.div)`
+  grid-column: -1;
   display: flex;
   align-items: center;
 `;

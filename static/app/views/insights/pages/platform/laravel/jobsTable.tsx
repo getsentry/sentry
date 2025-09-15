@@ -1,14 +1,15 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -16,10 +17,16 @@ import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
-import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'messaging.destination.name', name: t('Job Name'), width: COL_WIDTH_UNDEFINED},
+  {
+    key: 'transaction',
+    name: t('Job'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {key: 'messaging.destination.name', name: t('Queue Name'), width: 140},
   {key: 'count()', name: t('Processed'), width: 124},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
   {
@@ -28,7 +35,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
     width: 164,
   },
   {
-    key: 'avg_if(span.duration,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,equals,queue.process)',
     name: t('Avg Processing Time'),
     width: 184,
   },
@@ -40,18 +47,20 @@ const rightAlignColumns = new Set([
   'failure_rate()',
   'sum(span.duration)',
   'avg(messaging.message.receive.latency)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
 ]);
 
 export function JobsTable() {
-  const tableDataRequest = useTableData({
-    query: 'span.op:queue.process',
+  const {query} = useTransactionNameQuery();
+  const tableDataRequest = useSpanTableData({
+    query: `span.op:queue.process ${query ?? ''}`.trim(),
     fields: [
       'count()',
       'project.id',
       'messaging.destination.name',
+      'transaction',
       'avg(messaging.message.receive.latency)',
-      'avg_if(span.duration,span.op,queue.process)',
+      'avg_if(span.duration,span.op,equals,queue.process)',
       'failure_rate()',
       'sum(span.duration)',
     ],
@@ -64,7 +73,7 @@ export function JobsTable() {
       <HeadSortCell
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'messaging.destination.name'}
+        forceCellGrow={column.key === 'transaction'}
         cursorParamName="jobsCursor"
       >
         {column.name}
@@ -80,6 +89,13 @@ export function JobsTable() {
       switch (column.key) {
         case 'messaging.destination.name':
           return <DestinationCell destination={dataRow['messaging.destination.name']} />;
+        case 'transaction':
+          return (
+            <JobCell
+              destination={dataRow['messaging.destination.name']}
+              transaction={dataRow.transaction}
+            />
+          );
         case 'failure_rate()':
           return (
             <ErrorRateCell
@@ -88,7 +104,7 @@ export function JobsTable() {
             />
           );
         case 'avg(messaging.message.receive.latency)':
-        case 'avg_if(span.duration,span.op,queue.process)':
+        case 'avg_if(span.duration,span.op,equals,queue.process)':
           return <DurationCell milliseconds={dataRow[column.key]} />;
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
@@ -134,5 +150,30 @@ function DestinationCell({destination}: {destination: string}) {
     >
       {destination}
     </Link>
+  );
+}
+
+const StyledJobLink = styled(Link)`
+  ${p => p.theme.overflowEllipsis};
+  min-width: 0;
+`;
+
+function JobCell({destination, transaction}: {destination: string; transaction: string}) {
+  const moduleURL = useModuleURL('queue');
+  const {query} = useLocation();
+  return (
+    <StyledJobLink
+      to={{
+        pathname: `${moduleURL}/destination/`,
+        query: {
+          ...query,
+          destination,
+          transaction,
+          'span.op': 'queue.process',
+        },
+      }}
+    >
+      {transaction}
+    </StyledJobLink>
   );
 }

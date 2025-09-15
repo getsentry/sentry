@@ -8,11 +8,11 @@ import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Text} from 'sentry/components/core/text';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
-import Text from 'sentry/components/text';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -127,7 +127,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
       </Header>
       <Body>
         <Actions>
-          <ActionButtons gap={1}>
+          <ActionButtons>
             {[disableEnableBtnParams, muteUnmuteBtnParams].map(
               ({operation, actionText, ...analyticsProps}, i) => (
                 <Button
@@ -153,7 +153,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               )
             )}
           </ActionButtons>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <SearchBar
               size="sm"
               placeholder={t('Search Monitors')}

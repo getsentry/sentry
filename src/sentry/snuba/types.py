@@ -18,7 +18,6 @@ class DatasetQuery(Protocol):
         orderby: list[str] | None = None,
         offset: int | None = None,
         limit: int = 50,
-        referrer: str | None = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
         include_equation_fields: bool = False,
@@ -38,4 +37,6 @@ class DatasetQuery(Protocol):
         fallback_to_transactions: bool = False,
         query_source: QuerySource | None = None,
         debug: bool = False,
+        *,
+        referrer: str,
     ) -> EventsResponse: ...

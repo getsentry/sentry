@@ -8,15 +8,15 @@ from sentry.testutils.cases import TestCase
 
 
 class CreateTicketUtilsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.rule = self.create_project_rule()
 
-    def test_build_description(self):
+    def test_build_description(self) -> None:
         installation = MagicMock()
         installation.get_group_description.return_value = "Test description"
 
-        def generate_footer(url):
+        def generate_footer(url) -> str:
             return f"\n\nThis issue was created by a rule: {url}"
 
         description = build_description(self.event, self.rule.id, installation, generate_footer)
@@ -26,12 +26,12 @@ class CreateTicketUtilsTest(TestCase):
             description == f"Test description\n\nThis issue was created by a rule: {expected_url}"
         )
 
-    def test_build_description_workflow_engine_ui(self):
+    def test_build_description_workflow_engine_ui(self) -> None:
         installation = MagicMock()
         installation.get_group_description.return_value = "Test description"
         workflow_id = 123
 
-        def generate_footer(url):
+        def generate_footer(url) -> str:
             return f"\n\nThis issue was created by a workflow: {url}"
 
         description = build_description_workflow_engine_ui(

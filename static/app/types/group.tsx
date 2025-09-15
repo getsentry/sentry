@@ -16,7 +16,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {PlatformKey, Project} from './project';
+import type {AvatarProject, PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -171,10 +171,13 @@ export enum IssueType {
   UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
 
   // Metric Issues
-  METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
+  METRIC_ISSUE = 'metric_issue',
 
   // Detectors
-  DB_QUERY_INJECTION_VULNERABILITY = 'db_query_injection_vulnerability',
+  QUERY_INJECTION_VULNERABILITY = 'query_injection_vulnerability',
+
+  // Insights Web Vitals
+  WEB_VITALS = 'web_vitals',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -208,6 +211,20 @@ export enum IssueTitle {
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
+
+  // Metric Issues
+  METRIC_ISSUE = 'Issue Detected by Metric Monitor',
+
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'Missed or Failed Cron Check-In',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'Uptime Monitor Detected Downtime',
+
+  QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
+
+  // Insights Web Vitals
+  WEB_VITALS = 'Web Vitals',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -234,8 +251,17 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
 
+  query_injection_vulnerability: IssueTitle.QUERY_INJECTION_VULNERABILITY,
+
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
+
+  metric_issue: IssueTitle.METRIC_ISSUE,
+
+  monitor_check_in_failure: IssueTitle.MONITOR_CHECK_IN_FAILURE,
+  uptime_domain_failure: IssueTitle.UPTIME_DOMAIN_FAILURE,
+
+  web_vitals: IssueTitle.WEB_VITALS,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -255,19 +281,20 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
   1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
   1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+  1021: IssueType.QUERY_INJECTION_VULNERABILITY,
   2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
   2008: IssueType.PROFILE_FRAME_DROP,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  10001: IssueType.WEB_VITALS,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
@@ -331,6 +358,7 @@ export type Tag = {
    */
   maxSuggestedValues?: number;
   predefined?: boolean;
+  secondaryAliases?: string[];
   totalValues?: number;
   uniqueValues?: number;
   /**
@@ -802,7 +830,6 @@ export interface ResolvedStatusDetails {
   };
   inNextRelease?: boolean;
   inRelease?: string;
-  inUpcomingRelease?: boolean;
   repository?: string;
 }
 interface ReprocessingStatusDetails {
@@ -865,6 +892,7 @@ export const enum FixabilityScoreThresholds {
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
+  SUPER_LOW = 'super_low',
 }
 
 // TODO(ts): incomplete
@@ -946,13 +974,34 @@ export interface GroupUnresolved extends BaseGroup, GroupStats {
 
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
 
+// Maps to SimpleGroupSerializer in the backend
+export type SimpleGroup = {
+  culprit: string | null;
+  firstSeen: string;
+  id: string;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
+  lastSeen: string;
+  level: Level;
+  metadata: EventMetadata;
+  project: AvatarProject;
+  shortId: string;
+  status: GroupStatus;
+  substatus: GroupSubstatus | null;
+  title: string;
+  type: EventOrGroupType;
+};
+
 export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
+  dateAdded: string | null;
   id: string;
   level: Level;
   metadata: EventMetadata;
   type: EventOrGroupType;
+  lastSeen?: string;
+  timesSeen?: number;
   title?: string;
 }
 export interface GroupTombstoneHelper extends GroupTombstone {

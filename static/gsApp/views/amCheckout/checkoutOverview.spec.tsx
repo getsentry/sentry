@@ -10,19 +10,18 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import {type CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
-describe('CheckoutOverview', function () {
+describe('CheckoutOverview', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization, plan: 'am1_f'});
-  const params = {};
 
   const billingConfig = BillingConfigFixture(PlanTier.AM2);
   const teamPlanAnnual = PlanDetailsLookupFixture('am1_team_auf')!;
   const teamPlanMonthly = PlanDetailsLookupFixture('am2_team')!;
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
@@ -45,21 +44,21 @@ describe('CheckoutOverview', function () {
     });
   });
 
-  it('renders with default plan', async function () {
+  it('renders with default plan', async () => {
     render(
       <AMCheckout
         {...routerProps}
         api={api}
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
   });
 
-  it('renders breakdown for team annual plan', function () {
+  it('renders breakdown for team annual plan', () => {
     const formData = {
       plan: 'am1_team_auf',
       reserved: {errors: 100000, transactions: 500000, attachments: 25},
@@ -78,7 +77,7 @@ describe('CheckoutOverview', function () {
     );
   });
 
-  it('changes initial step number based on url location.hash', async function () {
+  it('changes initial step number based on url location.hash', async () => {
     render(
       <AMCheckout
         {...routerProps}
@@ -86,7 +85,7 @@ describe('CheckoutOverview', function () {
         checkoutTier={PlanTier.AM1}
         location={LocationFixture({hash: '#step3'})}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 

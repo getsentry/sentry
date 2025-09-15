@@ -87,7 +87,7 @@ class ApiGrant(Model):
         app_label = "sentry"
         db_table = "sentry_apigrant"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"api_grant_id={self.id}, user_id={self.user.id}, application_id={self.application.id}"
         )
@@ -107,7 +107,7 @@ class ApiGrant(Model):
         return uri == self.redirect_uri
 
     @classmethod
-    def get_lock_key(cls, grant_id):
+    def get_lock_key(cls, grant_id) -> str:
         return f"api_grant:{grant_id}"
 
     @classmethod

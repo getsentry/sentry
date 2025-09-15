@@ -13,14 +13,14 @@ import type {Subscription as SubscriptionType} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 
-describe('OnDemandBudgets AM Checkout', function () {
+describe('OnDemandBudgets AM Checkout', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture({
     features: ['ondemand-budgets'],
     access: ['org:billing'],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
       method: 'GET',
@@ -74,11 +74,10 @@ describe('OnDemandBudgets AM Checkout', function () {
 
   const createWrapper = ({subscription}: {subscription: SubscriptionType}) => {
     SubscriptionStore.set(organization.slug, subscription);
-    const params = {};
     return render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         organization={organization}
         checkoutTier={PlanTier.AM2}
@@ -87,7 +86,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   };
 
-  it('AM checkout with legacy plan - shared budget', async function () {
+  it('AM checkout with legacy plan - shared budget', async () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_f',
@@ -139,7 +138,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   });
 
-  it('AM checkout with AM plan - per-category budget', async function () {
+  it('AM checkout with AM plan - per-category budget', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -213,14 +212,6 @@ describe('OnDemandBudgets AM Checkout', function () {
         data: {
           onDemandBudget: {
             budgetMode: 'per_category',
-            errorsBudget: 1000,
-            transactionsBudget: 2000,
-            attachmentsBudget: 3000,
-            monitorSeatsBudget: 4000,
-            uptimeBudget: 0,
-            replaysBudget: 0,
-            profileDurationBudget: 0,
-            profileDurationUIBudget: 0,
             budgets: {
               errors: 1000,
               transactions: 2000,
@@ -230,6 +221,7 @@ describe('OnDemandBudgets AM Checkout', function () {
               uptime: 0,
               profileDuration: 0,
               profileDurationUI: 0,
+              logBytes: 0,
             },
           },
           onDemandMaxSpend: 10000,
@@ -249,7 +241,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   });
 
-  it('AM checkout with AM plan - shared budget', async function () {
+  it('AM checkout with AM plan - shared budget', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -313,7 +305,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   });
 
-  it('AM checkout with AM plan - turn off on-demand', async function () {
+  it('AM checkout with AM plan - turn off on-demand', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -327,14 +319,7 @@ describe('OnDemandBudgets AM Checkout', function () {
       onDemandBudgets: {
         enabled: false,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        replaysBudget: 0,
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {errors: 0, transactions: 0, attachments: 0, replays: 0},
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
         budgets: {errors: 1000, transactions: 2000, attachments: 3000},
       },
     });
@@ -398,7 +383,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   });
 
-  it('AM checkout with AM plan - on-demand not supported', async function () {
+  it('AM checkout with AM plan - on-demand not supported', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,

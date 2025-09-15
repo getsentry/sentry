@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 
-describe('Events ActionCreator', function () {
+describe('Events ActionCreator', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const project = ProjectFixture();
@@ -15,7 +15,7 @@ describe('Events ActionCreator', function () {
 
   let mock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -32,7 +32,7 @@ describe('Events ActionCreator', function () {
     });
   });
 
-  it('requests events stats with relative period', async function () {
+  it('requests events stats with relative period', async () => {
     await doEventsRequest<false>(api, {
       ...opts,
       includeAllArgs: false,
@@ -53,7 +53,7 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('requests events stats with relative period including previous period', async function () {
+  it('requests events stats with relative period including previous period', async () => {
     await doEventsRequest<false>(api, {
       ...opts,
       includeAllArgs: false,
@@ -74,7 +74,7 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('requests events stats with absolute period', async function () {
+  it('requests events stats with absolute period', async () => {
     const start = new Date('2017-10-12T12:00:00.000Z');
     const end = new Date('2017-10-17T00:00:00.000Z');
     await doEventsRequest<false>(api, {
@@ -100,7 +100,7 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('requests events stats with absolute period including previous period', async function () {
+  it('requests events stats with absolute period including previous period', async () => {
     const start = new Date('2017-10-12T12:00:00.000Z');
     const end = new Date('2017-10-17T00:00:00.000Z');
     await doEventsRequest<false>(api, {
@@ -125,7 +125,7 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('spreads query extras', async function () {
+  it('spreads query extras', async () => {
     await doEventsRequest<false>(api, {
       ...opts,
       includeAllArgs: false,

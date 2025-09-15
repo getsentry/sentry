@@ -28,7 +28,11 @@ export default function RawContent({
   const organization = useOrganization();
 
   const isNative =
-    platform === 'native' || platform === 'cocoa' || platform === 'nintendo-switch';
+    platform === 'native' ||
+    platform === 'cocoa' ||
+    platform === 'nintendo-switch' ||
+    platform === 'playstation' ||
+    platform === 'xbox';
 
   const hasCrashReport = isNative && defined(organization);
 
@@ -68,11 +72,11 @@ export default function RawContent({
       {values.map((exc, excIdx) => {
         if (!isNative) {
           const nonNativeContent = exc.stacktrace ? (
-            rawStacktraceContent(
-              type === 'original' ? exc.stacktrace : exc.rawStacktrace,
+            rawStacktraceContent({
+              data: type === 'original' ? exc.stacktrace : exc.rawStacktrace,
               platform,
-              exc
-            )
+              exception: exc,
+            })
           ) : (
             <div>
               {exc.type}: {exc.value}

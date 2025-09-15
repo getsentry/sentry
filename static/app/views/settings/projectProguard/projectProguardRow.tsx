@@ -7,16 +7,15 @@ import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
-import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 
 type Props = {
   downloadUrl: string;
@@ -26,13 +25,7 @@ type Props = {
   associations?: ProguardMappingAssociation;
 };
 
-function ProjectProguardRow({
-  associations = {releases: []},
-  mapping,
-  onDelete,
-  downloadUrl,
-  orgSlug,
-}: Props) {
+function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
   const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
@@ -44,7 +37,6 @@ function ProjectProguardRow({
     <Fragment>
       <NameColumn>
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
-        <ProguardAssociations associations={associations} />
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />
@@ -54,7 +46,7 @@ function ProjectProguardRow({
         <FileSize bytes={size} />
       </SizeColumn>
       <ActionsColumn>
-        <ButtonBar gap={0.5}>
+        <ButtonBar gap="xs">
           <Tooltip
             title={tct(
               'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
@@ -131,7 +123,7 @@ const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-items: center;
   color: ${p => p.theme.subText};
   margin-top: ${space(1)};

@@ -26,7 +26,7 @@ class IncidentListEndpointTest(APITestCase):
     def user(self):
         return self.create_user()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         incident = self.create_incident()
         other_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
@@ -37,7 +37,7 @@ class IncidentListEndpointTest(APITestCase):
 
         assert resp.data == serialize([other_incident, incident])
 
-    def test_filter_status(self):
+    def test_filter_status(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         incident = self.create_incident()
         closed_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
@@ -52,7 +52,7 @@ class IncidentListEndpointTest(APITestCase):
         assert resp_closed.data == serialize([closed_incident])
         assert resp_open.data == serialize([incident])
 
-    def test_filter_env(self):
+    def test_filter_env(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         env = self.create_environment(self.project)
         rule = self.create_alert_rule(projects=[self.project], environment=env)
@@ -75,13 +75,13 @@ class IncidentListEndpointTest(APITestCase):
         # No filter returns both incidents
         assert len(resp_no_env_filter.data) == 2
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
-    def test_no_perf_alerts(self):
+    def test_no_perf_alerts(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         # alert_rule = self.create_alert_rule()
         perf_alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
@@ -98,7 +98,7 @@ class IncidentListEndpointTest(APITestCase):
             resp = self.get_success_response(self.organization.slug)
             assert resp.data == serialize([incident, perf_incident])
 
-    def test_filter_start_end_times(self):
+    def test_filter_start_end_times(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         old_incident = self.create_incident(date_started=timezone.now() - timedelta(hours=26))
         update_incident_status(
@@ -130,7 +130,7 @@ class IncidentListEndpointTest(APITestCase):
         assert resp_new.data == serialize([new_incident])
         assert resp_old.data == serialize([old_incident])
 
-    def test_filter_name(self):
+    def test_filter_name(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         incident = self.create_incident(title="yet another alert rule")
         self.login_as(self.user)
@@ -143,7 +143,7 @@ class IncidentListEndpointTest(APITestCase):
         assert len(no_results.data) == 0
         assert results.data == serialize([incident])
 
-    def test_rule_teams(self):
+    def test_rule_teams(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule(
             name="alert rule",

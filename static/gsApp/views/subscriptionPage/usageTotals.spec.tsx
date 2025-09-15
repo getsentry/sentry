@@ -28,7 +28,7 @@ import {
   UsageTotals,
 } from 'getsentry/views/subscriptionPage/usageTotals';
 
-describe('Subscription > UsageTotals', function () {
+describe('Subscription > UsageTotals', () => {
   const totals = UsageTotalFixture({
     accepted: 26,
     dropped: 10,
@@ -52,7 +52,7 @@ describe('Subscription > UsageTotals', function () {
     SubscriptionStore.init();
   });
 
-  it('calculates error totals and renders them', async function () {
+  it('calculates error totals and renders them', async () => {
     subscription.categories.errors = MetricHistoryFixture({
       usage: 26,
     });
@@ -85,7 +85,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByRole('row', {name: 'Other 2 6%'})).toBeInTheDocument();
   });
 
-  it('renders transaction event totals with feature', async function () {
+  it('renders transaction event totals with feature', async () => {
     const am2Subscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
@@ -124,7 +124,7 @@ describe('Subscription > UsageTotals', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders continuous profiling totals', async function () {
+  it('renders continuous profiling totals', async () => {
     subscription.categories.profileDuration = MetricHistoryFixture({
       usage: 15 * MILLISECONDS_IN_HOUR,
     });
@@ -181,11 +181,13 @@ describe('Subscription > UsageTotals', function () {
       screen.getByRole('row', {name: 'Total Dropped (estimated) 10 40%'})
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Spike Protection 0 0%'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Spike Protection 0 0%'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
   });
 
-  it('does not include profiles for estimates on non-AM3 plans', async function () {
+  it('does not include profiles for estimates on non-AM3 plans', async () => {
     const profileDurationTotals = UsageTotalFixture({
       accepted: 15 * MILLISECONDS_IN_HOUR,
       dropped: 0,
@@ -248,11 +250,13 @@ describe('Subscription > UsageTotals', function () {
       screen.getByRole('row', {name: 'Total Dropped (estimated) 5 25%'})
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Spike Protection 0 0%'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: 'Spike Protection 0 0%'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
   });
 
-  it('does not render transaction event totals without feature', async function () {
+  it('does not render transaction event totals without feature', async () => {
     const am2Subscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
@@ -290,7 +294,7 @@ describe('Subscription > UsageTotals', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('formats units', async function () {
+  it('formats units', async () => {
     subscription.categories.attachments = MetricHistoryFixture({
       usage: 26,
     });
@@ -324,7 +328,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByRole('row', {name: 'Other 2 B 6%'})).toBeInTheDocument();
   });
 
-  it('renders default stats with no billing history', function () {
+  it('renders default stats with no billing history', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
@@ -342,7 +346,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByText('0')).toBeInTheDocument();
   });
 
-  it('renders gifted errors', function () {
+  it('renders gifted errors', () => {
     subscription.categories.errors = MetricHistoryFixture({usage: 175_000});
     render(
       <UsageTotals
@@ -363,7 +367,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders gifted transactions', function () {
+  it('renders gifted transactions', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
@@ -386,7 +390,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('does not render gifted transactions with unlimited quota', function () {
+  it('does not render gifted transactions with unlimited quota', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
@@ -407,7 +411,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByTestId('reserved-transactions')).toHaveTextContent('∞ Reserved');
   });
 
-  it('renders gifted attachments', function () {
+  it('renders gifted attachments', () => {
     render(
       <UsageTotals
         category={DataCategory.ATTACHMENTS}
@@ -425,7 +429,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders accepted percentage for attachments', function () {
+  it('renders accepted percentage for attachments', () => {
     subscription.categories.attachments = MetricHistoryFixture({
       usage: GIGABYTE * 0.6,
     });
@@ -444,7 +448,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByText('600 MB')).toBeInTheDocument();
   });
 
-  it('renders accepted percentage for errors', function () {
+  it('renders accepted percentage for errors', () => {
     const errors = UsageTotalFixture({accepted: 92_400});
     subscription.categories.errors = MetricHistoryFixture({
       usage: 92_400,
@@ -463,7 +467,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByText('92,400')).toBeInTheDocument();
   });
 
-  it('renders accepted percentage for transactions', function () {
+  it('renders accepted percentage for transactions', () => {
     subscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
@@ -486,7 +490,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByText('200,000')).toBeInTheDocument();
   });
 
-  it('renders true forward', function () {
+  it('renders true forward', () => {
     render(
       <UsageTotals
         trueForward
@@ -504,7 +508,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders soft cap type on demand', function () {
+  it('renders soft cap type on demand', () => {
     render(
       <UsageTotals
         softCapType="ON_DEMAND"
@@ -522,7 +526,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders soft cap type true forward', function () {
+  it('renders soft cap type true forward', () => {
     render(
       <UsageTotals
         softCapType="TRUE_FORWARD"
@@ -540,7 +544,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders true forward with gifted amount', function () {
+  it('renders true forward with gifted amount', () => {
     render(
       <UsageTotals
         trueForward
@@ -559,7 +563,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders soft cap type on demand with gifted amount', function () {
+  it('renders soft cap type on demand with gifted amount', () => {
     render(
       <UsageTotals
         softCapType="ON_DEMAND"
@@ -578,7 +582,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders soft cap type true forward with gifted amount', function () {
+  it('renders soft cap type true forward with gifted amount', () => {
     render(
       <UsageTotals
         softCapType="TRUE_FORWARD"
@@ -597,7 +601,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders usage card with Trial if an active trial exists', function () {
+  it('renders usage card with Trial if an active trial exists', () => {
     subscription.productTrials = [
       {
         category: DataCategory.REPLAYS,
@@ -623,7 +627,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.queryByText('Start trial')).not.toBeInTheDocument();
   });
 
-  it('renders usage card with Start trial button if a potential trial exists', function () {
+  it('renders usage card with Start trial button if a potential trial exists', () => {
     subscription.productTrials = [
       {
         category: DataCategory.REPLAYS,
@@ -650,7 +654,7 @@ describe('Subscription > UsageTotals', function () {
     expect(screen.getByText('Start trial')).toBeInTheDocument();
   });
 
-  it('renders usage card as normal if trial has ended', function () {
+  it('renders usage card as normal if trial has ended', () => {
     subscription.productTrials = [
       {
         category: DataCategory.REPLAYS,
@@ -853,7 +857,7 @@ describe('Subscription > UsageTotals', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders onDemandUsage when over prepaidTotal', function () {
+  it('renders onDemandUsage when over prepaidTotal', () => {
     const usageTotals = UsageTotalFixture({
       accepted: 150_000,
       dropped: 10,
@@ -918,7 +922,7 @@ describe('Subscription > UsageTotals', function () {
     expect(usageBars).toHaveLength(2);
   });
 
-  it('does not render onDemandUsage when under prepaidTotal', function () {
+  it('does not render onDemandUsage when under prepaidTotal', () => {
     const usageTotals = UsageTotalFixture({
       accepted: 100_000,
       dropped: 10,
@@ -987,7 +991,7 @@ describe('Subscription > UsageTotals', function () {
     expect(usageBars).toHaveLength(2);
   });
 
-  it('renders gifted hours for profile duration when gifted present', function () {
+  it('renders gifted hours for profile duration when gifted present', () => {
     render(
       <UsageTotals
         category={DataCategory.PROFILE_DURATION}
@@ -1007,7 +1011,7 @@ describe('Subscription > UsageTotals', function () {
     );
   });
 
-  it('renders gifted hours for profile duration ui when gifted present', function () {
+  it('renders gifted hours for profile duration ui when gifted present', () => {
     render(
       <UsageTotals
         category={DataCategory.PROFILE_DURATION_UI}
@@ -1028,7 +1032,7 @@ describe('Subscription > UsageTotals', function () {
   });
 });
 
-describe('Subscription > CombinedUsageTotals', function () {
+describe('Subscription > CombinedUsageTotals', () => {
   const totals = UsageTotalFixture({
     accepted: 26,
     dropped: 10,
@@ -1052,7 +1056,7 @@ describe('Subscription > CombinedUsageTotals', function () {
     SubscriptionStore.init();
   });
 
-  it('always renders reserved budgets in spend mode', async function () {
+  it('always renders reserved budgets in spend mode', async () => {
     const seerSubscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am3_business',
@@ -1092,7 +1096,7 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
   });
 
-  it('uses billed usage for accepted counts in expanded table', async function () {
+  it('uses billed usage for accepted counts in expanded table', async () => {
     const seerSubscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am3_business',
@@ -1124,14 +1128,64 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('row', {name: 'Accepted 1 9%'})).toBeInTheDocument();
   });
 
-  it('renders accepted spans in spend mode with reserved budgets and dynamic sampling', async function () {
+  it('shows table with dropped totals breakdown for reserved budgets', async () => {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    seerSubscription.planTier = 'am3';
+
+    render(
+      <CombinedUsageTotals
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
+
+    const acceptedRows = screen.getAllByRole('row', {name: 'Accepted 0 0%'});
+    expect(acceptedRows).toHaveLength(2);
+
+    const totalDroppedRows = screen.getAllByRole('row', {name: 'Total Dropped 10 100%'});
+    expect(totalDroppedRows).toHaveLength(2);
+
+    const overQuotaRows = screen.getAllByRole('row', {name: 'Over Quota 7 70%'});
+    expect(overQuotaRows).toHaveLength(2);
+
+    const spikeProtectionRows = screen.queryAllByRole('row', {
+      name: 'Spike Protection 1 10%',
+    });
+    expect(spikeProtectionRows).toHaveLength(0); // not spike protected
+
+    const otherRows = screen.getAllByRole('row', {name: 'Other 2 20%'});
+    expect(otherRows).toHaveLength(2);
+
+    expect(screen.getByRole('columnheader', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
+
+    const seerAutofixTable = screen.getByTestId('category-table-seerAutofix');
+    const seerScannerTable = screen.getByTestId('category-table-seerScanner');
+
+    expect(within(seerAutofixTable).getAllByRole('row')).toHaveLength(5);
+    expect(within(seerScannerTable).getAllByRole('row')).toHaveLength(5);
+  });
+
+  it('renders accepted spans in spend mode with reserved budgets and dynamic sampling', async () => {
     const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
       hadCustomDynamicSampling: true,
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1164,14 +1218,16 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('columnheader', {name: 'Stored Spans'})).toBeInTheDocument();
   });
 
-  it('renders spans with reserved budgets without dynamic sampling', async function () {
+  it('renders spans with reserved budgets without dynamic sampling', async () => {
     const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
       hadCustomDynamicSampling: false,
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1197,15 +1253,21 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('columnheader', {name: 'Spans'})).toBeInTheDocument();
   });
 
-  it('renders reserved budget categories with gifted budget', function () {
+  it('renders reserved budget categories with gifted budget', () => {
     const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
       hadCustomDynamicSampling: true,
     });
-    dsSubscription.reservedBudgets![0]!.freeBudget = 10_000_00;
+    dsSubscription.reservedBudgets?.forEach(b => {
+      if (b.apiName === 'dynamicSampling') {
+        b.freeBudget = 10_000_00;
+      }
+    });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1226,14 +1288,16 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByText('18% of $110,000')).toBeInTheDocument();
   });
 
-  it('renders reserved budget categories with soft cap', function () {
+  it('renders reserved budget categories with soft cap', () => {
     const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
       hadCustomDynamicSampling: true,
     });
     render(
       <CombinedUsageTotals
-        productGroup={dsSubscription.reservedBudgets![0]!}
+        productGroup={
+          dsSubscription.reservedBudgets?.find(b => b.apiName === 'dynamicSampling')!
+        }
         subscription={dsSubscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1249,7 +1313,7 @@ describe('Subscription > CombinedUsageTotals', function () {
     );
   });
 
-  it('renders product trial upsell for customer when product is not enabled', function () {
+  it('renders product trial upsell for customer when product is not enabled', () => {
     subscription.productTrials = [
       {
         category: DataCategory.SEER_AUTOFIX,
@@ -1264,17 +1328,10 @@ describe('Subscription > CombinedUsageTotals', function () {
         endDate: moment().utc().add(20, 'years').format(),
       },
     ];
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1304,18 +1361,10 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.queryByRole('button', {name: 'Enable Seer'})).not.toBeInTheDocument();
   });
 
-  it('renders enable upsell for customer when product is not enabled and trial not available', function () {
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
-
+  it('renders enable upsell for customer when product is not enabled and trial not available', () => {
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1345,7 +1394,7 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('button', {name: 'Enable Seer'})).toBeInTheDocument();
   });
 
-  it('renders with trial if active trial exists', function () {
+  it('renders with trial if active trial exists', () => {
     subscription.productTrials = [
       {
         category: DataCategory.SEER_AUTOFIX,
@@ -1362,17 +1411,10 @@ describe('Subscription > CombinedUsageTotals', function () {
         endDate: moment().utc().add(20, 'days').format(),
       },
     ];
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1389,19 +1431,12 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.queryByRole('button', {name: 'Enable Seer'})).not.toBeInTheDocument();
   });
 
-  it('renders contact sales upsell for managed accounts', function () {
+  it('renders contact sales upsell for managed accounts', () => {
     subscription.canSelfServe = false;
-    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
 
     render(
       <CombinedUsageTotals
-        productGroup={subscription.reservedBudgets[0]!}
+        productGroup={subscription.reservedBudgets![0]!}
         subscription={subscription}
         organization={organization}
         allTotalsByCategory={{
@@ -1423,7 +1458,7 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(within(card).queryByText(/trial/)).not.toBeInTheDocument();
   });
 
-  it('does not render card for sponsored orgs', function () {
+  it('does not render card for sponsored orgs', () => {
     const sponsoredSub = SubscriptionFixture({
       organization,
       plan: 'am2_sponsored_team_auf',
@@ -1452,24 +1487,17 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.queryByTestId('usage-card-seer')).not.toBeInTheDocument();
   });
 
-  it('renders PAYG legend with per-category', function () {
+  it('renders PAYG legend with per-category', () => {
     organization.features.push('ondemand-budgets');
     const seerSubscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am2_business',
       onDemandBudgets: {
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        attachmentsBudget: 0,
-        errorsBudget: 0,
-        replaysBudget: 0,
-        transactionsBudget: 0,
         budgets: {
           [DataCategory.SEER_AUTOFIX]: 4,
           [DataCategory.SEER_SCANNER]: 5,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {
           [DataCategory.SEER_AUTOFIX]: 4,
           [DataCategory.SEER_SCANNER]: 5,
@@ -1499,50 +1527,6 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByText('On-Demand Issue Scans')).toBeInTheDocument();
 
     organization.features.pop();
-  });
-
-  it('shows accepted rows but hides dropped rows for SEER categories', async function () {
-    const seerSubscription = SubscriptionWithSeerFixture({
-      organization,
-      plan: 'am3_business',
-    });
-    seerSubscription.planTier = 'am3';
-
-    render(
-      <CombinedUsageTotals
-        productGroup={seerSubscription.reservedBudgets![0]!}
-        subscription={seerSubscription}
-        organization={organization}
-        allTotalsByCategory={{
-          seerAutofix: totals,
-          seerScanner: totals,
-        }}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
-
-    const acceptedRows = screen.getAllByRole('row', {name: 'Accepted 0 0%'});
-    expect(acceptedRows).toHaveLength(2);
-
-    // Should NOT show dropped rows for SEER categories
-    expect(
-      screen.queryByRole('row', {name: 'Total Dropped 10 100%'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: 'Over Quota 7 70%'})).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('row', {name: 'Spike Protection 1 10%'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: 'Other 2 20%'})).not.toBeInTheDocument();
-
-    expect(screen.getByRole('columnheader', {name: 'Issue Fixes'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
-
-    const seerAutofixTable = screen.getByTestId('category-table-seerAutofix');
-    const seerScannerTable = screen.getByTestId('category-table-seerScanner');
-
-    expect(within(seerAutofixTable).getAllByRole('row')).toHaveLength(2);
-    expect(within(seerScannerTable).getAllByRole('row')).toHaveLength(2);
   });
 });
 
@@ -1711,7 +1695,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     expect(result.prepaidUsage).toBe(150_000);
   });
 
-  it('calculates for reserved budgets with reserved spend', function () {
+  it('calculates for reserved budgets with reserved spend', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
     const prepaid = 100_000_00;
     subscription.categories.spans = MetricHistoryFixture({
@@ -1770,7 +1754,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
   });
 
-  it('calculates for reserved budgets with reserved cpe', function () {
+  it('calculates for reserved budgets with reserved cpe', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
     const prepaid = 100_000_00;
     subscription.categories.spans = MetricHistoryFixture({
@@ -1816,7 +1800,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
   });
 
-  it('calculates for SEER reserved budgets with automatic extraction', function () {
+  it('calculates for SEER reserved budgets with automatic extraction', () => {
     const subscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am3_business',
@@ -1851,7 +1835,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
   });
 
-  it('calculates for SEER scanner with different CPE', function () {
+  it('calculates for SEER scanner with different CPE', () => {
     const subscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am3_business',
@@ -1886,7 +1870,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
   });
 
-  it('calculates for SEER reserved budgets when over budget', function () {
+  it('calculates for SEER reserved budgets when over budget', () => {
     const subscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am3_business',
@@ -1921,7 +1905,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
   });
 
-  it('calculates for SEER reserved budgets with explicit reservedSpend override', function () {
+  it('calculates for SEER reserved budgets with explicit reservedSpend override', () => {
     const subscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am3_business',
@@ -1954,7 +1938,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
   });
 
-  it('calculates for SEER reserved budgets with zero spend', function () {
+  it('calculates for SEER reserved budgets with zero spend', () => {
     const subscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am3_business',
@@ -1986,13 +1970,13 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
   });
 
-  it('handles SEER categories not in reserved budgets gracefully', function () {
+  it('handles SEER categories not in reserved budgets gracefully', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_business',
     });
 
-    // Add SEER category but don't include it in reservedBudgetCategories
+    // Add SEER category but don't include it in reservedBudgets
     subscription.categories.seerAutofix = MetricHistoryFixture({
       category: DataCategory.SEER_AUTOFIX,
       usage: 10,
@@ -2009,6 +1993,42 @@ describe('calculateCategoryPrepaidUsage', () => {
     // Should fall back to usage-based calculation since no reserved budget info found
     expect(result.prepaidSpend).toBe(0); // No price bucket found for SEER in regular subscription
     expect(result.prepaidUsage).toBe(10);
+  });
+
+  it('converts prepaid limit to bytes for LOG_BYTE category', () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      planTier: 'am2',
+    });
+    const prepaidGb = 10; // 10 GB prepaid limit
+    const usageBytes = 5 * GIGABYTE; // 5 GB actual usage
+
+    // Add price bucket information for LOG_BYTE category
+    subscription.planDetails.planCategories.logBytes = [
+      {events: prepaidGb, price: 1000, unitPrice: 0.1, onDemandPrice: 0.2},
+    ];
+
+    subscription.categories.logBytes = MetricHistoryFixture({
+      prepaid: prepaidGb,
+      reserved: prepaidGb,
+      usage: usageBytes,
+    });
+
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.LOG_BYTE,
+      subscription,
+      prepaidGb
+    );
+
+    // Should multiply prepaid by GIGABYTE for unit conversion
+    expect(result).toEqual({
+      onDemandUsage: 0,
+      prepaidPercentUsed: 50, // 5GB / 10GB = 50%
+      prepaidPrice: 1000,
+      prepaidSpend: 500,
+      prepaidUsage: usageBytes,
+    });
   });
 });
 
@@ -2089,7 +2109,7 @@ describe('calculateCategoryOnDemandUsage', () => {
   });
 });
 
-describe('hasReservedQuotaFunctionality', function () {
+describe('hasReservedQuotaFunctionality', () => {
   const organization = OrganizationFixture();
   let subscription!: Subscription;
 
@@ -2105,7 +2125,7 @@ describe('hasReservedQuotaFunctionality', function () {
     SubscriptionStore.init();
   });
 
-  it('does not render reserved quota section when reserved is null', function () {
+  it('does not render reserved quota section when reserved is null', () => {
     render(
       <UsageTotals
         category={DataCategory.ERRORS}
@@ -2121,7 +2141,7 @@ describe('hasReservedQuotaFunctionality', function () {
     expect(screen.queryByTestId('gifted-errors')).not.toBeInTheDocument();
   });
 
-  it('renders reserved quota section when reserved is UNLIMITED_RESERVED', function () {
+  it('renders reserved quota section when reserved is UNLIMITED_RESERVED', () => {
     render(
       <UsageTotals
         category={DataCategory.ERRORS}
@@ -2137,7 +2157,7 @@ describe('hasReservedQuotaFunctionality', function () {
     expect(screen.getByTestId('reserved-errors')).toHaveTextContent('∞ Reserved');
   });
 
-  it('renders reserved quota section when reserved is greater than 0', function () {
+  it('renders reserved quota section when reserved is greater than 0', () => {
     render(
       <UsageTotals
         category={DataCategory.ERRORS}
@@ -2153,7 +2173,7 @@ describe('hasReservedQuotaFunctionality', function () {
     expect(screen.getByTestId('reserved-errors')).toHaveTextContent('100K Reserved');
   });
 
-  it('does not render reserved quota section when reserved is 0', function () {
+  it('does not render reserved quota section when reserved is 0', () => {
     render(
       <UsageTotals
         category={DataCategory.ERRORS}
@@ -2170,7 +2190,7 @@ describe('hasReservedQuotaFunctionality', function () {
     expect(screen.queryByTestId('gifted-errors')).not.toBeInTheDocument();
   });
 
-  it('renders reserved quota with gifted amount when both present', function () {
+  it('renders reserved quota with gifted amount when both present', () => {
     render(
       <UsageTotals
         category={DataCategory.ERRORS}
@@ -2190,7 +2210,7 @@ describe('hasReservedQuotaFunctionality', function () {
   });
 });
 
-describe('Usage Bar Rendering', function () {
+describe('Usage Bar Rendering', () => {
   const organization = OrganizationFixture();
   let subscription: Subscription;
 
@@ -2209,7 +2229,7 @@ describe('Usage Bar Rendering', function () {
     SubscriptionStore.init();
   });
 
-  it('renders 100% unused width when reserved is 0 and not a trial', function () {
+  it('renders 100% unused width when reserved is 0 and not a trial', () => {
     subscription.categories.errors = MetricHistoryFixture({usage: 0});
     render(
       <UsageTotals
@@ -2236,7 +2256,7 @@ describe('Usage Bar Rendering', function () {
     expect(firstGroupBars?.[0]).toHaveStyle({width: '100%'});
   });
 
-  it('renders correct unused width when reserved is non-zero and not a trial (50% usage)', function () {
+  it('renders correct unused width when reserved is non-zero and not a trial (50% usage)', () => {
     const reserved = 100_000;
     const usage = reserved / 2;
     subscription.categories.errors = MetricHistoryFixture({usage});
@@ -2267,7 +2287,7 @@ describe('Usage Bar Rendering', function () {
     expect(firstGroupBars?.[1]).toHaveStyle({width: '50%'}); // Unused bar
   });
 
-  it('renders correct unused width when reserved is 0 but is a trial (0% usage)', function () {
+  it('renders correct unused width when reserved is 0 but is a trial (0% usage)', () => {
     subscription.isTrial = true;
     subscription.categories.errors = MetricHistoryFixture({usage: 0});
 
@@ -2296,7 +2316,7 @@ describe('Usage Bar Rendering', function () {
     expect(firstGroupBars?.[0]).toHaveStyle({width: '100%'});
   });
 
-  it('renders correct unused width when reserved is 0 but is a trial (50% usage)', function () {
+  it('renders correct unused width when reserved is 0 but is a trial (50% usage)', () => {
     subscription.isTrial = true;
     const trialQuota = 100_000; // Assume trial provides some implicit quota used for % calculation
     const usage = trialQuota / 2;

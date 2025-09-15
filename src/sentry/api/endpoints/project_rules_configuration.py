@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -6,8 +11,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
+from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
+from sentry.models.project import Project
 from sentry.rules import rules
+from sentry.rules.actions.integrations.create_ticket.base import TicketEventAction
+from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
+from sentry.rules.actions.sentry_apps.base import SentryAppEventAction
 
 
 @region_silo_endpoint
@@ -17,11 +26,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
         """
-        action_list = []
+        action_list: list[Mapping[str, Any]] = []
         condition_list = []
         filter_list = []
 
@@ -46,7 +55,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if not can_create_tickets and node.id in TICKET_ACTIONS:
                 continue
 
-            if node.id in SENTRY_APP_ACTIONS:
+            if isinstance(node, SentryAppEventAction):
                 custom_actions = node.get_custom_actions(project)
                 if custom_actions:
                     action_list.extend(custom_actions)
@@ -59,7 +68,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields
 
-            if node.id in TICKET_ACTIONS:
+            if isinstance(node, TicketEventAction):
                 context["actionType"] = "ticket"
                 context["ticketType"] = node.ticket_type
                 context["link"] = node.link
@@ -68,10 +77,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             # It is possible for a project to have no services. In that scenario we do
             # not want the front end to render the action as the action does not have
             # options.
-            if (
-                node.id == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
-                and len(node.get_services()) == 0
-            ):
+            if isinstance(node, NotifyEventServiceAction) and len(node.get_services()) == 0:
                 continue
 
             if rule_type.startswith("condition/"):

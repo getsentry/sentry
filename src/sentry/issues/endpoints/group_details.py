@@ -12,7 +12,6 @@ from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
     delete_group_list,
@@ -27,6 +26,7 @@ from sentry.api.serializers.models.team import TeamSerializer
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
@@ -251,6 +251,14 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     group.project.organization,
                     actor=request.user,
                 ):
+                    metrics.incr(
+                        "group.get.http_response",
+                        sample_rate=1.0,
+                        tags={
+                            "status": 404,
+                            "detail": "group_details:get:no_attachments_feature_flag",
+                        },
+                    )
                     return self.respond(status=404)
 
                 latest_event = group.get_latest_event()
@@ -299,21 +307,21 @@ class GroupDetailsEndpoint(GroupEndpoint):
             data.update({"participants": participants})
 
             metrics.incr(
-                "group.update.http_response",
+                "group.get.http_response",
                 sample_rate=1.0,
                 tags={"status": 200, "detail": "group_details:get:response"},
             )
             return Response(data)
         except snuba.RateLimitExceeded:
             metrics.incr(
-                "group.update.http_response",
+                "group.get.http_response",
                 sample_rate=1.0,
                 tags={"status": 429, "detail": "group_details:get:snuba.RateLimitExceeded"},
             )
             raise
         except Exception:
             metrics.incr(
-                "group.update.http_response",
+                "group.get.http_response",
                 sample_rate=1.0,
                 tags={"status": 500, "detail": "group_details:get:Exception"},
             )
@@ -382,8 +390,18 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     environment_func=get_environment_func(request, group.project.organization_id)
                 ),
             )
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 200, "detail": "group_details:update:Response"},
+            )
             return Response(serialized, status=response.status_code)
         except client.ApiError as e:
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": e.status_code, "detail": "group_details:update:Response"},
+            )
             logging.exception(
                 "group_details:put client.ApiError",
             )
@@ -405,21 +423,21 @@ class GroupDetailsEndpoint(GroupEndpoint):
             delete_group_list(request, group.project, [group], "delete")
 
             metrics.incr(
-                "group.update.http_response",
+                "group.delete.http_response",
                 sample_rate=1.0,
                 tags={"status": 200, "detail": "group_details:delete:Response"},
             )
             return Response(status=202)
         except snuba.RateLimitExceeded:
             metrics.incr(
-                "group.update.http_response",
+                "group.delete.http_response",
                 sample_rate=1.0,
                 tags={"status": 429, "detail": "group_details:delete:snuba.RateLimitExceeded"},
             )
             raise
         except Exception:
             metrics.incr(
-                "group.update.http_response",
+                "group.delete.http_response",
                 sample_rate=1.0,
                 tags={"status": 500, "detail": "group_details:delete:Exception"},
             )

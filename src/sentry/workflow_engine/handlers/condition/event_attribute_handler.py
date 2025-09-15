@@ -2,9 +2,9 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry.eventstore.models import GroupEvent
 from sentry.rules import MatchType, match_values
 from sentry.rules.conditions.event_attribute import ATTR_CHOICES, attribute_registry
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -77,6 +77,10 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         event = event_data.event
+        if not isinstance(event, GroupEvent):
+            # cannot evaluate event attributes on non-GroupEvent types
+            return False
+
         attribute = comparison.get("attribute", "")
         attribute_values = EventAttributeConditionHandler.get_attribute_values(event, attribute)
 

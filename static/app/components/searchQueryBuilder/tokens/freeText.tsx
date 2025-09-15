@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -7,7 +7,6 @@ import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
@@ -28,9 +27,9 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
-  type ParseResultToken,
   parseSearch,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -254,11 +253,6 @@ function SearchQueryBuilderInputInternal({
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
   }, []);
 
-  const resetInputValue = useCallback(() => {
-    setInputValue(trimmedTokenValue);
-    updateSelectionIndex();
-  }, [trimmedTokenValue, updateSelectionIndex]);
-
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
   const {
@@ -271,11 +265,18 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
+    currentInputValueRef,
   } = useSearchQueryBuilder();
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
-    filterValue,
-  });
+  const resetInputValue = useCallback(() => {
+    setInputValue(trimmedTokenValue);
+    updateSelectionIndex();
+  }, [trimmedTokenValue, updateSelectionIndex]);
+
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
+    useFilterKeyListBox({
+      filterValue,
+    });
   const sortedFilteredItems = useSortedFilterKeyItems({
     filterValue,
     inputValue,
@@ -290,6 +291,11 @@ function SearchQueryBuilderInputInternal({
     setPrevValue(trimmedTokenValue);
     setInputValue(trimmedTokenValue);
   }
+
+  // Update the ref when inputValue changes for ask seer
+  useEffect(() => {
+    currentInputValueRef.current = inputValue;
+  }, [inputValue, currentInputValueRef]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -392,13 +398,19 @@ function SearchQueryBuilderInputInternal({
         items={items}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
+          if (handleOptionSelected) {
+            handleOptionSelected(option);
+            if (option.type === 'ask-seer') {
+              return;
+            }
+          }
+
           if (option.type === 'recent-query') {
             dispatch({
               type: 'UPDATE_QUERY',
               query: option.value,
               focusOverride: {itemKey: 'end'},
             });
-            handleSearch(option.value);
             return;
           }
 
@@ -410,10 +422,6 @@ function SearchQueryBuilderInputInternal({
               shouldCommitQuery: true,
             });
             resetInputValue();
-
-            // Because the query does not change until a subsequent render,
-            // we need to do the replacement that is does in the reducer here
-            handleSearch(replaceTokensWithPadding(query, [token], option.value));
             return;
           }
 
@@ -422,6 +430,18 @@ function SearchQueryBuilderInputInternal({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
               text: replaceFocusedWord(inputValue, selectionIndex, option.textValue),
+              focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: true,
+            });
+            resetInputValue();
+            return;
+          }
+
+          if (option.type === 'raw-search-filter-is-value' && option.textValue) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: option.textValue,
               focusOverride: calculateNextFocusForInsertedToken(item),
               shouldCommitQuery: true,
             });
@@ -471,6 +491,13 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
+          // if we haven't changed anything, just search
+          if (value.trim() === trimmedTokenValue) {
+            handleSearch(query);
+            return;
+          }
+
+          // Otherwise, commit the query (which will trigger a search)
           dispatch({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],
@@ -482,10 +509,6 @@ function SearchQueryBuilderInputInternal({
             shouldCommitQuery: true,
           });
           resetInputValue();
-
-          // Because the query does not change until a subsequent render,
-          // we need to do the replacement that is does in the reducer here
-          handleSearch(replaceTokensWithPadding(query, [token], value));
         }}
         onExit={() => {
           if (inputValue !== token.value.trim()) {
@@ -559,10 +582,11 @@ function SearchQueryBuilderInputInternal({
           }
 
           if (
-            parsedText?.some(
-              textToken =>
-                textToken.type === Token.FILTER && textToken.key.text === filterValue
-            )
+            parsedText?.some(textToken => {
+              if (textToken.type !== Token.FILTER) return false;
+              if (textToken.negated) return `!${textToken.key.text}` === filterValue;
+              return textToken.key.text === filterValue;
+            })
           ) {
             const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];

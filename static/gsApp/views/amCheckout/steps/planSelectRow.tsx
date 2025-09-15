@@ -11,36 +11,33 @@ import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
-import {
-  OnDemandBudgetMode,
-  type Plan,
-  type Promotion,
-  type SharedOnDemandBudget,
-} from 'getsentry/types';
+import {OnDemandBudgetMode, type Plan, type Promotion} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
-import type {PlanContent} from 'getsentry/views/amCheckout/steps/planSelect';
+import type {CheckoutFormData, PlanContent} from 'getsentry/views/amCheckout/types';
 import {
   displayUnitPrice,
   formatPrice,
   getShortInterval,
 } from 'getsentry/views/amCheckout/utils';
 
-type UpdateData = {
-  plan: string;
-  onDemandBudget?: SharedOnDemandBudget;
-  onDemandMaxSpend?: number;
-};
-
-type Props = {
+export type PlanSelectRowProps = {
   isSelected: boolean;
-  onUpdate: (data: UpdateData) => void;
+  onUpdate: (data: Partial<CheckoutFormData>) => void;
   plan: Plan;
   planContent: PlanContent;
   planName: string;
   planValue: string;
   price: string;
   priceHeader: React.ReactNode;
+  /**
+   * Flag to show default pay as you go values
+   */
+  shouldShowDefaultPayAsYouGo: boolean;
+  /**
+   * Flag to show event price tags or warnings
+   */
+  shouldShowEventPrice: boolean;
   badge?: React.ReactNode;
   discountInfo?: Promotion['discountInfo'];
   highlightedFeatures?: string[];
@@ -53,14 +50,6 @@ type Props = {
    * Optional warning at the bottom of the row
    */
   planWarning?: React.ReactNode;
-  /**
-   * Optional flag to show default pay as you go values
-   */
-  shouldShowDefaultPayAsYouGo?: boolean;
-  /**
-   * Optional flag to show event price tags
-   */
-  shouldShowEventPrice?: boolean;
 };
 
 function PlanSelectRow({
@@ -79,7 +68,7 @@ function PlanSelectRow({
   badge,
   shouldShowDefaultPayAsYouGo = false,
   shouldShowEventPrice = false,
-}: Props) {
+}: PlanSelectRowProps) {
   const billingInterval = getShortInterval(plan.billingInterval);
   const {features, description, hasMoreLink} = planContent;
 
@@ -113,7 +102,7 @@ function PlanSelectRow({
               value={planValue}
               checked={isSelected}
               onClick={() => {
-                const data: UpdateData = {plan: plan.id};
+                const data: Partial<CheckoutFormData> = {plan: plan.id};
                 if (shouldShowDefaultPayAsYouGo) {
                   data.onDemandMaxSpend = isBizPlanFamily(plan)
                     ? PAYG_BUSINESS_DEFAULT
@@ -281,7 +270,7 @@ const StyledRadio = styled(Radio)`
 const PlanDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
 `;
 
@@ -290,14 +279,14 @@ const PlanName = styled('div')`
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
 `;
 
 const PriceHeader = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-transform: uppercase;
   font-weight: bold;
 `;
@@ -318,7 +307,7 @@ const Amount = styled('span')`
 `;
 
 const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-self: end;
   padding-bottom: ${space(0.25)};
 `;
@@ -327,7 +316,7 @@ const FeatureList = styled('div')`
   display: grid;
   grid-template-rows: auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 
   > a {
@@ -356,7 +345,7 @@ const Title = styled('div')`
 const OriginalTotal = styled('div')`
   color: ${p => p.theme.subText};
   text-decoration: line-through;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const DiscountWrapper = styled('div')`
@@ -367,7 +356,7 @@ const DiscountWrapper = styled('div')`
 
 const PercentOff = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const EventPriceTag = styled(Tag)`

@@ -8,13 +8,12 @@ import {
 } from 'sentry/actionCreators/indicator';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
 const ROUTE_PREFIX = '/settings/account/api/';
@@ -52,11 +51,9 @@ function Row({app, onRemove}: Props) {
     <StyledPanelItem>
       <ApplicationNameWrapper>
         <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
-          {getDynamicText({value: app.name, fixed: 'CI_APPLICATION_NAME'})}
+          {app.name}
         </ApplicationName>
-        <ClientId>
-          {getDynamicText({value: app.clientID, fixed: 'CI_CLIENT_ID'})}
-        </ClientId>
+        <ClientId>{app.clientID}</ClientId>
       </ApplicationNameWrapper>
 
       <ConfirmDelete
@@ -92,7 +89,7 @@ const ApplicationName = styled(Link)`
 
 const ClientId = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 export default Row;

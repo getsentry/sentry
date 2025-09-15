@@ -47,7 +47,7 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
           <div>{onRetry && <Button onClick={onRetry}>{t('Retry')}</Button>}</div>
 
           {!hideSupportLinks && (
-            <ButtonBar gap={1.5}>
+            <ButtonBar gap="lg">
               {lastEventId && (
                 <Button
                   priority="link"
@@ -76,7 +76,7 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
 const Wrapper = styled('div')`
   margin: ${space(2)} auto 0 auto;
   padding: ${space(2)};
-  width: max-content;
+  width: fit-content;
 `;
 
 const ErrorHeading = styled('h4')`

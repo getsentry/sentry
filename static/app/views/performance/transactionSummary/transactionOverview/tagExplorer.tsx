@@ -5,13 +5,13 @@ import type {Location, LocationDescriptorObject} from 'history';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {GridColumn, GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import type {GridColumn, GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -32,8 +32,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
-  type DomainViewFilters,
   useDomainViewFilters,
+  type DomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD} from 'sentry/views/performance/transactionSummary/filter';

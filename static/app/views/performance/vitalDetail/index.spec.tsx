@@ -20,7 +20,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
-const api = new MockApiClient();
 const organization = OrganizationFixture({
   features: ['discover-basic', 'performance-view'],
 });
@@ -43,7 +42,6 @@ const {
 function TestComponent(props: {router?: InjectedRouter} = {}) {
   return (
     <VitalDetail
-      api={api}
       location={props.router?.location ?? router.location}
       router={props.router ?? router}
       params={{}}
@@ -69,8 +67,8 @@ const testSupportedBrowserRendering = (webVital: WebVital) => {
   });
 };
 
-describe('Performance > VitalDetail', function () {
-  beforeEach(function () {
+describe('Performance > VitalDetail', () => {
+  beforeEach(() => {
     TeamStore.loadInitialData([], false, null);
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -220,12 +218,12 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async function () {
+  it('renders basic UI elements', async () => {
     render(<TestComponent />, {
       router,
       organization: org,
@@ -253,7 +251,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('something').closest('td')).toBeInTheDocument();
   });
 
-  it('triggers a navigation on search', async function () {
+  it('triggers a navigation on search', async () => {
     render(<TestComponent />, {
       router,
       organization: org,
@@ -265,7 +263,6 @@ describe('Performance > VitalDetail', function () {
       await screen.findByPlaceholderText('Search for events, users, tags, and more')
     );
     await userEvent.paste('user.email:uhoh*');
-    await userEvent.keyboard('{enter}');
 
     // Check the navigation.
     await waitFor(() => {
@@ -282,7 +279,7 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  it('applies conditions when linking to transaction summary', async function () {
+  it('applies conditions when linking to transaction summary', async () => {
     const newRouter = {
       ...router,
       location: {
@@ -327,7 +324,7 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  it('check CLS', async function () {
+  it('check CLS', async () => {
     const newRouter = {
       ...router,
       location: {
@@ -348,7 +345,7 @@ describe('Performance > VitalDetail', function () {
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByLabelText('See transaction summary of the transaction something')
+      await screen.findByLabelText('See transaction summary of the transaction something')
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({
@@ -374,7 +371,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
   });
 
-  it('can switch vitals with dropdown menu', async function () {
+  it('can switch vitals with dropdown menu', async () => {
     const newRouter = {
       ...router,
       location: {
@@ -411,7 +408,7 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  it('renders LCP vital correctly', async function () {
+  it('renders LCP vital correctly', async () => {
     render(<TestComponent />, {
       router,
       organization: org,
@@ -427,7 +424,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('4.50s').closest('td')).toBeInTheDocument();
   });
 
-  it('correctly renders which browsers support LCP', async function () {
+  it('correctly renders which browsers support LCP', async () => {
     render(<TestComponent />, {
       router,
       organization: org,
@@ -438,7 +435,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.LCP);
   });
 
-  it('correctly renders which browsers support CLS', async function () {
+  it('correctly renders which browsers support CLS', async () => {
     const newRouter = {
       ...router,
       location: {
@@ -459,7 +456,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.CLS);
   });
 
-  it('correctly renders which browsers support FCP', async function () {
+  it('correctly renders which browsers support FCP', async () => {
     const newRouter = {
       ...router,
       location: {
@@ -485,7 +482,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.FCP);
   });
 
-  it('correctly renders which browsers support FID', async function () {
+  it('correctly renders which browsers support FID', async () => {
     const newRouter = {
       ...router,
       location: {

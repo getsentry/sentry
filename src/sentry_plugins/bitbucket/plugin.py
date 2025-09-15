@@ -83,10 +83,11 @@ class BitbucketPlugin(CorePluginMixin, IssuePlugin2):
             re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
+                name=f"sentry-api-0-plugins-{self.slug}-autocomplete",
             )
         ]
 
-    def get_url_module(self):
+    def get_url_module(self) -> str:
         return "sentry_plugins.bitbucket.urls"
 
     def is_configured(self, project) -> bool:

@@ -8,7 +8,7 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew';
 
 jest.mock('sentry/utils/analytics');
 
-describe('WhatsNew', function () {
+describe('WhatsNew', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -22,7 +22,7 @@ describe('WhatsNew', function () {
     jest.useRealTimers();
   });
 
-  it('renders empty state', async function () {
+  it('renders empty state', async () => {
     render(<PrimaryNavigationWhatsNew />);
 
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));
@@ -30,7 +30,7 @@ describe('WhatsNew', function () {
     expect(await screen.findByText(/No recent updates/)).toBeInTheDocument();
   });
 
-  it('displays unseen broadcasts indicator', async function () {
+  it('displays unseen broadcasts indicator', async () => {
     jest.useFakeTimers();
 
     MockApiClient.clearMockResponses();
@@ -84,7 +84,7 @@ describe('WhatsNew', function () {
     });
   });
 
-  it('renders a broadcast item with media content correctly', async function () {
+  it('renders a broadcast item with media content correctly', async () => {
     const broadcast = BroadcastFixture({
       mediaUrl:
         'https://images.ctfassets.net/em6l9zw4tzag/2vWdw7ZaApWxygugalbyOC/285525e5b7c9fbfa8fb814a69ab214cd/PerformancePageSketches_hero.jpg?w=2520&h=945&q=50&fm=webp',

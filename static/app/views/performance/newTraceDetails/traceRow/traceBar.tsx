@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
 import {
   isAutogroupedNode,
   isEAPErrorNode,
@@ -20,7 +21,6 @@ import {
   TraceErrorIcons,
   TraceOccurenceIcons,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
-import {getStylingSliceName} from 'sentry/views/traces/utils';
 
 export function makeTraceNodeBarColor(
   theme: Theme,

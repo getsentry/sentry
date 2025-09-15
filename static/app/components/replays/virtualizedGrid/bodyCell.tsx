@@ -39,7 +39,7 @@ type CellProps = {
 export const Cell = styled('div')<CellProps>`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
   ${cellBackground}

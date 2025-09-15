@@ -1,7 +1,9 @@
-import {useLayoutEffect, useMemo, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useLocation} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import TextOverflow from 'sentry/components/textOverflow';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Text} from 'sentry/components/core/text';
 import {space} from 'sentry/styles/space';
 
 type Entry = {
@@ -14,7 +16,9 @@ function toAlphaNumeric(str: string): string {
 }
 
 function getContentEntries(main: HTMLElement): Entry[] {
-  const titles = main.querySelectorAll('h2, h3, h4, h5, h6');
+  const titles = Array.from(main.querySelectorAll('h2, h3, h4, h5, h6')).filter(
+    title => title.closest('[data-test-id="storybook-demo"]') === null
+  );
   const entries: Entry[] = [];
 
   for (const entry of Array.from(titles ?? [])) {
@@ -33,12 +37,38 @@ function getContentEntries(main: HTMLElement): Entry[] {
 
 function useStoryIndex(): Entry[] {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const location = useLocation();
 
+  const hash = useMemo(() => location.hash.slice(1), [location.hash]);
+  const scrolled = useRef<string>('');
+
+  // automatically scroll to hash
+  useEffect(() => {
+    if (hash) {
+      const entry = entries.find(e => e.ref.id === hash);
+      if (entry && hash !== scrolled.current) {
+        entry.ref.scrollIntoView();
+        scrolled.current = hash;
+      }
+    }
+  }, [hash, entries]);
+
+  // populate entries
+  useLayoutEffect(() => {
+    const main = document.querySelector('main');
+    if (main) {
+      const initialEntries = getContentEntries(main);
+      setEntries(initialEntries);
+    }
+  }, []);
+
+  // update entries when content changes
   useLayoutEffect(() => {
     const observer = new MutationObserver(_mutations => {
       const main = document.querySelector('main');
       if (main) {
-        setEntries(getContentEntries(main));
+        const newEntries = getContentEntries(main);
+        setEntries(newEntries);
       }
     });
 
@@ -48,15 +78,41 @@ function useStoryIndex(): Entry[] {
       observer.observe(document.body, {childList: true, subtree: true});
     }
 
-    // Fire this immediately to ensure entries are set on pageload
-    window.requestAnimationFrame(() => {
-      setEntries(getContentEntries(document.querySelector('main')!));
-    });
-
     return () => observer.disconnect();
-  }, []);
+  }, [hash]);
 
   return entries;
+}
+
+function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
+  const [activeId, setActiveId] = useState<string>('');
+
+  useLayoutEffect(() => {
+    if (entries.length === 0) return void 0;
+
+    const observer = new IntersectionObserver(
+      intersectionEntries => {
+        intersectionEntries
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+          .find(entry => {
+            if (entry.isIntersecting) {
+              setActiveId(entry.target.id);
+              return true;
+            }
+            return false;
+          });
+      },
+      {
+        rootMargin: '0px 0px -35% 0px',
+      }
+    );
+
+    entries.forEach(entry => observer.observe(entry.ref));
+
+    return () => observer.disconnect();
+  }, [entries]);
+
+  return [activeId, setActiveId];
 }
 
 type NestedEntry = {
@@ -90,11 +146,13 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
     const position = entry.ref.compareDocumentPosition(previousEntry.ref);
 
     const isAfter = !!(position & Node.DOCUMENT_POSITION_PRECEDING);
-    const hierarchy =
-      TAGNAME_ORDER.indexOf(entry.ref.tagName) <=
-      TAGNAME_ORDER.indexOf(entries[i - 1]?.ref.tagName ?? '');
+    const shouldNest =
+      entry.ref.tagName === entries.at(0)?.ref.tagName
+        ? false
+        : TAGNAME_ORDER.indexOf(entry.ref.tagName) <=
+          TAGNAME_ORDER.indexOf(entries[i - 1]?.ref.tagName ?? '');
 
-    if (isAfter && hierarchy && parentEntry) {
+    if (isAfter && shouldNest && parentEntry) {
       const parent: NestedEntry = {
         entry,
         children: [],
@@ -116,82 +174,161 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
 export function StoryTableOfContents() {
   const entries = useStoryIndex();
   const nestedEntries = useMemo(() => nestContentEntries(entries), [entries]);
+  const [activeId, setActiveId] = useActiveSection(entries);
+
+  if (nestedEntries.length === 0) return null;
 
   return (
     <StoryIndexContainer>
-      <StoryIndexTitle>Contents</StoryIndexTitle>
-      <StoryIndexListContainer>
-        <StoryIndexList>
-          {nestedEntries.map(entry => (
-            <StoryContentsList key={entry.entry.ref.id} entry={entry} />
-          ))}
-        </StoryIndexList>
-      </StoryIndexListContainer>
+      <StoryIndexTitle>On this page</StoryIndexTitle>
+      <StoryIndexList>
+        {nestedEntries.map(entry => (
+          <StoryContentsList
+            key={entry.entry.ref.id}
+            entry={entry}
+            activeId={activeId}
+            setActiveId={setActiveId}
+          />
+        ))}
+      </StoryIndexList>
     </StoryIndexContainer>
   );
 }
 
-function StoryContentsList({entry}: {entry: NestedEntry}) {
+export function StoryTableOfContentsPlaceholder() {
+  return <StoryIndexContainer aria-hidden="true" />;
+}
+
+function StoryContentsList({
+  entry,
+  activeId,
+  setActiveId,
+  isChild = false,
+}: {
+  activeId: string;
+  entry: NestedEntry;
+  setActiveId: (id: string) => void;
+  isChild?: boolean;
+}) {
+  // Check if any children are active
+  const hasActiveChild = entry.children.some(
+    child =>
+      child.entry.ref.id === activeId ||
+      child.children.some(grandChild => grandChild.entry.ref.id === activeId)
+  );
+
+  const LinkComponent = isChild ? StyledChildLink : StyledLink;
+
   return (
-    <li>
-      <a href={`#${entry.entry.ref.id}`}>
-        <TextOverflow>{entry.entry.title}</TextOverflow>
-      </a>
+    <Flex as="li" direction="column" aria-role="listitem">
+      <LinkComponent
+        href={`#${entry.entry.ref.id}`}
+        isActive={entry.entry.ref.id === activeId}
+        hasActiveChild={hasActiveChild}
+        onClick={() => setActiveId(entry.entry.ref.id)}
+      >
+        <Text
+          ellipsis
+          variant={
+            hasActiveChild
+              ? 'primary'
+              : entry.entry.ref.id === activeId
+                ? 'accent'
+                : 'muted'
+          }
+        >
+          {entry.entry.title}
+        </Text>
+      </LinkComponent>
       {entry.children.length > 0 && (
         <StoryIndexList>
           {entry.children.map(child => (
-            <StoryContentsList key={child.entry.ref.id} entry={child} />
+            <StoryContentsList
+              key={child.entry.ref.id}
+              entry={child}
+              activeId={activeId}
+              setActiveId={setActiveId}
+              isChild
+            />
           ))}
         </StoryIndexList>
       )}
-    </li>
+    </Flex>
   );
 }
 
 const StoryIndexContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    display: none;
-  }
-`;
+  display: none;
+  position: sticky;
+  top: 52px;
+  margin-inline: 0 ${space(2)};
+  height: fit-content;
+  padding: ${space(2)};
+  min-width: 0;
 
-const StoryIndexListContainer = styled('div')`
-  > ul {
-    padding-left: 0;
-    margin-top: ${space(1)};
-  }
-
-  > ul > li {
-    padding-left: 0;
-    margin-top: ${space(1)};
-
-    > a {
-      margin-bottom: ${space(0.5)};
-    }
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: block;
   }
 `;
 
 const StoryIndexTitle = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} 0 ${space(1)} 0;
-  margin-bottom: ${space(1)};
+  line-height: 1.25;
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.primary};
+  height: 28px;
+  display: flex;
+  align-items: center;
 `;
 
 const StoryIndexList = styled('ul')`
   list-style: none;
-  padding-left: ${space(0.75)};
+  padding-left: ${space(1)};
+  padding-right: ${space(1)};
+  border-left: 1px solid ${p => p.theme.tokens.border.muted};
   margin: 0;
-  width: 160px;
+  margin-left: -${space(2)};
+  display: flex;
+  flex-direction: column;
 
-  li {
-    &:hover {
-      background: ${p => p.theme.backgroundSecondary};
-    }
-
-    a {
-      padding: ${space(0.25)} 0;
-      display: block;
-      color: ${p => p.theme.textColor};
-      text-decoration: none;
-    }
+  ul {
+    margin-left: -${space(1)};
+    padding-left: ${space(1)};
+    border-left: none;
   }
+`;
+
+const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
+  display: block;
+  text-decoration: none;
+  padding: ${space(1)};
+  transition: color 80ms ease-out;
+  border-radius: ${p => p.theme.borderRadius};
+  position: relative;
+
+  &:hover {
+    background: ${p => p.theme.tokens.background.tertiary};
+    color: ${p => p.theme.textColor};
+  }
+
+  ${p =>
+    p.isActive &&
+    `
+      &::before {
+        content: '';
+        display: block;
+        position: absolute;
+        left: -${space(1)};
+        width: 4px;
+        height: 16px;
+        border-radius: 4px;
+        transform: translateX(-2px);
+        background: ${p.theme.tokens.graphics.accent};
+      }
+    `}
+`;
+
+const StyledChildLink = styled(StyledLink)<{isActive: boolean}>`
+  margin-left: ${space(2)};
+  border-left: 0;
 `;

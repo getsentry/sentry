@@ -8,7 +8,7 @@ type Props = {
 function PreviewFeature({type = 'info'}: Props) {
   return (
     <Alert.Container>
-      <Alert type={type} showIcon>
+      <Alert type={type}>
         {t(
           'This feature is a preview and may change in the future. Thanks for being an early adopter!'
         )}

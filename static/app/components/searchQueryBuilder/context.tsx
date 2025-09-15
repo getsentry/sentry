@@ -1,18 +1,19 @@
 import {
   createContext,
-  type Dispatch,
   useCallback,
   useContext,
   useMemo,
   useRef,
   useState,
+  type Dispatch,
 } from 'react';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
-  type QueryBuilderActions,
   useQueryBuilderState,
+  type QueryBuilderActions,
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
   FilterKeySection,
@@ -24,19 +25,27 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  askSeerNLQueryRef: React.RefObject<string | null>;
+  askSeerSuggestedQueryRef: React.RefObject<string | null>;
+  autoSubmitSeer: boolean;
   committedQuery: string;
+  currentInputValueRef: React.RefObject<string>;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
-  displaySeerResults: boolean;
+  displayAskSeer: boolean;
+  displayAskSeerFeedback: boolean;
+  enableAISearch: boolean;
   filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
+  gaveSeerConsent: boolean;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
@@ -45,15 +54,20 @@ interface SearchQueryBuilderContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
-  setDisplaySeerResults: (enabled: boolean) => void;
+  setAutoSubmitSeer: (enabled: boolean) => void;
+  setDisplayAskSeer: (enabled: boolean) => void;
+  setDisplayAskSeerFeedback: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
+  filterKeyAliases?: TagCollection;
+  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
    */
   portalTarget?: HTMLElement | null;
   recentSearches?: SavedSearchType;
+  replaceRawSearchKeys?: string[];
 }
 
 export function useSearchQueryBuilder() {
@@ -76,11 +90,12 @@ export function SearchQueryBuilderProvider({
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
+  enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys,
-  filterKeyMenuWidth = 360,
+  filterKeyMenuWidth = 460,
   filterKeySections,
   getSuggestedFilterKey,
   getTagValues,
@@ -90,36 +105,68 @@ export function SearchQueryBuilderProvider({
   searchSource,
   getFilterTokenWarning,
   portalTarget,
+  replaceRawSearchKeys,
+  matchKeySuggestions,
+  filterKeyAliases,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const [displaySeerResults, setDisplaySeerResults] = useState(false);
+  const organization = useOrganization();
+
+  const enableAISearch = Boolean(enableAISearchProp) && !organization.hideAiFeatures;
+  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
+
+  const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
+  const [displayAskSeer, setDisplayAskSeer] = useState(false);
+  const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
+  const currentInputValueRef = useRef<string>('');
+  const askSeerNLQueryRef = useRef<string | null>(null);
+  const askSeerSuggestedQueryRef = useRef<string | null>(null);
+
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
     disabled,
+    displayAskSeerFeedback,
+    setDisplayAskSeerFeedback,
   });
+
+  const stableFieldDefinitionGetter = useMemo(
+    () => fieldDefinitionGetter,
+    [fieldDefinitionGetter]
+  );
+
+  const stableFilterKeys = useMemo(() => filterKeys, [filterKeys]);
+
+  const stableGetSuggestedFilterKey = useCallback(
+    (key: string) => {
+      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : key;
+    },
+    [getSuggestedFilterKey]
+  );
 
   const parseQuery = useCallback(
     (query: string) =>
-      parseQueryBuilderValue(query, fieldDefinitionGetter, {
+      parseQueryBuilderValue(query, stableFieldDefinitionGetter, {
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
         disallowWildcard,
-        filterKeys,
+        filterKeys: stableFilterKeys,
         invalidMessages,
+        filterKeyAliases,
       }),
     [
       disallowFreeText,
       disallowLogicalOperators,
       disallowUnsupportedFilters,
       disallowWildcard,
-      fieldDefinitionGetter,
-      filterKeys,
+      stableFieldDefinitionGetter,
+      stableFilterKeys,
       getFilterTokenWarning,
       invalidMessages,
+      filterKeyAliases,
     ]
   );
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
@@ -140,14 +187,15 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
+      enableAISearch,
       parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
-      filterKeys,
-      getSuggestedFilterKey: getSuggestedFilterKey ?? ((key: string) => key),
+      filterKeys: stableFilterKeys,
+      getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagValues,
-      getFieldDefinition: fieldDefinitionGetter,
+      getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
       wrapperRef,
       actionBarRef,
@@ -157,31 +205,48 @@ export function SearchQueryBuilderProvider({
       searchSource,
       size,
       portalTarget,
-      displaySeerResults,
-      setDisplaySeerResults,
+      autoSubmitSeer,
+      setAutoSubmitSeer,
+      displayAskSeer,
+      setDisplayAskSeer,
+      replaceRawSearchKeys,
+      matchKeySuggestions,
+      filterKeyAliases,
+      gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
+      currentInputValueRef,
+      displayAskSeerFeedback,
+      setDisplayAskSeerFeedback,
+      askSeerNLQueryRef,
+      askSeerSuggestedQueryRef,
     };
   }, [
-    state,
+    autoSubmitSeer,
     disabled,
     disallowFreeText,
     disallowWildcard,
-    parsedQuery,
-    filterKeySections,
-    filterKeyMenuWidth,
-    filterKeys,
-    getSuggestedFilterKey,
-    getTagValues,
-    fieldDefinitionGetter,
     dispatch,
+    displayAskSeer,
+    displayAskSeerFeedback,
+    enableAISearch,
+    filterKeyAliases,
+    filterKeyMenuWidth,
+    filterKeySections,
+    getTagValues,
     handleSearch,
-    placeholder,
-    recentSearches,
-    searchSource,
-    size,
-    portalTarget,
+    matchKeySuggestions,
     parseQuery,
-    displaySeerResults,
-    setDisplaySeerResults,
+    parsedQuery,
+    placeholder,
+    portalTarget,
+    recentSearches,
+    replaceRawSearchKeys,
+    searchSource,
+    setupAcknowledgement.orgHasAcknowledged,
+    size,
+    stableFieldDefinitionGetter,
+    stableFilterKeys,
+    stableGetSuggestedFilterKey,
+    state,
   ]);
 
   return (

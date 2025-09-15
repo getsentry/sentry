@@ -28,7 +28,7 @@ export const CardSectionHeading = styled(SectionHeading)`
 `;
 
 export const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 
