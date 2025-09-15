@@ -392,7 +392,7 @@ class Quota(Service):
                           attachment in bytes.
         """
 
-    def get_event_retention(self, organization, category: DataCategory = None, **kwargs):
+    def get_event_retention(self, organization, category: DataCategory | None = None, **kwargs):
         """
         Returns the retention for events in the given organization in days.
         Returns ``None`` if events are to be stored indefinitely.
@@ -404,7 +404,7 @@ class Quota(Service):
         return _limit_from_settings(options.get("system.event-retention-days"))
 
     def get_downsampled_event_retention(
-        self, organization, category: DataCategory = None, **kwargs
+        self, organization, category: DataCategory | None = None, **kwargs
     ):
         """
         Returns the retention for downsampled events in the given organization in days.
