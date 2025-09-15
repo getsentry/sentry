@@ -48,7 +48,6 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
@@ -137,24 +136,15 @@ export function SpanDescription({
         organization={organization}
       />
       <StyledLink
-        to={
-          hasExploreEnabled
-            ? getSearchInExploreTarget(
-                organization,
-                location,
-                node.event?.projectID,
-                exploreAttributeName,
-                exploreAttributeValue,
-                TraceDrawerActionKind.INCLUDE
-              )
-            : spanDetailsRouteWithQuery({
-                organization,
-                transaction: node.event?.title ?? '',
-                query: location.query,
-                spanSlug: {op: span.op, group: group ?? ''},
-                projectID: node.event?.projectID,
-              })
-        }
+        to={getSearchInExploreTarget(
+          organization,
+          location,
+          node.event?.projectID,
+          exploreAttributeName,
+          exploreAttributeValue,
+          TraceDrawerActionKind.INCLUDE
+        )}
+        disabled={!hasExploreEnabled}
         onClick={() => {
           if (hasExploreEnabled) {
             traceAnalytics.trackExploreSearch(
