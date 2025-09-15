@@ -1,13 +1,13 @@
 from django.urls import re_path
 
-from sentry.preprod.api.endpoints.size_analysis.project_preprod_artifact_size_analysis_download import (
-    ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
-)
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare import (
     ProjectPreprodArtifactSizeAnalysisCompareEndpoint,
 )
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download import (
     ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
+)
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download import (
+    ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
 
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
