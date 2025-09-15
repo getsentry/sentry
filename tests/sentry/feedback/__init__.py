@@ -1,14 +1,17 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sentry.utils import json
 
 
 def mock_feedback_event(
-    project_id: int, dt: datetime | None = None, message: str | None = None
+    project_id: int,
+    dt: datetime | None = None,
+    message: str | None = None,
+    tags: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if dt is None:
-        dt = datetime.now(UTC)
+        dt = datetime.now(UTC) - timedelta(minutes=5)
 
     return {
         "project_id": project_id,
@@ -40,6 +43,7 @@ def mock_feedback_event(
                 "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
             },
         },
+        "tags": tags or {},
         "breadcrumbs": [],
         "platform": "javascript",
     }

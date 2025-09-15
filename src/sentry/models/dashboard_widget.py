@@ -288,6 +288,12 @@ class DashboardWidget(Model):
         db_default=DatasetSourcesTypes.UNKNOWN.value,
     )
 
+    # These fields are used for the dashboards transactions -> spans widget migration.
+    # This field is used to store a snapshot of the widget before the migration.
+    widget_snapshot = models.JSONField(null=True)
+    # This field is used to store the reason for dropping fields or substantial changes to the widget query.
+    changed_reason = models.JSONField(null=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidget"
