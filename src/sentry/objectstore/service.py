@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from io import BytesIO
 from typing import IO, Literal, NamedTuple, NotRequired, Self, TypedDict, cast
+from urllib.parse import urlencode
 
 import urllib3
 import zstandard
-from django.utils import timezone
 from urllib3.connectionpool import HTTPConnectionPool
 
 from sentry.objectstore.metadata import (
@@ -17,11 +17,8 @@ from sentry.objectstore.metadata import (
     format_expiration,
 )
 from sentry.objectstore.metrics import measure_storage_operation
-from sentry.utils import jwt
 
 Permission = Literal["read", "write"]
-
-JWT_VALIDITY_SECS = 30
 
 
 class Scope(TypedDict):
@@ -40,58 +37,37 @@ class ClientBuilder:
         self._options = options
         self._default_compression: Compression = "zstd"
 
-    def _make_client(self, scope: Scope) -> Client:
+    def _make_client(self, scope: str) -> Client:
         from sentry import options as options_store
 
         options = self._options or options_store.get("objectstore.config")
         pool = urllib3.connectionpool.connection_from_url(options["base_url"])
-        jwt_secret = options["jwt_secret"]
 
-        claim = {
-            "usecase": self._usecase,
-            "scope": scope,
-        }
-
-        return Client(pool, self._default_compression, self._usecase, claim, jwt_secret)
+        return Client(pool, self._default_compression, self._usecase, scope)
 
     def default_compression(self, default_compression: Compression) -> Self:
         self._default_compression = default_compression
         return self
 
     def for_organization(self, organization_id: int) -> Client:
-        return self._make_client({"organization": organization_id})
+        return self._make_client(f"org.{organization_id}")
 
     def for_project(self, organization_id: int, project_id: int) -> Client:
-        return self._make_client({"organization": organization_id, "project": project_id})
+        return self._make_client(f"org.{organization_id}/proj.{project_id}")
 
 
 class Client:
     def __init__(
-        self,
-        pool: HTTPConnectionPool,
-        default_compression: Compression,
-        usecase: str,
-        claim: dict,
-        jwt_secret: str,
+        self, pool: HTTPConnectionPool, default_compression: Compression, usecase: str, scope: str
     ):
         self._pool = pool
         self._default_compression = default_compression
         self._usecase = usecase
-        self._jwt_secret = jwt_secret
-        self._claim = claim
+        self._scope = scope
 
-    def _make_headers(self, permission: Permission) -> dict:
-        now = int(timezone.now().timestamp())
-        exp = now + JWT_VALIDITY_SECS
-        claims = {
-            "iat": now,
-            "exp": exp,
-            **self._claim,
-            "permissions": [permission],
-        }
-
-        authorization = jwt.encode(claims, self._jwt_secret)
-        return {"Authorization": authorization}
+    def _make_url(self, url: str) -> str:
+        qs = urlencode({"usecase": self._usecase, "scope": self._scope})
+        return url + "?" + qs
 
     def put(
         self,
@@ -113,7 +89,7 @@ class Client:
         Providing `"none"` as the argument will instruct the client to not apply
         any compression to this upload, which is useful for uncompressible formats.
         """
-        headers = self._make_headers("write")
+        headers = {}
         body = BytesIO(contents) if isinstance(contents, bytes) else contents
         original_body: IO[bytes] = body
 
@@ -133,7 +109,7 @@ class Client:
         with measure_storage_operation("put", self._usecase) as metric_emitter:
             response = self._pool.request(
                 "PUT",
-                f"/{id}" if id else "/",
+                self._make_url(f"/{id}" if id else "/"),
                 body=body,
                 headers=headers,
                 preload_content=True,
@@ -157,13 +133,11 @@ class Client:
         By default, content that was uploaded compressed will be automatically
         decompressed, unless `decompress=True` is passed.
         """
-        headers = self._make_headers("read")
 
         with measure_storage_operation("get", self._usecase):
             response = self._pool.request(
                 "GET",
-                f"/{id}",
-                headers=headers,
+                self._make_url(f"/{id}"),
                 preload_content=False,
                 decode_content=False,
             )
@@ -188,13 +162,11 @@ class Client:
         """
         Deletes the blob with the given `id`.
         """
-        headers = self._make_headers("write")
 
         with measure_storage_operation("delete", self._usecase):
             response = self._pool.request(
                 "DELETE",
-                f"/{id}",
-                headers=headers,
+                self._make_url(f"/{id}"),
             )
             raise_for_status(response)
 
