@@ -1,7 +1,9 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {Virtualizer} from '@react-aria/virtualizer';
+import {ListLayout} from '@react-stately/layout';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
@@ -89,6 +91,11 @@ interface ListBoxProps
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * When true, the list box will be virtualized. Useful for improving performance
+   * of rendering large lists.
+   */
+  virtualized?: boolean;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -118,6 +125,7 @@ export function ListBox({
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
+  virtualized = false,
   ...props
 }: ListBoxProps) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -153,42 +161,90 @@ export function ListBox({
     [listState.collection, hiddenOptions]
   );
 
-  return (
-    <Fragment>
-      {listItems.length !== 0 && <ListSeparator role="separator" />}
-      {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
+  const renderItem = useCallback(
+    // TODO: Specific type for item
+    (type: string, item: any) => {
+      if (hiddenOptions.has(item.key)) {
+        // TODO: This is supposed to hide elements as they're excluded during search, but
+        // it results in a maximum update depth error. Possibly due to updating all of the nodes
+        // to null
+        return null;
+      }
+
+      if (type === 'section') {
+        // TODO: The line separator that's rendered here is not visible when virtualized
+        return (
+          <ListBoxSection
+            key={item.key}
+            item={item}
+            listState={listState}
+            hiddenOptions={hiddenOptions}
+            onToggle={onSectionToggle}
+            size={size}
+            showSectionHeaders={showSectionHeaders}
+            showDetails={showDetails}
+          />
+        );
+      }
+
+      return (
+        <ListBoxOption
+          key={item.key}
+          item={item}
+          listState={listState}
+          size={size}
+          showDetails={showDetails}
+        />
+      );
+    },
+    [hiddenOptions, listState, size, showSectionHeaders, showDetails, onSectionToggle]
+  );
+
+  function getEstimatedRowHeight(formSize: FormSize) {
+    // TODO: Check if there are better ways to access this through theme
+    switch (formSize) {
+      case 'md':
+        return 40;
+      case 'sm':
+        return 36;
+      case 'xs':
+        return 28;
+      default:
+        return 0;
+    }
+  }
+
+  const content =
+    virtualized && overlayIsOpen ? (
+      <Virtualizer
+        key={`${hiddenOptions.size}-${listState.selectionManager.selectedKeys.size}`}
+        // TODO: The key down handler does not trigger the correct focus when virtualized in its current state
+        onKeyDown={onKeyDown}
+        style={{
+          // TODO: Height and width should be override-able
+          height: 'fit-content',
+          maxHeight: '300px',
+          width: 'max(400px, 100%)',
+          overflow: 'auto',
+        }}
+        layout={
+          new ListLayout({
+            padding: 4,
+            estimatedRowHeight: getEstimatedRowHeight(size),
+            estimatedHeadingHeight: getEstimatedRowHeight(size),
+          })
+        }
+        collection={listState.collection}
+      >
+        {renderItem}
+      </Virtualizer>
+    ) : (
       <ListWrap
         {...mergeProps(listBoxProps, props)}
         onKeyDown={onKeyDown}
         ref={mergeRefs(listElementRef, ref)}
       >
-        {overlayIsOpen &&
-          listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <ListBoxSection
-                  key={item.key}
-                  item={item}
-                  listState={listState}
-                  hiddenOptions={hiddenOptions}
-                  onToggle={onSectionToggle}
-                  size={size}
-                  showSectionHeaders={showSectionHeaders}
-                  showDetails={showDetails}
-                />
-              );
-            }
-
-            return (
-              <ListBoxOption
-                key={item.key}
-                item={item}
-                listState={listState}
-                size={size}
-                showDetails={showDetails}
-              />
-            );
-          })}
+        {overlayIsOpen && listItems.map(item => renderItem(item.type, item))}
 
         {!hasSearch && hiddenOptions.size > 0 && (
           <SizeLimitMessage>
@@ -196,6 +252,13 @@ export function ListBox({
           </SizeLimitMessage>
         )}
       </ListWrap>
+    );
+
+  return (
+    <Fragment>
+      {listItems.length !== 0 && <ListSeparator role="separator" />}
+      {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
+      {content}
     </Fragment>
   );
 }

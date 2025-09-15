@@ -168,6 +168,7 @@ export const EmptyMessage = styled('p')`
 
   /* Message should only be displayed when _all_ preceding lists are empty */
   display: block;
+  div:not(:has(div:empty)) ~ &,
   ul:not(:empty) ~ & {
     display: none;
   }

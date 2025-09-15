@@ -367,6 +367,7 @@ function List<Value extends SelectKey>({
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
+          virtualized
         />
       )}
       {multiple &&
