@@ -40,6 +40,7 @@ from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
@@ -66,23 +67,25 @@ class GroupDetailsEndpoint(GroupEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
-        },
-        "PUT": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
-        },
-        "DELETE": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=5),
-            RateLimitCategory.USER: RateLimit(limit=5, window=5),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=5),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            },
+            "PUT": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            },
+            "DELETE": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=5),
+                RateLimitCategory.USER: RateLimit(limit=5, window=5),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=5),
+            },
+        }
+    )
 
     def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
