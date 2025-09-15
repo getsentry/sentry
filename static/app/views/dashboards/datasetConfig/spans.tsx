@@ -294,17 +294,19 @@ function getEventsRequest(
     ...queryExtras,
   };
 
-  if (query.orderby) {
-    if (isEquationAlias(trimStart(query.orderby, '-'))) {
+  let orderBy = query.orderby;
+
+  if (orderBy) {
+    if (isEquationAlias(trimStart(orderBy, '-'))) {
       const equations = query.fields?.filter(isEquation) ?? [];
-      const equationIndex = getEquationAliasIndex(trimStart(query.orderby, '-'));
+      const equationIndex = getEquationAliasIndex(trimStart(orderBy, '-'));
 
       const orderby = equations[equationIndex];
       if (orderby) {
-        query.orderby = query.orderby.startsWith('-') ? `-${orderby}` : orderby;
+        orderBy = orderBy.startsWith('-') ? `-${orderby}` : orderby;
       }
     }
-    params.sort = toArray(query.orderby);
+    params.sort = toArray(orderBy);
   }
 
   return doDiscoverQuery<EventsTableData>(
