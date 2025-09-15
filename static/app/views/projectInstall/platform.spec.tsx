@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
 type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
@@ -80,12 +80,7 @@ describe('ProjectInstallPlatform', () => {
     mockProjectApiResponses([{...project, platform: 'lua'}]);
 
     render(
-      <ProjectInstallPlatform
-        {...routerProps}
-        platform={undefined}
-        currentPlatformKey={'lua' as PlatformKey}
-        project={project}
-      />,
+      <ProjectInstallPlatform {...routerProps} platform={undefined} project={project} />,
       {
         organization,
       }
@@ -117,12 +112,7 @@ describe('ProjectInstallPlatform', () => {
     mockProjectApiResponses([{...project, platform: platform.id}]);
 
     render(
-      <ProjectInstallPlatform
-        {...routerProps}
-        platform={platform}
-        project={project}
-        currentPlatformKey={platform.id}
-      />,
+      <ProjectInstallPlatform {...routerProps} platform={platform} project={project} />,
       {
         organization,
       }
@@ -158,12 +148,7 @@ describe('ProjectInstallPlatform', () => {
     };
 
     render(
-      <ProjectInstallPlatform
-        {...routerProps}
-        project={project}
-        platform={platform}
-        currentPlatformKey={platform.id}
-      />
+      <ProjectInstallPlatform {...routerProps} project={project} platform={platform} />
     );
 
     expect(

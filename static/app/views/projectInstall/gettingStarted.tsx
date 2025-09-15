@@ -38,11 +38,7 @@ function GettingStarted({params}: Props) {
         {loadingProjects ? (
           <LoadingIndicator />
         ) : project ? (
-          <ProjectInstallPlatform
-            project={project}
-            platform={currentPlatform}
-            currentPlatformKey={currentPlatformKey}
-          />
+          <ProjectInstallPlatform project={project} platform={currentPlatform} />
         ) : (
           <Redirect
             to={makeProjectsPathname({
