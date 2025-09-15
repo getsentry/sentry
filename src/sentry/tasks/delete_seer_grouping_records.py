@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry import options
+from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
     call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
@@ -72,6 +73,15 @@ def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequen
 
     if killswitch_enabled(None, ReferrerOptions.DELETION) or options.get(
         "seer.similarity-embeddings-delete-by-hash-killswitch.enabled"
+    ):
+        return
+
+    project = Project.objects.get(id=project_id)
+
+    if not (
+        project
+        and project.get_option("sentry:similarity_backfill_completed")
+        and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
     ):
         return
 
