@@ -92,7 +92,6 @@ class RateLimitConfig:
         if isinstance(rate_limit_override_dict, cls):
             return rate_limit_override_dict
         elif isinstance(rate_limit_override_dict, dict):
-            _LOGGER.warning("deprecated rate limit specification %s", rate_limit_override_dict)
             return cls(limit_overrides=rate_limit_override_dict)
         raise InvalidRateLimitConfig
 
