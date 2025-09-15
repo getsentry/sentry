@@ -12,10 +12,7 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAu
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
-from sentry.organizations.services.organization.model import (
-    RpcOrganization,
-    RpcUserOrganizationContext,
-)
+from sentry.organizations.services.organization.model import RpcOrganization
 
 
 @control_silo_endpoint
@@ -29,36 +26,32 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (OrgAuthTokenPermission,)
 
-    def get(
-        self,
-        request: Request,
-        organization_context: RpcUserOrganizationContext,
-        organization: RpcOrganization,
-        token_id: int,
-    ) -> Response:
+    def convert_args(self, request: Request, token_id, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        organization = kwargs["organization"]
         try:
-            instance = OrgAuthToken.objects.get(
-                organization_id=organization.id, date_deactivated__isnull=True, id=token_id
-            )
-        except OrgAuthToken.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        return Response(serialize(instance, request.user, token=None))
-
-    def put(
-        self,
-        request: Request,
-        organization_context: RpcUserOrganizationContext,
-        organization: RpcOrganization,
-        token_id: int,
-    ):
-        try:
-            instance = OrgAuthToken.objects.get(
+            kwargs["instance"] = OrgAuthToken.objects.get(
                 organization_id=organization.id, id=token_id, date_deactivated__isnull=True
             )
         except OrgAuthToken.DoesNotExist:
             raise ResourceDoesNotExist
 
+        return (args, kwargs)
+
+    def get(
+        self,
+        request: Request,
+        instance: OrgAuthToken,
+        **kwargs,
+    ) -> Response:
+        return Response(serialize(instance, request.user, token=None))
+
+    def put(
+        self,
+        request: Request,
+        instance: OrgAuthToken,
+        **kwargs,
+    ):
         name = request.data.get("name")
 
         if not name:
@@ -76,17 +69,10 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     def delete(
         self,
         request: Request,
-        organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
-        token_id: int,
+        instance: OrgAuthToken,
+        **kwargs,
     ):
-        try:
-            instance = OrgAuthToken.objects.get(
-                organization_id=organization.id, id=token_id, date_deactivated__isnull=True
-            )
-        except OrgAuthToken.DoesNotExist:
-            raise ResourceDoesNotExist
-
         instance.update(date_deactivated=timezone.now())
 
         self.create_audit_entry(
