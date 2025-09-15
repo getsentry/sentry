@@ -259,11 +259,6 @@ class GroupResolutionTest(TestCase):
         assert GroupResolution.has_resolution(self.group, self.old_release)
 
     def test_in_future_release_with_existing_release_and_same_release(self) -> None:
-        """
-        Test that when resolved in future release (non-semver),
-        the future release exists, and we check against the same release,
-        it should not have resolution (resolved in that specific version).
-        """
         GroupResolution.objects.create(
             release=self.old_release,
             group=self.group,

@@ -75,3 +75,50 @@ class ClearExpiredResolutionsTest(TestCase):
 
         activity2 = Activity.objects.get(id=activity2.id)
         assert activity2.data["version"] == ""
+
+    def test_in_future_release_resolutions(self) -> None:
+        """Test that in_future_release resolutions are properly cleared when a new release is created."""
+        project = self.create_project()
+
+        # Create group in release 1.0.0 resolved in future release 2.0.0
+        old_release = Release.objects.create(
+            organization_id=project.organization_id, version="1.0.0"
+        )
+        old_release.add_project(project)
+        group = self.create_group(
+            project=project, status=GroupStatus.RESOLVED, active_at=timezone.now()
+        )
+        resolution = GroupResolution.objects.create(
+            group=group,
+            release=old_release,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version="2.0.0",
+            status=GroupResolution.Status.pending,
+        )
+        activity = Activity.objects.create(
+            group=group,
+            project=project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={"version": ""},
+        )
+
+        # Create the 2.0.0 release that should trigger resolution clearing
+        new_release = Release.objects.create(
+            organization_id=project.organization_id,
+            version="2.0.0",
+            date_added=timezone.now() + timedelta(minutes=1),
+        )
+        new_release.add_project(project)
+
+        clear_expired_resolutions(new_release.id)
+
+        # Verify the resolution was updated
+        updated_resolution = GroupResolution.objects.get(id=resolution.id)
+        assert updated_resolution.status == GroupResolution.Status.resolved
+        assert updated_resolution.release == new_release
+        assert updated_resolution.type == GroupResolution.Type.in_release
+
+        # Verify the activity was updated
+        updated_activity = Activity.objects.get(id=activity.id)
+        assert updated_activity.data["version"] == new_release.version

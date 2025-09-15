@@ -172,7 +172,7 @@ class GroupResolution(Model):
                     return release.date_added < future_release.date_added
                 except Release.DoesNotExist:
                     # future release doesn't exist yet, if versions are the same then regression
-                    # but this would never happen because if they're the same then future release exists??
+                    # but this would never happen because if they're the same then future release exists?
                     return future_release_version != release.version
 
         # We still fallback to the older model if either current_release_version was not set (
