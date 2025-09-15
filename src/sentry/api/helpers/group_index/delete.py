@@ -118,6 +118,8 @@ def delete_group_hashes(
             :hashes_batch_size
         ]
         hashes_chunk = list(qs)
+        if not hashes_chunk:
+            return
         try:
             if seer_deletion:
                 # Tell seer to delete grouping records for these groups
