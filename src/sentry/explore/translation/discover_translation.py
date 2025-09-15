@@ -258,20 +258,15 @@ def translate_discover_query_to_explore_query(
         "changed_reason": changed_reason,
     }
 
-    discover_query_id = discover_query.id
-
-    try:
-        if discover_query.explore_query is None:
-            raise ExploreSavedQuery.DoesNotExist
+    if discover_query.explore_query is not None:
         discover_query.explore_query.changed_reason = changed_reason
         discover_query.explore_query.query = translated_query_field
         discover_query.explore_query.save()
         new_explore_query = discover_query.explore_query
-    except (ExploreSavedQuery.DoesNotExist, AttributeError):
+    else:
         new_explore_query = ExploreSavedQuery(**create_defaults)
         new_explore_query.save()
-        DiscoverSavedQuery.objects.filter(id=discover_query_id).update(
-            explore_query=new_explore_query.id
-        )
+        discover_query.explore_query_id = new_explore_query.id
+        discover_query.save()
 
     return new_explore_query
