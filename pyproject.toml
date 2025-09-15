@@ -747,7 +747,7 @@ module = [
     "tests.sentry.integrations.jira.utils.*",
     "tests.sentry.integrations.middleware.*",
     "tests.sentry.integrations.models.*",
-    "tests.sentry.integrations.msteams.webhook.*",
+    "tests.sentry.integrations.msteams.*",
     "tests.sentry.integrations.repository.*",
     "tests.sentry.integrations.services.*",
     "tests.sentry.integrations.slack.actions.*",
