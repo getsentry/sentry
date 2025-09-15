@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -109,7 +110,7 @@ export function Exception({
             {hasStreamlinedUI && group && (
               <Fragment>
                 {data.values && data.values.length > 1 && (
-                  <SectionDivider orientation="horizontal" />
+                  <StyledSectionDivider orientation="horizontal" />
                 )}
                 <ErrorBoundary
                   mini
@@ -130,3 +131,7 @@ export function Exception({
     </StacktraceContext>
   );
 }
+
+const StyledSectionDivider = styled(SectionDivider)`
+  margin-bottom: ${p => p.theme.space.lg};
+`;

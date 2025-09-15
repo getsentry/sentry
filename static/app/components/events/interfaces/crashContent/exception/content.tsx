@@ -355,7 +355,7 @@ export function Content({
   }
 
   return (
-    <div>
+    <ChainedExceptionsContainer>
       {hasChainedExceptions && (
         <Fragment>
           <p>
@@ -363,11 +363,11 @@ export function Content({
               numExceptions: values.length,
             })}
           </p>
-          <SectionDivider orientation="horizontal" />
+          <StyledSectionDivider orientation="horizontal" />
         </Fragment>
       )}
       {children}
-    </div>
+    </ChainedExceptionsContainer>
   );
 }
 
@@ -386,6 +386,10 @@ const Title = styled('h5')`
   word-break: break-word;
 `;
 
+const ChainedExceptionsContainer = styled('div')`
+  margin-bottom: ${p => p.theme.space.lg};
+`;
+
 const ShowRelatedExceptionsButton = styled(Button)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
@@ -399,4 +403,8 @@ const StyledFoldSection = styled(FoldSection)`
     margin-left: ${p => p.theme.space.xl};
     margin-right: ${p => p.theme.space.xl};
   }
+`;
+
+const StyledSectionDivider = styled(SectionDivider)`
+  margin-bottom: ${p => p.theme.space.lg};
 `;
