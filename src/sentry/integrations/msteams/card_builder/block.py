@@ -12,7 +12,7 @@ SENTRY_ICON_URL = "images/sentry-glyph-black.png"
 
 CURRENT_CARD_VERSION = "1.5"
 
-ADAPTIVE_CARD_SCHEMA_URL = "http://adaptivecards.io/schemas/adaptive-card.json"
+ADAPTIVE_CARD_SCHEMA_URL = "https://adaptivecards.io/schemas/adaptive-card.json"
 
 # NOTE: The classes below need to inherit from `str` as well to be serialized correctly.
 # `TextSize.SMALL` has to serialized to `Small`, if not inheriting from `str` it would be
