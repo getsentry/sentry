@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.models.groupresolution import GroupResolution
@@ -198,6 +199,114 @@ class GroupResolutionTest(TestCase):
 
     def test_no_release_with_no_resolution(self) -> None:
         assert not GroupResolution.has_resolution(self.group, None)
+
+    def test_in_future_release_with_semver_and_newer_release(self) -> None:
+        newer_semver_release = self.create_release(version="foo_package@3.0")
+
+        GroupResolution.objects.create(
+            release=self.old_semver_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_semver_release.version,
+        )
+
+        assert not GroupResolution.has_resolution(self.group, newer_semver_release)
+
+    def test_in_future_release_with_semver_and_older_release(self) -> None:
+        older_semver_release = self.create_release(version="foo_package@1.1")
+
+        GroupResolution.objects.create(
+            release=self.old_semver_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_semver_release.version,
+        )
+
+        assert GroupResolution.has_resolution(self.group, older_semver_release)
+
+    def test_in_future_release_with_semver_and_same_release(self) -> None:
+        GroupResolution.objects.create(
+            release=self.old_semver_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_semver_release.version,
+        )
+
+        assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
+
+    def test_in_future_release_with_existing_release_and_newer_release(self) -> None:
+        newer_release = self.create_release(
+            version="c", date_added=timezone.now() + timedelta(minutes=30)
+        )
+
+        GroupResolution.objects.create(
+            release=self.old_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_release.version,  # "b"
+        )
+
+        assert not GroupResolution.has_resolution(self.group, newer_release)
+
+    def test_in_future_release_with_existing_release_and_older_release(self) -> None:
+        GroupResolution.objects.create(
+            release=self.old_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_release.version,  # "b"
+        )
+
+        assert GroupResolution.has_resolution(self.group, self.old_release)
+
+    def test_in_future_release_with_existing_release_and_same_release(self) -> None:
+        """
+        Test that when resolved in future release (non-semver),
+        the future release exists, and we check against the same release,
+        it should not have resolution (resolved in that specific version).
+        """
+        GroupResolution.objects.create(
+            release=self.old_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version=self.new_release.version,  # "b"
+        )
+
+        assert not GroupResolution.has_resolution(self.group, self.new_release)
+
+    def test_in_future_release_with_nonexistent_release_and_matching_version(self) -> None:
+        test_release = self.create_release(version="future-version-a")
+
+        GroupResolution.objects.create(
+            release=self.old_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version="future-version-a",
+        )
+
+        assert not GroupResolution.has_resolution(self.group, test_release)
+
+    def test_in_future_release_with_nonexistent_release_and_different_version(self) -> None:
+        test_release = self.create_release(version="release-version-a")
+
+        GroupResolution.objects.create(
+            release=self.old_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            future_release_version="future-version-b",
+        )
+
+        assert GroupResolution.has_resolution(self.group, test_release)
+
+    def test_in_future_release_without_future_release_version_raises_not_implemented(self) -> None:
+        GroupResolution.objects.create(
+            release=self.old_release,
+            group=self.group,
+            type=GroupResolution.Type.in_future_release,
+            # future_release_version is intentionally not set (None)
+        )
+
+        with pytest.raises(NotImplementedError):
+            GroupResolution.has_resolution(self.group, self.new_release)
 
     def test_all_resolutions_are_implemented(self) -> None:
         resolution_types = [

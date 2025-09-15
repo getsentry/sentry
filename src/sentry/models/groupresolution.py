@@ -168,15 +168,12 @@ class GroupResolution(Model):
                     future_release = Release.objects.get(
                         organization_id=group.organization.id, version=future_release_version
                     )
-                    # Use the same date comparison logic as inNextRelease
-                    return compare_release_dates_for_in_next_release(
-                        res_release=future_release.id,
-                        res_release_datetime=future_release.date_added,
-                        release=release,
-                    )
+                    # we're good if given release happened before future release
+                    return release.date_added < future_release.date_added
                 except Release.DoesNotExist:
-                    # Future release doesn't exist yet, just check if versions are equal
-                    return future_release_version == release.version
+                    # future release doesn't exist yet, if versions are the same then regression
+                    # but this would never happen because if they're the same then future release exists??
+                    return future_release_version != release.version
 
         # We still fallback to the older model if either current_release_version was not set (
         # i.e. In all resolved cases except for Resolved in Next Release) or if for whatever
