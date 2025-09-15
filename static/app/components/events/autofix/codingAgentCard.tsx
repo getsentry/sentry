@@ -2,9 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
@@ -12,7 +14,7 @@ import {
   type CodingAgentState,
   type SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import Spinner from 'sentry/components/forms/spinner';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,17 +34,16 @@ interface CodingAgentCardProps {
 }
 
 function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
-  const getStatusColor = (status: CodingAgentStatus) => {
+  const getTagType = (status: CodingAgentStatus): TagProps['type'] => {
     switch (status) {
+      case CodingAgentStatus.COMPLETED:
+        return 'success';
+      case CodingAgentStatus.FAILED:
+        return 'error';
       case CodingAgentStatus.PENDING:
       case CodingAgentStatus.RUNNING:
-        return 'yellow300';
-      case CodingAgentStatus.COMPLETED:
-        return 'green300';
-      case CodingAgentStatus.FAILED:
-        return 'red300';
       default:
-        return 'gray300';
+        return 'info';
     }
   };
 
@@ -51,7 +52,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
       case CodingAgentStatus.PENDING:
         return t('Pending...');
       case CodingAgentStatus.RUNNING:
-        return t('Running');
+        return t('Running...');
       case CodingAgentStatus.COMPLETED:
         return t('Completed');
       case CodingAgentStatus.FAILED:
@@ -80,7 +81,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
       <StepCard>
         <ContentWrapper>
           <AnimatePresence>
-            <AnimationWrapper key="coding-agent" {...animationProps}>
+            <motion.div key="coding-agent" {...animationProps}>
               <StyledCard>
                 <HeaderWrapper>
                   <HeaderText>
@@ -122,17 +123,12 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   <CardHeader>
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
                     <div>
-                      <StatusBadge
-                        status={codingAgentState.status}
-                        color={getStatusColor(codingAgentState.status)}
-                      >
+                      <Tag type={getTagType(codingAgentState.status)}>
                         {shouldShowSpinner(codingAgentState.status) && (
-                          <SpinnerWrapper>
-                            <Spinner />
-                          </SpinnerWrapper>
+                          <LoadingIndicator size={12} />
                         )}
                         {getStatusText(codingAgentState.status)}
-                      </StatusBadge>
+                      </Tag>
                     </div>
                   </CardHeader>
 
@@ -145,12 +141,14 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                         )}
                         {codingAgentState.results.map((result, index) => (
                           <ResultItem key={index}>
-                            <ResultDescription
-                              status={codingAgentState.status}
-                              dangerouslySetInnerHTML={{
-                                __html: singleLineRenderer(result.description),
-                              }}
-                            />
+                            <Text density="comfortable">
+                              <ResultDescription
+                                status={codingAgentState.status}
+                                dangerouslySetInnerHTML={{
+                                  __html: singleLineRenderer(result.description),
+                                }}
+                              />
+                            </Text>
                             {result.branch_name && (
                               <DetailRow>
                                 <Label>{t('Branch')}:</Label>
@@ -178,13 +176,15 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   </CardContent>
                 </Content>
               </StyledCard>
-            </AnimationWrapper>
+            </motion.div>
           </AnimatePresence>
         </ContentWrapper>
       </StepCard>
     </React.Fragment>
   );
 }
+
+export default CodingAgentCard;
 
 const VerticalLine = styled('div')`
   width: 0;
@@ -214,8 +214,6 @@ const ContentWrapper = styled(motion.div)`
     overflow: hidden;
   }
 `;
-
-const AnimationWrapper = styled(motion.div)``;
 
 const StyledCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
@@ -258,34 +256,6 @@ const AgentTitle = styled('h4')`
   margin: 0 0 ${p => p.theme.space.xs} 0;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
-`;
-
-const StatusBadge = styled('span')<{color: string; status: CodingAgentStatus}>`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: 600;
-  text-transform: uppercase;
-  background-color: ${p => (p.theme as any)[p.color] || p.theme.gray300};
-  color: ${p => p.theme.white};
-`;
-
-const SpinnerWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  width: 12px;
-  height: 12px;
-
-  > div {
-    width: 12px !important;
-    height: 12px !important;
-    border-width: 1.5px !important;
-    border-left-color: ${p => p.theme.white};
-    margin: 0 !important;
-  }
 `;
 
 const CardContent = styled('div')`
@@ -334,7 +304,4 @@ const ResultItem = styled('div')`
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
     p.status === CodingAgentStatus.FAILED ? p.theme.red300 : p.theme.textColor};
-  line-height: 1.4;
 `;
-
-export default CodingAgentCard;
