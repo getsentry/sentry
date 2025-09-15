@@ -109,7 +109,6 @@ export function useFetchReplaySummary(
     timeMs: POLL_TIMEOUT_MS,
     onTimeout: () => {
       setDidTimeout(true);
-      cancelPollingTimeout();
     },
   });
 
@@ -153,6 +152,9 @@ export function useFetchReplaySummary(
     }
     startSummaryRequestMutate();
     hasMadeStartRequest.current = true;
+
+    // Start a new timeout.
+    setDidTimeout(false);
     startPollingTimeout();
   }, [options?.enabled, startSummaryRequestMutate, startPollingTimeout]);
 
