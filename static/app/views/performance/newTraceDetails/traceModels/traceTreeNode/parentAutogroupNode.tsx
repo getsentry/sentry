@@ -1,5 +1,3 @@
-import {uuid4} from '@sentry/core';
-
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -29,10 +27,11 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     super(parent, node, extra);
     this.head = head;
     this.tail = tail;
+    this.expanded = false;
   }
 
-  get id(): string {
-    return uuid4();
+  get id(): string | undefined {
+    return this.head.id ?? this.tail.id;
   }
 
   get autogroupedSegments(): Array<[number, number]> {
@@ -55,15 +54,15 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   }
 
   get drawerTabsTitle(): string {
-    return t('Autogroup') + ' - ' + this.value.autogrouped_by.op;
+    return t('Autogroup') + (this.op ? ' - ' + this.op : '');
   }
 
-  get op(): string | undefined {
+  get op(): string {
     return this.value.autogrouped_by.op;
   }
 
   printNode(): string {
-    return this.value.autogrouped_by.op;
+    return `parent autogroup (${this.op}: ${this.groupCount})`;
   }
 
   pathToNode(): TraceTree.NodePath[] {
@@ -152,6 +151,10 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     }
 
     return visibleChildren;
+  }
+
+  matchById(id: string): boolean {
+    return this.head.id === id || this.tail.id === id;
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {

@@ -54,6 +54,7 @@ describe('ParentAutogroupNode', () => {
       expect(node.head).toBe(headNode);
       expect(node.tail).toBe(tailNode);
       expect(node.groupCount).toBe(0);
+      expect(node.expanded).toBe(false);
     });
 
     it('should initialize with parent node', () => {
@@ -111,11 +112,11 @@ describe('ParentAutogroupNode', () => {
   });
 
   describe('getter methods', () => {
-    it('should return unique id on each call', () => {
+    it('should return id from head node', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({});
-      const headSpanValue = makeEAPSpan({event_id: 'head'});
-      const tailSpanValue = makeEAPSpan({event_id: 'tail'});
+      const headSpanValue = makeEAPSpan({event_id: 'head-span-id'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail-span-id'});
 
       const headNode = new EapSpanNode(null, headSpanValue, extra);
       const tailNode = new EapSpanNode(null, tailSpanValue, extra);
@@ -127,14 +128,45 @@ describe('ParentAutogroupNode', () => {
         tailNode
       );
 
-      const id1 = node.id;
-      const id2 = node.id;
+      expect(node.id).toBe('head-span-id');
+    });
 
-      expect(id1).toBeDefined();
-      expect(id2).toBeDefined();
-      expect(id1).not.toBe(id2); // Each call should return a new UUID
-      expect(typeof id1).toBe('string');
-      expect(typeof id2).toBe('string');
+    it('should return id from tail node when head id is undefined', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({});
+      const headSpanValue = makeEAPSpan({event_id: undefined});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail-span-id'});
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.id).toBe('tail-span-id');
+    });
+
+    it('should return undefined when both head and tail ids are undefined', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({});
+      const headSpanValue = makeEAPSpan({event_id: undefined});
+      const tailSpanValue = makeEAPSpan({event_id: undefined});
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.id).toBeUndefined();
     });
 
     it('should return correct drawerTabsTitle', () => {
@@ -158,17 +190,34 @@ describe('ParentAutogroupNode', () => {
       expect(node.drawerTabsTitle).toBe('Autogroup - db.query');
     });
 
+    it('should return correct drawerTabsTitle without operation', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({
+        autogrouped_by: {op: ''},
+      });
+      const headSpanValue = makeEAPSpan({event_id: 'head'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail'});
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.drawerTabsTitle).toBe('Autogroup');
+    });
+
     it('should return correct traceHeaderTitle', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({
         description: 'GET /api/users',
         autogrouped_by: {op: 'http.request'},
       });
-      const headSpanValue = makeEAPSpan({
-        event_id: 'head',
-        op: 'http.request',
-        description: 'GET /api/users',
-      });
+      const headSpanValue = makeEAPSpan({event_id: 'head'});
       const tailSpanValue = makeEAPSpan({event_id: 'tail'});
 
       const headNode = new EapSpanNode(null, headSpanValue, extra);
@@ -184,6 +233,30 @@ describe('ParentAutogroupNode', () => {
       expect(node.traceHeaderTitle).toEqual({
         title: 'http.request',
         subtitle: 'GET /api/users',
+      });
+    });
+
+    it('should return fallback traceHeaderTitle when op is empty', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({
+        autogrouped_by: {op: ''},
+      });
+      const headSpanValue = makeEAPSpan({event_id: 'head'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail'});
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.traceHeaderTitle).toEqual({
+        title: 'Trace',
+        subtitle: undefined,
       });
     });
 
@@ -304,8 +377,8 @@ describe('ParentAutogroupNode', () => {
     it('should return correct pathToNode', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({});
-      const headSpanValue = makeEAPSpan({event_id: 'head'});
-      const tailSpanValue = makeEAPSpan({event_id: 'tail'});
+      const headSpanValue = makeEAPSpan({event_id: 'head-span-id'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail-span-id'});
 
       const headNode = new EapSpanNode(null, headSpanValue, extra);
       const tailNode = new EapSpanNode(null, tailSpanValue, extra);
@@ -319,8 +392,7 @@ describe('ParentAutogroupNode', () => {
 
       const path = node.pathToNode();
       expect(path).toHaveLength(1);
-      expect(path[0]).toMatch(/^ag-/); // Should start with 'ag-'
-      expect(typeof path[0]).toBe('string');
+      expect(path[0]).toBe('ag-head-span-id'); // Should use head node id
     });
 
     it('should return correct analyticsName', () => {
@@ -360,7 +432,7 @@ describe('ParentAutogroupNode', () => {
         tailNode
       );
 
-      expect(node.printNode()).toBe('custom.operation');
+      expect(node.printNode()).toBe('parent autogroup (custom.operation: 0)');
     });
 
     it('should render waterfall row', () => {
@@ -416,6 +488,67 @@ describe('ParentAutogroupNode', () => {
 
       const result = node.renderDetails(mockProps);
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('matchById', () => {
+    it('should match by head node id', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({});
+      const headSpanValue = makeEAPSpan({event_id: 'head-span-id'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail-span-id'});
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.matchById('head-span-id')).toBe(true);
+      expect(node.matchById('different-id')).toBe(false);
+    });
+
+    it('should match by tail node id', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({});
+      const headSpanValue = makeEAPSpan({event_id: 'head-span-id'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail-span-id'});
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.matchById('tail-span-id')).toBe(true);
+      expect(node.matchById('different-id')).toBe(false);
+    });
+
+    it('should not match when neither head nor tail ids match', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({});
+      const headSpanValue = makeEAPSpan({event_id: 'head-span-id'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail-span-id'});
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.matchById('different-id')).toBe(false);
     });
   });
 
@@ -546,28 +679,6 @@ describe('ParentAutogroupNode', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle empty autogroup operation', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({
-        autogrouped_by: {op: ''},
-      });
-      const headSpanValue = makeEAPSpan({event_id: 'head'});
-      const tailSpanValue = makeEAPSpan({event_id: 'tail'});
-
-      const headNode = new EapSpanNode(null, headSpanValue, extra);
-      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
-      const node = new ParentAutogroupNode(
-        null,
-        autogroupValue,
-        extra,
-        headNode,
-        tailNode
-      );
-
-      expect(node.drawerTabsTitle).toBe('Autogroup - ');
-      expect(node.printNode()).toBe('');
-    });
-
     it('should handle head and tail being the same node', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({});
