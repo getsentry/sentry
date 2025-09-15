@@ -204,7 +204,7 @@ class ParseSearchQueryTest(SimpleTestCase):
             # expected result value without the wildcard operator, this is because the
             # backend does a translation from the unicode wildcard to the regular
             # asterisk wildcard
-            if "contains" in query or "ends with" in query:
+            if "Contains" in query or "EndsWith" in query:
                 leading_op = "="
                 leading_wildcard_value: str | list[str] | None = None
                 if test_case[1]["filter"] == "text":
@@ -223,7 +223,7 @@ class ParseSearchQueryTest(SimpleTestCase):
                 new_search_value = expected[0].value._replace(raw_value=leading_wildcard_value)
                 expected = [SearchFilter(expected[0].key, leading_op, new_search_value)]
 
-            if "contains" in query or "starts with" in query:
+            if "Contains" in query or "StartsWith" in query:
                 trailing_op = "="
                 trailing_wildcard_value: str | list[str] | None = None
                 if test_case[1]["filter"] == "text":
@@ -1168,67 +1168,67 @@ def test_gen_wildcard_value(value, wildcard_op, expected) -> None:
     [
         # --- contains ---
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}test", "span.op:=^.*test.*$"
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}test", "span.op:=^.*test.*$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}*test", "span.op:=^.*\\*test.*$"
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}*test", "span.op:=^.*\\*test.*$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}test*", "span.op:=^.*test\\*.*$"
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}test*", "span.op:=^.*test\\*.*$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}*test*",
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}*test*",
             "span.op:=^.*\\*test\\*.*$",
         ),
         # --- contains quoted text ---
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}"test 1"',
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}"test 1"',
             "span.op:=^.*test\\ 1.*$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}"*test 1"',
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}"*test 1"',
             "span.op:=^.*\\*test\\ 1.*$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}"test 1*"',
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}"test 1*"',
             "span.op:=^.*test\\ 1\\*.*$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}"*test 1*"',
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}"*test 1*"',
             "span.op:=^.*\\*test\\ 1\\*.*$",
         ),
         # --- contains text list ---
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}[test, test2]",
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}[test, test2]",
             "span.op:[*test*, *test2*]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}[*test, *test2]",
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}[*test, *test2]",
             "span.op:[*\\*test*, *\\*test2*]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}[test*, test2*]",
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}[test*, test2*]",
             "span.op:[*test\\**, *test2\\**]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}[*test*, *test2*]",
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}[*test*, *test2*]",
             "span.op:[*\\*test\\**, *\\*test2\\**]",
         ),
         # --- contains quoted text list ---
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}["test 1", "test 2"]',
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}["test 1", "test 2"]',
             "span.op:[*test 1*, *test 2*]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}["*test 1", "*test 2"]',
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}["*test 1", "*test 2"]',
             "span.op:[*\\*test 1*, *\\*test 2*]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}["test 1*", "test 2*"]',
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}["test 1*", "test 2*"]',
             "span.op:[*test 1\\**, *test 2\\**]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}contains{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
             "span.op:[*\\*test 1\\**, *\\*test 2\\**]",
         ),
     ],
@@ -1244,69 +1244,69 @@ def test_handles_contains_wildcard_op_translations(query, expected) -> None:
 @pytest.mark.parametrize(
     ["query", "expected"],
     [
-        # --- starts with ---
+        # --- StartsWith ---
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}test", "span.op:=^test.*$"
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}test", "span.op:=^test.*$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}*test", "span.op:=^\\*test.*$"
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}*test", "span.op:=^\\*test.*$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}test*", "span.op:=^test\\*.*$"
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}test*", "span.op:=^test\\*.*$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}*test*",
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}*test*",
             "span.op:=^\\*test\\*.*$",
         ),
-        # --- starts with quoted text ---
+        # --- StartsWith quoted text ---
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}"test 1"',
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}"test 1"',
             "span.op:=^test\\ 1.*$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}"*test 1"',
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}"*test 1"',
             "span.op:=^\\*test\\ 1.*$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}"test 1*"',
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}"test 1*"',
             "span.op:=^test\\ 1\\*.*$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}"*test 1*"',
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}"*test 1*"',
             "span.op:=^\\*test\\ 1\\*.*$",
         ),
-        # --- starts with text list ---
+        # --- StartsWith text list ---
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}[test, test2]",
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}[test, test2]",
             "span.op:[test*, test2*]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}[*test, *test2]",
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}[*test, *test2]",
             "span.op:[\\*test*, \\*test2*]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}[test*, test2*]",
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}[test*, test2*]",
             "span.op:[test\\**, test2\\**]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}[*test*, *test2*]",
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}[*test*, *test2*]",
             "span.op:[\\*test\\**, \\*test2\\**]",
         ),
-        # --- starts with quoted text list ---
+        # --- StartsWith quoted text list ---
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}["test 1", "test 2"]',
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}["test 1", "test 2"]',
             "span.op:[test 1*, test 2*]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}["*test 1", "*test 2"]',
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}["*test 1", "*test 2"]',
             "span.op:[\\*test 1*, \\*test 2*]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}["test 1*", "test 2*"]',
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}["test 1*", "test 2*"]',
             "span.op:[test 1\\**, test 2\\**]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}starts with{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
             "span.op:[\\*test 1\\**, \\*test 2\\**]",
         ),
     ],
@@ -1322,69 +1322,69 @@ def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
 @pytest.mark.parametrize(
     ["query", "expected"],
     [
-        # --- ends with ---
+        # --- EndsWith ---
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}test", "span.op:=^.*test$"
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}test", "span.op:=^.*test$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}*test", "span.op:=^.*\\*test$"
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}*test", "span.op:=^.*\\*test$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}test*", "span.op:=^.*test\\*$"
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}test*", "span.op:=^.*test\\*$"
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}*test*",
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}*test*",
             "span.op:=^.*\\*test\\*$",
         ),
-        # --- ends with quoted text ---
+        # --- EndsWith quoted text ---
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}"test 1"',
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}"test 1"',
             "span.op:=^.*test\\ 1$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}"*test 1"',
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}"*test 1"',
             "span.op:=^.*\\*test\\ 1$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}"test 1*"',
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}"test 1*"',
             "span.op:=^.*test\\ 1\\*$",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}"*test 1*"',
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}"*test 1*"',
             "span.op:=^.*\\*test\\ 1\\*$",
         ),
-        # --- ends with text list ---
+        # --- EndsWith text list ---
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}[test, test2]",
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}[test, test2]",
             "span.op:[*test, *test2]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}[*test, *test2]",
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}[*test, *test2]",
             "span.op:[*\\*test, *\\*test2]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}[test*, test2*]",
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}[test*, test2*]",
             "span.op:[*test\\*, *test2\\*]",
         ),
         pytest.param(
-            f"span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}[*test*, *test2*]",
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}[*test*, *test2*]",
             "span.op:[*\\*test\\*, *\\*test2\\*]",
         ),
-        # --- ends with quoted text list ---
+        # --- EndsWith quoted text list ---
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}["test 1", "test 2"]',
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}["test 1", "test 2"]',
             "span.op:[*test 1, *test 2]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}["*test 1", "*test 2"]',
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}["*test 1", "*test 2"]',
             "span.op:[*\\*test 1, *\\*test 2]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}["test 1*", "test 2*"]',
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}["test 1*", "test 2*"]',
             "span.op:[*test 1\\*, *test 2\\*]",
         ),
         pytest.param(
-            f'span.op:{WILDCARD_UNICODE}ends with{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
             "span.op:[*\\*test 1\\*, *\\*test 2\\*]",
         ),
     ],
