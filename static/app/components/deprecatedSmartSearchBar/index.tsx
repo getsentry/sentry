@@ -28,6 +28,7 @@ import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
   getKeyName,
   isOperator,
+  isWildcardOperator,
   isWithinToken,
   treeResultLocator,
 } from 'sentry/components/searchSyntax/utils';
@@ -92,7 +93,7 @@ const generateOpAutocompleteGroup = (
 ): AutocompleteGroup => {
   const operatorMap = generateOperatorEntryMap(tagName);
   const operatorItems = validOps
-    .filter(op => !wildcardOperators.includes(op))
+    .filter(op => !(isWildcardOperator(op) && wildcardOperators.includes(op)))
     .map(op => operatorMap[op])
     .filter(defined);
   return {

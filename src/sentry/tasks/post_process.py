@@ -1648,7 +1648,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         return
 
     project = group.project
-    if not project.get_option("sentry:seer_scanner_automation"):
+    if (
+        not project.get_option("sentry:seer_scanner_automation")
+        and not group.issue_type.always_trigger_seer_automation
+    ):
         return
 
     # Don't run if there's already a task in progress for this issue

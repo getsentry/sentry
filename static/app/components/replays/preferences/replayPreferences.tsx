@@ -57,3 +57,8 @@ export const LocalStorageReplayPreferences: PrefsStrategy = {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs));
   },
 };
+
+export const REPLAY_TIMESTAMP_OPTIONS: Array<'relative' | 'absolute'> = [
+  'relative',
+  'absolute',
+];

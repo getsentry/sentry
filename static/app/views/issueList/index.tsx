@@ -18,7 +18,6 @@ import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssu
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type Props = {
   children: React.ReactNode;
@@ -70,17 +69,14 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
 function StreamWrapper({children}: Props) {
   const organization = useOrganization();
   useRouteAnalyticsHookSetup();
-  const prefersStackedNav = usePrefersStackedNav();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
-
-  const onNewIssuesFeed = prefersStackedNav && !viewId;
-  const useGlobalPageFilters = !prefersStackedNav || onNewIssuesFeed;
+  const onIssuesFeed = !viewId;
 
   return (
     <PageFiltersContainer
-      skipLoadLastUsed={!useGlobalPageFilters}
-      disablePersistence={!useGlobalPageFilters}
-      skipInitializeUrlParams={!onNewIssuesFeed && prefersStackedNav}
+      skipLoadLastUsed={!onIssuesFeed}
+      disablePersistence={!onIssuesFeed}
+      skipInitializeUrlParams={!onIssuesFeed}
     >
       <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
     </PageFiltersContainer>
@@ -114,15 +110,10 @@ function IssueViewWrapper({children}: Props) {
 
 function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
-  const prefersStackedNav = usePrefersStackedNav();
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      {prefersStackedNav ? (
-        <IssueViewWrapper>{children}</IssueViewWrapper>
-      ) : (
-        <StreamWrapper>{children}</StreamWrapper>
-      )}
+      <IssueViewWrapper>{children}</IssueViewWrapper>
     </SentryDocumentTitle>
   );
 }

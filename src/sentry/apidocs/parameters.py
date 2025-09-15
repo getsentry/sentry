@@ -650,7 +650,7 @@ class MonitorParams:
 
 class UptimeParams:
     UPTIME_ALERT_ID = OpenApiParameter(
-        name="uptime_project_subscription_id",
+        name="uptime_detector_id",
         location="path",
         required=True,
         type=int,
