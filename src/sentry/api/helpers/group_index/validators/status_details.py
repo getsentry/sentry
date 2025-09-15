@@ -120,13 +120,13 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
         except Release.DoesNotExist:
             raise serializers.ValidationError("Unable to find a release with the given version.")
 
-    def validate(self, attrs) -> dict[str, Any]:
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """
         Cross-field validation hook called by DRF after individual field validation.
         """
         return self._preserve_future_release_version(attrs)
 
-    def _preserve_future_release_version(self, attrs) -> dict[str, Any]:
+    def _preserve_future_release_version(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """
         Store the original future release version string for inFutureRelease since the validator
         transforms it to a Release object or None, but we need the version string
