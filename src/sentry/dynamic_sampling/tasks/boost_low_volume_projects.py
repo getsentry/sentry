@@ -403,7 +403,8 @@ def query_project_counts_by_org(
     more_results: bool = True
     while more_results:
         with metrics.timer(
-            "dynamic_sampling.query_project_counts_by_org.query_time", tags={"measure": measure}
+            "dynamic_sampling.query_project_counts_by_org.query_time",
+            tags={"measure": str(measure.value)},
         ):
             request = Request(
                 dataset=Dataset.PerformanceMetrics.value,
