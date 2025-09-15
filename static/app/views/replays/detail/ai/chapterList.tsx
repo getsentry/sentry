@@ -47,11 +47,13 @@ export function ChapterList({timeRanges}: Props) {
           error,
           feedback,
           breadcrumbs:
-            replay?.getSummaryChapterFrames().filter(
-              breadcrumb =>
-                breadcrumb.timestampMs >= period_start &&
-                breadcrumb.timestampMs <= period_end // should be exclusive (<) ?
-            ) ?? [],
+            replay
+              ?.getSummaryChapterFrames()
+              .filter(
+                breadcrumb =>
+                  breadcrumb.timestampMs >= period_start &&
+                  breadcrumb.timestampMs <= period_end
+              ) ?? [],
         }))
         .sort((a, b) => a.start - b.start),
     [timeRanges, replay]
