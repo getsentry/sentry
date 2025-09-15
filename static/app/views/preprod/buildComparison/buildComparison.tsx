@@ -5,11 +5,13 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildComparisonHeaderContent';
+import {SizeComparisonMainContent} from 'sentry/views/preprod/buildComparison/main/sizeComparisonMainContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export default function BuildComparison() {
@@ -39,7 +41,7 @@ export default function BuildComparison() {
 
   if (headBuildDetailsQuery.isLoading) {
     return (
-      <SentryDocumentTitle title="Build comparison">
+      <SentryDocumentTitle title={t('Build comparison')}>
         <Layout.Page>
           <Layout.Header>
             <Placeholder
@@ -60,11 +62,22 @@ export default function BuildComparison() {
   }
 
   if (headBuildDetailsQuery.isError || !headBuildDetailsQuery.data) {
-    return <Alert type="error">{headBuildDetailsQuery.error?.message}</Alert>;
+    return (
+      <Alert type="error">
+        {headBuildDetailsQuery.error?.message || t('Failed to load build details')}
+      </Alert>
+    );
   }
 
+  let mainContent = null;
+  if (baseArtifactId) {
+    // Base artifact provided in URL, show comparison state
+    mainContent = <SizeComparisonMainContent />;
+  }
+  // TODO: Support just head selected with list to show comparable builds
+
   return (
-    <SentryDocumentTitle title="Build comparison">
+    <SentryDocumentTitle title={t('Build comparison')}>
       <Layout.Page>
         <Layout.Header>
           <BuildComparisonHeaderContent
@@ -74,10 +87,7 @@ export default function BuildComparison() {
         </Layout.Header>
 
         <Layout.Body>
-          <Layout.Main>
-            Build comparison main content head: {headArtifactId} base: {baseArtifactId}{' '}
-            project: {projectId}
-          </Layout.Main>
+          <Layout.Main fullWidth>{mainContent}</Layout.Main>
         </Layout.Body>
       </Layout.Page>
     </SentryDocumentTitle>

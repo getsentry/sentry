@@ -240,6 +240,7 @@ const DEFAULT_STATS_INFO = {
   yAxisMinInterval: 100,
 };
 const GIGABYTE = 10 ** 9;
+const KILOBYTE = 10 ** 3;
 
 // https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
 export const DATA_CATEGORY_INFO = {
@@ -523,7 +524,7 @@ export const DATA_CATEGORY_INFO = {
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
-      yAxisMinInterval: 0.5 * GIGABYTE,
+      yAxisMinInterval: 1 * KILOBYTE,
     },
   },
   [DataCategoryExact.SEER_AUTOFIX]: {
@@ -576,7 +577,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Prevent Reviews'),
     productName: t('Prevent Reviews'),
     uid: 30,
-    isBilledCategory: true,
+    isBilledCategory: false,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: false, // TODO(prevent): add external stats when ready

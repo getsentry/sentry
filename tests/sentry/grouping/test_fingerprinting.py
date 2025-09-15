@@ -4,7 +4,7 @@ import pytest
 
 from sentry.db.models.fields.node import NodeData
 from sentry.grouping.api import get_default_grouping_config_dict
-from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.utils import resolve_fingerprint_values
 from sentry.grouping.variants import BaseVariant
@@ -15,7 +15,7 @@ GROUPING_CONFIG = get_default_grouping_config_dict()
 
 
 def test_basic_parsing() -> None:
-    rules = FingerprintingRules.from_config_string(
+    rules = FingerprintingConfig.from_config_string(
         """
 # This is a config
 type:DatabaseUnavailable                        -> DatabaseUnavailable
@@ -139,7 +139,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
     }
 
     assert (
-        FingerprintingRules._from_config_structure(
+        FingerprintingConfig._from_config_structure(
             rules._to_config_structure()
         )._to_config_structure()
         == rules._to_config_structure()
@@ -147,7 +147,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
 
 
 def test_rule_export() -> None:
-    rules = FingerprintingRules.from_config_string(
+    rules = FingerprintingConfig.from_config_string(
         """
 logger:sentry.*                                 -> logger, {{ logger }}, title="Message from {{ logger }}"
 """
@@ -162,11 +162,11 @@ logger:sentry.*                                 -> logger, {{ logger }}, title="
 
 def test_parsing_errors() -> None:
     with pytest.raises(InvalidFingerprintingConfig):
-        FingerprintingRules.from_config_string("invalid.message:foo -> bar")
+        FingerprintingConfig.from_config_string("invalid.message:foo -> bar")
 
 
 def test_automatic_argument_splitting() -> None:
-    rules = FingerprintingRules.from_config_string(
+    rules = FingerprintingConfig.from_config_string(
         """
 logger:test -> logger-{{ logger }}
 logger:test -> logger-, {{ logger }}
@@ -206,7 +206,7 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
 
 
 def test_discover_field_parsing() -> None:
-    rules = FingerprintingRules.from_config_string(
+    rules = FingerprintingConfig.from_config_string(
         """
 # This is a config
 error.type:DatabaseUnavailable                        -> DatabaseUnavailable
@@ -253,7 +253,7 @@ release:foo                                     -> release-foo
     }
 
     assert (
-        FingerprintingRules._from_config_structure(
+        FingerprintingConfig._from_config_structure(
             rules._to_config_structure()
         )._to_config_structure()
         == rules._to_config_structure()

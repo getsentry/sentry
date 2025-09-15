@@ -21,6 +21,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_detector,
     get_project_subscription,
     get_uptime_subscription,
     load_regions_for_uptime_subscription,
@@ -195,6 +196,7 @@ def create_uptime_detector(
     """
     if mode == UptimeMonitorMode.MANUAL:
         manual_subscription_count = Detector.objects.filter(
+            status=ObjectStatus.ACTIVE,
             type=UptimeDomainCheckFailure.slug,
             project__organization=project.organization,
             config__mode=UptimeMonitorMode.MANUAL,
@@ -430,7 +432,7 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         detector.update(enabled=False)
 
         if not skip_quotas:
-            quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
+            quotas.backend.disable_seat(DataCategory.UPTIME, detector)
 
         # Are there any other project subscriptions associated to the subscription
         # that are NOT disabled?
@@ -469,12 +471,12 @@ def enable_uptime_detector(
         return
 
     if not skip_quotas:
-        seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, uptime_monitor)
+        seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
         if not seat_assignment.assignable:
             disable_uptime_detector(detector)
             raise UptimeMonitorNoSeatAvailable(seat_assignment)
 
-        outcome = quotas.backend.assign_seat(DataCategory.UPTIME, uptime_monitor)
+        outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
         if outcome != Outcome.ACCEPTED:
             # Race condition, we were unable to assign the seat even though the
             # earlier assignment check indicated assignability
@@ -494,12 +496,14 @@ def enable_uptime_detector(
 def delete_uptime_detector(detector: Detector):
     uptime_monitor = get_project_subscription(detector)
     delete_project_uptime_subscription(uptime_monitor)
+    detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
 
 
 def delete_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscription):
     uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
-    quotas.backend.remove_seat(DataCategory.UPTIME, uptime_monitor)
+    detector = get_detector(uptime_monitor.uptime_subscription)
+    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
     uptime_monitor.delete()
     remove_uptime_subscription_if_unused(uptime_subscription)
 
@@ -516,6 +520,7 @@ def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
     auto_detected_subscription_ids = list(
         Detector.objects.filter(
+            status=ObjectStatus.ACTIVE,
             type=UptimeDomainCheckFailure.slug,
             project=project,
             config__mode__in=(

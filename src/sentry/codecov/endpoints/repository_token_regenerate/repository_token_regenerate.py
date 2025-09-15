@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
@@ -16,6 +17,13 @@ from sentry.codecov.endpoints.repository_token_regenerate.serializers import (
 from sentry.integrations.services.integration.model import RpcIntegration
 
 
+class RepositoryTokenRegeneratePermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+    }
+
+
 @extend_schema(tags=["Prevent"])
 @region_silo_endpoint
 class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
@@ -23,6 +31,7 @@ class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    permission_classes = (RepositoryTokenRegeneratePermission,)
 
     @extend_schema(
         operation_id="Regenerates a repository upload token and returns the new token",

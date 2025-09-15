@@ -29,7 +29,11 @@ function NoFeedback() {
   );
 }
 
-export default function FeedbackList() {
+interface Props {
+  onItemSelect: (itemIndex?: number) => void;
+}
+
+export default function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
     queryKey: listQueryKey ?? ['infinite', ''],
@@ -65,19 +69,23 @@ export default function FeedbackList() {
                 'id'
               )
             }
-            estimateSize={() => 24}
+            estimateSize={() => 80}
             queryResult={queryResult}
-            itemRenderer={({item}) => (
-              <ErrorBoundary mini>
-                <FeedbackListItem
-                  feedbackItem={item}
-                  isSelected={checkboxState.isSelected(item.id)}
-                  onSelect={() => {
-                    checkboxState.toggleSelected(item.id);
-                  }}
-                />
-              </ErrorBoundary>
-            )}
+            itemRenderer={({item, virtualItem}) => {
+              const itemIndex = virtualItem.index;
+              return (
+                <ErrorBoundary mini>
+                  <FeedbackListItem
+                    feedbackItem={item}
+                    isSelected={checkboxState.isSelected(item.id)}
+                    onSelect={() => {
+                      checkboxState.toggleSelected(item.id);
+                    }}
+                    onItemSelect={() => onItemSelect(itemIndex)}
+                  />
+                </ErrorBoundary>
+              );
+            }}
             emptyMessage={() => <NoFeedback />}
             loadingMoreMessage={() => (
               <Centered>

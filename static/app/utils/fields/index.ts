@@ -1048,6 +1048,12 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.FAILURE_RATE,
 ];
 
+export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
+  ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey.COUNT_IF,
+  AggregationKey.APDEX,
+];
+
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   [AggregationKey.COUNT]: {
@@ -1241,6 +1247,54 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.PERCENTAGE,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.COUNT_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_IF],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: () => {
+          return true;
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: 'greater',
+        options: CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.APDEX]: {
+    ...AGGREGATION_FIELDS[AggregationKey.APDEX],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([FieldValueType.DURATION]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.NUMBER,
+        defaultValue: '300',
         required: true,
       },
     ],
@@ -1907,7 +1961,7 @@ const DEVICE_FIELD_DEFINITION: Record<DeviceFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_SIMULATOR]: {
-    desc: t('Indicates if it occured on a simulator'),
+    desc: t('Indicates if it occurred on a simulator'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
@@ -2456,7 +2510,7 @@ export const DISCOVER_FIELDS = [
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,
 
-  // Field alises defined in src/sentry/api/event_search.py
+  // Field aliases defined in src/sentry/api/event_search.py
   FieldKey.PROJECT,
   FieldKey.ISSUE,
   FieldKey.USER_DISPLAY,
