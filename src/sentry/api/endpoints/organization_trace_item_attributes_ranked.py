@@ -15,11 +15,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.events import fields
 from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
@@ -55,9 +57,24 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             sampling_mode=snuba_params.sampling_mode,
         )
 
-        function_name = request.GET.get("function_name", "count")
-        function_parameter = request.GET.get("function_parameter", "span.duration")
+        function_string = request.GET.get("function", "count(span.duration)")
         above = request.GET.get("above") == "1"
+
+        match = fields.is_function(function_string)
+        if match is None:
+            raise InvalidSearchQuery(f"{function_string} is not a function")
+
+        function_name = match.group("function")
+        columns = match.group("columns")
+        arguments = fields.parse_arguments(function_name, columns)
+
+        if len(arguments) != 1:
+            raise InvalidSearchQuery(
+                f"Function {function_name} must have exactly one argument, got {len(arguments)}"
+            )
+
+        function_parameter = arguments[0]
+
         should_segment_suspect_cohort = function_name in [
             "avg",
             "p50",
@@ -140,7 +157,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_1,
                 selected_columns=["count(span.duration)"],
                 orderby=None,
-                config=SearchResolverConfig(use_aggregate_conditions=False),
+                config=SearchResolverConfig(),
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
@@ -158,7 +175,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 query_string=query_2,
                 selected_columns=["count(span.duration)"],
                 orderby=None,
-                config=SearchResolverConfig(use_aggregate_conditions=False),
+                config=SearchResolverConfig(),
                 offset=0,
                 limit=1,
                 sampling_mode=snuba_params.sampling_mode,
@@ -236,8 +253,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         ranked_distribution: dict[str, Any] = {
             "rankedAttributes": [],
             "rankingInfo": {
-                "functionName": function_name,
-                "functionParameter": function_parameter,
+                "function": function_string,
                 "value": function_value if function_value else "N/A",
                 "above": above,
             },
@@ -251,7 +267,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 or attr,
                 "cohort1": cohort_1_distribution_map.get(attr),
                 "cohort2": cohort_2_distribution_map.get(attr),
-                "order": {  # TODO: Aayush remove this once we have selected a single ranking method
+                "order": {  # TODO: aayush-se remove this once we have selected a single ranking method
                     "rrf": i,
                     "rrr": rrr_order_map.get(attr),
                 },
