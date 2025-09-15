@@ -24,7 +24,6 @@ function getReplayTabs({
   isVideoReplay: boolean;
   organization: Organization;
 }): Record<TabKey, ReactNode> {
-  // For video replays, we hide the memory tab (not applicable for mobile)
   return {
     [TabKey.AI]:
       organization.features.includes('replay-ai-summaries') &&

@@ -7,7 +7,6 @@ import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -60,7 +59,9 @@ export default function Ai() {
 
   // the org doesn't have the replay summaries ff, or
   // hideAiFeatures is true (settings "Show Generative AI Features" toggle is off), or
-  // org does not have the gen-ai-features ff
+  // org does not have the gen-ai-features ff.
+  // the tab should be hidden for all these cases, but the user can still access
+  // the tab content via the url.
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
