@@ -174,6 +174,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             except InvalidGroupTypeError:
                 pass
 
+        # Avoid circular import
         from sentry.api.helpers.group_index.delete import delete_group_hashes
 
         delete_group_hashes(instance_list[0].project_id, error_group_ids)
