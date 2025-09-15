@@ -4,8 +4,10 @@ from typing import Any
 import sentry_sdk
 from django.apps import apps
 
+from sentry import options
 from sentry.db.models.base import Model
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker import namespaces
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import buffer_tasks
 from sentry.utils.locking import UnableToAcquireLock
@@ -61,6 +63,37 @@ def process_pending_batch() -> None:
             process_buffer()
     except UnableToAcquireLock as error:
         logger.warning("process_pending_batch.fail", extra={"error": error})
+
+
+@instrumented_task(
+    name="sentry.tasks.process_buffer.schedule_delayed_workflows",
+    queue="workflow_engine.process_workflows",
+    taskworker_config=TaskworkerConfig(
+        namespace=namespaces.workflow_engine_tasks,
+        processing_deadline_duration=40,
+    ),
+)
+def schedule_delayed_workflows() -> None:
+    """
+    Schedule delayed workflow buffers in a batch.
+    """
+    from sentry.rules.processing.buffer_processing import process_buffer_for_type
+    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+
+    lock = get_process_lock("schedule_delayed_workflows")
+
+    try:
+        with lock.acquire():
+            # Only process delayed_workflow type
+            use_pending_batch = options.get("workflow_engine.use_process_pending_batch")
+            if use_pending_batch:
+                logger.info(
+                    "Configured to use process_pending_batch for delayed_workflow; exiting."
+                )
+                return
+            process_buffer_for_type("delayed_workflow", DelayedWorkflow)
+    except UnableToAcquireLock as error:
+        logger.warning("schedule_delayed_workflows.fail", extra={"error": error})
 
 
 @instrumented_task(

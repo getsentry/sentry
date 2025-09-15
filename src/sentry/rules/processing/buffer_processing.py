@@ -159,45 +159,62 @@ def process_in_batches(
             )
 
 
-def process_buffer() -> None:
+def process_buffer_for_type(processing_type: str, handler: type[DelayedProcessingBase]) -> None:
+    """
+    Process buffers for a specific processing type and handler.
+    """
     should_emit_logs = options.get("delayed_processing.emit_logs")
 
+    if handler.option and not options.get(handler.option):
+        log_name = f"{processing_type}.disabled"
+        logger.info(log_name, extra={"option": handler.option})
+        return
+
+    buffer = handler.buffer_backend()
+
+    with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
+        # We need to use a very fresh timestamp here; project scores (timestamps) are
+        # updated with each relevant event, and some can be updated every few milliseconds.
+        # The staler this timestamp, the more likely it'll miss some recently updated projects,
+        # and the more likely we'll have frequently updated projects that are never actually
+        # retrieved and processed here.
+        fetch_time = datetime.now(tz=timezone.utc).timestamp()
+        buffer_keys = handler.get_buffer_keys()
+        all_project_ids_and_timestamps = buffer.bulk_get_sorted_set(
+            buffer_keys,
+            min=0,
+            max=fetch_time,
+        )
+
+        if should_emit_logs:
+            log_str = ", ".join(
+                f"{project_id}: {timestamps}"
+                for project_id, timestamps in all_project_ids_and_timestamps.items()
+            )
+            log_name = f"{processing_type}.project_id_list"
+            logger.info(log_name, extra={"project_ids": log_str})
+
+        project_ids = list(all_project_ids_and_timestamps.keys())
+        for project_id in project_ids:
+            process_in_batches(buffer, project_id, processing_type)
+
+        buffer.delete_keys(
+            buffer_keys,
+            min=0,
+            max=fetch_time,
+        )
+
+
+def process_buffer() -> None:
+    """
+    Process all registered delayed processing types.
+    If workflow_engine.use_process_pending_batch is False, skip delayed_workflow processing
+    to allow it to run in the separate process_delayed_workflows task.
+    """
+    use_pending_batch = options.get("workflow_engine.use_process_pending_batch")
+
     for processing_type, handler in delayed_processing_registry.registrations.items():
-        if handler.option and not options.get(handler.option):
-            log_name = f"{processing_type}.disabled"
-            logger.info(log_name, extra={"option": handler.option})
+        # If the config option is disabled and this is delayed_workflow, skip it
+        if not use_pending_batch and processing_type == "delayed_workflow":
             continue
-
-        buffer = handler.buffer_backend()
-
-        with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
-            # We need to use a very fresh timestamp here; project scores (timestamps) are
-            # updated with each relevant event, and some can be updated every few milliseconds.
-            # The staler this timestamp, the more likely it'll miss some recently updated projects,
-            # and the more likely we'll have frequently updated projects that are never actually
-            # retrieved and processed here.
-            fetch_time = datetime.now(tz=timezone.utc).timestamp()
-            buffer_keys = handler.get_buffer_keys()
-            all_project_ids_and_timestamps = buffer.bulk_get_sorted_set(
-                buffer_keys,
-                min=0,
-                max=fetch_time,
-            )
-
-            if should_emit_logs:
-                log_str = ", ".join(
-                    f"{project_id}: {timestamps}"
-                    for project_id, timestamps in all_project_ids_and_timestamps.items()
-                )
-                log_name = f"{processing_type}.project_id_list"
-                logger.info(log_name, extra={"project_ids": log_str})
-
-            project_ids = list(all_project_ids_and_timestamps.keys())
-            for project_id in project_ids:
-                process_in_batches(buffer, project_id, processing_type)
-
-            buffer.delete_keys(
-                buffer_keys,
-                min=0,
-                max=fetch_time,
-            )
+        process_buffer_for_type(processing_type, handler)
