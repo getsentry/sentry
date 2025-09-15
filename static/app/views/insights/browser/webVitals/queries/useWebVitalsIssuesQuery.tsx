@@ -31,6 +31,9 @@ export function getIssueQueryFilter({
   if (transaction) {
     mutableSearch.addFilterValue('transaction', transaction);
   }
+  // For issue.type:web_vitals, we also want to filter for a specific web_vital tag.
+  // However, the issues api doesn't support OR conditions, so we can't apply a filter to the web_vital tag without it affecting all other filter conditions.
+  // To get around this, we instead filter out all other web_vital tags except the one we want to filter for.
   if (webVital) {
     mutableSearch.addFilterValue(
       '!web_vital',
