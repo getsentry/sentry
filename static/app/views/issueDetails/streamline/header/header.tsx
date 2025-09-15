@@ -155,13 +155,13 @@ export default function StreamlinedGroupHeader({
             )}
             {hasFeedbackForm && openForm ? (
               <Button
-                aria-label={t('Give feedback on the query injection issue')}
+                aria-label={t('Give feedback on the issue Sentry detected')}
                 icon={<IconMegaphone />}
                 size={'xs'}
                 onClick={() =>
                   openForm({
                     messagePlaceholder: t(
-                      'Please provide feedback on the query injection issue.'
+                      'Please provide feedback on the issue Sentry detected.'
                     ),
                     tags: {
                       ['feedback.source']: feedbackSource,
