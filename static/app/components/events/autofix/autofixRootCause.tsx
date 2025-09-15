@@ -507,7 +507,7 @@ function AutofixRootCauseDisplay({
                       disabled: isLoadingAgents || isLaunchingAgent,
                     },
                   ]}
-                  trigger={(triggerProps: any, isOpen: boolean) => (
+                  trigger={(triggerProps, isOpen) => (
                     <DropdownTrigger
                       {...triggerProps}
                       size="sm"
