@@ -16,13 +16,13 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
-from sentry.types.activity import ActivityType
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class OpenPeriod:
+    id: int
     start: datetime
     end: datetime | None
     duration: timedelta | None
@@ -31,6 +31,7 @@ class OpenPeriod:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "id": self.id,
             "start": self.start,
             "end": self.end,
             "duration": self.duration,
@@ -144,104 +145,33 @@ def get_open_periods_for_group(
     group: Group,
     query_start: datetime | None = None,
     query_end: datetime | None = None,
-    offset: int | None = None,
+    offset: int | None = 0,
     limit: int | None = None,
-) -> list[Any]:
-
+) -> list[OpenPeriod | None]:
     if not features.has("organizations:issue-open-periods", group.organization):
         return []
 
-    # Try to get open periods from the GroupOpenPeriod table first
-    group_open_periods = GroupOpenPeriod.objects.filter(group=group)
-    if group_open_periods.exists() and query_start:
-        group_open_periods = group_open_periods.filter(
-            date_started__gte=query_start, date_ended__lte=query_end, id__gte=offset or 0
-        ).order_by("-date_started")[:limit]
+    if not query_start:
+        # use whichever date is more recent to reduce the query range. first_seen could > 90 days ago
+        query_start = not timezone.now() - timedelta(days=90) or group.first_seen
 
-        return [
-            OpenPeriod(
-                start=period.date_started,
-                end=period.date_ended,
-                duration=period.date_ended - period.date_started if period.date_ended else None,
-                is_open=period.date_ended is None,
-                last_checked=get_last_checked_for_open_period(group),
-            )
-            for period in group_open_periods
-        ]
+    group_open_periods = GroupOpenPeriod.objects.filter(
+        group=group, date_started__gte=query_start, id__gte=offset
+    ).order_by("-date_started")[:limit]
+    if query_end:
+        group_open_periods = group_open_periods.filter(date_ended__lte=query_end)
 
-    # If there are no open periods in the table, we need to calculate them
-    # from the activity log.
-    # TODO(snigdha): This is temporary until we have backfilled the GroupOpenPeriod table
-    logger.warning("Open periods not fully backfilled", extra={"group_id": group.id})
-
-    if query_start is None or query_end is None:
-        query_start = timezone.now() - timedelta(days=90)
-        query_end = timezone.now()
-
-    query_limit = limit * 2 if limit else None
-    # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
-    # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
-    # but we don't create an entry for that .
-    activities = Activity.objects.filter(
-        group=group,
-        type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
-        datetime__gte=query_start,
-        datetime__lte=query_end,
-    ).order_by("-datetime")[:query_limit]
-
-    open_periods = []
-    start: datetime | None = None
-    end: datetime | None = None
-    last_checked = get_last_checked_for_open_period(group)
-
-    # Handle currently open period
-    if group.status == GroupStatus.UNRESOLVED and len(activities) > 0:
-        open_periods.append(
-            OpenPeriod(
-                start=activities[0].datetime,
-                end=None,
-                duration=None,
-                is_open=True,
-                last_checked=last_checked,
-            )
-        )
-        activities = activities[1:]
-
-    for activity in activities:
-        if activity.type == ActivityType.SET_RESOLVED.value:
-            end = activity.datetime
-        elif activity.type == ActivityType.SET_REGRESSION.value:
-            start = activity.datetime
-            if end is not None:
-                open_periods.append(
-                    OpenPeriod(
-                        start=start,
-                        end=end,
-                        duration=end - start,
-                        is_open=False,
-                        last_checked=end,
-                    )
-                )
-                end = None
-
-    # Add the very first open period, which has no UNRESOLVED activity for the group creation
-    open_periods.append(
+    return [
         OpenPeriod(
-            start=group.first_seen,
-            end=end if end else None,
-            duration=end - group.first_seen if end else None,
-            is_open=False if end else True,
-            last_checked=end if end else last_checked,
+            id=period.id,
+            start=period.date_started,
+            end=period.date_ended,
+            duration=period.date_ended - period.date_started if period.date_ended else None,
+            is_open=period.date_ended is None,
+            last_checked=get_last_checked_for_open_period(group),
         )
-    )
-
-    if offset and limit:
-        return open_periods[offset : offset + limit]
-
-    if limit:
-        return open_periods[:limit]
-
-    return open_periods
+        for period in group_open_periods
+    ]
 
 
 def create_open_period(group: Group, start_time: datetime) -> None:
