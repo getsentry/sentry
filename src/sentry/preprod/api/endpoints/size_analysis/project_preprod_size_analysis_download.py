@@ -7,20 +7,20 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisDownloadEvent
+from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 
 @region_silo_endpoint
-class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
+class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, artifact_id) -> HttpResponseBase:
+    def get(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
         """
         Download size analysis results for a preprod artifact
         ````````````````````````````````````````````````````
@@ -31,7 +31,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
                                           artifact belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      artifact from.
-        :pparam string artifact_id: the ID of the preprod artifact to download size analysis for.
+        :pparam string head_artifact_id: the ID of the preprod artifact to download size analysis for.
         :auth: required
         """
 
@@ -40,7 +40,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                artifact_id=artifact_id,
+                artifact_id=head_artifact_id,
             )
         )
 
@@ -50,16 +50,13 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Feature not enabled"}, status=403)
 
         try:
-            size_metrics_qs = PreprodArtifactSizeMetrics.objects.select_related(
-                "preprod_artifact"
-            ).filter(
-                preprod_artifact__project=project,
-                preprod_artifact__id=artifact_id,
+            size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact=head_artifact,
             )
             size_metrics_count = size_metrics_qs.count()
             if size_metrics_count == 0:
                 return Response(
-                    {"error": "Preprod artifact not found or size analysis results not available"},
+                    {"error": "Size analysis results not available for this artifact"},
                     status=404,
                 )
             elif size_metrics_count > 1:
