@@ -621,9 +621,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
-        assert len(response.data["timeseries"]) == 2
+        assert len(response.data["timeSeries"]) == 2
 
-        timeseries = response.data["timeseries"][0]
+        timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 6
         assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == build_expected_timeseries(
@@ -631,13 +631,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert timeseries["groupBy"] == [{"key": "transaction", "value": "foo"}]
         assert timeseries["meta"] == {
+            "dataScanned": "full",
             "valueType": "integer",
             "interval": 60_000,
             "isOther": False,
             "order": 0,
         }
 
-        timeseries = response.data["timeseries"][1]
+        timeseries = response.data["timeSeries"][1]
         assert len(timeseries["values"]) == 6
         assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == build_expected_timeseries(
@@ -645,6 +646,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert timeseries["groupBy"] == [{"key": "transaction", "value": "bar"}]
         assert timeseries["meta"] == {
+            "dataScanned": "full",
             "valueType": "integer",
             "interval": 60_000,
             "isOther": False,
