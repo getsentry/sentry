@@ -5,7 +5,6 @@ from typing import Any
 from sentry import options
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
-from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
     call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
@@ -95,30 +94,21 @@ def may_schedule_task_to_delete_hashes_from_seer(group_ids: Sequence[int]) -> No
     ):
         return
 
-    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
+    seer_batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
+    fetch_batch_size = options.get("deletions.group-hashes-fetch-batch-size")
 
-    group_hashes = get_hashes_for_group_ids(group_ids, project)
-    if not group_hashes:
-        return
+    group_hashes = list(
+        RangeQuerySetWrapper(
+            GroupHash.objects.filter(project_id=project.id, group_id__in=group_ids),
+            step=fetch_batch_size,
+        )
+    )
 
-    # Schedule tasks in chunks
-    for i in range(0, len(group_hashes), batch_size):
-        chunk = group_hashes[i : i + batch_size]
-        delete_seer_grouping_records_by_hash.apply_async(args=[project.id, chunk, 0])
+    hash_values = [gh.hash for gh in group_hashes]
 
-
-def get_hashes_for_group_ids(group_ids: Sequence[int], project: Project) -> list[str]:
-    hashes_batch_size = options.get("deletions.group-hashes-fetch-batch-size")
-    group_hashes = []
-
-    for group_id in group_ids:
-        for group_hash in RangeQuerySetWrapper(
-            GroupHash.objects.filter(project_id=project.id, group__id=group_id),
-            step=hashes_batch_size,
-        ):
-            group_hashes.append(group_hash.hash)
-
-    return group_hashes
+    for i in range(0, len(hash_values), seer_batch_size):
+        hash_chunk = hash_values[i : i + seer_batch_size]
+        delete_seer_grouping_records_by_hash.apply_async(args=[project.id, hash_chunk, 0])
 
 
 @instrumented_task(
