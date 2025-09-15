@@ -11,6 +11,7 @@ from slack_sdk.models.blocks import (
     SectionBlock,
 )
 
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -72,8 +73,12 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
+
         return False
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:
+        client = SlackSdkClient(integration_id=target.integration_id)
+        client.chat_postMessage(channel=target.resource_id, text=renderable.text)
+
         pass
