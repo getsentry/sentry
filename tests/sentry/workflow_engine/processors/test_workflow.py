@@ -352,7 +352,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             self.detector,
             self.detector_workflow,
             self.workflow_triggers,
-        ) = self.create_detector_and_workflow()
+        ) = self.create_detector_and_workflow(organization=self.organization)
 
         occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group, self.event, self.group_event = self.create_group_event(
