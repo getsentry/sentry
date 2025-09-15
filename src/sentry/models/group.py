@@ -530,7 +530,7 @@ class GroupManager(BaseManager["Group"]):
                         "Call to update metric issue status missing detector ID",
                         extra={"group_id": group.id},
                     )
-                    return
+                    continue
                 update_incident_based_on_open_period_status_change(group, status, detector_id)
 
     def from_share_id(self, share_id: str) -> Group:

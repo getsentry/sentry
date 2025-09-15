@@ -83,6 +83,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                         "group_id": group.id,
                     },
                 )
+                raise
 
             incident = cls.create_incident_for_open_period(
                 occurrence, alert_rule, group, open_period
@@ -290,7 +291,13 @@ def update_incident_based_on_open_period_status_change(
 
     except IncidentGroupOpenPeriod.DoesNotExist:
         # check if single processing was turned on while there was an active incident
-        alert_rule_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+        try:
+            alert_rule_id = AlertRuleDetector.objects.get(detector_id=detector_id).alert_rule_id
+        except AlertRuleDetector.DoesNotExist:
+            logger.exception(
+                "No AlertRuleDetector found for detector ID", extra={"detector_id": detector_id}
+            )
+            return
         open_incident = (
             Incident.objects.filter(alert_rule__id=alert_rule_id, date_closed=None)
             .order_by("-date_started")
