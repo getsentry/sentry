@@ -113,9 +113,9 @@ def delete_group_hashes(
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
     total_hashes = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).count()
 
-    for i in range(0, total_hashes, hashes_batch_size):
+    for _ in range(0, total_hashes, hashes_batch_size):
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids)[
-            i : i + hashes_batch_size
+            :hashes_batch_size
         ]
         hashes_chunk = list(qs)
         try:
