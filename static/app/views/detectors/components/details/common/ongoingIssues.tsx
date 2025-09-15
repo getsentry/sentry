@@ -253,7 +253,7 @@ function LatestGroupWithOpenPeriods({
       <SimpleTable.Header>
         <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Age')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
 
@@ -265,7 +265,7 @@ function LatestGroupWithOpenPeriods({
           <GroupStatusTag fontSize="md">{group.substatus ?? group.status}</GroupStatusTag>
         </SimpleTable.RowCell>
         <SimpleTable.RowCell>
-          <TimeAgoCell date={group.firstSeen} />
+          <TimeAgoCell date={group.lastSeen} />
         </SimpleTable.RowCell>
         <SimpleTable.RowCell>
           <IssueAssigneeSelector group={group} />
