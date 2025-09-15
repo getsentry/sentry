@@ -340,6 +340,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
 )
 
+# Deletions
+register(
+    "deletions.group-hashes-fetch-batch-size",
+    default=10000,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
