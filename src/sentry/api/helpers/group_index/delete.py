@@ -111,8 +111,11 @@ def delete_group_hashes(
     seer_deletion: bool = False,
 ) -> None:
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
+    total_hashes = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).count()
 
-    while True:
+    # We multiply by 1.1 to account for the fact that we may have deleted some hashes
+    # since we started the query
+    for _ in range(0, int(total_hashes * 1.1), hashes_batch_size):
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
             "id", "hash"
         )[:hashes_batch_size]
