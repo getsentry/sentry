@@ -84,9 +84,13 @@ function cohortsToSeriesData(
 
     // We sort by descending value of the selected cohort
     const selectedPercentage =
-      (Number(selectedVal) / seriesTotals[SELECTED_SERIES_NAME]) * 100;
+      seriesTotals[SELECTED_SERIES_NAME] === 0
+        ? 0
+        : (Number(selectedVal) / seriesTotals[SELECTED_SERIES_NAME]) * 100;
     const baselinePercentage =
-      (Number(baselineVal) / seriesTotals[BASELINE_SERIES_NAME]) * 100;
+      seriesTotals[BASELINE_SERIES_NAME] === 0
+        ? 0
+        : (Number(baselineVal) / seriesTotals[BASELINE_SERIES_NAME]) * 100;
 
     const sortVal = selectedPercentage;
 
@@ -164,7 +168,7 @@ function Chart({
     (_value: number, _label?: string, seriesParams?: CallbackDataParams) => {
       const percentage = Number(seriesParams?.data);
 
-      if (isNaN(percentage) || percentage === 0) {
+      if (isNaN(percentage) || percentage === 0 || !isFinite(percentage)) {
         return '\u2014';
       }
 
