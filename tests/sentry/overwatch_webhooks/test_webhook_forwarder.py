@@ -1,14 +1,12 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.models.organization import Organization
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.overwatch_webhooks.models import OrganizationSummary, WebhookDetails
 from sentry.overwatch_webhooks.webhook_forwarder import (
     GITHUB_EVENTS_TO_FORWARD_OVERWATCH,
     OverwatchGithubWebhookForwarder,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
@@ -22,6 +20,24 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             organization=self.organization,
         )
         self.forwarder = OverwatchGithubWebhookForwarder(self.integration)
+
+    def _set_organization_consent(self, organization, has_consent=True):
+        """Helper to set organization AI consent options."""
+        with assume_test_silo_mode_of(Organization):
+            if has_consent:
+                # Enable PR review test generation and don't hide AI features
+                organization.update_option("sentry:enable_pr_review_test_generation", True)
+                organization.update_option("sentry:hide_ai_features", False)
+            else:
+                # Disable PR review test generation or hide AI features
+                organization.update_option("sentry:enable_pr_review_test_generation", False)
+                organization.update_option("sentry:hide_ai_features", True)
+
+    def _create_organization_with_consent(self, name, slug, has_consent=True):
+        """Helper to create an organization with specified consent status."""
+        organization = self.create_organization(name=name, slug=slug)
+        self._set_organization_consent(organization, has_consent)
+        return organization
 
     def test_init_creates_publisher_with_correct_provider(self):
         """Test that initialization creates publisher with correct integration provider."""
@@ -52,9 +68,11 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         orgs = self.forwarder.get_organizations_with_consent(self.integration)
         assert orgs == []
 
-    def test_get_organizations_with_consent_no_codecov_access(self):
-        """Test get_organizations_with_consent returns empty list when organizations don't have codecov access."""
-        organization = self.create_organization(name="Test Org", slug="test-org")
+    def test_get_organizations_with_consent_no_consent(self):
+        """Test get_organizations_with_consent returns empty list when organizations don't have consent."""
+        organization = self._create_organization_with_consent(
+            name="Test Org", slug="test-org", has_consent=False
+        )
         self.create_organization_integration(
             integration=self.integration,
             organization_id=organization.id,
@@ -63,16 +81,15 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         orgs = self.forwarder.get_organizations_with_consent(self.integration)
         assert orgs == []
 
-    def test_get_organizations_with_consent_with_codecov_access(self):
-        """Test get_organizations_with_consent returns organizations that have codecov access."""
-        organization = self.create_organization(name="Test Org", slug="test-org")
+    def test_get_organizations_with_consent_with_consent(self):
+        """Test get_organizations_with_consent returns organizations that have consent."""
+        organization = self._create_organization_with_consent(
+            name="Test Org", slug="test-org", has_consent=True
+        )
         org_integration = self.create_organization_integration(
             integration=self.integration,
             organization_id=organization.id,
         )
-        with assume_test_silo_mode_of(Organization):
-            organization.flags.codecov_access = True
-            organization.save()
 
         orgs = self.forwarder.get_organizations_with_consent(self.integration)
 
@@ -85,63 +102,34 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         assert orgs[0].organization_integration_id == org_integration.id
 
     def test_get_organizations_with_consent_multiple_orgs_mixed_consent(self):
-        org1 = self.create_organization(name="Org 1", slug="org-1")
+        # Org with consent
+        org1 = self._create_organization_with_consent(name="Org 1", slug="org-1", has_consent=True)
         self.create_organization_integration(
             integration=self.integration,
             organization_id=org1.id,
         )
 
-        # US Org with consent
-        with assume_test_silo_mode_of(Organization):
-            org1.flags.codecov_access = True
-            org1.save()
-
-        # DE Org with consent
-        org2 = self.create_organization(name="Org 2", slug="org-2")
+        # Another org with consent
+        org2 = self._create_organization_with_consent(name="Org 2", slug="org-2", has_consent=True)
         self.create_organization_integration(
             integration=self.integration,
             organization_id=org2.id,
         )
 
-        with assume_test_silo_mode_of(Organization):
-            org2.flags.codecov_access = True
-            org2.save()
-
         # Organization without consent
-        org3 = self.create_organization(name="Org 3", slug="org-3")
+        org3 = self._create_organization_with_consent(name="Org 3", slug="org-3", has_consent=False)
         self.create_organization_integration(
             integration=self.integration,
             organization_id=org3.id,
         )
-        with assume_test_silo_mode_of(Organization):
-            org3.flags.codecov_access = False
-            org3.save()
-
-        with outbox_runner():
-            pass
-
-        with assume_test_silo_mode_of(Organization):
-            org3.refresh_from_db()
-            assert bool(org3.flags.codecov_access) is False
-        assert OrganizationMapping.objects.get(organization_id=org3.id).codecov_access is False
-
-        with assume_test_silo_mode_of(Organization):
-            org2.refresh_from_db()
-            assert bool(org2.flags.codecov_access) is True
-        assert OrganizationMapping.objects.get(organization_id=org2.id).codecov_access is True
-
-        with assume_test_silo_mode_of(Organization):
-            org1.refresh_from_db()
-            assert bool(org1.flags.codecov_access) is True
-        assert OrganizationMapping.objects.get(organization_id=org1.id).codecov_access is True
 
         orgs = self.forwarder.get_organizations_with_consent(self.integration)
         assert len(orgs) == 2
-        org_names = {org.slug for org in orgs}
-        assert org_names == {"org-1", "org-2"}
+        org_slugs = {org.slug for org in orgs}
+        assert org_slugs == {"org-1", "org-2"}
 
-        # Verify org2 is not included
-        assert "Org 2" not in org_names
+        # Verify org3 is not included
+        assert "org-3" not in org_slugs
 
     def test_forward_if_applicable_no_organizations_with_consent(self):
         """Test forward_if_applicable does nothing when no organizations have consent."""
@@ -153,14 +141,13 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
     def test_forward_if_applicable_event_not_eligible_for_forwarding(self):
         """Test forward_if_applicable does nothing when event is not eligible for forwarding."""
-        organization = self.create_organization(name="Test Org", slug="test-org")
+        organization = self._create_organization_with_consent(
+            name="Test Org", slug="test-org", has_consent=True
+        )
         self.create_organization_integration(
             integration=self.integration,
             organization_id=organization.id,
         )
-        with assume_test_silo_mode_of(Organization):
-            organization.flags.codecov_access = True
-            organization.save()
 
         # Event with invalid action
         event = {"action": "invalid_action", "data": "test"}
@@ -171,14 +158,13 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
     def test_forward_if_applicable_successful_forwarding(self):
         """Test forward_if_applicable successfully forwards webhook when conditions are met."""
-        organization = self.create_organization(name="Test Org", slug="test-org")
+        organization = self._create_organization_with_consent(
+            name="Test Org", slug="test-org", has_consent=True
+        )
         self.create_organization_integration(
             integration=self.integration,
             organization_id=organization.id,
         )
-        with assume_test_silo_mode_of(Organization):
-            organization.flags.codecov_access = True
-            organization.save()
 
         event = {"action": "pull_request", "repository": "test-repo", "commits": []}
 
@@ -197,24 +183,14 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
     def test_forward_if_applicable_multiple_organizations(self):
         """Test forward_if_applicable forwards webhook for multiple organizations with consent."""
         # Create multiple organizations with consent
-        organizations = []
-        org_integrations = []
-        org_mappings = []
-
         for i in range(3):
-            org = self.create_organization(name=f"Org {i+1}", slug=f"org-{i+1}")
-            org_integration = self.create_organization_integration(
+            org = self._create_organization_with_consent(
+                name=f"Org {i+1}", slug=f"org-{i+1}", has_consent=True
+            )
+            self.create_organization_integration(
                 integration=self.integration,
                 organization_id=org.id,
             )
-            with assume_test_silo_mode_of(Organization):
-                org.flags.codecov_access = True
-                org.save()
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
-
-            organizations.append(org)
-            org_integrations.append(org_integration)
-            org_mappings.append(org_mapping)
 
         event = {"action": "pull_request", "number": 123}
 
@@ -244,15 +220,13 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
     def test_forward_if_applicable_all_valid_event_actions(self):
         """Test forward_if_applicable works for all valid event actions."""
-        organization = self.create_organization(name="Test Org", slug="test-org")
+        organization = self._create_organization_with_consent(
+            name="Test Org", slug="test-org", has_consent=True
+        )
         self.create_organization_integration(
             integration=self.integration,
             organization_id=organization.id,
         )
-
-        with assume_test_silo_mode_of(Organization):
-            organization.flags.codecov_access = True
-            organization.save()
 
         # Test each valid event action
         for action in GITHUB_EVENTS_TO_FORWARD_OVERWATCH:
@@ -268,14 +242,13 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
     def test_forward_if_applicable_preserves_webhook_body_data(self):
         """Test that forward_if_applicable preserves all webhook body data."""
-        organization = self.create_organization(name="Test Org", slug="test-org")
+        organization = self._create_organization_with_consent(
+            name="Test Org", slug="test-org", has_consent=True
+        )
         self.create_organization_integration(
             integration=self.integration,
             organization_id=organization.id,
         )
-        with assume_test_silo_mode_of(Organization):
-            organization.flags.codecov_access = True
-            organization.save()
 
         complex_event = {
             "action": "pull_request",
