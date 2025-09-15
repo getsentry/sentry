@@ -80,6 +80,10 @@ export function DetectorListRowSkeleton() {
 const DetectorSimpleTableRow = styled(SimpleTable.Row)`
   min-height: 76px;
 
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+
   @media (hover: hover) {
     &:not(:has(:hover)):not(:has(input:checked)) {
       .select-row {
