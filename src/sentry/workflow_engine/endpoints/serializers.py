@@ -20,6 +20,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
+from sentry.types.actor import Actor
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models import (
     Action,
@@ -372,6 +373,13 @@ class DetectorSerializer(Serializer):
             .values_list("detector_id", "open_issues_count")
         )
 
+        # Serialize owners
+        owners = [item.owner for item in item_list if item.owner]
+        owners_serialized = serialize(
+            Actor.resolve_many(owners, filter_none=False), user, ActorSerializer()
+        )
+        owner_lookup = {owner: serialized for owner, serialized in zip(owners, owners_serialized)}
+
         for item in item_list:
             attrs[item]["data_sources"] = ds_map.get(item.id)
             attrs[item]["condition_group"] = condition_group_map.get(
@@ -391,10 +399,7 @@ class DetectorSerializer(Serializer):
                 attrs[item]["config"] = configs[item.id]
             else:
                 attrs[item]["config"] = item.config
-            actor = item.owner
-            if actor:
-                resolved_actor = actor.resolve()
-                attrs[item]["owner"] = serialize(resolved_actor, user, ActorSerializer())
+            attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
 
         return attrs
 
