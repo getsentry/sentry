@@ -6,8 +6,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
-class PreprodArtifactModelTest(TestCase):
+class PreprodArtifactModelTestBase(TestCase):
+    """Base test class with common setup for PreprodArtifact model tests."""
+
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
@@ -15,6 +16,11 @@ class PreprodArtifactModelTest(TestCase):
         self.project = self.create_project(
             teams=[self.team], organization=self.organization, name="test_project"
         )
+
+
+@region_silo_test
+class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
+    """Tests for get_sibling_artifacts_for_commit method."""
 
     def test_get_sibling_artifacts_for_commit_single_artifact(self):
         """Test getting artifacts when there's only one artifact for the commit."""
@@ -182,6 +188,11 @@ class PreprodArtifactModelTest(TestCase):
 
         artifacts = list(artifact.get_sibling_artifacts_for_commit())
         assert len(artifacts) == 0
+
+
+@region_silo_test
+class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
+    """Tests for base artifact related methods."""
 
     def test_get_base_artifact_for_commit_single_artifact(self):
         """Test getting base artifact when there's only one base artifact."""
