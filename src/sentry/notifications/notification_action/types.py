@@ -5,6 +5,8 @@ from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
 from typing import Any, NotRequired, Protocol, TypedDict
 
+from django.core.exceptions import ValidationError
+
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -492,6 +494,9 @@ class NotificationActionForm(Protocol):
     @property
     def cleaned_data(self) -> dict[str, Any]: ...
 
+    @property
+    def errors(self) -> dict[str, Any]: ...
+
 
 def _get_integrations(organization: Organization, provider: str) -> list[RpcIntegration]:
     return integration_service.get_integrations(
@@ -505,7 +510,6 @@ def _get_integrations(organization: Organization, provider: str) -> list[RpcInte
 class BaseActionValidatorHandler(ABC):
     provider: str
     notify_action_form: type[NotificationActionForm] | None
-    channel_transformer: Callable | None  # passed for Slack and MSTeams
 
     def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None:
         self.validated_data = validated_data
@@ -515,16 +519,15 @@ class BaseActionValidatorHandler(ABC):
         if self.notify_action_form is None:
             return self.validated_data
 
-        # TODO: this is calling an RPC function inside a transaction in WorkflowValidator, need to rework the validator
         notify_action_form = self.notify_action_form(
             data=self.generate_action_form_payload(),
             integrations=_get_integrations(self.organization, self.provider),
-            channel_transformer=self.channel_transformer,
         )
 
         if notify_action_form.is_valid():
             return self.update_action_data(notify_action_form.cleaned_data)
-        return self.validated_data
+
+        raise ValidationError(notify_action_form.errors)
 
     @abstractmethod
     def generate_action_form_payload(self) -> dict[str, Any]:

@@ -19,6 +19,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
+from tests.sentry.workflow_engine.test_base import MockActionValidatorTranslator
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -492,7 +493,11 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "id"
         )
 
-    def test_create_workflow__with_actions(self) -> None:
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_create_workflow__with_actions(self, mock_action_validator: mock.MagicMock) -> None:
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",

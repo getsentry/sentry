@@ -1,5 +1,6 @@
 from unittest import mock
 
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
@@ -10,7 +11,7 @@ class TestSlackActionValidator(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.integration, self.org_integration = self.create_provider_integration_for(
-            provider="slack", organization=self.organization, user=self.user
+            provider="slack", organization=self.organization, user=self.user, name="slack"
         )
 
         self.valid_data = {
@@ -20,9 +21,11 @@ class TestSlackActionValidator(TestCase):
             "integrationId": self.integration.id,
         }
 
-    @mock.patch("sentry.integrations.slack.utils.channel.check_for_channel")
+    @mock.patch("sentry.integrations.slack.actions.form.get_channel_id")
     def test_validate(self, mock_check_for_channel):
-        mock_check_for_channel.return_value = "C1234567890"
+        mock_check_for_channel.return_value = SlackChannelIdData(
+            prefix="#", channel_id="C1234567890", timed_out=False
+        )
 
         validator = BaseActionValidator(
             data=self.valid_data,

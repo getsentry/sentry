@@ -68,4 +68,5 @@ class DiscordNotifyServiceForm(forms.Form):
                 )
             except ApiTimeoutError:
                 raise forms.ValidationError("Discord channel lookup timed out")
+
         return cleaned_data
