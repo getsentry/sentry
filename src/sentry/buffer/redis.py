@@ -498,7 +498,7 @@ class RedisBuffer(Buffer):
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             pipe.hsetnx(key, "f", json.dumps(self._dump_values(filters)))
         else:
-            pipe.hsetnx(key, "f", pickle.dumps(filters))
+            pipe.hsetnx(key, "f", pickle.dumps(filters, protocol=5))
 
         for column, amount in columns.items():
             pipe.hincrby(key, "i+" + column, amount)
@@ -512,7 +512,7 @@ class RedisBuffer(Buffer):
                 if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
                     pipe.hset(key, "e+" + column, json.dumps(self._dump_value(value)))
                 else:
-                    pipe.hset(key, "e+" + column, pickle.dumps(value))
+                    pipe.hset(key, "e+" + column, pickle.dumps(value, protocol=5))
 
         if signal_only is True:
             pipe.hset(key, "s", "1")
