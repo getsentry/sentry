@@ -592,8 +592,6 @@ export enum ThreadPoolInfoContextKey {
   AVAILABLE_COMPLETION_PORT_THREADS = 'available_completion_port_threads',
 }
 
-// ThreadPoolInfo Context
-// TODO(Priscila): Add this context to the docs
 export interface ThreadPoolInfoContext {
   type: 'ThreadPool Info' | 'threadpool_info';
   [ThreadPoolInfoContextKey.MIN_WORKER_THREADS]: number;
