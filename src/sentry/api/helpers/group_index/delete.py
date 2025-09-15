@@ -53,12 +53,9 @@ def delete_group_list(
     if not all(g.project_id == project.id for g in group_list):
         raise ValueError("All groups must belong to the same project")
 
-    group_ids = []
-    error_ids = []
-    for g in group_list:
-        group_ids.append(g.id)
-        if g.issue_category == GroupCategory.ERROR:
-            error_ids.append(g.id)
+    group_ids = [g.id for g in group_list]
+    error_ids = [g.id for g in group_list if g.issue_category == GroupCategory.ERROR]
+    non_error_ids = [g.id for g in group_list if g.issue_category != GroupCategory.ERROR]
 
     transaction_id = uuid4().hex
     delete_logger.info(
@@ -81,7 +78,8 @@ def delete_group_list(
 
     # Removing GroupHash rows prevents new events from associating to the groups
     # we just deleted.
-    delete_group_hashes(project.id, group_ids)
+    delete_group_hashes(project.id, error_ids)
+    delete_group_hashes(project.id, non_error_ids, seer_deletion=True)
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
@@ -110,6 +108,7 @@ def delete_group_list(
 def delete_group_hashes(
     project_id: int,
     group_ids: Sequence[int],
+    seer_deletion: bool = False,
 ) -> None:
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
     total_hashes = GroupHash.objects.filter(group_id__in=group_ids).count()
@@ -118,11 +117,12 @@ def delete_group_hashes(
         qs = GroupHash.objects.filter(group_id__in=group_ids)[i : i + hashes_batch_size]
         hashes_chunk = list(qs)
         try:
-            # Tell seer to delete grouping records for these groups
-            # It's low priority to delete the hashes from seer, so we don't want
-            # any network errors to block the deletion of the groups
-            hash_values = [gh.hash for gh in hashes_chunk]
-            may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
+            if seer_deletion:
+                # Tell seer to delete grouping records for these groups
+                # It's low priority to delete the hashes from seer, so we don't want
+                # any network errors to block the deletion of the groups
+                hash_values = [gh.hash for gh in hashes_chunk]
+                may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
         except Exception:
             delete_logger.warning("Error scheduling task to delete hashes from seer")
         finally:
