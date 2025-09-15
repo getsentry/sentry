@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
-from sentry.integrations.slack.utils.channel import get_channel_id
+from sentry.integrations.slack.utils.channel import get_channel_id as slack_channel_transformer
 from sentry.notifications.notification_action.registry import action_validator_registry
 
 from .types import BaseActionValidatorHandler
@@ -12,10 +12,8 @@ from .types import BaseActionValidatorHandler
 
 @action_validator_registry.register("slack")
 class SlackActionValidatorHandler(BaseActionValidatorHandler):
-    from sentry.integrations.slack.actions.notification import SlackNotifyServiceAction
-
     provider = "slack"
-    channel_transformer = get_channel_id
+    channel_transformer = slack_channel_transformer
     notify_action_form = SlackNotifyServiceForm
 
     def generate_action_form_payload(self) -> dict[str, Any]:
