@@ -7,6 +7,7 @@ import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import type {Broadcast} from 'sentry/types/system';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -14,7 +15,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {CommonSidebarProps} from './types';
-import {SidebarPanelKey} from './types';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
@@ -72,8 +72,8 @@ export function Broadcasts({
 
   useEffect(() => {
     if (
-      previousPanel === SidebarPanelKey.BROADCASTS &&
-      currentPanel !== SidebarPanelKey.BROADCASTS
+      previousPanel === OnboardingDrawerKey.BROADCASTS &&
+      currentPanel !== OnboardingDrawerKey.BROADCASTS
     ) {
       setHasSeenAllPosts(true);
     }
@@ -93,7 +93,7 @@ export function Broadcasts({
         data-test-id="sidebar-broadcasts"
         orientation={orientation}
         collapsed={collapsed}
-        active={currentPanel === SidebarPanelKey.BROADCASTS}
+        active={currentPanel === OnboardingDrawerKey.BROADCASTS}
         badge={hasSeenAllPosts ? undefined : unseenPostIds?.length}
         icon={<IconBroadcast size="md" />}
         label={t("What's new")}
@@ -101,7 +101,7 @@ export function Broadcasts({
         id="broadcasts"
       />
 
-      {currentPanel === SidebarPanelKey.BROADCASTS && (
+      {currentPanel === OnboardingDrawerKey.BROADCASTS && (
         <SidebarPanel
           data-test-id="sidebar-broadcasts-panel"
           orientation={orientation}

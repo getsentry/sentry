@@ -34,12 +34,13 @@ from sentry.uptime.detectors.tasks import (
     schedule_detections,
     set_failed_url,
 )
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.models import get_uptime_subscription
 from sentry.uptime.subscriptions.subscriptions import (
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.workflow_engine.models import Detector
 
 
 @freeze_time()
@@ -369,8 +370,9 @@ class TestMonitorUrlForProject(UptimeTestCase):
         url = "http://santry.io"
         monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
-        assert ProjectUptimeSubscription.objects.filter(
+        detectors = Detector.objects.filter(
             project=self.project,
-            mode=UptimeMonitorMode.MANUAL,
-            uptime_subscription__url=manual_url,
-        ).exists()
+            config__mode=UptimeMonitorMode.MANUAL.value,
+        )
+        assert detectors.exists()
+        assert any(get_uptime_subscription(detector).url == manual_url for detector in detectors)
