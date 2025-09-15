@@ -14,6 +14,7 @@ from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.relay import Relay
+from sentry.quotas.base import RetentionSettings
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -157,23 +158,14 @@ def test_internal_relays_should_receive_full_configs(
     retentions = quotas.backend.get_retentions(default_project.organization)
     assert safe.get_path(cfg, "config", "retentions") == {c.name: v for c, v in retentions.items()}
 
-    downsampled_retentions = quotas.backend.get_downsampled_retentions(default_project.organization)
-    assert safe.get_path(cfg, "config", "downsampledRetentions") == {
-        c.name: v for c, v in downsampled_retentions.items()
-    }
-
 
 @django_db_all
 def test_parse_retentions(call_endpoint, default_project):
     with patch("sentry.quotas.backend") as quotas_mock:
         quotas_mock.get_retentions = lambda x: {
-            DataCategory.ERROR: 10,
-            DataCategory.REPLAY: 20,
-            DataCategory.SPAN: 30,
-        }
-        quotas_mock.get_downsampled_retentions = lambda x: {
-            DataCategory.ERROR: 15,
-            DataCategory.TRANSACTION: 25,
+            DataCategory.ERROR: RetentionSettings(standard=10, down_sampled=20),
+            DataCategory.REPLAY: RetentionSettings(standard=11, down_sampled=21),
+            DataCategory.SPAN: RetentionSettings(standard=12, down_sampled=22),
         }
         quotas_mock.get_event_retention = lambda x: 45
         quotas_mock.get_downsampled_event_retention = lambda x: 90
@@ -185,10 +177,10 @@ def test_parse_retentions(call_endpoint, default_project):
 
         assert safe.get_path(cfg, "config", "eventRetention") == 45
         assert safe.get_path(cfg, "config", "downsampledEventRetention") == 90
-        assert safe.get_path(cfg, "config", "retentions") == {"ERROR": 10, "REPLAY": 20, "SPAN": 30}
-        assert safe.get_path(cfg, "config", "downsampledRetentions") == {
-            "ERROR": 15,
-            "TRANSACTION": 25,
+        assert safe.get_path(cfg, "config", "retentions") == {
+            "ERROR": {"standard": 10, "downSampled": 20},
+            "REPLAY": {"standard": 11, "downSampled": 21},
+            "SPAN": {"standard": 12, "downSampled": 22},
         }
 
 

@@ -58,6 +58,18 @@ class AbuseQuota:
     compat_option_sentry: str | None = None
 
 
+@dataclass
+class RetentionSettings:
+    standard: int
+    down_sampled: int
+
+    def to_object(self) -> Mapping[str, Any]:
+        return {
+            "standard": self.standard,
+            "downSampled": self.down_sampled,
+        }
+
+
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
     quotas = list()
 
@@ -412,12 +424,9 @@ class Quota(Service):
         """
         return 0
 
-    def get_retentions(self, organization: Organization, **kwargs) -> Mapping[DataCategory, int]:
-        return {}
-
-    def get_downsampled_retentions(
+    def get_retentions(
         self, organization: Organization, **kwargs
-    ) -> Mapping[DataCategory, int]:
+    ) -> Mapping[DataCategory, RetentionSettings]:
         return {}
 
     def validate(self):

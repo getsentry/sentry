@@ -1160,11 +1160,7 @@ def _get_project_config(
             config["downsampledEventRetention"] = downsampled_event_retention
     with sentry_sdk.start_span(op="get_retentions"):
         retentions = quotas.backend.get_retentions(project.organization)
-        config["retentions"] = {c.name: v for c, v in retentions.items()}
-
-    with sentry_sdk.start_span(op="get_downsampled_retentions"):
-        downsampled_retentions = quotas.backend.get_downsampled_retentions(project.organization)
-        config["downsampledRetentions"] = {c.name: v for c, v in downsampled_retentions.items()}
+        config["retentions"] = {c.name: v.to_object() for c, v in retentions.items()}
 
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
