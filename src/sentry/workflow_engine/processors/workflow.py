@@ -189,6 +189,12 @@ def evaluate_workflow_triggers(
     # Retrieve these as a batch to avoid a query/cache-lookup per DCG.
     data_conditions_by_dcg_id = _get_data_conditions_for_group_by_dcg(dcg_ids)
 
+    project = event_data.event.project  # expected to be already cached
+    dual_processing_logs_enabled = features.has(
+        "organizations:workflow-engine-metric-alert-dual-processing-logs",
+        project.organization,
+    )
+
     for workflow in workflows:
         when_data_conditions = None
         if dcg_id := workflow.when_condition_group_id:
@@ -225,11 +231,7 @@ def evaluate_workflow_triggers(
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
-                organization = event_data.group.project.organization
-                if features.has(
-                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                    organization,
-                ):
+                if dual_processing_logs_enabled:
                     try:
                         detector = WorkflowEventContext.get().detector
                         detector_id = detector.id if detector else None
@@ -238,8 +240,8 @@ def evaluate_workflow_triggers(
                             extra={
                                 "workflow_id": workflow.id,
                                 "detector_id": detector_id,
-                                "organization_id": organization.id,
-                                "project_id": event_data.group.project.id,
+                                "organization_id": project.organization.id,
+                                "project_id": project.id,
                                 "group_type": event_data.group.type,
                             },
                         )
