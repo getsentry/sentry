@@ -227,3 +227,8 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert item.incident_id == incident.id
         activity = IncidentActivity.objects.filter(incident_id=incident.id)
         assert len(activity) == 4  # detected, created, priority change, close
+
+        last_activity_entry = activity[3]
+        assert last_activity_entry.type == 2
+        assert last_activity_entry.previous_value == str(IncidentStatus.CRITICAL.value)
+        assert last_activity_entry.value == str(IncidentStatus.CLOSED.value)
