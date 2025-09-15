@@ -40,7 +40,7 @@ function InvoiceDetailsPaymentForm({
     undefined
   );
   const location = useLocation();
-  const endpoint = `/organizations/${organization.slug}/payments/${invoice.id}/new/`;
+  const endpoint = `/organizations/${invoice.customer.slug}/payments/${invoice.id}/new/`;
 
   const loadData = useCallback(async () => {
     setIntentError(undefined);

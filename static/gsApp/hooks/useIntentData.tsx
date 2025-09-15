@@ -32,6 +32,7 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
     },
     onError: err => {
       setError(err.message);
+      setIsLoading(false);
     },
   });
 

@@ -73,6 +73,7 @@ function StripeCreditCardForm(props: StripeCreditCardFormProps) {
 function StripeSetupIntentForm(props: StripeIntentFormProps) {
   const {organization, location, onSuccess, onSuccessWithSubscription} = props;
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {intentData, isLoading, isError, error} = useSetupIntentData({
     endpoint: props.intentDataEndpoint,
@@ -111,21 +112,29 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
     return <LoadingIndicator />;
   }
 
-  const handleSubmit = ({
+  const handleSubmit = async ({
     stripe,
     elements,
   }: {
     elements: StripeElements | null;
     stripe: Stripe | null;
   }) => {
+    setIsSubmitting(true);
     if (!stripe || !elements || !intentData) {
       setErrorMessage(
         t('Cannot complete your payment at this time, please try again later.')
       );
+      setIsSubmitting(false);
       return;
     }
 
-    elements.submit();
+    const stripeResult = await elements.submit();
+    if (stripeResult.error) {
+      setErrorMessage(stripeResult.error.message ?? t('Setup failed.'));
+      setIsSubmitting(false);
+      return;
+    }
+
     stripe
       .confirmSetup({
         elements,
@@ -135,6 +144,7 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
       .then((result: SetupIntentResult) => {
         if (result.error) {
           setErrorMessage(result.error.message ?? t('Setup failed.'));
+          setIsSubmitting(false);
           return;
         }
         updateSubscription({
@@ -149,6 +159,7 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
       {isError && <Alert type="error">{errorMessage}</Alert>}
       <IntentForm
         {...props}
+        buttonText={isSubmitting ? t('Saving Changes...') : props.buttonText}
         intentData={intentData}
         onError={setErrorMessage}
         handleSubmit={handleSubmit}
@@ -160,6 +171,8 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
 function StripePaymentIntentForm(props: StripeIntentFormProps) {
   const {organization, referrer, onSuccess} = props;
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const {intentData, isLoading, isError, error} = usePaymentIntentData({
     endpoint: props.intentDataEndpoint,
   });
@@ -174,21 +187,29 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
     return <LoadingIndicator />;
   }
 
-  const handleSubmit = ({
+  const handleSubmit = async ({
     stripe,
     elements,
   }: {
     elements: StripeElements | null;
     stripe: Stripe | null;
   }) => {
+    setIsSubmitting(true);
     if (!stripe || !elements || !intentData) {
       setErrorMessage(
         t('Cannot complete your payment at this time, please try again later.')
       );
+      setIsSubmitting(false);
       return;
     }
 
-    elements.submit();
+    const stripeResult = await elements.submit();
+    if (stripeResult.error) {
+      setErrorMessage(stripeResult.error.message ?? t('Payment failed.'));
+      setIsSubmitting(false);
+      return;
+    }
+
     stripe
       .confirmPayment({
         elements,
@@ -198,6 +219,7 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
       .then((result: PaymentIntentResult) => {
         if (result.error) {
           setErrorMessage(result.error.message ?? t('Payment failed.'));
+          setIsSubmitting(false);
           return;
         }
         // TODO: make sure this is the correct event
@@ -215,6 +237,7 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
       {isError && <Alert type="error">{errorMessage}</Alert>}
       <IntentForm
         {...props}
+        buttonText={isSubmitting ? t('Sending Payment...') : props.buttonText}
         intentData={intentData}
         onError={setErrorMessage}
         handleSubmit={handleSubmit}
