@@ -127,6 +127,8 @@ def delete_group_hashes(
         # any network errors to block the deletion of the groups
         hash_values = [gh.hash for gh in group_hashes]
         may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
+    except Exception:
+        delete_logger.warning("Error scheduling task to delete hashes from seer")
     finally:
         # IDs are part of the index, so we can use them to delete in batches
         hash_ids = [gh.id for gh in group_hashes]
