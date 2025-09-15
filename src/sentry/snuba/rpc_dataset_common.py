@@ -622,7 +622,7 @@ class RPCBase:
                 orderby=orderby,
                 offset=0,
                 limit=limit,
-                referrer=referrer,
+                referrer=f"{referrer}.find-topn",
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
                 equations=equations,
@@ -649,7 +649,7 @@ class RPCBase:
             query_string=query_string,
             y_axes=y_axes,
             groupby=groupby_columns_without_project,
-            referrer=referrer,
+            referrer=f"{referrer}.topn",
             sampling_mode=sampling_mode,
             extra_conditions=top_conditions,
         )
@@ -659,7 +659,7 @@ class RPCBase:
             query_string=query_string,
             y_axes=y_axes,
             groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
-            referrer=referrer,
+            referrer=f"{referrer}.query-other",
             sampling_mode=sampling_mode,
             extra_conditions=other_conditions,
         )
