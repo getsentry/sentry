@@ -120,17 +120,19 @@ def delete_group_hashes(
             step=batch_size,
         )
     )
-    hash_values = [gh.hash for gh in group_hashes]
 
     try:
         # Tell seer to delete grouping records for these groups
         # It's low priority to delete the hashes from seer, so we don't want
         # any network errors to block the deletion of the groups
+        hash_values = [gh.hash for gh in group_hashes]
         may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
     finally:
+        # IDs are part of the index, so we can use them to delete in batches
+        hash_ids = [gh.id for gh in group_hashes]
         # Delete hashes in batches to avoid the connection being killed
-        for i in range(0, len(hash_values), batch_size):
-            GroupHash.objects.filter(hash__in=hash_values[i : i + batch_size]).delete()
+        for i in range(0, len(hash_ids), batch_size):
+            GroupHash.objects.filter(id__in=hash_ids[i : i + batch_size]).delete()
 
 
 def create_audit_entries(
