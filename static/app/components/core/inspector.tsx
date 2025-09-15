@@ -672,9 +672,9 @@ function getSourcePath(el: unknown): string {
 
 const getFileName = (path: string) => {
   return (path.split('/').pop()?.toLowerCase() || '')
+    .replace(/\.stories\.tsx$/, '')
     .replace(/\.tsx$/, '')
-    .replace(/\.mdx$/, '')
-    .replace(/\.stories\.tsx$/, '');
+    .replace(/\.mdx$/, '');
 };
 
 function getComponentStorybookFile(
