@@ -154,9 +154,13 @@ function Chart({
   );
 
   const maxValue = useMemo(() => {
-    const selectedMax = Math.max(...seriesData[SELECTED_SERIES_NAME].map(d => d.value));
-    const baselineMax = Math.max(...seriesData[BASELINE_SERIES_NAME].map(d => d.value));
-    return Math.max(selectedMax, baselineMax);
+    const selectedValues = seriesData[SELECTED_SERIES_NAME].map(d => d.value);
+    const baselineValues = seriesData[BASELINE_SERIES_NAME].map(d => d.value);
+
+    const selectedMax = selectedValues.length > 0 ? Math.max(...selectedValues) : 0;
+    const baselineMax = baselineValues.length > 0 ? Math.max(...baselineValues) : 0;
+
+    return Math.max(selectedMax, baselineMax, 1);
   }, [seriesData]);
 
   const valueFormatter = useCallback(
