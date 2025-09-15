@@ -10,7 +10,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-function IconStar({isSolid = false, ...props}: Props) {
+export function IconStar({isSolid = false, ...props}: Props) {
   const theme = useTheme();
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
 
@@ -38,7 +38,3 @@ function IconStar({isSolid = false, ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconStar.displayName = 'IconStar';
-
-export {IconStar};

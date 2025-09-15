@@ -161,6 +161,17 @@ export function useQueryParamsSortBys(): readonly Sort[] {
   return queryParams.sortBys;
 }
 
+export function useSetQueryParamsSortBys() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (sortBys: Sort[]) => {
+      setQueryParams({sortBys});
+    },
+    [setQueryParams]
+  );
+}
+
 interface UseQueryParamsAggregateFieldsOptions {
   validate: boolean;
 }

@@ -201,6 +201,14 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=detector.workflow_condition_group,
         )
+
+        # add a default resolution case
+        self.create_data_condition(
+            type=Condition.LESS_OR_EQUAL,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=detector.workflow_condition_group,
+        )
         return detector, data_condition
 
     def build_handler(

@@ -43,7 +43,7 @@ const supportedStacktracePlatforms: PlatformKey[] = [
   'ruby',
   'scala',
 ];
-const scmProviders = ['github', 'gitlab'];
+const scmProviders = ['github', 'gitlab', 'bitbucket'];
 
 function shouldShowCodecovFeatures(
   organization: Organization,
@@ -467,7 +467,7 @@ const FixMappingButton = styled(Button)`
   font-weight: 400;
   font-size: ${p => p.theme.fontSize.sm};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.textColor};
   }
 `;
 

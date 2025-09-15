@@ -6,12 +6,14 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils import log_context, scopedstats
 
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
@@ -39,11 +41,17 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
     if data is None:
         return None
-    return Event(
+    evt = Event(
         event_id=event_id,
         project_id=project_id,
         data=data,
     )
+    project = Project.objects.get_from_cache(id=project_id)
+    project.set_cached_field_value(
+        "organization", Organization.objects.get_from_cache(id=project.organization_id)
+    )
+    evt.project = project
+    return evt
 
 
 class EventNotFoundError(Exception):
@@ -52,6 +60,7 @@ class EventNotFoundError(Exception):
         super().__init__(msg)
 
 
+@scopedstats.timer()
 def build_workflow_event_data_from_event(
     project_id: int,
     event_id: str,
@@ -73,8 +82,8 @@ def build_workflow_event_data_from_event(
         raise EventNotFoundError(event_id, project_id)
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
-    # TODO(iamrajjoshi): Should we use get_from_cache here?
-    group = Group.objects.get(id=group_id)
+
+    group = Group.objects.get_from_cache(id=group_id)
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
 

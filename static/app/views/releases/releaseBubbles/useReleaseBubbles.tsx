@@ -595,7 +595,8 @@ export function useReleaseBubbles({
         trackLegend(params);
       };
 
-      if (echartsInstance) {
+      // @ts-expect-error `getModel` is private, but we access it to prevent binding mouse events to an instance of ECharts that hasn't been fully initialized. A more robust pattern is to attach mouse events using `onChartReady` instead of `ref`, but that causes manually bound mouse events to be overridden by the contents of the `onEvents` prop, since `onChartReady` only fires once, while the `ref` fires more often, and the manual events are re-added.
+      if (echartsInstance?.getModel()) {
         /**
          * MouseListeners for echarts. This includes drawing a highlighted area on the
          * main chart when a release bubble is hovered over.

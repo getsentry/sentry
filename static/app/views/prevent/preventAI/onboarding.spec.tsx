@@ -1,3 +1,4 @@
+import {ThemeProvider, type Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -7,8 +8,14 @@ import PreventAIOnboarding from './onboarding';
 
 jest.mock('sentry-images/features/prevent-hero.svg', () => 'prevent-hero-mock.svg');
 jest.mock(
-  'sentry-images/features/prevent-pr-comments.png',
-  () => 'prevent-pr-comments-mock.png'
+  'sentry-images/features/prevent-pr-comments-light.png',
+  () => 'prevent-pr-comments-light-mock.png',
+  {virtual: true}
+);
+jest.mock(
+  'sentry-images/features/prevent-pr-comments-dark.png',
+  () => 'prevent-pr-comments-dark-mock.png',
+  {virtual: true}
 );
 
 describe('PreventAIOnboarding', () => {
@@ -43,7 +50,7 @@ describe('PreventAIOnboarding', () => {
 
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', {name: 'Enable Generative AI features'})
+      screen.getByRole('heading', {name: 'Enable Prevent AI features'})
     ).toBeInTheDocument();
 
     expect(screen.getByText('2')).toBeInTheDocument();
@@ -61,8 +68,16 @@ describe('PreventAIOnboarding', () => {
     const orgSettingsLink = screen.getByRole('link', {name: 'organization settings'});
     expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org');
 
+    const sentryGitHubAppLink = screen.getByRole('link', {
+      name: 'Sentry GitHub App',
+    });
+    expect(sentryGitHubAppLink).toHaveAttribute(
+      'href',
+      '/settings/test-org/integrations/github'
+    );
+
     const githubIntegrationLink = screen.getByRole('link', {
-      name: 'GitHub integration instructions',
+      name: 'GitHub integration',
     });
     expect(githubIntegrationLink).toHaveAttribute(
       'href',
@@ -133,7 +148,7 @@ describe('PreventAIOnboarding', () => {
 
     const prCommentsImage = screen.getByAltText('Prevent PR Comments');
     expect(prCommentsImage).toBeInTheDocument();
-    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-mock.png');
+    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-light-mock.png');
   });
 
   it('renders admin notice text', () => {
@@ -163,7 +178,7 @@ describe('PreventAIOnboarding', () => {
     const stepHeadings = screen.getAllByRole('heading', {level: 3});
     expect(stepHeadings).toHaveLength(3);
 
-    expect(stepHeadings[0]).toHaveTextContent('Enable Generative AI features');
+    expect(stepHeadings[0]).toHaveTextContent('Enable Prevent AI features');
     expect(stepHeadings[1]).toHaveTextContent('Setup GitHub Integration');
     expect(stepHeadings[2]).toHaveTextContent('Setup Seer');
   });
@@ -175,10 +190,25 @@ describe('PreventAIOnboarding', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'Make sure AI features are enabled in your organization settings.'
+            'An organization admin needs to turn on two toggles: Enable Prevent AI and Show Generative AI Features in your organization settings.'
           )
         )
       ).toBeInTheDocument();
+    });
+
+    it('renders step 1 description with italic text components', () => {
+      render(<PreventAIOnboarding />, {organization});
+
+      // Check that the italic text components are rendered
+      const enablePreventAIText = screen.getByText('Enable Prevent AI');
+      const showGenerativeAIText = screen.getByText('Show Generative AI Features');
+
+      expect(enablePreventAIText).toBeInTheDocument();
+      expect(showGenerativeAIText).toBeInTheDocument();
+
+      // Verify they are span elements (default for Text component)
+      expect(enablePreventAIText.tagName).toBe('SPAN');
+      expect(showGenerativeAIText.tagName).toBe('SPAN');
     });
 
     it('renders step 2 description with GitHub instructions', () => {
@@ -187,7 +217,7 @@ describe('PreventAIOnboarding', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'To grant Seer access to your codebase, follow these GitHub integration instructions: 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.'
+            'To grant Seer access to your codebase, install the Sentry GitHub App to connect your GitHub repositories. Learn more about GitHub integration.'
           )
         )
       ).toBeInTheDocument();
@@ -204,5 +234,20 @@ describe('PreventAIOnboarding', () => {
         )
       ).toBeInTheDocument();
     });
+  });
+
+  it.each([
+    [{type: 'dark'}, 'prevent-pr-comments-dark-mock.png'],
+    [{type: 'light'}, 'prevent-pr-comments-light-mock.png'],
+  ])('renders the correct image in %p theme', (theme, expectedSrc) => {
+    render(
+      <ThemeProvider theme={theme as Theme}>
+        <PreventAIOnboarding />
+      </ThemeProvider>,
+      {organization}
+    );
+    const prCommentsImage = screen.getByAltText('Prevent PR Comments');
+    expect(prCommentsImage).toBeInTheDocument();
+    expect(prCommentsImage).toHaveAttribute('src', expectedSrc);
   });
 });

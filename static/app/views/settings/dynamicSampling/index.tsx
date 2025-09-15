@@ -71,7 +71,7 @@ export default function DynamicSamplingSettings() {
         title={
           <Fragment>
             {t('Dynamic Sampling')}
-            <FeatureBadge type="new" />
+            <FeatureBadge type="alpha" />
           </Fragment>
         }
         action={

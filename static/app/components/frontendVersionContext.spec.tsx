@@ -5,13 +5,12 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import {FrontendVersionProvider, useFrontendVersion} from './frontendVersionContext';
 
-// Mock constants to control test environment, the FrontendVersionProvider ony
-// does anything in production SAAS.
 jest.mock('sentry/constants', () => ({
   __esModule: true,
   DEPLOY_PREVIEW_CONFIG: undefined,
-  NODE_ENV: 'production',
 }));
+
+const originalNodeEnv = process.env.NODE_ENV;
 
 function TestComponent() {
   const {state, deployedVersion, runningVersion} = useFrontendVersion();
@@ -29,10 +28,12 @@ describe('FrontendVersionProvider', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ConfigStore.set('sentryMode', 'SAAS');
+    process.env.NODE_ENV = 'production';
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   it('provides state="current" when server version matches current version', async () => {
@@ -133,7 +134,7 @@ describe('FrontendVersionProvider', () => {
   });
 
   it('provides state="disabled" when NODE_ENV is not production', async () => {
-    jest.mocked(constants).NODE_ENV = 'development';
+    process.env.NODE_ENV = 'development';
 
     MockApiClient.addMockResponse({
       url: '/internal/frontend-version/',

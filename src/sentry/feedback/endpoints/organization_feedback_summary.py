@@ -1,6 +1,5 @@
 import logging
 from datetime import timedelta
-from typing import TypedDict
 
 from django.conf import settings
 from rest_framework.exceptions import ParseError
@@ -44,10 +43,40 @@ fallback_connection_pool = connection_from_url(
 )
 
 
-class SummaryRequest(TypedDict):
-    """Corresponds to SummarizeFeedbacksRequest in Seer."""
+def get_summary_from_seer(feedback_msgs: list[str]) -> str | None:
+    request_body = json.dumps({"feedbacks": feedback_msgs}).encode("utf-8")
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
+            body=request_body,
+        )
+    except Exception:
+        # If summarization pod fails, fall back to autofix pod
+        logger.warning(
+            "Summarization pod connection failed for feedback summary, falling back to autofix",
+            exc_info=True,
+        )
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=fallback_connection_pool,
+                path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
+                body=request_body,
+            )
+        except Exception:
+            logger.exception(
+                "Seer failed to generate a summary for a list of feedbacks on both pods"
+            )
+            return None
 
-    feedbacks: list[str]
+    if response.status < 200 or response.status >= 300:
+        logger.error(
+            "Seer failed to generate a summary for a list of feedbacks",
+            extra={"status_code": response.status, "response_data": response.data},
+        )
+        return None
+
+    return response.json()["data"]
 
 
 @region_silo_endpoint
@@ -133,63 +162,27 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             )
 
         # Also cap the number of characters that we send to the LLM
-        group_feedbacks = []
+        feedback_msgs = []
         total_chars = 0
         for group in groups:
             total_chars += len(group.data["metadata"]["message"])
             if total_chars > MAX_FEEDBACKS_TO_SUMMARIZE_CHARS:
                 break
-            group_feedbacks.append(group.data["metadata"]["message"])
+            feedback_msgs.append(group.data["metadata"]["message"])
 
         # Edge case, but still generate a summary
-        if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
+        if len(feedback_msgs) < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
-        seer_request = SummaryRequest(
-            feedbacks=group_feedbacks,
-        )
-
-        try:
-            response = make_signed_seer_api_request(
-                connection_pool=seer_connection_pool,
-                path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
-                body=json.dumps(seer_request).encode("utf-8"),
-            )
-            response_data = response.json()
-        except Exception:
-            # If summarization pod fails, fall back to autofix pod
-            logger.warning(
-                "Summarization pod connection failed for feedback summary, falling back to autofix",
-                exc_info=True,
-            )
-            try:
-                response = make_signed_seer_api_request(
-                    connection_pool=fallback_connection_pool,
-                    path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
-                    body=json.dumps(seer_request).encode("utf-8"),
-                )
-                response_data = response.json()
-            except Exception:
-                logger.exception(
-                    "Seer failed to generate a summary for a list of feedbacks on both pods"
-                )
-                return Response(
-                    {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
-                )
-
-        if response.status < 200 or response.status >= 300:
-            logger.error(
-                "Seer failed to generate a summary for a list of feedbacks",
-                extra={"status_code": response.status, "response_data": response.data},
-            )
+        summary = get_summary_from_seer(feedback_msgs)
+        if summary is None:
             return Response(
                 {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
             )
-        summary = response_data["data"]
 
         cache.set(
             summary_cache_key,
-            {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
+            {"summary": summary, "numFeedbacksUsed": len(feedback_msgs)},
             timeout=SUMMARY_CACHE_TIMEOUT,
         )
 
@@ -197,6 +190,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             {
                 "summary": summary,
                 "success": True,
-                "numFeedbacksUsed": len(group_feedbacks),
+                "numFeedbacksUsed": len(feedback_msgs),
             }
         )

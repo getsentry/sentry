@@ -12,13 +12,14 @@ from django.db import router, transaction
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.preprod.api.models.project_preprod_size_analysis_models import SizeAnalysisResults
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
+from sentry.preprod.size_analysis.models import SizeAnalysisResults
+from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
@@ -387,6 +388,7 @@ def _assemble_preprod_artifact_size_analysis(
                 },
             )
 
+        # Trigger size analysis comparison if eligible
         logger.info(
             "Created or updated preprod artifact size metrics with analysis file",
             extra={
@@ -437,6 +439,15 @@ def _assemble_preprod_artifact_size_analysis(
     create_preprod_status_check_task.apply_async(
         kwargs={
             "preprod_artifact_id": artifact_id,
+        }
+    )
+
+    # Trigger size analysis comparison if eligible
+    compare_preprod_artifact_size_analysis.apply_async(
+        kwargs={
+            "project_id": project.id,
+            "org_id": org_id,
+            "artifact_id": artifact_id,
         }
     )
 
