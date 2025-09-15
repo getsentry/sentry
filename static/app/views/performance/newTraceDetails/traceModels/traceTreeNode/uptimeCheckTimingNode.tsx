@@ -54,10 +54,7 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
   }
 
   matchWithFreeText(query: string): boolean {
-    if (
-      this.value.description &&
-      this.value.description.toLowerCase().includes(query.toLowerCase())
-    ) {
+    if (this.value.description?.toLowerCase().includes(query.toLowerCase())) {
       return true;
     }
 
