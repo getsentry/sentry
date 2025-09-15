@@ -97,6 +97,29 @@ class OAuthAuthorizeCodeTest(TestCase):
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
 
+    def test_persists_pkce_fields_when_provided(self) -> None:
+        self.login_as(self.user)
+
+        # Provide PKCE inputs on the authorization request
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            "&code_challenge=WWxwZkV3MldEdmZ2N2d0X1pPZ1NrZzN1RDl0MHBZQUpzQ1ZzQWxkSW1aZw"
+            "&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+
+        # Approve flow should persist PKCE fields on the ApiGrant
+        resp = self.client.post(self.path, {"op": "approve"})
+        assert resp.status_code == 302
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.code_challenge == (
+            "WWxwZkV3MldEdmZ2N2d0X1pPZ1NrZzN1RDl0MHBZQUpzQ1ZzQWxkSW1aZw"
+        )
+        assert grant.code_challenge_method == "S256"
+
     def test_minimal_params_deny_flow(self) -> None:
         self.login_as(self.user)
 
