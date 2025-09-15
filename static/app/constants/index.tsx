@@ -577,7 +577,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Prevent Reviews'),
     productName: t('Prevent Reviews'),
     uid: 30,
-    isBilledCategory: true,
+    isBilledCategory: false,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: false, // TODO(prevent): add external stats when ready
