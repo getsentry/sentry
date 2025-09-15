@@ -7,7 +7,6 @@ import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import Form from 'sentry/components/forms/form';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 
 import type {InnerIntentFormProps} from 'getsentry/components/stripeForms/types';
@@ -19,14 +18,9 @@ function InnerIntentForm({
   location,
   handleSubmit,
 }: InnerIntentFormProps) {
-  const [loading, setLoading] = useState(true);
   const elements = useElements();
   const stripe = useStripe();
   const [submitDisabled, setSubmitDisabled] = useState(true);
-
-  if (loading) {
-    return <LoadingIndicator />;
-  }
 
   const handleFormChange = (formData: StripePaymentElementChangeEvent) => {
     if (formData.complete) {
@@ -41,7 +35,11 @@ function InnerIntentForm({
       onSubmit={() => handleSubmit({stripe, elements})}
       submitDisabled={submitDisabled}
       submitLabel={buttonText}
-      extraButton={<Button onClick={onCancel}>{t('Cancel')}</Button>}
+      extraButton={
+        <Button aria-label={t('Cancel')} onClick={onCancel}>
+          {t('Cancel')}
+        </Button>
+      }
       footerStyle={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -55,7 +53,6 @@ function InnerIntentForm({
             terms: {card: 'never'}, // we display the terms ourselves
             wallets: {applePay: 'never', googlePay: 'never'},
           }}
-          onReady={() => setLoading(false)}
         />
         <Flex direction="column" gap="sm">
           <small>
