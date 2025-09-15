@@ -7,15 +7,17 @@ from django.conf import settings
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateTimeRangeField
 from django.contrib.postgres.fields.ranges import RangeBoundary, RangeOperators
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.types.activity import ActivityType
 
 logger = logging.getLogger(__name__)
@@ -112,6 +114,12 @@ class GroupOpenPeriod(DefaultFieldsModel):
             resolution_activity=resolution_activity,
             user_id=resolution_activity.user_id,
         )
+
+        if get_group_type_by_type_id(self.group.type).track_priority_changes:
+            GroupOpenPeriodActivity.objects.create(
+                group_open_period=self,
+                type=OpenPeriodActivityType.CLOSED,
+            )
 
     def reopen_open_period(self) -> None:
         if self.date_ended is None:
@@ -255,13 +263,23 @@ def create_open_period(group: Group, start_time: datetime) -> None:
 
     # There are some historical cases where we log multiple regressions for the same group,
     # but we only want to create a new open period for the first regression
-    GroupOpenPeriod.objects.create(
-        group=group,
-        project=group.project,
-        date_started=start_time,
-        date_ended=None,
-        resolution_activity=None,
-    )
+    with transaction.atomic(router.db_for_write(GroupOpenPeriod)):
+        open_period = GroupOpenPeriod.objects.create(
+            group=group,
+            project=group.project,
+            date_started=start_time,
+            date_ended=None,
+            resolution_activity=None,
+        )
+
+        # If we care about this group's activity, create activity entry
+        if get_group_type_by_type_id(group.type).track_priority_changes:
+            GroupOpenPeriodActivity.objects.create(
+                date_added=start_time,
+                group_open_period=open_period,
+                type=OpenPeriodActivityType.OPENED,
+                value=group.priority,
+            )
 
 
 def update_group_open_period(

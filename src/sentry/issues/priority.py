@@ -39,11 +39,18 @@ def update_priority(
     reason: PriorityChangeReason | None = None,
     actor: User | RpcUser | None = None,
     project: Project | None = None,
+    is_regression: bool = False,
 ) -> None:
     """
     Update the priority of a group and record the change in the activity and group history.
     """
     from sentry.incidents.grouptype import MetricIssue
+    from sentry.issues.grouptype import get_group_type_by_type_id
+    from sentry.models.groupopenperiod import get_latest_open_period
+    from sentry.models.groupopenperiodactivity import (
+        GroupOpenPeriodActivity,
+        OpenPeriodActivityType,
+    )
     from sentry.workflow_engine.models.incident_groupopenperiod import (
         update_incident_activity_based_on_group_activity,
     )
@@ -69,6 +76,31 @@ def update_priority(
     # we will remove this once we've fully deprecated the Incident model
     if group.type == MetricIssue.type_id:
         update_incident_activity_based_on_group_activity(group, priority)
+
+    # create a row in the GroupOpenPeriodActivity table
+    open_period = get_latest_open_period(group)
+    if get_group_type_by_type_id(group.type).track_priority_changes:
+        if is_regression:
+            # in case the rollout somehow goes out between open period creation and priority update
+            try:
+                activity_entry_to_update = GroupOpenPeriodActivity.objects.get(
+                    group_open_period=open_period, type=OpenPeriodActivityType.OPENED
+                )
+                activity_entry_to_update.update(value=priority)
+            except GroupOpenPeriodActivity.DoesNotExist:
+                GroupOpenPeriodActivity.objects.create(
+                    date_added=open_period.date_started,
+                    group_open_period=open_period,
+                    type=OpenPeriodActivityType.OPENED,
+                    value=priority,
+                )
+        else:
+            # make a new activity entry
+            GroupOpenPeriodActivity.objects.create(
+                group_open_period=open_period,
+                type=OpenPeriodActivityType.STATUS_CHANGE,
+                value=priority,
+            )
 
     issue_update_priority.send_robust(
         group=group,
