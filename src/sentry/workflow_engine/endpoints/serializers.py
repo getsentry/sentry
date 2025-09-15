@@ -11,6 +11,7 @@ from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
@@ -392,7 +393,8 @@ class DetectorSerializer(Serializer):
                 attrs[item]["config"] = item.config
             actor = item.owner
             if actor:
-                attrs[item]["owner"] = actor.identifier
+                resolved_actor = actor.resolve()
+                attrs[item]["owner"] = serialize(resolved_actor, user, ActorSerializer())
 
         return attrs
 
