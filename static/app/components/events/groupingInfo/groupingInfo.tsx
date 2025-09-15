@@ -66,7 +66,7 @@ export default function GroupingInfo({
   );
 
   return (
-    <Fragment>
+    <GroupingInfoContainer>
       <ConfigHeader>
         {hasStreamlinedUI && (
           <GroupInfoSummary
@@ -113,9 +113,16 @@ export default function GroupingInfo({
               </Fragment>
             ))
         : null}
-    </Fragment>
+    </GroupingInfoContainer>
   );
 }
+
+const GroupingInfoContainer = styled('div')`
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+`;
 
 const ConfigHeader = styled('div')`
   display: flex;

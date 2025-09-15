@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from sentry import tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.serializers import serialize
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.search.utils import DEVICE_CLASS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 

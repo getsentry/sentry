@@ -5,6 +5,8 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
 import {
   getReleasesSeriesQueryOptions,
@@ -83,7 +85,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-const DEFAULT_EVENT_TYPES: string[] = [];
+const DEFAULT_EVENT_TYPES: EventTypes[] = [];
 
 const fromApiAggregate = (aggregate: string) => {
   return (
@@ -102,7 +104,12 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
   SearchBar: ReleaseSearchBar,
-  getSeriesQueryOptions: getReleasesSeriesQueryOptions,
+  getSeriesQueryOptions: options => {
+    return getReleasesSeriesQueryOptions({
+      ...options,
+      dataset: DetectorReleasesConfig.getDiscoverDataset(),
+    });
+  },
   getIntervals: ({detectionType}) => {
     let intervals = detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
     // Crash-free (releases) does not support sub-hour intervals
@@ -128,4 +135,5 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
     return [];
   },
   supportedDetectionTypes: ['static'],
+  getDiscoverDataset: () => DiscoverDatasets.METRICS,
 };

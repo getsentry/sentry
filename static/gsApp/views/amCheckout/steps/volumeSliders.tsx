@@ -11,6 +11,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 
 import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -36,6 +37,7 @@ function VolumeSliders({
   subscription,
   isLegacy,
   isNewCheckout,
+  onReservedChange,
 }: Pick<
   StepProps,
   | 'activePlan'
@@ -47,7 +49,9 @@ function VolumeSliders({
   | 'isNewCheckout'
 > & {
   isLegacy: boolean;
+  onReservedChange?: (value: number, category: DataCategory) => void;
 }) {
+  // TODO(checkout v3): Remove this once we've GA'd, the changes are handled in the parent component
   const handleReservedChange = (value: number, category: DataCategory) => {
     onUpdate({reserved: {...formData.reserved, [category]: value}});
 
@@ -230,7 +234,13 @@ function VolumeSliders({
                       id={sliderId}
                       value={formData.reserved[category] ?? ''}
                       allowedValues={allowedValues}
-                      onChange={value => value && handleReservedChange(value, category)}
+                      onChange={value =>
+                        defined(value) && typeof value === 'number'
+                          ? onReservedChange
+                            ? onReservedChange(value, category)
+                            : handleReservedChange(value, category)
+                          : undefined
+                      }
                     />
                     <MinMax isNewCheckout={!!isNewCheckout}>
                       <div>

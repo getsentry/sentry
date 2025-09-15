@@ -6,10 +6,12 @@ import type {Theme} from 'sentry/utils/theme';
 
 import {
   getBorder,
+  getMargin,
   getRadius,
   getSpacing,
   rc,
   type Border,
+  type Margin,
   type RadiusSize,
   type Responsive,
   type Shorthand,
@@ -24,6 +26,10 @@ interface ContainerLayoutProps {
   >;
 
   padding?: Responsive<Shorthand<SpacingSize, 4>>;
+  paddingTop?: Responsive<SpacingSize>;
+  paddingBottom?: Responsive<SpacingSize>;
+  paddingLeft?: Responsive<SpacingSize>;
+  paddingRight?: Responsive<SpacingSize>;
 
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
@@ -42,11 +48,50 @@ interface ContainerLayoutProps {
   maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
 
   border?: Responsive<Border>;
+  borderTop?: Responsive<Border>;
+  borderBottom?: Responsive<Border>;
+  borderLeft?: Responsive<Border>;
+  borderRight?: Responsive<Border>;
 
+  // Grid Item Properties
   area?: Responsive<React.CSSProperties['gridArea']>;
+  row?: Responsive<React.CSSProperties['gridRow']>;
+  column?: Responsive<React.CSSProperties['gridColumn']>;
+
+  // Flex Item Properties
   order?: Responsive<React.CSSProperties['order']>;
   flex?: Responsive<React.CSSProperties['flex']>;
+  flexGrow?: Responsive<React.CSSProperties['flexGrow']>;
+  flexShrink?: Responsive<React.CSSProperties['flexShrink']>;
+  flexBasis?: Responsive<React.CSSProperties['flexBasis']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
+  justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
+
+  /**
+   * Prefer using Flex or Grid gap as opposed to margin.
+   * @deprecated
+   */
+  margin?: Responsive<Shorthand<Margin, 4>>;
+  /**
+   * Prefer using Flex or Grid gap as opposed to margin.
+   * @deprecated
+   */
+  marginTop?: Responsive<Margin>;
+  /**
+   * Prefer using Flex or Grid gap as opposed to margin.
+   * @deprecated
+   */
+  marginBottom?: Responsive<Margin>;
+  /**
+   * Prefer using Flex or Grid gap as opposed to margin.
+   * @deprecated
+   */
+  marginLeft?: Responsive<Margin>;
+  /**
+   * Prefer using Flex or Grid gap as opposed to margin.
+   * @deprecated
+   */
+  marginRight?: Responsive<Margin>;
 }
 
 /* eslint-enable typescript-sort-keys/interface */
@@ -94,25 +139,44 @@ export type ContainerProps<T extends ContainerElement = 'div'> =
 
 const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
-  'as',
   'area',
-  'border',
+  'as',
   'background',
+  'border',
+  'borderTop',
+  'borderBottom',
+  'borderLeft',
+  'borderRight',
+  'column',
   'display',
   'flex',
-  'padding',
+  'flexBasis',
+  'flexGrow',
+  'flexShrink',
+  'height',
+  'justifySelf',
+  'margin',
+  'marginTop',
+  'marginBottom',
+  'marginLeft',
+  'marginRight',
+  'maxHeight',
+  'maxWidth',
+  'minHeight',
+  'minWidth',
+  'order',
   'overflow',
   'overflowX',
   'overflowY',
-  'order',
+  'padding',
+  'paddingTop',
+  'paddingBottom',
+  'paddingLeft',
+  'paddingRight',
   'position',
   'radius',
+  'row',
   'width',
-  'minWidth',
-  'maxWidth',
-  'height',
-  'minHeight',
-  'maxHeight',
 ]);
 
 export const Container = styled(
@@ -143,6 +207,16 @@ export const Container = styled(
   ${p => rc('overflow-y', p.overflowY, p.theme)};
 
   ${p => rc('padding', p.padding, p.theme, getSpacing)};
+  ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing)};
+  ${p => rc('padding-bottom', p.paddingBottom, p.theme, getSpacing)};
+  ${p => rc('padding-left', p.paddingLeft, p.theme, getSpacing)};
+  ${p => rc('padding-right', p.paddingRight, p.theme, getSpacing)};
+
+  ${p => rc('margin', p.margin, p.theme, getMargin)};
+  ${p => rc('margin-top', p.marginTop, p.theme, getMargin)};
+  ${p => rc('margin-bottom', p.marginBottom, p.theme, getMargin)};
+  ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
+  ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
   ${p => rc('background', p.background, p.theme, v => p.theme.tokens.background[v])};
 
@@ -157,11 +231,23 @@ export const Container = styled(
   ${p => rc('max-height', p.maxHeight, p.theme)};
 
   ${p => rc('grid-area', p.area, p.theme)};
+  ${p => rc('grid-row', p.row, p.theme)};
+  ${p => rc('grid-column', p.column, p.theme)};
+
   ${p => rc('order', p.order, p.theme)};
   ${p => rc('flex', p.flex, p.theme)};
+  ${p => rc('flex-grow', p.flexGrow, p.theme)};
+  ${p => rc('flex-shrink', p.flexShrink, p.theme)};
+  ${p => rc('flex-basis', p.flexBasis, p.theme)};
+
   ${p => rc('align-self', p.alignSelf, p.theme)};
+  ${p => rc('justify-self', p.justifySelf, p.theme)};
 
   ${p => rc('border', p.border, p.theme, getBorder)};
+  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
+  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
+  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
+  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.

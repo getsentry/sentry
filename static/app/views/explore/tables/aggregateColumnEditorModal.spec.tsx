@@ -11,12 +11,10 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import type {AggregateField} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {
-  DEFAULT_VISUALIZATION,
-  Visualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 
 const stringTags: TagCollection = {
@@ -76,7 +74,7 @@ describe('AggregateColumnEditorModal', () => {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: ''}, new Visualize(DEFAULT_VISUALIZATION)]}
+            columns={[{groupBy: ''}, new VisualizeFunction(DEFAULT_VISUALIZATION)]}
             onColumnsChange={() => {}}
             stringTags={stringTags}
             numberTags={numberTags}
@@ -104,8 +102,8 @@ describe('AggregateColumnEditorModal', () => {
             columns={[
               {groupBy: 'geo.country'},
               {groupBy: 'geo.region'},
-              new Visualize('count(span.duration)'),
-              new Visualize('avg(span.self_time)'),
+              new VisualizeFunction('count(span.duration)'),
+              new VisualizeFunction('avg(span.self_time)'),
             ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
@@ -122,8 +120,8 @@ describe('AggregateColumnEditorModal', () => {
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
       {groupBy: 'geo.region'},
-      new Visualize('count(span.duration)'),
-      new Visualize('avg(span.self_time)'),
+      new VisualizeFunction('count(span.duration)'),
+      new VisualizeFunction('avg(span.self_time)'),
     ]);
 
     await userEvent.click(screen.getAllByLabelText('Remove Column')[0]!);
@@ -131,8 +129,8 @@ describe('AggregateColumnEditorModal', () => {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.region'},
-      new Visualize('count(span.duration)'),
-      new Visualize('avg(span.self_time)'),
+      new VisualizeFunction('count(span.duration)'),
+      new VisualizeFunction('avg(span.self_time)'),
     ]);
 
     // only 1 group by remaining, disable the delete option
@@ -143,7 +141,7 @@ describe('AggregateColumnEditorModal', () => {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.region'},
-      new Visualize('avg(span.self_time)'),
+      new VisualizeFunction('avg(span.self_time)'),
     ]);
 
     // 1 group by and visualize remaining so both should be disabled
@@ -168,7 +166,10 @@ describe('AggregateColumnEditorModal', () => {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction(DEFAULT_VISUALIZATION),
+            ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
@@ -183,7 +184,7 @@ describe('AggregateColumnEditorModal', () => {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
@@ -194,7 +195,7 @@ describe('AggregateColumnEditorModal', () => {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
       {groupBy: ''},
     ]);
 
@@ -206,9 +207,9 @@ describe('AggregateColumnEditorModal', () => {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
       {groupBy: ''},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -231,7 +232,10 @@ describe('AggregateColumnEditorModal', () => {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction(DEFAULT_VISUALIZATION),
+            ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
@@ -246,7 +250,7 @@ describe('AggregateColumnEditorModal', () => {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
     ]);
 
     const options: string[] = [
@@ -269,7 +273,7 @@ describe('AggregateColumnEditorModal', () => {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.city'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -295,7 +299,10 @@ describe('AggregateColumnEditorModal', () => {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction(DEFAULT_VISUALIZATION),
+            ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}

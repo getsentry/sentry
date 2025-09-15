@@ -168,6 +168,10 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+# When running in an air gap environment, set this to True to disable external
+# network calls and features that require internet connectivity.
+SENTRY_AIR_GAP = False
+
 # XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
 #           it can not be `default`. The default cluster in sentry.io
 #           production is NOT a true redis cluster and WILL error in prod.
@@ -489,6 +493,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.explore",
     "sentry.insights",
     "sentry.preprod",
+    "sentry.releases",
 )
 
 # Silence internal hints from Django's system checks
@@ -837,6 +842,7 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
@@ -1381,11 +1387,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
-    "github_comment_reactions": {
-        "task": "sentry.integrations.github.tasks.github_comment_reactions",
-        # 9:00 PDT, 12:00 EDT, 16:00 UTC
-        "schedule": crontab(minute="0", hour="16"),
-    },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         # Run every 1 hour
@@ -1551,6 +1552,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
+    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
@@ -1761,7 +1763,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "github_comment_reactions": {
         "task": "integrations:sentry.integrations.github.tasks.github_comment_reactions",
-        "schedule": task_crontab("0", "16", "*", "*", "*"),
+        "schedule": task_crontab("0", "4", "*", "*", "*"),
     },
     "statistical-detectors-detect-regressions": {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
@@ -1845,12 +1847,6 @@ else:
         **TASKWORKER_CONTROL_SCHEDULES,
         **TASKWORKER_REGION_SCHEDULES,
     }
-
-TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
-    "ingest.profiling",
-    "ingest.transactions",
-    "ingest.errors",
-}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -3085,6 +3081,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
+    "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
 )
 
 
@@ -3715,7 +3712,6 @@ SEER_DEFAULT_TIMEOUT = 5
 SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
-SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
 SEER_SEVERITY_RETRIES = 1
 
@@ -4142,3 +4138,6 @@ if ngrok_host and SILO_DEVSERVER:
     # the region API URL template is set to the ngrok host.
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
+
+if IS_DEV:
+    SENTRY_OPTIONS["taskworker.enabled"] = True

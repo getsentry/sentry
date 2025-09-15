@@ -6,13 +6,12 @@ import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {
-  getTimePeriodLabel,
-  MetricDetectorInterval,
-  MetricDetectorTimePeriod,
-} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+  useDetectorResolvedStatsPeriod,
+  useDetectorTimePeriodOptions,
+} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
+import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {MetricDetectorTimePeriod} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 type BaseOption = {label: React.ReactNode; value: MetricDetectorTimePeriod};
 
@@ -32,54 +31,17 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
 
   const hasCustomRange = Boolean(start && end);
 
-  function mapIntervalToMetricInterval(
-    intervalSeconds: number
-  ): MetricDetectorInterval | undefined {
-    const intervalMinutes = Math.floor(intervalSeconds / 60);
-    const validIntervals = Object.values(MetricDetectorInterval).filter(
-      value => typeof value === 'number'
-    );
-    if (validIntervals.includes(intervalMinutes)) {
-      return intervalMinutes as MetricDetectorInterval;
-    }
-    return undefined;
-  }
+  const options: BaseOption[] = useDetectorTimePeriodOptions({
+    dataset,
+    intervalSeconds: interval,
+  });
 
-  const options: BaseOption[] = useMemo(() => {
-    if (!dataset || !interval) {
-      return [];
-    }
-    const metricInterval = mapIntervalToMetricInterval(interval);
-    if (!metricInterval) {
-      return [];
-    }
-    const datasetConfig = getDatasetConfig(dataset);
-    const timePeriods = datasetConfig.getTimePeriods(metricInterval);
-    return timePeriods.map(period => ({
-      value: period,
-      label: getTimePeriodLabel(period),
-    }));
-  }, [dataset, interval]);
-
-  // Determine selected period from query or fallback (prefer statsPeriod, else default 7d, else largest)
-  const selected: MetricDetectorTimePeriod = useMemo(() => {
-    const urlStatsPeriod = location.query?.statsPeriod as string | undefined;
-    const optionValues = new Set(options.map(o => o.value));
-    if (
-      urlStatsPeriod &&
-      optionValues.has(urlStatsPeriod as unknown as MetricDetectorTimePeriod)
-    ) {
-      return urlStatsPeriod as unknown as MetricDetectorTimePeriod;
-    }
-    if (optionValues.has(MetricDetectorTimePeriod.SEVEN_DAYS)) {
-      return MetricDetectorTimePeriod.SEVEN_DAYS;
-    }
-    const largestOption = options[options.length - 1];
-    return (
-      (largestOption?.value as MetricDetectorTimePeriod) ??
-      MetricDetectorTimePeriod.SEVEN_DAYS
-    );
-  }, [location.query, options]);
+  // Determine selected period from query or fallback to largest option
+  const selected: MetricDetectorTimePeriod = useDetectorResolvedStatsPeriod({
+    dataset,
+    intervalSeconds: interval,
+    urlStatsPeriod: location.query?.statsPeriod as string | undefined,
+  });
 
   const selectOptions = useMemo(() => {
     if (hasCustomRange) {

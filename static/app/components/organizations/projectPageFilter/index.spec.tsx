@@ -132,7 +132,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.keyboard('{Enter}');
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/projects/project-1/',
+      pathname: '/organizations/org-slug/insights/projects/project-1/',
       query: {project: '1'},
     });
 

@@ -12,16 +12,19 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {useDetectorDateParams} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
+  // Passing snubaQuery separately to avoid checking null in all places
+  snubaQuery: SnubaQuery;
 }
 const CHART_HEIGHT = 180;
 
@@ -49,12 +52,14 @@ function MetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
-    dataset,
-    aggregate: snubaQuery.aggregate,
+    detectorDataset: dataset,
+    dataset: snubaQuery.dataset,
+    aggregate: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
     interval: snubaQuery.timeWindow,
-    query: datasetConfig.toSnubaQueryString(snubaQuery),
+    query: snubaQuery.query,
     environment: snubaQuery.environment,
     projectId: detector.projectId,
+    eventTypes: snubaQuery.eventTypes,
     comparisonDelta,
     statsPeriod,
     start,
@@ -135,12 +140,18 @@ function MetricDetectorChart({
   }, [thresholdAdditionalSeries, openPeriodMarkerResult.incidentMarkerSeries]);
 
   const yAxes = useMemo(() => {
+    const {formatYAxisLabel} = getDetectorChartFormatters({
+      detectionType,
+      aggregate: snubaQuery.aggregate,
+    });
+
     const mainYAxis: YAXisComponentOption = {
       max: maxValue > 0 ? maxValue : undefined,
       min: 0,
       axisLabel: {
         // Hide the maximum y-axis label to avoid showing arbitrary threshold values
         showMaxLabel: false,
+        formatter: (value: number) => formatYAxisLabel(value),
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -153,7 +164,12 @@ function MetricDetectorChart({
     }
 
     return axes;
-  }, [maxValue, openPeriodMarkerResult.incidentMarkerYAxis]);
+  }, [
+    maxValue,
+    openPeriodMarkerResult.incidentMarkerYAxis,
+    detectionType,
+    snubaQuery.aggregate,
+  ]);
 
   const grid = useMemo(() => {
     return {
@@ -167,15 +183,15 @@ function MetricDetectorChart({
 
   if (isLoading) {
     return (
-      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
-        <Placeholder height={`${CHART_HEIGHT - 20}px`} />
+      <Flex height={CHART_HEIGHT} justify="center" align="center">
+        <Placeholder height={`${CHART_HEIGHT}px`} />
       </Flex>
     );
   }
 
   if (error) {
     return (
-      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+      <Flex height={CHART_HEIGHT} justify="center" align="center">
         <ErrorPanel>
           <IconWarning color="gray300" size="lg" />
           <div>{t('Error loading chart data')}</div>
@@ -196,29 +212,33 @@ function MetricDetectorChart({
       grid={grid}
       xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
       ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
+      tooltip={{
+        valueFormatter: getDetectorChartFormatters({
+          detectionType,
+          aggregate: snubaQuery.aggregate,
+        }).formatTooltipValue,
+      }}
       {...chartZoomProps}
     />
   );
 }
 
-export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChartProps) {
-  const dataSource = detector.dataSources[0];
-  const snubaQuery = dataSource.queryObj?.snubaQuery;
+export function MetricDetectorDetailsChart({
+  detector,
+  snubaQuery,
+}: MetricDetectorDetailsChartProps) {
   const location = useLocation();
   const statsPeriod = location.query?.statsPeriod as string | undefined;
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
-  const dateParams =
-    start && end
-      ? {start, end}
-      : statsPeriod
-        ? {statsPeriod}
-        : {statsPeriod: TimePeriod.SEVEN_DAYS};
-
-  if (!snubaQuery) {
-    // Unlikely, helps narrow types
-    return null;
-  }
+  const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
+  const dateParams = useDetectorDateParams({
+    dataset: detectorDataset,
+    intervalSeconds: snubaQuery.timeWindow,
+    start,
+    end,
+    urlStatsPeriod: statsPeriod,
+  });
 
   return (
     <ChartContainer>

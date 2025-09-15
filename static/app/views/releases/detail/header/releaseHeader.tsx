@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -14,7 +13,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -51,28 +50,40 @@ function ReleaseHeader({
   const tabs = [
     {title: t('Overview'), to: ''},
     {
-      title: (
-        <Fragment>
-          {t('Commits')}{' '}
+      title: tct('Commits [count]', {
+        count: (
           <NavTabsBadge type="default">
             {formatAbbreviatedNumber(commitCount)}
           </NavTabsBadge>
-        </Fragment>
-      ),
+        ),
+      }),
       to: `commits/`,
     },
     {
-      title: (
-        <Fragment>
-          {t('Files Changed')}
+      title: tct('Files Changed [count]', {
+        count: (
           <NavTabsBadge type="default">
             {formatAbbreviatedNumber(commitFilesChanged)}
           </NavTabsBadge>
-        </Fragment>
-      ),
+        ),
+      }),
       to: `files-changed/`,
     },
   ];
+
+  const numberOfMobileBuilds = releaseMeta.preprodBuildCount;
+  if (numberOfMobileBuilds) {
+    tabs.push({
+      title: tct('Builds [count]', {
+        count: (
+          <NavTabsBadge type="default">
+            {formatAbbreviatedNumber(numberOfMobileBuilds)}
+          </NavTabsBadge>
+        ),
+      }),
+      to: `builds/`,
+    });
+  }
 
   const getTabUrl = (path: string) =>
     normalizeUrl({

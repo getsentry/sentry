@@ -9,13 +9,13 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
+import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
   InvoiceItemType,
   OnDemandBudgetMode,
@@ -30,7 +30,7 @@ import {
   hasPartnerMigrationFeature,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
-import {loadStripe} from 'getsentry/utils/stripe';
+import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import CartDiff from 'getsentry/views/amCheckout/cartDiff';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -48,7 +48,13 @@ const NULL_PREVIEW_STATE: CartPreviewState = {
 interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
+  formDataForPreview: CheckoutFormData;
   hasCompleteBillingDetails: boolean;
+  onSuccess: ({
+    invoice,
+    nextQueryParams,
+    isSubmitted,
+  }: Pick<CheckoutState, 'invoice' | 'nextQueryParams' | 'isSubmitted'>) => void;
   organization: Organization;
   subscription: Subscription;
   referrer?: string;
@@ -418,33 +424,48 @@ function TotalSummary({
     return subtext;
   };
 
+  const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const credits = utils.getCredits({invoiceItems: previewData?.invoiceItems ?? []});
+  const creditApplied = utils.getCreditApplied({
+    creditApplied: previewData?.creditApplied ?? 0,
+    invoiceItems: previewData?.invoiceItems ?? [],
+  });
+
   return (
     <SummarySection>
-      {!previewDataLoading && (
+      {!previewDataLoading && isDueToday && (
         <Fragment>
-          {isDueToday &&
-            previewData?.invoiceItems
-              .filter(item => item.type === InvoiceItemType.SALES_TAX)
-              .map(item => {
-                const formattedPrice = utils.displayPrice({cents: item.amount});
-                return (
-                  <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                    <ItemFlex>
-                      <div>{item.description}</div>
-                      <div>{formattedPrice}</div>
-                    </ItemFlex>
-                  </Item>
-                );
-              })}
+          {fees.map(item => {
+            const formattedPrice = utils.displayPrice({cents: item.amount});
+            return (
+              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                <ItemFlex>
+                  <div>{item.description}</div>
+                  <div>{formattedPrice}</div>
+                </ItemFlex>
+              </Item>
+            );
+          })}
+          {!!creditApplied && (
+            <Item data-test-id="summary-item-credit_applied">
+              <ItemFlex>
+                <div>{t('Credit applied')}</div>
+                <Credit>{utils.displayPrice({cents: -creditApplied})}</Credit>
+              </ItemFlex>
+            </Item>
+          )}
+          {credits.map(item => {
+            const formattedPrice = utils.displayPrice({cents: item.amount});
+            return (
+              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                <ItemFlex>
+                  <div>{item.description}</div>
+                  <div>{formattedPrice}</div>
+                </ItemFlex>
+              </Item>
+            );
+          })}
         </Fragment>
-      )}
-      {!previewDataLoading && isDueToday && !!previewData?.creditApplied && (
-        <Item data-test-id="summary-item-credit_applied">
-          <ItemFlex>
-            <div>{t('Credit applied')}</div>
-            <Credit>{utils.displayPrice({cents: -previewData.creditApplied})}</Credit>
-          </ItemFlex>
-        </Item>
       )}
       <Item data-test-id="summary-item-due-today">
         <ItemFlex>
@@ -511,11 +532,13 @@ function Cart({
   subscription,
   organization,
   referrer,
+  formDataForPreview,
   hasCompleteBillingDetails,
+  onSuccess,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stripe, setStripe] = useState<stripe.Stripe>();
+  const stripe = useStripeInstance();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [summaryIsOpen, setSummaryIsOpen] = useState(true);
   const [changesIsOpen, setChangesIsOpen] = useState(true);
@@ -527,7 +550,7 @@ function Cart({
     await utils.fetchPreviewData(
       organization,
       api,
-      formData,
+      formDataForPreview,
       () => setPreviewState(prev => ({...prev, isLoading: true})),
       (data: PreviewData | null) => {
         setPreviewState(prev => ({
@@ -577,20 +600,11 @@ function Cart({
         resetPreviewState();
       }
     );
-  }, [api, formData, organization, subscription.contractPeriodEnd]);
+  }, [api, formDataForPreview, organization, subscription.contractPeriodEnd]);
 
   useEffect(() => {
     fetchPreview();
   }, [fetchPreview]);
-
-  // TODO(checkout v3): This should be refactored with the new Stripe changes
-  useEffect(() => {
-    loadStripe(Stripe => {
-      const apiKey = ConfigStore.get('getsentry.stripePublishKey');
-      const instance = Stripe(apiKey);
-      setStripe(instance);
-    });
-  }, []);
 
   const handleCardAction = ({intentDetails}: {intentDetails: utils.IntentDetails}) => {
     utils.stripeHandleCardAction(
@@ -620,6 +634,8 @@ function Cart({
     onHandleCardAction: handleCardAction,
     onFetchPreviewData: fetchPreview,
     referrer,
+    previewData: previewState.previewData ?? undefined,
+    onSuccess,
   });
 
   const handleConfirmAndPay = (applyNow?: boolean) => {

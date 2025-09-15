@@ -15,13 +15,14 @@ from traceback import StackSummary
 from typing import Any
 from unittest import mock
 
-from . import sentry
 from ._constants import CWD
 from .diff import diff
 
 
 class ThreadLeakAssertionError(AssertionError):
-    pass
+    def __init__(self, diff: str, thread_leaks: set[Thread]):
+        super().__init__(diff)
+        self.thread_leaks = thread_leaks
 
 
 def _where(cwd: str = CWD) -> StackSummary:
@@ -45,19 +46,14 @@ def threading_remembers_where() -> Generator[None]:
 
 
 @contextmanager
-def assert_none(strict: bool = True, allowlisted: bool = False) -> Generator[dict[str, Any]]:
+def assert_none() -> Generator[None]:
     """Assert no thread leaks occurred during context execution."""
 
     with threading_remembers_where():
         expected = threading.enumerate()
-        result: dict[str, Any] = {"events": {}}
-        yield result
+        yield
         actual = threading.enumerate()
 
         thread_leaks = set(actual) - set(expected)
-        if not thread_leaks:
-            return
-
-        result["events"] = sentry.capture_event(thread_leaks, strict, allowlisted)
-        if strict and not allowlisted:
-            raise ThreadLeakAssertionError(diff(old=expected, new=actual))
+        if thread_leaks:
+            raise ThreadLeakAssertionError(diff(old=expected, new=actual), thread_leaks)

@@ -34,7 +34,6 @@ import {
 import {
   useLogsAddSearchFilter,
   useLogsAnalyticsPageSource,
-  useLogsIsTableFrozen,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -50,6 +49,7 @@ import {
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
+import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {
   DetailsBody,
   DetailsContent,
@@ -558,9 +558,9 @@ function LogRowDetailsActions({
   tableDataRow: OurLogsResponseItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
-  const isTableFrozen = useLogsIsTableFrozen();
+  const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
-  const showFilterButtons = !isTableFrozen;
+  const showFilterButtons = !isFrozen;
 
   const {onClick: betterCopyToClipboard} = useCopyToClipboard({
     text: isPending || isError ? '' : ourlogToJson(data),

@@ -26,7 +26,7 @@ from sentry.taskworker.client.inflight_task_activation import InflightTaskActiva
 from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import (
     DEFAULT_REBALANCE_AFTER,
-    DEFAULT_WORKER_HEALTH_CHECK_REQ_PER_TOUCH,
+    DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
     DEFAULT_WORKER_QUEUE_SIZE,
     MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE,
 )
@@ -61,7 +61,7 @@ class TaskWorker:
         processing_pool_name: str | None = None,
         process_type: str = "spawn",
         health_check_file_path: str | None = None,
-        health_check_req_per_touch: int = DEFAULT_WORKER_HEALTH_CHECK_REQ_PER_TOUCH,
+        health_check_sec_per_touch: float = DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
@@ -74,7 +74,7 @@ class TaskWorker:
             health_check_settings=(
                 None
                 if health_check_file_path is None
-                else HealthCheckSettings(Path(health_check_file_path), health_check_req_per_touch)
+                else HealthCheckSettings(Path(health_check_file_path), health_check_sec_per_touch)
             ),
         )
         if process_type == "fork":
@@ -357,6 +357,10 @@ class TaskWorker:
                     logger.info(
                         "taskworker.spawn_child",
                         extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
+                    )
+                    metrics.incr(
+                        "taskworker.worker.spawn_child",
+                        tags={"processing_pool": self._processing_pool_name},
                     )
 
         self._spawn_children_thread = threading.Thread(

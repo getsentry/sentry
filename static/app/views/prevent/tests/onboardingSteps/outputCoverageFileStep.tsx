@@ -42,12 +42,11 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
         <OnboardingStep.Content>
           <p>
             {tct(
-              "Select your language below to generate your testing reports. If your language isn't listed, visit [supported] for your testing framework. Currently, Sentry supports JUnit XML format only.",
+              "Select your language below to generate your testing reports. If your language isn't listed, view [doc] to learn more about how to generate a file with the JUnit XML file format.",
               {
-                supported: (
-                  // TODO: the new version of this link is still TBD
-                  <Link to="https://docs.codecov.com/docs/test-analytics#:~:text=Only%20JUnit%20XML%20test%20result%20files%20are%20supported%20at%20the%20moment">
-                    {t('supported languages')}
+                doc: (
+                  <Link to="https://docs.sentry.io/product/test-analytics/">
+                    {t('this doc')}
                   </Link>
                 ),
               }

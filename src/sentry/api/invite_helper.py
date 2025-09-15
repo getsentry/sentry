@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 from logging import Logger
 
+from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
 
@@ -210,7 +211,7 @@ class ApiInviteHelper:
             and not any(self.get_onboarding_steps().values())
         )
 
-    def accept_invite(self, user: User) -> RpcOrganizationMember | None:
+    def accept_invite(self, user: User | AnonymousUser) -> RpcOrganizationMember | None:
         member = self.invite_context.member
         assert member
 
@@ -231,7 +232,7 @@ class ApiInviteHelper:
         # If SSO is required, check for valid AuthIdentity
         if provider and not provider.flags.allow_unlinked:
             # AuthIdentity has a unique constraint on provider and user
-            if not AuthIdentity.objects.filter(auth_provider=provider, user=user).exists():
+            if not AuthIdentity.objects.filter(auth_provider=provider, user=user.id).exists():
                 self.handle_member_has_no_sso()
                 return None
 

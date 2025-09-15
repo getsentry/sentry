@@ -39,10 +39,9 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      sourceMapsUploadOptions: {
-        project: "${params.project.slug}",
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-      },
+      project: "${params.project.slug}",
+      org: "${params.organization.slug}",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
 });
@@ -406,10 +405,9 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      sourceMapsUploadOptions: {
-        project: "${params.project.slug}",
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-      },
+      project: "${params.project.slug}",
+      org: "${params.organization.slug}",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
 });

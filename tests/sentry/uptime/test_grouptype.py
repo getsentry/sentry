@@ -28,7 +28,7 @@ from sentry.uptime.grouptype import (
     build_fingerprint,
     resolve_uptime_issue,
 )
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_detector
+from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
@@ -38,8 +38,7 @@ from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPrior
 class ResolveUptimeIssueTest(UptimeTestCase):
     def test(self) -> None:
         subscription = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex)
-        self.create_project_uptime_subscription(uptime_subscription=subscription)
-        detector = get_detector(subscription)
+        detector = self.create_uptime_detector(uptime_subscription=subscription)
         result = self.create_uptime_result(subscription.subscription_id)
 
         fingerprint = build_detector_fingerprint_component(detector)
@@ -83,8 +82,7 @@ class ResolveUptimeIssueTest(UptimeTestCase):
 
 class BuildDetectorFingerprintComponentTest(UptimeTestCase):
     def test_build_detector_fingerprint_component(self) -> None:
-        project_subscription = self.create_project_uptime_subscription()
-        detector = get_detector(project_subscription.uptime_subscription)
+        detector = self.create_uptime_detector()
 
         fingerprint_component = build_detector_fingerprint_component(detector)
         assert fingerprint_component == f"uptime-detector:{detector.id}"
@@ -92,8 +90,7 @@ class BuildDetectorFingerprintComponentTest(UptimeTestCase):
 
 class BuildFingerprintForProjectSubscriptionTest(UptimeTestCase):
     def test_build_fingerprint_for_project_subscription(self) -> None:
-        project_subscription = self.create_project_uptime_subscription()
-        detector = get_detector(project_subscription.uptime_subscription)
+        detector = self.create_uptime_detector()
 
         fingerprint = build_fingerprint(detector)
         expected_fingerprint = [build_detector_fingerprint_component(detector)]
@@ -115,8 +112,7 @@ class BuildEvidenceDisplayTest(UptimeTestCase):
 class BuildEventDataTest(UptimeTestCase):
     def test_build_event_data(self) -> None:
         result = self.create_uptime_result()
-        project_subscription = self.create_project_uptime_subscription()
-        detector = get_detector(project_subscription.uptime_subscription)
+        detector = self.create_uptime_detector()
 
         assert build_event_data(result, detector) == {
             "environment": "development",
@@ -124,7 +120,6 @@ class BuildEventDataTest(UptimeTestCase):
             "project_id": detector.project_id,
             "received": datetime.now().replace(microsecond=0),
             "sdk": None,
-            "tags": {"uptime_rule": str(project_subscription.id)},
             "contexts": {
                 "trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")}
             },
@@ -154,9 +149,8 @@ class TestUptimeHandler(UptimeTestCase):
         return evaluation[None]
 
     def test_simple_evaluate(self) -> None:
-        project_subscription = self.create_project_uptime_subscription()
-        uptime_subscription = project_subscription.uptime_subscription
-        detector = get_detector(project_subscription.uptime_subscription)
+        detector = self.create_uptime_detector()
+        uptime_subscription = get_uptime_subscription(detector)
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
@@ -197,9 +191,8 @@ class TestUptimeHandler(UptimeTestCase):
             assert uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_issue_creation_disabled(self) -> None:
-        project_subscription = self.create_project_uptime_subscription()
-        uptime_subscription = project_subscription.uptime_subscription
-        detector = get_detector(project_subscription.uptime_subscription)
+        detector = self.create_uptime_detector()
+        uptime_subscription = get_uptime_subscription(detector)
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
@@ -252,9 +245,8 @@ class TestUptimeHandler(UptimeTestCase):
         Test that a uptime monitor that flaps between failure, success success,
         failure, etc does not produce any evaluations.
         """
-        project_subscription = self.create_project_uptime_subscription()
-        uptime_subscription = project_subscription.uptime_subscription
-        detector = get_detector(project_subscription.uptime_subscription)
+        detector = self.create_uptime_detector()
+        uptime_subscription = get_uptime_subscription(detector)
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
@@ -280,7 +272,7 @@ class TestUptimeHandler(UptimeTestCase):
 class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.uptime_monitor = self.create_project_uptime_subscription()
+        self.uptime_monitor = self.create_uptime_detector()
 
     def test_detector_correct_schema(self) -> None:
         self.create_detector(

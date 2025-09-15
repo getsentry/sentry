@@ -478,7 +478,7 @@ describe('IssueRuleEditor', () => {
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
       expect(router.push).toHaveBeenCalledWith(
-        '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+        '/organizations/org-slug/issues/alerts/rules/project-slug/1/details/'
       );
     });
 

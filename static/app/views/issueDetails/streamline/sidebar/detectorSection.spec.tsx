@@ -62,7 +62,7 @@ describe('DetectorSection', () => {
     const link = screen.getByRole('button', {name: 'View detector details'});
     expect(link).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/alerts/rules/details/${detectorId}/`
+      `/organizations/${organization.slug}/issues/alerts/rules/details/${detectorId}/`
     );
     expect(
       screen.getByText(
@@ -96,7 +96,7 @@ describe('DetectorSection', () => {
     const link = screen.getByRole('button', {name: 'View monitor details'});
     expect(link).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${detectorId}/details/`
+      `/organizations/${organization.slug}/issues/alerts/rules/crons/${project.slug}/${detectorId}/details/`
     );
     expect(
       screen.getByText(
@@ -107,12 +107,9 @@ describe('DetectorSection', () => {
 
   it('displays the detector details for an uptime monitor', () => {
     const event = EventFixture({
-      tags: [
-        {
-          key: 'uptime_rule',
-          value: detectorId,
-        },
-      ],
+      occurrence: {
+        evidenceData: {detectorId},
+      },
     });
     const group = GroupFixture({
       issueCategory: IssueCategory.UPTIME,
@@ -131,7 +128,7 @@ describe('DetectorSection', () => {
     const link = screen.getByRole('button', {name: 'View alert details'});
     expect(link).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${detectorId}/details/`
+      `/organizations/${organization.slug}/issues/alerts/rules/uptime/${project.slug}/${detectorId}/details/`
     );
     expect(
       screen.getByText(

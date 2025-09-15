@@ -17,7 +17,7 @@ import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ToolbarGroupByProps {
-  groupBys: string[];
+  groupBys: readonly string[];
   setGroupBys: (groupBys: string[], mode?: Mode) => void;
 }
 
@@ -45,7 +45,7 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
   );
 
   return (
-    <DragNDropContext columns={groupBys} setColumns={setGroupBysWithOp}>
+    <DragNDropContext columns={groupBys.slice()} setColumns={setGroupBysWithOp}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => (
         <ToolbarSection data-test-id="section-group-by">
           <ToolbarGroupByHeader />

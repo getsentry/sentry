@@ -23,6 +23,7 @@ describe('Cart', () => {
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const props = {
     ...routerProps,
+    navigate: jest.fn(),
     isNewCheckout: true,
   };
   const businessPlan = PlanDetailsLookupFixture('am3_business')!;
@@ -79,6 +80,14 @@ describe('Cart', () => {
     resetMockDate();
   });
 
+  function getFormDataForPreview(formData: CheckoutFormData) {
+    return {
+      ...formData,
+      onDemandMaxSpend: undefined,
+      onDemandBudget: undefined,
+    };
+  }
+
   it('renders with default selections', async () => {
     render(
       <AMCheckout
@@ -118,9 +127,11 @@ describe('Cart', () => {
       <Cart
         activePlan={teamPlanAnnual}
         formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -170,9 +181,11 @@ describe('Cart', () => {
       <Cart
         activePlan={legacyTeamPlan}
         formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -221,9 +234,11 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -260,9 +275,11 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -279,9 +296,11 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails={false}
         organization={organization}
         subscription={subscription}
+        onSuccess={jest.fn()}
       />
     );
     expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
@@ -308,9 +327,11 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={partnerOrg}
         subscription={partnerSub}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -347,9 +368,11 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={partnerSub}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -387,9 +410,11 @@ describe('Cart', () => {
       <Cart
         activePlan={teamPlanAnnual}
         formData={formData}
+        formDataForPreview={getFormDataForPreview(formData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
+        onSuccess={jest.fn()}
       />
     );
 
@@ -417,9 +442,11 @@ describe('Cart', () => {
       <Cart
         activePlan={businessPlan}
         formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
         hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
+        onSuccess={jest.fn()}
       />
     );
 

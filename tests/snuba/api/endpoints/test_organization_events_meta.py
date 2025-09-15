@@ -82,23 +82,6 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 2
 
-    def test_multiple_projects(self) -> None:
-        project2 = self.create_project()
-
-        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
-        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=project2.id)
-
-        response = self.client.get(self.url, format="json")
-
-        assert response.status_code == 400, response.content
-
-        self.features["organizations:global-views"] = True
-        with self.feature(self.features):
-            response = self.client.get(self.url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.data["count"] == 2
-
     def test_search(self) -> None:
         self.store_event(
             data={"timestamp": self.min_ago.isoformat(), "message": "how to make fast"},

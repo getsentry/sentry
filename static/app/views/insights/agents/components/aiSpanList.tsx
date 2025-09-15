@@ -316,7 +316,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
   nodeInfo.title = truncatedOp;
 
-  if (getIsAiRunSpan({op})) {
+  if (getIsAiRunSpan({op}) || getIsAiCreateAgentSpan({op})) {
     const agentName =
       getNodeAttribute(SpanFields.GEN_AI_AGENT_NAME) ||
       getNodeAttribute(SpanFields.GEN_AI_FUNCTION_ID) ||
@@ -326,20 +326,15 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
       getNodeAttribute(SpanFields.GEN_AI_RESPONSE_MODEL) ||
       '';
     nodeInfo.icon = <IconBot size="md" />;
-    nodeInfo.subtitle = agentName;
+    nodeInfo.title = agentName || truncatedOp;
+    nodeInfo.subtitle = truncatedOp;
     if (model) {
-      nodeInfo.subtitle = nodeInfo.subtitle ? (
+      nodeInfo.subtitle = (
         <Fragment>
           {nodeInfo.subtitle} ({model})
         </Fragment>
-      ) : (
-        model
       );
     }
-    nodeInfo.color = colors[0];
-  } else if (getIsAiCreateAgentSpan({op})) {
-    nodeInfo.icon = <IconBot size="md" />;
-    nodeInfo.subtitle = getNodeAttribute('gen_ai.agent.name') || '';
     nodeInfo.color = colors[0];
   } else if (getIsAiGenerationSpan({op})) {
     const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
@@ -362,8 +357,10 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     }
     nodeInfo.color = colors[2];
   } else if (op === 'gen_ai.execute_tool') {
+    const toolName = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME);
     nodeInfo.icon = <IconTool size="md" />;
-    nodeInfo.subtitle = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME) || '';
+    nodeInfo.title = toolName || truncatedOp;
+    nodeInfo.subtitle = toolName ? truncatedOp : '';
     nodeInfo.color = colors[5];
   } else if (op === 'gen_ai.handoff') {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;

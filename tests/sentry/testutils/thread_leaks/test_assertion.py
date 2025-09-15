@@ -14,7 +14,7 @@ log_test_info = builtins.print
 class TestAssertNoneIntegration:
     def test_no_leaks_passes_cleanly(self) -> None:
         """Test that clean code passes without issues."""
-        with assert_none(strict=True):
+        with assert_none():
             pass  # No threads created
         # Should not raise
 
@@ -22,26 +22,14 @@ class TestAssertNoneIntegration:
         """Test that thread leaks raise in strict mode."""
         stop = Event()
         thread = Thread(target=stop.wait, daemon=True)
-        result = {}
         try:
             with pytest.raises(ThreadLeakAssertionError) as exc_info:
-                with assert_none(strict=True) as result:
+                with assert_none():
                     # Create a daemon thread that won't block test completion
                     thread.start()
         finally:
             stop.set()
             thread.join()
-
-        # Verify event was captured even though exception was raised
-        assert len(result["events"]) == 1
-
-        # Print event ID for manual verification via Sentry MCP
-        event_id, event = next(iter(result["events"].items()))
-        log_test_info(f"Thread leak strict event ID: {event_id}")
-
-        # Verify event payload
-        assert event["level"] == "error"  # strict=True
-        assert event["exception"]["values"][0]["mechanism"]["handled"] is False
 
         stack_diff = str(exc_info.value)
         log_test_info(f"ORIG: {stack_diff}")
@@ -65,7 +53,7 @@ class TestAssertNoneIntegration:
 
     def test_thread_that_exits_during_context_passes(self) -> None:
         """Test that threads which complete and exit don't trigger assertion error."""
-        with assert_none(strict=True):
+        with assert_none():
             # Create and start a thread that will complete quickly
             thread = Thread(target=lambda: None, daemon=True)
             thread.start()
@@ -73,43 +61,19 @@ class TestAssertNoneIntegration:
             thread.join(timeout=1.0)
         # Should not raise - thread completed and is no longer active
 
-    def test_thread_leak_non_strict_sends_to_sentry(self) -> None:
-        """Test that thread leaks in non-strict mode send events to Sentry."""
+    def test_thread_leak_always_raises(self) -> None:
+        """Test that thread leaks always raise an error (no more non-strict mode)."""
         stop = Event()
         thread = Thread(target=stop.wait, daemon=True)
         try:
-            with assert_none(strict=False) as result:
-                # Create a daemon thread leak
-                thread.start()
+            with pytest.raises(ThreadLeakAssertionError) as exc_info:
+                with assert_none():
+                    # Create a daemon thread leak
+                    thread.start()
         finally:
             stop.set()
             thread.join()
 
-        # Verify event was captured
-        assert len(result["events"]) == 1
-
-        # Print event ID for manual verification via Sentry MCP
-        event_id, event = next(iter(result["events"].items()))
-        log_test_info(f"Thread leak event ID: {event_id}")
-
-        # Verify event payload
-        assert event["level"] == "warning"  # strict=False
-        assert event["exception"]["values"][0]["mechanism"]["handled"] is True
-
-        # Verify tags for filtering/grouping
-        assert "tags" in event
-        assert "thread.target" in event["tags"]
-        assert event["tags"]["thread.target"] == "threading.Event.wait"
-        assert (
-            event["tags"]["pytest.file"] == "tests/sentry/testutils/thread_leaks/test_assertion.py"
-        )
-        assert event["tags"]["github.repo"] in ("getsentry/sentry", "unknown")
-
-        # verify "extras"
-        assert (
-            event["extra"]["pytest.nodeid"]
-            == "tests/sentry/testutils/thread_leaks/test_assertion.py::TestAssertNoneIntegration::test_thread_leak_non_strict_sends_to_sentry"
-        )
-        # git-branch and git-sha will be None locally, have values in CI
-        assert "git-branch" in event["extra"]
-        assert "git-sha" in event["extra"]
+        # Verify the exception contains the leaked thread
+        assert hasattr(exc_info.value, "thread_leaks")
+        assert thread in exc_info.value.thread_leaks

@@ -8,7 +8,10 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
-import {getAgentRunsFilter} from 'sentry/views/insights/agents/utils/query';
+import {
+  getAgentRunsFilter,
+  getAITracesFilter,
+} from 'sentry/views/insights/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ModalChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
@@ -21,7 +24,7 @@ import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export default function OverviewAgentsDurationChartWidget(
-  props: LoadableChartWidgetProps
+  props: LoadableChartWidgetProps & {hasAgentRuns?: boolean}
 ) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -29,7 +32,9 @@ export default function OverviewAgentsDurationChartWidget(
   });
   const releaseBubbleProps = useReleaseBubbleProps(props);
 
-  const fullQuery = useCombinedQuery(getAgentRunsFilter());
+  const fullQuery = useCombinedQuery(
+    props.hasAgentRuns ? getAgentRunsFilter() : getAITracesFilter()
+  );
 
   const {data, isLoading, error} = useSpanSeries(
     {
@@ -83,6 +88,7 @@ export default function OverviewAgentsDurationChartWidget(
                   yAxes: ['avg(span.duration)', 'p95(span.duration)'],
                 },
               ],
+              sort: '-avg(span.duration)',
               query: fullQuery,
               interval: pageFilterChartParams.interval,
             }}

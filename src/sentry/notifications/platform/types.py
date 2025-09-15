@@ -23,7 +23,14 @@ class NotificationCategory(StrEnum):
 
 
 NOTIFICATION_SOURCE_MAP = {
-    NotificationCategory.DEBUG: ["test"],
+    NotificationCategory.DEBUG: [
+        "test",
+        "error-alert-service",
+        "deployment-service",
+        "security-monitoring",
+        "performance-monitoring",
+        "team-communication",
+    ],
 }
 
 
@@ -166,14 +173,6 @@ class NotificationTemplate[T: NotificationData](abc.ABC):
     The category that a notification belongs to. This will be used to determine which settings a
     user needs to modify to manage receipt of these notifications (if applicable).
     """
-    # @property
-    # @abc.abstractmethod
-    # def category(self) -> NotificationCategory:
-    #     """
-    #     The category that a notification belongs to. This will be used to determine which settings a
-    #     user needs to modify to manage receipt of these notifications (if applicable).
-    #     """
-    #     ...
 
     @abc.abstractmethod
     def render(self, data: T) -> NotificationRenderedTemplate:

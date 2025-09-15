@@ -82,7 +82,6 @@ export function useTraceOnLoad(
 ): 'success' | 'error' | 'pending' | 'idle' {
   const api = useApi();
   const organization = useOrganization();
-  const initializedRef = useRef<boolean>(false);
   const {tree, pathToNodeOrEventId, onTraceLoad} = options;
 
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
@@ -97,17 +96,12 @@ export function useTraceOnLoad(
   traceStatePreferencesRef.current = traceState.preferences;
 
   useLayoutEffect(() => {
-    if (initializedRef.current) {
-      return undefined;
-    }
-
     if (tree.type !== 'trace') {
       return undefined;
     }
 
     let cancel = false;
     setStatus('pending');
-    initializedRef.current = true;
 
     const expandOptions = {
       api,
@@ -167,7 +161,6 @@ export function useTraceIssuesOnLoad(
 ): 'success' | 'error' | 'pending' | 'idle' {
   const api = useApi();
   const organization = useOrganization();
-  const initializedRef = useRef<boolean>(false);
   const {tree, onTraceLoad} = options;
 
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
@@ -182,10 +175,6 @@ export function useTraceIssuesOnLoad(
   traceStatePreferencesRef.current = traceState.preferences;
 
   useLayoutEffect(() => {
-    if (initializedRef.current) {
-      return undefined;
-    }
-
     if (tree.type !== 'trace') {
       return undefined;
     }
@@ -193,7 +182,6 @@ export function useTraceIssuesOnLoad(
     let cancel = false;
 
     setStatus('pending');
-    initializedRef.current = true;
 
     const expandOptions = {
       api,

@@ -70,7 +70,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {
   DashboardFilters,
@@ -90,6 +89,7 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
@@ -131,7 +131,6 @@ export interface WidgetViewerModalOptions {
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
   onEdit?: () => void;
-  onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
   sampleCount?: number;
   seriesData?: Series[];

@@ -1,6 +1,7 @@
 import dataclasses
 import random
 import string
+import time
 from collections import defaultdict
 from collections.abc import Callable
 from pathlib import Path
@@ -27,7 +28,7 @@ from sentry.taskworker.client.client import (
     make_broker_hosts,
 )
 from sentry.taskworker.client.processing_result import ProcessingResult
-from sentry.taskworker.constants import DEFAULT_WORKER_HEALTH_CHECK_REQ_PER_TOUCH
+from sentry.taskworker.constants import DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -169,29 +170,18 @@ def test_health_check_is_debounced() -> None:
         health_check_path = Path(f"/tmp/{''.join(random.choices(string.ascii_letters, k=16))}")
         client = TaskworkerClient(
             ["localhost-0:50051"],
-            health_check_settings=HealthCheckSettings(health_check_path, 4),
+            health_check_settings=HealthCheckSettings(health_check_path, 1),
         )
         client._health_check_settings.file_path = Mock()  # type: ignore[union-attr]
 
         _ = client.get_task()
+        _ = client.get_task()
         assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
 
-        _ = client.get_task()
-        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
-        _ = client.update_task(
-            ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
-        )
-        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
-        _ = client.get_task()
-        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
-        _ = client.update_task(
-            ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
-        )
-        assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
-        _ = client.update_task(
-            ProcessingResult("", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0)
-        )
-        assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
+        with patch("sentry.taskworker.client.client.time") as mock_time:
+            mock_time.time.return_value = time.time() + 1
+            _ = client.get_task()
+            assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
 
 
 @django_db_all
@@ -361,7 +351,7 @@ def test_update_task_writes_to_health_check_file() -> None:
         client = TaskworkerClient(
             make_broker_hosts("localhost:50051", num_brokers=1),
             health_check_settings=HealthCheckSettings(
-                health_check_path, DEFAULT_WORKER_HEALTH_CHECK_REQ_PER_TOUCH
+                health_check_path, DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH
             ),
         )
         _ = client.update_task(

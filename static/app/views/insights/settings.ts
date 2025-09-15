@@ -110,7 +110,6 @@ export const INSIGHTS_BASE_URL = 'insights';
 export const DEFAULT_INTERVAL = '10m';
 
 export const QUERY_DATE_RANGE_LIMIT = 30; // Maximum number of days that can be queried for, enabled by the `insights-query-date-range-limit` feature flag
-export const OLD_QUERY_DATE_RANGE_LIMIT = 7;
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,

@@ -175,7 +175,6 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
       <Tooltip title={title}>
         <VariantTitle>
           <ContributionIcon isContributing={isContributing} />
-          {t('By')}{' '}
           {variant.description
             ?.split(' ')
             .map(i => capitalize(i))

@@ -71,7 +71,7 @@ class TestSeerRpcMethods(APITestCase):
         """Test when no organization integrations are found"""
         # Test with a non-existent organization name
         result = get_organization_seer_consent_by_org_name(org_name="non-existent-org")
-        assert result == {"consent": False}
+        assert result == {"consent": False, "consent_url": None}
 
     def test_get_organization_seer_consent_by_org_name_no_consent(self) -> None:
         """Test when organization exists but has no consent"""
@@ -89,7 +89,10 @@ class TestSeerRpcMethods(APITestCase):
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_with_default_pr_review_enabled(self) -> None:
         """Test when organization has seer acknowledgement"""
@@ -103,7 +106,10 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return True since PR review is enabled by default
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(self) -> None:
         """Test when multiple organizations exist, one with consent"""
@@ -158,7 +164,10 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return False because hide_ai_features=True makes this org not contribute consent
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_with_hide_ai_features_disabled(
         self,
@@ -174,11 +183,13 @@ class TestSeerRpcMethods(APITestCase):
         # Explicitly disable hide_ai_features
         OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
 
-        # PR review is enabled by default, so (NOT hide_ai_features AND pr_review_enabled) = True
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return False because hide_ai_features=False and PR review is disabled by default
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_with_hide_ai_features(
         self,
@@ -210,14 +221,17 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return False because second org has (NOT hide_ai_features AND pr_review_enabled) = False
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": org_with_visible_ai.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_multiple_orgs_all_hide_ai_features(
         self,
     ):
         """Test multiple orgs where all have hide_ai_features=True"""
-        org1 = self.create_organization(owner=self.user)
-        org2 = self.create_organization(owner=self.user)
+        org1 = self.create_organization(owner=self.user, slug="test-org-1")
+        org2 = self.create_organization(owner=self.user, slug="test-org-2")
 
         # Create integrations for both organizations with the same name
         self.create_integration(
@@ -240,7 +254,10 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return False because no org can contribute consent (all have hide_ai_features=True)
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": org2.absolute_url("/settings/organization/"),
+        }
 
     def test_get_organization_seer_consent_by_org_name_hide_ai_false_pr_review_false(
         self,
@@ -262,7 +279,10 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         # Should return False because even though hide_ai_features=False, pr_review_enabled=False
-        assert result == {"consent": False}
+        assert result == {
+            "consent": False,
+            "consent_url": self.organization.absolute_url("/settings/organization/"),
+        }
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)

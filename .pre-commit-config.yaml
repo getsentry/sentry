@@ -165,6 +165,8 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1

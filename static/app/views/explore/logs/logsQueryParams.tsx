@@ -41,6 +41,10 @@ import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writabl
 const LOGS_MODE_KEY = 'mode';
 export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
 
+export function isDefaultFields(location: Location): boolean {
+  return getFieldsFromLocation(location, LOGS_FIELDS_KEY) ? false : true;
+}
+
 export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
@@ -81,8 +85,20 @@ export function getTargetWithReadableQueryParams(
 ): Location {
   const target: Location = {...location, query: {...location.query}};
 
-  updateNullableLocation(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
   updateNullableLocation(target, LOGS_MODE_KEY, writableQueryParams.mode);
+
+  updateNullableLocation(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
+  updateNullableLocation(target, LOGS_FIELDS_KEY, writableQueryParams.fields);
+  updateNullableLocation(
+    target,
+    LOGS_SORT_BYS_KEY,
+    writableQueryParams.sortBys === null
+      ? null
+      : writableQueryParams.sortBys?.map(
+          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
+        )
+  );
+
   updateNullableLocation(
     target,
     LOGS_AGGREGATE_CURSOR_KEY,

@@ -56,11 +56,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
 
     expect(
       screen.getAllByRole('link', {name: 'Too many Chrome errors'})[0]
-    ).toHaveAttribute(
-      'href',
-
-      '/organizations/org-slug/alerts/123/'
-    );
+    ).toHaveAttribute('href', '/organizations/org-slug/issues/alerts/123/');
 
     expect(
       screen.getAllByText(textWithMarkupMatcher('Triggered 2 years ago'))
@@ -120,7 +116,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
 
     expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/alerts/wizard/?referrer=project_detail&project=project-slug`
+      `/organizations/${organization.slug}/issues/alerts/wizard/?referrer=project_detail&project=project-slug`
     );
 
     expect(screen.getByRole('button', {name: 'Learn More'})).toHaveAttribute(

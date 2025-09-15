@@ -1,24 +1,10 @@
-import type {ReactNode} from 'react';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useDeleteReplays from 'sentry/utils/replays/hooks/useDeleteReplays';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-function wrapper({children}: {children?: ReactNode}) {
-  const org = OrganizationFixture();
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext value={org}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
 
 describe('useDeleteReplays', () => {
   describe('queryOptionsToPayload', () => {
@@ -46,8 +32,7 @@ describe('useDeleteReplays', () => {
     });
 
     it('should parse a an empty queryOptions into default 14d rangeStart & rangeEnd', () => {
-      const {result} = renderHook(useDeleteReplays, {
-        wrapper,
+      const {result} = renderHookWithProviders(useDeleteReplays, {
         initialProps: {projectSlug},
       });
 
@@ -60,8 +45,7 @@ describe('useDeleteReplays', () => {
     });
 
     it('should parse a statsPeriod into rangeStart & rangeEnd', () => {
-      const {result} = renderHook(useDeleteReplays, {
-        wrapper,
+      const {result} = renderHookWithProviders(useDeleteReplays, {
         initialProps: {projectSlug},
       });
 
@@ -78,8 +62,7 @@ describe('useDeleteReplays', () => {
     });
 
     it('should parse a start & end into rangeStart & rangeEnd', () => {
-      const {result} = renderHook(useDeleteReplays, {
-        wrapper,
+      const {result} = renderHookWithProviders(useDeleteReplays, {
         initialProps: {projectSlug},
       });
 

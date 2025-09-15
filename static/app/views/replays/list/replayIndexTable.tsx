@@ -2,22 +2,27 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
 } from 'sentry/components/replays/jetpackComposePiiNotice';
+import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
+import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {
   MIN_DEAD_RAGE_CLICK_SDK,
   MIN_REPLAY_CLICK_SDK,
 } from 'sentry/utils/replays/sdkVersions';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -47,6 +52,7 @@ export default function ReplayIndexTable({
   replays,
 }: Props) {
   const queryClient = useQueryClient();
+  const [prefs, setPrefs] = useReplayPrefs();
 
   const {
     selection: {projects},
@@ -85,7 +91,7 @@ export default function ReplayIndexTable({
 
   return (
     <Fragment>
-      <Flex gap="xl" wrap="wrap">
+      <Flex gap="md" wrap="wrap">
         <ReplaysFilters />
         <ReplaysSearch />
         {showDeadRageClickCards ? (
@@ -93,6 +99,28 @@ export default function ReplayIndexTable({
             {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
           </Button>
         ) : null}
+        <CompactSelect
+          options={[
+            {
+              key: t('Timestamps'),
+              label: t('Timestamps'),
+              options: REPLAY_TIMESTAMP_OPTIONS.map(option => ({
+                label: `${toTitleCase(option)}`,
+                value: option,
+                key: option,
+              })),
+            },
+          ]}
+          trigger={triggerProps => (
+            <Button
+              {...triggerProps}
+              icon={<IconSettings />}
+              aria-label={t('Configure timestamp settings')}
+            />
+          )}
+          value={prefs.timestampType}
+          onChange={opt => setPrefs({timestampType: opt.value})}
+        />
       </Flex>
       {projects.length === 1 ? (
         <BulkDeleteAlert

@@ -19,7 +19,7 @@ describe('UptimeAlertDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=1&project=${project.id}&query=issue.type%3Auptime_domain_failure%20tags%5Buptime_rule%5D%3A1`,
+      url: `/organizations/org-slug/issues/?limit=1&project=2&query=issue.type%3Auptime_domain_failure%20title%3A%22Downtime%20detected%20for%20https%3A%2F%2Fsentry.io%2F%22`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -43,7 +43,7 @@ describe('UptimeAlertDetails', () => {
     render(
       <UptimeAlertDetails
         {...routerProps}
-        params={{...routerProps.params, uptimeRuleId: '1'}}
+        params={{...routerProps.params, detectorId: '1'}}
       />,
       {organization}
     );
@@ -59,7 +59,7 @@ describe('UptimeAlertDetails', () => {
     render(
       <UptimeAlertDetails
         {...routerProps}
-        params={{...routerProps.params, uptimeRuleId: '2'}}
+        params={{...routerProps.params, detectorId: '2'}}
       />,
       {organization}
     );
@@ -81,7 +81,7 @@ describe('UptimeAlertDetails', () => {
     render(
       <UptimeAlertDetails
         {...routerProps}
-        params={{...routerProps.params, uptimeRuleId: '1'}}
+        params={{...routerProps.params, detectorId: '1'}}
       />,
       {organization}
     );

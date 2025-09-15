@@ -1,8 +1,28 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import NotRequired, TypedDict
 
-from sentry.integrations.discord.message_builder.base.component.base import DiscordMessageComponent
+from sentry.integrations.discord.message_builder.base.component.base import (
+    DiscordMessageComponent,
+    DiscordMessageComponentDict,
+)
+
+
+class DiscordSelectMenuOptionDict(TypedDict):
+    label: str
+    value: str
+    description: NotRequired[str]
+    default: NotRequired[bool]
+
+
+class DiscordSelectMenuDict(DiscordMessageComponentDict):
+    custom_id: str
+    options: list[DiscordSelectMenuOptionDict]
+    placeholder: NotRequired[str]
+    min_values: NotRequired[int]
+    max_values: NotRequired[int]
+    disabled: NotRequired[bool]
 
 
 class DiscordSelectMenuOption:
@@ -18,9 +38,15 @@ class DiscordSelectMenuOption:
         self.description = description
         self.default = default
 
-    def build(self) -> dict[str, object]:
-        attributes = vars(self).items()
-        return {k: v for k, v in attributes if v is not None}
+    def build(self) -> DiscordSelectMenuOptionDict:
+        option = DiscordSelectMenuOptionDict(label=self.label, value=self.value)
+
+        if self.description is not None:
+            option["description"] = self.description
+        if self.default is not None:
+            option["default"] = self.default
+
+        return option
 
 
 class DiscordSelectMenu(DiscordMessageComponent):
@@ -48,7 +74,18 @@ class DiscordSelectMenu(DiscordMessageComponent):
         self.max_values = max_values
         self.disabled = disabled
 
-    def build(self) -> dict[str, object]:
-        select_menu = super().build()
-        select_menu["options"] = [o.build() for o in self.options]
+    def build(self) -> DiscordSelectMenuDict:
+        select_menu = DiscordSelectMenuDict(
+            type=self.type, custom_id=self.custom_id, options=[o.build() for o in self.options]
+        )
+
+        if self.placeholder is not None:
+            select_menu["placeholder"] = self.placeholder
+        if self.min_values is not None:
+            select_menu["min_values"] = self.min_values
+        if self.max_values is not None:
+            select_menu["max_values"] = self.max_values
+        if self.disabled is not None:
+            select_menu["disabled"] = self.disabled
+
         return select_menu

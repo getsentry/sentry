@@ -8,6 +8,7 @@ from django.db import models, router, transaction
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
+from sentry.analytics.events.user_signup import UserSignUpEvent
 from sentry.auth.helper import OK_LINK_IDENTITY, AuthHelper, AuthIdentityHandler
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
@@ -19,6 +20,8 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
@@ -107,16 +110,15 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
         self.assert_org_member_mapping(org_member=org_member)
 
-        signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
-        assert signup_record == [
-            mock.call(
-                "user.signup",
+        assert_last_analytics_event(
+            mock_record,
+            UserSignUpEvent(
                 user_id=user.id,
                 source="sso",
                 provider=self.provider,
                 referrer="in-app",
-            )
-        ]
+            ),
+        )
 
     def test_associated_existing_member_invite_by_email(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
@@ -132,6 +134,14 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
 
         assert assigned_member.id == member.id
+
+    def test_demo_user_cannot_be_added_new_user(self) -> None:
+        with mock.patch("sentry.auth.helper.is_demo_user", return_value=True):
+            with self.assertRaisesMessage(
+                Exception,
+                "Demo user cannot be added to an organization that is not a demo organization.",
+            ):
+                self.handler.handle_new_user()
 
     def test_associated_existing_member_invite_request(self) -> None:
         member = self.create_member(
@@ -174,6 +184,20 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
 
         assert assigned_member.id == member.id
+
+    def test_demo_user_can_be_added_new_user_when_demo_org(self) -> None:
+        # Force demo user behavior, and mark org as demo org
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.orgs": [self.organization.id]}
+        ):
+            with mock.patch("sentry.auth.helper.is_demo_user", return_value=True):
+                # Should not raise when org is demo org
+                auth_identity = self.handler.handle_new_user()
+                with assume_test_silo_mode(SiloMode.REGION):
+                    org_member = OrganizationMember.objects.get(
+                        organization=self.organization, user_id=auth_identity.user.id
+                    )
+                assert getattr(org_member.flags, "sso:linked")
 
 
 @control_silo_test
@@ -229,6 +253,32 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
                 expected_rpc_org = serialize_rpc_organization(self.organization)
             features_has.assert_any_call("organizations:invite-members", expected_rpc_org)
             self.assert_org_member_mapping(org_member=persisted_om)
+
+    def test_demo_user_cannot_be_added_existing_identity(self) -> None:
+        user, auth_identity = self.set_up_user_identity()
+        with override_options({"demo-mode.enabled": True, "demo-mode.users": [user.id]}):
+            with self.assertRaisesMessage(
+                Exception,
+                "Demo user cannot be added to an organization that is not a demo organization.",
+            ):
+                self.handler.handle_existing_identity(self.state, auth_identity)
+
+    def test_demo_user_can_be_added_when_demo_org(self) -> None:
+        user, auth_identity = self.set_up_user_identity()
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [user.id],
+                "demo-mode.orgs": [self.organization.id],
+            }
+        ):
+            redirect = self.handler.handle_existing_identity(self.state, auth_identity)
+            assert redirect.status_code == 302
+            with assume_test_silo_mode(SiloMode.REGION):
+                persisted_om = OrganizationMember.objects.get(
+                    user_id=user.id, organization=self.organization
+                )
+            assert getattr(persisted_om.flags, "sso:linked")
 
 
 @control_silo_test

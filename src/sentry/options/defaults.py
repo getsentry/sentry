@@ -478,9 +478,9 @@ register(
 )
 # Whether or not Relay replay-event publishing to Snuba is disabled.
 register(
-    "replay.relay-snuba-publishing-disabled",
-    type=Bool,
-    default=False,
+    "replay.relay-snuba-publishing-disabled.sample-rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables replay-video for a specific organization.
@@ -509,6 +509,17 @@ register(
     "replay.consumer.recording.profiling.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Trace sampling rates for replay summary endpoint.
+register(
+    "replay.endpoints.project_replay_summary.trace_sample_rate_post",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "replay.endpoints.project_replay_summary.trace_sample_rate_get",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -875,14 +886,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable sequential deletion of events from nodestore
-register(
-    "deletions.nodestore.parallelization-task-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
@@ -912,32 +915,10 @@ register(
 )
 
 register(
-    "issues.severity.seer-timout",
+    "issues.severity.seer-timeout",
     type=Float,
     default=0.2,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.fixability.gpu-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate to route issue summary requests to the summarization URL
-register(
-    "issues.summary.summarization-url-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -1248,6 +1229,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "release-health.disable-release-last-seen-update",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Run an experimental grouping config in background for performance analysis
 register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1322,10 +1310,6 @@ register(
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Arroyo producer factory rollout configuration
-# Controls the rollout of individual Kafka producers by name
-register("arroyo.producer.factory-rollout", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Post process forwarder options
 # Gets data from Kafka headers
@@ -2902,16 +2886,6 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.process-segments.outcome-aggregator.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "event-manager.use-outcome-aggregator",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -3159,7 +3133,7 @@ register(
 register(
     "workflow_engine.buffer.use_new_buffer",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3458,6 +3432,11 @@ register(
 
 # Whether the new objectstore implementation is being used for attachments
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether the new objectstore implementation is being used for attachments in a double-write
+# configuration where it writes to the new objectstore alongside the existing filestore.
+# This is mutually exclusive with the above setting.
+register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Whether to use 60s granularity for the dynamic sampling query
 register(
@@ -3490,4 +3469,11 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "commit.dual-write-start-date",
+    type=String,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )

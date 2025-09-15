@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -5,11 +6,13 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Grid} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
+import {DateTime} from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import * as events from 'sentry/utils/events';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -20,6 +23,8 @@ interface Props {
 
 export default function ReplayBadge({replay}: Props) {
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
 
   if (replay.is_archived) {
     return (
@@ -49,7 +54,7 @@ export default function ReplayBadge({replay}: Props) {
   );
 
   return (
-    <Grid columns="24px 1fr" gap="md" align="center" justify="center">
+    <Wrapper columns="24px 1fr" gap="md" align="center" justify="center">
       <UserAvatar
         user={{
           username: replay.user?.display_name || '',
@@ -78,11 +83,19 @@ export default function ReplayBadge({replay}: Props) {
           <Flex gap="xs" align="center">
             <IconCalendar color="gray300" size="xs" />
             <Text size="sm" variant="muted">
-              <TimeSince date={replay.started_at} />
+              {timestampType === 'absolute' ? (
+                <DateTime year timeZone date={replay.started_at} />
+              ) : (
+                <TimeSince date={replay.started_at} />
+              )}
             </Text>
           </Flex>
         </Flex>
       </Flex>
-    </Grid>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled(Grid)`
+  white-space: nowrap;
+`;

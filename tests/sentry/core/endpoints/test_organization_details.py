@@ -259,11 +259,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
 
         data = {"trustedRelays": trusted_relays}
 
-        with self.feature("organizations:relay"):
-            start_time = timezone.now()
-            self.get_success_response(self.organization.slug, method="put", **data)
-            end_time = timezone.now()
-            response = self.get_success_response(self.organization.slug)
+        start_time = timezone.now()
+        self.get_success_response(self.organization.slug, method="put", **data)
+        end_time = timezone.now()
+        response = self.get_success_response(self.organization.slug)
 
         response_data = response.data.get("trustedRelays")
 
@@ -886,19 +885,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"codecovAccess": True}
         self.get_error_response(self.organization.slug, status_code=403, **data)
 
-    def test_setting_trusted_relays_forbidden(self) -> None:
-        data = {
-            "trustedRelays": [
-                {"publicKey": _VALID_RELAY_KEYS[0], "name": "name1"},
-                {"publicKey": _VALID_RELAY_KEYS[1], "name": "name2"},
-            ]
-        }
-
-        with self.feature({"organizations:relay": False}):
-            response = self.get_error_response(self.organization.slug, status_code=400, **data)
-
-        assert b"feature" in response.content
-
     def test_setting_duplicate_trusted_keys(self) -> None:
         """
         Test that you cannot set duplicated keys
@@ -928,8 +914,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         data = {"trustedRelays": trusted_relays}
 
-        with self.feature("organizations:relay"):
-            response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
 
         response_data = response.data.get("trustedRelays")
         assert response_data is not None
@@ -956,7 +941,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         data = {"trustedRelays": trusted_relays}
 
-        with self.feature("organizations:relay"), outbox_runner():
+        with outbox_runner():
             start_time = timezone.now()
             response = self.get_success_response(self.organization.slug, **data)
             end_time = timezone.now()
@@ -1040,7 +1025,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         initial_settings = {"trustedRelays": initial_trusted_relays}
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
-        with self.feature("organizations:relay"), outbox_runner():
+        with outbox_runner():
             start_time = timezone.now()
             self.get_success_response(self.organization.slug, **initial_settings)
             after_initial = timezone.now()
@@ -1108,9 +1093,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         initial_settings = {"trustedRelays": initial_trusted_relays}
         changed_settings: dict[str, Any] = {"trustedRelays": []}
 
-        with self.feature("organizations:relay"):
-            self.get_success_response(self.organization.slug, **initial_settings)
-            response = self.get_success_response(self.organization.slug, **changed_settings)
+        self.get_success_response(self.organization.slug, **initial_settings)
+        response = self.get_success_response(self.organization.slug, **changed_settings)
 
         response_data = response.data.get("trustedRelays")
 

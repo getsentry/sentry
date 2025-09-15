@@ -19,6 +19,7 @@ import {
   type UptimeRule,
   type UptimeSummary,
 } from 'sentry/views/alerts/rules/uptime/types';
+import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 
@@ -41,7 +42,10 @@ export function UptimeDetailsSidebar({
           hideCopyButton
         >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
       </MonitorUrlContainer>
-      <Grid columns="1fr 1fr" gap="md">
+      <Grid
+        columns={summary && summary.avgDurationUs !== null ? '2fr 1fr 1fr' : '1fr 1fr'}
+        gap="2xl"
+      >
         <div>
           <SectionHeading>{t('Legend')}</SectionHeading>
           <CheckLegend>
@@ -121,8 +125,22 @@ export function UptimeDetailsSidebar({
             )}
           </CheckLegend>
         </div>
+        {summary?.avgDurationUs !== null && (
+          <div>
+            <SectionHeading>{t('Duration')}</SectionHeading>
+            <UptimeContainer>
+              {summary ? (
+                <UptimeDuration size="xl" summary={summary} />
+              ) : (
+                <Text size="xl">
+                  <Placeholder width="60px" height="1lh" />
+                </Text>
+              )}
+            </UptimeContainer>
+          </div>
+        )}
         <div>
-          <SectionHeading>{t('Monitor Uptime')}</SectionHeading>
+          <SectionHeading>{t('Uptime')}</SectionHeading>
           <UptimeContainer>
             {summary ? (
               <UptimePercent

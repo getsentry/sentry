@@ -31,9 +31,8 @@ export function OverviewTimeline({uptimeRules}: Props) {
   const dateNavigation = useDateNavigation();
 
   const {data: summaries} = useUptimeMonitorSummaries({
-    start: timeWindowConfig.start,
-    end: timeWindowConfig.end,
-    ruleIds: uptimeRules.map(rule => rule.id),
+    detectorIds: uptimeRules.map(rule => rule.id),
+    timeWindowConfig,
   });
 
   return (

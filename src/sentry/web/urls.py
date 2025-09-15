@@ -487,6 +487,12 @@ urlpatterns += [
         react_page_view,
         name="stories",
     ),
+    # Notification Debugger
+    re_path(
+        r"^debug/notifications/",
+        react_page_view,
+        name="debug-notifications",
+    ),
     # Rollback
     re_path(
         r"^rollback/",
@@ -970,6 +976,12 @@ urlpatterns += [
         r"^feedback/(?P<feedback_id>\d+)/",
         react_page_view,
         name="feedback-details",
+    ),
+    # Prevent (Codecov features)
+    re_path(
+        r"^prevent/",
+        react_page_view,
+        name="prevent",
     ),
     # Data Export
     re_path(
