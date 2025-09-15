@@ -499,6 +499,7 @@ def get_replay_summary_logs(project_id: int, replay_id: str, num_segments: int) 
 
     error_events = replay_errors + trace_connected_errors
 
+    # Metric names kept for backwards compatibility.
     metrics.distribution(
         "replays.endpoints.project_replay_summary.direct_errors",
         value=len(replay_errors),
@@ -513,7 +514,6 @@ def get_replay_summary_logs(project_id: int, replay_id: str, num_segments: int) 
     )
 
     # Download segment data.
-    # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
     segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
     segment_data = iter_segment_data(segment_md)
 
