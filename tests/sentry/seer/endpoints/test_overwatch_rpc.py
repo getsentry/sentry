@@ -70,8 +70,8 @@ class TestOverwatchRpcEndpoint(APITestCase):
     @patch(
         "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", "test-secret"
     )
-    def test_missing_args_returns_success(self):
-        """Test that missing 'args' key defaults to empty dict and still works."""
+    def test_missing_args_returns_400(self):
+        """Test that missing 'args' key returns 400 ParseError."""
         payload, auth_header = self._create_signed_request({})
 
         url = reverse("sentry-api-0-overwatch-rpc-service", args=["get_config_for_org"])
@@ -82,8 +82,26 @@ class TestOverwatchRpcEndpoint(APITestCase):
             HTTP_AUTHORIZATION=auth_header,
         )
 
-        # The endpoint should still work since get_config_for_org doesn't require valid args
-        assert response.status_code == 200
+        # The endpoint should return 400 since 'args' is required
+        assert response.status_code == 400
+
+    @patch(
+        "sentry.seer.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET", "test-secret"
+    )
+    def test_empty_args_returns_400(self):
+        """Test that empty 'args' dict returns 400 ParseError."""
+        payload, auth_header = self._create_signed_request({"args": {}})
+
+        url = reverse("sentry-api-0-overwatch-rpc-service", args=["get_config_for_org"])
+        response = self.client.post(
+            url,
+            data=payload,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=auth_header,
+        )
+
+        # The endpoint should return 400 since org_name is required
+        assert response.status_code == 400
 
     def test_unauthorized_request_returns_403(self):
         """Test that request without proper authentication returns 403."""

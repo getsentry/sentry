@@ -7,7 +7,13 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.exceptions import AuthenticationFailed, NotFound, ParseError, ValidationError
+from rest_framework.exceptions import (
+    AuthenticationFailed,
+    NotFound,
+    ParseError,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -157,10 +163,15 @@ class OverwatchRpcServiceEndpoint(Endpoint):
         Returns:
             Response: The response from the method call
         """
+        if not self._is_authorized(request):
+            raise PermissionDenied
+
         try:
-            arguments: dict[str, Any] = request.data.get("args", {})
-        except (KeyError, AttributeError):
-            raise ParseError("Missing 'args' in request data")
+            arguments: dict[str, Any] = request.data["args"]
+        except KeyError as e:
+            raise ParseError("Missing 'args' in request data") from e
+        if not isinstance(arguments, dict):
+            raise ParseError("'args' must be a dictionary")
 
         try:
             result = self._dispatch_to_local_method(method_name, arguments)
@@ -170,6 +181,14 @@ class OverwatchRpcServiceEndpoint(Endpoint):
         except ObjectDoesNotExist as e:
             logger.exception("Object not found for method '%s'", method_name)
             raise NotFound from e
+        except TypeError as e:
+            # Handle missing or invalid arguments for method calls
+            error_msg = str(e)
+            if "missing" in error_msg and "required" in error_msg:
+                raise ParseError(f"Missing required arguments for {method_name}") from e
+            elif "unexpected keyword argument" in error_msg:
+                raise ParseError(f"Invalid arguments for {method_name}") from e
+            raise
         except SerializableFunctionValueException as e:
             sentry_sdk.capture_exception()
             raise ParseError from e
