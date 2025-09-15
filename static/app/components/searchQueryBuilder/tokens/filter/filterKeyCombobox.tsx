@@ -4,7 +4,6 @@ import {Item} from '@react-stately/collections';
 import type {Node} from '@react-types/shared';
 
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -45,8 +44,9 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     getFieldDefinition,
     getSuggestedFilterKey,
     setDisplayAskSeer,
-    currentInputValue,
+    currentInputValueRef,
     setAutoSubmitSeer,
+    gaveSeerConsent,
   } = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
@@ -60,27 +60,26 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
       if (keyName === ASK_SEER_ITEM_KEY) {
+        if (!gaveSeerConsent) {
+          trackAnalytics('trace.explorer.ai_query_interface', {
+            organization,
+            action: 'consent_accepted',
+          });
+          seerAcknowledgeMutate();
+          return;
+        }
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
           action: 'opened',
         });
         setDisplayAskSeer(true);
 
-        if (currentInputValue?.trim()) {
+        if (currentInputValueRef.current?.trim()) {
           setAutoSubmitSeer(true);
         } else {
           setAutoSubmitSeer(false);
         }
 
-        return;
-      }
-
-      if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
-        trackAnalytics('trace.explorer.ai_query_interface', {
-          organization,
-          action: 'consent_accepted',
-        });
-        seerAcknowledgeMutate();
         return;
       }
 
@@ -119,8 +118,9 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     },
     [
       currentFilterValueType,
-      currentInputValue,
+      currentInputValueRef,
       dispatch,
+      gaveSeerConsent,
       getFieldDefinition,
       item.key,
       onCommit,

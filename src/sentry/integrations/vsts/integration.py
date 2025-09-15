@@ -307,7 +307,9 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         try:
             repos = self.get_client().get_repos()
         except (ApiError, IdentityNotValid) as e:
@@ -449,7 +451,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
 
     def get_scopes(self) -> Sequence[str]:
-        # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
+        # TODO(ecosystem): Delete this after Azure DevOps migration is complete
         assert self.pipeline.organization is not None
         if features.has(
             "organizations:migrate-azure-devops-integration", self.pipeline.organization
@@ -509,7 +511,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             },
         }
 
-        # TODO(iamrajjoshi): Clean this up this after Azure DevOps migration is complete
+        # TODO(ecosystem): Clean this up this after Azure DevOps migration is complete
         try:
             integration_model = IntegrationModel.objects.get(
                 provider=IntegrationProviderSlug.AZURE_DEVOPS.value,

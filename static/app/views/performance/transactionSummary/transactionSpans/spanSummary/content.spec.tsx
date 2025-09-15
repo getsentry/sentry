@@ -5,7 +5,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
 
-describe('SpanSummaryPage', function () {
+describe('SpanSummaryPage', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const initialRouterConfig = {
@@ -180,7 +180,7 @@ describe('SpanSummaryPage', function () {
     });
   });
 
-  it('correctly renders the details in the header', async function () {
+  it('correctly renders the details in the header', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/spans/fields/',
       body: [],

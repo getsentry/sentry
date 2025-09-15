@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
-import {IconGroup, IconLightning, IconUser, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -27,51 +27,15 @@ import {
 } from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
-import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
-import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {formatPrice, getDiscountedPrice} from 'getsentry/views/amCheckout/utils';
-
-export type PlanContent = {
-  description: React.ReactNode;
-  features: Record<string, React.ReactNode>;
-  hasMoreLink?: boolean;
-};
-
-function getContentForPlan(
-  plan: 'team' | 'business',
-  checkoutTier?: PlanTier
-): PlanContent {
-  if (plan === 'team') {
-    return {
-      description: t('Resolve errors and track application performance as a team.'),
-      features: {
-        unlimited_members: t('Unlimited members'),
-        integrations: t('Third-party integrations'),
-        metric_alerts: t('Metric alerts'),
-      },
-    };
-  }
-
-  return {
-    description: t(
-      'Everything in the Team plan + deeper insight into your application health.'
-    ),
-    features: {
-      discover: t('Advanced analytics with Discover'),
-      enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
-      dashboard: t('Custom dashboards'),
-      ...(checkoutTier === PlanTier.AM3
-        ? {application_insights: t('Application Insights')}
-        : {cross_project_visibility: t('Cross-project visibility')}),
-      advanced_filtering: t('Advanced server-side filtering'),
-      saml: t('SAML support'),
-    },
-    hasMoreLink: true,
-  };
-}
+import type {PlanContent, StepProps} from 'getsentry/views/amCheckout/types';
+import {
+  formatPrice,
+  getContentForPlan,
+  getDiscountedPrice,
+} from 'getsentry/views/amCheckout/utils';
 
 const REFERRER_FEATURE_HIGHLIGHTS = {
   'upgrade-business-landing.sso': ['saml'],
@@ -80,18 +44,19 @@ const REFERRER_FEATURE_HIGHLIGHTS = {
   'upgrade-business-landing.discover-query': ['discover'],
   'upgrade-business-landing.discover-saved-query': ['discover'],
   'upgrade-business-landing.discover2': ['discover'],
-  'upgrade-business-landing.global-views': ['cross_project_visibility'],
   'upgrade-business-landing.custom-dashboards': ['dashboard'],
   'upgrade-business-landing.dashboards-edit': ['dashboard'],
   'upgrade-business-landing.feature.auth_provider.saml2': ['saml'],
   'upsell-dashboards': ['dashboard'],
   'upsell-discover2': ['discover'],
-  'upsell-all-projects-select': ['cross_project_visibility'],
 };
 
-function getHighlightedFeatures(referrer?: string): string[] {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return referrer ? (REFERRER_FEATURE_HIGHLIGHTS[referrer] ?? []) : [];
+export function getHighlightedFeatures(referrer?: string): string[] {
+  return referrer
+    ? (REFERRER_FEATURE_HIGHLIGHTS[
+        referrer as keyof typeof REFERRER_FEATURE_HIGHLIGHTS
+      ] ?? [])
+    : [];
 }
 
 /**
@@ -130,7 +95,6 @@ function PlanSelect({
   subscription,
   formData,
   referrer,
-  isNewCheckout,
   onEdit,
   onToggleLegacy,
   onUpdate,
@@ -153,9 +117,7 @@ function PlanSelect({
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (plan.id === subscription.plan) {
-      // TODO(checkout v3): Replace with custom badge
-      const copy = isNewCheckout ? t('Current') : t('Current plan');
-      return <Tag type="info">{copy}</Tag>;
+      return <Tag type="info">{t('Current plan')}</Tag>;
     }
 
     if (
@@ -181,23 +143,10 @@ function PlanSelect({
       isNewPayingCustomer(subscription, organization) && checkoutTier === PlanTier.AM3; // TODO(isabella): Test if this behavior works as expected on older tiers
 
     const planOptions = getPlanOptions({billingConfig, activePlan});
-    const planToPriorPlan = planOptions.reduce(
-      (acc, plan, i) => {
-        if (i > 0) {
-          const nextPlan = planOptions[i - 1];
-          if (nextPlan) {
-            acc[nextPlan.id] = plan;
-          }
-        }
-        return acc;
-      },
-      {} as Record<string, Plan>
-    );
     return (
       <PanelBody data-test-id="body-choose-your-plan">
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
-          const priorPlan = planToPriorPlan[plan.id];
 
           // calculate the price with discount
           const cents =
@@ -211,10 +160,7 @@ function PlanSelect({
               : plan.basePrice;
           const basePrice = formatPrice({cents});
 
-          let planContent = getContentForPlan(
-            isTeamPlanFamily(plan) ? 'team' : 'business',
-            checkoutTier
-          );
+          let planContent = getContentForPlan(plan);
           const highlightedFeatures = getHighlightedFeatures(referrer);
           const isFeaturesCheckmarked = !subscription.isFree && isTeamPlanFamily(plan);
 
@@ -227,40 +173,6 @@ function PlanSelect({
             planContent.features.deactivated_member_header = t('Unlimited members');
           }
 
-          const planIcon = isBizPlanFamily(plan) ? (
-            <IconLightning /> // TODO(checkout v3): replace with building icon
-          ) : isTeamPlanFamily(plan) ? (
-            <IconGroup />
-          ) : (
-            <IconUser />
-          );
-
-          const commonProps = {
-            plan,
-            isSelected,
-            badge: getBadge(plan),
-            onUpdate,
-            planValue: plan.name,
-            planName: plan.name,
-            priceHeader: t('Starts At'),
-            price: basePrice,
-            planContent,
-            highlightedFeatures,
-            shouldShowDefaultPayAsYouGo,
-          };
-
-          if (isNewCheckout) {
-            return (
-              <PlanSelectCard
-                key={plan.id}
-                planIcon={planIcon}
-                priorPlan={priorPlan}
-                shouldShowEventPrice={!!isBizPlanFamily(plan)}
-                {...commonProps}
-              />
-            );
-          }
-
           return (
             <PlanSelectRow
               key={plan.id}
@@ -271,7 +183,17 @@ function PlanSelect({
                   : undefined
               }
               shouldShowEventPrice
-              {...commonProps}
+              plan={plan}
+              isSelected={isSelected}
+              badge={getBadge(plan)}
+              onUpdate={onUpdate}
+              planValue={plan.name}
+              planName={plan.name}
+              priceHeader={t('Starts At')}
+              price={basePrice}
+              planContent={planContent}
+              highlightedFeatures={highlightedFeatures}
+              shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
             />
           );
         })}
@@ -280,11 +202,18 @@ function PlanSelect({
   };
 
   const renderFooter = () => {
-    const bizPlanContent = getContentForPlan('business', checkoutTier);
+    const bizPlan = getPlanOptions({
+      billingConfig,
+      activePlan,
+    }).find(plan => isBizPlanFamily(plan));
+    const bizPlanContent: PlanContent = bizPlan
+      ? getContentForPlan(bizPlan)
+      : {features: {}, description: ''};
+
     let missingFeatures: string[] = [];
 
     if (isTeamPlanFamily(activePlan)) {
-      const selectedPlanContent = getContentForPlan('team', checkoutTier);
+      const selectedPlanContent = getContentForPlan(activePlan);
       missingFeatures = getHighlightedFeatures(referrer).filter(
         feature => !selectedPlanContent.features[feature]
       );
@@ -293,7 +222,7 @@ function PlanSelect({
     return (
       <StepFooter data-test-id="footer-choose-your-plan">
         <div>
-          {missingFeatures.length > 0 ? (
+          {bizPlanContent.features && missingFeatures.length > 0 ? (
             <FooterWarningWrapper>
               <IconWarning />
               {tct('This plan does not include [missingFeatures]', {
@@ -371,12 +300,7 @@ function PlanSelect({
       />
       {isActive && renderBody()}
       {isActive && (
-        <ProductSelect
-          activePlan={activePlan}
-          formData={formData}
-          onUpdate={onUpdate}
-          isNewCheckout={isNewCheckout}
-        />
+        <ProductSelect activePlan={activePlan} formData={formData} onUpdate={onUpdate} />
       )}
       {isActive && renderFooter()}
     </Panel>

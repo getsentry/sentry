@@ -30,7 +30,7 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
     {
       step,
       preventLink: (
-        <Link to="https://docs.sentry.io/platforms/python/prevent/cli/">
+        <Link to="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
           {t('Sentry Prevent CLI')}
         </Link>
       ),
@@ -48,7 +48,7 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
             onChange={setMethod}
             choices={[
               ['pip', t('Using pip (for Python users)')],
-              ['binary', t('Using a Binary')],
+              ['binary', t('By downloading and installing a binary')],
             ]}
           />
           {method === 'pip' ? (
@@ -113,8 +113,8 @@ const CLILink = (
   <BottomParagraph>
     {tct('Learn more about the [cliLink].', {
       cliLink: (
-        <Link to="https://docs.sentry.io/platforms/python/prevent/cli/">
-          {t('Sentry CLI Link')} <IconOpen size="xs" />
+        <Link to="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
+          {t('Sentry Prevent CLI')} <IconOpen size="xs" />
         </Link>
       ),
     })}

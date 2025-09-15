@@ -64,7 +64,7 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/queries/';
 
-export const MODULE_FEATURES = ['insights-initial-modules'];
+export const MODULE_FEATURES = ['insight-modules'];
 
 export const FIELD_ALIASES = {
   'epm()': t('Queries Per Minute'),

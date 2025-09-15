@@ -33,7 +33,7 @@ import CellAction, {
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
 
-type FieldRendererGetter = (
+export type FieldRendererGetter = (
   field: string,
   data: TabularRow,
   meta: TabularMeta

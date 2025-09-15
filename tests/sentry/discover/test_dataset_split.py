@@ -734,7 +734,7 @@ def project(organization: Organization) -> Project:
 @django_db_all
 def test_dataset_split_decision_inferred_from_query(
     query: str, selected_columns: list[str], expected_dataset: int | None, project: Project
-):
+) -> None:
     snuba_dataclass = SnubaParams(
         start=datetime.now() - timedelta(days=1),
         end=datetime.now(),

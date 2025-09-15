@@ -20,7 +20,10 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -538,6 +541,10 @@ const docs: Docs = {
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'react-router',
+  }),
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'react-router',
+    sdkPackage: '@sentry/react-router',
   }),
 };
 

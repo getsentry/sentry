@@ -16,12 +16,6 @@ const getInstallConfig = () => [
   {
     code: [
       {
-        label: 'Deno registry',
-        value: 'deno',
-        language: 'javascript',
-        code: `import * as Sentry from "https://deno.land/x/sentry/index.mjs";"`,
-      },
-      {
         label: 'npm registry',
         value: 'npm',
         language: 'javascript',
@@ -44,7 +38,7 @@ Sentry.init({
 });
 `;
 
-const getVerifySnippet = () => `;
+const getVerifySnippet = () => `
 setTimeout(() => {
   throw new Error();
 });

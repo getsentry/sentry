@@ -10,6 +10,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.test.utils import override_settings
 from django.utils import timezone
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.consumers.clock_tasks_consumer import MonitorClockTasksStrategyFactory
 from sentry.monitors.consumers.clock_tick_consumer import (
@@ -116,6 +117,7 @@ def test_incident_mark_unknown(
 
 
 class MonitorsClockTickEndToEndTest(TestCase):
+    @thread_leaks.thread_leak_allowlist(reason="monitors", issue=97032)
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
     def test_end_to_end(self) -> None:
         ts = timezone.now().replace(second=0, microsecond=0)

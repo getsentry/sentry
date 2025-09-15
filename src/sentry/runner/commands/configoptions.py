@@ -1,4 +1,5 @@
 import sys
+import time
 from typing import Any
 
 import click
@@ -120,6 +121,7 @@ def configoptions(
     from sentry import options
 
     ctx.obj["dry_run"] = dry_run
+    ctx.obj["timestamp"] = timestamp
 
     with open(file) if file is not None else sys.stdin as stream:
         options_to_update = safe_load(stream)
@@ -216,6 +218,13 @@ def patch(ctx: click.Context) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
+    if ctx.obj["timestamp"] is not None:
+        metrics.distribution(
+            key="options_automator.latency_seconds",
+            value=time.time() - ctx.obj["timestamp"],
+            tags={"status": status},
+            sample_rate=1.0,
+        )
     exit(ret_val)
 
 
@@ -311,5 +320,12 @@ def sync(ctx: click.Context) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
+    if ctx.obj["timestamp"] is not None:
+        metrics.distribution(
+            key="options_automator.latency_seconds",
+            value=time.time() - ctx.obj["timestamp"],
+            tags={"status": status},
+            sample_rate=1.0,
+        )
 
     exit(ret_val)

@@ -28,7 +28,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -96,9 +95,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     projectSlug: project.slug,
   });
 
-  const hasStackedNav = usePrefersStackedNav();
   const hasIssueViews = useHasIssueViews();
-  const isStarredViewAllowed = hasStackedNav && hasIssueViews;
+  const isStarredViewAllowed = hasIssueViews;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
@@ -198,7 +196,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           {
                             integrationLink: (
                               <ExternalLink
-                                href={`/settings/${organization.slug}/integrations/github/`}
+                                href={`/settings/${organization.slug}/integrations/?category=source%20code%20management&search=github`}
                               />
                             ),
                           }
@@ -206,11 +204,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </span>
                       <span>
                         {tct(
-                          'Support for other source code providers are coming soon. You can keep up with progress on these GitHub issues: [githubEnterpriseLink:GitHub Enterprise], [bitbucketLink:BitBucket], [gitlabLink:GitLab], and [azureDevopsLink:Azure DevOps].',
+                          'Support for other source code providers are coming soon. You can keep up with progress on these GitHub issues: [bitbucketLink:BitBucket], [gitlabLink:GitLab], and [azureDevopsLink:Azure DevOps].',
                           {
-                            githubEnterpriseLink: (
-                              <ExternalLink href="https://github.com/getsentry/sentry/issues/95790" />
-                            ),
                             bitbucketLink: (
                               <ExternalLink href="https://github.com/getsentry/sentry/issues/92317" />
                             ),
@@ -238,7 +233,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   showSkip={false}
                 >
                   <LinkButton
-                    href={`/settings/${organization.slug}/integrations/github/`}
+                    href={`/settings/${organization.slug}/integrations/?category=source%20code%20management&search=github`}
                     size="sm"
                     priority="primary"
                   >

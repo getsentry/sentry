@@ -272,11 +272,17 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/otlp/v1/traces"
 
     @property
-    def unreal_endpoint(self):
+    def otlp_logs_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/otlp/v1/logs"
+
+    @property
+    def unreal_endpoint(self) -> str:
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
     @property
-    def crons_endpoint(self):
+    def crons_endpoint(self) -> str:
         return f"{self.get_endpoint()}/api/{self.project_id}/cron/___MONITOR_SLUG___/{self.public_key}/"
 
     @property

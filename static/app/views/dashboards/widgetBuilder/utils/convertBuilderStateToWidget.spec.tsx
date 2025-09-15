@@ -3,8 +3,8 @@ import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hoo
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-describe('convertBuilderStateToWidget', function () {
-  it('returns the widget with the provided widget queries state', function () {
+describe('convertBuilderStateToWidget', () => {
+  it('returns the widget with the provided widget queries state', () => {
     const mockState: WidgetBuilderState = {
       title: 'Test Widget',
       description: 'Test Description',
@@ -40,7 +40,7 @@ describe('convertBuilderStateToWidget', function () {
     });
   });
 
-  it('injects the orderby from the sort state into the widget queries', function () {
+  it('injects the orderby from the sort state into the widget queries', () => {
     const mockState: WidgetBuilderState = {
       query: ['transaction.duration:>100', 'transaction.duration:>50'],
       sort: [{field: 'geo.country', kind: 'desc'}],
@@ -52,7 +52,7 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.queries[1]!.orderby).toBe('-geo.country');
   });
 
-  it('does not convert aggregates to aliased format', function () {
+  it('does not convert aggregates to aliased format', () => {
     const mockState: WidgetBuilderState = {
       query: ['transaction.duration:>100', 'transaction.duration:>50'],
       sort: [{field: 'count()', kind: 'desc'}],
@@ -64,7 +64,7 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.queries[1]!.orderby).toBe('-count()');
   });
 
-  it('adds aliases to the widget queries', function () {
+  it('adds aliases to the widget queries', () => {
     const mockState: WidgetBuilderState = {
       fields: [
         {field: 'geo.country', alias: 'test', kind: FieldValueKind.FIELD},
@@ -78,7 +78,7 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.queries[0]!.fieldAliases).toEqual(['test', '', 'another one']);
   });
 
-  it('adds legend aliases to the widget queries', function () {
+  it('adds legend aliases to the widget queries', () => {
     const mockState: WidgetBuilderState = {
       legendAlias: ['test', 'test2'],
       query: ['transaction.duration:>100', 'transaction.duration:>50'],
@@ -130,7 +130,7 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.thresholds).toEqual(mockState.thresholds);
   });
 
-  it('uses the fields from widget state when displaying as a table', function () {
+  it('uses the fields from widget state when displaying as a table', () => {
     const mockState: WidgetBuilderState = {
       fields: [
         {field: 'geo.country', kind: FieldValueKind.FIELD},
@@ -148,7 +148,7 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.queries[0]!.fields).toEqual(['geo.country', 'count()']);
   });
 
-  it('combines columns and aggregates into fields when producing the widget when not displayed as a table', function () {
+  it('combines columns and aggregates into fields when producing the widget when not displayed as a table', () => {
     const mockState: WidgetBuilderState = {
       fields: [{field: 'geo.country', kind: FieldValueKind.FIELD}],
       yAxis: [
@@ -166,7 +166,7 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.queries[0]!.fields).toEqual(['geo.country', 'count()']);
   });
 
-  it('ignores empty fields', function () {
+  it('ignores empty fields', () => {
     const mockState: WidgetBuilderState = {
       fields: [{field: '', kind: FieldValueKind.FIELD}],
       yAxis: [
@@ -181,7 +181,7 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.queries[0]!.columns).toEqual([]);
   });
 
-  it('ignores the sort state when producing a big number widget', function () {
+  it('ignores the sort state when producing a big number widget', () => {
     const mockState: WidgetBuilderState = {
       displayType: DisplayType.BIG_NUMBER,
       fields: [

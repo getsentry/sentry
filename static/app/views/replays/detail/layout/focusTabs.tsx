@@ -13,7 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
-import {hasLogsOnReplays} from 'sentry/views/explore/logs/utils';
+import {hasLogsOnReplays} from 'sentry/views/explore/logs/hasLogsOnReplays';
 
 function getReplayTabs({
   isVideoReplay,
@@ -27,7 +27,9 @@ function getReplayTabs({
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
     [TabKey.AI]:
-      organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed ? (
+      organization.features.includes('replay-ai-summaries') &&
+      areAiFeaturesAllowed &&
+      !isVideoReplay ? (
         <Flex align="center" gap="sm">
           {t('Summary')}
           <Tooltip

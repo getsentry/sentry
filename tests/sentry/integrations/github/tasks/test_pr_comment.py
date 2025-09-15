@@ -366,8 +366,8 @@ class TestGetCommentBody(GithubCommentTestCase):
             [ev1.group.id, ev2.group.id, ev3.group.id]
         )
 
-        expected_comment = f"""## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+        expected_comment = f"""## Issues attributed to commits in this pull request
+This pull request was merged and Sentry observed the following issues:
 
 * ‼️ [**issue 1**](http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/?referrer=github-pr-bot) in `dev`
 
@@ -409,7 +409,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            f'"body": "## Issues attributed to commits in this pull request\\nThis pull request was merged and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
             in responses.calls[0].request.body
         )
         pull_request_comment_query = PullRequestComment.objects.all()
@@ -459,7 +459,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            f'"body": "## Issues attributed to commits in this pull request\\nThis pull request was merged and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
             in responses.calls[0].request.body
         )
         pull_request_comment.refresh_from_db()
@@ -831,3 +831,60 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
         mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.not_found_error")
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_clears_existing_when_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = {"hooray": 1}
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        github_comment_reactions()
+
+        self.comment.refresh_from_db()
+        assert self.comment.reactions == {}
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_does_not_save_when_already_empty_and_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = {}
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
+            github_comment_reactions()
+            # save should not be called to avoid unnecessary writes
+            assert not mock_save.called
+
+    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_does_not_save_when_already_none_and_empty_returned(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.comment.reactions = None
+        self.comment.save()
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json={},
+        )
+
+        with patch.object(PullRequestComment, "save", autospec=True) as mock_save:
+            github_comment_reactions()
+            # save should not be called to avoid unnecessary writes
+            assert not mock_save.called

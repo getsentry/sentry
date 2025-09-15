@@ -22,11 +22,13 @@ from sentry.tasks.assemble import (
     delete_assemble_status,
     get_assemble_status,
 )
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 
+@thread_leak_allowlist(reason="preprod tasks", issue=97039)
 class AssemblePreprodArtifactTest(BaseAssembleTest):
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up assembly status and force garbage collection to close unclosed files"""
         import gc
 
@@ -44,20 +46,20 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
             build_configuration="release",
         )
 
@@ -83,6 +85,28 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
+    def test_create_preprod_artifact_with_release_notes(self) -> None:
+        """Test that create_preprod_artifact stores release_notes in extras field"""
+        content = b"test preprod artifact with release notes"
+        total_checksum = sha1(content).hexdigest()
+
+        # Create preprod artifact with release notes
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration="release",
+            release_notes="This is a test release with important changes",
+        )
+        assert artifact is not None
+
+        # Verify the artifact was created with release notes in extras
+        assert artifact.extras is not None
+        assert artifact.extras["release_notes"] == "This is a test release with important changes"
+
+        # Clean up
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
     def test_assemble_preprod_artifact_with_commit_comparison(self) -> None:
         content = b"test preprod artifact with commit comparison"
         fileobj = ContentFile(content)
@@ -91,7 +115,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
@@ -105,14 +129,14 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             base_ref="main",
             pr_number=123,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
             head_sha="a" * 40,
             base_sha="b" * 40,
             provider="github",
@@ -155,19 +179,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         # The main assemble_preprod_artifact task doesn't set assembly status
@@ -191,19 +215,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         # The main assemble_preprod_artifact task doesn't set assembly status
@@ -226,19 +250,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=wrong_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=wrong_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         status, details = get_assemble_status(
@@ -254,19 +278,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         total_checksum = sha1(b"test for missing chunks").hexdigest()
 
         # Create preprod artifact first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[missing_checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         status, details = get_assemble_status(
@@ -286,12 +310,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         nonexistent_org_id = 99999
 
         # Create preprod artifact with valid org first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         # Then try to assemble with nonexistent org
         assemble_preprod_artifact(
@@ -299,12 +323,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         # The task catches exceptions but doesn't set assembly status for database errors
         # Check that the artifact was marked as failed instead
-        artifacts = PreprodArtifact.objects.filter(id=artifact_id)
+        artifacts = PreprodArtifact.objects.filter(id=artifact.id)
         assert len(artifacts) == 1
         assert artifacts[0].state == PreprodArtifact.ArtifactState.FAILED
 
@@ -317,12 +341,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         nonexistent_project_id = 99999
 
         # Create preprod artifact with valid project first
-        artifact_id = create_preprod_artifact(
+        artifact = create_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
         )
-        assert artifact_id is not None
+        assert artifact is not None
 
         # Then try to assemble with nonexistent project
         assemble_preprod_artifact(
@@ -330,12 +354,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=nonexistent_project_id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            artifact_id=artifact_id,
+            artifact_id=artifact.id,
         )
 
         # The task catches exceptions but doesn't set assembly status for database errors
         # Check that the artifact was marked as failed instead
-        artifacts = PreprodArtifact.objects.filter(id=artifact_id)
+        artifacts = PreprodArtifact.objects.filter(id=artifact.id)
         assert len(artifacts) == 1
         assert artifacts[0].state == PreprodArtifact.ArtifactState.FAILED
 
@@ -479,6 +503,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         # Create an existing size metrics record
         existing_size_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 

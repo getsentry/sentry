@@ -57,33 +57,6 @@ export const enum EventGroupVariantType {
   PERFORMANCE_PROBLEM = 'performance_problem',
 }
 
-function convertVariantTypeToUnderscore(type: string): EventGroupVariantType {
-  const converted = type.replace(/-/g, '_');
-  return converted as EventGroupVariantType;
-}
-
-export function isEventGroupVariantType(value: string): value is EventGroupVariantType {
-  const eventGroupVariantTypes = new Set<string>([
-    'checksum',
-    'fallback',
-    'custom-fingerprint',
-    'built-in-fingerprint',
-    'component',
-    'salted-component',
-    'performance-problem',
-  ]);
-  return eventGroupVariantTypes.has(value);
-}
-
-export function convertVariantFromBackend(variant: any): EventGroupVariant {
-  const convertedVariant = {
-    ...variant,
-    type: convertVariantTypeToUnderscore(variant.type),
-  };
-
-  return convertedVariant as EventGroupVariant;
-}
-
 interface BaseVariant {
   description: string | null;
   hash: string | null;

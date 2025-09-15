@@ -46,10 +46,12 @@ class GitLabApiClientPath:
     project_hooks = "/projects/{project}/hooks"
     project_hook = "/projects/{project}/hooks/{hook_id}"
     projects = "/projects"
+    statuses = "/projects/{project}/statuses/{sha}"
+    commit_statuses = "/projects/{project}/repository/commits/{sha}/statuses"
     user = "/user"
 
     @staticmethod
-    def build_api_url(base_url, path):
+    def build_api_url(base_url, path) -> str:
         return f"{base_url.rstrip('/')}{API_VERSION}{path}"
 
     @classmethod

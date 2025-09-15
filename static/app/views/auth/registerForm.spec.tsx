@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ConfigStore from 'sentry/stores/configStore';
 import RegisterForm from 'sentry/views/auth/registerForm';
 
-describe('Register', function () {
+describe('Register', () => {
   const emptyAuthConfig = {
     canRegister: false,
     githubLoginLink: '',
@@ -35,7 +35,7 @@ describe('Register', function () {
     );
   }
 
-  it('handles errors', async function () {
+  it('handles errors', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/register/',
       method: 'POST',
@@ -54,7 +54,7 @@ describe('Register', function () {
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();
   });
 
-  it('handles success', async function () {
+  it('handles success', async () => {
     const router = RouterFixture();
     const userObject = {
       id: 1,

@@ -53,18 +53,17 @@ import type {IconSize} from 'sentry/utils/theme';
 const LOGO_MAPPING = {
   'android-phone': logoAndroidPhone,
   'android-tablet': logoAndroidTablet,
-  'chrome-mobile-ios': logoChrome,
   'google-chrome': logoChrome,
   'internet-explorer': logoIe,
   'legacy-edge': logoEdgeOld,
   'mac-os-x': logoApple,
-  'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
   'nintendo-switch': logoNintendoSwitch,
   'nintendo-switch-2': logoNintendoSwitch2,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
+  'microsoft-edge': logoEdgeNew,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
@@ -143,6 +142,14 @@ export function getLogoImage(name: string) {
 
   if (name.startsWith('nintendo-')) {
     return logoNintendoSwitch;
+  }
+
+  if (name.startsWith('chrome-')) {
+    return logoChrome;
+  }
+
+  if (name.startsWith('firefox-')) {
+    return logoFirefox;
   }
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

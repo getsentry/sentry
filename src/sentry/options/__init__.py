@@ -76,7 +76,7 @@ get_last_update_channel = default_manager.get_last_update_channel
 can_update = default_manager.can_update
 
 
-def load_defaults():
+def load_defaults() -> None:
     from sentry.hybridcloud import options  # NOQA
 
     from . import defaults  # NOQA

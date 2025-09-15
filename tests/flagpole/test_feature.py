@@ -15,7 +15,9 @@ class SimpleTestContextData:
 
 
 class TestParseFeatureConfig:
-    def get_is_true_context_builder(self, is_true_value: bool):
+    def get_is_true_context_builder(
+        self, is_true_value: bool
+    ) -> ContextBuilder[SimpleTestContextData]:
         return ContextBuilder().add_context_transformer(lambda _data: dict(is_true=is_true_value))
 
     def test_feature_with_empty_segments(self) -> None:

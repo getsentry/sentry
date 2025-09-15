@@ -16,8 +16,8 @@ const mockApiCall = () => {
   });
 };
 
-describe('IntegratedOrgSelector', function () {
-  it('renders when given integrated org', async function () {
+describe('IntegratedOrgSelector', () => {
+  it('renders when given integrated org', async () => {
     mockApiCall();
     render(
       <PreventQueryParamsProvider>
@@ -37,7 +37,7 @@ describe('IntegratedOrgSelector', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders the chosen org as the first option', async function () {
+  it('renders the chosen org as the first option', async () => {
     mockApiCall();
     render(
       <PreventQueryParamsProvider>

@@ -124,6 +124,8 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles"])
     def test_team_slug_is_slugified(self) -> None:
+        self.organization.flags.disable_member_project_creation = False
+        self.organization.save()
         special_email = "test.bad$email@foo.com"
         t1 = "team-testbademail"
         user = self.create_user(email=special_email)

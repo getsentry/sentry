@@ -5,6 +5,7 @@ import orjson
 import responses
 
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.trello.plugin import TrelloPlugin
 
 
@@ -14,7 +15,7 @@ def test_conf_key() -> None:
 
 class TrelloPluginTestBase(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> TrelloPlugin:
         return TrelloPlugin()
 
 
@@ -45,7 +46,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
 
 
 class TrelloPluginApiTests(TrelloPluginTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(message="Hello world", culprit="foo.bar")
         self.plugin.set_option("token", "7c8951d1", self.project)
         self.plugin.set_option("key", "39g", self.project)
@@ -122,7 +123,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             "board": "ads23f",
             "list": "23tds",
         }
-        request = self.make_request(user=self.user, method="POST")
+        request = drf_request_from_request(self.make_request(user=self.user, method="POST"))
 
         assert self.plugin.create_issue(request, self.group, form_data) == "rds43"
         responses_request = responses.calls[0].request
@@ -142,7 +143,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         )
 
         form_data = {"comment": "please fix this", "issue_id": "SstgnBIQ"}
-        request = self.make_request(user=self.user, method="POST")
+        request = drf_request_from_request(self.make_request(user=self.user, method="POST"))
 
         assert self.plugin.link_issue(request, self.group, form_data) == {
             "title": "MyTitle",
@@ -169,8 +170,10 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             json=[{"id": "8f3", "name": "list 1"}, {"id": "j8f", "name": "list 2"}],
         )
 
-        request = self.make_request(
-            user=self.user, method="GET", GET={"option_field": "list", "board": "f34"}
+        request = drf_request_from_request(
+            self.make_request(
+                user=self.user, method="GET", GET={"option_field": "list", "board": "f34"}
+            )
         )
 
         response = self.plugin.view_options(request, self.group)
@@ -195,12 +198,13 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             },
         )
 
-        request = self.make_request(
-            user=self.user,
-            method="GET",
-            GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+        request = drf_request_from_request(
+            self.make_request(
+                user=self.user,
+                method="GET",
+                GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+            )
         )
-
         response = self.plugin.view_autocomplete(request, self.group)
         assert response.data == {
             "issue_id": [
@@ -240,12 +244,13 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             },
         )
 
-        request = self.make_request(
-            user=self.user,
-            method="GET",
-            GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+        request = drf_request_from_request(
+            self.make_request(
+                user=self.user,
+                method="GET",
+                GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+            )
         )
-
         response = self.plugin.view_autocomplete(request, self.group)
         assert response.data == {
             "issue_id": [

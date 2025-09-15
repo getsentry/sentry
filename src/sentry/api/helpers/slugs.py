@@ -20,7 +20,7 @@ def validate_sentry_slug(slug: str) -> None:
     validator(slug)
 
 
-def sentry_slugify(slug: str, allow_unicode=False) -> str:
+def sentry_slugify(slug: str, allow_unicode: bool = False) -> str:
     """
     Slugify a string using Django's built-in slugify function. Ensures that the
     slug is not entirely numeric by adding 3 letter suffix if necessary.

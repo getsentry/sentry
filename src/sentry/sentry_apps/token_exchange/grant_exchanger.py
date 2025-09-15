@@ -37,7 +37,7 @@ class GrantExchanger:
     client_id: str
     user: User
 
-    def run(self):
+    def run(self) -> ApiToken:
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.AUTHORIZATIONS,
             event_type=SentryAppEventType.GRANT_EXCHANGER,

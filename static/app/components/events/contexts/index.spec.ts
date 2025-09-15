@@ -3,8 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import type {Event} from 'sentry/types/event';
 
-describe('getOrderedContextItems', function () {
-  it('orders context items correctly', function () {
+describe('getOrderedContextItems', () => {
+  it('orders context items correctly', () => {
     const event: Partial<Event> = {
       user: {
         id: '12345',
@@ -40,7 +40,7 @@ describe('getOrderedContextItems', function () {
     expect(aliasOrder[5]).toBe('os');
   });
 
-  it('does not fail with missing context items', function () {
+  it('does not fail with missing context items', () => {
     const mockEventOnlyOs = EventFixture({
       contexts: {
         os: {
@@ -57,7 +57,7 @@ describe('getOrderedContextItems', function () {
     expect(osIndex).not.toBe(-1);
   });
 
-  it('filters out empty contexts and contexts only with type', function () {
+  it('filters out empty contexts and contexts only with type', () => {
     const mockEvent = EventFixture({
       contexts: {
         runtime: {

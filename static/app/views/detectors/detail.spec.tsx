@@ -1,6 +1,8 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   CronDetectorFixture,
+  CronMonitorDataSourceFixture,
+  CronMonitorEnvironmentFixture,
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
   UptimeDetectorFixture,
@@ -9,15 +11,17 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
+import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
 
-describe('DetectorDetails', function () {
+describe('DetectorDetails', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
   const project = ProjectFixture();
   const defaultDataSource = SnubaQueryDataSourceFixture();
@@ -71,9 +75,13 @@ describe('DetectorDetails', function () {
       url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [GroupFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+    });
   });
 
-  describe('metric detectors', function () {
+  describe('metric detectors', () => {
     const snubaQueryDetector = MetricDetectorFixture({
       id: '1',
       projectId: project.id,
@@ -95,7 +103,7 @@ describe('DetectorDetails', function () {
       });
     });
 
-    it('renders the detector details and snuba query', async function () {
+    it('renders the detector details and snuba query', async () => {
       render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -105,7 +113,7 @@ describe('DetectorDetails', function () {
         await screen.findByRole('heading', {name: snubaQueryDetector.name})
       ).toBeInTheDocument();
       // Displays the snuba query
-      expect(screen.getByText(dataSource.queryObj!.snubaQuery.query)).toBeInTheDocument();
+      expect(screen.getByText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
       expect(
         screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
@@ -114,7 +122,7 @@ describe('DetectorDetails', function () {
       expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
     });
 
-    it('can edit the detector when the user has alerts:write access', async function () {
+    it('can edit the detector when the user has alerts:write access', async () => {
       const {router} = render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -130,7 +138,7 @@ describe('DetectorDetails', function () {
       });
     });
 
-    it('disables the edit button when the user does not have alerts:write access', async function () {
+    it('disables the edit button when the user does not have alerts:write access', async () => {
       const orgWithoutAlertsWrite = {
         ...organization,
         access: organization.access.filter(a => a !== 'alerts:write'),
@@ -145,8 +153,8 @@ describe('DetectorDetails', function () {
       expect(editButton).toHaveAttribute('aria-disabled', 'true');
     });
 
-    describe('connected automations', function () {
-      it('displays empty message when no automations are connected', async function () {
+    describe('connected automations', () => {
+      it('displays empty message when no automations are connected', async () => {
         MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
           body: {
@@ -161,7 +169,7 @@ describe('DetectorDetails', function () {
         expect(await screen.findByText('No automations connected')).toBeInTheDocument();
       });
 
-      it('displays connected automations', async function () {
+      it('displays connected automations', async () => {
         render(<DetectorDetails />, {
           organization,
           initialRouterConfig,
@@ -178,7 +186,7 @@ describe('DetectorDetails', function () {
       });
     });
 
-    it('displays ongoing issues for the detector', async function () {
+    it('displays ongoing issues for the detector', async () => {
       const {router} = render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -204,7 +212,7 @@ describe('DetectorDetails', function () {
     });
   });
 
-  describe('uptime detectors', function () {
+  describe('uptime detectors', () => {
     const uptimeDetector = UptimeDetectorFixture({
       id: '1',
       projectId: project.id,
@@ -217,9 +225,36 @@ describe('DetectorDetails', function () {
         url: `/organizations/${organization.slug}/detectors/${uptimeDetector.id}/`,
         body: uptimeDetector,
       });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        method: 'GET',
+        body: [],
+      });
+
+      // Mock uptime checks endpoint
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeDetector.id}/checks/`,
+        body: [
+          UptimeCheckFixture({
+            checkStatus: CheckStatus.SUCCESS,
+            scheduledCheckTime: '2025-01-01T00:00:00Z',
+            httpStatusCode: 200,
+            durationMs: 150,
+            regionName: 'US East',
+          }),
+          UptimeCheckFixture({
+            checkStatus: CheckStatus.FAILURE,
+            scheduledCheckTime: '2025-01-01T00:01:00Z',
+            httpStatusCode: 500,
+            durationMs: 5000,
+            regionName: 'US West',
+          }),
+        ],
+      });
     });
 
-    it('displays correct detector details', async function () {
+    it('displays correct detector details', async () => {
       render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -252,24 +287,57 @@ describe('DetectorDetails', function () {
         '/organizations/org-slug/issues/monitors/1/edit/'
       );
     });
+
+    it('displays the check-in table with correct data', async () => {
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
+
+      // Verify check-in data is displayed
+      expect(screen.getByText('Uptime')).toBeInTheDocument();
+      expect(screen.getByText('200')).toBeInTheDocument();
+      expect(screen.getByText('US East')).toBeInTheDocument();
+      expect(screen.getByText('Failure')).toBeInTheDocument();
+      expect(screen.getByText('500')).toBeInTheDocument();
+      expect(screen.getByText('US West')).toBeInTheDocument();
+    });
   });
 
-  describe('cron detectors', function () {
-    const cronDetector = CronDetectorFixture({
-      id: '1',
-      projectId: project.id,
-      owner: `team:${ownerTeam.id}`,
-      workflowIds: ['1', '2'],
-    });
-
+  describe('cron detectors', () => {
     beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/monitors/test-monitor/checkins/',
+        body: [],
+      });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${cronDetector.id}/`,
         body: cronDetector,
       });
     });
 
-    it('displays correct detector details', async function () {
+    const cronMonitorDataSource = CronMonitorDataSourceFixture({
+      queryObj: {
+        ...CronMonitorDataSourceFixture().queryObj,
+        environments: [
+          CronMonitorEnvironmentFixture({
+            lastCheckIn: '2017-10-17T01:41:20.000Z', // 1 hour ago
+            nextCheckIn: '2017-10-17T03:41:20.000Z', // 1 hour in the future
+          }),
+        ],
+      },
+    });
+    const cronDetector = CronDetectorFixture({
+      id: '1',
+      projectId: project.id,
+      owner: `team:${ownerTeam.id}`,
+      workflowIds: ['1', '2'],
+      dataSources: [cronMonitorDataSource],
+    });
+
+    it('displays correct detector details', async () => {
       render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
@@ -283,8 +351,11 @@ describe('DetectorDetails', function () {
       expect(screen.getByText('One failed check-in.')).toBeInTheDocument();
       // Recovery threshold: 2
       expect(screen.getByText('2 consecutive successful check-ins.')).toBeInTheDocument();
-      // Environment: production
-      expect(screen.getByText('production')).toBeInTheDocument();
+
+      // Last check-in
+      expect(screen.getByText('1 hour ago')).toBeInTheDocument();
+      // Next check-in
+      expect(screen.getByText('in 1 hour')).toBeInTheDocument();
 
       // Connected automation
       expect(await screen.findByText('Automation 1')).toBeInTheDocument();

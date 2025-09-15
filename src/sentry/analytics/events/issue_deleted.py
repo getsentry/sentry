@@ -1,17 +1,14 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue.deleted")
 class IssueDeletedEvent(analytics.Event):
-    type = "issue.deleted"
-
-    attributes = (
-        analytics.Attribute("group_id"),
-        analytics.Attribute("delete_type"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-    )
+    group_id: int
+    delete_type: str
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    default_user_id: int | str | None = None
 
 
 analytics.register(IssueDeletedEvent)

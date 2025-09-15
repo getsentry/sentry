@@ -1,8 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import TypedDict
 
-import requests
 from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -19,8 +17,9 @@ from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
+from sentry.net.http import connection_from_url
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.cache import cache
 
@@ -34,12 +33,50 @@ MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
 # One day since the cache key includes the start and end dates at hour granularity
 SUMMARY_CACHE_TIMEOUT = 86400
 
+SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH = "/v1/automation/summarize/feedback/summarize"
 
-class SummaryRequest(TypedDict):
-    """Corresponds to SummarizeFeedbacksRequest in Seer."""
+seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
 
-    organization_id: int
-    feedbacks: list[str]
+
+def get_summary_from_seer(feedback_msgs: list[str]) -> str | None:
+    request_body = json.dumps({"feedbacks": feedback_msgs}).encode("utf-8")
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
+            body=request_body,
+        )
+    except Exception:
+        # If summarization pod fails, fall back to autofix pod
+        logger.warning(
+            "Summarization pod connection failed for feedback summary, falling back to autofix",
+            exc_info=True,
+        )
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=fallback_connection_pool,
+                path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
+                body=request_body,
+            )
+        except Exception:
+            logger.exception(
+                "Seer failed to generate a summary for a list of feedbacks on both pods"
+            )
+            return None
+
+    if response.status < 200 or response.status >= 300:
+        logger.error(
+            "Seer failed to generate a summary for a list of feedbacks",
+            extra={"status_code": response.status, "response_data": response.data},
+        )
+        return None
+
+    return response.json()["data"]
 
 
 @region_silo_endpoint
@@ -57,6 +94,8 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         Returns the summary of the user feedbacks. The user feedbacks can be filtered by:
         - A list of projects
         - The date range that they were first seen in (defaults to the last 7 days)
+
+        Returns 500 Response if the Seer endpoint fails.
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :qparam int project: project IDs to filter by
@@ -123,33 +162,27 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             )
 
         # Also cap the number of characters that we send to the LLM
-        group_feedbacks = []
+        feedback_msgs = []
         total_chars = 0
         for group in groups:
             total_chars += len(group.data["metadata"]["message"])
             if total_chars > MAX_FEEDBACKS_TO_SUMMARIZE_CHARS:
                 break
-            group_feedbacks.append(group.data["metadata"]["message"])
+            feedback_msgs.append(group.data["metadata"]["message"])
 
         # Edge case, but still generate a summary
-        if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
+        if len(feedback_msgs) < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
-        seer_request = SummaryRequest(
-            organization_id=organization.id,
-            feedbacks=group_feedbacks,
-        )
-
-        try:
-            summary = json.loads(make_seer_request(seer_request).decode("utf-8"))
-            summary = summary["data"]
-        except Exception:
-            logger.exception("Error generating summary of user feedbacks")
-            return Response({"detail": "Error generating summary"}, status=500)
+        summary = get_summary_from_seer(feedback_msgs)
+        if summary is None:
+            return Response(
+                {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
+            )
 
         cache.set(
             summary_cache_key,
-            {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
+            {"summary": summary, "numFeedbacksUsed": len(feedback_msgs)},
             timeout=SUMMARY_CACHE_TIMEOUT,
         )
 
@@ -157,33 +190,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             {
                 "summary": summary,
                 "success": True,
-                "numFeedbacksUsed": len(group_feedbacks),
+                "numFeedbacksUsed": len(feedback_msgs),
             }
         )
-
-
-def make_seer_request(request: SummaryRequest) -> bytes:
-    serialized_request = json.dumps(request)
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/summarize",
-        data=serialized_request,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(serialized_request.encode()),
-        },
-    )
-
-    if response.status_code != 200:
-        logger.error(
-            "Feedback: Failed to produce a summary for a list of feedbacks",
-            extra={
-                "status_code": response.status_code,
-                "response": response.text,
-                "content": response.content,
-            },
-        )
-
-    response.raise_for_status()
-
-    return response.content

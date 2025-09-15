@@ -5,15 +5,24 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
 import {
   getReleasesSeriesQueryOptions,
   transformMetricsResponseToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/releasesSeries';
+import {
+  BASE_DYNAMIC_INTERVALS,
+  BASE_INTERVALS,
+  getStandardTimePeriodsForInterval,
+  MetricDetectorInterval,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type ReleasesSeriesResponse = SessionApiResponse;
 
@@ -76,6 +85,8 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
+const DEFAULT_EVENT_TYPES: EventTypes[] = [];
+
 const fromApiAggregate = (aggregate: string) => {
   return (
     Object.keys(AGGREGATE_FUNCTION_MAP).find(
@@ -90,11 +101,32 @@ const toApiAggregate = (aggregate: string) => {
 
 export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesResponse> = {
   defaultField: DEFAULT_FIELD,
+  defaultEventTypes: DEFAULT_EVENT_TYPES,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
   SearchBar: ReleaseSearchBar,
-  getSeriesQueryOptions: getReleasesSeriesQueryOptions,
+  getSeriesQueryOptions: options => {
+    return getReleasesSeriesQueryOptions({
+      ...options,
+      dataset: DetectorReleasesConfig.getDiscoverDataset(),
+    });
+  },
+  getIntervals: ({detectionType}) => {
+    let intervals = detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
+    // Crash-free (releases) does not support sub-hour intervals
+    intervals = intervals.filter(interval => interval >= MetricDetectorInterval.ONE_HOUR);
+    return intervals;
+  },
+  getTimePeriods: interval => {
+    if (interval < MetricDetectorInterval.ONE_HOUR) {
+      return [];
+    }
+    return getStandardTimePeriodsForInterval(interval);
+  },
   toApiAggregate,
   fromApiAggregate,
+  toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
+  separateEventTypesFromQuery: query =>
+    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
   transformSeriesQueryData: (data, aggregate) => {
     return [transformMetricsResponseToSeries(data, aggregate)];
   },
@@ -103,4 +135,5 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
     return [];
   },
   supportedDetectionTypes: ['static'],
+  getDiscoverDataset: () => DiscoverDatasets.METRICS,
 };

@@ -3,6 +3,8 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
+from requests import Response
+
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.client import ApiClient
 from sentry.integrations.on_call.metrics import OnCallInteractionType
@@ -46,7 +48,7 @@ class PagerDutyClient(ApiClient):
         kwargs.setdefault("headers", {"Content-Type": "application/json"})
         return self._request(*args, **kwargs)
 
-    def send_trigger(self, data: PagerDutyEventPayload):
+    def send_trigger(self, data: PagerDutyEventPayload) -> Response:
         with record_event(OnCallInteractionType.CREATE).capture():
             return self.post("/", data=data)
 

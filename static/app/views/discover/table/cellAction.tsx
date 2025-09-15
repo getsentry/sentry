@@ -299,8 +299,6 @@ function makeCellActions({
  */
 function getInternalLinkActionLabel(field: string): string {
   switch (field) {
-    case FieldKey.ID:
-      return t('Open view');
     case FieldKey.TRACE:
       return t('Open trace');
     case FieldKey.PROJECT:
@@ -367,7 +365,7 @@ function CellAction({
         {cellActions?.length ? (
           <DropdownMenu
             items={cellActions}
-            usePortal
+            strategy="fixed"
             size="sm"
             offset={4}
             position={align === 'left' ? 'bottom-start' : 'bottom-end'}
@@ -478,8 +476,12 @@ const ActionMenuTrigger = styled(Button)`
 `;
 
 const ActionMenuTriggerV2 = styled('div')`
+  a,
+  span {
+    color: ${p => p.theme.textColor};
+  }
   :hover {
     cursor: pointer;
-    font-weight: ${p => p.theme.fontWeight.bold};
+    text-shadow: 0.5px 0px;
   }
 `;

@@ -10,13 +10,12 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
-describe('ProductSelect', function () {
+describe('ProductSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     subscription.reservedBudgets = [];
     SubscriptionStore.set(organization.slug, subscription);
@@ -30,6 +29,13 @@ describe('ProductSelect', function () {
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM3),
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
     });
     MockApiClient.addMockResponse({
       method: 'POST',
@@ -48,7 +54,7 @@ describe('ProductSelect', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const freeSubscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -59,7 +65,7 @@ describe('ProductSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -74,26 +80,24 @@ describe('ProductSelect', function () {
     expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
   });
 
-  it('renders for checkout v3', async function () {
-    const organizationWithFlag = OrganizationFixture({
-      features: ['checkout-v3'],
-    });
+  it('renders for checkout v3', async () => {
     const freeSubscription = SubscriptionFixture({
-      organization: organizationWithFlag,
+      organization,
       plan: 'am3_f',
       isFree: true,
     });
-    SubscriptionStore.set(organizationWithFlag.slug, freeSubscription);
+    SubscriptionStore.set(organization.slug, freeSubscription);
 
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
+        isNewCheckout
       />,
-      {organization: organizationWithFlag}
+      {organization}
     );
 
     expect(await screen.findByTestId('product-option-seer')).toBeInTheDocument();
@@ -103,10 +107,9 @@ describe('ProductSelect', function () {
     expect(
       screen.getByRole('checkbox', {name: /Add seer AI agent to plan/})
     ).toBeInTheDocument();
-    expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
   });
 
-  it('does not render products if flags are missing', async function () {
+  it('does not render products if flags are missing', async () => {
     const mockBillingConfig = structuredClone(BillingConfigFixture(PlanTier.AM3));
     mockBillingConfig.planList.forEach(plan => {
       plan.features = plan.features.filter(feature => feature !== 'seer-billing');
@@ -120,7 +123,7 @@ describe('ProductSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -132,11 +135,11 @@ describe('ProductSelect', function () {
     expect(screen.queryAllByTestId(/product-option/)).toHaveLength(0);
   });
 
-  it('renders with correct monthly price and credits for products', async function () {
+  it('renders with correct monthly price and credits for products', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -152,7 +155,7 @@ describe('ProductSelect', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders with correct annual price and monthly credits for products', async function () {
+  it('renders with correct annual price and monthly credits for products', async () => {
     const annualSubscription = SubscriptionFixture({
       organization,
       plan: 'am3_team_auf',
@@ -162,7 +165,7 @@ describe('ProductSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -178,14 +181,14 @@ describe('ProductSelect', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders with product selected based on current subscription', async function () {
+  it('renders with product selected based on current subscription', async () => {
     subscription.reservedBudgets = [SeerReservedBudgetFixture({id: '2'})];
     SubscriptionStore.set(organization.slug, subscription);
 
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -198,7 +201,7 @@ describe('ProductSelect', function () {
     );
   });
 
-  it('does not render with product selected based on current subscription if plan is trial', async function () {
+  it('does not render with product selected based on current subscription if plan is trial', async () => {
     const trialSubscription = SubscriptionFixture({organization, plan: 'am3_t'});
     trialSubscription.reservedBudgets = [SeerReservedBudgetFixture({id: '2'})];
     SubscriptionStore.set(organization.slug, trialSubscription);
@@ -206,7 +209,7 @@ describe('ProductSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -219,11 +222,11 @@ describe('ProductSelect', function () {
     );
   });
 
-  it('can enable and disable products', async function () {
+  it('can enable and disable products', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}

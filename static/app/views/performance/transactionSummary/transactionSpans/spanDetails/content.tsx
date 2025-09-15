@@ -55,7 +55,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
+    organization.features.includes('insight-modules');
 
   // TODO: When this feature is rolled out to GA, we will no longer need the entire `spanDetails` directory and can switch to `spanSummary`
   if (hasNewSpansUIFlag) {

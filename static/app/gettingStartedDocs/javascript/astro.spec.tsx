@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './astro';
 
-describe('javascript-astro onboarding docs', function () {
+describe('javascript-astro onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -174,7 +174,7 @@ describe('javascript-astro onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('shows only sourceMapsUploadOptions in astro.config.mjs', () => {
+  it('shows only build-time options in astro.config.mjs', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -184,9 +184,9 @@ describe('javascript-astro onboarding docs', function () {
       ],
     });
 
-    // astro.config.mjs should only contain sourceMapsUploadOptions
+    // astro.config.mjs should only contain build-time options
     expect(
-      screen.getByText(textWithMarkupMatcher(/sourceMapsUploadOptions/))
+      screen.getByText(textWithMarkupMatcher(/process.env.SENTRY_AUTH_TOKEN/))
     ).toBeInTheDocument();
 
     // Runtime config should NOT be in astro.config.mjs anymore

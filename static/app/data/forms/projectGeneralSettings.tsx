@@ -4,6 +4,7 @@ import {PlatformIcon} from 'platformicons';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -200,5 +201,48 @@ export const fields = {
     type: 'boolean',
     label: t('Verify TLS/SSL'),
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
+  },
+  debugFilesRole: {
+    name: 'debugFilesRole',
+    type: 'select',
+    label: t('Debug Files Access'),
+    help: ({organization}) =>
+      tct(
+        'Role required to download debug information files, proguard mappings and source maps. Overrides [organizationSettingsLink: organization settings].',
+        {
+          organizationSettingsLink: (
+            <Link to={`/settings/${organization.slug}/#debugFilesRole`} />
+          ),
+        }
+      ),
+    placeholder: ({organization, name, model}) => {
+      const value = model.getValue(name);
+      // empty value means that this project should inherit organization settings
+      if (value === null || value === undefined) {
+        const orgRoleName =
+          organization.orgRoleList?.find(
+            (r: {id: string; name: string}) => r.id === organization.debugFilesRole
+          )?.name || organization.debugFilesRole;
+        return tct('Inherit organization setting ([organizationValue])', {
+          organizationValue: orgRoleName,
+        });
+      }
+      return value;
+    },
+    choices: ({organization}) => [
+      [
+        null,
+        tct('Inherit organization setting ([organizationValue])', {
+          organizationValue:
+            organization.orgRoleList?.find(
+              (r: {id: string; name: string}) => r.id === organization.debugFilesRole
+            )?.name || organization.debugFilesRole,
+        }),
+      ],
+      ...(organization?.orgRoleList?.map((r: {id: string; name: string}) => [
+        r.id,
+        r.name,
+      ]) ?? []),
+    ],
   },
 } satisfies Record<string, Field>;

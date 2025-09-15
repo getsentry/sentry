@@ -25,12 +25,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  useLogsFields,
-  useLogsSearch,
-  useLogsSortBys,
-  useSetLogsSortBys,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   LOGS_INSTRUCTIONS_URL,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
@@ -54,11 +49,19 @@ import {
   getTableHeaderLabel,
   logsFieldAlignment,
 } from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsFields,
+  useQueryParamsSortBys,
+  useSetQueryParamsSortBys,
+} from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
   allowPagination?: boolean;
   embedded?: boolean;
+  embeddedOptions?: {
+    openWithExpandedIds?: string[];
+  };
   embeddedStyling?: {
     disableBodyPadding?: boolean;
     showVerticalScrollbar?: boolean;
@@ -84,9 +87,10 @@ export function LogsInfiniteTable({
   stringAttributes,
   scrollContainer,
   embeddedStyling,
+  embeddedOptions,
 }: LogsTableProps) {
   const theme = useTheme();
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const search = useLogsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
@@ -110,7 +114,9 @@ export function LogsInfiniteTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
-  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(new Set());
+  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
+    new Set(embeddedOptions?.openWithExpandedIds ?? [])
+  );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
   >({});
@@ -119,13 +125,17 @@ export function LogsInfiniteTable({
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-    staticColumnWidths: {
-      [OurLogKnownFieldKey.MESSAGE]: '1fr',
-    },
-  });
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.slice(),
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths: {
+        [OurLogKnownFieldKey.MESSAGE]: '1fr',
+      },
+    }
+  );
 
   const estimateSize = useCallback(
     (index: number) => {
@@ -291,9 +301,11 @@ export function LogsInfiniteTable({
           {isError && <ErrorRenderer />}
           {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
-            <HoveringRowLoadingRenderer position="top" />
+            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
-          {isRefetching && <HoveringRowLoadingRenderer position="top" />}
+          {isRefetching && (
+            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
+          )}
           {virtualItems.map(virtualRow => {
             const dataRow = data?.[virtualRow.index];
 
@@ -326,7 +338,7 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
-            <HoveringRowLoadingRenderer position="bottom" />
+            <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
           )}
         </LogTableBody>
       </Table>
@@ -353,9 +365,9 @@ function LogsTableHeader({
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
-  const fields = useLogsFields();
-  const sortBys = useLogsSortBys();
-  const setSortBys = useSetLogsSortBys();
+  const fields = useQueryParamsFields();
+  const sortBys = useQueryParamsSortBys();
+  const setSortBys = useSetQueryParamsSortBys();
 
   const {infiniteLogsQueryResult} = useLogsPageData();
 
@@ -387,7 +399,14 @@ function LogsTableHeader({
               isFirst={index === 0}
             >
               <TableHeadCellContent
-                onClick={isFrozen ? undefined : () => setSortBys([{field}])}
+                onClick={
+                  isFrozen
+                    ? undefined
+                    : () => {
+                        const kind = direction === 'desc' ? 'asc' : 'desc';
+                        setSortBys([{field, kind}]);
+                      }
+                }
                 isFrozen={isFrozen}
               >
                 <Tooltip showOnlyOnOverflow title={headerLabel}>
@@ -458,14 +477,24 @@ export function LoadingRenderer({size}: {size?: number}) {
   );
 }
 
-function HoveringRowLoadingRenderer({position}: {position: 'top' | 'bottom'}) {
+function HoveringRowLoadingRenderer({
+  position,
+  isEmbedded,
+}: {
+  isEmbedded: boolean;
+  position: 'top' | 'bottom';
+}) {
   return (
     <HoveringRowLoadingRendererContainer
       position={position}
-      rowHeight={LOGS_GRID_BODY_ROW_HEIGHT}
-      headerHeight={45}
+      headerHeight={isEmbedded ? 0 : 45}
+      height={isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 1 : LOGS_GRID_BODY_ROW_HEIGHT * 3}
     >
-      <LoadingIndicator size={LOGS_GRID_BODY_ROW_HEIGHT * 1.5} />
+      <LoadingIndicator
+        size={
+          isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 0.8 : LOGS_GRID_BODY_ROW_HEIGHT * 1.5
+        }
+      />
     </HoveringRowLoadingRendererContainer>
   );
 }

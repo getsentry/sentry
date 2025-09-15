@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './php';
 
-describe('php onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('php onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -21,7 +21,7 @@ describe('php onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders without tracing', function () {
+  it('renders without tracing', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
@@ -42,7 +42,7 @@ describe('php onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders with logs selected', function () {
+  it('renders with logs selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
@@ -61,7 +61,7 @@ describe('php onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders with all products selected', function () {
+  it('renders with all products selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,

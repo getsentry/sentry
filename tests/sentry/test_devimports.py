@@ -118,5 +118,5 @@ for xfail in {xfail!r}:
 
 
 @pytest.mark.parametrize("pkg", ("sentry", "sentry_plugins"))
-def test_startup_imports(pkg) -> None:
+def test_startup_imports(pkg: str) -> None:
     validate_package(pkg, EXCLUDED, XFAIL)

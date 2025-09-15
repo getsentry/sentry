@@ -1,34 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
-
-import type {Organization} from 'sentry/types/organization';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 import {useDashboardsLimit} from './dashboardsLimit';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
-function createWrapper(organization: Organization) {
-  return function Wrapper({children}: {children?: React.ReactNode}) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
-}
 
 const mockOrganization = OrganizationFixture({
   features: ['dashboards-plan-limits'],
@@ -38,17 +21,16 @@ const mockOrganizationWithoutFeature = OrganizationFixture({
   features: [],
 });
 
-describe('useDashboardsLimit', function () {
-  beforeEach(function () {
+describe('useDashboardsLimit', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
-    queryClient.clear();
     SubscriptionStore.init();
   });
 
-  it('returns no limits when feature flag is disabled', function () {
-    const wrapper = createWrapper(mockOrganizationWithoutFeature);
-
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+  it('returns no limits when feature flag is disabled', () => {
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganizationWithoutFeature,
+    });
 
     expect(result.current).toEqual({
       hasReachedDashboardLimit: false,
@@ -58,9 +40,7 @@ describe('useDashboardsLimit', function () {
     });
   });
 
-  it('handles unlimited dashboards plan without making dashboards request', async function () {
-    const wrapper = createWrapper(mockOrganization);
-
+  it('handles unlimited dashboards plan without making dashboards request', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -78,7 +58,9 @@ describe('useDashboardsLimit', function () {
       body: [],
     });
 
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -95,9 +77,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
-  it('handles no subscription data (defaults to 0)', function () {
-    const wrapper = createWrapper(mockOrganization);
-
+  it('handles no subscription data (defaults to 0)', () => {
     SubscriptionStore.set(mockOrganization.slug, null as any);
 
     const dashboardsRequest = MockApiClient.addMockResponse({
@@ -105,7 +85,9 @@ describe('useDashboardsLimit', function () {
       body: [],
     });
 
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganization,
+    });
 
     expect(result.current.hasReachedDashboardLimit).toBe(true);
     expect(result.current.dashboardsLimit).toBe(0);
@@ -115,7 +97,7 @@ describe('useDashboardsLimit', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'You have reached the dashboard limit (0) for your plan. Upgrade to create more dashboards.'
+          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
         )
       )
     ).toBeInTheDocument();
@@ -124,9 +106,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
-  it('returns under limit when dashboards count is below limit', async function () {
-    const wrapper = createWrapper(mockOrganization);
-
+  it('returns under limit when dashboards count is below limit', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -149,7 +129,9 @@ describe('useDashboardsLimit', function () {
       match: [MockApiClient.matchQuery({per_page: 11})],
     });
 
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -165,9 +147,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('returns at limit when dashboards count equals limit', async function () {
-    const wrapper = createWrapper(mockOrganization);
-
+  it('returns at limit when dashboards count equals limit', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -191,7 +171,9 @@ describe('useDashboardsLimit', function () {
       match: [MockApiClient.matchQuery({per_page: 4})],
     });
 
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -206,15 +188,13 @@ describe('useDashboardsLimit', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'You have reached the dashboard limit (3) for your plan. Upgrade to create more dashboards.'
+          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
         )
       )
     ).toBeInTheDocument();
   });
 
-  it('returns over limit when dashboards count exceeds limit', async function () {
-    const wrapper = createWrapper(mockOrganization);
-
+  it('returns over limit when dashboards count exceeds limit', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -237,7 +217,9 @@ describe('useDashboardsLimit', function () {
       match: [MockApiClient.matchQuery({per_page: 3})],
     });
 
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -252,15 +234,13 @@ describe('useDashboardsLimit', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'You have reached the dashboard limit (2) for your plan. Upgrade to create more dashboards.'
+          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
         )
       )
     ).toBeInTheDocument();
   });
 
-  it('returns loading state when dashboards request is in progress', async function () {
-    const wrapper = createWrapper(mockOrganization);
-
+  it('returns loading state when dashboards request is in progress', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -279,7 +259,9 @@ describe('useDashboardsLimit', function () {
       match: [MockApiClient.matchQuery({per_page: 11})],
     });
 
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganization,
+    });
 
     // Should still be loading while dashboards request is pending
     expect(result.current.isLoading).toBe(true);
@@ -292,9 +274,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('handles dashboards API error gracefully', async function () {
-    const wrapper = createWrapper(mockOrganization);
-
+  it('handles dashboards API error gracefully', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
@@ -313,7 +293,9 @@ describe('useDashboardsLimit', function () {
       match: [MockApiClient.matchQuery({per_page: 11})],
     });
 
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganization,
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -330,9 +312,7 @@ describe('useDashboardsLimit', function () {
     });
   });
 
-  it('handles missing subscription planDetails gracefully (defaults to 0)', function () {
-    const wrapper = createWrapper(mockOrganization);
-
+  it('handles missing subscription planDetails gracefully (defaults to 0)', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: undefined as any,
@@ -345,7 +325,9 @@ describe('useDashboardsLimit', function () {
       body: [],
     });
 
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
+      organization: mockOrganization,
+    });
 
     // Should default to 0 when planDetails is missing
     expect(result.current.hasReachedDashboardLimit).toBe(true);
@@ -356,7 +338,7 @@ describe('useDashboardsLimit', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'You have reached the dashboard limit (0) for your plan. Upgrade to create more dashboards.'
+          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
         )
       )
     ).toBeInTheDocument();

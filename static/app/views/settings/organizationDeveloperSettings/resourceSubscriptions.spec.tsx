@@ -3,9 +3,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import Form from 'sentry/components/forms/form';
 import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
-describe('Resource Subscriptions', function () {
-  describe('initial no-access permissions', function () {
-    it('renders disabled checkbox with no issue permission', function () {
+describe('Resource Subscriptions', () => {
+  describe('initial no-access permissions', () => {
+    it('renders disabled checkbox with no issue permission', () => {
       render(
         <Form>
           <Subscriptions
@@ -30,7 +30,7 @@ describe('Resource Subscriptions', function () {
       expect(screen.getByRole('checkbox', {name: 'seer'})).toBeDisabled();
     });
 
-    it('updates events state when new permissions props is passed', function () {
+    it('updates events state when new permissions props is passed', () => {
       render(
         <Form>
           <Subscriptions
@@ -54,8 +54,8 @@ describe('Resource Subscriptions', function () {
     });
   });
 
-  describe('initial access to permissions', function () {
-    it('renders nondisabled checkbox with correct permissions', function () {
+  describe('initial access to permissions', () => {
+    it('renders nondisabled checkbox with correct permissions', () => {
       render(
         <Form>
           <Subscriptions
@@ -78,7 +78,7 @@ describe('Resource Subscriptions', function () {
       expect(screen.getByRole('checkbox', {name: 'comment'})).toBeEnabled();
     });
 
-    it('revoked permissions also revokes access to corresponding subscriptions', function () {
+    it('revoked permissions also revokes access to corresponding subscriptions', () => {
       render(
         <Form>
           <Subscriptions

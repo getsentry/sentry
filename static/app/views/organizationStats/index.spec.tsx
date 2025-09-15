@@ -70,12 +70,12 @@ describe('OrganizationStats', () => {
   it('renders header state without tabs', async () => {
     const newOrg = initializeOrg();
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
-    expect(await screen.findByText('Organization Usage Stats')).toBeInTheDocument();
+    expect(await screen.findByText('Stats & Usage')).toBeInTheDocument();
   });
 
   it('renders header state with tabs', async () => {
     render(<OrganizationStats {...defaultProps} />);
-    expect(await screen.findByText('Stats')).toBeInTheDocument();
+    expect(await screen.findByText('Stats & Usage')).toBeInTheDocument();
     expect(screen.getByText('Usage')).toBeInTheDocument();
     expect(screen.getByText('Issues')).toBeInTheDocument();
     expect(screen.getByText('Health')).toBeInTheDocument();

@@ -32,7 +32,7 @@ COMMON_COLUMNS = [
         private=True,
     ),
     ResolvedAttribute(
-        public_alias="timestamp",
+        public_alias=constants.TIMESTAMP_ALIAS,
         internal_name="sentry.timestamp",
         internal_type=constants.DOUBLE,
         search_type="string",

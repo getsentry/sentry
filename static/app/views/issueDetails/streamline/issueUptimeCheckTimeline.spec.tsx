@@ -29,7 +29,7 @@ jest
   );
 
 describe('IssueUptimeCheckTimeline', () => {
-  const uptimeRuleId = '123';
+  const detectorId = '123';
   const organization = OrganizationFixture();
   const project = ProjectFixture({
     environments: ['production'],
@@ -39,12 +39,9 @@ describe('IssueUptimeCheckTimeline', () => {
     issueType: IssueType.UPTIME_DOMAIN_FAILURE,
   });
   const event = EventFixture({
-    tags: [
-      {
-        key: 'uptime_rule',
-        value: uptimeRuleId,
-      },
-    ],
+    occurrence: {
+      evidenceData: {detectorId},
+    },
   });
 
   beforeEach(() => {
@@ -63,14 +60,14 @@ describe('IssueUptimeCheckTimeline', () => {
     });
   });
 
-  it('renders the uptime check timeline with a legend and data', async function () {
+  it('renders the uptime check timeline with a legend and data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-stats/`,
       query: {
-        projectUptimeSubscriptionId: [uptimeRuleId],
+        uptimeDetectorId: [detectorId],
       },
       body: {
-        [uptimeRuleId]: [
+        [detectorId]: [
           [
             new Date('2025-01-01T11:00:00Z').getTime() / 1000,
             {
@@ -117,14 +114,14 @@ describe('IssueUptimeCheckTimeline', () => {
     });
   });
 
-  it('hides missed status from legend if not present in data', async function () {
+  it('hides missed status from legend if not present in data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-stats/`,
       query: {
-        projectUptimeSubscriptionId: [uptimeRuleId],
+        uptimeDetectorId: [detectorId],
       },
       body: {
-        [uptimeRuleId]: [
+        [detectorId]: [
           [
             startTime.getTime() / 1000,
             {

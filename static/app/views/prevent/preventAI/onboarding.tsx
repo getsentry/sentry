@@ -2,12 +2,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
-import preventPrComment from 'sentry-images/features/prevent-pr-comment.png';
+import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.png';
+import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
+import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -92,10 +94,20 @@ export default function PreventAIOnboarding() {
           <Flex direction="column" gap="xl">
             <OnboardingStep
               step={1}
-              title={t(`Enable Generative AI features`)}
+              title={t(`Enable Prevent AI features`)}
               description={tct(
-                'Make sure AI features are enabled in your [organizationSettingsLink:organization settings].',
+                'An organization admin needs to turn on two toggles: [enablePreventAI] and [showGenerativeAI] in your [organizationSettingsLink:organization settings].',
                 {
+                  enablePreventAI: (
+                    <Text italic variant="muted" size="md">
+                      Enable Prevent AI
+                    </Text>
+                  ),
+                  showGenerativeAI: (
+                    <Text italic variant="muted" size="md">
+                      Show Generative AI Features
+                    </Text>
+                  ),
                   organizationSettingsLink: (
                     <ExternalLink href={`/settings/${organization.slug}`} />
                   ),
@@ -106,9 +118,14 @@ export default function PreventAIOnboarding() {
               step={2}
               title={t(`Setup GitHub Integration`)}
               description={tct(
-                'To grant Seer access to your codebase, follow these [link:GitHub integration instructions]: 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.',
+                'To grant Seer access to your codebase, install the [sentryGitHubApp:Sentry GitHub App] to connect your GitHub repositories. Learn more about [gitHubIntegration:GitHub integration].',
                 {
-                  link: (
+                  sentryGitHubApp: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/integrations/github`}
+                    />
+                  ),
+                  gitHubIntegration: (
                     <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github" />
                   ),
                 }
@@ -132,10 +149,10 @@ export default function PreventAIOnboarding() {
             background="secondary"
             radius="md"
           >
-            <Text variant="primary" size="sm" bold>
+            <Text variant="primary" size="md" bold>
               {t('How to use Prevent AI')}
             </Text>
-            <Text variant="muted" size="sm">
+            <Text variant="muted" size="md">
               {t('Prevent AI helps you ship better code with three features:')}
             </Text>
             <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
@@ -193,8 +210,19 @@ export default function PreventAIOnboarding() {
               )}
             </Text>
           </Flex>
+          <Text variant="muted" size="xs">
+            <Flex gap="sm" justify="center">
+              <IconInfo size="xs" />
+              {t(
+                `This page will remain visible after the app is installed. Reviewer Configuration and Usage Stats are coming soon.`
+              )}
+            </Flex>
+          </Text>
         </Flex>
-        <StyledImg src={preventPrComment} alt="Prevent PR Comment" />
+        <StyledImg
+          src={theme.type === 'dark' ? preventPrCommentsDark : preventPrCommentsLight}
+          alt="Prevent PR Comments"
+        />
       </Flex>
     </Flex>
   );

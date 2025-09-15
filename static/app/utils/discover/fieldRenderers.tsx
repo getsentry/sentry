@@ -57,7 +57,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
@@ -105,6 +108,11 @@ export type RenderFunctionBaggage = {
   disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  /**
+   * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
+   */
+  traceItemMeta?: TraceItemDetailsMeta;
+
   unit?: string;
 };
 
@@ -131,6 +139,7 @@ type FieldFormatter = {
 type FieldFormatters = {
   array: FieldFormatter;
   boolean: FieldFormatter;
+  currency: FieldFormatter;
   date: FieldFormatter;
   duration: FieldFormatter;
   integer: FieldFormatter;
@@ -371,6 +380,15 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (fieldName, data) => {
       return <PercentChangeCell deltaValue={data[fieldName]} />;
+    },
+  },
+  currency: {
+    isSortable: true,
+    renderFunc: (field, data) => {
+      if (typeof data[field] !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return <CurrencyCell value={data[field]} />;
     },
   },
 };
@@ -619,17 +637,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       };
 
       return (
-        <Container>
-          <QuickContextHoverWrapper
-            dataRow={data}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            <StyledLink to={target} aria-label={issueID}>
-              <OverflowFieldShortId shortId={`${data.issue}`} />
-            </StyledLink>
-          </QuickContextHoverWrapper>
-        </Container>
+        <QuickContextHoverWrapper
+          dataRow={data}
+          contextType={ContextType.ISSUE}
+          organization={organization}
+        >
+          <StyledLink to={target} aria-label={issueID}>
+            <OverflowFieldShortId shortId={`${data.issue}`} />
+          </StyledLink>
+        </QuickContextHoverWrapper>
       );
     },
   },
@@ -670,14 +686,14 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'project_id',
     renderFunc: (data, baggage) => {
       const projectId = data.project_id;
-      return getProjectIdLink(projectId, baggage);
+      return <NumberContainer>{getProjectIdLink(projectId, baggage)}</NumberContainer>;
     },
   },
   'project.id': {
     sortField: 'project.id',
     renderFunc: (data, baggage) => {
       const projectId = data['project.id'];
-      return getProjectIdLink(projectId, baggage);
+      return <Container>{getProjectIdLink(projectId, baggage)}</Container>;
     },
   },
   user: {
@@ -963,6 +979,30 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
+  [SpanFields.GEN_AI_REQUEST_MODEL]: {
+    sortField: SpanFields.GEN_AI_REQUEST_MODEL,
+    renderFunc: data => {
+      const modelId = data[SpanFields.GEN_AI_REQUEST_MODEL];
+
+      if (!modelId) {
+        return <Container>{emptyValue}</Container>;
+      }
+
+      return <ModelName modelId={data[SpanFields.GEN_AI_REQUEST_MODEL]} />;
+    },
+  },
+  [SpanFields.GEN_AI_RESPONSE_MODEL]: {
+    sortField: SpanFields.GEN_AI_RESPONSE_MODEL,
+    renderFunc: data => {
+      const modelId = data[SpanFields.GEN_AI_RESPONSE_MODEL];
+
+      if (!modelId) {
+        return <Container>{emptyValue}</Container>;
+      }
+
+      return <ModelName modelId={data[SpanFields.GEN_AI_RESPONSE_MODEL]} />;
+    },
+  },
 };
 
 /**
@@ -994,27 +1034,25 @@ const getProjectIdLink = (
 ) => {
   const parsedId = typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
   if (!defined(parsedId) || isNaN(parsedId)) {
-    return <NumberContainer>{emptyValue}</NumberContainer>;
+    return emptyValue;
   }
 
   // TODO: Component has been deprecated in favour of hook, need to refactor this
   return (
-    <NumberContainer>
-      <Projects orgId={organization.slug} slugs={[]} projectIds={[parsedId]}>
-        {({projects}) => {
-          const project = projects.find(p => p.id === parsedId?.toString());
-          if (!project) {
-            return emptyValue;
-          }
-          const target = makeProjectsPathname({
-            path: `/${project?.slug}/?project=${parsedId}/`,
-            organization,
-          });
+    <Projects orgId={organization.slug} slugs={[]} projectIds={[parsedId]}>
+      {({projects}) => {
+        const project = projects.find(p => p.id === parsedId?.toString());
+        if (!project) {
+          return emptyValue;
+        }
+        const target = makeProjectsPathname({
+          path: `/${project?.slug}/?project=${parsedId}/`,
+          organization,
+        });
 
-          return <Link to={target}>{parsedId}</Link>;
-        }}
-      </Projects>
-    </NumberContainer>
+        return <Link to={target}>{parsedId}</Link>;
+      }}
+    </Projects>
   );
 };
 

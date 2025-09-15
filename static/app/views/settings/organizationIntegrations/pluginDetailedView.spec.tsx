@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {PluginWithProjectList} from 'sentry/types/integrations';
 import PluginDetailedView from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
 
-describe('PluginDetailedView', function () {
+describe('PluginDetailedView', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const plugin: PluginWithProjectList = {
@@ -36,7 +36,7 @@ describe('PluginDetailedView', function () {
     });
   });
 
-  it('shows the Integration name and install status', async function () {
+  it('shows the Integration name and install status', async () => {
     const router = RouterFixture({
       params: {orgId: organization.slug, integrationSlug: plugin.slug},
     });
@@ -50,7 +50,7 @@ describe('PluginDetailedView', function () {
     expect(screen.getByText('Installed')).toBeInTheDocument();
   });
 
-  it('view configurations', async function () {
+  it('view configurations', async () => {
     const router = RouterFixture({
       params: {orgId: organization.slug, integrationSlug: plugin.slug},
       location: {query: {tab: 'configurations'}},

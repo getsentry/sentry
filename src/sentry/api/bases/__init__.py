@@ -1,4 +1,3 @@
-from .group import *  # NOQA
 from .organization import *  # NOQA
 from .organization_events import *  # NOQA
 from .organizationmember import *  # NOQA

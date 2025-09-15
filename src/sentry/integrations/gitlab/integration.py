@@ -157,7 +157,9 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         # TODO: define this, used to migrate repositories
         return False
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
         resp = self.get_client().search_projects(group, query)
@@ -225,8 +227,8 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
-## Suspect Issues
-This merge request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this merge request
+The following issues were detected after merging:
 
 {issue_list}"""
 

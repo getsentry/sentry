@@ -26,7 +26,7 @@ def test_conf_key() -> None:
 
 class PagerDutyPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> PagerDutyPlugin:
         return PagerDutyPlugin()
 
     def test_is_configured(self) -> None:

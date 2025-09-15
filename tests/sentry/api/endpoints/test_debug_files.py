@@ -283,6 +283,44 @@ class DebugFilesTest(DebugFilesTestCases):
         assert response.status_code == 204, response.content
         assert ProjectDebugFile.objects.count() == 0
 
+    def test_project_debug_files_role_overrides_organization(self) -> None:
+        """Test that project-level debug_files_role option overrides organization-level setting"""
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201
+        assert len(response.data) == 1
+
+        response = self.client.get(self.url)
+        download_id = response.data[0]["id"]
+
+        # Create a member user with limited permissions
+        member_user = self.create_user("member@localhost")
+        self.create_member(user=member_user, organization=self.organization, role="member")
+        self.login_as(user=member_user)
+
+        # Set organization debug_files_role to "owner" - member should not be able to download
+        self.organization.update_option("sentry:debug_files_role", "owner")
+        response = self.client.get(f"{self.url}?id={download_id}")
+        assert response.status_code == 403, response.content
+
+        # Set project debug_files_role to "member" - member should now be able to download
+        self.project.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(f"{self.url}?id={download_id}")
+        assert response.status_code == 200, response.content
+        assert response.get("Content-Type") == "application/octet-stream"
+        close_streaming_response(response)
+
+        # Remove project option - should fall back to organization setting (owner)
+        self.project.delete_option("sentry:debug_files_role")
+        response = self.client.get(f"{self.url}?id={download_id}")
+        assert response.status_code == 403, response.content
+
+        # Set organization to "member" - member should be able to download
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(f"{self.url}?id={download_id}")
+        assert response.status_code == 200, response.content
+        assert response.get("Content-Type") == "application/octet-stream"
+        close_streaming_response(response)
+
 
 class AssociateDebugFilesTest(DebugFilesTestCases):
     def setUp(self) -> None:

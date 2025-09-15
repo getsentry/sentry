@@ -14,7 +14,7 @@ import {
 describe('incremental trace fetch', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
@@ -34,7 +34,7 @@ describe('incremental trace fetch', () => {
           }),
         ],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     // Mock the API calls
@@ -103,7 +103,7 @@ describe('incremental trace fetch', () => {
           }),
         ],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     // Mock the API calls
@@ -188,7 +188,7 @@ describe('incremental trace fetch', () => {
           ],
         }),
       ]),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     // Mock the API calls
@@ -273,7 +273,7 @@ describe('incremental trace fetch', () => {
           ],
         }),
       ]),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     // Mock the API calls

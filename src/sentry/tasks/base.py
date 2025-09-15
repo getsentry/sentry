@@ -221,6 +221,7 @@ def retry(
     ignore: type[Exception] | tuple[type[Exception], ...] = (),
     ignore_and_capture: type[Exception] | tuple[type[Exception], ...] = (),
     timeouts: bool = False,
+    raise_on_no_retries: bool = True,
 ) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
@@ -261,7 +262,7 @@ def retry(
                                 task_state.taskname,
                             ]
                         sentry_sdk.capture_exception(level="info")
-                    retry_task()
+                    retry_task(raise_on_no_retries=raise_on_no_retries)
                 else:
                     raise
             except ignore_and_capture:
@@ -271,10 +272,10 @@ def retry(
                 raise
             except on_silent as exc:
                 logger.info("silently retrying %s due to %s", func.__name__, exc)
-                retry_task(exc)
+                retry_task(exc, raise_on_no_retries=raise_on_no_retries)
             except on as exc:
                 sentry_sdk.capture_exception()
-                retry_task(exc)
+                retry_task(exc, raise_on_no_retries=raise_on_no_retries)
 
         return wrapped
 

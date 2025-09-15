@@ -1,13 +1,13 @@
-import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import useProjectFromId from 'sentry/utils/useProjectFromId';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {ReplaySummaryStatus} from 'sentry/views/replays/detail/ai/utils';
+import {
+  ReplaySummaryStatus,
+  ReplaySummaryTemp,
+} from 'sentry/views/replays/detail/ai/utils';
 
 import {useFetchReplaySummary} from './useFetchReplaySummary';
 
@@ -40,18 +40,6 @@ describe('useFetchReplaySummary', () => {
     mockUseProjectFromId.mockReturnValue(mockProject);
   });
 
-  const createWrapper = () => {
-    const queryClient = makeTestQueryClient();
-
-    return function ({children}: {children: React.ReactNode}) {
-      return (
-        <QueryClientProvider client={queryClient}>
-          <OrganizationContext value={mockOrganization}>{children}</OrganizationContext>
-        </QueryClientProvider>
-      );
-    };
-  };
-
   describe('basic functionality', () => {
     it('should fetch summary data successfully', async () => {
       const mockSummaryData = {
@@ -67,8 +55,8 @@ describe('useFetchReplaySummary', () => {
         body: mockSummaryData,
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
@@ -87,8 +75,8 @@ describe('useFetchReplaySummary', () => {
         body: {detail: 'Internal server error'},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
@@ -109,10 +97,10 @@ describe('useFetchReplaySummary', () => {
         },
       });
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () => useFetchReplaySummary(mockReplay, {enabled: false, staleTime: 0}),
         {
-          wrapper: createWrapper(),
+          organization: mockOrganization,
         }
       );
 
@@ -132,10 +120,10 @@ describe('useFetchReplaySummary', () => {
         },
       });
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () => useFetchReplaySummary(mockReplay, {enabled: true, staleTime: 0}),
         {
-          wrapper: createWrapper(),
+          organization: mockOrganization,
         }
       );
 
@@ -166,8 +154,8 @@ describe('useFetchReplaySummary', () => {
         body: startSummaryRequestPromise,
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       // Start the summary mutation
@@ -195,8 +183,8 @@ describe('useFetchReplaySummary', () => {
         body: {status: ReplaySummaryStatus.PROCESSING, data: undefined},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
@@ -215,8 +203,8 @@ describe('useFetchReplaySummary', () => {
         },
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
@@ -232,8 +220,8 @@ describe('useFetchReplaySummary', () => {
         body: {status: ReplaySummaryStatus.ERROR, data: undefined},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
@@ -260,9 +248,12 @@ describe('useFetchReplaySummary', () => {
         method: 'POST',
       });
 
-      const {result, rerender} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
-      });
+      const {result, rerender} = renderHookWithProviders(
+        () => useFetchReplaySummary(mockReplay),
+        {
+          organization: mockOrganization,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.isPolling).toBe(false);
@@ -281,7 +272,7 @@ describe('useFetchReplaySummary', () => {
           `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
           expect.objectContaining({
             method: 'POST',
-            data: {num_segments: 2},
+            data: {num_segments: 2, temperature: ReplaySummaryTemp.MED},
           })
         );
       });

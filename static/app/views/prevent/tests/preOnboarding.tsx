@@ -14,34 +14,16 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const INSTRUCTIONS_TEXT = {
-  noOrgs: {
-    header: t('Get Started by installing the GitHub Sentry App'),
-    subtext: t(
-      "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
-    ),
-    mainCTA: t('Add installation'),
-    mainCTALink: 'https://github.com/apps/sentry-io',
-  },
-  hasOrgs: {
-    header: t('Request Updated Permissions on your Integrated Organization'),
-    subtext: t(
-      "Sentry is requesting updated permissions access to your integrated organization(s). Admin required. If you're not an admin, reach out to your organization's owner to update the Sentry app permissions."
-    ),
-    mainCTA: t('Review permissions'),
-    // TODO: can we get the xxx installation id? it is unique to each signed in GH user
-    mainCTALink: '/settings/installations/xxxx/permissions/update',
-  },
-};
-
-// TODO: this should come from the backend
-const HAS_INTEGRATED_ORGS = false;
+  header: t('Get Started by installing the GitHub Sentry App'),
+  subtext: t(
+    "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
+  ),
+  mainCTA: t('Add installation'),
+  mainCTALink: '/settings/integrations/github',
+} as const;
 
 export default function TestPreOnboardingPage() {
   const organization = useOrganization();
-  const instructionSet = HAS_INTEGRATED_ORGS
-    ? INSTRUCTIONS_TEXT.hasOrgs
-    : INSTRUCTIONS_TEXT.noOrgs;
-
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
 
@@ -76,7 +58,7 @@ export default function TestPreOnboardingPage() {
               </li>
               <li>
                 {t('Identify the most problematic tests and prioritize fixes.')}{' '}
-                <Link to="https://docs.codecov.com/docs/test-analytics">
+                <Link to="https://docs.sentry.io/product/test-analytics/">
                   {t('Learn more')}
                 </Link>
               </li>
@@ -87,66 +69,16 @@ export default function TestPreOnboardingPage() {
       {isUSStorage && (
         <Panel>
           <InstructionsSection>
-            <h2>{instructionSet.header}</h2>
-            <SubtextParagraph>{instructionSet.subtext}</SubtextParagraph>
+            <h2>{INSTRUCTIONS_TEXT.header}</h2>
+            <SubtextParagraph>{INSTRUCTIONS_TEXT.subtext}</SubtextParagraph>
             <ButtonBar>
-              <LinkButton priority="primary" href={instructionSet.mainCTA}>
-                {instructionSet.mainCTA}
+              <LinkButton priority="primary" href={INSTRUCTIONS_TEXT.mainCTA}>
+                {INSTRUCTIONS_TEXT.mainCTA}
               </LinkButton>
               <LinkButton priority="default" href="/settings/integrations/github">
                 Learn more
               </LinkButton>
             </ButtonBar>
-            <PrerequisitesSection>
-              <PrerequisitesTitle>
-                {t('Prerequisites to connect your GitHub organization:')}
-              </PrerequisitesTitle>
-              <Prerequisites>
-                <Prereq>
-                  <PrereqMainText>
-                    {t('Enable GitHub as an Auth Provider')}
-                  </PrereqMainText>
-                  <PrereqSubText>
-                    {t(
-                      "Sentry Prevent analyzes your code through your Git provider. You'll need to authenticate to access data from your organizations."
-                    )}
-                  </PrereqSubText>
-                </Prereq>
-                <Prereq>
-                  <PrereqMainText>{t('Install the GitHub Sentry App')}</PrereqMainText>
-                  <PrereqSubText>
-                    <Link to="https://github.com/apps/sentry-io">
-                      {t('Install the app')}
-                    </Link>
-                    {t(
-                      " on your GitHub org in your Sentry org. You will need to be an Owner of your GitHub organization to fully configure the integration. Note: Once linked, a GitHub org/account can't be connected to another Sentry org."
-                    )}
-                  </PrereqSubText>
-                </Prereq>
-                <Prereq>
-                  <PrereqMainText>
-                    {t('Connect your GitHub identities in Sentry')}
-                  </PrereqMainText>
-                  <PrereqSubText>
-                    {t('In your Sentry ')}
-                    <Link to="https://sentry.io/settings/account/identities">
-                      {t('identities')}
-                    </Link>
-                    {t(
-                      " settings, link your GitHub account to your profile. If you're having trouble adding the integration, "
-                    )}
-                    <Link to="https://sentry.io/settings/account/identities">
-                      {t('disconnect')}
-                    </Link>
-                    {t(' then ')}
-                    {/* TODO: figma file links to https://sentry.io/auth/login/?next=/auth/sso/account/settings/social/associate/co[…]D6ee6a67e71b4459e8e4c%26state%3D7nJAqWF3l4bkczXAPzTcfo8EKIvSHyiB
-                        but not sure how to get the link to that currently */}
-                    <Link to="">{t('reconnect')}</Link>
-                    {t(' your GitHub identity.')}
-                  </PrereqSubText>
-                </Prereq>
-              </Prerequisites>
-            </PrerequisitesSection>
           </InstructionsSection>
         </Panel>
       )}
@@ -215,38 +147,4 @@ const ButtonBar = styled('div')`
 
 const SubtextParagraph = styled('p')`
   max-width: 1000px;
-`;
-
-const PrerequisitesSection = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  margin-top: 24px;
-  padding-top: ${p => p.theme.space['2xl']};
-`;
-
-const Prerequisites = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
-  padding: 24px;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 10px;
-  margin-bottom: ${p => p.theme.space.lg};
-  gap: ${p => p.theme.space.lg};
-`;
-
-const Prereq = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-  max-width: 1000px;
-`;
-
-const PrerequisitesTitle = styled('p')`
-  font-size: 16px;
-`;
-
-const PrereqMainText = styled('p')`
-  font-weight: 600;
-  margin: 0;
-`;
-
-const PrereqSubText = styled('p')`
-  font-weight: 400;
-  margin: 0;
 `;

@@ -22,7 +22,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         "bar_transaction",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.six_min_ago = before_now(minutes=6)
@@ -2354,7 +2354,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
 

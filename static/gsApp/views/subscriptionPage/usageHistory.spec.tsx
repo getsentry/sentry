@@ -27,7 +27,7 @@ import UsageHistory from 'getsentry/views/subscriptionPage/usageHistory';
 describe('Subscription > UsageHistory', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
@@ -59,7 +59,7 @@ describe('Subscription > UsageHistory', () => {
     });
   });
 
-  it('shows an error for non-billing roles', async function () {
+  it('shows an error for non-billing roles', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -78,7 +78,7 @@ describe('Subscription > UsageHistory', () => {
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
   });
 
-  it('shows the tab when user is a billing admin', function () {
+  it('shows the tab when user is a billing admin', () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -97,7 +97,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('shows expanders for details, and they work', async function () {
+  it('shows expanders for details, and they work', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -129,7 +129,7 @@ describe('Subscription > UsageHistory', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('hides on-demand when it is not relevant', function () {
+  it('hides on-demand when it is not relevant', () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -149,7 +149,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('overage is shown as >100%', async function () {
+  it('overage is shown as >100%', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -191,7 +191,7 @@ describe('Subscription > UsageHistory', () => {
     expect(screen.getByRole('cell', {name: '1 GB'})).toBeInTheDocument();
   });
 
-  it('shows gifted when relevant', async function () {
+  it('shows gifted when relevant', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -234,7 +234,7 @@ describe('Subscription > UsageHistory', () => {
     expect(screen.queryByRole('cell', {name: '∞'})).not.toBeInTheDocument();
   });
 
-  it('displays shared on-demand when relevant', async function () {
+  it('displays shared on-demand when relevant', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -288,7 +288,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays per-category on-demand when relevant', async function () {
+  it('displays per-category on-demand when relevant', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -338,7 +338,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays historical usage for unlimited on-demand', async function () {
+  it('displays historical usage for unlimited on-demand', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -365,7 +365,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays soft cap per-category on-demand when relevant', async function () {
+  it('displays soft cap per-category on-demand when relevant', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -408,7 +408,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays soft cap per-category true forward when relevant', async function () {
+  it('displays soft cap per-category true forward when relevant', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -452,7 +452,7 @@ describe('Subscription > UsageHistory', () => {
   });
 
   // Ensure orgs with True Forward set prior to the soft cap types will display correctly
-  it('displays per-category true forward without soft cap when relevant', async function () {
+  it('displays per-category true forward without soft cap when relevant', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -495,7 +495,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays attachments correctly for am1 plan', async function () {
+  it('displays attachments correctly for am1 plan', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -540,7 +540,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays attachments correctly for mm2 plan', async function () {
+  it('displays attachments correctly for mm2 plan', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -586,7 +586,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays performance units for am2 plan', async function () {
+  it('displays performance units for am2 plan', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -607,7 +607,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays transactions for am1 plan', async function () {
+  it('displays transactions for am1 plan', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -628,7 +628,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays spans for am3 DS without custom dynamic sampling', async function () {
+  it('displays spans for am3 DS without custom dynamic sampling', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -669,7 +669,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays accepted and stored spans for am3 DS with custom dynamic sampling', async function () {
+  it('displays accepted and stored spans for am3 DS with custom dynamic sampling', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -714,7 +714,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays spans for am3 DS trial without custom dynamic sampling', async function () {
+  it('displays spans for am3 DS trial without custom dynamic sampling', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -754,7 +754,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('displays accepted and stored spans for am3 DS trial with custom dynamic sampling', async function () {
+  it('displays accepted and stored spans for am3 DS trial with custom dynamic sampling', async () => {
     const mockCall = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
       method: 'GET',
@@ -801,7 +801,7 @@ describe('Subscription > UsageHistory', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('converts prepaid limit to hours for UI profile duration category', async function () {
+  it('converts prepaid limit to hours for UI profile duration category', async () => {
     const MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,
@@ -836,7 +836,7 @@ describe('Subscription > UsageHistory', () => {
     expect(screen.queryByText('>100%')).not.toBeInTheDocument();
   });
 
-  it('shows >100% for UI profile duration overage', async function () {
+  it('shows >100% for UI profile duration overage', async () => {
     const MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/history/`,

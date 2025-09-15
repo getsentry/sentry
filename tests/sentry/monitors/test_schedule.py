@@ -5,7 +5,7 @@ from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 
 
-def t(hour: int, minute: int):
+def t(hour: int, minute: int) -> datetime:
     return datetime(2019, 1, 1, hour, minute, 0, tzinfo=timezone.utc)
 
 

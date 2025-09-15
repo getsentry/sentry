@@ -17,8 +17,8 @@ import {
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/onDemandBudgets/utils';
 
-describe('parseOnDemandBudgetsFromSubscription', function () {
-  it('returns per-category budget for non-AM plans - with on-demand budget', function () {
+describe('parseOnDemandBudgetsFromSubscription', () => {
+  it('returns per-category budget for non-AM plans - with on-demand budget', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -33,7 +33,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
     });
   });
 
-  it('returns shared on-demand budget for non-AM plans - without on-demand budget', function () {
+  it('returns shared on-demand budget for non-AM plans - without on-demand budget', () => {
     const organization = OrganizationFixture();
     let subscription = SubscriptionFixture({
       organization,
@@ -57,7 +57,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
     });
   });
 
-  it('returns shared on-demand budget for AM plans', function () {
+  it('returns shared on-demand budget for AM plans', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -79,7 +79,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
     });
   });
 
-  it('returns shared on-demand budget for AM plans - without on-demand budget', function () {
+  it('returns shared on-demand budget for AM plans - without on-demand budget', () => {
     const organization = OrganizationFixture();
     let subscription = SubscriptionFixture({
       organization,
@@ -128,7 +128,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
     });
   });
 
-  it('returns per-category on-demand budget for AM plans', function () {
+  it('returns per-category on-demand budget for AM plans', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -183,7 +183,7 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
     });
   });
 
-  it('reconstructs shared on-demand budget if onDemandBudgets is missing', function () {
+  it('reconstructs shared on-demand budget if onDemandBudgets is missing', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -203,8 +203,8 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
   });
 });
 
-describe('getTotalBudget', function () {
-  it('returns total on-demand budget for non-AM plans - with on-demand budget', function () {
+describe('getTotalBudget', () => {
+  it('returns total on-demand budget for non-AM plans - with on-demand budget', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -218,7 +218,7 @@ describe('getTotalBudget', function () {
     expect(actualTotalBudget).toBe(123);
   });
 
-  it('returns total on-demand budget for non-AM plans - without on-demand budget', function () {
+  it('returns total on-demand budget for non-AM plans - without on-demand budget', () => {
     const organization = OrganizationFixture();
     let subscription = SubscriptionFixture({
       organization,
@@ -240,7 +240,7 @@ describe('getTotalBudget', function () {
     expect(actualTotalBudget).toBe(0);
   });
 
-  it('returns total budget of shared on-demand budget for AM plans', function () {
+  it('returns total budget of shared on-demand budget for AM plans', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -261,7 +261,7 @@ describe('getTotalBudget', function () {
     expect(actualTotalBudget).toBe(123);
   });
 
-  it('returns total budget of shared on-demand budget for AM plans - without on-demand budget', function () {
+  it('returns total budget of shared on-demand budget for AM plans - without on-demand budget', () => {
     const organization = OrganizationFixture();
     let subscription = SubscriptionFixture({
       organization,
@@ -307,7 +307,7 @@ describe('getTotalBudget', function () {
     expect(actualTotalBudget).toBe(0);
   });
 
-  it('returns total budget of per-category on-demand budget for AM plans', function () {
+  it('returns total budget of per-category on-demand budget for AM plans', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -331,7 +331,7 @@ describe('getTotalBudget', function () {
     expect(actualTotalBudget).toEqual(100 + 200 + 300 + 400);
   });
 
-  it('returns total on-demand budget if onDemandBudgets is missing', function () {
+  it('returns total on-demand budget if onDemandBudgets is missing', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -347,8 +347,8 @@ describe('getTotalBudget', function () {
   });
 });
 
-describe('exceedsInvoicedBudgetLimit', function () {
-  it('returns false for non-invoiced subscription', function () {
+describe('exceedsInvoicedBudgetLimit', () => {
+  it('returns false for non-invoiced subscription', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
     const ondemandBudget: OnDemandBudgets = {
@@ -358,7 +358,7 @@ describe('exceedsInvoicedBudgetLimit', function () {
     expect(exceedsInvoicedBudgetLimit(subscription, ondemandBudget)).toBe(false);
   });
 
-  it('returns false for invoiced subscriptions without flag', function () {
+  it('returns false for invoiced subscriptions without flag', () => {
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({organization});
     const ondemandBudget: OnDemandBudgets = {
@@ -368,7 +368,7 @@ describe('exceedsInvoicedBudgetLimit', function () {
     expect(exceedsInvoicedBudgetLimit(subscription, ondemandBudget)).toBe(false);
   });
 
-  it('returns false for invoiced subscriptions with budget and with onDemandInvoiced flag', function () {
+  it('returns false for invoiced subscriptions with budget and with onDemandInvoiced flag', () => {
     // no limit for CC-invoiced on-demand
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({
@@ -383,7 +383,7 @@ describe('exceedsInvoicedBudgetLimit', function () {
     expect(exceedsInvoicedBudgetLimit(subscription, ondemandBudget)).toBe(false);
   });
 
-  it('returns true for invoiced subscriptions with budget and without any flags', function () {
+  it('returns true for invoiced subscriptions with budget and without any flags', () => {
     // if an invoiced customer is somehow setting OD budget without either onDemandInvoicedManual or onDemandInvoiced, always stop them
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({organization});
@@ -394,7 +394,7 @@ describe('exceedsInvoicedBudgetLimit', function () {
     expect(exceedsInvoicedBudgetLimit(subscription, ondemandBudget)).toBe(true);
   });
 
-  it('returns false for invoiced subscriptions with flag and budget lower than or equal to 5x custom price', function () {
+  it('returns false for invoiced subscriptions with flag and budget lower than or equal to 5x custom price', () => {
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({
       organization,
@@ -412,7 +412,7 @@ describe('exceedsInvoicedBudgetLimit', function () {
     expect(exceedsInvoicedBudgetLimit(subscription, ondemandBudget)).toBe(false);
   });
 
-  it('returns false for invoiced subscriptions with flag and budget lower than or equal to 5x acv', function () {
+  it('returns false for invoiced subscriptions with flag and budget lower than or equal to 5x acv', () => {
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({
       organization,
@@ -430,7 +430,7 @@ describe('exceedsInvoicedBudgetLimit', function () {
     expect(exceedsInvoicedBudgetLimit(subscription, ondemandBudget)).toBe(false);
   });
 
-  it('returns true for invoiced subscriptions with flag and budget greater than 5x custom price', function () {
+  it('returns true for invoiced subscriptions with flag and budget greater than 5x custom price', () => {
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({
       organization,
@@ -445,7 +445,7 @@ describe('exceedsInvoicedBudgetLimit', function () {
     expect(exceedsInvoicedBudgetLimit(subscription, ondemandBudget)).toBe(true);
   });
 
-  it('returns false for invoiced subscriptions with flag and budget greater than 5x acv', function () {
+  it('returns false for invoiced subscriptions with flag and budget greater than 5x acv', () => {
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({
       organization,
@@ -461,8 +461,8 @@ describe('exceedsInvoicedBudgetLimit', function () {
   });
 });
 
-describe('getOnDemandBudget', function () {
-  it('returns 0 for category when in per-category mode without explicit budget', function () {
+describe('getOnDemandBudget', () => {
+  it('returns 0 for category when in per-category mode without explicit budget', () => {
     const budget: OnDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
       budgets: {
@@ -480,7 +480,7 @@ describe('getOnDemandBudget', function () {
     expect(getOnDemandBudget(budget, DataCategory.LOG_BYTE)).toBe(0);
   });
 
-  it('returns correct value for LOG_BYTE category when in per-category mode with explicit budget', function () {
+  it('returns correct value for LOG_BYTE category when in per-category mode with explicit budget', () => {
     const budget: OnDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
       budgets: {
@@ -499,7 +499,7 @@ describe('getOnDemandBudget', function () {
     expect(getOnDemandBudget(budget, DataCategory.LOG_BYTE)).toBe(500);
   });
 
-  it('returns total budget for LOG_BYTE category when in shared mode', function () {
+  it('returns total budget for LOG_BYTE category when in shared mode', () => {
     const budget: OnDemandBudgets = {
       budgetMode: OnDemandBudgetMode.SHARED,
       sharedMaxBudget: 1000,
@@ -510,7 +510,7 @@ describe('getOnDemandBudget', function () {
 });
 
 jest.mock('getsentry/utils/trackGetsentryAnalytics');
-describe('trackOnDemandBudgetAnalytics', function () {
+describe('trackOnDemandBudgetAnalytics', () => {
   const organization = OrganizationFixture();
   const sharedBudget1: OnDemandBudgets = {
     budgetMode: OnDemandBudgetMode.SHARED,
@@ -551,7 +551,7 @@ describe('trackOnDemandBudgetAnalytics', function () {
   };
   const perCategoryBudget2Total = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9;
 
-  it('tracks shared to shared on-demand budget update', function () {
+  it('tracks shared to shared on-demand budget update', () => {
     trackOnDemandBudgetAnalytics(organization, sharedBudget1, sharedBudget2);
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -565,7 +565,7 @@ describe('trackOnDemandBudgetAnalytics', function () {
       }
     );
   });
-  it('tracks per-category to per-category on-demand budget update', function () {
+  it('tracks per-category to per-category on-demand budget update', () => {
     trackOnDemandBudgetAnalytics(organization, perCategoryBudget1, perCategoryBudget2);
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -598,7 +598,7 @@ describe('trackOnDemandBudgetAnalytics', function () {
     );
   });
 
-  it('tracks shared to per-category on-demand budget update', function () {
+  it('tracks shared to per-category on-demand budget update', () => {
     trackOnDemandBudgetAnalytics(organization, sharedBudget1, perCategoryBudget1);
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -622,7 +622,7 @@ describe('trackOnDemandBudgetAnalytics', function () {
     );
   });
 
-  it('tracks per-category to shared on-demand budget update', function () {
+  it('tracks per-category to shared on-demand budget update', () => {
     trackOnDemandBudgetAnalytics(organization, perCategoryBudget1, sharedBudget1);
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -646,7 +646,7 @@ describe('trackOnDemandBudgetAnalytics', function () {
     );
   });
 
-  it('tracks shared budget being turned off', function () {
+  it('tracks shared budget being turned off', () => {
     trackOnDemandBudgetAnalytics(organization, sharedBudget1, {
       budgetMode: OnDemandBudgetMode.SHARED,
       sharedMaxBudget: 0,
@@ -660,7 +660,7 @@ describe('trackOnDemandBudgetAnalytics', function () {
     );
   });
 
-  it('tracks per-category budget being turned off', function () {
+  it('tracks per-category budget being turned off', () => {
     trackOnDemandBudgetAnalytics(organization, perCategoryBudget1, {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
       budgets: {},

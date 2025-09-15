@@ -5,7 +5,7 @@ from sentry.utils.cache import cache
 
 
 class ProjectCodeOwnersTestCase(TestCase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         cache.delete(ProjectCodeOwners.get_cache_key(self.project.id))
 
         super().tearDown()

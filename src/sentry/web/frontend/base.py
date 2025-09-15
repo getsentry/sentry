@@ -482,7 +482,7 @@ class BaseView(View, OrganizationMixin):
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponseBase:
+    ) -> HttpResponse:
         default_context = self.default_context
         if context:
             default_context.update(context)

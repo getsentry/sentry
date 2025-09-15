@@ -14,6 +14,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.safe import get_path
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
@@ -31,6 +32,7 @@ pytestmark = [requires_symbolicator, requires_kafka]
 
 
 @pytest.mark.snuba
+@thread_leak_allowlist(reason="kafka testutils", issue=97046)
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server, reset_snuba):

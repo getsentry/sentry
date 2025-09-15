@@ -1,6 +1,6 @@
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
 
-describe('generateIssueWidgetFieldOptions', function () {
+describe('generateIssueWidgetFieldOptions', () => {
   it('returns default issue fields', () => {
     const issueFields = generateIssueWidgetFieldOptions();
     expect(Object.keys(issueFields)).toEqual([

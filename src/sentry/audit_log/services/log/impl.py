@@ -111,7 +111,7 @@ class OutboxBackedLogService(LogService):
             shard_identifier=event.organization_id,
             category=OutboxCategory.AUDIT_LOG_EVENT,
             object_identifier=RegionOutbox.next_object_identifier(),
-            payload=event.__dict__,
+            payload=event.to_json_encodable(),
         )
         outbox.save()
 
@@ -121,7 +121,7 @@ class OutboxBackedLogService(LogService):
             shard_identifier=event.user_id,
             category=OutboxCategory.USER_IP_EVENT,
             object_identifier=event.user_id,
-            payload=event.__dict__,
+            payload=event.to_json_encodable(),
         )
         outbox.save()
 

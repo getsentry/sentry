@@ -18,12 +18,12 @@ function BarComponent() {
 
 type ResolvedComponent = {default: React.ComponentType<TestProps>};
 
-describe('LazyLoad', function () {
+describe('LazyLoad', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it('renders with a loading indicator when promise is not resolved yet', function () {
+  it('renders with a loading indicator when promise is not resolved yet', () => {
     const importTest = new Promise<ResolvedComponent>(() => {});
     const getComponent = () => importTest;
     render(<LazyLoad LazyComponent={lazy(getComponent)} />);
@@ -32,7 +32,7 @@ describe('LazyLoad', function () {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
-  it('renders when given a promise of a "foo" component', async function () {
+  it('renders when given a promise of a "foo" component', async () => {
     let doResolve: (c: ResolvedComponent) => void;
     const importFoo = new Promise<ResolvedComponent>(resolve => {
       doResolve = resolve;
@@ -48,7 +48,7 @@ describe('LazyLoad', function () {
     expect(await screen.findByText('my foo component')).toBeInTheDocument();
   });
 
-  it('renders with error message when promise is rejected', async function () {
+  it('renders with error message when promise is rejected', async () => {
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const getComponent = () => Promise.reject(new Error('Could not load component'));
 
@@ -64,7 +64,7 @@ describe('LazyLoad', function () {
     expect(console.error).toHaveBeenCalled();
   });
 
-  it('refetches only when component changes', async function () {
+  it('refetches only when component changes', async () => {
     let doResolve: (c: ResolvedComponent) => void;
     const importFoo = new Promise<ResolvedComponent>(resolve => {
       doResolve = resolve;

@@ -5,9 +5,12 @@ import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.issues.grouptype import WebVitalsGroup
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
+    _get_all_tags_overview,
     _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
@@ -20,6 +23,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class TestConvertProfileToExecutionTree(TestCase):
@@ -593,16 +597,142 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         assert profile_result is None
 
 
+@pytest.mark.django_db
+class TestGetAllTagsOverview(TestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        # Create events with real tag data
+        # Event 1: production environment with user_role admin
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "environment": "production",
+                "tags": {"user_role": "admin", "service": "api"},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Event 2: production environment with user_role admin (duplicate to test counts)
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "environment": "production",
+                "tags": {"user_role": "admin", "service": "web"},
+                "timestamp": before_now(minutes=2).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Event 3: staging environment with user_role user
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "environment": "staging",
+                "tags": {"user_role": "user", "service": "api"},
+                "timestamp": before_now(minutes=3).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # Event 4: development environment with user_role user
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "environment": "development",
+                "tags": {"user_role": "user", "service": "worker"},
+                "timestamp": before_now(minutes=4).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.group = event2.group
+
+    def test_get_all_tags_overview_basic(self) -> None:
+        """Test basic functionality of getting all tags overview with real data."""
+        result = _get_all_tags_overview(self.group)
+
+        assert result is not None
+        assert "tags_overview" in result
+
+        # Should have environment, user_role, and service tags, but not level since it's excluded
+        assert len(result["tags_overview"]) >= 3
+
+        # Find specific tags
+        tag_keys = {tag["key"]: tag for tag in result["tags_overview"]}
+
+        # Check environment tag (built-in Sentry tag)
+        assert "environment" in tag_keys
+        env_tag = tag_keys["environment"]
+        assert env_tag["name"] == "Environment"
+        assert env_tag["total_values"] == 4  # 4 events
+
+        # Should have production (2), staging (1), development (1)
+        env_values = {val["value"]: val for val in env_tag["top_values"]}
+        assert "production" in env_values
+        assert env_values["production"]["count"] == 2
+        assert env_values["production"]["percentage"] == "50%"
+
+        # Check custom tag
+        assert "user_role" in tag_keys
+        user_tag = tag_keys["user_role"]
+        assert user_tag["name"] == "User Role"  # Should get proper label
+        assert user_tag["total_values"] == 4
+
+        user_values = {val["value"]: val for val in user_tag["top_values"]}
+        assert "admin" in user_values
+        assert "user" in user_values
+        assert user_values["admin"]["count"] == 2
+        assert user_values["user"]["count"] == 2
+
+    def test_get_all_tags_overview_percentage_calculation(self) -> None:
+        """Test that percentage calculations work correctly."""
+        result = _get_all_tags_overview(self.group)
+
+        assert result is not None
+
+        # Find environment tag (we know this exists from setUp)
+        env_tag = next(
+            (tag for tag in result["tags_overview"] if tag["key"] == "environment"), None
+        )
+        assert env_tag is not None
+        assert env_tag["total_values"] == 4  # 4 events from setUp
+
+        # Check that percentages add up correctly
+        env_values = {val["value"]: val for val in env_tag["top_values"]}
+
+        # Verify percentage calculation for known values
+        # Production should be 2/4 = 50%
+        assert "production" in env_values
+        production_val = env_values["production"]
+        assert production_val["count"] == 2
+        assert production_val["percentage"] == "50%"
+
+        # Development and staging should each be 1/4 = 25%
+        assert "development" in env_values
+        dev_val = env_values["development"]
+        assert dev_val["count"] == 1
+        assert dev_val["percentage"] == "25%"
+
+        assert "staging" in env_values
+        staging_val = env_values["staging"]
+        assert staging_val["count"] == 1
+        assert staging_val["percentage"] == "25%"
+
+
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
-class TestTriggerAutofix(APITestCase, SnubaTestCase):
+class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.seer.autofix.autofix._get_all_tags_overview")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
@@ -613,12 +743,15 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         mock_call,
         mock_get_trace,
         mock_get_profile,
+        mock_get_tags,
+        mock_record_seer_run,
         mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a specified event_id."""
         # Setup test data
         mock_get_profile.return_value = {"profile_data": "test"}
         mock_get_trace.return_value = {"trace_data": "test"}
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
         # Create an event with a stacktrace
         data = load_data("python", timestamp=before_now(minutes=1))
@@ -628,7 +761,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         group = event.group
 
         # Setup the mock return value for _call_autofix
-        mock_call.return_value = "test-run-id"
+        mock_call.return_value = 123
 
         # Set test user
         test_user = self.create_user()
@@ -644,7 +777,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
         # Verify the response
         assert response.status_code == 202
-        assert response.data["run_id"] == "test-run-id"
+        assert response.data["run_id"] == 123
 
         # Verify the field is updated in the database
         group.refresh_from_db()
@@ -653,18 +786,22 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
         # Verify the function calls
         mock_call.assert_called_once()
+        mock_record_seer_run.assert_called_once()
         call_kwargs = mock_call.call_args.kwargs
         assert call_kwargs["user"] == test_user
         assert call_kwargs["group"] == group
         assert call_kwargs["profile"] == {"profile_data": "test"}
         assert call_kwargs["trace_tree"] == {"trace_data": "test"}
+        assert call_kwargs["tags_overview"] == {
+            "tags_overview": [{"key": "test_tag", "top_values": []}]
+        }
         assert call_kwargs["instruction"] == "Test instruction"
         assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
         assert call_kwargs["pr_to_comment_on_url"] == "https://github.com/getsentry/sentry/pull/123"
 
         # Verify check_autofix_status was scheduled
         mock_check_autofix_status.assert_called_once_with(
-            args=["test-run-id"], countdown=timedelta(minutes=15).seconds
+            args=[123, group.organization.id], countdown=timedelta(minutes=15).seconds
         )
 
     @patch("sentry.models.Group.get_recommended_event_for_environments")
@@ -695,6 +832,58 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         )
         # Verify _get_serialized_event was not called since we have no event
         mock_get_serialized_event.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.seer.autofix.autofix._get_all_tags_overview")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    def test_trigger_autofix_with_web_vitals_issue(
+        self,
+        mock_check_autofix_status,
+        mock_call,
+        mock_get_trace,
+        mock_get_profile,
+        mock_get_tags,
+        mock_record_seer_run,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """Tests triggering autofix with a web vitals issue."""
+        # Setup test data
+        mock_get_profile.return_value = {"profile_data": "test"}
+        mock_get_trace.return_value = {"trace_data": "test"}
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        # Create an event
+        data = load_data("javascript", timestamp=before_now(minutes=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        # Create an occurrence to obtain a WebVitalsGroup group
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=self.project.id,
+            type=WebVitalsGroup.type_id,
+            issue_title="LCP score needs improvement",
+            subtitle="/test-transaction has an LCP score of 75",
+            culprit="/test-transaction",
+            evidence_data={
+                "transaction": "/test-transaction",
+                "vital": "lcp",
+                "score": 75,
+                "trace_id": "1234567890",
+            },
+            level="info",
+        )
+
+        _, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+        group = group_info.group
+
+        user = Mock(spec=AnonymousUser)
+
+        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        assert response.status_code == 202
+        mock_record_seer_run.assert_not_called()
 
 
 @requires_snuba
@@ -804,6 +993,7 @@ class TestCallAutofix(TestCase):
         profile = {"profile_data": "test"}
         trace_tree = {"trace_data": "test"}
         logs = {"logs": [{"message": "test-log"}]}
+        tags_overview = {"tags": [{"key": "environment", "top_values": []}]}
         instruction = "Test instruction"
 
         # Call the function with keyword arguments
@@ -815,6 +1005,7 @@ class TestCallAutofix(TestCase):
             profile=profile,
             trace_tree=trace_tree,
             logs=logs,
+            tags_overview=tags_overview,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
@@ -840,6 +1031,8 @@ class TestCallAutofix(TestCase):
         assert body["issue"]["events"] == [serialized_event]
         assert body["profile"] == profile
         assert body["trace_tree"] == trace_tree
+        assert body["logs"] == logs
+        assert body["tags_overview"] == tags_overview
         assert body["instruction"] == "Test instruction"
         assert body["timeout_secs"] == TIMEOUT_SECONDS
         assert body["invoking_user"]["id"] == 123

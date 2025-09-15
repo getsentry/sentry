@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -12,6 +14,7 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -38,15 +41,17 @@ import {
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -139,13 +144,29 @@ function AgentsOverviewPage() {
     eapSpanSearchQueryBuilderProps
   );
 
+  // Fire a request to check if there are any agent runs
+  // If there are, we show the count/duration of agent runs
+  // If there are not, we show the count/duration of all AI spans
+  const agentRunsRequest = useSpans(
+    {
+      search: 'span.op:"gen_ai.invoke_agent"',
+      fields: ['id'],
+      limit: 1,
+    },
+    Referrer.AGENT_RUNS_WIDGET
+  );
+
+  const hasAgentRuns = agentRunsRequest.isLoading
+    ? undefined
+    : agentRunsRequest.data?.length > 0;
+
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <AgentsPageHeader
         module={ModuleName.AGENTS}
         headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.AGENTS}>
+      <ModuleFeature moduleName={ModuleName.AGENTS}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -171,10 +192,20 @@ function AgentsOverviewPage() {
                   <Fragment>
                     <WidgetGrid rowHeight={210} paddingBottom={0}>
                       <WidgetGrid.Position1>
-                        <OverviewAgentsRunsChartWidget />
+                        {hasAgentRuns === undefined ? (
+                          <LoadingPanel />
+                        ) : (
+                          <OverviewAgentsRunsChartWidget hasAgentRuns={hasAgentRuns} />
+                        )}
                       </WidgetGrid.Position1>
                       <WidgetGrid.Position2>
-                        <OverviewAgentsDurationChartWidget />
+                        {hasAgentRuns === undefined ? (
+                          <LoadingPanel />
+                        ) : (
+                          <OverviewAgentsDurationChartWidget
+                            hasAgentRuns={hasAgentRuns}
+                          />
+                        )}
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
                         <IssuesWidget />
@@ -207,7 +238,7 @@ function AgentsOverviewPage() {
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </SearchQueryBuilderProvider>
   );
 }
@@ -280,6 +311,33 @@ function PageWithProviders() {
     </AIInsightsFeature>
   );
 }
+
+function LoadingPanel() {
+  return (
+    <LoadingPlaceholder>
+      <LoadingMask visible />
+      <LoadingIndicator size={24} />
+    </LoadingPlaceholder>
+  );
+}
+
+const LoadingPlaceholder = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  height: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: ${space(1)};
+
+  padding-top: 32px;
+`;
+
+const LoadingMask = styled(TransparentLoadingMask)`
+  background: ${p => p.theme.background};
+`;
 
 const QueryBuilderWrapper = styled('div')`
   flex: 2;

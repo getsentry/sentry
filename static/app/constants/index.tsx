@@ -240,6 +240,7 @@ const DEFAULT_STATS_INFO = {
   yAxisMinInterval: 100,
 };
 const GIGABYTE = 10 ** 9;
+const KILOBYTE = 10 ** 3;
 
 // https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
 export const DATA_CATEGORY_INFO = {
@@ -463,7 +464,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 25,
     isBilledCategory: true,
     docsUrl:
-      'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
+      'https://docs.sentry.io/product/explore/profiling/getting-started/#ui-profiling',
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
@@ -519,10 +520,11 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Logging'),
     uid: 24,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/explore/logs/getting-started/',
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
-      yAxisMinInterval: 0.5 * GIGABYTE,
+      yAxisMinInterval: 1 * KILOBYTE,
     },
   },
   [DataCategoryExact.SEER_AUTOFIX]: {
@@ -551,6 +553,34 @@ export const DATA_CATEGORY_INFO = {
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
+    },
+  },
+  [DataCategoryExact.PREVENT_USER]: {
+    name: DataCategoryExact.PREVENT_USER,
+    plural: DataCategory.PREVENT_USER,
+    singular: 'preventUser',
+    displayName: 'Prevent user',
+    titleName: t('Prevent Users'),
+    productName: t('Prevent Users'),
+    uid: 29,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: false, // TODO(prevent): add external stats when ready
+    },
+  },
+  [DataCategoryExact.PREVENT_REVIEW]: {
+    name: DataCategoryExact.PREVENT_REVIEW,
+    plural: DataCategory.PREVENT_REVIEW,
+    singular: 'preventReview',
+    displayName: 'Prevent review',
+    titleName: t('Prevent Reviews'),
+    productName: t('Prevent Reviews'),
+    uid: 30,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: false, // TODO(prevent): add external stats when ready
     },
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;

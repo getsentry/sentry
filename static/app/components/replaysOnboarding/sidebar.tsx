@@ -13,7 +13,8 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -328,7 +329,9 @@ function OnboardingContent({
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
-                <PlatformOptionDropdown platformOptions={docs?.platformOptions} />
+                <PlatformOptionDropdown
+                  platformOptions={pickPlatformOptions(docs?.platformOptions)}
+                />
               ),
             })}
           </PlatformSelect>

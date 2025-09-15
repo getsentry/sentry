@@ -6,14 +6,14 @@ import SettingsBreadcrumb from '.';
 
 jest.unmock('sentry/utils/recreateRoute');
 
-describe('BreadcrumbTitle', function () {
+describe('BreadcrumbTitle', () => {
   const testRoutes = [
     {name: 'One', path: '/one/'},
     {name: 'Two', path: '/two/'},
     {name: 'Three', path: '/three/'},
   ];
 
-  it('renders settings breadcrumbs and replaces title', function () {
+  it('renders settings breadcrumbs and replaces title', () => {
     render(
       <BreadcrumbProvider>
         <SettingsBreadcrumb routes={testRoutes} params={{}} route={{}} />

@@ -51,11 +51,11 @@ function WrappedComponent({data, ...rest}: any) {
   );
 }
 
-describe('Performance > Widgets > Query Batching', function () {
+describe('Performance > Widgets > Query Batching', () => {
   let eventsMock: jest.Mock;
   let eventStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events/',
@@ -150,7 +150,7 @@ describe('Performance > Widgets > Query Batching', function () {
     });
   });
 
-  it('EventsRequest and DiscoverQuery based component fires queries without provider', async function () {
+  it('EventsRequest and DiscoverQuery based component fires queries without provider', async () => {
     const data = initializeData();
 
     render(
@@ -191,7 +191,7 @@ describe('Performance > Widgets > Query Batching', function () {
     );
   });
 
-  it('Multiple EventsRequest and DiscoverQuery based components fire individual queries without provider', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components fire individual queries without provider', async () => {
     const data = initializeData();
 
     render(
@@ -233,7 +233,7 @@ describe('Performance > Widgets > Query Batching', function () {
     );
   });
 
-  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider', async () => {
     const data = initializeData();
 
     render(
@@ -291,7 +291,7 @@ describe('Performance > Widgets > Query Batching', function () {
     expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);
   });
 
-  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider and add MEP', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider and add MEP', async () => {
     const data = initializeData();
 
     render(
@@ -334,7 +334,7 @@ describe('Performance > Widgets > Query Batching', function () {
     expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);
   });
 
-  it('Errors work correctly', async function () {
+  it('Errors work correctly', async () => {
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,

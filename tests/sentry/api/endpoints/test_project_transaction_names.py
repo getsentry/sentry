@@ -40,17 +40,18 @@ class ProjectTransactionNamesClusterTest(APITestCase):
                 _get_redis_key(ClustererNamespace.TRANSACTIONS, self.project), transaction
             )
 
-    def _test_get(self, datasource):
+    def _test_get(self, datasource: str) -> None:
+        request_data: dict[str, str | int | bool | list[int]] = {
+            "datasource": datasource,
+            "project": [self.project.id],
+            "statsPeriod": "1h",
+            "limit": 5,
+            "threshold": 3,
+            "returnAllNames": True,
+        }
         response = self.client.get(
             self.url,
-            data={
-                "datasource": datasource,
-                "project": [self.project.id],
-                "statsPeriod": "1h",
-                "limit": 5,
-                "threshold": 3,
-                "returnAllNames": True,
-            },
+            data=request_data,
             format="json",
         )
 

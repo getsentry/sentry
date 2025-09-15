@@ -15,8 +15,10 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
@@ -63,6 +65,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -338,33 +341,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
 
-    def test_feature_gate(self) -> None:
-        # ensure there are two or more projects
-        self.create_project(organization=self.project.organization)
-        self.login_as(user=self.user)
-
-        response = self.get_response()
-        assert response.status_code == 400
-        assert response.data["detail"] == "You do not have the multi project stream feature enabled"
-
-        with self.feature("organizations:global-views"):
-            response = self.get_response()
-            assert response.status_code == 200
-
-    def test_replay_feature_gate(self) -> None:
-        # allow replays to query for backend
-        self.create_project(organization=self.project.organization)
-        self.login_as(user=self.user)
-        self.get_success_response(extra_headers={"HTTP_X-Sentry-Replay-Request": "1"})
-
     def test_with_all_projects(self) -> None:
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
         self.login_as(user=self.user)
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(project_id=[-1])
-            assert response.status_code == 200
+        response = self.get_success_response(project_id=[-1])
+        assert response.status_code == 200
 
     def test_boolean_search_feature_flag(self) -> None:
         self.login_as(user=self.user)
@@ -562,8 +545,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.create_member(organization=self.organization, teams=[self.team], user=user)
         self.login_as(user=user)
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(query=event_id, project=[other_project.id])
+        response = self.get_success_response(query=event_id, project=[other_project.id])
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
@@ -629,19 +611,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
-                shortIdLookup=1,
-            )
+        response = self.get_success_response(
+            query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            shortIdLookup=1,
+        )
         assert len(response.data) == 2
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
-                shortIdLookup=1,
-            )
+        response = self.get_success_response(
+            query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            shortIdLookup=1,
+        )
         assert len(response.data) == 2
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
@@ -713,19 +693,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project2.id,
         )
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                **{"query": 'first-release:"%s"' % release.version}
-            )
+        response = self.get_success_response(**{"query": 'first-release:"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
         assert int(issues[1]["id"]) == event.group.id
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                **{"query": 'first-release:"%s"' % release.version}
-            )
+        response = self.get_success_response(**{"query": 'first-release:"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
@@ -784,8 +758,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(**{"query": 'release.package:["foo", "bar"]'})
+        response = self.get_success_response(**{"query": 'release.package:["foo", "bar"]'})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
@@ -901,11 +874,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "search" == response.data["detail"]
             )
 
-            mock_record.assert_called_with(
-                "advanced_search.feature_gated",
-                user_id=self.user.id,
-                default_user_id=self.user.id,
-                organization_id=self.organization.id,
+            assert_last_analytics_event(
+                mock_record,
+                AdvancedSearchFeatureGateEvent(
+                    user_id=self.user.id,
+                    default_user_id=self.user.id,
+                    organization_id=self.organization.id,
+                ),
             )
 
     # This seems like a random override, but this test needed a way to override
@@ -3339,10 +3314,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
-            )
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
+        )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         new_group1 = Group.objects.get(id=group1.id)
@@ -3889,10 +3863,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isBookmarked="true"
-            )
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isBookmarked="true"
+        )
         assert response.data == {"isBookmarked": True}
 
         bookmark1 = GroupBookmark.objects.filter(group=group1, user_id=self.user.id)
@@ -3922,10 +3895,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group4 = self.create_group(project=self.create_project(slug="foo"))
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isSubscribed="true"
-            )
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isSubscribed="true"
+        )
         assert response.data == {"isSubscribed": True, "subscriptionDetails": {"reason": "unknown"}}
 
         assert GroupSubscription.objects.filter(
@@ -3988,10 +3960,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, hasSeen="true"
-            )
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, hasSeen="true"
+        )
         assert response.data == {"hasSeen": True}
 
         r1 = GroupSeen.objects.filter(group=group1, user_id=self.user.id)
@@ -4279,21 +4250,17 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
         ).exists()
 
-    def test_resolved_in_upcoming_release_multiple_projects(self) -> None:
-        project_2 = self.create_project(slug="foo")
-        group1 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED, project=project_2)
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            qs_params={
-                "id": [group1.id, group2.id],
-                "statd": "resolved",
-                "statusDetails": {"inUpcomingRelease": True},
-            }
+    def test_cannot_update_metric_issue_priority(self) -> None:
+        """
+        Users should be prohibited from manually updating the priority of metric issues.
+        """
+        group = self.create_group(priority=PriorityLevel.HIGH.value, type=MetricIssue.type_id)
+        self.login_as(self.user)
+        response = self.get_error_response(
+            qs_params={"id": [group.id]}, priority=PriorityLevel.MEDIUM.to_str()
         )
-
         assert response.status_code == 400
+        assert response.data["detail"] == "Cannot manually set priority of a metric issue."
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
@@ -4327,7 +4294,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         group_ids = [group.id for group in groups]
 
         self.login_as(user=self.user)
-        with self.tasks(), self.feature("organizations:global-views"):
+        with self.tasks():
             response = self.get_response(qs_params={"id": group_ids})
             assert response.status_code == 204
 
@@ -4386,7 +4353,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             GroupHash.objects.create(project=g.project, hash=hash, group=g)
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"), self.tasks():
+        with self.tasks():
             response = self.get_response(qs_params={"id": [group1.id, group2.id]})
 
         assert response.status_code == 204
@@ -4395,71 +4362,70 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
     def test_bulk_delete_for_many_projects_without_option(self) -> None:
         NEW_CHUNK_SIZE = 2
-        with self.feature("organizations:global-views"):
-            project_2 = self.create_project(slug="baz", organization=self.organization)
-            groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
-            groups_2 = self.create_n_groups_with_hashes(5, project=project_2)
+        project_2 = self.create_project(slug="baz", organization=self.organization)
+        groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
+        groups_2 = self.create_n_groups_with_hashes(5, project=project_2)
 
-            with (
-                self.tasks(),
-                patch("sentry.api.helpers.group_index.delete.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
-                patch("sentry.deletions.tasks.groups.logger") as mock_logger,
-                patch(
-                    "sentry.api.helpers.group_index.delete.uuid4",
-                    side_effect=[self.get_mock_uuid("foo"), self.get_mock_uuid("bar")],
+        with (
+            self.tasks(),
+            patch("sentry.api.helpers.group_index.delete.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
+            patch("sentry.deletions.tasks.groups.logger") as mock_logger,
+            patch(
+                "sentry.api.helpers.group_index.delete.uuid4",
+                side_effect=[self.get_mock_uuid("foo"), self.get_mock_uuid("bar")],
+            ),
+        ):
+            self.login_as(user=self.user)
+            response = self.get_success_response(qs_params={"query": ""})
+            assert response.status_code == 204
+            batch_1 = [g.id for g in groups_2[0:2]]
+            batch_2 = [g.id for g in groups_2[2:4]]
+            batch_3 = [g.id for g in groups_2[4:]]
+            assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
+
+            calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+            for log_call in mock_logger.info.call_args_list:
+                calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
+
+            assert len(calls_by_project) == 2
+            assert calls_by_project[self.project.id] == [
+                call(
+                    "delete_groups.started",
+                    extra={
+                        "object_ids": [g.id for g in groups_1],
+                        "project_id": self.project.id,
+                        "transaction_id": "bar",
+                    },
                 ),
-            ):
-                self.login_as(user=self.user)
-                response = self.get_success_response(qs_params={"query": ""})
-                assert response.status_code == 204
-                batch_1 = [g.id for g in groups_2[0:2]]
-                batch_2 = [g.id for g in groups_2[2:4]]
-                batch_3 = [g.id for g in groups_2[4:]]
-                assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
+            ]
+            assert calls_by_project[project_2.id] == [
+                call(
+                    "delete_groups.started",
+                    extra={
+                        "object_ids": batch_1,
+                        "project_id": project_2.id,
+                        "transaction_id": "foo",
+                    },
+                ),
+                call(
+                    "delete_groups.started",
+                    extra={
+                        "object_ids": batch_2,
+                        "project_id": project_2.id,
+                        "transaction_id": "foo",
+                    },
+                ),
+                call(
+                    "delete_groups.started",
+                    extra={
+                        "object_ids": batch_3,
+                        "project_id": project_2.id,
+                        "transaction_id": "foo",
+                    },
+                ),
+            ]
 
-                calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
-                for log_call in mock_logger.info.call_args_list:
-                    calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
-
-                assert len(calls_by_project) == 2
-                assert calls_by_project[self.project.id] == [
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids": [g.id for g in groups_1],
-                            "project_id": self.project.id,
-                            "transaction_id": "bar",
-                        },
-                    ),
-                ]
-                assert calls_by_project[project_2.id] == [
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids": batch_1,
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids": batch_2,
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids": batch_3,
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                ]
-
-            self.assert_deleted_groups(groups_1 + groups_2)
+        self.assert_deleted_groups(groups_1 + groups_2)
 
     def test_bulk_delete_performance_issues(self) -> None:
         groups = self.create_n_groups_with_hashes(

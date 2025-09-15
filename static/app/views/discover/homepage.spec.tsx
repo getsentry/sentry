@@ -190,7 +190,7 @@ describe('Discover > Homepage', () => {
 
     expect(initialData.router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        pathname: '/organizations/org-slug/discover/homepage/',
+        pathname: '/organizations/org-slug/explore/discover/homepage/',
         query: expect.objectContaining({
           field: 'event.type',
         }),

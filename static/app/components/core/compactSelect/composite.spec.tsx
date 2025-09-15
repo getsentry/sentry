@@ -2,8 +2,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {CompositeSelect} from './composite';
 
-describe('CompactSelect', function () {
-  it('renders', async function () {
+describe('CompactSelect', () => {
+  it('renders', async () => {
     render(
       <CompositeSelect menuTitle="Menu title">
         <CompositeSelect.Region
@@ -64,7 +64,7 @@ describe('CompactSelect', function () {
     );
   });
 
-  it('renders disabled trigger button', async function () {
+  it('renders disabled trigger button', async () => {
     render(
       <CompositeSelect disabled>
         <CompositeSelect.Region
@@ -82,7 +82,7 @@ describe('CompactSelect', function () {
 
   // CompositeSelect renders a series of separate list boxes, each of which has its own
   // focus state. This test ensures that focus moves seamlessly between regions.
-  it('manages focus between regions', async function () {
+  it('manages focus between regions', async () => {
     render(
       <CompositeSelect>
         <CompositeSelect.Region
@@ -135,7 +135,7 @@ describe('CompactSelect', function () {
     });
   });
 
-  it('has separate, async self-contained select regions', async function () {
+  it('has separate, async self-contained select regions', async () => {
     const region1Mock = jest.fn();
     const region2Mock = jest.fn();
     render(
@@ -207,7 +207,7 @@ describe('CompactSelect', function () {
     expect(screen.getByRole('button', {name: 'Choice One +1'})).toBeInTheDocument();
   });
 
-  it('can search', async function () {
+  it('can search', async () => {
     render(
       <CompositeSelect searchable searchPlaceholder="Search placeholder…">
         <CompositeSelect.Region
@@ -247,7 +247,7 @@ describe('CompactSelect', function () {
     expect(screen.queryByRole('Region 2')).not.toBeInTheDocument();
   });
 
-  it('works with grid lists', async function () {
+  it('works with grid lists', async () => {
     render(
       <CompositeSelect grid>
         <CompositeSelect.Region
@@ -311,7 +311,7 @@ describe('CompactSelect', function () {
     expect(screen.getByRole('row', {name: 'Choice One'})).toHaveFocus();
   });
 
-  it('can use numbers as values', async function () {
+  it('can use numbers as values', async () => {
     const onChange = jest.fn();
     render(
       <CompositeSelect>

@@ -112,7 +112,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             category_v2 = GroupCategory.DB_QUERY.value
             released = True
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.stop()
 

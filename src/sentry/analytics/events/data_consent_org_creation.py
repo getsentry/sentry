@@ -1,10 +1,9 @@
 from sentry import analytics
 
 
+@analytics.eventclass("aggregated_data_consent.organization_created")
 class AggregatedDataConsentOrganizationCreatedEvent(analytics.Event):
-    type = "aggregated_data_consent.organization_created"
-
-    attributes = (analytics.Attribute("organization_id"),)
+    organization_id: int
 
 
 analytics.register(AggregatedDataConsentOrganizationCreatedEvent)

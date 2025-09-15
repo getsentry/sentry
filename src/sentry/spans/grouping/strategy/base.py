@@ -55,10 +55,10 @@ class SpanGroupingStrategy:
         # Treat the segment span like get_transaction_span_group for backwards
         # compatibility with transaction events, but fall back to default
         # fingerprinting if the span doesn't have a transaction.
-        sentry_tags = span.get("sentry_tags") or {}
-        if span.get("is_segment") and sentry_tags.get("transaction") is not None:
+        data = span.get("data") or {}
+        if span.get("is_segment") and (transaction := data.get("sentry.transaction")) is not None:
             result = Hash()
-            result.update(sentry_tags["transaction"])
+            result.update(transaction)
             return result.hexdigest()
         else:
             return self.get_embedded_span_group(span)

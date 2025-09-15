@@ -3,12 +3,12 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import TagStore from 'sentry/stores/tagStore';
 import useTags from 'sentry/utils/useTags';
 
-describe('useTags', function () {
+describe('useTags', () => {
   beforeEach(() => {
     TagStore.reset();
   });
 
-  it('provides tags from the tag store', function () {
+  it('provides tags from the tag store', () => {
     act(() => TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism'}]));
 
     const {result} = renderHook(useTags);

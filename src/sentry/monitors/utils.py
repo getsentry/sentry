@@ -9,11 +9,11 @@ from rest_framework.request import Request
 from sentry import audit_log
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
-from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.projects.project_rules.creator import ProjectRuleCreator
@@ -393,7 +393,6 @@ def update_issue_alert_rule(
 
 
 def ensure_cron_detector(monitor: Monitor):
-
     try:
         with atomic_transaction(using=router.db_for_write(DataSource)):
             data_source, created = DataSource.objects.get_or_create(
@@ -402,24 +401,52 @@ def ensure_cron_detector(monitor: Monitor):
                 source_id=str(monitor.id),
             )
             if created:
+                from sentry.monitors.grouptype import MonitorIncidentType
+
                 detector = Detector.objects.create(
                     type=MonitorIncidentType.slug,
                     project_id=monitor.project_id,
                     name=monitor.name,
                     owner_user_id=monitor.owner_user_id,
                     owner_team_id=monitor.owner_team_id,
+                    config={},
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
     except Exception:
         logger.exception("Error creating cron detector")
 
 
+def ensure_cron_detector_deletion(monitor: Monitor):
+    with atomic_transaction(using=router.db_for_write(DataSource)):
+        try:
+            data_source = DataSource.objects.get(
+                type=DATA_SOURCE_CRON_MONITOR,
+                organization_id=monitor.organization_id,
+                source_id=str(monitor.id),
+            )
+        except DataSource.DoesNotExist:
+            return
+
+        detector = None
+        try:
+            detector = Detector.objects.get(data_sources=data_source)
+        except Detector.DoesNotExist:
+            pass
+
+        # We don't want to end up in a loop when attempting to delete monitors, so just delete these directly.
+        # This is just temporary until we move completely over to the detector apis.
+        data_source.delete()
+        if detector:
+            detector.delete()
+
+
 def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
     try:
-        return Detector.objects.get(
-            datasource__type=DATA_SOURCE_CRON_MONITOR,
-            datasource__source_id=str(monitor.id),
-            datasource__organization_id=monitor.organization_id,
-        )
+        with in_test_hide_transaction_boundary():
+            return Detector.objects.get(
+                datasource__type=DATA_SOURCE_CRON_MONITOR,
+                datasource__source_id=str(monitor.id),
+                datasource__organization_id=monitor.organization_id,
+            )
     except Detector.DoesNotExist:
         return None

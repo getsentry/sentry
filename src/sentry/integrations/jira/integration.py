@@ -46,9 +46,9 @@ from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
@@ -949,7 +949,7 @@ class JiraIntegration(IssueSyncIntegration):
 
         meta = client.get_create_meta_for_project(jira_project)
         if not meta:
-            raise IntegrationInstallationConfigurationError(
+            raise IntegrationConfigurationError(
                 "Could not fetch issue create configuration from Jira."
             )
 
@@ -1022,7 +1022,7 @@ class JiraIntegration(IssueSyncIntegration):
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
         except ApiUnauthorized as e:
-            raise IntegrationInstallationConfigurationError(
+            raise IntegrationConfigurationError(
                 "Insufficient permissions to assign user to the Jira issue."
             ) from e
         except ApiError as e:

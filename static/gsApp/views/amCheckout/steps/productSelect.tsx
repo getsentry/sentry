@@ -13,7 +13,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconAdd, IconCheckmark, IconSeer} from 'sentry/icons';
+import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -21,6 +21,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import {getProductIcon} from 'getsentry/utils/billing';
 import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
@@ -46,7 +47,6 @@ function ProductSelect({
   const theme = useTheme();
   const PRODUCT_CHECKOUT_INFO = {
     [SelectableProduct.SEER]: {
-      icon: <IconSeer size="lg" color="pink400" />,
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
@@ -82,13 +82,18 @@ function ProductSelect({
 
   return (
     <Fragment>
-      <Separator />
+      {!isNewCheckout && <Separator />}
       {availableProducts.map(productInfo => {
         const checkoutInfo =
           PRODUCT_CHECKOUT_INFO[productInfo.apiName as string as SelectableProduct];
         if (!checkoutInfo) {
           return null;
         }
+
+        const productIcon = getProductIcon(
+          productInfo.apiName as string as SelectableProduct,
+          'lg'
+        );
 
         // how much the customer is paying for the product
         const priceInCents = utils.getReservedPriceForReservedBudgetCategory({
@@ -129,10 +134,11 @@ function ProductSelect({
               aria-label={ariaLabel}
               data-test-id={`product-option-${productInfo.apiName}`}
               onClick={toggleProductOption}
+              isNewCheckout={isNewCheckout}
             >
               <ProductOptionContent isSelected={isSelected} isNewCheckout>
                 <Column>
-                  {checkoutInfo.icon}
+                  {productIcon}
                   <ProductLabel>
                     <ProductName>
                       {toTitleCase(productInfo.productCheckoutName, {
@@ -229,7 +235,7 @@ function ProductSelect({
               <Row>
                 <Column>
                   <ProductLabel productColor={checkoutInfo.color}>
-                    {checkoutInfo.icon}
+                    {productIcon}
                     <ProductName>
                       {toTitleCase(productInfo.productCheckoutName, {
                         allowInnerUpperCase: true,
@@ -325,8 +331,8 @@ const Separator = styled('div')`
   margin: 0;
 `;
 
-const ProductOption = styled(PanelItem)<{isSelected?: boolean}>`
-  margin: ${p => p.theme.space.lg};
+const ProductOption = styled(PanelItem)<{isNewCheckout?: boolean; isSelected?: boolean}>`
+  margin: ${p => (p.isNewCheckout ? '0' : p.theme.space.lg)};
   padding: 0;
   display: inherit;
   cursor: pointer;
@@ -342,6 +348,14 @@ const ProductOptionContent = styled('div')<{
   justify-content: ${p => (p.isNewCheckout ? 'space-between' : 'flex-start')};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.innerBorder};
+  width: 100%;
+
+  ${p =>
+    p.isNewCheckout &&
+    !p.isSelected &&
+    css`
+      background-color: ${p.theme.background};
+    `}
 
   ${p =>
     p.isNewCheckout &&

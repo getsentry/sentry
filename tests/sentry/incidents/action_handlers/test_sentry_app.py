@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.action_handlers import SentryAppActionHandler
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.sentry_apps.metrics import SentryAppWebhookHaltReason
@@ -46,7 +46,7 @@ class SentryAppActionHandlerTest(FireTest):
         self.handler = SentryAppActionHandler()
 
     @responses.activate
-    def run_test(self, incident, method):
+    def run_test(self, incident: Incident, method: str) -> None:
         from sentry.rules.actions.notify_event_service import build_incident_attachment
 
         responses.add(
@@ -210,7 +210,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
         self.handler = SentryAppActionHandler()
 
     @responses.activate
-    def run_test(self, incident, method):
+    def run_test(self, incident: Incident, method: str) -> None:
         from sentry.rules.actions.notify_event_service import build_incident_attachment
 
         trigger = self.create_alert_rule_trigger(self.alert_rule, "hi", 1000)
@@ -313,7 +313,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="sentry_app",
-                alert_id=str(self.alert_rule.id),
+                alert_id=self.alert_rule.id,
                 alert_type="metric_alert",
                 external_id=str(self.action.sentry_app_id),
                 notification_uuid="",

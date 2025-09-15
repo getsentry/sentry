@@ -4,10 +4,12 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './python';
 
-describe('python onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('python onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -16,7 +18,7 @@ describe('python onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('renders without tracing', function () {
+  it('renders without tracing', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
@@ -32,7 +34,7 @@ describe('python onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders transaction profiling', function () {
+  it('renders transaction profiling', () => {
     renderWithOnboardingLayout(docs);
 
     // Does not render continuous profiling config
@@ -52,7 +54,7 @@ describe('python onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });
@@ -80,5 +82,33 @@ describe('python onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
     ).toBeInTheDocument();
+  });
+
+  it('renders logs configuration when logs are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    // Should render logs config option
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).toBeInTheDocument();
+
+    // Should render logs verification steps
+    expect(
+      screen.getByText(textWithMarkupMatcher(/sentry_sdk.logger.info/))
+    ).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher(/import logging/))).toBeInTheDocument();
+  });
+
+  it('renders without logs configuration when logs are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Should not render logs config option
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).not.toBeInTheDocument();
   });
 });

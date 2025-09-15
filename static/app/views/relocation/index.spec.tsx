@@ -15,8 +15,8 @@ IAxCAaGQJVsg9dhKOORjAf4XK9aXHvy/jUSyT43opj6AgNqXlKEQjb1NBA8qbJJS
 8wIDAQAB
 -----END PUBLIC KEY-----`;
 
-describe('Relocation Onboarding Container', function () {
-  beforeEach(function () {
+describe('Relocation Onboarding Container', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/publickeys/relocations/',
@@ -30,7 +30,7 @@ describe('Relocation Onboarding Container', function () {
     });
   });
 
-  it('should render if feature enabled', async function () {
+  it('should render if feature enabled', async () => {
     const {routerProps, organization} = initializeOrg({
       router: {
         params: {step: 'get-started'},
@@ -48,7 +48,7 @@ describe('Relocation Onboarding Container', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('should not render if feature disabled', async function () {
+  it('should not render if feature disabled', async () => {
     const {routerProps, organization} = initializeOrg({
       router: {
         params: {step: 'get-started'},

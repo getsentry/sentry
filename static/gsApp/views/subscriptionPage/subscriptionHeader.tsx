@@ -18,6 +18,7 @@ import PartnerPlanEndingBanner from 'getsentry/components/partnerPlanEndingBanne
 import type {Subscription} from 'getsentry/types';
 import {
   hasAccessToSubscriptionOverview,
+  hasPartnerMigrationFeature,
   hasPerformance,
   isBizPlanFamily,
 } from 'getsentry/utils/billing';
@@ -183,7 +184,7 @@ function BodyWithBillingPerms({organization, subscription}: any) {
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
       <TrialAlert subscription={subscription} organization={organization} />
-      {organization.features.includes('partner-billing-migration') && (
+      {hasPartnerMigrationFeature(organization) && (
         <PartnerPlanEndingBanner
           subscription={subscription}
           organization={organization}

@@ -17,16 +17,16 @@ const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('SampleImages', function () {
+describe('SampleImages', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   beforeEach(() => {
     setupMocks();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 

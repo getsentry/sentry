@@ -1,6 +1,5 @@
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {
-  ColumnValueType,
   CountUnit,
   CurrencyUnit,
   DurationUnit,
@@ -49,7 +48,7 @@ export enum OurLogKnownFieldKey {
   SERVER_ADDRESS = 'server.address',
 
   // From the EAP dataset directly not using a column alias.
-  ID = 'sentry.item_id',
+  ID = 'id',
 
   // From the EAP dataset directly not using a column alias, should be hidden.
   ITEM_TYPE = 'sentry.item_type',
@@ -90,14 +89,8 @@ export type LogAttributeUnits =
 
 export interface LogRowItem {
   fieldKey: OurLogFieldKey;
-  metaFieldType: ColumnValueType;
   unit: LogAttributeUnits;
   value: OurLogsResponseItem[OurLogFieldKey];
-}
-
-export interface LogAttributeItem {
-  fieldKey: OurLogFieldKey;
-  value: OurLogsResponseItem[OurLogFieldKey] | null;
 }
 
 export interface EventsLogsResult {

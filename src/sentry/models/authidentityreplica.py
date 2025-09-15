@@ -39,5 +39,5 @@ class AuthIdentityReplica(Model):
     def __str__(self) -> str:
         return self.ident
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {"user_id": self.user_id, "data": self.data}

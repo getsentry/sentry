@@ -1,4 +1,4 @@
-def build_mock_span(project_id, span_op=None, is_segment=False, sentry_tags=None, **kwargs):
+def build_mock_span(project_id, span_op=None, is_segment=False, data=None, **kwargs):
     span = {
         "description": "OrganizationNPlusOne",
         "duration_ms": 107,
@@ -11,12 +11,12 @@ def build_mock_span(project_id, span_op=None, is_segment=False, sentry_tags=None
         "received": 1707953019.044972,
         "retention_days": 90,
         "segment_id": "a49b42af9fb69da0",
-        "sentry_tags": {
-            "environment": "development",
-            "op": span_op or "base.dispatch.sleep",
-            "release": "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
-            "platform": "python",
-            **(sentry_tags or {}),
+        "data": {
+            "sentry.environment": "development",
+            "sentry.release": "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+            "sentry.platform": "python",
+            "sentry.op": span_op or "base.dispatch.sleep",
+            **(data or {}),
         },
         "span_id": "a49b42af9fb69da0",
         "start_timestamp_ms": 1707953018865,

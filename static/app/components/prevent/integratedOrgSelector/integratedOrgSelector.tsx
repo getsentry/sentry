@@ -1,14 +1,14 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
-import {integratedOrgIdToName} from 'sentry/components/prevent/integratedOrgSelector/utils';
+import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,6 +17,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {IconIntegratedOrg} from './iconIntegratedOrg';
+
+const DEFAULT_ORG_LABEL = 'Select Integrated Org';
 
 function AddIntegratedOrgButton() {
   return (
@@ -41,10 +43,13 @@ function OrgFooterMessage() {
         <IconInfo size="sm" style={{margin: '2px 0'}} />
         <div>
           <FooterInfoHeading>
-            To access <Link to="placeholder">Integrated Organization</Link>
+            To access{' '}
+            <ExternalLink href="https://github.com/apps/sentry-io">
+              Integrated Organization
+            </ExternalLink>
           </FooterInfoHeading>
           <FooterInfoSubheading>
-            Ensure you log in to the same <Link to="placeholder">GitHub identity</Link>
+            Ensure admins approve the installation.
           </FooterInfoSubheading>
         </div>
       </Flex>
@@ -81,8 +86,8 @@ export function IntegratedOrgSelector() {
       const integratedOrgName = integratedOrgIdToName(value, integrations);
       return {
         value,
-        label: <OptionLabel>{integratedOrgName}</OptionLabel>,
-        textValue: integratedOrgName,
+        label: <OptionLabel>{integratedOrgName ?? DEFAULT_ORG_LABEL}</OptionLabel>,
+        textValue: integratedOrgName ?? DEFAULT_ORG_LABEL,
       };
     };
 
@@ -108,7 +113,8 @@ export function IntegratedOrgSelector() {
                   <IconIntegratedOrg />
                 </IconContainer>
                 <TriggerLabel>
-                  {integratedOrgIdToName(integratedOrgId, integrations)}
+                  {integratedOrgIdToName(integratedOrgId, integrations) ??
+                    DEFAULT_ORG_LABEL}
                 </TriggerLabel>
               </Flex>
             </TriggerLabelWrap>

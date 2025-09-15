@@ -7,7 +7,7 @@ import {
   isSessionAggregate,
 } from 'sentry/views/alerts/utils';
 
-describe('Alert utils', function () {
+describe('Alert utils', () => {
   describe('getQuerySource', () => {
     it('should parse event type error or default', () => {
       expect(getQueryDatasource('event.type:default OR event.type:error')).toEqual({

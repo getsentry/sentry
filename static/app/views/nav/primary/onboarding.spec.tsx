@@ -29,10 +29,10 @@ function renderMockRequests(organization: Organization) {
   return {getOnboardingTasksMock, mutateUserOptionsMock};
 }
 
-describe('Onboarding Status', function () {
+describe('Onboarding Status', () => {
   const organizationId = OrganizationFixture().id;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -49,7 +49,7 @@ describe('Onboarding Status', function () {
     });
   });
 
-  it('displays pending tasks', async function () {
+  it('displays pending tasks', async () => {
     const organization = OrganizationFixture({
       id: organizationId,
       features: ['onboarding'],

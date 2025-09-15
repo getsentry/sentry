@@ -1,11 +1,12 @@
 import abc
-from collections.abc import Sequence
+from collections.abc import Callable, Collection, Sequence
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from fixtures.sdk_crash_detection.crash_event_cocoa import get_crash_event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.options import override_options
@@ -122,10 +123,15 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
         ("sentry.cocoa.unreal", True),
     ],
 )
-def test_sdks_detected(mock_sdk_crash_reporter, store_event, sdk_name, detected) -> None:
+def test_sdks_detected(
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+    sdk_name: str,
+    detected: bool,
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "name", value=sdk_name)
-    event = store_event(data=event_data)
+    event = store_event(event_data)
 
     sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
 
@@ -194,9 +200,13 @@ class SDKCrashDetectionTest(
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 def test_sample_rate(
-    mock_sdk_crash_reporter, store_event, sample_rate, random_value, sampled
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+    sample_rate: float,
+    random_value: float,
+    sampled: bool,
 ) -> None:
-    event = store_event(data=get_crash_event())
+    event = store_event(get_crash_event())
 
     with patch("random.random", return_value=random_value):
         configs = build_sdk_configs()

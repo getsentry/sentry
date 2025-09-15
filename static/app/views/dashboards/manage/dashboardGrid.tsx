@@ -106,6 +106,9 @@ function DashboardGrid({
         },
         disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
         tooltip: limitMessage,
+        tooltipOptions: {
+          isHoverable: true,
+        },
       },
       {
         key: 'dashboard-delete',
