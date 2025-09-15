@@ -98,6 +98,9 @@ type State = {
   releases: ReleaseMetaBasic[] | null;
 };
 
+/**
+ * @deprecated use useReleaseBubbles instead
+ */
 class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   state: State = {
     releases: null,
@@ -329,4 +332,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   }
 }
 
+/**
+ * @deprecated use useReleaseBubbles instead
+ */
 export default withSentryRouter(withOrganization(withApi(withTheme(ReleaseSeries))));
