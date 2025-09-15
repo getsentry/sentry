@@ -163,7 +163,7 @@ const SeverityLevelIndicator = styled('div')`
   text-align: center;
 `;
 
-export default function RepoSettingsSidePanel({
+export default function RepoSettingsPanel({
   collapsed,
   onClose,
 }: RepoSettingsSidePanelProps) {

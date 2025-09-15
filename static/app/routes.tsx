@@ -2431,17 +2431,9 @@ function buildRoutes(): RouteObject[] {
           children: [
             {
               index: true,
-              redirectTo: 'new/',
-            },
-            {
-              path: 'new/',
-              component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
+              component: make(() => import('sentry/views/prevent/preventAI/index')),
             },
           ],
-        },
-        {
-          path: 'configure/',
-          component: make(() => import('sentry/views/prevent/preventAI/configure')),
         },
       ],
     },

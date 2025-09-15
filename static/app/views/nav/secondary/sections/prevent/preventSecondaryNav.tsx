@@ -53,10 +53,7 @@ function PreventSecondaryNav() {
               {t('Tests')}
             </SecondaryNav.Item>
           </Feature>
-          <SecondaryNav.Item
-            to={`${preventAIPathName}new/`}
-            activeTo={`${preventAIPathName}new/`}
-          >
+          <SecondaryNav.Item to={preventAIPathName} activeTo={preventAIPathName}>
             {t('Prevent AI')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
