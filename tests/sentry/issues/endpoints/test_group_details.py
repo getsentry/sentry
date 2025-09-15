@@ -515,10 +515,54 @@ class GroupUpdateTest(APITestCase):
         self.test_resolved_in_future_release_with_existing_release_helper(use_semver=True)
         self.test_resolved_in_future_release_with_existing_release_helper(use_semver=False)
 
+    @with_feature("organizations:resolve-in-future-release")
     def test_resolved_in_future_release_with_nonexistent_release(self) -> None:
         """Test resolving in future release when the target release doesn't exist yet."""
-        # TODO: Implement test for resolving with nonexistent future release
-        pass
+        self.login_as(user=self.user)
+
+        nonexistent_future_release_version = "3.0.0"
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        response = self.client.put(
+            path=f"/api/0/issues/{group.id}/",
+            data={
+                "status": "resolvedInFutureRelease",
+                "statusDetails": {"inFutureRelease": nonexistent_future_release_version},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["status"] == "resolved"
+        assert (
+            response.data["statusDetails"]["inFutureRelease"] == nonexistent_future_release_version
+        )
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        # Group should be resolved
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        # GroupResolution should be created with correct attributes
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release is None  # No release object since it doesn't exist
+        assert resolution.type == GroupResolution.Type.in_future_release
+        assert (
+            resolution.status == GroupResolution.Status.pending
+        )  # pending because release doesn't exist
+        assert resolution.future_release_version == nonexistent_future_release_version
+        assert resolution.actor_id == self.user.id
+
+        # User should be subscribed to the group
+        assert GroupSubscription.objects.filter(
+            user_id=self.user.id, group=group, is_active=True
+        ).exists()
+
+        # Activity should be created with empty version initially
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        assert activity.data["version"] == ""  # Empty because release doesn't exist yet
 
     def test_resolved_in_future_release_without_feature_flag(self) -> None:
         """Test that resolving in future release fails when feature flag is disabled."""

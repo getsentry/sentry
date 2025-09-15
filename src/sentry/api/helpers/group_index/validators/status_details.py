@@ -93,7 +93,7 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
                 "No release data present in the system to form a basis for 'Next Release'"
             )
 
-    def validate_inFutureRelease(self, value: str) -> "Release":
+    def validate_inFutureRelease(self, value: str) -> "Release | None":
         project = self.context["project"]
 
         if not features.has("organizations:resolve-in-future-release", project.organization):
@@ -118,7 +118,7 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
             )
             return release
         except Release.DoesNotExist:
-            raise serializers.ValidationError("Unable to find a release with the given version.")
+            return None
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """

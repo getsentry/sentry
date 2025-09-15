@@ -63,10 +63,8 @@ class StatusDetailsValidatorTest(TestCase):
         """Test that validation fails when release doesn't exist."""
         validator = self.get_validator()
 
-        with pytest.raises(serializers.ValidationError) as exc_info:
-            validator.validate_inFutureRelease("nonexistent-version")
-
-        assert "Unable to find a release with the given version." in str(exc_info.value)
+        result = validator.validate_inFutureRelease("nonexistent-version")
+        assert result is None
 
     @with_feature("organizations:resolve-in-future-release")
     def test_validate_in_future_release_existing_release(self):
