@@ -26,7 +26,7 @@ class SlackActionValidatorHandler(BaseActionValidatorHandler):
             "workspace": integration_id,
             "channel": self.validated_data["config"]["target_display"],
             "channel_id": self.validated_data["config"].get("target_identifier"),
-            "tags": self.validated_data.get("tags"),
+            "tags": self.validated_data["data"].get("tags"),
         }
 
     def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
