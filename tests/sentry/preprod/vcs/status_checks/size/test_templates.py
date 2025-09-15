@@ -8,8 +8,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
-class FormatStatusMessagesTest(TestCase):
+class StatusCheckTestBase(TestCase):
+    """Base test class with common setup for status check formatting tests."""
+
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
@@ -17,6 +18,11 @@ class FormatStatusMessagesTest(TestCase):
         self.project = self.create_project(
             teams=[self.team], organization=self.organization, name="test_project"
         )
+
+
+@region_silo_test
+class ProcessingStateFormattingTest(StatusCheckTestBase):
+    """Tests for formatting artifacts in processing/loading states."""
 
     def test_processing_state_formatting(self):
         """Test formatting for processing (uploading/uploaded) states."""
@@ -42,28 +48,6 @@ class FormatStatusMessagesTest(TestCase):
                 assert "Processing..." in summary
                 assert "com.example.app" in summary
                 assert "1.0.0 (1)" in summary
-
-    def test_failed_state_formatting(self):
-        """Test formatting for failed state."""
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.FAILED,
-            app_id="com.example.app",
-            build_version="1.0.0",
-            build_number=1,
-            error_message="Build timeout",
-        )
-
-        title, subtitle, summary = format_status_check_messages(
-            [artifact], {}, StatusCheckStatus.FAILURE
-        )
-
-        assert title == "Size Analysis"
-        assert subtitle == "1 build errored"
-        assert "Build timeout" in summary
-        assert "com.example.app" in summary
-        assert "1.0.0 (1)" in summary
-        assert "Error" in summary  # Column header
 
     def test_processed_state_without_metrics(self):
         """Test formatting for processed state without size metrics."""
@@ -141,29 +125,6 @@ class FormatStatusMessagesTest(TestCase):
 
                 assert expected in summary
 
-    def test_error_message_handling(self):
-        """Test error message handling including None case."""
-        test_cases = [
-            ("Custom error message", "Custom error message"),
-            (None, "Unknown error"),
-            ("", "Unknown error"),
-        ]
-
-        for input_error, expected_error in test_cases:
-            with self.subTest(input_error=input_error):
-                artifact = PreprodArtifact.objects.create(
-                    project=self.project,
-                    state=PreprodArtifact.ArtifactState.FAILED,
-                    app_id="com.example.app",
-                    error_message=input_error,
-                )
-
-                title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.FAILURE
-                )
-
-                assert expected_error in summary
-
     def test_multiple_artifacts_all_processing(self):
         """Test formatting for multiple artifacts all in processing states."""
         artifacts = []
@@ -193,42 +154,141 @@ class FormatStatusMessagesTest(TestCase):
         assert "com.example.app0" in summary
         assert "com.example.app1" in summary
 
-    def test_multiple_artifacts_all_analyzed(self):
-        """Test formatting for multiple artifacts all analyzed."""
-        artifacts = []
-        size_metrics_map = {}
+    def test_mixed_processing_and_completed_metric_states_per_artifact(self):
+        """Test formatting when one metric is completed and another is processing."""
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+        )
 
-        for i in range(2):
-            artifact = PreprodArtifact.objects.create(
-                project=self.project,
-                state=PreprodArtifact.ArtifactState.PROCESSED,
-                app_id=f"com.example.app{i}",
-                build_version="1.0.0",
-                build_number=i + 1,
-            )
-            artifacts.append(artifact)
+        # Main artifact metric completed
+        main_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
 
-            size_metrics = PreprodArtifactSizeMetrics.objects.create(
-                preprod_artifact=artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                min_download_size=(i + 1) * 1024 * 1024,  # Different sizes
-                max_download_size=(i + 1) * 1024 * 1024,
-                min_install_size=(i + 2) * 1024 * 1024,
-                max_install_size=(i + 2) * 1024 * 1024,
-            )
-            size_metrics_map[artifact.id] = [size_metrics]
+        # Watch artifact metric still processing
+        watch_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            min_download_size=None,
+            max_download_size=None,
+            min_install_size=None,
+            max_install_size=None,
+        )
+
+        size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 builds analyzed"
-        assert "1.0 MB" in summary  # First artifact download size
-        assert "2.0 MB" in summary  # Second artifact download size
-        assert "com.example.app0" in summary
-        assert "com.example.app1" in summary
+        assert subtitle == "1 build processing"  # Still processing because watch is not complete
+        # Should have two rows - main app shows sizes, watch shows processing
+        assert "`com.example.app`" in summary
+        assert "`com.example.app (Watch)`" in summary
+        assert "1.0 MB" in summary  # Main app completed
+        assert "Processing..." in summary  # Watch app processing
+
+    def test_size_metrics_still_processing(self):
+        """Test formatting when size metrics are in processing states (PENDING/RUNNING)."""
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.processing",
+            build_version="2.1.0",
+            build_number=15,
+        )
+
+        pending_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            min_download_size=None,
+            max_download_size=None,
+            min_install_size=None,
+            max_install_size=None,
+        )
+
+        size_metrics_map = {artifact.id: [pending_metrics]}
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS
+        )
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 build processing"
+
+        # Verify processing state is shown in table
+        assert "`com.example.processing`" in summary
+        assert "2.1.0 (15)" in summary
+        assert "Processing..." in summary
+
+        # Should show processing for both size columns
+        lines = summary.split("\n")
+        data_line = next(line for line in lines if "com.example.processing" in line)
+        processing_count = data_line.count("Processing...")
+        assert processing_count == 2  # Download and install columns both show "Processing..."
+
+
+@region_silo_test
+class ErrorStateFormattingTest(StatusCheckTestBase):
+    """Tests for formatting artifacts in error/failure states."""
+
+    def test_failed_state_formatting(self):
+        """Test formatting for failed state."""
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.FAILED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            error_message="Build timeout",
+        )
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], {}, StatusCheckStatus.FAILURE
+        )
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 build errored"
+        assert "Build timeout" in summary
+        assert "com.example.app" in summary
+        assert "1.0.0 (1)" in summary
+        assert "Error" in summary  # Column header
+
+    def test_error_message_handling(self):
+        """Test error message handling including None case."""
+        test_cases = [
+            ("Custom error message", "Custom error message"),
+            (None, "Unknown error"),
+            ("", "Unknown error"),
+        ]
+
+        for input_error, expected_error in test_cases:
+            with self.subTest(input_error=input_error):
+                artifact = PreprodArtifact.objects.create(
+                    project=self.project,
+                    state=PreprodArtifact.ArtifactState.FAILED,
+                    app_id="com.example.app",
+                    error_message=input_error,
+                )
+
+                title, subtitle, summary = format_status_check_messages(
+                    [artifact], {}, StatusCheckStatus.FAILURE
+                )
+
+                assert expected_error in summary
 
     def test_multiple_artifacts_mixed_states(self):
         """Test formatting for mixed states (some analyzed, some processing, some failed)."""
@@ -286,6 +346,48 @@ class FormatStatusMessagesTest(TestCase):
         assert "com.example.uploading" in summary
         assert "com.example.failed" in summary
 
+
+@region_silo_test
+class SuccessStateFormattingTest(StatusCheckTestBase):
+    """Tests for formatting artifacts in successful/analyzed states."""
+
+    def test_multiple_artifacts_all_analyzed(self):
+        """Test formatting for multiple artifacts all analyzed."""
+        artifacts = []
+        size_metrics_map = {}
+
+        for i in range(2):
+            artifact = PreprodArtifact.objects.create(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                app_id=f"com.example.app{i}",
+                build_version="1.0.0",
+                build_number=i + 1,
+            )
+            artifacts.append(artifact)
+
+            size_metrics = PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=(i + 1) * 1024 * 1024,  # Different sizes
+                max_download_size=(i + 1) * 1024 * 1024,
+                min_install_size=(i + 2) * 1024 * 1024,
+                max_install_size=(i + 2) * 1024 * 1024,
+            )
+            size_metrics_map[artifact.id] = [size_metrics]
+
+        title, subtitle, summary = format_status_check_messages(
+            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        assert title == "Size Analysis"
+        assert subtitle == "2 builds analyzed"
+        assert "1.0 MB" in summary  # First artifact download size
+        assert "2.0 MB" in summary  # Second artifact download size
+        assert "com.example.app0" in summary
+        assert "com.example.app1" in summary
+
     def test_multiple_metric_types_per_artifact(self):
         """Test formatting with multiple metric types per artifact (main app + watch)."""
         artifact = PreprodArtifact.objects.create(
@@ -296,7 +398,6 @@ class FormatStatusMessagesTest(TestCase):
             build_number=1,
         )
 
-        # Create main artifact metric
         main_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -307,7 +408,6 @@ class FormatStatusMessagesTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        # Create watch artifact metric
         watch_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -345,52 +445,6 @@ class FormatStatusMessagesTest(TestCase):
         assert watch_row_idx is not None
         assert abs(main_row_idx - watch_row_idx) == 1  # Should be adjacent rows
 
-    def test_mixed_metric_states_per_artifact(self):
-        """Test formatting when one metric is completed and another is processing."""
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            build_version="1.0.0",
-            build_number=1,
-        )
-
-        # Main artifact metric completed
-        main_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024,
-            max_download_size=1024 * 1024,
-            min_install_size=2 * 1024 * 1024,
-            max_install_size=2 * 1024 * 1024,
-        )
-
-        # Watch artifact metric still processing
-        watch_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
-            min_download_size=None,
-            max_download_size=None,
-            min_install_size=None,
-            max_install_size=None,
-        )
-
-        size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
-
-        title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS
-        )
-
-        assert title == "Size Analysis"
-        assert subtitle == "1 build processing"  # Still processing because watch is not complete
-        # Should have two rows - main app shows sizes, watch shows processing
-        assert "`com.example.app`" in summary
-        assert "`com.example.app (Watch)`" in summary
-        assert "1.0 MB" in summary  # Main app completed
-        assert "Processing..." in summary  # Watch app processing
-
     def test_android_dynamic_feature_metrics(self):
         """Test formatting with Android dynamic features."""
         artifact = PreprodArtifact.objects.create(
@@ -401,7 +455,6 @@ class FormatStatusMessagesTest(TestCase):
             build_number=1,
         )
 
-        # Create main artifact metric
         main_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -412,7 +465,6 @@ class FormatStatusMessagesTest(TestCase):
             max_install_size=8 * 1024 * 1024,
         )
 
-        # Create dynamic feature metric
         feature_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
@@ -442,8 +494,6 @@ class FormatStatusMessagesTest(TestCase):
 
     def test_size_changes_with_base_artifacts(self):
         """Test size change calculations when base artifacts exist for comparison."""
-        # Create commit comparison for head commit
-
         head_commit_comparison = CommitComparison.objects.create(
             head_repo_name="test/repo",
             head_sha="head_sha_123",
@@ -451,8 +501,6 @@ class FormatStatusMessagesTest(TestCase):
             provider="github",
             organization_id=self.organization.id,
         )
-
-        # Create base commit comparison (previous commit)
         base_commit_comparison = CommitComparison.objects.create(
             head_repo_name="test/repo",
             head_sha="base_sha_456",
@@ -460,7 +508,6 @@ class FormatStatusMessagesTest(TestCase):
             organization_id=self.organization.id,
         )
 
-        # Create base artifact (previous version)
         base_artifact = PreprodArtifact.objects.create(
             project=self.project,
             commit_comparison=base_commit_comparison,
@@ -470,7 +517,6 @@ class FormatStatusMessagesTest(TestCase):
             build_number=41,
         )
 
-        # Create base size metrics (smaller sizes)
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=base_artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -481,7 +527,6 @@ class FormatStatusMessagesTest(TestCase):
             max_install_size=int(7.9 * 1024 * 1024),
         )
 
-        # Create head artifact (current version)
         head_artifact = PreprodArtifact.objects.create(
             project=self.project,
             commit_comparison=head_commit_comparison,
@@ -491,7 +536,6 @@ class FormatStatusMessagesTest(TestCase):
             build_number=42,
         )
 
-        # Create head size metrics (larger sizes)
         head_size_metrics = PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=head_artifact,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -511,11 +555,11 @@ class FormatStatusMessagesTest(TestCase):
         assert title == "Size Analysis"
         assert subtitle == "1 build analyzed"
 
-        # Check that size changes are calculated and displayed
+        # Verify that size changes are calculated and displayed
         assert "4.0 MB" in summary  # Current download size
         assert "8.2 MB" in summary  # Current install size
 
-        # Check that changes are shown (4.0MB - 3.8MB = 204.8KB, 8.2MB - 7.9MB = 307.2KB)
+        # Verify that changes are shown (4.0MB - 3.8MB = 204.8KB, 8.2MB - 7.9MB = 307.2KB)
         assert "+204.8 KB" in summary  # Download change
         assert "+307.2 KB" in summary  # Install change
 
@@ -629,7 +673,7 @@ class FormatStatusMessagesTest(TestCase):
 
         size_metrics_map = {head_artifact.id: [head_main_metrics, head_watch_metrics]}
 
-        title, subtitle, summary = format_status_check_messages(
+        _, _, summary = format_status_check_messages(
             [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
         )
 
@@ -643,233 +687,3 @@ class FormatStatusMessagesTest(TestCase):
         # Count N/A occurrences in the watch line - should be 3 (change columns + approval)
         na_count = watch_line.count("N/A")
         assert na_count >= 2  # At least 2 N/A for the change columns
-
-    def test_get_base_artifact_and_size_metrics(self):
-        """Test getting base artifact and its size metrics using the simplified approach."""
-        head_commit_comparison = CommitComparison.objects.create(
-            head_repo_name="test/repo",
-            head_sha="head_abc123",
-            base_sha="base_def456",
-            provider="github",
-            organization_id=self.organization.id,
-        )
-
-        base_commit_comparison = CommitComparison.objects.create(
-            head_repo_name="test/repo",
-            head_sha="base_def456",
-            provider="github",
-            organization_id=self.organization.id,
-        )
-
-        # Create base artifact and metrics
-        base_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            commit_comparison=base_commit_comparison,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.testapp",
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
-            build_version="1.0.1",
-            build_number=10,
-        )
-
-        base_main_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024,  # 1 MB
-            max_download_size=1024 * 1024,
-            min_install_size=2 * 1024 * 1024,  # 2 MB
-            max_install_size=2 * 1024 * 1024,
-        )
-
-        base_feature_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            identifier="premium_features",
-            min_download_size=512 * 1024,  # 512 KB
-            max_download_size=512 * 1024,
-            min_install_size=1024 * 1024,  # 1 MB
-            max_install_size=1024 * 1024,
-        )
-
-        # Create head artifact
-        head_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            commit_comparison=head_commit_comparison,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.testapp",
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
-            build_version="1.0.2",
-            build_number=11,
-        )
-
-        # Test the new model method
-        # Should find base main metrics
-        base_artifact = head_artifact.get_base_artifact_for_commit().first()
-        assert base_artifact is not None
-        main_base_metrics = base_artifact.get_size_metrics(
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
-        ).first()
-        assert main_base_metrics is not None
-        assert main_base_metrics.id == base_main_metrics.id
-        assert main_base_metrics.max_download_size == 1024 * 1024
-
-        # Should find base dynamic feature metrics
-        feature_base_metrics = base_artifact.get_size_metrics(
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
-            identifier="premium_features",
-        ).first()
-        assert feature_base_metrics is not None
-        assert feature_base_metrics.id == base_feature_metrics.id
-        assert feature_base_metrics.max_download_size == 512 * 1024
-
-        # Should not find non-existent metrics
-        watch_base_metrics = base_artifact.get_size_metrics(
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
-        ).first()
-        assert watch_base_metrics is None
-
-        # Should not find metrics with wrong identifier
-        wrong_feature_metrics = base_artifact.get_size_metrics(
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
-            identifier="wrong_identifier",
-        ).first()
-        assert wrong_feature_metrics is None
-
-    def test_get_base_artifact_with_metrics_for_commit(self):
-        head_commit_comparison = CommitComparison.objects.create(
-            head_repo_name="test/repo",
-            head_sha="head_xyz789",
-            base_sha="base_abc123",
-            provider="github",
-            organization_id=self.organization.id,
-        )
-
-        base_commit_comparison = CommitComparison.objects.create(
-            head_repo_name="test/repo",
-            head_sha="base_abc123",
-            provider="github",
-            organization_id=self.organization.id,
-        )
-
-        base_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            commit_comparison=base_commit_comparison,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.multiapp",
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-            build_version="2.0.1",
-            build_number=20,
-        )
-
-        # Create multiple size metrics for the base artifact
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=2 * 1024 * 1024,  # 2 MB
-            max_download_size=2 * 1024 * 1024,
-            min_install_size=4 * 1024 * 1024,  # 4 MB
-            max_install_size=4 * 1024 * 1024,
-        )
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024,  # 1 MB
-            max_download_size=1024 * 1024,
-            min_install_size=2 * 1024 * 1024,  # 2 MB
-            max_install_size=2 * 1024 * 1024,
-        )
-
-        head_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            commit_comparison=head_commit_comparison,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.multiapp",
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-            build_version="2.0.2",
-            build_number=21,
-        )
-
-        base_artifacts_with_metrics = head_artifact.get_base_artifact_with_metrics_for_commit()
-        assert base_artifacts_with_metrics.count() == 1
-
-        base_artifact_with_metrics = base_artifacts_with_metrics.first()
-        assert base_artifact_with_metrics is not None
-        assert base_artifact_with_metrics.id == base_artifact.id
-
-        # Should have prefetched size metrics
-        size_metrics = list(base_artifact_with_metrics.preprodartifactsizemetrics_set.all())
-        assert len(size_metrics) == 2
-
-        metrics_types = {m.metrics_artifact_type for m in size_metrics}
-        expected_types = {
-            PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
-        }
-        assert metrics_types == expected_types
-
-        main_metric = next(
-            m
-            for m in size_metrics
-            if m.metrics_artifact_type
-            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
-        )
-        assert main_metric.max_download_size == 2 * 1024 * 1024
-
-        watch_metric = next(
-            m
-            for m in size_metrics
-            if m.metrics_artifact_type
-            == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
-        )
-        assert watch_metric.max_download_size == 1024 * 1024
-
-    def test_get_base_artifact_no_base_commit(self):
-        """Test that get_base_artifact_for_commit returns empty when no base commit exists."""
-        # Create artifact without base commit comparison
-        artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.nobase",
-            build_version="1.0.0",
-            build_number=1,
-        )
-
-        # Should return None since no base commit comparison
-        base_artifact = artifact.get_base_artifact_for_commit().first()
-        assert base_artifact is None
-
-    def test_get_base_artifact_no_base_artifact(self):
-        """Test that get_base_artifact_for_commit returns empty when base commit exists but no matching artifact."""
-        head_commit_comparison = CommitComparison.objects.create(
-            head_repo_name="test/repo",
-            head_sha="head_no_artifact",
-            base_sha="base_no_artifact",
-            provider="github",
-            organization_id=self.organization.id,
-        )
-
-        # Create base commit but no matching artifact
-        CommitComparison.objects.create(
-            head_repo_name="test/repo",
-            head_sha="base_no_artifact",
-            provider="github",
-            organization_id=self.organization.id,
-        )
-
-        # Create head artifact
-        head_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            commit_comparison=head_commit_comparison,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.noartifact",
-            build_version="1.0.0",
-            build_number=1,
-        )
-
-        # Should return None since no base artifact exists
-        base_artifact = head_artifact.get_base_artifact_for_commit().first()
-        assert base_artifact is None
