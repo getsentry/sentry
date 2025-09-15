@@ -457,6 +457,7 @@ def test_has_gen_ai_spans_field_when_gen_ai_spans_present():
     segment_idx, enriched = TreeEnricher.enrich_spans(spans)
 
     # Check that the segment span has hasGenAISpans field set to True
+    assert segment_idx is not None
     segment_span_data = enriched[segment_idx]["data"]
     assert segment_span_data.get("hasGenAISpans") is True
 
