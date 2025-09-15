@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,6 +19,14 @@ function DecideCheckout() {
   const [tier, setTier] = useState<string | null>(null);
   const isNewCheckout = hasCheckoutV3(organization);
 
+  useEffect(() => {
+    // if we're showing new checkout, ensure we show the checkout for
+    // the current plan tier (we will not toggle between tiers for legacy checkout)
+    if (isNewCheckout) {
+      setTier(subscription?.planTier ?? null);
+    }
+  }, [subscription?.planTier, isNewCheckout]);
+
   const checkoutProps = {
     organization,
     onToggleLegacy: setTier,
@@ -35,12 +43,6 @@ function DecideCheckout() {
         <AMCheckout checkoutTier={PlanTier.AM3} {...checkoutProps} />
       </ErrorBoundary>
     );
-  }
-
-  if (isNewCheckout && tier === null) {
-    // if we're showing new checkout, ensure we show the checkout for
-    // the current plan tier (we will not toggle between tiers for legacy checkout)
-    setTier(subscription?.planTier ?? null);
   }
 
   if (tier !== PlanTier.AM1) {
