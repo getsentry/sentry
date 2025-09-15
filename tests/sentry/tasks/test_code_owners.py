@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_actor import ExternalActor
@@ -9,6 +8,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 LATEST_GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -82,14 +82,12 @@ class CodeOwnersTest(TestCase):
 
         assert code_owners.schema == {"$version": 1, "rules": []}
 
-    @patch("django.utils.timezone.now")
+    @freeze_time("2023-01-01 00:00:00")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=LATEST_GITHUB_CODEOWNERS,
     )
-    def test_codeowners_auto_sync_successful(
-        self, mock_get_codeowner_file: MagicMock, mock_timezone_now: MagicMock
-    ) -> None:
+    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file: MagicMock) -> None:
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
         assert code_owners.raw == self.data["raw"]
 
@@ -108,8 +106,6 @@ class CodeOwnersTest(TestCase):
                 filename=".github/CODEOWNERS",
                 type="A",
             )
-            mock_now = datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)
-            mock_timezone_now.return_value = mock_now
             code_owners_auto_sync(commit.id)
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
@@ -132,7 +128,7 @@ class CodeOwnersTest(TestCase):
                 },
             ],
         }
-        assert code_owners.date_updated == mock_now
+        assert code_owners.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-01-01 00:00:00"
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",

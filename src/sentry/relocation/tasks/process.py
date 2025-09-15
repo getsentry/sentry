@@ -309,7 +309,8 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
             # reasonable amount of time, go ahead and fail the relocation.
             cross_region_export_timeout_check.apply_async(
                 args=[uuid],
-                countdown=int(CROSS_REGION_EXPORT_TIMEOUT.total_seconds()),
+                # In tests we mock this timeout to be a negative value.
+                countdown=max(int(CROSS_REGION_EXPORT_TIMEOUT.total_seconds()), 0),
             )
             return
 

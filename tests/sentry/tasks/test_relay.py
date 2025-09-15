@@ -137,11 +137,11 @@ def test_debounce(
 ):
     tasks = []
 
-    def apply_async(args, kwargs):
+    def signal_send(self, task, args, kwargs):
         assert not args
         tasks.append(kwargs)
 
-    with mock.patch("sentry.tasks.relay.build_project_config.apply_async", apply_async):
+    with mock.patch("sentry.taskworker.task.Task._signal_send", signal_send):
         schedule_build_project_config(public_key=default_projectkey.public_key)
         schedule_build_project_config(public_key=default_projectkey.public_key)
 

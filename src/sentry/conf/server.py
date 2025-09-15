@@ -4133,6 +4133,3 @@ if ngrok_host and SILO_DEVSERVER:
     # the region API URL template is set to the ngrok host.
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
-
-if IS_DEV:
-    SENTRY_OPTIONS["taskworker.enabled"] = True
