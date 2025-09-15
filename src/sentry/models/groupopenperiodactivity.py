@@ -1,5 +1,5 @@
 from enum import IntEnum
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from django.db import models
 
@@ -12,6 +12,10 @@ class OpenPeriodActivityType(IntEnum):
     OPENED = 1
     STATUS_CHANGE = 2
     CLOSED = 3
+
+
+def generate_random_uuid() -> UUID:
+    return uuid4()
 
 
 @region_silo_model
@@ -28,7 +32,7 @@ class GroupOpenPeriodActivity(DefaultFieldsModel):
     # The priority associated with this activity row.
     # Can be None if the row corresponds to open period closure.
     value = models.IntegerField(null=True)
-    notification_uuid = models.UUIDField("notification_uuid", default=uuid4())
+    notification_uuid = models.UUIDField("notification_uuid", default=generate_random_uuid)
 
     class Meta:
         app_label = "sentry"
