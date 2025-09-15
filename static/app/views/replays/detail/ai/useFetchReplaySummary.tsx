@@ -153,7 +153,6 @@ export function useFetchReplaySummary(
   });
 
   const startSummaryRequest = useCallback(() => {
-    // Don't trigger if the feature is disabled
     if (options?.enabled === false) {
       return;
     }

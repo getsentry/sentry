@@ -14,7 +14,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import {type ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
