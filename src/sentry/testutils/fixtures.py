@@ -889,19 +889,6 @@ class Fixtures:
                 is_triggered=False,
             )
 
-        # TODO(epurkhiser): Dual create a ProjectUptimeSubscription as well,
-        # can be removed once we completely remove ProjectUptimeSubscription
-        Factories.create_project_uptime_subscription(
-            project,
-            env,
-            uptime_subscription,
-            status,
-            mode,
-            name,
-            Actor.from_object(owner) if owner else None,
-            id,
-        )
-
         return detector
 
     @pytest.fixture(autouse=True)

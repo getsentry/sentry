@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from base64 import b64encode
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field, fields
@@ -11,6 +12,8 @@ from django.utils import timezone
 
 from sentry.analytics.attribute import Attribute
 from sentry.analytics.utils import get_data
+
+logger = logging.getLogger(__name__)
 
 
 # this overload of the decorator is for using it with parenthesis, first parameter is optional
@@ -62,6 +65,8 @@ def eventclass(
         # set the Event subclass `type` attribute, if it is set to anything
         if isinstance(event_name_or_class, str):
             cls.type = event_name_or_class
+
+        cls._eventclass_initialized = True
         return cast(type[Event], dataclass(kw_only=True)(cls))
 
     # for using without parenthesis, wrap the passed class
@@ -81,10 +86,23 @@ class Event:
 
     # the type of the event, used for serialization and matching. Can be None for abstract base event classes
     type: ClassVar[str | None]
+    _eventclass_initialized: ClassVar[bool] = False
 
     # TODO: this is the "old-style" attributes and data. Will be removed once all events are migrated to the new style.
     attributes: ClassVar[Sequence[Attribute] | None] = None
     data: dict[str, Any] | None = field(repr=False, init=False, default=None)
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
+        # Check if this class was decorated with @eventclass
+        if "_eventclass_initialized" not in cls.__dict__:
+            # If not decorated, check if it adds new dataclass fields compared to parent
+            if getattr(cls, "__annotations__", None):
+                logger.warning(
+                    "Event class with new fields must use @eventclass decorator",
+                    extra={"cls": cls},
+                )
+
+        return super().__new__(cls)
 
     def serialize(self) -> dict[str, Any]:
         if self.data is None:

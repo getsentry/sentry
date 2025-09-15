@@ -274,16 +274,7 @@ export function Onboarding() {
               {project: project.slug}
             )}
           </p>
-          <LinkButton
-            size="sm"
-            href={
-              // TODO(aknaus): Go does not have profiling docs yet, so we redirect to the general profiling docs. Remove this once Go has docs.
-              currentPlatform.id === 'go'
-                ? 'https://docs.sentry.io/product/profiling/getting-started/'
-                : `${currentPlatform.link}/profiling/`
-            }
-            external
-          >
+          <LinkButton size="sm" href={`${currentPlatform.link}/profiling/`} external>
             {t('Go to Documentation')}
           </LinkButton>
         </DescriptionWrapper>
