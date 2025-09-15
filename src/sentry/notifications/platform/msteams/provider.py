@@ -32,21 +32,19 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             Action,
             ActionSet,
             ActionType,
+            AdaptiveCard,
             Block,
             ImageBlock,
             OpenUrlAction,
-            TextBlock,
             TextSize,
             TextWeight,
+            create_text_block,
         )
 
-        title_text = TextBlock(
-            type="TextBlock",
-            text=rendered_template.subject,
-            size=TextSize.LARGE,
-            weight=TextWeight.BOLDER,
+        title_text = create_text_block(
+            text=rendered_template.subject, size=TextSize.LARGE, weight=TextWeight.BOLDER
         )
-        body_text = TextBlock(type="TextBlock", text=rendered_template.body)
+        body_text = create_text_block(text=rendered_template.body)
 
         body_blocks: list[Block] = [title_text, body_text]
 
@@ -69,9 +67,7 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             body_blocks.append(chart_image)
 
         if rendered_template.footer is not None:
-            footer_text = TextBlock(
-                type="TextBlock", text=rendered_template.footer, size=TextSize.SMALL
-            )
+            footer_text = create_text_block(text=rendered_template.footer, size=TextSize.SMALL)
             body_blocks.append(footer_text)
 
         card: AdaptiveCard = {
