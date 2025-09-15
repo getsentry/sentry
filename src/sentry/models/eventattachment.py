@@ -6,6 +6,7 @@ from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
 
+import sentry_sdk
 import zstandard
 from django.core.cache import cache
 from django.db import models
@@ -20,6 +21,7 @@ from sentry.models.files.utils import get_size_and_checksum, get_storage
 from sentry.objectstore import attachments
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
+from sentry.utils import metrics
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -183,7 +185,17 @@ class EventAttachment(Model):
         elif not in_random_rollout("objectstore.enable_for.attachments"):
             from sentry.models.files import FileBlob
 
-            blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
+            object_key = FileBlob.generate_unique_path()
+            blob_path = V1_PREFIX
+            if in_random_rollout("objectstore.double_write.attachments"):
+                try:
+                    organization_id = _get_organization(project_id)
+                    attachments.for_project(organization_id, project_id).put(data, id=object_key)
+                    metrics.incr("storage.attachments.double_write")
+                    blob_path += V2_PREFIX
+                except Exception:
+                    sentry_sdk.capture_exception()
+            blob_path += object_key
 
             storage = get_storage()
             with measure_storage_operation("put", "attachments", size) as metric_emitter:
