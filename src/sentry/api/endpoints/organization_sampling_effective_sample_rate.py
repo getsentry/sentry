@@ -9,7 +9,8 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAndStaffPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
@@ -32,7 +33,7 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
     """
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
-    permission_classes = (OrganizationPermission,)
+    permission_classes = (OrganizationAndStaffPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
