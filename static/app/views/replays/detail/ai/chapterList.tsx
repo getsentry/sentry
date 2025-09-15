@@ -14,11 +14,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import {
-  isErrorFrame,
-  isFeedbackFrame,
-  type ReplayFrame,
-} from 'sentry/utils/replays/types';
+import {type ReplayFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
@@ -50,11 +46,13 @@ export function ChapterList({timeRanges}: Props) {
           error,
           feedback,
           breadcrumbs:
-            replay?.getSummaryChapterFrames().filter(
-              breadcrumb =>
-                breadcrumb.timestampMs >= period_start &&
-                breadcrumb.timestampMs <= period_end // should be exclusive (<) ?
-            ) ?? [],
+            replay
+              ?.getSummaryChapterFrames()
+              .filter(
+                breadcrumb =>
+                  breadcrumb.timestampMs >= period_start &&
+                  breadcrumb.timestampMs <= period_end
+              ) ?? [],
         }))
         .sort((a, b) => a.start - b.start),
     [timeRanges, replay]
@@ -72,7 +70,7 @@ export function ChapterList({timeRanges}: Props) {
 
   return (
     <ChaptersList>
-      {chapterData.map(({title, start, end, breadcrumbs}, i) => (
+      {chapterData.map(({title, start, end, breadcrumbs, error, feedback}, i) => (
         <ChapterRow
           key={i}
           title={title}
@@ -80,6 +78,8 @@ export function ChapterList({timeRanges}: Props) {
           end={end}
           breadcrumbs={breadcrumbs}
           onClickChapterTimestamp={onClickChapterTimestamp}
+          error={error}
+          feedback={feedback}
         />
       ))}
     </ChaptersList>
@@ -93,9 +93,13 @@ function ChapterRow({
   breadcrumbs,
   onClickChapterTimestamp,
   className,
+  error,
+  feedback,
 }: {
   breadcrumbs: ReplayFrame[];
   end: number;
+  error: boolean;
+  feedback: boolean;
   onClickChapterTimestamp: (event: React.MouseEvent<Element>, start: number) => void;
   start: number;
   title: string;
@@ -115,13 +119,10 @@ function ChapterRow({
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
-  const isError = breadcrumbs.some(isErrorFrame);
-  const isFeedback = !isError && breadcrumbs.some(isFeedbackFrame);
-
   return (
     <ChapterWrapper
-      data-has-error={Boolean(isError)}
-      data-has-feedback={Boolean(isFeedback)}
+      data-has-error={error}
+      data-has-feedback={feedback}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -136,19 +137,19 @@ function ChapterRow({
       <Chapter
         onClick={() =>
           trackAnalytics('replay.ai-summary.chapter-clicked', {
-            chapter_type: isError ? 'error' : isFeedback ? 'feedback' : undefined,
+            chapter_type: error ? 'error' : feedback ? 'feedback' : undefined,
             organization,
           })
         }
       >
         <ChapterIconWrapper>
-          {isError ? (
+          {error ? (
             isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="red300" />
             ) : (
               <IconFire size="xs" color="red300" />
             )
-          ) : isFeedback ? (
+          ) : feedback ? (
             isOpen || isHovered ? (
               <ChapterIconArrow direction="right" size="xs" color="pink300" />
             ) : (
