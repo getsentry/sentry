@@ -33,7 +33,6 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
@@ -50,7 +49,6 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 delete_logger = logging.getLogger("sentry.deletions.api")
-OPEN_PERIOD_LIMIT = 50
 
 
 def get_group_global_count(group: Group) -> str:
@@ -165,7 +163,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             # TODO: these probably should be another endpoint
             activity = Activity.objects.get_activities_for_group(group, 100)
-            open_periods = get_open_periods_for_group(group, limit=OPEN_PERIOD_LIMIT)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
@@ -271,7 +268,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             data.update(
                 {
                     "activity": serialize(activity, request.user),
-                    "openPeriods": [open_period.to_dict() for open_period in open_periods],
                     "seenBy": seen_by,
                     "pluginActions": get_actions(group),
                     "pluginIssues": get_available_issue_plugins(group),
