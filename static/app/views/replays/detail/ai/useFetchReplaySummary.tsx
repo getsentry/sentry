@@ -101,7 +101,7 @@ export function useFetchReplaySummary(
   // summary data query and 2) we have the stale version of the summary data. The consuming
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
-  const hasMadeAutoStartRequest = useRef<boolean>(false);
+  const hasMadeStartRequest = useRef<boolean>(false);
 
   const pollingTimeoutRef = useRef<number | null>(null);
   const clearPollingTimeout = () => {
@@ -158,7 +158,7 @@ export function useFetchReplaySummary(
       return;
     }
     startSummaryRequestMutate();
-    hasMadeAutoStartRequest.current = true;
+    hasMadeStartRequest.current = true;
 
     // Clear timeout, if any, and start a new one.
     setDidTimeout(false);
@@ -190,7 +190,7 @@ export function useFetchReplaySummary(
     }
   );
 
-  // Auto-start logic. Only one start summary request should be made per page load.
+  // Auto-start logic. Triggered at most once per page load.
   const segmentsIncreased =
     summaryData?.num_segments !== null &&
     summaryData?.num_segments !== undefined &&
@@ -198,7 +198,7 @@ export function useFetchReplaySummary(
 
   useEffect(() => {
     if (
-      !hasMadeAutoStartRequest.current &&
+      !hasMadeStartRequest.current &&
       (segmentsIncreased || summaryData?.status === ReplaySummaryStatus.NOT_STARTED)
     ) {
       startSummaryRequest();
