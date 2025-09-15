@@ -627,6 +627,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             # 2 calls: creation of one external user, deletion of one external user
             assert mock_update_code_owners_schema.apply_async.call_count == 2
 
+            # Schema updates haven't run, so we should get the original schema
             response = self.client.get(self.url)
             assert response.data[0]["schema"] == {
                 "$version": 1,
@@ -664,34 +665,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         )
         self.data["raw"] = "docs/*  @delete @getsentry/ecosystem"
 
-        with self.feature({"organizations:integrations-codeowners": True}):
+        with self.tasks(), self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
             self.external_delete_user.delete()
-
-            response = self.client.get(self.url)
-            assert response.data[0]["schema"] == {
-                "$version": 1,
-                "rules": [
-                    {
-                        "matcher": {"type": "codeowners", "pattern": "docs/*"},
-                        "owners": [
-                            {
-                                "type": "user",
-                                "name": self.member_user_delete.email,
-                                "id": self.member_user_delete.id,
-                            },
-                            {"type": "team", "name": self.team.slug, "id": self.team.id},
-                        ],
-                    }
-                ],
-            }
-
-            # Call the async task synchronously to update the schema
-            from sentry.tasks.codeowners import update_code_owners_schema
-
-            update_code_owners_schema(
-                organization=self.organization.id, integration=self.integration.id
-            )
 
             response = self.client.get(self.url)
             assert response.data[0]["schema"] == {
@@ -731,6 +707,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             # 2 calls: creation of one external user, deletion of one external user
             assert mock_update_code_owners_schema.apply_async.call_count == 2
 
+            # Schema updates haven't run, so we should get the original schema
             response = self.client.get(self.url)
             assert response.data[0]["schema"] == {
                 "$version": 1,
@@ -767,33 +744,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         )
         self.data["raw"] = "docs/*  @delete"
 
-        with self.feature({"organizations:integrations-codeowners": True}):
+        with self.tasks(), self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
             self.external_delete_user.delete()
-
-            response = self.client.get(self.url)
-            assert response.data[0]["schema"] == {
-                "$version": 1,
-                "rules": [
-                    {
-                        "matcher": {"pattern": "docs/*", "type": "codeowners"},
-                        "owners": [
-                            {
-                                "type": "user",
-                                "name": self.member_user_delete.email,
-                                "id": self.member_user_delete.id,
-                            }
-                        ],
-                    }
-                ],
-            }
-
-            # Call the async task synchronously to update the schema
-            from sentry.tasks.codeowners import update_code_owners_schema
-
-            update_code_owners_schema(
-                organization=self.organization.id, integration=self.integration.id
-            )
 
             response = self.client.get(self.url)
             assert response.data[0]["schema"] == {"$version": 1, "rules": []}
@@ -843,7 +796,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             # 4 calls: creation of two external users, deletion of two external users
             assert mock_update_code_owners_schema.apply_async.call_count == 4
 
-            # Schema updates havne't run, so we should get the original schema
+            # Schema updates haven't run, so we should get the original schema
             response = self.client.get(self.url)
             assert response.data[0]["schema"] == {
                 "$version": 1,
@@ -931,69 +884,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "docs/*  @delete-1\n*.py @getsentry/ecosystem @delete-1\n*.css @delete-2\n*.rb @NisanthanNanthakumar"
         )
 
-        with self.feature({"organizations:integrations-codeowners": True}):
+        with self.tasks(), self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
             self.external_delete_user_1.delete()
             self.external_delete_user_2.delete()
-
-            # Schema updates havne't run, so we should get the original schema
-            response = self.client.get(self.url)
-            assert response.data[0]["schema"] == {
-                "$version": 1,
-                "rules": [
-                    {
-                        "matcher": {"type": "codeowners", "pattern": "docs/*"},
-                        "owners": [
-                            {
-                                "type": "user",
-                                "name": self.member_user_delete_1.email,
-                                "id": self.member_user_delete_1.id,
-                            }
-                        ],
-                    },
-                    {
-                        "matcher": {"type": "codeowners", "pattern": "*.py"},
-                        "owners": [
-                            {"type": "team", "name": self.team.slug, "id": self.team.id},
-                            {
-                                "type": "user",
-                                "name": self.member_user_delete_1.email,
-                                "id": self.member_user_delete_1.id,
-                            },
-                        ],
-                    },
-                    {
-                        "matcher": {
-                            "pattern": "*.css",
-                            "type": "codeowners",
-                        },
-                        "owners": [
-                            {
-                                "type": "user",
-                                "name": self.member_user_delete_2.email,
-                                "id": self.member_user_delete_2.id,
-                            },
-                        ],
-                    },
-                    {
-                        "matcher": {"type": "codeowners", "pattern": "*.rb"},
-                        "owners": [
-                            {
-                                "type": "user",
-                                "name": self.user.email,
-                                "id": self.user.id,
-                            }
-                        ],
-                    },
-                ],
-            }
-
-            # Call the async task synchronously to update the schema
-            from sentry.tasks.codeowners import update_code_owners_schema
-
-            update_code_owners_schema(
-                organization=self.organization.id, integration=self.integration.id
-            )
 
             response = self.client.get(self.url)
             assert response.data[0]["schema"] == {
