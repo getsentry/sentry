@@ -87,53 +87,6 @@ Use the `href` prop for external URLs. External links automatically open in a ne
 </LinkButton>
 ```
 
-## Priorities
-
-LinkButtons support the same priority styles as regular buttons to maintain visual consistency.
-
-<Storybook.Demo>
-  <LinkButton priority="default" to="/default">
-    Default
-  </LinkButton>
-  <LinkButton priority="primary" to="/primary">
-    Primary
-  </LinkButton>
-  <LinkButton priority="warning" to="/warning">
-    Warning
-  </LinkButton>
-  <LinkButton priority="danger" to="/danger">
-    Danger
-  </LinkButton>
-  <LinkButton priority="transparent" to="/transparent">
-    Transparent
-  </LinkButton>
-  <div style={{alignSelf: 'center'}}>
-    <LinkButton priority="link" to="/link">
-      Link
-    </LinkButton>
-  </div>
-</Storybook.Demo>
-```jsx
-<LinkButton priority="default" to="/default">
-  Default
-</LinkButton>
-<LinkButton priority="primary" to="/primary">
-  Primary
-</LinkButton>
-<LinkButton priority="warning" to="/warning">
-  Warning
-</LinkButton>
-<LinkButton priority="danger" to="/danger">
-  Danger
-</LinkButton>
-<LinkButton priority="transparent" to="/transparent">
-  Transparent
-</LinkButton>
-<LinkButton priority="link" to="/link">
-  Link
-</LinkButton>
-```
-
 ## Sizes
 
 LinkButtons are available in the same sizes as regular buttons.
@@ -172,8 +125,9 @@ LinkButtons are available in the same sizes as regular buttons.
 LinkButtons support an optional leading icon, following the same patterns as regular buttons.
 
 <Alert type="info">
-  Icons are automatically sized to match the button size. You don't need to set the `size`
-  prop on the icon.
+  You do not typically need to set the `size` prop for the icon, the LinkButton wraps the
+  rendered Icon in a `IcconDefaultsProvider` to provide an icon size proportional to the
+  button size.
 </Alert>
 
 <Storybook.Demo>
@@ -192,6 +146,13 @@ LinkButtons support an optional leading icon, following the same patterns as reg
   Read Docs
 </LinkButton>
 ```
+
+We have standardized call to action copy and specific icon pairings. When creating an icon LinkButton, please use a pairing from the following list.
+
+| Icon         | Name   | Copy              | Meaning                                             |
+| ------------ | ------ | ----------------- | --------------------------------------------------- |
+| <IconOpen /> | `open` | Open in `Product` | Leaves existing view and goes to another product    |
+| <IconDocs /> | `docs` | Read Docs         | Similar to "Open In" but always goes to Sentry Docs |
 
 ## Disabled State
 
@@ -219,12 +180,12 @@ Disabled LinkButtons prevent navigation and show a non-interactive appearance.
 LinkButtons with the `external` prop automatically include security attributes (`target="_blank"`, `rel="noreferrer noopener"`) to prevent security vulnerabilities when opening external links.
 
 <Storybook.Demo>
-  <LinkButton href="https://example.com" external priority="primary">
+  <LinkButton href="https://docs.sentry.io" external priority="primary">
     Secure External Link
   </LinkButton>
 </Storybook.Demo>
 ```jsx
-<LinkButton href="https://example.com" external priority="primary">
+<LinkButton href="https://docs.sentry.io" external priority="primary">
   Secure External Link
 </LinkButton>
 ```
