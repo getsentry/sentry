@@ -450,9 +450,9 @@ closed_bracket = "]"
 sep            = ":"
 negation       = "!"
 wildcard_unicode     = [\uF00D]
-contains             = "contains"
-starts_with          = "starts with"
-ends_with            = "ends with"
+contains             = "Contains"
+starts_with          = "StartsWith"
+ends_with            = "EndsWith"
 comma          = ","
 spaces         = " "* { return tc.tokenSpaces(text()) }
 

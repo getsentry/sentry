@@ -1,13 +1,13 @@
 [
   {
-    "query": "browser.name:containsfirefox",
+    "query": "browser.name:Containsfirefox",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "operator": "contains",
+        "operator": "Contains",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {"type": "valueText", "value": "firefox", "quoted": false}
       },
@@ -15,14 +15,14 @@
     ]
   },
   {
-    "query": "browser.name:contains[firefox, chrome]",
+    "query": "browser.name:Contains[firefox, chrome]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
         "negated": false,
-        "operator": "contains",
+        "operator": "Contains",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {
           "type": "valueTextList",
@@ -42,14 +42,14 @@
     ]
   },
   {
-    "query": "!browser.name:containsfirefox",
+    "query": "!browser.name:Containsfirefox",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
         "negated": true,
-        "operator": "contains",
+        "operator": "Contains",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {"type": "valueText", "value": "firefox", "quoted": false}
       },
@@ -57,14 +57,14 @@
     ]
   },
   {
-    "query": "!browser.name:contains[firefox, chrome]",
+    "query": "!browser.name:Contains[firefox, chrome]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "textIn",
         "negated": true,
-        "operator": "contains",
+        "operator": "Contains",
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "value": {
           "type": "valueTextList",
