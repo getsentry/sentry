@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsExperimentalGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.performance_issues.base import DetectorType, parameterize_url
 from sentry.performance_issues.detectors.experiments.n_plus_one_api_calls_detector import (
     NPlusOneAPICallsExperimentalDetector,
@@ -26,7 +26,7 @@ from sentry.testutils.performance_issues.event_generators import (
 
 @pytest.mark.django_db
 class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
-    type_id = PerformanceNPlusOneAPICallsExperimentalGroupType.type_id
+    type_id = PerformanceNPlusOneAPICallsGroupType.type_id
 
     def setUp(self) -> None:
         super().setUp()
@@ -79,7 +79,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
             PerformanceProblem(
                 fingerprint=f"1-{self.type_id}-d750ce46bb1b13dd5780aac48098d5e20eea682c",
                 op="http.client",
-                type=PerformanceNPlusOneAPICallsExperimentalGroupType,
+                type=PerformanceNPlusOneAPICallsGroupType,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
                 parent_span_ids=["a0c39078d1570b00"],
                 cause_span_ids=[],
@@ -145,7 +145,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
-        assert problems[0].title == "N+1 API Call (Experimental)"
+        assert problems[0].title == "N+1 API Call"
 
     def test_does_not_detect_problems_with_low_total_duration_of_spans(self) -> None:
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
