@@ -158,7 +158,7 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
         for [k, v] in tags:
             tags_dict[k] = v
     else:
-        tags_dict = tags
+        tags_dict = tags.copy()  # Avoid mutating the original event.
     ret_event["tags"] = tags_dict
 
     # Set the event message to the feedback message.
