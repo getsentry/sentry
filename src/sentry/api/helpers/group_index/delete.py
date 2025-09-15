@@ -112,9 +112,11 @@ def delete_group_hashes(
     group_ids: Sequence[int],
 ) -> None:
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
+    total_hashes = GroupHash.objects.filter(group_id__in=group_ids).count()
 
-    qs = GroupHash.objects.filter(group_id__in=group_ids).iterator(chunk_size=hashes_batch_size)
-    for hashes_chunk in qs:
+    for i in range(0, total_hashes, hashes_batch_size):
+        qs = GroupHash.objects.filter(group_id__in=group_ids)[i : i + hashes_batch_size]
+        hashes_chunk = list(qs)
         try:
             # Tell seer to delete grouping records for these groups
             # It's low priority to delete the hashes from seer, so we don't want
