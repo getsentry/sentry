@@ -3,8 +3,6 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry import options
-from sentry.models.group import Group
-from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.grouping_records import (
     call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
@@ -15,7 +13,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
-from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +66,8 @@ def delete_seer_grouping_records_by_hash(
             delete_seer_grouping_records_by_hash.apply_async(args=[project_id, chunked_hashes, 0])
 
 
-def may_schedule_task_to_delete_hashes_from_seer(group_ids: Sequence[int]) -> None:
-    if not group_ids:
+def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequence[str]) -> None:
+    if not hashes:
         return
 
     if killswitch_enabled(None, ReferrerOptions.DELETION) or options.get(
@@ -78,37 +75,11 @@ def may_schedule_task_to_delete_hashes_from_seer(group_ids: Sequence[int]) -> No
     ):
         return
 
-    # Single optimized query for project lookup
-    try:
-        group = Group.objects.select_related("project").get(id=group_ids[0])
-    except Group.DoesNotExist:
-        logger.warning("Group not found for deletion", extra={"group_id": group_ids[0]})
-        return
-
-    project = group.project
-
-    if not (
-        project
-        and project.get_option("sentry:similarity_backfill_completed")
-        and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
-    ):
-        return
-
     seer_batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
-    fetch_batch_size = options.get("deletions.group-hashes-fetch-batch-size")
 
-    group_hashes = list(
-        RangeQuerySetWrapper(
-            GroupHash.objects.filter(project_id=project.id, group_id__in=group_ids),
-            step=fetch_batch_size,
-        )
-    )
-
-    hash_values = [gh.hash for gh in group_hashes]
-
-    for i in range(0, len(hash_values), seer_batch_size):
-        hash_chunk = hash_values[i : i + seer_batch_size]
-        delete_seer_grouping_records_by_hash.apply_async(args=[project.id, hash_chunk, 0])
+    for i in range(0, len(hashes), seer_batch_size):
+        hash_chunk = hashes[i : i + seer_batch_size]
+        delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hash_chunk, 0])
 
 
 @instrumented_task(

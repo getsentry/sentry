@@ -10,7 +10,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.api.base import audit_logger
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
@@ -22,6 +22,7 @@ from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.query import RangeQuerySetWrapper
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
 from .validators import ValidationError
@@ -79,8 +80,9 @@ def delete_group_list(
         },
     )
 
-    # Tell seer to delete grouping records for these groups
-    may_schedule_task_to_delete_hashes_from_seer(error_ids)
+    # Removing GroupHash rows prevents new events from associating to the groups
+    # we just deleted.
+    delete_group_hashes(project.id, group_ids)
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
@@ -90,10 +92,6 @@ def delete_group_list(
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
-
-    # Removing GroupHash rows prevents new events from associating to the groups
-    # we just deleted.
-    GroupHash.objects.filter(project_id=project.id, group_id__in=group_ids).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
@@ -108,6 +106,31 @@ def delete_group_list(
                 "transaction_id": str(transaction_id),
             }
         )
+
+
+def delete_group_hashes(
+    project_id: int,
+    group_ids: Sequence[int],
+) -> None:
+    batch_size = options.get("deletions.group-hashes-batch-size")
+
+    group_hashes = list(
+        RangeQuerySetWrapper(
+            GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids),
+            step=batch_size,
+        )
+    )
+    hash_values = [gh.hash for gh in group_hashes]
+
+    try:
+        # Tell seer to delete grouping records for these groups
+        # It's low priority to delete the hashes from seer, so we don't want
+        # any network errors to block the deletion of the groups
+        may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
+    finally:
+        # Delete hashes in batches to avoid the connection being killed
+        for i in range(0, len(hash_values), batch_size):
+            GroupHash.objects.filter(hash__in=hash_values[i : i + batch_size]).delete()
 
 
 def create_audit_entries(
