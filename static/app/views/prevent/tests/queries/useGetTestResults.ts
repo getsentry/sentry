@@ -69,9 +69,17 @@ export function useInfiniteTestResults({
   cursor?: string | null;
   navigation?: 'next' | 'prev';
 }) {
-  const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
+  const {
+    integratedOrgId,
+    repository,
+    branch: rawBranch,
+    preventPeriod,
+  } = usePreventContext();
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
+
+  // Normalize branch to undefined when falsy for consistent caching
+  const branch = rawBranch || undefined;
 
   const sortBy = searchParams.get('sort') || '-totalFailCount';
   const signedSortBy = sortValueToSortKey(sortBy);

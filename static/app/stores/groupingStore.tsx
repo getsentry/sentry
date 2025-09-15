@@ -79,6 +79,7 @@ export type Fingerprint = {
   latestEvent: Event;
   label?: string;
   lastSeen?: string;
+  mergedBySeer?: boolean;
   parentId?: string;
   parentLabel?: string;
   state?: string;

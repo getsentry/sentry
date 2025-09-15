@@ -180,12 +180,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             <InputGroup.Input
               placeholder="Search files"
               value={searchQuery || ''}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value || undefined)}
             />
             {searchQuery && (
               <InputGroup.TrailingItems>
                 <Button
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => setSearchQuery(undefined)}
                   aria-label="Clear search"
                   borderless
                   size="zero"
