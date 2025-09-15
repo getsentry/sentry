@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
+from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.testutils.cases import TestCase
@@ -438,3 +439,437 @@ class FormatStatusMessagesTest(TestCase):
         assert "1.0 MB" in summary  # Dynamic feature download
         assert "8.0 MB" in summary  # Main app install
         assert "2.0 MB" in summary  # Dynamic feature install
+
+    def test_size_changes_with_base_artifacts(self):
+        """Test size change calculations when base artifacts exist for comparison."""
+        # Create commit comparison for head commit
+
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_sha_123",
+            base_sha="base_sha_456",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        # Create base commit comparison (previous commit)
+        base_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_sha_456",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        # Create base artifact (previous version)
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.android",
+            build_version="1.0.2",
+            build_number=41,
+        )
+
+        # Create base size metrics (smaller sizes)
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(3.8 * 1024 * 1024),  # 3.8 MB
+            max_download_size=int(3.8 * 1024 * 1024),
+            min_install_size=int(7.9 * 1024 * 1024),  # 7.9 MB
+            max_install_size=int(7.9 * 1024 * 1024),
+        )
+
+        # Create head artifact (current version)
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.android",
+            build_version="1.0.3",
+            build_number=42,
+        )
+
+        # Create head size metrics (larger sizes)
+        head_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=4 * 1024 * 1024,  # 4.0 MB
+            max_download_size=4 * 1024 * 1024,
+            min_install_size=int(8.2 * 1024 * 1024),  # 8.2 MB
+            max_install_size=int(8.2 * 1024 * 1024),
+        )
+
+        size_metrics_map = {head_artifact.id: [head_size_metrics]}
+
+        title, subtitle, summary = format_status_check_messages(
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 build analyzed"
+
+        # Check that size changes are calculated and displayed
+        assert "4.0 MB" in summary  # Current download size
+        assert "8.2 MB" in summary  # Current install size
+
+        # Check that changes are shown (4.0MB - 3.8MB = 204.8KB, 8.2MB - 7.9MB = 307.2KB)
+        assert "+204.8 KB" in summary  # Download change
+        assert "+307.2 KB" in summary  # Install change
+
+        # Verify the table structure includes the Change columns
+        assert "Change" in summary
+        assert "com.example.android" in summary
+        assert "1.0.3 (42)" in summary
+
+    def test_size_changes_no_base_artifacts(self):
+        """Test that N/A is shown when no base artifacts exist for comparison."""
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,  # 1 MB
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,  # 2 MB
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        size_metrics_map = {artifact.id: [size_metrics]}
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 build analyzed"
+        assert "1.0 MB" in summary
+        assert "2.0 MB" in summary
+        # Should show N/A for changes when no base exists
+        lines = summary.split("\n")
+        data_line = next(line for line in lines if "com.example.app" in line)
+        assert "N/A" in data_line  # Change columns show N/A
+
+    def test_size_changes_with_different_artifact_types(self):
+        """Test that size changes only compare the same artifact types."""
+
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_sha_789",
+            base_sha="base_sha_012",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_sha_012",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        # Create base artifact with only MAIN_ARTIFACT metrics
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="1.0.1",
+            build_number=10,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(2.8 * 1024 * 1024),  # 2.8 MB
+            max_download_size=int(2.8 * 1024 * 1024),
+            min_install_size=int(6.5 * 1024 * 1024),  # 6.5 MB
+            max_install_size=int(6.5 * 1024 * 1024),
+        )
+
+        # Create head artifact with MAIN_ARTIFACT and WATCH_ARTIFACT
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="1.0.2",
+            build_number=11,
+        )
+
+        head_main_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=3 * 1024 * 1024,  # 3.0 MB
+            max_download_size=3 * 1024 * 1024,
+            min_install_size=int(6.8 * 1024 * 1024),  # 6.8 MB
+            max_install_size=int(6.8 * 1024 * 1024),
+        )
+
+        head_watch_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=512 * 1024,  # 512 KB
+            max_download_size=512 * 1024,
+            min_install_size=1024 * 1024,  # 1 MB
+            max_install_size=1024 * 1024,
+        )
+
+        size_metrics_map = {head_artifact.id: [head_main_metrics, head_watch_metrics]}
+
+        title, subtitle, summary = format_status_check_messages(
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        # Main artifact should show changes (has matching base)
+        assert "+204.8 KB" in summary  # 3.0MB - 2.8MB = 204.8KB
+        assert "+307.2 KB" in summary  # 6.8MB - 6.5MB = 307.2KB
+
+        # Watch artifact should show N/A (no matching base watch metrics)
+        lines = summary.split("\n")
+        watch_line = next(line for line in lines if "com.example.ios (Watch)" in line)
+        # Count N/A occurrences in the watch line - should be 3 (change columns + approval)
+        na_count = watch_line.count("N/A")
+        assert na_count >= 2  # At least 2 N/A for the change columns
+
+    def test_get_base_artifact_and_size_metrics(self):
+        """Test getting base artifact and its size metrics using the simplified approach."""
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_abc123",
+            base_sha="base_def456",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_def456",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        # Create base artifact and metrics
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.testapp",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            build_version="1.0.1",
+            build_number=10,
+        )
+
+        base_main_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,  # 1 MB
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,  # 2 MB
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        base_feature_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            identifier="premium_features",
+            min_download_size=512 * 1024,  # 512 KB
+            max_download_size=512 * 1024,
+            min_install_size=1024 * 1024,  # 1 MB
+            max_install_size=1024 * 1024,
+        )
+
+        # Create head artifact
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.testapp",
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            build_version="1.0.2",
+            build_number=11,
+        )
+
+        # Test the new model method
+        # Should find base main metrics
+        base_artifact = head_artifact.get_base_artifact_for_commit().first()
+        assert base_artifact is not None
+        main_base_metrics = base_artifact.get_size_metrics(
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        ).first()
+        assert main_base_metrics is not None
+        assert main_base_metrics.id == base_main_metrics.id
+        assert main_base_metrics.max_download_size == 1024 * 1024
+
+        # Should find base dynamic feature metrics
+        feature_base_metrics = base_artifact.get_size_metrics(
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+            identifier="premium_features",
+        ).first()
+        assert feature_base_metrics is not None
+        assert feature_base_metrics.id == base_feature_metrics.id
+        assert feature_base_metrics.max_download_size == 512 * 1024
+
+        # Should not find non-existent metrics
+        watch_base_metrics = base_artifact.get_size_metrics(
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
+        ).first()
+        assert watch_base_metrics is None
+
+        # Should not find metrics with wrong identifier
+        wrong_feature_metrics = base_artifact.get_size_metrics(
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+            identifier="wrong_identifier",
+        ).first()
+        assert wrong_feature_metrics is None
+
+    def test_get_base_artifact_with_metrics_for_commit(self):
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_xyz789",
+            base_sha="base_abc123",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_abc123",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.multiapp",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            build_version="2.0.1",
+            build_number=20,
+        )
+
+        # Create multiple size metrics for the base artifact
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=2 * 1024 * 1024,  # 2 MB
+            max_download_size=2 * 1024 * 1024,
+            min_install_size=4 * 1024 * 1024,  # 4 MB
+            max_install_size=4 * 1024 * 1024,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,  # 1 MB
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,  # 2 MB
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.multiapp",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            build_version="2.0.2",
+            build_number=21,
+        )
+
+        base_artifacts_with_metrics = head_artifact.get_base_artifact_with_metrics_for_commit()
+        assert base_artifacts_with_metrics.count() == 1
+
+        base_artifact_with_metrics = base_artifacts_with_metrics.first()
+        assert base_artifact_with_metrics is not None
+        assert base_artifact_with_metrics.id == base_artifact.id
+
+        # Should have prefetched size metrics
+        size_metrics = list(base_artifact_with_metrics.preprodartifactsizemetrics_set.all())
+        assert len(size_metrics) == 2
+
+        metrics_types = {m.metrics_artifact_type for m in size_metrics}
+        expected_types = {
+            PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+        }
+        assert metrics_types == expected_types
+
+        main_metric = next(
+            m
+            for m in size_metrics
+            if m.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert main_metric.max_download_size == 2 * 1024 * 1024
+
+        watch_metric = next(
+            m
+            for m in size_metrics
+            if m.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
+        )
+        assert watch_metric.max_download_size == 1024 * 1024
+
+    def test_get_base_artifact_no_base_commit(self):
+        """Test that get_base_artifact_for_commit returns empty when no base commit exists."""
+        # Create artifact without base commit comparison
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.nobase",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        # Should return None since no base commit comparison
+        base_artifact = artifact.get_base_artifact_for_commit().first()
+        assert base_artifact is None
+
+    def test_get_base_artifact_no_base_artifact(self):
+        """Test that get_base_artifact_for_commit returns empty when base commit exists but no matching artifact."""
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_no_artifact",
+            base_sha="base_no_artifact",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        # Create base commit but no matching artifact
+        CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_no_artifact",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        # Create head artifact
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.noartifact",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        # Should return None since no base artifact exists
+        base_artifact = head_artifact.get_base_artifact_for_commit().first()
+        assert base_artifact is None
