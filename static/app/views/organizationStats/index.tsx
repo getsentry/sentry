@@ -448,11 +448,6 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
 `;
 
-const HeadingSubtitle = styled('p')`
-  margin-top: ${space(0.5)};
-  margin-bottom: 0;
-`;
-
 const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
