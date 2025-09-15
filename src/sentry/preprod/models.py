@@ -200,6 +200,117 @@ class PreprodArtifact(DefaultFieldsModel):
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
         )
 
+    def get_base_artifact_with_metrics_for_commit(
+        self, artifact_type: ArtifactType | None = None
+    ) -> models.QuerySet["PreprodArtifact"]:
+        """
+        Get the base artifact for commit comparison with size metrics prefetched.
+
+        This builds on get_base_artifact_for_commit() but efficiently prefetches
+        all related size metrics to avoid N+1 queries.
+
+        Returns:
+            QuerySet of PreprodArtifact objects with prefetched size metrics
+        """
+        return self.get_base_artifact_for_commit(artifact_type).prefetch_related(
+            "preprodartifactsizemetrics_set"
+        )
+
+    def get_size_metrics(
+        self,
+        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        identifier: str | None = None,
+    ) -> models.QuerySet["PreprodArtifactSizeMetrics"]:
+        """
+        Get size metrics for this artifact with optional filtering.
+
+        Args:
+            metrics_artifact_type: Optional filter by metric artifact type
+            identifier: Optional filter by identifier (for dynamic features)
+
+        Returns:
+            QuerySet of matching size metrics
+        """
+        queryset = self.preprodartifactsizemetrics_set.all()
+
+        if metrics_artifact_type is not None:
+            queryset = queryset.filter(metrics_artifact_type=metrics_artifact_type)
+
+        if identifier is not None:
+            queryset = queryset.filter(identifier=identifier)
+
+        return queryset
+
+    def get_base_size_metrics(
+        self,
+        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        identifier: str | None = None,
+    ) -> models.QuerySet["PreprodArtifactSizeMetrics"]:
+        """
+        Get size metrics from the corresponding base artifact for comparison.
+
+        Args:
+            metrics_artifact_type: Optional filter by metric artifact type
+            identifier: Optional filter by identifier (for dynamic features)
+
+        Returns:
+            QuerySet of matching base size metrics (empty if no base artifact found)
+        """
+        base_artifacts = self.get_base_artifact_for_commit()
+        if not base_artifacts.exists():
+            from sentry.preprod.models import PreprodArtifactSizeMetrics
+
+            return PreprodArtifactSizeMetrics.objects.none()
+
+        base_artifact = base_artifacts.first()
+        return base_artifact.get_size_metrics(
+            metrics_artifact_type=metrics_artifact_type, identifier=identifier
+        )
+
+    @classmethod
+    def get_size_metrics_for_artifacts(
+        cls,
+        artifacts: models.QuerySet["PreprodArtifact"] | list["PreprodArtifact"],
+        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        identifier: str | None = None,
+    ) -> dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]]:
+        """
+        Efficiently get size metrics for multiple artifacts using a single query.
+
+        Args:
+            artifacts: List or QuerySet of PreprodArtifact instances
+            metrics_artifact_type: Optional filter by metric artifact type
+            identifier: Optional filter by identifier (for dynamic features)
+
+        Returns:
+            Dict mapping artifact_id -> QuerySet of size metrics
+        """
+        from sentry.preprod.models import PreprodArtifactSizeMetrics
+
+        if isinstance(artifacts, list):
+            artifact_ids = [a.id for a in artifacts]
+        else:
+            artifact_ids = list(artifacts.values_list("id", flat=True))
+
+        if not artifact_ids:
+            return {}
+
+        # Build efficient query with filters
+        queryset = PreprodArtifactSizeMetrics.objects.filter(preprod_artifact_id__in=artifact_ids)
+
+        if metrics_artifact_type is not None:
+            queryset = queryset.filter(metrics_artifact_type=metrics_artifact_type)
+
+        if identifier is not None:
+            queryset = queryset.filter(identifier=identifier)
+
+        # Group results by artifact_id
+        results = {}
+        for artifact_id in artifact_ids:
+            results[artifact_id] = queryset.filter(preprod_artifact_id=artifact_id)
+
+        return results
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
