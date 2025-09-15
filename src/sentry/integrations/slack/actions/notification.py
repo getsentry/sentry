@@ -15,7 +15,6 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.issue_alert import NewIssueAlertNotificationMessage
@@ -28,7 +27,6 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
-from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
@@ -513,9 +511,4 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
     def get_form_instance(self) -> SlackNotifyServiceForm:
-        return SlackNotifyServiceForm(
-            self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
-        )
-
-    def get_channel_id(self, integration: Integration, name: str) -> SlackChannelIdData:
-        return get_channel_id(integration, name)
+        return SlackNotifyServiceForm(self.data, integrations=self.get_integrations())
