@@ -111,28 +111,25 @@ def delete_group_hashes(
     seer_deletion: bool = False,
 ) -> None:
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
-    total_hashes = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).count()
 
-    # We multiply by 1.1 to account for the fact that we may have deleted some hashes
-    # since we started the query
-    for _ in range(0, total_hashes * 1.1, hashes_batch_size):
+    while True:
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
             "id", "hash"
         )[:hashes_batch_size]
         hashes_chunk = list(qs)
         if not hashes_chunk:
-            return
+            break
         try:
             if seer_deletion:
                 # Tell seer to delete grouping records for these groups
                 # It's low priority to delete the hashes from seer, so we don't want
                 # any network errors to block the deletion of the groups
-                hash_values = [gh.hash for gh in hashes_chunk]
+                hash_values = [gh[1] for gh in hashes_chunk]
                 may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
         except Exception:
             delete_logger.warning("Error scheduling task to delete hashes from seer")
         finally:
-            hash_ids = [gh.id for gh in hashes_chunk]
+            hash_ids = [gh[0] for gh in hashes_chunk]
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
 

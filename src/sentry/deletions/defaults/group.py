@@ -177,7 +177,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         # Avoid circular import
         from sentry.api.helpers.group_index.delete import delete_group_hashes
 
-        delete_group_hashes(instance_list[0].project_id, error_group_ids)
+        delete_group_hashes(instance_list[0].project_id, error_group_ids, seer_deletion=True)
 
         self._delete_children(instance_list)
 
