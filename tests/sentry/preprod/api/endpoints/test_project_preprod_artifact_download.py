@@ -49,7 +49,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
         response = self.client.get(url, **headers)
 
         assert response.status_code == 404
-        assert "not found" in response.json()["error"]
+        assert "The requested head preprod artifact does not exist" in response.json()["detail"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_no_file(self) -> None:

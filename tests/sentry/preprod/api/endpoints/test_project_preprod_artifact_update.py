@@ -117,7 +117,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     def test_update_preprod_artifact_not_found(self) -> None:
         response = self._make_request({"artifact_type": 1}, artifact_id=999999)
         assert response.status_code == 404
-        assert "not found" in response.json()["error"]
+        assert "The requested head preprod artifact does not exist" in response.json()["detail"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_invalid_json(self) -> None:

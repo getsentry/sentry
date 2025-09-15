@@ -227,7 +227,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             self.base_artifact.id,
             status_code=404,
         )
-        assert "Head PreprodArtifact with id 999999 does not exist" in response.data["detail"]
+        assert "The requested head preprod artifact does not exist" in response.data["detail"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_base_artifact_not_found(self):
@@ -239,7 +239,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             999999,
             status_code=404,
         )
-        assert "Base PreprodArtifact with id 999999 does not exist" in response.data["detail"]
+        assert "The requested base preprod artifact does not exist" in response.data["detail"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_head_artifact_wrong_project(self):
@@ -260,10 +260,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             self.base_artifact.id,
             status_code=404,
         )
-        assert (
-            response.data["detail"]
-            == f"Head PreprodArtifact with id {other_artifact.id} does not exist."
-        )
+        assert response.data["detail"] == "The requested head preprod artifact does not exist"
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_base_artifact_wrong_project(self):
@@ -284,10 +281,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             other_artifact.id,
             status_code=404,
         )
-        assert (
-            response.data["detail"]
-            == f"Base PreprodArtifact with id {other_artifact.id} does not exist."
-        )
+        assert response.data["detail"] == "The requested base preprod artifact does not exist"
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_head_artifact_no_size_metrics(self):
@@ -378,7 +372,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             method="post",
             status_code=404,
         )
-        assert "Head PreprodArtifact with id 999999 does not exist" in response.data["detail"]
+        assert "The requested head preprod artifact does not exist" in response.data["detail"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_base_artifact_not_found(self):
@@ -391,7 +385,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             method="post",
             status_code=404,
         )
-        assert "Base PreprodArtifact with id 999999 does not exist" in response.data["detail"]
+        assert "The requested base preprod artifact does not exist" in response.data["detail"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_head_artifact_no_size_metrics(self):
