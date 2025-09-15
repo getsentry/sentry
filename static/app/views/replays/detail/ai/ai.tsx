@@ -9,10 +9,12 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -29,11 +31,7 @@ import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
 export default function Ai() {
   const organization = useOrganization();
-  const {
-    areAiFeaturesAllowed,
-    setupAcknowledgement,
-    isPending: isOrgSeerSetupPending,
-  } = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
@@ -60,6 +58,9 @@ export default function Ai() {
     );
   }
 
+  // the org doesn't have the replay summaries ff, or
+  // hideAiFeatures is true (settings "Show Generative AI Features" toggle is off), or
+  // org does not have the gen-ai-features ff
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
@@ -69,48 +70,6 @@ export default function Ai() {
             {areAiFeaturesAllowed
               ? t('Replay summaries are not available for this organization.')
               : t('AI features are not available for this organization.')}
-          </div>
-        </EndStateContainer>
-      </Wrapper>
-    );
-  }
-
-  // check for org seer setup first before attempting to fetch summary
-  if (isOrgSeerSetupPending) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <div>
-            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
-          </div>
-        </LoadingContainer>
-      </Wrapper>
-    );
-  }
-
-  // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
-  // but the org hasn't acknowledged the gen AI features, then show CTA.
-  if (!setupAcknowledgement.orgHasAcknowledged) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>
-            <strong>{t('AI-Powered Replay Summaries')}</strong>
-          </div>
-          <div>
-            {t(
-              'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
-            )}
-          </div>
-          <div>
-            <LinkButton
-              size="sm"
-              priority="primary"
-              to={`/settings/${organization.slug}/seer/`}
-            >
-              {t('View Seer Settings')}
-            </LinkButton>
           </div>
         </EndStateContainer>
       </Wrapper>
@@ -205,7 +164,19 @@ export default function Ai() {
           <SummaryLeftTitle>
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
-              <IconSeer />
+              <Tooltip
+                isHoverable
+                title={tct(
+                  'The assistant requires Generative AI, which is subject to our [dataProcessingPolicy:data processing policy].',
+                  {
+                    dataProcessingPolicy: (
+                      <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
+                    ),
+                  }
+                )}
+              >
+                <IconSeer />
+              </Tooltip>
             </Flex>
             <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>

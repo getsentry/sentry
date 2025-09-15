@@ -65,7 +65,7 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
       <AskSeerLabel {...labelProps}>
         <Tooltip
           title={tct(
-            'The assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
+            'The assistant requires Generative AI, which is subject to our [dataProcessingPolicy:data processing policy].',
             {
               dataProcessingPolicy: (
                 <ExternalLink
