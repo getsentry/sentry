@@ -153,10 +153,7 @@ def get_open_periods_for_group(
 
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
-        query_start = group.first_seen
-        ninety_days_ago = timezone.now() - timedelta(days=90)
-        if group.first_seen > ninety_days_ago:
-            query_start = ninety_days_ago
+        query_start = min(group.first_seen, timezone.now() - timedelta(days=90))
 
     group_open_periods = GroupOpenPeriod.objects.filter(
         group=group, date_started__gte=query_start, id__gte=offset
