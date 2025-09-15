@@ -200,22 +200,6 @@ class PreprodArtifact(DefaultFieldsModel):
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
         )
 
-    def get_base_artifact_with_metrics_for_commit(
-        self, artifact_type: ArtifactType | None = None
-    ) -> models.QuerySet["PreprodArtifact"]:
-        """
-        Get the base artifact for commit comparison with size metrics prefetched.
-
-        This builds on get_base_artifact_for_commit() but efficiently prefetches
-        all related size metrics to avoid N+1 queries.
-
-        Returns:
-            QuerySet of PreprodArtifact objects with prefetched size metrics
-        """
-        return self.get_base_artifact_for_commit(artifact_type).prefetch_related(
-            "preprodartifactsizemetrics_set"
-        )
-
     def get_size_metrics(
         self,
         metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
@@ -240,12 +224,7 @@ class PreprodArtifact(DefaultFieldsModel):
         identifier: str | None = None,
     ) -> dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]]:
         """
-        Efficiently get size metrics for multiple artifacts using a single query.
-
-        Args:
-            artifacts: List or QuerySet of PreprodArtifact instances
-            metrics_artifact_type: Optional filter by metric artifact type
-            identifier: Optional filter by identifier (for dynamic features)
+        Get size metrics for multiple artifacts using a single query.
 
         Returns:
             Dict mapping artifact_id -> QuerySet of size metrics
