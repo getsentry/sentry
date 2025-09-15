@@ -19,10 +19,10 @@ function InnerIntentForm({
   location,
   handleSubmit,
 }: InnerIntentFormProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const elements = useElements();
   const stripe = useStripe();
-  const [submitDisabled, setSubmitDisabled] = useState(false);
+  const [submitDisabled, setSubmitDisabled] = useState(true);
 
   if (loading) {
     return <LoadingIndicator />;
