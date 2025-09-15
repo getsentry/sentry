@@ -156,7 +156,7 @@ export function DetectorDetailsOngoingIssues({
   const numIssues = latestGroupId ? 1 : 0;
 
   return (
-    <Section title={tn('Ongoing Issues', 'Ongoing Issues', numIssues)}>
+    <Section title={tn('Ongoing Issue', 'Ongoing Issues', numIssues)}>
       <ErrorBoundary mini>
         {latestGroupId ? (
           <LatestGroupWithOpenPeriods
