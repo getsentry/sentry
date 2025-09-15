@@ -6,9 +6,10 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
@@ -65,7 +66,7 @@ function ActionButtons({
         addSuccessMessage(t('Subscription Updated!'));
 
         window.location.hash = 'replay-sidequest';
-        SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+        OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
 
         trackGetsentryAnalytics('upgrade_now.modal.update_now', {
           organization,

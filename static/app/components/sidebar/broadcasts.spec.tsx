@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BROADCAST_CATEGORIES} from 'sentry/components/sidebar/broadcastPanelItem';
 import {Broadcasts} from 'sentry/components/sidebar/broadcasts';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -40,7 +40,7 @@ describe('Broadcasts', () => {
       <Broadcasts
         orientation="left"
         collapsed={false}
-        currentPanel={SidebarPanelKey.BROADCASTS}
+        currentPanel={OnboardingDrawerKey.BROADCASTS}
         onShowPanel={() => jest.fn()}
         hidePanel={jest.fn()}
       />
@@ -63,7 +63,7 @@ describe('Broadcasts', () => {
       <Broadcasts
         orientation="left"
         collapsed={false}
-        currentPanel={SidebarPanelKey.BROADCASTS}
+        currentPanel={OnboardingDrawerKey.BROADCASTS}
         onShowPanel={() => jest.fn()}
         hidePanel={jest.fn()}
       />

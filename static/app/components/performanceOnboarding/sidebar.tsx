@@ -18,13 +18,14 @@ import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStarted
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
@@ -52,8 +53,8 @@ function decodeProjectIds(projectIds: unknown): string[] | null {
 
 export function usePerformanceOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.PERFORMANCE_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -76,7 +77,7 @@ export function usePerformanceOnboardingDrawer() {
 function DrawerContent() {
   useEffect(() => {
     return () => {
-      SidebarPanelStore.hidePanel();
+      OnboardingDrawerStore.close();
     };
   }, []);
 
@@ -89,7 +90,7 @@ function DrawerContent() {
 function LegacyPerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
-  const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
+  const isActive = currentPanel === OnboardingDrawerKey.PERFORMANCE_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
   if (!isActive || !hasProjectAccess) {

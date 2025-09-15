@@ -18,12 +18,13 @@ import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedD
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -35,8 +36,8 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export function useFeatureFlagOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -54,7 +55,7 @@ export function useFeatureFlagOnboardingDrawer() {
       });
 
       // Reset store
-      SidebarPanelStore.hidePanel();
+      OnboardingDrawerStore.close();
     }
   }, [isActive, hasProjectAccess, openDrawer]);
 }
@@ -66,7 +67,7 @@ function LegacyFeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
-  const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
+  const isActive = currentPanel === OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
   if (!isActive || !hasProjectAccess) {
@@ -92,8 +93,8 @@ function SidebarContent() {
     supportedProjects,
     unsupportedProjects,
   } = useCurrentProjectState({
-    currentPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
-    targetPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
+    currentPanel: OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING,
+    targetPanel: OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING,
     onboardingPlatforms: featureFlagOnboardingPlatforms,
     allPlatforms: featureFlagOnboardingPlatforms,
   });

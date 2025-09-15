@@ -4,9 +4,10 @@ import type {Location} from 'history';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink, Link} from 'sentry/components/core/link';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -60,7 +61,7 @@ export function MetricsDataSwitcherAlert(
   );
 
   const handleReviewUpdatesClick = useCallback(() => {
-    SidebarPanelStore.activatePanel(SidebarPanelKey.BROADCASTS);
+    OnboardingDrawerStore.open(OnboardingDrawerKey.BROADCASTS);
   }, []);
 
   const docsLink = useMemo(() => {

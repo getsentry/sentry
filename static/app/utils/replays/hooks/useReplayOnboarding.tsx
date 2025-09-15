@@ -1,7 +1,8 @@
 import {useCallback, useEffect} from 'react';
 
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -21,7 +22,7 @@ export function useReplayOnboardingSidebarPanel() {
 
   useEffect(() => {
     if (location.hash === '#replay-sidequest') {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+      OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
       trackAnalytics('replay.list-view-setup-sidebar', {
         organization,
       });
@@ -40,7 +41,7 @@ export function useReplayOnboardingSidebarPanel() {
             }
           : location.query,
       });
-      SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+      OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
     },
     [location, navigate]
   );

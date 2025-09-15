@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
 
 import SidebarItem from './sidebarItem';
@@ -10,7 +11,6 @@ import SidebarPanel from './sidebarPanel';
 import SidebarPanelEmpty from './sidebarPanelEmpty';
 import SidebarPanelItem from './sidebarPanelItem';
 import type {CommonSidebarProps} from './types';
-import {SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps;
 
@@ -27,7 +27,7 @@ function ServiceIncidents({
     return null;
   }
 
-  const active = currentPanel === SidebarPanelKey.SERVICE_INCIDENTS;
+  const active = currentPanel === OnboardingDrawerKey.SERVICE_INCIDENTS;
   const isEmpty = !incidents || incidents.length === 0;
 
   if (isEmpty) {

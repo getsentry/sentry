@@ -8,7 +8,7 @@ import * as taskConfig from 'sentry/components/onboardingWizard/taskConfig';
 import * as useOnboardingTasks from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteOrOverdueTasks} from 'sentry/components/onboardingWizard/utils';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 
@@ -105,7 +105,7 @@ describe('Onboarding Status', () => {
 
     render(
       <OnboardingStatus
-        currentPanel={SidebarPanelKey.ONBOARDING_WIZARD}
+        currentPanel={OnboardingDrawerKey.ONBOARDING_WIZARD}
         onShowPanel={jest.fn()}
         hidePanel={handleHidePanel}
         collapsed={false}

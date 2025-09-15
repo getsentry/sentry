@@ -17,12 +17,13 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -54,8 +55,8 @@ const PROFILING_ONBOARDING_STEPS = [
 
 export function useProfilingOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.PROFILING_ONBOARDING;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.PROFILING_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -79,7 +80,7 @@ export function useProfilingOnboardingDrawer() {
 function DrawerContent() {
   useLayoutEffect(() => {
     return () => {
-      SidebarPanelStore.hidePanel();
+      OnboardingDrawerStore.close();
     };
   }, []);
 
@@ -90,7 +91,7 @@ function DrawerContent() {
  * @deprecated Use useProfilingOnboardingDrawer instead.
  */
 export function LegacyProfilingOnboardingSidebar(props: CommonSidebarProps) {
-  if (props.currentPanel !== SidebarPanelKey.PROFILING_ONBOARDING) {
+  if (props.currentPanel !== OnboardingDrawerKey.PROFILING_ONBOARDING) {
     return null;
   }
 
