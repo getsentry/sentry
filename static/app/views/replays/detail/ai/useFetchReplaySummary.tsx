@@ -6,6 +6,7 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useTimeout from 'sentry/utils/useTimeout';
 import {
   ReplaySummaryStatus,
   ReplaySummaryTemp,
@@ -22,7 +23,7 @@ export interface UseFetchReplaySummaryResult {
    */
   isError: boolean;
   /**
-   * Whether the summary is still processing after the last start request.
+   * Whether the summary is still processing after the last start request. Does not account for timeouts.
    */
   isPending: boolean;
   /**
@@ -42,35 +43,26 @@ export interface UseFetchReplaySummaryResult {
 
 const shouldPoll = (
   summaryData: SummaryResponse | undefined,
-  isStartSummaryRequestPending: boolean,
+  startRequestFailed: boolean,
   didTimeout: boolean
 ) => {
-  // If timeout occurred, stop polling regardless of status
-  if (didTimeout) {
+  if (startRequestFailed || didTimeout) {
     return false;
   }
 
   if (!summaryData) {
-    // No data yet - poll if we've started a request
-    return isStartSummaryRequestPending;
+    return true;
   }
 
   switch (summaryData.status) {
     case ReplaySummaryStatus.NOT_STARTED:
-      // Not started - poll if we've started a request
-      return isStartSummaryRequestPending;
-
     case ReplaySummaryStatus.PROCESSING:
-      // Currently processing - poll
       return true;
 
+    // Final states
     case ReplaySummaryStatus.COMPLETED:
     case ReplaySummaryStatus.ERROR:
-      // Final states - no need to poll
-      return false;
-
     default:
-      // Unknown status - don't poll
       return false;
   }
 };
@@ -101,22 +93,15 @@ export function useFetchReplaySummary(
   // summary data query and 2) we have the stale version of the summary data. The consuming
   // component will briefly show a completed state before the summary data query updates.
   const startSummaryRequestTime = useRef<number>(0);
+  const hasMadeStartRequest = useRef<boolean>(false);
 
-  const pollingTimeoutRef = useRef<number | null>(null);
-  const clearPollingTimeout = () => {
-    if (pollingTimeoutRef.current) {
-      clearTimeout(pollingTimeoutRef.current);
-      pollingTimeoutRef.current = null;
-    }
-  };
   const [didTimeout, setDidTimeout] = useState(false);
-
-  // Cleanup polling timeout on unmount
-  useEffect(() => {
-    return () => {
-      clearPollingTimeout();
-    };
-  }, []);
+  const {start: startPollingTimeout, cancel: cancelPollingTimeout} = useTimeout({
+    timeMs: POLL_TIMEOUT_MS,
+    onTimeout: () => {
+      setDidTimeout(true);
+    },
+  });
 
   const {
     mutate: startSummaryRequestMutate,
@@ -157,15 +142,12 @@ export function useFetchReplaySummary(
       return;
     }
     startSummaryRequestMutate();
+    hasMadeStartRequest.current = true;
 
-    // Clear timeout, if any, and start a new one.
+    // Start a new timeout.
     setDidTimeout(false);
-    clearPollingTimeout();
-    pollingTimeoutRef.current = window.setTimeout(() => {
-      setDidTimeout(true);
-      clearPollingTimeout();
-    }, POLL_TIMEOUT_MS);
-  }, [options?.enabled, startSummaryRequestMutate]);
+    startPollingTimeout();
+  }, [options?.enabled, startSummaryRequestMutate, startPollingTimeout]);
 
   const {
     data: summaryData,
@@ -178,7 +160,7 @@ export function useFetchReplaySummary(
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestPending, didTimeout)) {
+        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
           return POLL_INTERVAL_MS;
         }
         return false;
@@ -188,49 +170,42 @@ export function useFetchReplaySummary(
     }
   );
 
+  // Auto-start logic. Triggered at most once per page load.
+  const segmentsIncreased =
+    summaryData?.num_segments !== null &&
+    summaryData?.num_segments !== undefined &&
+    segmentCount > summaryData.num_segments;
+
+  useEffect(() => {
+    if (
+      !hasMadeStartRequest.current &&
+      (segmentsIncreased || summaryData?.status === ReplaySummaryStatus.NOT_STARTED)
+    ) {
+      startSummaryRequest();
+    }
+  }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
+
   const isPendingRet =
     dataUpdatedAt < startSummaryRequestTime.current ||
     isStartSummaryRequestPending ||
     isPending ||
+    summaryData?.status === ReplaySummaryStatus.NOT_STARTED ||
     summaryData?.status === ReplaySummaryStatus.PROCESSING;
-  const isErrorRet =
-    isStartSummaryRequestError ||
-    isError ||
-    summaryData?.status === ReplaySummaryStatus.ERROR;
 
+  // Clears the polling timeout when we get valid summary results.
   useEffect(() => {
-    // Clears the polling timeout when we get valid summary results.
     if (!isPendingRet) {
-      clearPollingTimeout();
+      cancelPollingTimeout();
     }
-  }, [isPendingRet]);
-
-  // Auto-start logic.
-  // TODO: remove the condition segmentCount <= 100
-  // when BE is able to process more than 100 segments. Without this, generation will loop.
-  const segmentsIncreased =
-    summaryData?.num_segments !== null &&
-    summaryData?.num_segments !== undefined &&
-    segmentCount <= 100 &&
-    segmentCount > summaryData.num_segments;
-  const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
-
-  useEffect(() => {
-    if ((segmentsIncreased || needsInitialGeneration) && !isPendingRet && !isErrorRet) {
-      startSummaryRequest();
-    }
-  }, [
-    segmentsIncreased,
-    needsInitialGeneration,
-    isPendingRet,
-    startSummaryRequest,
-    isErrorRet,
-  ]);
+  }, [isPendingRet, cancelPollingTimeout]);
 
   return {
     summaryData,
     isPending: isPendingRet,
-    isError: isErrorRet,
+    isError:
+      isStartSummaryRequestError ||
+      isError ||
+      summaryData?.status === ReplaySummaryStatus.ERROR,
     isTimedOut: didTimeout,
     startSummaryRequest,
     isStartSummaryRequestPending,
