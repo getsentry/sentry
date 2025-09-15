@@ -668,6 +668,11 @@ class GitHubIntegrationProvider(IntegrationProvider):
                         "organization_id": organization.id,
                     }
                 )
+            else:
+                logger.warning(
+                    "codecov.account_link.org_integration_missing",
+                    extra={"integration_id": integration.id, "organization_id": organization.id},
+                )
 
         repos = repository_service.get_repositories(
             organization_id=organization.id,
