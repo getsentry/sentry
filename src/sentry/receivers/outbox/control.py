@@ -68,9 +68,16 @@ def process_api_application_updates(object_identifier: int, region_name: str, **
 
 @receiver(process_control_outbox, sender=OutboxCategory.SERVICE_HOOK_UPDATE)
 def process_service_hook_updates(object_identifier: int, region_name: str, **kwds: Any):
-    installation = SentryAppInstallation.objects.select_related("sentry_app").get(
-        id=object_identifier
-    )
+    try:
+        installation = SentryAppInstallation.objects.select_related("sentry_app").get(
+            id=object_identifier
+        )
+    except SentryAppInstallation.DoesNotExist:
+        logger.warning(
+            "process_service_hook_updates.installation_not_found",
+            extra={"installation_id": object_identifier},
+        )
+        return
 
     hook_service.create_or_update_webhook_and_events_for_installation(
         installation_id=installation.id,
