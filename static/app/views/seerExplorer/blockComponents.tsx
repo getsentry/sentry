@@ -149,6 +149,8 @@ const BlockContent = styled(MarkedText)`
 
 const ToolsUsed = styled('div')`
   gap: ${space(1)};
+  display: flex;
+  flex-direction: column;
 `;
 
 const UserBlockContent = styled('div')`
