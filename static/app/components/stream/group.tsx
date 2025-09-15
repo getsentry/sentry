@@ -59,7 +59,6 @@ import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
-  getTabs,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
 
@@ -304,15 +303,13 @@ function StreamGroup({
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
   const sharedAnalytics = useMemo(() => {
-    const tab = getTabs().find(([tabQuery]) => tabQuery === query)?.[1];
     const owners = group?.owners ?? [];
     return {
       organization,
       group_id: group?.id ?? '',
-      tab: tab?.analyticsName || 'other',
       was_shown_suggestion: owners.length > 0,
     };
-  }, [organization, group, query]);
+  }, [organization, group]);
 
   const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
     AssignableEntity | null,

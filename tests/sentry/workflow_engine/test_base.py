@@ -225,7 +225,9 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         return workflow, detector, detector_workflow, workflow_triggers
 
-    def create_test_query_data_source(self, detector: Detector) -> tuple[DataSource, DataPacket]:
+    def create_test_query_data_source(
+        self, detector: Detector
+    ) -> tuple[SnubaQuery, QuerySubscription, DataSource, DataPacket]:
         """
         Create a DataSource and DataPacket for testing; this will create a QuerySubscriptionUpdate and link it to a data_source.
 
@@ -280,7 +282,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             packet=subscription_update,
         )
 
-        return data_source, data_packet
+        return snuba_query, query_subscription, data_source, data_packet
 
     def create_workflow_action(
         self,

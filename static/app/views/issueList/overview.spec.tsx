@@ -82,13 +82,6 @@ describe('IssueList', () => {
   const tags = TagsFixture();
   const group = GroupFixture({project});
   const groupStats = GroupStatsFixture();
-  const savedSearch = SearchFixture({
-    id: '789',
-    query: 'is:unresolved TypeError',
-    sort: 'date',
-    name: 'Unresolved TypeErrors',
-  });
-
   let fetchMembersRequest: jest.Mock;
   const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
 
@@ -105,10 +98,6 @@ describe('IssueList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [groupStats],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -181,10 +170,6 @@ describe('IssueList', () => {
         url: '/organizations/org-slug/recent-searches/',
         method: 'GET',
         body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [savedSearch],
       });
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -462,18 +447,6 @@ describe('IssueList', () => {
       });
     });
 
-    it('fetches data on savedSearch change', async () => {
-      const {rerender} = render(<IssueListOverview {...routerProps} />, {
-        initialRouterConfig,
-      });
-
-      rerender(<IssueListOverview {...routerProps} />);
-
-      await waitFor(() => {
-        expect(fetchDataMock).toHaveBeenCalled();
-      });
-    });
-
     it('uses correct statsPeriod when fetching issues list and no datetime given', async () => {
       const {rerender} = render(<IssueListOverview {...routerProps} />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
@@ -502,7 +475,7 @@ describe('IssueList', () => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
           })
         );
       });
@@ -896,6 +869,10 @@ describe('IssueList', () => {
 
   describe('new view page', () => {
     beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [],
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/1/',
         body: GroupSearchViewFixture(),

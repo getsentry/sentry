@@ -424,6 +424,8 @@ function EAPSpanNodeDetailsContent({
   traceItemData,
   eventTransaction,
   avgSpanDuration,
+  traceId,
+  tree,
 }: EAPSpanNodeDetailsProps & {
   avgSpanDuration: number | undefined;
   eventTransaction: EventTransaction | undefined;
@@ -501,11 +503,14 @@ function EAPSpanNodeDetailsContent({
 
         {organization.features.includes('trace-view-span-links') && links?.length ? (
           <TraceSpanLinks
+            tree={tree}
             node={node}
             links={links}
             theme={theme}
             location={location}
             organization={organization}
+            traceId={node.metadata.replayTraceSlug ?? traceId}
+            onTabScrollToNode={onTabScrollToNode}
           />
         ) : null}
 

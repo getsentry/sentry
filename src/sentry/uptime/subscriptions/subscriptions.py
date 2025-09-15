@@ -196,6 +196,7 @@ def create_uptime_detector(
     """
     if mode == UptimeMonitorMode.MANUAL:
         manual_subscription_count = Detector.objects.filter(
+            status=ObjectStatus.ACTIVE,
             type=UptimeDomainCheckFailure.slug,
             project__organization=project.organization,
             config__mode=UptimeMonitorMode.MANUAL,
@@ -495,6 +496,7 @@ def enable_uptime_detector(
 def delete_uptime_detector(detector: Detector):
     uptime_monitor = get_project_subscription(detector)
     delete_project_uptime_subscription(uptime_monitor)
+    detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
 
 
@@ -518,6 +520,7 @@ def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
     auto_detected_subscription_ids = list(
         Detector.objects.filter(
+            status=ObjectStatus.ACTIVE,
             type=UptimeDomainCheckFailure.slug,
             project=project,
             config__mode__in=(

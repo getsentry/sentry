@@ -26,7 +26,6 @@ import PerformanceNewProjectPrompt from 'getsentry/components/features/performan
 import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
 import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
 import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
-import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import {
@@ -151,12 +150,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * and modals for various overage warnings.
    */
   'component:organization-header': () => OrganizationHeader,
-
-  /**
-   * Ensure the Invite Members button is always enabled without regard for the
-   * `feature:invite-members` flag.
-   */
-  'member-invite-button:customization': () => InviteMembersButtonCustomization,
 
   /**
    * Augment the invite members modal component to start a trial before

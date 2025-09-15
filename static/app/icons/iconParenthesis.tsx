@@ -6,7 +6,7 @@ interface Props extends SVGIconProps {
   side?: 'left' | 'right';
 }
 
-function IconParenthesis({side = 'left', ...props}: Props) {
+export function IconParenthesis({side = 'left', ...props}: Props) {
   return (
     <StyledIcon
       data-test-id="icon-parenthesis"
@@ -25,7 +25,3 @@ const StyledIcon = styled('svg')`
     transform: rotate(180deg);
   }
 `;
-
-IconParenthesis.displayName = 'IconParenthesis';
-
-export {IconParenthesis};

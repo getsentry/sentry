@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconGraphLine(props: SVGIconProps) {
+export function IconGraphLine(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -19,7 +19,3 @@ function IconGraphLine(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconGraphLine.displayName = 'IconGraphLine';
-
-export {IconGraphLine};
