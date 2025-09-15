@@ -47,13 +47,7 @@ class TestWorkflowValidator(TestCase):
         "sentry.workflow_engine.registry.action_handler_registry.get",
         return_value=MockActionHandler,
     )
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.action_validator_registry.get",
-        return_value=MockActionValidatorTranslator,
-    )
-    def test_valid_data__with_action_filters(
-        self, mock_action_handler: mock.MagicMock, mock_action_validator: mock.MagicMock
-    ) -> None:
+    def test_valid_data__with_action_filters(self, mock_action_handler: mock.MagicMock) -> None:
         self.valid_data["actionFilters"] = [
             {
                 "logicType": "any",
@@ -182,12 +176,8 @@ class TestWorkflowValidatorCreate(TestCase):
         "sentry.workflow_engine.registry.action_handler_registry.get",
         return_value=MockActionHandler,
     )
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.action_validator_registry.get",
-        return_value=MockActionValidatorTranslator,
-    )
     def test_create__with_actions__creates_workflow_group(
-        self, mock_action_handler: mock.MagicMock, mock_action_validator: mock.MagicMock
+        self, mock_action_handler: mock.MagicMock
     ) -> None:
         self.valid_data["actionFilters"] = [
             {
@@ -218,12 +208,8 @@ class TestWorkflowValidatorCreate(TestCase):
         "sentry.workflow_engine.registry.action_handler_registry.get",
         return_value=MockActionHandler,
     )
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.action_validator_registry.get",
-        return_value=MockActionValidatorTranslator,
-    )
     def test_create__with_actions__creates_action_group(
-        self, mock_action_handler: mock.MagicMock, mock_action_validator: mock.MagicMock
+        self, mock_action_handler: mock.MagicMock
     ) -> None:
         self.valid_data["actionFilters"] = [
             {
@@ -341,10 +327,6 @@ class TestWorkflowValidatorCreate(TestCase):
                 ]
 
 
-@mock.patch(
-    "sentry.notifications.notification_action.registry.action_validator_registry.get",
-    return_value=MockActionValidatorTranslator,
-)
 class TestWorkflowValidatorUpdate(TestCase):
     def setUp(self) -> None:
         self.context = {
@@ -408,7 +390,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         attrs = serializer.get_attrs([self.workflow], self.user)
         self.valid_saved_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
 
-    def test_update_property(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update_property(self) -> None:
         self.valid_data["name"] = "Update Test"
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
 
@@ -418,7 +400,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert workflow.id == self.workflow.id
         assert workflow.name == "Update Test"
 
-    def test_update__remove_trigger_conditions(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__remove_trigger_conditions(self) -> None:
         assert self.workflow.when_condition_group
 
         self.valid_saved_data["triggers"] = {
@@ -436,9 +418,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group is not None
         assert self.workflow.when_condition_group.conditions.count() == 0
 
-    def test_update__hack_attempt_to_override_different_trigger_condition(
-        self, mock_action_validator: mock.MagicMock
-    ) -> None:
+    def test_update__hack_attempt_to_override_different_trigger_condition(self) -> None:
         fake_dcg = DataConditionGroup.objects.create(
             organization=self.organization,
             logic_type="any",
@@ -456,7 +436,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         with pytest.raises(ValidationError):
             validator.update(self.workflow, validator.validated_data)
 
-    def test_update__remove_action_filter(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__remove_action_filter(self) -> None:
         self.valid_saved_data["actionFilters"] = []
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
@@ -467,7 +447,7 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         assert self.workflow.workflowdataconditiongroup_set.count() == 0
 
-    def test_update__add_new_filter(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__add_new_filter(self) -> None:
         self.valid_saved_data["actionFilters"].append(
             {
                 "actions": [
@@ -516,7 +496,7 @@ class TestWorkflowValidatorUpdate(TestCase):
             "target_type": 0,
         }
 
-    def test_update__remove_one_filter(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__remove_one_filter(self) -> None:
         # Configuration for the test
         self.workflow.workflowdataconditiongroup_set.create(
             condition_group=DataConditionGroup.objects.create(
@@ -550,7 +530,7 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         return first_condition
 
-    def test_update__data_condition(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__data_condition(self) -> None:
         first_condition = self._get_first_trigger_condition(self.workflow)
         assert first_condition.comparison == 1
 
@@ -566,7 +546,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         first_condition = self._get_first_trigger_condition(self.workflow)
         assert first_condition.comparison == updated_condition["comparison"]
 
-    def test_update__remove_one_data_condition(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__remove_one_data_condition(self) -> None:
         # Setup the test
         assert self.workflow.when_condition_group
         assert self.workflow.when_condition_group.conditions.count() == 1
@@ -593,7 +573,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group.conditions.count() == 1
         assert self.workflow.when_condition_group.conditions.first() == dc
 
-    def test_update__add_new_action(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__add_new_action(self) -> None:
         self.valid_saved_data["actionFilters"][0]["actions"].append(
             {
                 "type": Action.Type.SLACK,
@@ -611,7 +591,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert validator.is_valid() is True
         validator.update(self.workflow, validator.validated_data)
 
-    def test_update__modify_action(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__modify_action(self) -> None:
         workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
         assert workflow_condition_group is not None
         action_condition_group = (
@@ -653,7 +633,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert updated_action.id == action.id
         assert updated_action.type == Action.Type.EMAIL
 
-    def test_update__remove_one_action(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__remove_one_action(self) -> None:
         workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
         assert workflow_condition_group is not None
         new_action = Action.objects.create(
@@ -686,7 +666,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert action_condition_group.action.id != new_action.id
         assert action_condition_group.action.type == Action.Type.SLACK
 
-    def test_update__remove_all_actions(self, mock_action_validator: mock.MagicMock) -> None:
+    def test_update__remove_all_actions(self) -> None:
         self.valid_saved_data["actionFilters"][0]["actions"] = []
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
         assert validator.is_valid() is True
