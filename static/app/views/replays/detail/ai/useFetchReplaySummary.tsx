@@ -6,6 +6,7 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useTimeout from 'sentry/utils/useTimeout';
 import {
   ReplaySummaryStatus,
   ReplaySummaryTemp,
@@ -103,21 +104,14 @@ export function useFetchReplaySummary(
   const startSummaryRequestTime = useRef<number>(0);
   const hasMadeStartRequest = useRef<boolean>(false);
 
-  const pollingTimeoutRef = useRef<number | null>(null);
-  const clearPollingTimeout = () => {
-    if (pollingTimeoutRef.current) {
-      clearTimeout(pollingTimeoutRef.current);
-      pollingTimeoutRef.current = null;
-    }
-  };
   const [didTimeout, setDidTimeout] = useState(false);
-
-  // Cleanup polling timeout on unmount
-  useEffect(() => {
-    return () => {
-      clearPollingTimeout();
-    };
-  }, []);
+  const {start: startPollingTimeout, cancel: cancelPollingTimeout} = useTimeout({
+    timeMs: POLL_TIMEOUT_MS,
+    onTimeout: () => {
+      setDidTimeout(true);
+      cancelPollingTimeout();
+    },
+  });
 
   const {
     mutate: startSummaryRequestMutate,
@@ -159,15 +153,8 @@ export function useFetchReplaySummary(
     }
     startSummaryRequestMutate();
     hasMadeStartRequest.current = true;
-
-    // Clear timeout, if any, and start a new one.
-    setDidTimeout(false);
-    clearPollingTimeout();
-    pollingTimeoutRef.current = window.setTimeout(() => {
-      setDidTimeout(true);
-      clearPollingTimeout();
-    }, POLL_TIMEOUT_MS);
-  }, [options?.enabled, startSummaryRequestMutate]);
+    startPollingTimeout();
+  }, [options?.enabled, startSummaryRequestMutate, startPollingTimeout]);
 
   const {
     data: summaryData,
@@ -215,9 +202,9 @@ export function useFetchReplaySummary(
   // Clears the polling timeout when we get valid summary results.
   useEffect(() => {
     if (!isPendingRet) {
-      clearPollingTimeout();
+      cancelPollingTimeout();
     }
-  }, [isPendingRet]);
+  }, [isPendingRet, cancelPollingTimeout]);
 
   return {
     summaryData,
