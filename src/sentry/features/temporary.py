@@ -154,6 +154,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:integrations-cursor", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Project Management Integrations Feature Parity Flags
+    # GitHub inbound assignee sync
+    manager.add("organizations:integrations-github-inbound-assignee-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable inviting billing members to organizations at the member limit.
     manager.add("organizations:invite-billing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     # Enable inviting members to organizations.
