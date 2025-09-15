@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
 import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {
   sortDirections,
@@ -241,21 +242,35 @@ export function SortBySelectors({
       </Tooltip>
       {showCustomEquation && (
         <ArithmeticInputWrapper>
-          <ArithmeticInput
-            name="arithmetic"
-            type="text"
-            placeholder={t('Enter Equation')}
-            value={getEquation(customEquation.sortBy)}
-            onUpdate={value => {
-              const newValue = {
-                sortBy: `${EQUATION_PREFIX}${value}`,
-                sortDirection: values.sortDirection,
-              };
-              onChange(newValue);
-              setCustomEquation(newValue);
-            }}
-            hideFieldOptions
-          />
+          {widgetType === WidgetType.SPANS ? (
+            <ExploreArithmeticBuilder
+              equation={getEquation(customEquation.sortBy)}
+              onUpdate={value => {
+                const newValue = {
+                  sortBy: `${EQUATION_PREFIX}${value}`,
+                  sortDirection: values.sortDirection,
+                };
+                onChange(newValue);
+                setCustomEquation(newValue);
+              }}
+            />
+          ) : (
+            <ArithmeticInput
+              name="arithmetic"
+              type="text"
+              placeholder={t('Enter Equation')}
+              value={getEquation(customEquation.sortBy)}
+              onUpdate={value => {
+                const newValue = {
+                  sortBy: `${EQUATION_PREFIX}${value}`,
+                  sortDirection: values.sortDirection,
+                };
+                onChange(newValue);
+                setCustomEquation(newValue);
+              }}
+              hideFieldOptions
+            />
+          )}
         </ArithmeticInputWrapper>
       )}
     </Wrapper>
