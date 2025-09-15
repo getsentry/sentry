@@ -269,7 +269,7 @@ class PreprodArtifact(DefaultFieldsModel):
             queryset = queryset.filter(identifier=identifier)
 
         # Group results by artifact_id
-        results = {}
+        results: dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]] = {}
         for artifact_id in artifact_ids:
             results[artifact_id] = queryset.filter(preprod_artifact_id=artifact_id)
 

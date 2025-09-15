@@ -49,18 +49,24 @@ class PreprodArtifactSizeMetricsTest(TestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         )
         assert main_only.count() == 1
-        assert main_only.first().id == main_metrics.id
+        main_first = main_only.first()
+        assert main_first is not None
+        assert main_first.id == main_metrics.id
 
         watch_only = artifact.get_size_metrics(
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
         )
         assert watch_only.count() == 1
-        assert watch_only.first().id == watch_metrics.id
+        watch_first = watch_only.first()
+        assert watch_first is not None
+        assert watch_first.id == watch_metrics.id
 
         # Test filtering by identifier
         feature_only = artifact.get_size_metrics(identifier="test_feature")
         assert feature_only.count() == 1
-        assert feature_only.first().id == feature_metrics.id
+        feature_first = feature_only.first()
+        assert feature_first is not None
+        assert feature_first.id == feature_metrics.id
 
         # Test filtering by both type and identifier
         feature_typed = artifact.get_size_metrics(
@@ -68,7 +74,9 @@ class PreprodArtifactSizeMetricsTest(TestCase):
             identifier="test_feature",
         )
         assert feature_typed.count() == 1
-        assert feature_typed.first().id == feature_metrics.id
+        feature_typed_first = feature_typed.first()
+        assert feature_typed_first is not None
+        assert feature_typed_first.id == feature_metrics.id
 
         # Test no matches
         no_matches = artifact.get_size_metrics(identifier="nonexistent")
@@ -116,8 +124,12 @@ class PreprodArtifactSizeMetricsTest(TestCase):
 
         assert main_results[artifact1.id].count() == 1
         assert main_results[artifact2.id].count() == 1
-        assert main_results[artifact1.id].first().id == artifact1_main.id
-        assert main_results[artifact2.id].first().id == artifact2_main.id
+        artifact1_main_first = main_results[artifact1.id].first()
+        assert artifact1_main_first is not None
+        assert artifact1_main_first.id == artifact1_main.id
+        artifact2_main_first = main_results[artifact2.id].first()
+        assert artifact2_main_first is not None
+        assert artifact2_main_first.id == artifact2_main.id
 
         # Test bulk retrieval with identifier filter
         watch_results = PreprodArtifact.get_size_metrics_for_artifacts(
@@ -127,7 +139,9 @@ class PreprodArtifactSizeMetricsTest(TestCase):
 
         assert watch_results[artifact1.id].count() == 1
         assert watch_results[artifact2.id].count() == 0  # No watch metrics for artifact2
-        assert watch_results[artifact1.id].first().id == artifact1_watch.id
+        artifact1_watch_first = watch_results[artifact1.id].first()
+        assert artifact1_watch_first is not None
+        assert artifact1_watch_first.id == artifact1_watch.id
 
         # Test with empty list
         empty_results = PreprodArtifact.get_size_metrics_for_artifacts([])
@@ -201,11 +215,15 @@ class PreprodArtifactSizeMetricsTest(TestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         )
         assert artifact1_main_only.count() == 1
-        assert artifact1_main_only.first().id == artifact1_main.id
-        assert artifact1_main_only.first().id != artifact2_main.id
+        artifact1_main_only_first = artifact1_main_only.first()
+        assert artifact1_main_only_first is not None
+        assert artifact1_main_only_first.id == artifact1_main.id
+        assert artifact1_main_only_first.id != artifact2_main.id
 
         # Test filtering by identifier - should still only return metrics for the specific artifact
         artifact1_feature_only = artifact1.get_size_metrics(identifier="feature_a")
         assert artifact1_feature_only.count() == 1
-        assert artifact1_feature_only.first().id == artifact1_feature.id
-        assert artifact1_feature_only.first().id != artifact2_feature.id
+        artifact1_feature_only_first = artifact1_feature_only.first()
+        assert artifact1_feature_only_first is not None
+        assert artifact1_feature_only_first.id == artifact1_feature.id
+        assert artifact1_feature_only_first.id != artifact2_feature.id
