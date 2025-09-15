@@ -225,9 +225,10 @@ def evaluate_workflow_triggers(
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
+                organization = event_data.group.project.organization
                 if features.has(
                     "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                    workflow.organization,
+                    organization,
                 ):
                     try:
                         detector_workflow = DetectorWorkflow.objects.get(workflow_id=workflow.id)
@@ -236,7 +237,7 @@ def evaluate_workflow_triggers(
                             extra={
                                 "workflow_id": workflow.id,
                                 "detector_id": detector_workflow.detector_id,
-                                "organization_id": workflow.organization.id,
+                                "organization_id": organization.id,
                                 "project_id": event_data.group.project.id,
                                 "group_type": event_data.group.type,
                             },
