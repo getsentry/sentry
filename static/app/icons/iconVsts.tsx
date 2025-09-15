@@ -1,7 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconVsts(props: SVGIconProps) {
+export function IconVsts(props: SVGIconProps) {
   return (
     <SvgIcon {...props} kind="path">
       <polygon points="0 5.85 1.54 3.81 6.84 2.3 6.84 0 12.57 3.43 2.27 5.54 2.27 11.42 0 10.43 0 5.85" />
@@ -9,7 +9,3 @@ function IconVsts(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconVsts.displayName = 'IconVsts';
-
-export {IconVsts};

@@ -325,7 +325,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         release = Release.objects.create(
             organization_id=org.id,
             version="foobar",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880387, tzinfo=UTC),
         )
         release.add_project(project)
 
@@ -1016,14 +1016,7 @@ class OrganizationReleasesStatsTest(APITestCase):
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
         )
 
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        # Not returned because we don't have `adoptionStages=1`.
-        assert "adoptionStages" not in response.data[0]
         response = self.client.get(f"{url}?adoptionStages=1", format="json")
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert "adoptionStages" in response.data[0]

@@ -128,6 +128,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             />
           </Tooltip>
           {renderFingerprint(id, label)}
+          {fingerprint.mergedBySeer && ' (merged by Seer)'}
         </FingerprintLabel>
 
         <Button

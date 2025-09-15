@@ -1039,6 +1039,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'hide',
+        groups: ['action'],
+        keywords: ['invisible', 'hidden'],
+        name: 'Hide',
+        defaultProps: {},
+      },
+      {
         id: 'lock',
         name: 'Lock',
         defaultProps: {

@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconGrid(props: SVGIconProps) {
+export function IconGrid(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -26,7 +26,3 @@ function IconGrid(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconGrid.displayName = 'IconGrid';
-
-export {IconGrid};

@@ -232,6 +232,7 @@ def get_org_from_detector(detector: Detector) -> tuple[Organization]:
 @cache_func_for_models([(Detector, get_org_from_detector)])
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
     return Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
         type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         project__organization=organization,
         config__mode__in=[
@@ -342,17 +343,8 @@ def get_uptime_subscription(detector: Detector) -> UptimeSubscription:
     return UptimeSubscription.objects.get_from_cache(id=int(data_source.source_id))
 
 
-def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:
-    """
-    Given a detector get the matching project subscription
-    """
-    data_source = detector.data_sources.first()
-    assert data_source
-    return ProjectUptimeSubscription.objects.get(uptime_subscription_id=int(data_source.source_id))
-
-
 def get_audit_log_data(detector: Detector):
-    """Get audit log data from a detector instead of a ProjectUptimeSubscription instance."""
+    """Get audit log data from a detector."""
     uptime_subscription = get_uptime_subscription(detector)
 
     owner_user_id = None

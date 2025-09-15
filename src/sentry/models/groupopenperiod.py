@@ -172,6 +172,7 @@ def get_open_periods_for_group(
     # If there are no open periods in the table, we need to calculate them
     # from the activity log.
     # TODO(snigdha): This is temporary until we have backfilled the GroupOpenPeriod table
+    logger.warning("Open periods not fully backfilled", extra={"group_id": group.id})
 
     if query_start is None or query_end is None:
         query_start = timezone.now() - timedelta(days=90)

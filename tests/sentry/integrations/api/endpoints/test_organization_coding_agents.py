@@ -50,7 +50,7 @@ class MockCodingAgentInstallation(CodingAgentIntegration):
     """Mock coding agent installation for tests."""
 
     def get_client(self):
-        return MockCodingAgentClient(integration=self.model)
+        return MockCodingAgentClient()
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         return CodingAgentState(
