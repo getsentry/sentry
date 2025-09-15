@@ -63,12 +63,8 @@ describe('InvoiceDetails > Payment Form', () => {
 
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Cancel', hidden: true})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Pay Now', hidden: true})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
       screen.queryByText(
         /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
@@ -96,12 +92,8 @@ describe('InvoiceDetails > Payment Form', () => {
 
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Cancel', hidden: true})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Pay Now', hidden: true})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
       screen.queryByText(
         /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/

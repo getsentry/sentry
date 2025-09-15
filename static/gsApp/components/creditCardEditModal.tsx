@@ -54,6 +54,7 @@ function CreditCardEditModal({
               trackGetsentryAnalytics('billing_details.updated_cc', {
                 organization,
                 referrer: decodeScalar(referrer),
+                isStripeComponent: true,
               });
             }}
             {...commonProps}

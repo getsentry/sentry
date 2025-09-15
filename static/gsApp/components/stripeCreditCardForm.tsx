@@ -25,7 +25,6 @@ import type {StripeCreditCardSetupProps} from 'getsentry/components/stripeCredit
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import {usePaymentIntentData, useSetupIntentData} from 'getsentry/hooks/useIntentData';
 import type {
-  FTCConsentLocation,
   PaymentCreateResponse,
   PaymentSetupCreateResponse,
   Subscription,
@@ -71,7 +70,12 @@ function StripeCreditCardForm(props: StripeCreditCardFormProps) {
 }
 
 function StripeSetupIntentForm(props: StripeIntentFormProps) {
-  const {organization, location, onSuccess, onSuccessWithSubscription} = props;
+  const {
+    organization,
+    location: ftcConsentLocation,
+    onSuccess,
+    onSuccessWithSubscription,
+  } = props;
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -80,13 +84,7 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
   });
 
   const {mutateAsync: updateSubscription} = useMutation({
-    mutationFn: ({
-      paymentMethod,
-      ftcConsentLocation,
-    }: {
-      paymentMethod: string | PaymentMethod | null;
-      ftcConsentLocation?: FTCConsentLocation;
-    }) =>
+    mutationFn: ({paymentMethod}: {paymentMethod: string | PaymentMethod | null}) =>
       fetchMutation<Subscription>({
         method: 'PUT',
         url: `/customers/${organization.slug}/`,
@@ -99,6 +97,11 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
       addSuccessMessage(t('Updated payment method.'));
       onSuccessWithSubscription?.(data);
       onSuccess();
+      setIsSubmitting(false);
+    },
+    onError: () => {
+      setErrorMessage(t('Could not update payment method.'));
+      setIsSubmitting(false);
     },
   });
 
@@ -140,6 +143,9 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
         elements,
         clientSecret: intentData.clientSecret,
         redirect: 'if_required',
+        confirmParams: {
+          return_url: window.location.href,
+        },
       })
       .then((result: SetupIntentResult) => {
         if (result.error) {
@@ -149,7 +155,6 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
         }
         updateSubscription({
           paymentMethod: result.setupIntent.payment_method,
-          ftcConsentLocation: location,
         });
       });
   };
@@ -215,6 +220,9 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
         elements,
         clientSecret: intentData.clientSecret,
         redirect: 'if_required',
+        confirmParams: {
+          return_url: window.location.href,
+        },
       })
       .then((result: PaymentIntentResult) => {
         if (result.error) {
@@ -222,13 +230,14 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
           setIsSubmitting(false);
           return;
         }
-        // TODO: make sure this is the correct event
         trackGetsentryAnalytics('billing_failure.paid_now', {
           organization,
           referrer: decodeScalar(referrer),
+          isStripeComponent: true,
         });
         addSuccessMessage(t('Payment sent successfully.'));
         onSuccess();
+        setIsSubmitting(false);
       });
   };
 
@@ -286,7 +295,6 @@ function IntentForm({
         <PaymentElement
           onChange={handleFormChange}
           options={{
-            // fields: {billingDetails: 'never'},
             terms: {card: 'never'}, // we display the terms ourselves
             wallets: {applePay: 'never', googlePay: 'never'},
           }}
