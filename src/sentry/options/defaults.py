@@ -344,7 +344,7 @@ register(
 register(
     "deletions.group-hashes-fetch-batch-size",
     default=10000,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Filestore (default)
