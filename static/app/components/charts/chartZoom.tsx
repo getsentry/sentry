@@ -376,4 +376,7 @@ class ChartZoom extends Component<Props> {
   }
 }
 
+/**
+ * @deprecated use useChartZoom instead
+ */
 export default withSentryRouter(ChartZoom);

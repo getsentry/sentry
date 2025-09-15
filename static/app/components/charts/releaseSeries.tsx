@@ -332,4 +332,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   }
 }
 
+/**
+ * @deprecated use useReleaseBubbles instead
+ */
 export default withSentryRouter(withOrganization(withApi(withTheme(ReleaseSeries))));
