@@ -231,12 +231,12 @@ def evaluate_workflow_triggers(
                     organization,
                 ):
                     try:
-                        detector_workflow = DetectorWorkflow.objects.get(workflow_id=workflow.id)
+                        detector = WorkflowEventContext.get().detector
                         logger.info(
                             "workflow_engine.process_workflows.workflow_triggered",
                             extra={
                                 "workflow_id": workflow.id,
-                                "detector_id": detector_workflow.detector_id,
+                                "detector_id": detector.id,
                                 "organization_id": organization.id,
                                 "project_id": event_data.group.project.id,
                                 "group_type": event_data.group.type,
