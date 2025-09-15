@@ -912,6 +912,22 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert response.status_code == 200, response.content
 
+    def test_top_events_without_groupby(self) -> None:
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": ["count()"],
+                "orderby": ["-count()"],
+                "topEvents": 5,
+                "dataset": "spans",
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert "groupBy is a required" in response.data["detail"]
+
     def test_count_extrapolation(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
