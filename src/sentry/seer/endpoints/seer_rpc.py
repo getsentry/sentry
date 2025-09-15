@@ -55,6 +55,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.repository import Repository
+from sentry.replays.usecases.summarize import get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -931,6 +932,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
+    #
+    # Replays
+    "get_replay_summary_logs": get_replay_summary_logs,
 }
 
 

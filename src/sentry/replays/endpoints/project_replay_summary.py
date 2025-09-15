@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.replays.lib.storage import storage
@@ -21,7 +22,7 @@ from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment
 from sentry.replays.usecases.summarize import (
     fetch_error_details,
     fetch_trace_connected_errors,
-    get_summary_logs,
+    get_summary_logs_from_segments,
 )
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -196,6 +197,37 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 )
                 num_segments = MAX_SEGMENTS_TO_SUMMARIZE
 
+            if features.has(
+                "organizations:replay-ai-summaries-rpc", project.organization, actor=request.user
+            ):
+                start, end = default_start_end_dates()
+                snuba_response = query_replay_instance(
+                    project_id=project.id,
+                    replay_id=replay_id,
+                    start=start,
+                    end=end,
+                    organization=project.organization,
+                    request_user_id=request.user.id,
+                )
+                if not snuba_response:
+                    return self.respond(
+                        {"detail": "Replay not found."},
+                        status=404,
+                    )
+
+                return self.make_seer_request(
+                    SEER_START_TASK_ENDPOINT_PATH,
+                    {
+                        "logs": [],
+                        "use_rpc": True,
+                        "num_segments": num_segments,
+                        "replay_id": replay_id,
+                        "organization_id": project.organization.id,
+                        "project_id": project.id,
+                        "temperature": temperature,
+                    },
+                )
+
             # Fetch the replay's error and trace IDs from the replay_id.
             snuba_response = query_replay_instance(
                 project_id=project.id,
@@ -256,7 +288,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             segment_data = iter_segment_data(segment_md)
 
             # Combine replay and error data and parse into logs.
-            logs = get_summary_logs(segment_data, error_events, project.id)
+            logs = get_summary_logs_from_segments(segment_data, error_events, project.id)
 
             # Post to Seer to start a summary task.
             # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we

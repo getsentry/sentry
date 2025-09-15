@@ -9,7 +9,7 @@ from sentry.replays.usecases.summarize import (
     EventDict,
     _parse_iso_timestamp_to_ms,
     as_log_message,
-    get_summary_logs,
+    get_summary_logs_from_segments,
 )
 from sentry.utils import json
 
@@ -19,7 +19,7 @@ Tests for event types that do not return None for the log message
 
 
 @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
-def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
+def test_get_summary_logs_from_segments(mock_fetch_feedback_details: Mock) -> None:
 
     def _mock_fetch_feedback(feedback_id: str | None, _project_id: int) -> EventDict | None:
         if feedback_id == "12345678123456781234567812345678":
@@ -102,7 +102,7 @@ def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
         ),
     ]
 
-    result = get_summary_logs(_faker(), error_events=error_events, project_id=1)
+    result = get_summary_logs_from_segments(_faker(), error_events=error_events, project_id=1)
 
     assert result == [
         "User experienced an error: 'BadError: something else bad' at 1756400489849.0",

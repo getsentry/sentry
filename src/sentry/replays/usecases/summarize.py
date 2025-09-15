@@ -7,19 +7,22 @@ from urllib.parse import urlparse
 import sentry_sdk
 
 from sentry import nodestore
+from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
-from sentry.replays.query import query_trace_connected_events
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replay_instance, query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
 )
 from sentry.replays.usecases.ingest.event_parser import parse_network_content_lengths, which
+from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
 from sentry.snuba.referrer import Referrer
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -235,17 +238,17 @@ def generate_feedback_log_message(feedback: EventDict) -> str:
 
 
 @sentry_sdk.trace
-def get_summary_logs(
+def get_summary_logs_from_segments(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
     project_id: int,
 ) -> list[str]:
     # Sort error events by timestamp. This list includes all feedback events still.
     error_events.sort(key=lambda x: x["timestamp"])
-    return list(generate_summary_logs(segment_data, error_events, project_id))
+    return list(generate_summary_logs_from_segments(segment_data, error_events, project_id))
 
 
-def generate_summary_logs(
+def generate_summary_logs_from_segments(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
     project_id,
@@ -446,3 +449,75 @@ def _parse_url(s: str, trunc_length: int) -> str:
     if len(s) > trunc_length:
         return s[:trunc_length] + " [truncated]"
     return s
+
+
+def get_replay_summary_logs(project_id: int, replay_id: str, num_segments: int) -> list[str]:
+    """
+    Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
+    """
+
+    project = Project.objects.get(id=project_id)
+    # Last 90 days. We don't support date filters in /summarize/.
+    start, end = default_start_end_dates()
+
+    # Fetch the replay's error and trace IDs from the replay_id.
+    snuba_response = query_replay_instance(
+        project_id=project.id,
+        replay_id=replay_id,
+        start=start,
+        end=end,
+        organization=project.organization,
+        request_user_id=None,  # This is for the viewed_by_me field which is unused for summaries.
+    )
+    processed_response = process_raw_response(
+        snuba_response,
+        fields=[],  # Defaults to all fields.
+    )
+
+    # 404s are handled in the originating Sentry /summarize/ endpoint.
+    if not processed_response:
+        return []
+
+    error_ids = processed_response[0].get("error_ids", [])
+    trace_ids = processed_response[0].get("trace_ids", [])
+
+    # Fetch same-trace errors.
+    trace_connected_errors = fetch_trace_connected_errors(
+        project=project,
+        trace_ids=trace_ids,
+        start=start,
+        end=end,
+        limit=100,
+    )
+    trace_connected_error_ids = {x["id"] for x in trace_connected_errors}
+
+    # Fetch directly linked errors, if they weren't returned by the trace query.
+    replay_errors = fetch_error_details(
+        project_id=project.id,
+        error_ids=[x for x in error_ids if x not in trace_connected_error_ids],
+    )
+
+    error_events = replay_errors + trace_connected_errors
+
+    metrics.distribution(
+        "replays.endpoints.project_replay_summary.direct_errors",
+        value=len(replay_errors),
+    )
+    metrics.distribution(
+        "replays.endpoints.project_replay_summary.trace_connected_errors",
+        value=len(trace_connected_errors),
+    )
+    metrics.distribution(
+        "replays.endpoints.project_replay_summary.num_trace_ids",
+        value=len(trace_ids),
+    )
+
+    # Download segment data.
+    # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
+    segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
+    segment_data = iter_segment_data(segment_md)
+
+    # Combine replay and error data and parse into logs.
+    logs = get_summary_logs_from_segments(segment_data, error_events, project.id)
+
+    return logs
