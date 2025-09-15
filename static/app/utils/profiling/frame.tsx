@@ -32,9 +32,6 @@ export class Frame {
   readonly totalCallDuration?: number;
   readonly averageCallDuration?: number;
 
-  totalWeight = 0;
-  selfWeight = 0;
-
   static Root = new Frame({
     key: ROOT_KEY,
     name: ROOT_KEY,
