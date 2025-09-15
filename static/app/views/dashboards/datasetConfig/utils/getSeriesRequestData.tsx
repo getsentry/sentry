@@ -111,7 +111,7 @@ export function getSeriesRequestData(
 
           const equationOrderBy = equations[equationIndex];
           if (equationOrderBy) {
-            widgetQuery.orderby = widgetQuery.orderby.startsWith('-')
+            requestData.orderby = widgetQuery.orderby.startsWith('-')
               ? `-${equationOrderBy}`
               : equationOrderBy;
           }
