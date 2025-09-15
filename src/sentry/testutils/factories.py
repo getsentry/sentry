@@ -126,6 +126,7 @@ from sentry.notifications.models.notificationaction import (
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -2429,4 +2430,48 @@ class Factories:
             condition_group = Factories.create_data_condition_group()
         return DataConditionGroupAction.objects.create(
             action=action, condition_group=condition_group, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact_size_metrics(
+        artifact,
+        metrics_type=None,
+        state=None,
+        identifier=None,
+        min_download_size=1024 * 1024,  # 1 MB
+        max_download_size=1024 * 1024,  # 1 MB
+        min_install_size=2 * 1024 * 1024,  # 2 MB
+        max_install_size=2 * 1024 * 1024,  # 2 MB
+    ):
+        if metrics_type is None:
+            metrics_type = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        if state is None:
+            state = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+
+        return PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=metrics_type,
+            state=state,
+            identifier=identifier,
+            min_download_size=(
+                min_download_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            max_download_size=(
+                max_download_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            min_install_size=(
+                min_install_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
+            max_install_size=(
+                max_install_size
+                if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+                else None
+            ),
         )
