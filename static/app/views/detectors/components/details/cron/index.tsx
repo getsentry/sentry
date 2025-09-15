@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import sortBy from 'lodash/sortBy';
 
 import {Alert} from 'sentry/components/core/alert';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import TimeSince from 'sentry/components/timeSince';
@@ -71,10 +72,12 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             <Fragment>
               <DatePageFilter />
               <DetailsTimeline monitor={dataSource.queryObj} />
-              <DetectorDetailsOngoingIssues
-                detector={detector}
-                intervalSeconds={intervalSeconds}
-              />
+              <ErrorBoundary mini>
+                <DetectorDetailsOngoingIssues
+                  detector={detector}
+                  intervalSeconds={intervalSeconds}
+                />
+              </ErrorBoundary>
               <Section title={t('Recent Check-Ins')}>
                 <div>
                   <MonitorCheckIns
