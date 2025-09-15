@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
     """
-    Compare request data + signature signed by one of the shared secrets.
+    Compare request data + signature signed by the shared secret.
 
-    Once a key has been able to validate the signature other keys will
-    not be attempted. We should only have multiple keys during key rotations.
+    TODO: Update to support multiple keys for key rotation like other RPC services
+    when OVERWATCH_RPC_SHARED_SECRET is changed back to list[str].
     """
     if not settings.OVERWATCH_RPC_SHARED_SECRET:
         raise RpcAuthenticationSetupException(
@@ -48,11 +48,13 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
 
         signature_input = body
 
-        for key in settings.OVERWATCH_RPC_SHARED_SECRET:
-            computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
-            is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
-            if is_valid:
-                return True
+        # TODO: When OVERWATCH_RPC_SHARED_SECRET becomes list[str], iterate over keys
+        computed = hmac.new(
+            settings.OVERWATCH_RPC_SHARED_SECRET.encode(), signature_input, hashlib.sha256
+        ).hexdigest()
+        is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
+        if is_valid:
+            return True
     except Exception:
         logger.exception("Overwatch RPC signature validation failed")
         return False
