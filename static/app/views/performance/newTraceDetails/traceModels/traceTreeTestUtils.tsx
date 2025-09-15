@@ -245,6 +245,21 @@ export function makeUptimeCheck(
   } as TraceTree.UptimeCheck;
 }
 
+export function makeUptimeCheckTiming(
+  overrides: Partial<TraceTree.UptimeCheckTiming> = {}
+): TraceTree.UptimeCheckTiming {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    event_type: 'uptime_check_timing',
+    op: 'dns.lookup.duration',
+    description: 'DNS lookup',
+    start_timestamp: 0,
+    end_timestamp: 0.05,
+    duration: 0.05,
+    ...overrides,
+  } as TraceTree.UptimeCheckTiming;
+}
+
 export function makeNodeMetadata(
   overrides: Partial<TraceTree.Metadata> = {}
 ): TraceTree.Metadata {

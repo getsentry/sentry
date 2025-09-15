@@ -1,3 +1,5 @@
+import type {Theme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -207,5 +209,13 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     TraceTree.invalidate(this as any, true);
     this.expanded = expanding;
     return true;
+  }
+
+  makeBarColor(theme: Theme): string {
+    if (this.errors.size > 0) {
+      return theme.red300;
+    }
+
+    return theme.blue300;
   }
 }

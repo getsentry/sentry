@@ -301,10 +301,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       return true;
     }
 
-    if (this.value.name?.includes(query)) {
-      return true;
-    }
-
     if (this.id === query) {
       return true;
     }
