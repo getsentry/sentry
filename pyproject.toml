@@ -528,6 +528,7 @@ module = [
     "sentry.models.groupassignee",
     "sentry.models.grouphistory",
     "sentry.models.groupinbox",
+    "sentry.models.groupredirect",
     "sentry.models.groupsubscription",
     "sentry.models.options.*",
     "sentry.monitors.clock_tasks.*",
