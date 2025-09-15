@@ -152,7 +152,10 @@ def test_qualified_selector_breadcrumb_data_screen_bug(default_project: Project)
     organization = project.organization
 
     organization.update_option(
-        "sentry:sensitive_fields", ["breadcrumb.data.screen\nbreadcrumbs.values.*.data.screen"]
+        "sentry:sensitive_fields",
+        [
+            "breadcrumb.data.screen\nbreadcrumbs.values.*.data.screen\nbreadcrumbs.values.*.data.screen"
+        ],
     )
     # organization.update_option("sentry:scrub_data", True)
 
@@ -182,3 +185,36 @@ def test_qualified_selector_breadcrumb_data_screen_bug(default_project: Project)
 
     # Check that extra.screen remains
     assert new_event["extra"]["screen"] == "LoginScreen"
+
+
+@django_db_all
+def test_qualified_selector_breadcrumb_data_screen_bug_2(default_project: Project) -> None:
+    project = default_project
+    organization = project.organization
+
+    organization.update_option("sentry:sensitive_fields", ["screen"])
+    # organization.update_option("sentry:scrub_data", True)
+
+    # Create an event with 'screen' in both breadcrumb data and other locations
+    event = {
+        "breadcrumbs": {
+            "values": [
+                {
+                    "type": "navigation",
+                    "timestamp": 1458857193.973275,
+                    "data": {
+                        "screen": "HomeScreen",
+                        "other_field": "should_remain",
+                    },
+                }
+            ]
+        },
+        "extra": {"screen": "LoginScreen"},
+        "tags": {"screen_type": "mobile"},
+    }
+
+    new_event = scrub_data(project, event)
+
+    # Check that breadcrumb.data.screen is scrubbed
+    breadcrumb_screen = new_event["breadcrumbs"]["values"][0]["data"]["screen"]
+    assert breadcrumb_screen == "[Filtered]"
