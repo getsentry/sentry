@@ -232,11 +232,12 @@ def evaluate_workflow_triggers(
                 ):
                     try:
                         detector = WorkflowEventContext.get().detector
+                        detector_id = detector.id if detector else None
                         logger.info(
                             "workflow_engine.process_workflows.workflow_triggered",
                             extra={
                                 "workflow_id": workflow.id,
-                                "detector_id": detector.id,
+                                "detector_id": detector_id,
                                 "organization_id": organization.id,
                                 "project_id": event_data.group.project.id,
                                 "group_type": event_data.group.type,
