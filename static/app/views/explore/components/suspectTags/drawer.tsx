@@ -1,13 +1,16 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BaseSearchBar from 'sentry/components/searchBar';
+import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Charts} from 'sentry/views/explore/components/suspectTags/charts';
 import {
@@ -21,6 +24,34 @@ type Props = {
   boxSelectOptions: BoxSelectOptions;
   chartInfo: ChartInfo;
 };
+
+function FeedbackButton() {
+  const openForm = useFeedbackForm();
+
+  if (!openForm) {
+    return null;
+  }
+
+  return (
+    <Button
+      size="xs"
+      icon={<IconMegaphone size="xs" />}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t(
+            'How can we make suspect attributes work better for you?'
+          ),
+          tags: {
+            ['feedback.source']: 'suspect-attributes',
+            ['feedback.owner']: 'ml-ai',
+          },
+        })
+      }
+    >
+      {t('Give Feedback')}
+    </Button>
+  );
+}
 
 export function Drawer({boxSelectOptions, chartInfo}: Props) {
   const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, chartInfo});
@@ -64,7 +95,10 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
     <DrawerContainer>
       <DrawerHeader hideBar />
       <StyledDrawerBody>
-        <Title>{t('Suspect Attributes')}</Title>
+        <HeaderContainer>
+          <Title>{t('Suspect Attributes')}</Title>
+          <FeedbackButton />
+        </HeaderContainer>
         <SubTitle>
           {t(
             'Comparing selected and unselected (baseline) data, we sorted  attributes that differ the most in frequency. This indicates how suspicious they are. '
@@ -102,8 +136,15 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
   );
 }
 
-const Title = styled('h4')`
+const HeaderContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: ${space(0.5)};
+`;
+
+const Title = styled('h4')`
+  margin: 0;
   flex-shrink: 0;
 `;
 
