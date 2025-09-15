@@ -410,10 +410,10 @@ function FlamegraphSearch({
 
   const handleKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
-      if (evt.key === 'ArrowDown') {
+      if (evt.key === 'ArrowDown' || (!evt.shiftKey && evt.key === 'Enter')) {
         evt.preventDefault();
         onNextSearchClick();
-      } else if (evt.key === 'ArrowUp') {
+      } else if (evt.key === 'ArrowUp' || (evt.shiftKey && evt.key === 'Enter')) {
         evt.preventDefault();
         onPreviousSearchClick();
       }
