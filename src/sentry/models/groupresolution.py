@@ -6,6 +6,7 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
 from sentry_relay.processing import parse_release
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -149,8 +150,10 @@ class GroupResolution(Model):
                     )
                 except Release.DoesNotExist:
                     ...
-        # if future_release_version was set, the group is resolved in future release
-        elif future_release_version:
+        # if future_release_version was set, the group is resolved in a future, possibly nonexistent release
+        elif future_release_version and features.has(
+            "organizations:resolve-in-future-release", group.organization
+        ):
             if follows_semver:
                 # we have a regression if future_release_version <= given_release.version
                 # if future_release_version == given_release.version => 0 # regression
@@ -210,7 +213,7 @@ class GroupResolution(Model):
             # Fallback to older model if semver comparison fails due to whatever reason
             return res_release_datetime >= release.date_added
         elif res_type == cls.Type.in_future_release:
-            # we should never get here; future_release_version should be set
+            # we should never get here unless the feature flag is disabled; future_release_version should always be set for this type
             metrics.incr("groupresolution.has_resolution.in_future_release", sample_rate=1.0)
             raise NotImplementedError
         else:

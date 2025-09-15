@@ -8,6 +8,7 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 
 
@@ -76,6 +77,7 @@ class ClearExpiredResolutionsTest(TestCase):
         activity2 = Activity.objects.get(id=activity2.id)
         assert activity2.data["version"] == ""
 
+    @with_feature("organizations:resolve-in-future-release")
     def test_in_future_release_resolutions(self) -> None:
         """Test that in_future_release resolutions are properly cleared when a new release is created."""
         project = self.create_project()
