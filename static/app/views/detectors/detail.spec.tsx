@@ -1,3 +1,4 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   CronDetectorFixture,
@@ -86,7 +87,7 @@ describe('DetectorDetails', () => {
       id: '1',
       projectId: project.id,
       dataSources: [dataSource],
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -216,7 +217,7 @@ describe('DetectorDetails', () => {
     const uptimeDetector = UptimeDetectorFixture({
       id: '1',
       projectId: project.id,
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -332,7 +333,7 @@ describe('DetectorDetails', () => {
     const cronDetector = CronDetectorFixture({
       id: '1',
       projectId: project.id,
-      owner: `team:${ownerTeam.id}`,
+      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'],
       dataSources: [cronMonitorDataSource],
     });

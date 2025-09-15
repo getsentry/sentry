@@ -1,3 +1,4 @@
+import type {Actor} from 'sentry/types/core';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
   DataConditionGroupLogicType,
@@ -124,7 +125,7 @@ type BaseDetector = Readonly<{
   lastTriggered: string;
   latestGroup: SimpleGroup | null;
   name: string;
-  owner: string | null;
+  owner: Actor | null;
   projectId: string;
   type: DetectorType;
   workflowIds: string[];
@@ -181,7 +182,7 @@ interface UpdateUptimeDataSourcePayload {
 
 export interface BaseDetectorUpdatePayload {
   name: string;
-  owner: Detector['owner'];
+  owner: string | null;
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];

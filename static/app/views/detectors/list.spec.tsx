@@ -1,3 +1,4 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {ErrorDetectorFixture, MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -183,7 +184,12 @@ describe('DetectorsList', () => {
       const testUser = UserFixture({id: '2', email: 'test@example.com'});
       const mockDetectorsRequestAssignee = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
-        body: [MetricDetectorFixture({name: 'Assigned Detector', owner: testUser.id})],
+        body: [
+          MetricDetectorFixture({
+            name: 'Assigned Detector',
+            owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
+          }),
+        ],
         match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
       });
 
@@ -469,7 +475,7 @@ describe('DetectorsList', () => {
         MetricDetectorFixture({
           id: `filtered-${i}`,
           name: `Assigned Detector ${i + 1}`,
-          owner: testUser.id,
+          owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
         })
       );
 

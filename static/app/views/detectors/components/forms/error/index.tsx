@@ -116,7 +116,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
     formDataToEndpointPayload: (data: ErrorDetectorFormData) => ({
       type: 'error',
       name: detector.name,
-      owner: detector.owner,
+      owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
       projectId: detector.projectId,
       workflowIds: data.workflowIds,
       dataSource: {},

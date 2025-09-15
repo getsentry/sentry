@@ -47,7 +47,7 @@ export function uptimeSavedDetectorToFormData(
   const common = {
     name: detector.name,
     environment,
-    owner: detector.owner || '',
+    owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
     projectId: detector.projectId,
   };
 
