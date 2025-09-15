@@ -37,12 +37,12 @@ export function OurlogsSection({
   group: Group;
   project: Project;
 }) {
+  const traceId = event.contexts?.trace?.trace_id;
   return (
-    <LogsQueryParamsProvider source="state">
+    <LogsQueryParamsProvider source="state" freeze={traceId ? {traceId} : undefined}>
       <LogsPageParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         isTableFrozen
-        limitToTraceId={event.contexts?.trace?.trace_id}
       >
         <LogsPageDataProvider>
           <OurlogsSectionContent event={event} group={group} project={project} />
@@ -70,7 +70,7 @@ function OurlogsSectionContent({
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const limitToTraceId = event.contexts?.trace?.trace_id;
+  const traceId = event.contexts?.trace?.trace_id;
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
       e.stopPropagation();
@@ -79,11 +79,13 @@ function OurlogsSectionContent({
       });
       openDrawer(
         () => (
-          <LogsQueryParamsProvider source="state">
+          <LogsQueryParamsProvider
+            source="state"
+            freeze={traceId ? {traceId} : undefined}
+          >
             <LogsPageParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
               isTableFrozen
-              limitToTraceId={limitToTraceId}
             >
               <LogsPageDataProvider>
                 <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
@@ -111,7 +113,7 @@ function OurlogsSectionContent({
         }
       );
     },
-    [group, event, project, openDrawer, organization, limitToTraceId]
+    [group, event, project, openDrawer, organization, traceId]
   );
 
   const onEmbeddedRowClick = useCallback(
@@ -123,7 +125,7 @@ function OurlogsSectionContent({
   if (!feature) {
     return null;
   }
-  if (!limitToTraceId) {
+  if (!traceId) {
     // If there isn't a traceId (eg. profiling issue), we shouldn't show logs since they are trace specific.
     // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;

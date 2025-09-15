@@ -15,6 +15,7 @@ import {
 import type {
   CronDetector,
   Detector,
+  MetricCondition,
   MetricDetector,
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
@@ -37,7 +38,7 @@ type DetectorLinkProps = {
   className?: string;
 };
 
-function formatConditionType(condition: DataCondition) {
+function formatConditionType(condition: MetricCondition) {
   switch (condition.type) {
     case DataConditionType.GREATER:
       return '>';
@@ -143,7 +144,9 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
-            <DetailItem>{dataSource.queryObj.snubaQuery.aggregate}</DetailItem>
+            <DetailItem>
+              {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+            </DetailItem>
             <DetailItem>
               {middleEllipsis(
                 datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery),

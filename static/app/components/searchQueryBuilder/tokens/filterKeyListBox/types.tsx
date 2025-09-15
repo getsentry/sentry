@@ -53,19 +53,13 @@ export interface AskSeerItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export interface AskSeerConsentItem extends SelectOptionWithKey<string> {
-  type: 'ask-seer-consent';
-  value: string;
-}
-
 export type SearchKeyItem =
   | KeySectionItem
   | KeyItem
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | AskSeerItem
-  | AskSeerConsentItem;
+  | AskSeerItem;
 
 export type FilterKeyItem =
   | KeyItem
@@ -75,8 +69,7 @@ export type FilterKeyItem =
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | AskSeerItem
-  | AskSeerConsentItem;
+  | AskSeerItem;
 
 export type Section = {
   label: ReactNode;

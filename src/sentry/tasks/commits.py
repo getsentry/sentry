@@ -153,8 +153,7 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
                     release=prev_release,
                     repository_id=repo.id,
                 ).values_list("commit__key", flat=True)[0]
-            except IndexError as e:
-                sentry_sdk.capture_exception(e)
+            except IndexError:
                 pass
 
         end_sha = ref["commit"]

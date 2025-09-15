@@ -48,6 +48,7 @@ const NULL_PREVIEW_STATE: CartPreviewState = {
 interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
+  formDataForPreview: CheckoutFormData;
   hasCompleteBillingDetails: boolean;
   onSuccess: ({
     invoice,
@@ -531,6 +532,7 @@ function Cart({
   subscription,
   organization,
   referrer,
+  formDataForPreview,
   hasCompleteBillingDetails,
   onSuccess,
 }: CartProps) {
@@ -548,7 +550,7 @@ function Cart({
     await utils.fetchPreviewData(
       organization,
       api,
-      formData,
+      formDataForPreview,
       () => setPreviewState(prev => ({...prev, isLoading: true})),
       (data: PreviewData | null) => {
         setPreviewState(prev => ({
@@ -598,7 +600,7 @@ function Cart({
         resetPreviewState();
       }
     );
-  }, [api, formData, organization, subscription.contractPeriodEnd]);
+  }, [api, formDataForPreview, organization, subscription.contractPeriodEnd]);
 
   useEffect(() => {
     fetchPreview();

@@ -1,123 +1,146 @@
+import type {Theme} from '@emotion/react';
+import color from 'color';
+
+import {t} from 'sentry/locale';
 import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
-// TODO: Update to use theme
-const COLORS = {
-  gray900: '#0F0C13',
-  gray700: '#1E1825',
-  gray500: '#2D2435',
-  gray300: '#4A3B57',
-  gray200: '#ddd',
-  gray100: 'hsla(270, 20%, 50%, 0.5)',
-  border: 'hsla(0, 0.00%, 0.00%, 0.8)',
-  shadow: 'hsla(0, 0.00%, 0.00%, 0.4)',
-  purple: 'hsla(252, 85%, 60%, 0.7)',
-  indigo: 'hsla(265, 71%, 43%, 0.7)',
-  pink: 'hsla(324, 91%, 59%, 0.7)',
-  salmon: 'hsla(2, 95%, 71%, 0.7)',
-  orange: 'hsla(33, 100%, 61%, 0.7)',
-  kiwi: 'hsla(69, 80%, 40%, 0.60)',
-  cyan: 'hsla(192, 100%, 50%, 0.5)',
-  white: '#FFFFFF',
-} as const;
+export function getAppSizeCategoryInfo(
+  theme: Theme
+): Record<string, {color: string; displayName: string; headerColor?: string}> {
+  const createHeaderColor = (baseColor: string): string => {
+    return color(baseColor).alpha(0.6).string();
+  };
 
-export const APP_SIZE_CATEGORY_INFO: Record<
-  string,
-  {color: string; displayName: string}
-> = {
-  [TreemapType.FILES]: {
-    color: COLORS.gray100,
-    displayName: 'Files',
-  },
-  [TreemapType.EXECUTABLES]: {
-    color: COLORS.gray100,
-    displayName: 'Executables',
-  },
-  [TreemapType.RESOURCES]: {
-    color: COLORS.gray100,
-    displayName: 'Resources',
-  },
-  [TreemapType.ASSETS]: {
-    color: COLORS.gray100,
-    displayName: 'Assets',
-  },
-  [TreemapType.MANIFESTS]: {
-    color: COLORS.cyan,
-    displayName: 'Manifests',
-  },
-  [TreemapType.SIGNATURES]: {
-    color: COLORS.cyan,
-    displayName: 'Signatures',
-  },
-  [TreemapType.FONTS]: {
-    color: COLORS.cyan,
-    displayName: 'Fonts',
-  },
-  [TreemapType.FRAMEWORKS]: {
-    color: COLORS.pink,
-    displayName: 'Frameworks',
-  },
-  [TreemapType.PLISTS]: {
-    color: COLORS.pink,
-    displayName: 'Plist Files',
-  },
-  [TreemapType.DYLD]: {
-    color: COLORS.pink,
-    displayName: 'Dynamic Libraries',
-  },
-  [TreemapType.MACHO]: {
-    color: COLORS.pink,
-    displayName: 'Mach-O Files',
-  },
-  [TreemapType.FUNCTION_STARTS]: {
-    color: COLORS.pink,
-    displayName: 'Function Starts',
-  },
-  [TreemapType.DEX]: {
-    color: COLORS.kiwi,
-    displayName: 'Dex',
-  },
-  [TreemapType.NATIVE_LIBRARIES]: {
-    color: COLORS.kiwi,
-    displayName: 'Native Libraries',
-  },
-  [TreemapType.COMPILED_RESOURCES]: {
-    color: COLORS.kiwi,
-    displayName: 'Compiled Resources',
-  },
-  [TreemapType.MODULES]: {
-    color: COLORS.cyan,
-    displayName: 'Modules',
-  },
-  [TreemapType.CLASSES]: {
-    color: COLORS.cyan,
-    displayName: 'Classes',
-  },
-  [TreemapType.METHODS]: {
-    color: COLORS.cyan,
-    displayName: 'Methods',
-  },
-  [TreemapType.STRINGS]: {
-    color: COLORS.cyan,
-    displayName: 'Strings',
-  },
-  [TreemapType.SYMBOLS]: {
-    color: COLORS.cyan,
-    displayName: 'Symbols',
-  },
-  [TreemapType.BINARY]: {
-    color: COLORS.cyan,
-    displayName: 'Binary Data',
-  },
-  [TreemapType.EXTERNAL_METHODS]: {
-    color: COLORS.cyan,
-    displayName: 'External Methods',
-  },
-  [TreemapType.OTHER]: {
-    color: COLORS.purple,
-    displayName: 'Other',
-  },
-  [TreemapType.UNMAPPED]: {
-    color: COLORS.purple,
-    displayName: 'Unmapped',
-  },
-};
+  return {
+    [TreemapType.FILES]: {
+      color: 'hsla(270, 20%, 50%, 0.5)',
+      headerColor: createHeaderColor('hsla(270, 20%, 50%, 0.5)'),
+      displayName: t('Files'),
+    },
+    [TreemapType.EXECUTABLES]: {
+      color: theme.blue300,
+      headerColor: createHeaderColor(theme.blue300),
+      displayName: t('Executables'),
+    },
+    [TreemapType.RESOURCES]: {
+      color: theme.pink400,
+      headerColor: createHeaderColor(theme.pink400),
+      displayName: t('Resources'),
+    },
+    [TreemapType.ASSETS]: {
+      color: theme.green300,
+      headerColor: createHeaderColor(theme.green300),
+      displayName: t('Assets'),
+    },
+    [TreemapType.MANIFESTS]: {
+      color: theme.blue300,
+      headerColor: createHeaderColor(theme.blue300),
+      displayName: t('Manifests'),
+    },
+    [TreemapType.SIGNATURES]: {
+      color: theme.blue300,
+      headerColor: createHeaderColor(theme.blue300),
+      displayName: t('Signatures'),
+    },
+    [TreemapType.FONTS]: {
+      color: theme.purple400,
+      headerColor: createHeaderColor(theme.purple400),
+      displayName: t('Fonts'),
+    },
+    [TreemapType.FRAMEWORKS]: {
+      color: theme.pink400,
+      headerColor: createHeaderColor(theme.pink400),
+      displayName: t('Frameworks'),
+    },
+    [TreemapType.PLISTS]: {
+      color: theme.pink400,
+      headerColor: createHeaderColor(theme.pink400),
+      displayName: t('Plist Files'),
+    },
+    [TreemapType.DYLD]: {
+      color: theme.blue400,
+      headerColor: createHeaderColor(theme.blue400),
+      displayName: t('Dynamic Libraries'),
+    },
+    [TreemapType.MACHO]: {
+      color: theme.pink400,
+      headerColor: createHeaderColor(theme.pink400),
+      displayName: t('Mach-O Files'),
+    },
+    [TreemapType.FUNCTION_STARTS]: {
+      color: theme.pink400,
+      headerColor: createHeaderColor(theme.pink400),
+      displayName: t('Function Starts'),
+    },
+    [TreemapType.DEX]: {
+      color: theme.blue300,
+      headerColor: createHeaderColor(theme.blue300),
+      displayName: 'Dex', // not translated because it's an Android term
+    },
+    [TreemapType.NATIVE_LIBRARIES]: {
+      color: theme.yellow300,
+      headerColor: createHeaderColor(theme.yellow300),
+      displayName: t('Native Libraries'),
+    },
+    [TreemapType.COMPILED_RESOURCES]: {
+      color: theme.green300,
+      headerColor: createHeaderColor(theme.green300),
+      displayName: t('Compiled Resources'),
+    },
+    [TreemapType.MODULES]: {
+      color: theme.blue400,
+      headerColor: createHeaderColor(theme.blue400),
+      displayName: t('Modules'),
+    },
+    [TreemapType.CLASSES]: {
+      color: theme.blue400,
+      headerColor: createHeaderColor(theme.blue400),
+      displayName: t('Classes'),
+    },
+    [TreemapType.METHODS]: {
+      color: theme.blue400,
+      headerColor: createHeaderColor(theme.blue400),
+      displayName: t('Methods'),
+    },
+    [TreemapType.STRINGS]: {
+      color: theme.blue400,
+      headerColor: createHeaderColor(theme.blue400),
+      displayName: t('Strings'),
+    },
+    [TreemapType.SYMBOLS]: {
+      color: theme.blue400,
+      headerColor: createHeaderColor(theme.blue400),
+      displayName: t('Symbols'),
+    },
+    [TreemapType.BINARY]: {
+      color: theme.blue400,
+      headerColor: createHeaderColor(theme.blue400),
+      displayName: t('Binary Data'),
+    },
+    [TreemapType.EXTERNAL_METHODS]: {
+      color: theme.blue400,
+      headerColor: createHeaderColor(theme.blue400),
+      displayName: t('External Methods'),
+    },
+    [TreemapType.OTHER]: {
+      color: theme.gray300,
+      headerColor: createHeaderColor(theme.gray300),
+      displayName: t('Other'),
+    },
+    [TreemapType.UNMAPPED]: {
+      color: theme.gray300,
+      headerColor: createHeaderColor(theme.gray300),
+      displayName: t('Unmapped'),
+    },
+    [TreemapType.EXTENSIONS]: {
+      color: theme.pink400,
+      headerColor: createHeaderColor(theme.pink400),
+      displayName: t('Extensions'),
+    },
+    [TreemapType.CODE_SIGNATURE]: {
+      color: theme.blue300,
+      headerColor: createHeaderColor(theme.blue300),
+      displayName: t('Code Signature'),
+    },
+  };
+}

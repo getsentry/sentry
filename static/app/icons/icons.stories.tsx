@@ -1039,6 +1039,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'hide',
+        groups: ['action'],
+        keywords: ['invisible', 'hidden'],
+        name: 'Hide',
+        defaultProps: {},
+      },
+      {
         id: 'lock',
         name: 'Lock',
         defaultProps: {
@@ -1707,6 +1714,12 @@ const createIconFilter =
   (icon: TIcon): boolean => {
     const name = fzf(icon.name, searchTerm.toLowerCase(), false);
     if (name.score > 10) {
+      return true;
+    }
+    // Also search against the full icon name with "Icon" prefix (e.g., "IconSettings")
+    const iconName = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
+    const fullIconName = fzf(iconName, searchTerm.toLowerCase(), false);
+    if (fullIconName.score > 10) {
       return true;
     }
     for (const keyword of icon.keywords ?? []) {

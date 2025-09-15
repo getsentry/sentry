@@ -360,14 +360,18 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 tags={"mode": mode_name, **metric_tags},
                 sample_rate=1.0,
             )
-            logger.info(
-                "uptime.result_processor.skipping_already_processed_update",
-                extra={
-                    "guid": result["guid"],
-                    "region": result["region"],
-                    "subscription_id": result["subscription_id"],
-                },
-            )
+
+            # Don't log too much; this codepath can get used when the consumer is doing increased
+            # work, which can further increase its work, and so make a bad situation even worse.
+            if random.random() < 0.01:
+                logger.info(
+                    "uptime.result_processor.skipping_already_processed_update",
+                    extra={
+                        "guid": result["guid"],
+                        "region": result["region"],
+                        "subscription_id": result["subscription_id"],
+                    },
+                )
             return
 
         subscription_interval_ms = 1000 * subscription.interval_seconds

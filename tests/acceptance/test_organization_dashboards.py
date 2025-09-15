@@ -114,7 +114,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_move_existing_widget_on_existing_dashboard(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
@@ -140,7 +139,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_widget_edit_keeps_same_layout_after_modification(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -217,7 +215,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_resize_new_and_existing_widgets(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -260,7 +257,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_delete_existing_widget_does_not_trigger_new_widget_layout_reset(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -307,7 +303,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_resize_big_number_widget(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Big Number Widget",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
             widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
@@ -338,7 +333,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             [
                 DashboardWidget(
                     dashboard=self.dashboard,
-                    order=i,
                     title=f"Existing Widget {i}",
                     display_type=DashboardWidgetDisplayTypes.LINE_CHART,
                     widget_type=DashboardWidgetTypes.DISCOVER,
@@ -368,7 +362,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_delete_widget_in_view_mode(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Big Number Widget",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -472,7 +465,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             [
                 DashboardWidget(
                     dashboard=self.dashboard,
-                    order=i,
                     title=f"Existing Widget {i}",
                     display_type=DashboardWidgetDisplayTypes.LINE_CHART,
                     widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
@@ -527,7 +519,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             [
                 DashboardWidget(
                     dashboard=self.dashboard,
-                    order=i,
                     title=f"Widget {i}",
                     display_type=display_type,
                     widget_type=DashboardWidgetTypes.DISCOVER,
@@ -581,7 +572,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     ) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Originally Big Number - 3 rows",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -622,7 +612,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     ) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Originally Area Chart - 3 rows",
             display_type=DashboardWidgetDisplayTypes.AREA_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -671,7 +660,6 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         )
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -679,7 +667,6 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -706,7 +693,6 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         )
         DashboardWidget.objects.create(
             dashboard=dashboard_with_layouts,
-            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.BAR_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -718,7 +704,6 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         # x: 4, y: 0, w: 2, h: 2
         DashboardWidget.objects.create(
             dashboard=dashboard_with_layouts,
-            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,

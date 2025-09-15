@@ -114,7 +114,7 @@ export function SpanDescription({
         project_id={node.event?.projectID}
         organization={organization}
       />
-      <Link
+      <StyledLink
         to={
           hasExploreEnabled
             ? getSearchInExploreTarget(
@@ -156,11 +156,11 @@ export function SpanDescription({
           }
         }}
       >
-        <StyledIconGraph type="scatter" size="xs" />
+        <IconGraph type="scatter" size="xs" />
         {hasNewSpansUIFlag || hasExploreEnabled
           ? t('More Samples')
           : t('View Similar Spans')}
-      </Link>
+      </StyledLink>
     </BodyContentWrapper>
   ) : null;
 
@@ -356,10 +356,6 @@ const CodeSnippetWrapper = styled('div')`
   flex: 1;
 `;
 
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
-`;
-
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
   gap: ${space(1)};
@@ -388,4 +384,10 @@ const DescriptionWrapper = styled('div')`
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
   padding: ${space(1)};
   justify-content: center;
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

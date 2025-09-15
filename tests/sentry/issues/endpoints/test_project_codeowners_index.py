@@ -56,16 +56,29 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_codeowners_with_integration(self, get_codeowner_mock_file: MagicMock) -> None:
-        code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
+        code_owner = self.create_codeowners(
+            self.project, self.code_mapping, raw=f"*.js {self.external_team.external_name}"
+        )
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
         assert resp.status_code == 200
         resp_data = resp.data[0]
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
-        assert resp_data["dateUpdated"] == code_owner.date_updated
+        # TODO (ID-832): this assert will pass once we are no longer updating ProjectCodeOwners objects in the GET request handler
+        # assert resp_data["dateUpdated"] == code_owner.date_updated
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider
+        assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+        assert resp_data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "codeowners", "pattern": "*.js"},
+                    "owners": [{"type": "team", "id": self.team.id, "name": self.team.slug}],
+                }
+            ],
+        }
 
     @patch(
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
@@ -74,17 +87,30 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
     def test_get_expanded_codeowners_with_integration(
         self, get_codeowner_mock_file: MagicMock
     ) -> None:
-        code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
+        code_owner = self.create_codeowners(
+            self.project, self.code_mapping, raw=f"*.js {self.external_team.external_name}"
+        )
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(f"{self.url}?expand=codeMapping")
         assert resp.status_code == 200
         resp_data = resp.data[0]
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
-        assert resp_data["dateUpdated"] == code_owner.date_updated
+        # TODO (ID-832): this assert will pass once we are no longer updating ProjectCodeOwners objects in the GET request handler
+        # assert resp_data["dateUpdated"] == code_owner.date_updated
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
-        assert resp_data["provider"] == self.integration.provider
         assert resp_data["codeMapping"]["id"] == str(self.code_mapping.id)
+        assert resp_data["provider"] == self.integration.provider
+        assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+        assert resp_data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "codeowners", "pattern": "*.js"},
+                    "owners": [{"type": "team", "id": self.team.id, "name": self.team.slug}],
+                }
+            ],
+        }
 
     @patch(
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",

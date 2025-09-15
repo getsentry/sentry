@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
@@ -11,11 +12,13 @@ from sentry.models.repository import Repository
 from sentry.releases.commits import (
     bulk_create_commit_file_changes,
     create_commit,
+    get_dual_write_start_date,
     get_or_create_commit,
     update_commit,
 )
 from sentry.releases.models import Commit, CommitFileChange
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class CreateCommitDualWriteTest(TestCase):
@@ -499,41 +502,55 @@ class CreateCommitFileChangeDualWriteTest(TestCase):
             assert len(old_file_changes) == 1
             assert new_file_changes is not None
             assert len(new_file_changes) == 1
-            assert new_file_changes[0].id == old_file_changes[0].id
+            # With ignore_conflicts, returned objects don't have IDs, so fetch from DB
+            fetched_old = OldCommitFileChange.objects.get(
+                commit_id=self.commit.id, filename="test_pk.py", type="M"
+            )
+            fetched_new = CommitFileChange.objects.get(
+                commit_id=self.commit.id, filename="test_pk.py", type="M"
+            )
+            assert fetched_new.id == fetched_old.id
             # The IDs should NOT be sequential with the manual file change we created
-            assert new_file_changes[0].id != manual_new_fc.id + 1
-            assert old_file_changes[0].id > dummy_fc2.id
-            fetched_new = CommitFileChange.objects.get(id=old_file_changes[0].id)
+            assert fetched_new.id != manual_new_fc.id + 1
+            assert fetched_old.id > dummy_fc2.id
             assert fetched_new.filename == "test_pk.py"
             assert fetched_new.organization_id == self.organization.id
 
-    def test_create_file_change_transaction_atomicity(self):
-        """Test that the operation is atomic when dual write fails"""
+    def test_create_file_change_idempotent(self):
+        """Test that the operation is idempotent with ignore_conflicts"""
         with self.feature({"organizations:commit-retention-dual-writing": True}):
-            # Create a file change that will conflict on the unique constraint
+            # Create a file change first
             existing_old = OldCommitFileChange.objects.create(
                 organization_id=self.organization.id,
                 commit_id=self.commit.id,
                 filename="unique_file.py",
                 type="A",
             )
-            with pytest.raises(Exception):
-                file_changes = [
-                    OldCommitFileChange(
-                        organization_id=self.organization.id,
-                        commit_id=self.commit.id,
-                        filename="unique_file.py",
-                        type="M",
-                    ),
-                ]
-                bulk_create_commit_file_changes(
-                    organization=self.organization,
-                    file_changes=file_changes,
-                )
+            # Try to create the same file change again (should be ignored, not error)
+            file_changes = [
+                OldCommitFileChange(
+                    organization_id=self.organization.id,
+                    commit_id=self.commit.id,
+                    filename="unique_file.py",
+                    type="A",  # Same type - exact duplicate
+                ),
+            ]
+            # Should not raise due to ignore_conflicts
+            bulk_create_commit_file_changes(
+                organization=self.organization,
+                file_changes=file_changes,
+            )
 
             existing_old.refresh_from_db()
             assert existing_old.type == "A"
-            assert not CommitFileChange.objects.filter(filename="unique_file.py").exists()
+            # Should have dual written the existing one
+            assert CommitFileChange.objects.filter(
+                commit_id=self.commit.id, filename="unique_file.py"
+            ).exists()
+            new_fc = CommitFileChange.objects.get(
+                commit_id=self.commit.id, filename="unique_file.py"
+            )
+            assert new_fc.id == existing_old.id
 
     def test_bulk_create_multiple_file_changes(self):
         """Test that bulk creation works with multiple file changes"""
@@ -580,7 +597,14 @@ class CreateCommitFileChangeDualWriteTest(TestCase):
             assert new_file_changes[2].filename == "file3.py"
             assert new_file_changes[2].type == "D"
 
-            for old_fc, new_fc in zip(old_file_changes, new_file_changes):
+            # With ignore_conflicts, returned objects don't have IDs, so fetch from DB
+            for filename, ftype in [("file1.py", "A"), ("file2.py", "M"), ("file3.py", "D")]:
+                old_fc = OldCommitFileChange.objects.get(
+                    commit_id=self.commit.id, filename=filename, type=ftype
+                )
+                new_fc = CommitFileChange.objects.get(
+                    commit_id=self.commit.id, filename=filename, type=ftype
+                )
                 assert old_fc.id == new_fc.id
 
             assert (
@@ -595,3 +619,45 @@ class CreateCommitFileChangeDualWriteTest(TestCase):
                 ).count()
                 == 3
             )
+
+
+class GetDualWriteStartDateTest(TestCase):
+    def test_get_dual_write_start_date_not_set(self):
+        assert get_dual_write_start_date() is None
+
+    def test_get_dual_write_start_date_valid_naive(self):
+        """Test that naive datetime is converted to UTC"""
+        with override_options({"commit.dual-write-start-date": "2024-01-15T10:30:00"}):
+            result = get_dual_write_start_date()
+            assert result is not None
+            assert result.tzinfo is not None
+            assert result == datetime(2024, 1, 15, 10, 30, tzinfo=UTC)
+
+    def test_get_dual_write_start_date_valid_with_timezone(self):
+        """Test that timezone-aware datetime is preserved"""
+        with override_options({"commit.dual-write-start-date": "2024-01-15T10:30:00+05:00"}):
+            result = get_dual_write_start_date()
+            assert result is not None
+            assert result.tzinfo is not None
+            # The datetime should be the same moment in time
+            expected = datetime(2024, 1, 15, 5, 30, tzinfo=UTC)
+            assert result == expected
+
+    def test_get_dual_write_start_date_invalid(self):
+        with override_options({"commit.dual-write-start-date": "not-a-date"}):
+            assert get_dual_write_start_date() is None
+
+    def test_get_dual_write_start_date_empty_string(self):
+        with override_options({"commit.dual-write-start-date": ""}):
+            assert get_dual_write_start_date() is None
+
+    def test_get_dual_write_start_date_comparison_with_django_models(self):
+        """Test that the returned datetime can be compared with Django model datetimes"""
+        with override_options({"commit.dual-write-start-date": "2024-01-15T10:30:00"}):
+            dual_write_start = get_dual_write_start_date()
+            assert dual_write_start is not None
+
+            # Django's timezone.now() returns timezone-aware datetime
+            now = timezone.now()
+            # This comparison should not raise TypeError
+            assert now > dual_write_start

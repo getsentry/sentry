@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
@@ -22,8 +22,8 @@ import {
 } from 'sentry/views/insights/uptime/timelineConfig';
 
 type Props = {
+  traceSampling: boolean;
   uptimeChecks: UptimeCheck[];
-  uptimeRule: UptimeRule;
 };
 
 /**
@@ -32,7 +32,7 @@ type Props = {
  */
 const EMPTY_TRACE = '00000000000000000000000000000000';
 
-export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
+export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
   const traceIds = uptimeChecks?.map(check => check.traceId) ?? [];
 
   const {data: spanCounts, isPending: spanCountLoading} = useSpans(
@@ -72,7 +72,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
             column={column as GridColumnOrder<keyof UptimeCheck>}
-            uptimeRule={uptimeRule}
+            traceSampling={traceSampling}
             check={dataRow}
             spanCount={traceSpanCounts?.[dataRow.traceId]}
           />
@@ -86,12 +86,12 @@ function CheckInBodyCell({
   check,
   column,
   spanCount,
-  uptimeRule,
+  traceSampling,
 }: {
   check: UptimeCheck;
   column: GridColumnOrder<keyof UptimeCheck>;
   spanCount: number | undefined;
-  uptimeRule: UptimeRule;
+  traceSampling: boolean;
 }) {
   const theme = useTheme();
 
@@ -163,7 +163,7 @@ function CheckInBodyCell({
           <Tooltip
             isHoverable
             title={
-              uptimeRule.traceSampling
+              traceSampling
                 ? tct(
                     'No spans found in this trace. Configure your SDKs to see correlated spans across services. [learnMore:Learn more].',
                     {learnMore}

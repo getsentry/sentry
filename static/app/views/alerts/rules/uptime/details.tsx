@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -191,7 +192,12 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           )}
           <DetailsTimeline uptimeRule={uptimeRule} onStatsLoaded={checkHasUnknown} />
           <UptimeIssues project={project} uptimeRule={uptimeRule} />
-          <UptimeChecksTable uptimeRule={uptimeRule} />
+          <SectionHeading>{t('Checks List')}</SectionHeading>
+          <UptimeChecksTable
+            detectorId={uptimeRule.id}
+            projectSlug={uptimeRule.projectSlug}
+            traceSampling={uptimeRule.traceSampling}
+          />
         </Layout.Main>
         <Layout.Side>
           <UptimeDetailsSidebar

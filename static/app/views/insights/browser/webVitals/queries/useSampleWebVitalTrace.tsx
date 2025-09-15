@@ -67,7 +67,7 @@ function useSampleWebVitalTrace({
     {
       search,
       sorts: [{field: `measurements.${webVital}`, kind: 'asc'}],
-      fields: [SpanFields.TRACE, field],
+      fields: [SpanFields.TRACE, SpanFields.TIMESTAMP, field],
       enabled: defined(p75Value) && enabled,
       limit: 1, // We only need one sample to attach to the issue
     },
@@ -114,12 +114,13 @@ export function useSampleWebVitalTraceParallel({
   });
   const isLoading =
     isLcpLoading || isClsLoading || isFcpLoading || isTtfbLoading || isInpLoading;
+
   return {
-    lcp: lcp?.[0]?.[SpanFields.TRACE],
-    cls: cls?.[0]?.[SpanFields.TRACE],
-    fcp: fcp?.[0]?.[SpanFields.TRACE],
-    ttfb: ttfb?.[0]?.[SpanFields.TRACE],
-    inp: inp?.[0]?.[SpanFields.TRACE],
+    lcp: lcp?.[0],
+    cls: cls?.[0],
+    fcp: fcp?.[0],
+    ttfb: ttfb?.[0],
+    inp: inp?.[0],
     isLoading,
   };
 }

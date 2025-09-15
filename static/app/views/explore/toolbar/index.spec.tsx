@@ -620,7 +620,7 @@ describe('ExploreToolbar', () => {
 
     await userEvent.click(within(section).getByText(/Compare/));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/traces/compare/',
+      pathname: '/organizations/org-slug/explore/traces/compare/',
       query: expect.objectContaining({
         queries: [
           '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
@@ -665,7 +665,7 @@ describe('ExploreToolbar', () => {
     );
     expect(router.push).toHaveBeenCalledWith({
       pathname:
-        '/organizations/org-slug/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
+        '/organizations/org-slug/issues/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
     });
   });
 

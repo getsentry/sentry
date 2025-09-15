@@ -1,4 +1,8 @@
-import {AutomationFixture} from 'sentry-fixture/automations';
+import {
+  ActionFilterFixture,
+  ActionFixture,
+  AutomationFixture,
+} from 'sentry-fixture/automations';
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -449,6 +453,91 @@ describe('AutomationsList', () => {
           })
         );
       });
+    });
+  });
+
+  describe('warning indicators', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/1/',
+        body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        body: [
+          // Automation with no actions - should show danger
+          AutomationFixture({
+            id: '1',
+            name: 'No Actions Automation',
+            actionFilters: [ActionFilterFixture({actions: []})],
+          }),
+          // Automation with all disabled actions - should show danger
+          AutomationFixture({
+            id: '2',
+            name: 'All Disabled Actions',
+            actionFilters: [
+              ActionFilterFixture({
+                actions: [ActionFixture({status: 'disabled'})],
+              }),
+            ],
+          }),
+          // Automation with mixed action statuses - should show warning
+          AutomationFixture({
+            id: '3',
+            name: 'Mixed Actions Status',
+            actionFilters: [
+              ActionFilterFixture({
+                actions: [ActionFixture({status: 'disabled'}), ActionFixture()],
+              }),
+            ],
+          }),
+        ],
+      });
+    });
+
+    it('shows different warning messages for different action states', async () => {
+      render(<AutomationsList />, {organization});
+      await screen.findByText('No Actions Automation');
+      await screen.findByText('All Disabled Actions');
+      await screen.findByText('Mixed Actions Status');
+
+      const rows = screen.getAllByTestId('automation-list-row');
+      expect(rows).toHaveLength(3);
+
+      // Test first automation (no actions) - should show "Invalid" and danger tooltip
+      const noActionsRow = rows.find(row =>
+        within(row).queryByText('No Actions Automation')
+      )!;
+      expect(within(noActionsRow).getByText('Invalid')).toBeInTheDocument();
+      const noActionsIcon = within(noActionsRow).getByRole('img');
+      await userEvent.hover(noActionsIcon);
+      expect(
+        await screen.findByText('You must add an action for this automation to run.')
+      ).toBeInTheDocument();
+
+      // Test second automation (all disabled) - should show "Invalid" and danger tooltip
+      const allDisabledRow = rows.find(row =>
+        within(row).queryByText('All Disabled Actions')
+      )!;
+      expect(within(allDisabledRow).getByText('Invalid')).toBeInTheDocument();
+      const allDisabledIcon = within(allDisabledRow).getByRole('img');
+      await userEvent.hover(allDisabledIcon);
+      expect(
+        await screen.findByText(
+          'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+        )
+      ).toBeInTheDocument();
+
+      // Test third automation (mixed) - should NOT show "Invalid" but show warning tooltip
+      const mixedRow = rows.find(row => within(row).queryByText('Mixed Actions Status'))!;
+      expect(within(mixedRow).queryByText('Invalid')).not.toBeInTheDocument();
+      const mixedIcon = within(mixedRow).getByRole('img');
+      await userEvent.hover(mixedIcon);
+      expect(
+        await screen.findByText(
+          'One or more actions need to be reconfigured in order to run.'
+        )
+      ).toBeInTheDocument();
     });
   });
 });

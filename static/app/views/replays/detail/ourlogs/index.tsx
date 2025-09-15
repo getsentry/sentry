@@ -10,10 +10,7 @@ import {
   LogsPageDataProvider,
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  LogsPageParamsProvider,
-  useLogsLimitToTraceId,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   TraceItemAttributeProvider,
   useTraceItemAttributes,
@@ -76,15 +73,14 @@ export default function OurLogs() {
   }
 
   return (
-    <LogsQueryParamsProvider source="state">
+    <LogsQueryParamsProvider source="state" freeze={traceIds ? {traceIds} : undefined}>
       <LogsPageParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         isTableFrozen
-        limitToTraceId={traceIds}
       >
         <LogsPageDataProvider>
           <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <OurLogsContent />
+            <OurLogsContent traceIds={traceIds} />
           </TraceItemAttributeProvider>
         </LogsPageDataProvider>
       </LogsPageParamsProvider>
@@ -92,19 +88,17 @@ export default function OurLogs() {
   );
 }
 
-function OurLogsContent() {
+interface OurLogsContentProps {
+  traceIds?: string[];
+}
+
+function OurLogsContent({traceIds}: OurLogsContentProps) {
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
   const {attributes: numberAttributes} = useTraceItemAttributes('number');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {data: logItems = [], isPending} = infiniteLogsQueryResult;
-  const limitToTraceId = useLogsLimitToTraceId();
-  const traceIds = Array.isArray(limitToTraceId)
-    ? limitToTraceId
-    : limitToTraceId
-      ? [limitToTraceId]
-      : undefined;
 
   const filterProps = useOurLogFilters({logItems});
   const {items: filteredLogItems, setSearchTerm} = filterProps;

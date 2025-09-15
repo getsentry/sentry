@@ -61,7 +61,7 @@ export function TransactionHighlights(props: HighlightProps) {
 
   const bodyContent = (
     <BodyContentWrapper>
-      <Link
+      <StyledLink
         to={transactionSummaryRouteWithQuery({
           organization: props.organization,
           transaction: props.node.value.transaction,
@@ -72,9 +72,9 @@ export function TransactionHighlights(props: HighlightProps) {
           projectID: String(props.node.value.project_id),
         })}
       >
-        <StyledIconGraph type="area" size="xs" />
+        <IconGraph type="area" size="xs" />
         {t('View Summary')}
-      </Link>
+      </StyledLink>
     </BodyContentWrapper>
   );
 
@@ -96,10 +96,6 @@ export function TransactionHighlights(props: HighlightProps) {
   );
 }
 
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(1)};
-`;
-
 const HeaderContentWrapper = styled('div')`
   padding: ${space(1)};
   display: flex;
@@ -110,6 +106,12 @@ const HeaderContentWrapper = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
   line-height: 1.4;
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const BodyContentWrapper = styled('div')`

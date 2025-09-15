@@ -76,7 +76,10 @@ export default function GroupUptimeChecks() {
         previousDisabled,
       }}
     >
-      <UptimeChecksGrid uptimeRule={uptimeRule} uptimeChecks={uptimeChecks} />
+      <UptimeChecksGrid
+        traceSampling={uptimeRule.traceSampling}
+        uptimeChecks={uptimeChecks}
+      />
     </EventListTable>
   );
 }

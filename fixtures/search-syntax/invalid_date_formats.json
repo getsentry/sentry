@@ -17,8 +17,7 @@
         "value": {
           "type": "valueText",
           "value": "hello",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -42,8 +41,7 @@
         "value": {
           "type": "valueText",
           "value": "123",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -67,8 +65,7 @@
         "value": {
           "type": "valueText",
           "value": "2018-01-01T00:01ZZ",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

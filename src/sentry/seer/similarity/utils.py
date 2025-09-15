@@ -82,7 +82,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         exceptions = system_component
 
     # Handle chained exceptions
-    if exceptions and exceptions[0].get("id") == "chained-exception":
+    if exceptions and exceptions[0].get("id") == "chained_exception":
         exceptions = exceptions[0].get("values")
 
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
@@ -205,7 +205,7 @@ def _process_frames(
         frame_dict = extract_values_from_frame_values(frame.get("values", []))
         filename = extract_filename(frame_dict) or "None"
 
-        if not _is_snipped_context_line(frame_dict["context-line"]):
+        if not _is_snipped_context_line(frame_dict["context_line"]):
             frame_metrics["found_non_snipped_context_line"] = True
 
         if not frame_dict["filename"]:
@@ -216,21 +216,21 @@ def _process_frames(
         # TODO: Don't let this, and the metric below, hang around forever. It's only to
         # help us get a sense of whether it's worthwhile trying to more accurately
         # detect, and then exclude, frames containing HTML
-        if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context-line"]:
+        if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context_line"]:
             frame_metrics["html_frame_count"] += 1
 
         if is_base64_encoded_frame(frame_dict):
             continue
 
         frame_strings.append(
-            f'  File "{filename}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+            f'  File "{filename}", function {frame_dict["function"]}\n    {frame_dict["context_line"]}\n'
         )
 
     return frame_strings, frame_metrics
 
 
 def extract_values_from_frame_values(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    frame_dict = {"filename": "", "function": "", "context-line": "", "module": ""}
+    frame_dict = {"filename": "", "function": "", "context_line": "", "module": ""}
     for frame_values in values:
         if frame_values.get("id") in frame_dict:
             frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)

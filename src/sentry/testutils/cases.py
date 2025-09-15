@@ -658,15 +658,6 @@ class APITestCaseMixin:
             )
         ]
 
-    # The analytics event `name` was called with `kwargs` being a subset of its properties
-    def analytics_called_with_args(self, fn, name, **kwargs):
-        for call_args, call_kwargs in fn.call_args_list:
-            event_name = call_args[0]
-            if event_name == name:
-                assert all(call_kwargs.get(key, None) == val for key, val in kwargs.items())
-                return True
-        return False
-
     @contextmanager
     def api_gateway_proxy_stubbed(self):
         """Mocks a fake api gateway proxy that redirects via Client objects"""
@@ -1804,7 +1795,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
 
         return DeprecatingMetricsQuery(
             org_id=self.organization.id,
-            project_ids=[self.project.id] + (project_ids if project_ids is not None else []),
+            project_ids=[self.project.id, *(project_ids or ())],
             select=select,
             start=start,
             end=end,
@@ -3300,6 +3291,7 @@ class SpanTestCase(BaseTestCase):
 class _OptionalOurLogData(TypedDict, total=False):
     body: str
     trace_id: str
+    replay_id: str
     severity_text: str
     severity_number: int
     trace_flags: int

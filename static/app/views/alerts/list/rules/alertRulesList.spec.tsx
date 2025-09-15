@@ -304,7 +304,7 @@ describe('AlertRulesList', () => {
     await userEvent.click(duplicate);
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/alerts/new/issue/',
+      pathname: '/organizations/org-slug/issues/alerts/new/issue/',
       query: {
         createFromDuplicate: 'true',
         duplicateRuleId: '123',
@@ -624,7 +624,7 @@ describe('AlertRulesList', () => {
     renderGlobalModal();
 
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.detectorId}/?useDetectorId=1`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
       method: 'DELETE',
       body: {},
     });
