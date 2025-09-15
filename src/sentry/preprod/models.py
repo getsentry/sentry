@@ -221,16 +221,7 @@ class PreprodArtifact(DefaultFieldsModel):
         metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
         identifier: str | None = None,
     ) -> models.QuerySet["PreprodArtifactSizeMetrics"]:
-        """
-        Get size metrics for this artifact with optional filtering.
-
-        Args:
-            metrics_artifact_type: Optional filter by metric artifact type
-            identifier: Optional filter by identifier (for dynamic features)
-
-        Returns:
-            QuerySet of matching size metrics
-        """
+        """Get size metrics for this artifact with optional filtering."""
         queryset = self.preprodartifactsizemetrics_set.all()
 
         if metrics_artifact_type is not None:
@@ -240,32 +231,6 @@ class PreprodArtifact(DefaultFieldsModel):
             queryset = queryset.filter(identifier=identifier)
 
         return queryset
-
-    def get_base_size_metrics(
-        self,
-        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
-        identifier: str | None = None,
-    ) -> models.QuerySet["PreprodArtifactSizeMetrics"]:
-        """
-        Get size metrics from the corresponding base artifact for comparison.
-
-        Args:
-            metrics_artifact_type: Optional filter by metric artifact type
-            identifier: Optional filter by identifier (for dynamic features)
-
-        Returns:
-            QuerySet of matching base size metrics (empty if no base artifact found)
-        """
-        base_artifacts = self.get_base_artifact_for_commit()
-        if not base_artifacts.exists():
-            from sentry.preprod.models import PreprodArtifactSizeMetrics
-
-            return PreprodArtifactSizeMetrics.objects.none()
-
-        base_artifact = base_artifacts.first()
-        return base_artifact.get_size_metrics(
-            metrics_artifact_type=metrics_artifact_type, identifier=identifier
-        )
 
     @classmethod
     def get_size_metrics_for_artifacts(
@@ -295,7 +260,6 @@ class PreprodArtifact(DefaultFieldsModel):
         if not artifact_ids:
             return {}
 
-        # Build efficient query with filters
         queryset = PreprodArtifactSizeMetrics.objects.filter(preprod_artifact_id__in=artifact_ids)
 
         if metrics_artifact_type is not None:
