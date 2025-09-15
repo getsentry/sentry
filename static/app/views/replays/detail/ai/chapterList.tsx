@@ -121,8 +121,8 @@ function ChapterRow({
 
   return (
     <ChapterWrapper
-      data-has-error={error}
-      data-has-feedback={feedback}
+      data-has-error={Boolean(error)}
+      data-has-feedback={Boolean(feedback)}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
