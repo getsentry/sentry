@@ -7,6 +7,7 @@ import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateFie
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
+import {getExtrapolateFromLocation} from 'sentry/views/explore/queryParams/extrapolate';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
@@ -36,6 +37,7 @@ const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
 const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
+const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
 
 export function isDefaultFields(location: Location): boolean {
   return getFieldsFromLocation(location, SPANS_FIELD_KEY) ? false : true;
@@ -45,6 +47,7 @@ export function getReadableQueryParamsFromLocation(
   location: Location,
   organization: Organization
 ): ReadableQueryParams {
+  const extrapolate = getExtrapolateFromLocation(location, SPANS_EXTRAPOLATE_KEY);
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
   const query = getQueryFromLocation(location, SPANS_QUERY_KEY) ?? '';
 
@@ -64,6 +67,7 @@ export function getReadableQueryParamsFromLocation(
     ) ?? defaultAggregateSortBys(aggregateFields);
 
   return new ReadableQueryParams({
+    extrapolate,
     mode,
     query,
 
@@ -83,6 +87,11 @@ export function getTargetWithReadableQueryParams(
 ): Location {
   const target: Location = {...location, query: {...location.query}};
 
+  updateNullableLocation(
+    target,
+    SPANS_EXTRAPOLATE_KEY,
+    writableQueryParams.extrapolate ? null : '0'
+  );
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
 
   updateNullableLocation(target, SPANS_FIELD_KEY, writableQueryParams.fields);
