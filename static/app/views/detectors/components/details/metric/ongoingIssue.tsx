@@ -1,7 +1,8 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -13,6 +14,7 @@ import {
 } from 'sentry/components/group/assigneeSelector';
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -23,7 +25,121 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDetectorDateParams} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+interface OpenPeriodsSubTableProps {
+  detector: MetricDetector;
+  groupId: string;
+  onZoom: (start: Date, end?: Date) => void;
+}
+
+function OpenPeriodsSubTable({detector, groupId, onZoom}: OpenPeriodsSubTableProps) {
+  const snubaQuery = detector.dataSources[0].queryObj?.snubaQuery!;
+  const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
+  const dateParams = useDetectorDateParams({
+    dataset: detectorDataset,
+    intervalSeconds: snubaQuery.timeWindow,
+  });
+  const {
+    data: openPeriods,
+    isPending: isOpenPeriodsPending,
+    isError: isOpenPeriodsError,
+  } = useOpenPeriods({groupId, ...dateParams});
+
+  if (isOpenPeriodsPending) {
+    return <OpenPeriodsSubTableSkeleton />;
+  }
+
+  if (isOpenPeriodsError) {
+    return (
+      <SubTable>
+        <SmallEmptyState>{t('Failed to load open periods.')}</SmallEmptyState>
+      </SubTable>
+    );
+  }
+
+  if (!openPeriods?.length) {
+    return (
+      <SubTable>
+        <SmallEmptyState>
+          {t('No open periods within current date range.')}
+        </SmallEmptyState>
+      </SubTable>
+    );
+  }
+
+  return (
+    <SubTable>
+      {openPeriods.map((period, idx) => {
+        const start = new Date(period.start);
+        const end = period.end ? new Date(period.end) : undefined;
+        const diffMs = (end ?? new Date()).getTime() - start.getTime();
+        const seconds = Math.floor(diffMs / 60_000) * 60;
+        return (
+          <SimpleTable.Row key={`${period.start}-${idx}`}>
+            <SimpleTable.RowCell>
+              {/* TODO: Status Color */}
+              #ID_MISSING
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <Text>
+                {t('Started')} <DateTime date={start} />
+              </Text>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <Text>
+                {end ? (
+                  <Fragment>
+                    {t('Ended')} {end ? <DateTime date={end} /> : '—'}
+                  </Fragment>
+                ) : (
+                  t('Ongoing')
+                )}
+              </Text>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <Duration seconds={seconds} precision="minutes" exact abbreviation />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell justify="flex-end">
+              <Button size="xs" onClick={() => onZoom(start, end)}>
+                {t('Zoom')}
+              </Button>
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
+        );
+      })}
+    </SubTable>
+  );
+}
+
+function OpenPeriodsSubTableSkeleton() {
+  return (
+    <SubTable>
+      {[0, 1, 2].map(i => (
+        <SimpleTable.Row key={i}>
+          <SimpleTable.RowCell>
+            <Placeholder height="20px" width="24px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Placeholder height="20px" width="60%" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Placeholder height="20px" width="40%" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Placeholder height="20px" width="50%" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="flex-end">
+            <Placeholder height="24px" width="48px" />
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      ))}
+    </SubTable>
+  );
+}
 
 interface OngoingIssueProps {
   detector: MetricDetector;
@@ -39,6 +155,7 @@ export function MetricDetectorDetailsOngoingIssue({detector}: OngoingIssueProps)
       <ErrorBoundary mini>
         {latestGroupId ? (
           <LatestGroupWithOpenPeriods
+            detector={detector}
             groupId={latestGroupId}
             intervalSeconds={intervalSeconds}
           />
@@ -57,9 +174,11 @@ export function MetricDetectorDetailsOngoingIssue({detector}: OngoingIssueProps)
 }
 
 function LatestGroupWithOpenPeriods({
+  detector,
   groupId,
   intervalSeconds,
 }: {
+  detector: MetricDetector;
   groupId: string;
   intervalSeconds?: number;
 }) {
@@ -123,8 +242,6 @@ function LatestGroupWithOpenPeriods({
     );
   }
 
-  const openPeriods = group.openPeriods ?? [];
-
   return (
     <StyledTable>
       <SimpleTable.Header>
@@ -151,56 +268,11 @@ function LatestGroupWithOpenPeriods({
 
       <SimpleTable.Row>
         <div style={{gridColumn: '1 / -1', paddingTop: 0}}>
-          {openPeriods.length === 0 ? (
-            <SubTable>
-              <SimpleTable.Empty>{t('No open periods')}</SimpleTable.Empty>
-            </SubTable>
-          ) : (
-            <SubTable>
-              {openPeriods.map((period, idx) => {
-                const start = new Date(period.start);
-                const end = period.end ? new Date(period.end) : undefined;
-                const seconds = Math.floor(
-                  ((end ?? new Date()).getTime() - start.getTime()) / 1000
-                );
-                return (
-                  <SimpleTable.Row key={`${period.start}-${idx}`}>
-                    <SimpleTable.RowCell>
-                      {/* TODO: Status Color */}
-                      #id missing
-                    </SimpleTable.RowCell>
-                    <SimpleTable.RowCell>
-                      <div>
-                        {t('Started')} <DateTime date={start} />
-                      </div>
-                    </SimpleTable.RowCell>
-                    <SimpleTable.RowCell>
-                      {end ? (
-                        <div>
-                          {t('Ended')} {end ? <DateTime date={end} /> : '—'}
-                        </div>
-                      ) : (
-                        t('Ongoing')
-                      )}
-                    </SimpleTable.RowCell>
-                    <SimpleTable.RowCell>
-                      <Duration
-                        seconds={seconds}
-                        precision="minutes"
-                        abbreviation
-                        exact
-                      />
-                    </SimpleTable.RowCell>
-                    <SimpleTable.RowCell justify="flex-end">
-                      <Button size="xs" onClick={() => zoomToRange(start, end)}>
-                        {t('Zoom')}
-                      </Button>
-                    </SimpleTable.RowCell>
-                  </SimpleTable.Row>
-                );
-              })}
-            </SubTable>
-          )}
+          <OpenPeriodsSubTable
+            detector={detector}
+            groupId={group.id}
+            onZoom={zoomToRange}
+          />
         </div>
       </SimpleTable.Row>
     </StyledTable>
@@ -230,8 +302,12 @@ const StyledTable = styled(SimpleTable)`
 
 const SubTable = styled(SimpleTable)`
   background-color: ${p => p.theme.backgroundSecondary};
-  grid-template-columns: 0.5fr 1fr 1fr 160px min-content;
+  grid-template-columns: min-content 1fr 1fr 0.5fr min-content;
   border: 0;
+`;
+
+const SmallEmptyState = styled(SimpleTable.Empty)`
+  min-height: unset;
 `;
 
 export default MetricDetectorDetailsOngoingIssue;
