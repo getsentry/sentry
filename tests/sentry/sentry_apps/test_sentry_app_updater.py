@@ -267,29 +267,28 @@ class TestUpdater(TestCase):
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
 
+        # Update the sentry app to trigger service hook updates
+        updater = SentryAppUpdater(sentry_app=self.sentry_app)
+        updater.webhook_url = "https://example.com/new-webhook"
+        updater.events = ["comment"]
+        updater.run(self.user)
+
+        # Verify outbox entries were created
+        outbox_entries = ControlOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_HOOK_UPDATE,
+            shard_scope=OutboxScope.APP_SCOPE,
+            shard_identifier=self.sentry_app.id,
+        )
+
+        assert len(outbox_entries) == 1
+
+        # Verify the outbox entry has correct data
+        entry = outbox_entries[0]
+        assert entry.object_identifier == installation.id
+        assert entry.region_name is not None
+
         with outbox_runner():
-            # Clear any existing outbox entries
-            ControlOutbox.objects.all().delete()
-
-            # Update the sentry app to trigger service hook updates
-            updater = SentryAppUpdater(sentry_app=self.sentry_app)
-            updater.webhook_url = "https://example.com/new-webhook"
-            updater.events = ["comment"]
-            updater.run(self.user)
-
-            # Verify outbox entries were created
-            outbox_entries = ControlOutbox.objects.filter(
-                category=OutboxCategory.SERVICE_HOOK_UPDATE,
-                shard_scope=OutboxScope.APP_SCOPE,
-                shard_identifier=self.sentry_app.id,
-            )
-
-            assert len(outbox_entries) == 1
-
-            # Verify the outbox entry has correct data
-            entry = outbox_entries[0]
-            assert entry.object_identifier == installation.id
-            assert entry.region_name is not None
+            pass
 
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(
@@ -309,48 +308,56 @@ class TestUpdater(TestCase):
         # Ensure no installations exist
         SentryAppInstallation.objects.filter(sentry_app=self.sentry_app).delete()
 
+        # Clear any existing outbox entries
         with outbox_runner():
-            # Clear any existing outbox entries
-            ControlOutbox.objects.all().delete()
+            pass
 
-            updater = SentryAppUpdater(sentry_app=self.sentry_app)
-            updater.webhook_url = "https://example.com/webhook"
-            updater.run(self.user)
+        # Update the sentry app (should not create outbox entries when no installations)
+        updater = SentryAppUpdater(sentry_app=self.sentry_app)
+        updater.webhook_url = "https://example.com/webhook"
+        updater.run(self.user)
 
-            # Verify no outbox entries were created
-            outbox_entries = ControlOutbox.objects.filter(
-                category=OutboxCategory.SERVICE_HOOK_UPDATE
-            )
-            assert len(outbox_entries) == 0
+        # Verify no outbox entries were created
+        outbox_entries = ControlOutbox.objects.filter(category=OutboxCategory.SERVICE_HOOK_UPDATE)
+        assert len(outbox_entries) == 0
+
+        with outbox_runner():
+            pass
 
     @with_feature("organizations:service-hooks-outbox")
     def test_update_service_hooks_outbox_entries_created(self) -> None:
         """Test that outbox entries are properly created and processed."""
         # Create installation
-        self.create_sentry_app_installation(
+        installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
 
         # Clear existing outbox entries
-        ControlOutbox.objects.all().delete()
+        with outbox_runner():
+            pass
 
-        # Update the sentry app
+        # Update the sentry app (this creates outbox entries)
         updater = SentryAppUpdater(sentry_app=self.sentry_app)
         updater.webhook_url = "https://example.com/webhook"
         updater.run(self.user)
 
+        # Verify outbox entries were created
+        outbox_entries = ControlOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_HOOK_UPDATE,
+            shard_scope=OutboxScope.APP_SCOPE,
+            shard_identifier=self.sentry_app.id,
+        )
+        assert outbox_entries.count() == 1
+
+        # Verify the outbox entry has correct data
+        entry = outbox_entries[0]
+        assert entry.object_identifier == installation.id
+        assert entry.region_name is not None
+
         with outbox_runner():
-            # Verify outbox entries were created and processed
-            outbox_entries = ControlOutbox.objects.filter(
-                category=OutboxCategory.SERVICE_HOOK_UPDATE,
-                shard_scope=OutboxScope.APP_SCOPE,
-                shard_identifier=self.sentry_app.id,
-            )
-            assert outbox_entries.count() == 1
+            pass
 
-            updated_app = SentryApp.objects.get(id=self.sentry_app.id)
-            assert updated_app.webhook_url == "https://example.com/webhook"
-
+        # After processing, outbox entries should be drained
         with assume_test_silo_mode(SiloMode.CONTROL):
             outbox_entries = ControlOutbox.objects.filter(
                 category=OutboxCategory.SERVICE_HOOK_UPDATE,
@@ -359,6 +366,7 @@ class TestUpdater(TestCase):
             )
             assert outbox_entries.count() == 0
 
+        # Verify the service hook was updated in the region
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(
                 application_id=self.sentry_app.application_id, organization_id=self.org.id

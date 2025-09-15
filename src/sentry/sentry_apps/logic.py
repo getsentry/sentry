@@ -218,8 +218,12 @@ class SentryAppUpdater:
             "organizations:service-hooks-outbox",
             organization_context.organization,
         ):
-            installations = SentryAppInstallation.objects.filter(sentry_app_id=self.sentry_app.id)
+            self._update_service_hooks_via_outbox()
+        else:
+            self._update_service_hooks_via_task()
 
+    def _update_service_hooks_via_outbox(self) -> None:
+        if installations := SentryAppInstallation.objects.filter(sentry_app_id=self.sentry_app.id):
             org_ids_and_region_names = OrganizationMapping.objects.filter(
                 organization_id__in=installations.values_list("organization_id", flat=True)
             ).values_list("organization_id", "region_name")
@@ -232,6 +236,11 @@ class SentryAppUpdater:
                 transaction.atomic(router.db_for_write(ControlOutbox)), flush=False
             ):
                 for installation in installations:
+                    assert (
+                        installation_org_id_to_region_name.get(installation.organization_id)
+                        is not None
+                    ), f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
+
                     ControlOutbox(
                         shard_scope=OutboxScope.APP_SCOPE,
                         shard_identifier=self.sentry_app.id,
@@ -241,31 +250,32 @@ class SentryAppUpdater:
                             installation.organization_id
                         ],
                     ).save()
-        else:
-            if self.sentry_app.is_published:
-                # if it's a published integration, we need to do many updates so we have to do it in a task so we don't time out
-                # the client won't know it succeeds but there's not much we can do about that unfortunately
-                create_or_update_service_hooks_for_sentry_app.apply_async(
-                    kwargs={
-                        "sentry_app_id": self.sentry_app.id,
-                        "webhook_url": self.sentry_app.webhook_url,
-                        "events": self.sentry_app.events,
-                    }
-                )
-                return
 
-            # for unpublished integrations that aren't installed yet, we may not have an installation
-            # if we don't, then won't have any service hooks
-            try:
-                installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
-            except SentryAppInstallation.DoesNotExist:
-                return
-
-            create_or_update_service_hooks_for_installation(
-                installation=installation,
-                webhook_url=self.sentry_app.webhook_url,
-                events=self.sentry_app.events,
+    def _update_service_hooks_via_task(self) -> None:
+        if self.sentry_app.is_published:
+            # if it's a published integration, we need to do many updates so we have to do it in a task so we don't time out
+            # the client won't know it succeeds but there's not much we can do about that unfortunately
+            create_or_update_service_hooks_for_sentry_app.apply_async(
+                kwargs={
+                    "sentry_app_id": self.sentry_app.id,
+                    "webhook_url": self.sentry_app.webhook_url,
+                    "events": self.sentry_app.events,
+                }
             )
+            return
+
+        # for unpublished integrations that aren't installed yet, we may not have an installation
+        # if we don't, then won't have any service hooks
+        try:
+            installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
+        except SentryAppInstallation.DoesNotExist:
+            return
+
+        create_or_update_service_hooks_for_installation(
+            installation=installation,
+            webhook_url=self.sentry_app.webhook_url,
+            events=self.sentry_app.events,
+        )
 
     def _update_webhook_url(self) -> None:
         if self.webhook_url is not None:
