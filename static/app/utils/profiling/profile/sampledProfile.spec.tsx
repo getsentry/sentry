@@ -421,8 +421,5 @@ describe('SampledProfile', () => {
     expect(profile.callTree.children[0]!.aggregate_duration_ns).toBe(15);
     expect(profile.callTree.children[0]!.children[0]!.aggregate_duration_ns).toBe(10);
     expect(profile.callTree.children[0]!.children[1]!.aggregate_duration_ns).toBe(5);
-    expect(profile.callTree.children[0]!.frame.aggregateDuration).toBe(15);
-    expect(profile.callTree.children[0]!.children[0]!.frame.aggregateDuration).toBe(10);
-    expect(profile.callTree.children[0]!.children[1]!.frame.aggregateDuration).toBe(5);
   });
 });

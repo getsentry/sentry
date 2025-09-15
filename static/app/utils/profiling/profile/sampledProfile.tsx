@@ -331,7 +331,6 @@ export class SampledProfile extends Profile {
 
     for (const stackNode of framesInStack) {
       stackNode.frame.totalWeight += weight;
-      stackNode.frame.aggregateDuration += aggregate_duration_ns ?? 0;
       stackNode.count++;
     }
 
