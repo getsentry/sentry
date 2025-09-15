@@ -66,6 +66,7 @@ import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTraces
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
+  useQueryParamsExtrapolate,
   useQueryParamsMode,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
@@ -408,6 +409,7 @@ function SpanTabContentSection({
   const {selection} = usePageFilters();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
+  const extrapolate = useQueryParamsExtrapolate();
   const [tab, setTab] = useTab();
 
   const query = useExploreQuery();
@@ -545,6 +547,7 @@ function SpanTabContentSection({
         <ExploreCharts
           confidences={confidences}
           query={query}
+          extrapolate={extrapolate}
           timeseriesResult={timeseriesResult}
           visualizes={visualizes}
           setVisualizes={setVisualizes}
