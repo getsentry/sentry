@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {PaymentElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {
   PaymentIntentResult,
@@ -101,12 +101,14 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
     },
   });
 
+  useEffect(() => {
+    if (isError) {
+      setErrorMessage(error);
+    }
+  }, [isError, error]);
+
   if (isLoading) {
     return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    setErrorMessage(error);
   }
 
   const handleSubmit = ({
@@ -162,12 +164,14 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
     endpoint: props.intentDataEndpoint,
   });
 
+  useEffect(() => {
+    if (isError) {
+      setErrorMessage(error);
+    }
+  }, [isError, error]);
+
   if (isLoading) {
     return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    setErrorMessage(error);
   }
 
   const handleSubmit = ({

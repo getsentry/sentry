@@ -28,6 +28,7 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
     mutationFn: () => fetchMutation({url: endpoint, method: 'POST'}),
     onSuccess: data => {
       setSetupIntentData(data);
+      setIsLoading(false);
     },
     onError: err => {
       setError(err.message);
@@ -37,7 +38,6 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
   useEffect(() => {
     setIsLoading(true);
     loadSetupIntentData();
-    setIsLoading(false);
   }, [loadSetupIntentData]);
 
   return {
