@@ -1848,12 +1848,6 @@ else:
         **TASKWORKER_REGION_SCHEDULES,
     }
 
-TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
-    "ingest.profiling",
-    "ingest.transactions",
-    "ingest.errors",
-}
-
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.

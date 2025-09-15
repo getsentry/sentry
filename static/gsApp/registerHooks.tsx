@@ -12,7 +12,6 @@ import DataConsentBanner from 'getsentry/components/dataConsentBanner';
 import DataConsentOrgCreationCheckbox from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DisabledAlertWizard from 'getsentry/components/features/disabledAlertWizard';
-import DisabledAllProjectsSelect from 'getsentry/components/features/disabledAllProjectsSelect';
 import DisabledAuthProvider from 'getsentry/components/features/disabledAuthProvider';
 import DisabledCustomInboundFilters from 'getsentry/components/features/disabledCustomInboundFilters';
 import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
@@ -26,7 +25,6 @@ import PerformanceNewProjectPrompt from 'getsentry/components/features/performan
 import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
 import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
 import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
-import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import {
@@ -151,12 +149,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * and modals for various overage warnings.
    */
   'component:organization-header': () => OrganizationHeader,
-
-  /**
-   * Ensure the Invite Members button is always enabled without regard for the
-   * `feature:invite-members` flag.
-   */
-  'member-invite-button:customization': () => InviteMembersButtonCustomization,
 
   /**
    * Augment the invite members modal component to start a trial before
@@ -309,16 +301,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <ProjectPerformanceScoreCard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </ProjectPerformanceScoreCard>
-  ),
-  'feature-disabled:project-selector-checkbox': p => (
-    <PowerFeatureHovercard features={['organizations:global-views']} id="global-views">
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </PowerFeatureHovercard>
-  ),
-  'feature-disabled:project-selector-all-projects': p => (
-    <DisabledAllProjectsSelect {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </DisabledAllProjectsSelect>
   ),
   'feature-disabled:open-discover': p => (
     <PowerFeatureHovercard features={['organizations:discover-basic']} id="open-discover">
