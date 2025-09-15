@@ -35,7 +35,7 @@ describe('RootNode', () => {
       const extra = createMockExtra();
       const rootNode = new RootNode(null, null, extra);
 
-      expect(rootNode.pathToNode()).toStrictEqual([`virtual-root`]);
+      expect(rootNode.pathToNode()).toStrictEqual([]);
     });
   });
 

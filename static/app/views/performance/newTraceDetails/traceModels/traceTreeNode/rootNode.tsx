@@ -24,7 +24,7 @@ export class RootNode extends BaseNode<null> {
   }
 
   pathToNode(): TraceTree.NodePath[] {
-    return [`virtual-root`];
+    return [];
   }
 
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(

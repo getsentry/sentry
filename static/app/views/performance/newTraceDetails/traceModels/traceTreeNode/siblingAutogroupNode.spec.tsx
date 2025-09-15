@@ -35,6 +35,7 @@ describe('SiblingAutogroupNode1', () => {
       expect(node.value).toBe(autogroupValue);
       expect(node.extra).toBe(extra);
       expect(node.groupCount).toBe(0);
+      expect(node.expanded).toBe(false);
     });
 
     it('should initialize with parent node', () => {
