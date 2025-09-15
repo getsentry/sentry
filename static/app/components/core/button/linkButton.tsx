@@ -100,9 +100,12 @@ const StyledLinkButton = styled(
 `;
 
 const getChonkLinkButtonStyles = (p: LinkButtonProps) => {
+  const chonkStyles = getChonkButtonStyles(p as any);
   return {
-    ...getChonkButtonStyles(p as any),
-    ...(p.disabled || p.busy ? {color: 'inherit'} : undefined),
+    ...(p.disabled || p.busy
+      ? {color: chonkStyles.color, ':hover': {color: chonkStyles.color}}
+      : undefined),
+    ...chonkStyles,
   };
 };
 
