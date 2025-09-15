@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import type {SubmitData} from 'getsentry/components/creditCardForm';
 import CreditCardForm from 'getsentry/components/creditCardForm';
-import StripeCreditCardForm from 'getsentry/components/stripeCreditCardForm';
+import StripeCreditCardForm from 'getsentry/components/stripeForms/stripeCreditCardForm';
 import type {Invoice, PaymentCreateResponse} from 'getsentry/types';
 import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';

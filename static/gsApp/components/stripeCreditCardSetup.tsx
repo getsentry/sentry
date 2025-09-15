@@ -1,6 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 
-import StripeCreditCardForm from 'getsentry/components/stripeCreditCardForm';
+import StripeCreditCardForm from 'getsentry/components/stripeForms/stripeCreditCardForm';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
 
 export interface StripeCreditCardSetupProps {
