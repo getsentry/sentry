@@ -598,6 +598,7 @@ export const DEFAULT_PER_PAGE = 50;
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG as unknown as
   | undefined
+  | false
   | {
       branch: string;
       commitSha: string;
