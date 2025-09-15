@@ -2,23 +2,27 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.notifications.notification_action.registry import action_validator_registry
+from sentry.workflow_engine.models.action import Action
 
 from .types import BaseActionValidatorHandler
 
 
-@action_validator_registry.register("slack")
+@action_validator_registry.register(Action.Type.SLACK)
 class SlackActionValidatorHandler(BaseActionValidatorHandler):
-    provider = "slack"
+    provider = Action.Type.SLACK
     notify_action_form = SlackNotifyServiceForm
 
     def generate_action_form_payload(self) -> dict[str, Any]:
         if not (integration_id := self.validated_data.get("integration_id")):
             raise ValidationError("Integration ID is required for Slack action")
 
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
         if not integration:
             raise ValidationError(f"Slack integration with id {integration_id} not found")
 
