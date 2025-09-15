@@ -78,13 +78,13 @@ function BillingCycleSelectCard({
       isSelected={isSelected}
       onClick={onCycleSelect}
     >
-      <Flex align="start" justify="between" gap="md">
+      <Flex align="start" justify="between" gap="md" padding="xl">
         <Container paddingTop="2xs">
           <RadioMarker isSelected={isSelected} />
         </Container>
         <Flex direction="column" gap="sm" width="100%">
           <Flex align="center" gap="sm">
-            <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
+            <Heading as="h3" variant="primary">
               {intervalName}
             </Heading>
             {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
@@ -100,7 +100,7 @@ function BillingCycleSelectCard({
             <Text
               size="2xl"
               bold
-              variant={isSelected ? 'accent' : 'primary'}
+              variant="primary"
             >{`$${formattedPriceAfterDiscount}`}</Text>
           </Flex>
           <Flex direction="column" gap="xs" paddingTop="xs">
@@ -116,15 +116,73 @@ function BillingCycleSelectCard({
 export default BillingCycleSelectCard;
 
 const BillingCycleOption = styled('div')<{isSelected: boolean}>`
-  background: ${p => p.theme.background};
-  color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid
-    ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
-  border-bottom: 3px solid
-    ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+  width: 100%;
+  color: ${p => p.theme.textColor};
   cursor: pointer;
-  padding: ${p => p.theme.space.xl};
+  position: relative;
+
+  &:before,
+  &:after {
+    content: '';
+    display: block;
+    position: absolute;
+    inset: 0;
+  }
+
+  &::before {
+    height: calc(100% - ${p => p.theme.space['2xs']});
+    top: ${p => p.theme.space['2xs']};
+    transform: translateY(-${p => p.theme.space['2xs']});
+    box-shadow: 0 ${p => p.theme.space['2xs']} 0 0px
+      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+    background: ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+
+  &::after {
+    background: ${p => p.theme.background};
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid
+      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+    transform: ${p =>
+      p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
+    transition: transform 0.06s ease-in;
+  }
+
+  > * {
+    z-index: 1;
+    position: relative;
+    transform: ${p =>
+      p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
+    transition: transform 0.06s ease-in;
+  }
+
+  &:hover {
+    &::after,
+    > * {
+      transform: ${p =>
+        p.isSelected
+          ? 'translateY(0)'
+          : `translateY(calc(-${p.theme.space['2xs']} - 2px))`};
+    }
+  }
+
+  &:active,
+  &[aria-expanded='true'],
+  &[aria-checked='true'] {
+    &::after,
+    > * {
+      transform: translateY(0);
+    }
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    &::after,
+    > * {
+      transform: translateY(0px);
+    }
+  }
 `;
 
 const RadioMarker = styled('div')<{isSelected?: boolean}>`

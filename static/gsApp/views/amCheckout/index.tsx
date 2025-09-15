@@ -991,6 +991,7 @@ const BackButton = styled(Link)`
   align-self: flex-start;
   padding: 0;
   color: ${p => p.theme.textColor};
+  display: inline-flex;
 `;
 
 const CheckoutBody = styled('div')`

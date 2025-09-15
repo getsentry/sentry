@@ -140,94 +140,92 @@ function ProductSelect({
               isNewCheckout={isNewCheckout}
               isSelected={isSelected}
             >
-              <Flex align="start" justify="between" gap="md">
-                <Container paddingTop="sm">
-                  <Checkbox
-                    aria-label={ariaLabel}
-                    aria-checked={isSelected}
-                    checked={isSelected}
-                    onChange={toggleProductOption}
-                    onKeyDown={({key}) => {
-                      if (key === 'Enter') {
-                        toggleProductOption();
-                      }
-                    }}
-                  />
-                </Container>
-                <Flex direction="column" gap="0" width="100%">
-                  <Flex align="center" justify="between" gap="sm">
-                    <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
-                      {toTitleCase(productInfo.productCheckoutName, {
-                        allowInnerUpperCase: true,
-                      })}
-                    </Heading>
-                    <ProductIconContainer isSelected={isSelected}>
-                      {productIcon}
-                    </ProductIconContainer>
-                  </Flex>
-                  <ProductDescription
-                    isNewCheckout
-                    colorOverride={isSelected ? theme.purple400 : theme.subText}
-                  >
-                    {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
-                  </ProductDescription>
-                  <Container paddingTop="md">
-                    <Text
-                      size={'2xl'}
-                      bold
-                      variant={isSelected ? 'accent' : 'primary'}
-                    >{`+$${priceInDollars}`}</Text>
-                    <Text
-                      size={'md'}
-                      variant={isSelected ? 'accent' : 'primary'}
-                    >{`/${billingInterval}`}</Text>
+              <Flex direction="column" gap="md" padding="xl">
+                <Flex align="start" justify="between" gap="md">
+                  <Container paddingTop="sm">
+                    <Checkbox
+                      aria-label={ariaLabel}
+                      aria-checked={isSelected}
+                      checked={isSelected}
+                      onChange={toggleProductOption}
+                      onKeyDown={({key}) => {
+                        if (key === 'Enter') {
+                          toggleProductOption();
+                        }
+                      }}
+                    />
                   </Container>
+                  <Flex direction="column" gap="0" width="100%">
+                    <Flex align="center" justify="between" gap="sm">
+                      <Heading as="h3" variant="primary">
+                        {toTitleCase(productInfo.productCheckoutName, {
+                          allowInnerUpperCase: true,
+                        })}
+                      </Heading>
+                      <ProductIconContainer isSelected={isSelected}>
+                        {productIcon}
+                      </ProductIconContainer>
+                    </Flex>
+                    <ProductDescription isNewCheckout colorOverride={theme.subText}>
+                      {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
+                    </ProductDescription>
+                    <Container paddingTop="md">
+                      <Text
+                        size={'2xl'}
+                        bold
+                        variant="primary"
+                      >{`+$${priceInDollars}`}</Text>
+                      <Text size={'md'} variant="primary">{`/${billingInterval}`}</Text>
+                    </Container>
+                  </Flex>
                 </Flex>
-              </Flex>
-              <Flex direction="column" gap="2xs">
-                <Separator orientation="horizontal" border="primary" />
-                <Flex direction="column" gap="sm" paddingTop="xl">
-                  <FeatureItem data-test-id={`product-option-feature-credits`}>
-                    <IconContainer>
-                      <IconCheckmark color={theme.successText as Color} />
-                    </IconContainer>
-                    <Text size={'md'}>
-                      {tct('Includes [includedBudget]/mo in credits', {
-                        includedBudget: formattedMonthlyBudget,
-                      })}
-                    </Text>
-                  </FeatureItem>
-                  {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
-                    const pricingInfo =
-                      activePlan.planCategories[category as DataCategory];
-                    const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
-                    return (
-                      <FeatureItem
-                        key={category}
-                        data-test-id={`product-option-feature-${category}`}
-                      >
-                        <IconContainer>
-                          <IconCheckmark color={theme.successText as Color} />
-                        </IconContainer>
-                        <Text size={'md'}>
-                          <FeatureItemCategory>
-                            {getSingularCategoryName({
-                              plan: activePlan,
-                              category: category as DataCategory,
-                              hadCustomDynamicSampling: false,
-                              title: true,
-                            })}
-                            {':'}
-                          </FeatureItemCategory>
-                          <span>
-                            {info.description}.{' '}
-                            {eventPrice &&
-                              `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}
-                          </span>
-                        </Text>
-                      </FeatureItem>
-                    );
-                  })}
+                <Flex direction="column" gap="2xs">
+                  <Separator orientation="horizontal" border="primary" />
+                  <Flex direction="column" gap="sm" paddingTop="xl">
+                    <FeatureItem data-test-id={`product-option-feature-credits`}>
+                      <IconContainer>
+                        <IconCheckmark color={theme.successText as Color} />
+                      </IconContainer>
+                      <Text size={'md'}>
+                        {tct('Includes [includedBudget]/mo in credits', {
+                          includedBudget: formattedMonthlyBudget,
+                        })}
+                      </Text>
+                    </FeatureItem>
+                    {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
+                      const pricingInfo =
+                        activePlan.planCategories[category as DataCategory];
+                      const eventPrice = pricingInfo
+                        ? pricingInfo[1]?.onDemandPrice
+                        : null;
+                      return (
+                        <FeatureItem
+                          key={category}
+                          data-test-id={`product-option-feature-${category}`}
+                        >
+                          <IconContainer>
+                            <IconCheckmark color={theme.successText as Color} />
+                          </IconContainer>
+                          <Text size={'md'}>
+                            <FeatureItemCategory>
+                              {getSingularCategoryName({
+                                plan: activePlan,
+                                category: category as DataCategory,
+                                hadCustomDynamicSampling: false,
+                                title: true,
+                              })}
+                              {':'}
+                            </FeatureItemCategory>
+                            <span>
+                              {info.description}.{' '}
+                              {eventPrice &&
+                                `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}
+                            </span>
+                          </Text>
+                        </FeatureItem>
+                      );
+                    })}
+                  </Flex>
                 </Flex>
               </Flex>
             </ProductOptionNew>
@@ -342,18 +340,73 @@ function ProductSelect({
 export default ProductSelect;
 
 const ProductOptionNew = styled(Flex)<{isNewCheckout?: boolean; isSelected?: boolean}>`
-  padding: ${p => p.theme.space.xl};
-  cursor: pointer;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid
-    ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
-  border-bottom: 3px solid
-    ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
   width: 100%;
-  color: ${p => (p.isSelected ? p.theme.tokens.content.accent : p.theme.textColor)};
+  color: ${p => p.theme.textColor};
+  cursor: pointer;
+  position: relative;
+
+  &:before,
+  &:after {
+    content: '';
+    display: block;
+    position: absolute;
+    inset: 0;
+  }
+
+  &::before {
+    height: calc(100% - ${p => p.theme.space['2xs']});
+    top: ${p => p.theme.space['2xs']};
+    transform: translateY(-${p => p.theme.space['2xs']});
+    box-shadow: 0 ${p => p.theme.space['2xs']} 0 0px
+      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+    background: ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+
+  &::after {
+    background: ${p => p.theme.background};
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid
+      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
+    transform: ${p =>
+      p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
+    transition: transform 0.06s ease-in;
+  }
+
+  > * {
+    z-index: 1;
+    position: relative;
+    transform: ${p =>
+      p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
+    transition: transform 0.06s ease-in;
+  }
+
+  &:hover {
+    &::after,
+    > * {
+      transform: ${p =>
+        p.isSelected
+          ? 'translateY(0)'
+          : `translateY(calc(-${p.theme.space['2xs']} - 2px))`};
+    }
+  }
+
+  &:active,
+  &[aria-expanded='true'],
+  &[aria-checked='true'] {
+    &::after,
+    > * {
+      transform: translateY(0);
+    }
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    &::after,
+    > * {
+      transform: translateY(0px);
+    }
+  }
 `;
 
 const ProductOption = styled(PanelItem)<{isNewCheckout?: boolean; isSelected?: boolean}>`
