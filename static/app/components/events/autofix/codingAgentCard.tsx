@@ -85,7 +85,11 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
               <StyledCard>
                 <HeaderWrapper>
                   <HeaderText>
-                    <IconCode size="sm" color="purple400" />
+                    {shouldShowSpinner(codingAgentState.status) ? (
+                      <StyledLoadingIndicator size={16} />
+                    ) : (
+                      <IconCode size="md" color="purple400" />
+                    )}
                     {getProviderName(codingAgentState.provider)}
                   </HeaderText>
                   <ButtonBar>
@@ -124,9 +128,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
                     <div>
                       <Tag type={getTagType(codingAgentState.status)}>
-                        {shouldShowSpinner(codingAgentState.status) && (
-                          <LoadingIndicator size={12} />
-                        )}
                         {getStatusText(codingAgentState.status)}
                       </Tag>
                     </div>
@@ -304,4 +305,11 @@ const ResultItem = styled('div')`
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
     p.status === CodingAgentStatus.FAILED ? p.theme.red300 : p.theme.textColor};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  height: ${p => p.size};
+  width: ${p => p.size};
+  margin: 0;
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
