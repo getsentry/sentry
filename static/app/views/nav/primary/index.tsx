@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
@@ -29,6 +31,20 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew';
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
+
+const SidebarLinkWithBadge = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
+const BetaBadge = styled(FeatureBadge)`
+  position: absolute;
+  top: -2px;
+  right: 6px;
+  z-index: 10;
+  pointer-events: none;
+`;
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
@@ -124,14 +140,17 @@ export function PrimaryNavigationItems() {
         </Feature>
 
         <Feature features={['codecov-ui']}>
-          <SidebarLink
-            to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
-            activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
-            analyticsKey="codecov"
-            group={PrimaryNavGroup.CODECOV}
-          >
-            <IconPrevent />
-          </SidebarLink>
+          <SidebarLinkWithBadge>
+            <SidebarLink
+              to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
+              activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
+              analyticsKey="codecov"
+              group={PrimaryNavGroup.CODECOV}
+            >
+              <IconPrevent />
+            </SidebarLink>
+            <BetaBadge type="beta" />
+          </SidebarLinkWithBadge>
         </Feature>
 
         <SeparatorItem />

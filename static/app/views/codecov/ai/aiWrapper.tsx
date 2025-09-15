@@ -6,6 +6,7 @@ import CodecovQueryParamsProvider from 'sentry/components/codecov/container/code
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {Slider} from 'sentry/components/core/slider';
 import {Switch} from 'sentry/components/core/switch';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
@@ -35,6 +36,16 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
   // Error Prediction sub-settings
   const [errorPredAutoRun, setErrorPredAutoRun] = useState(true);
   const [errorPredMentionOnly, setErrorPredMentionOnly] = useState(false);
+
+  // Sensitivity settings
+  const [prReviewSensitivity, setPrReviewSensitivity] = useState(2); // 0=low, 1=medium, 2=high, 3=critical
+  const [testGenSensitivity, setTestGenSensitivity] = useState(2);
+
+  const sensitivityLevels = ['low', 'medium', 'high', 'critical'];
+  const formatSensitivityLabel = (value: number | '') => {
+    const index = typeof value === 'number' ? value : 0;
+    return sensitivityLevels[index] || 'medium';
+  };
 
   return (
     <SlideOverPanel collapsed={!isOpen} slidePosition="right" ariaLabel="Settings Panel">
@@ -78,6 +89,27 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
           />
         </FeatureSection>
 
+        {enablePRReview && (
+          <NestedFieldGroup>
+            <FieldGroup
+              label="Sensitivity"
+              help="Set the sensitivity level for PR review analysis"
+              inline
+              flexibleControlStateSize
+            >
+              <Slider
+                min={0}
+                max={3}
+                step={1}
+                value={prReviewSensitivity}
+                onChange={value => setPrReviewSensitivity(value)}
+                formatLabel={formatSensitivityLabel}
+                aria-label="PR Review Sensitivity"
+              />
+            </FieldGroup>
+          </NestedFieldGroup>
+        )}
+
         <FeatureSection>
           <div>
             <FeatureSectionTitle>Enable Test Generation</FeatureSectionTitle>
@@ -92,6 +124,27 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
             aria-label="Enable Test Generation"
           />
         </FeatureSection>
+
+        {enableTestGeneration && (
+          <NestedFieldGroup>
+            <FieldGroup
+              label="Sensitivity"
+              help="Set the sensitivity level for test generation analysis"
+              inline
+              flexibleControlStateSize
+            >
+              <Slider
+                min={0}
+                max={3}
+                step={1}
+                value={testGenSensitivity}
+                onChange={value => setTestGenSensitivity(value)}
+                formatLabel={formatSensitivityLabel}
+                aria-label="Test Generation Sensitivity"
+              />
+            </FieldGroup>
+          </NestedFieldGroup>
+        )}
 
         <FeatureSection>
           <div>
@@ -162,7 +215,7 @@ export default function AIPageWrapper() {
           <HeaderContentBar>
             <Layout.Title>
               {AI_PAGE_TITLE}
-              <FeatureBadge type="new" />
+              <FeatureBadge type="beta" />
             </Layout.Title>
             <Button
               size="zero"
@@ -277,6 +330,17 @@ const NestedFieldGroup = styled('div')`
 
   /* Override FieldDescription width for nested field groups */
   & ${FieldDescription} {
-    width: 80% !important;
+    width: 60% !important;
+  }
+
+  /* Override FieldControlStyled flex-direction for nested field groups */
+  & > div > div > div {
+    flex-direction: row-reverse !important;
+  }
+
+  /* Make slider labels always visible */
+  & div[style*='--p'] {
+    --label-opacity: 1 !important;
+    --label-ty: 0 !important;
   }
 `;
