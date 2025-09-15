@@ -5,6 +5,7 @@ from typing import Any
 from sentry import options
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
     call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
@@ -15,6 +16,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ def delete_seer_grouping_records_by_hash(
     ):
         return
 
-    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
+    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
     if len_hashes <= batch_size:  # Base case
         call_seer_to_delete_these_hashes(project_id, hashes)
@@ -93,19 +95,30 @@ def may_schedule_task_to_delete_hashes_from_seer(group_ids: Sequence[int]) -> No
     ):
         return
 
-    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
+    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
 
-    # Single query to get all hashes, then chunk in memory
-    # For large datasets, this is faster than many individual queries
-    hashes = list(GroupHash.objects.filter(group_id__in=group_ids).values_list("hash", flat=True))
-
-    if not hashes:
+    group_hashes = get_hashes_for_group_ids(group_ids, project)
+    if not group_hashes:
         return
 
     # Schedule tasks in chunks
-    for i in range(0, len(hashes), batch_size):
-        chunk = hashes[i : i + batch_size]
+    for i in range(0, len(group_hashes), batch_size):
+        chunk = group_hashes[i : i + batch_size]
         delete_seer_grouping_records_by_hash.apply_async(args=[project.id, chunk, 0])
+
+
+def get_hashes_for_group_ids(group_ids: Sequence[int], project: Project) -> list[str]:
+    hashes_batch_size = options.get("deletions.group-hashes-fetch-batch-size")
+    group_hashes = []
+
+    for group_id in group_ids:
+        for group_hash in RangeQuerySetWrapper(
+            GroupHash.objects.filter(project_id=project.id, group__id=group_id),
+            step=hashes_batch_size,
+        ):
+            group_hashes.append(group_hash.hash)
+
+    return group_hashes
 
 
 @instrumented_task(
