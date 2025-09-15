@@ -1,7 +1,7 @@
 export const TABLE_FIELD_NAME_TO_SORT_KEY = {
   averageDurationMs: 'AVG_DURATION',
   flakeRate: 'FLAKE_RATE',
-  totalFailCount: 'TOTAL_FAIL_COUNT',
+  totalFailCount: 'RUNS_FAILED',
   lastRun: 'UPDATED_AT',
   testName: 'NAME',
 };

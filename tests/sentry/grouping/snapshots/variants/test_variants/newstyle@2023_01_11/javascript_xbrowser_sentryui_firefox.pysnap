@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:09.739839+00:00'
+created: '2025-09-11T18:38:52.013439+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app:
               "_microtask.js"
             function (ignored because sourcemap used and context line available)
               "M"
-            context-line*
+            context_line*
               "fn();"
           frame (marked out of app by the client)
             module*
@@ -26,7 +26,7 @@ app:
               "es6.promise.js"
             function (ignored because sourcemap used and context line available)
               "fn"
-            context-line*
+            context_line*
               "while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
           frame (marked out of app by the client)
             module*
@@ -35,7 +35,7 @@ app:
               "es6.promise.js"
             function (ignored because sourcemap used and context line available)
               "run"
-            context-line*
+            context_line*
               "result = handler(value); // may throw"
           frame (marked out of app by the client)
             module*
@@ -44,7 +44,7 @@ app:
               "asynctogenerator.js"
             function (ignored because sourcemap used and context line available)
               "_next"
-            context-line*
+            context_line*
               "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
           frame (marked out of app by the client)
             module*
@@ -53,7 +53,7 @@ app:
               "asynctogenerator.js"
             function (ignored because sourcemap used and context line available)
               "asyncGeneratorStep"
-            context-line*
+            context_line*
               "var info = gen[key](arg);"
           frame (marked out of app by the client)
             module*
@@ -62,7 +62,7 @@ app:
               "runtime.js"
             function (ignored because sourcemap used and context line available)
               "key"
-            context-line*
+            context_line*
               "return this._invoke(method, arg);"
           frame (marked out of app by the client)
             module*
@@ -71,7 +71,7 @@ app:
               "runtime.js"
             function (ignored because sourcemap used and context line available)
               "this"
-            context-line*
+            context_line*
               "var record = tryCatch(innerFn, self, context);"
           frame (marked out of app by the client)
             module*
@@ -80,7 +80,7 @@ app:
               "runtime.js"
             function (ignored because sourcemap used and context line available)
               "tryCatch"
-            context-line*
+            context_line*
               "return { type: \"normal\", arg: fn.call(obj, arg) };"
           frame* (marked in-app by the client)
             module*
@@ -89,7 +89,7 @@ app:
               "lazyload.jsx"
             function (ignored because sourcemap used and context line available)
               "fn"
-            context-line*
+            context_line*
               "this.setState({"
           frame (marked out of app by the client)
             module*
@@ -98,7 +98,7 @@ app:
               "react.production.min.js"
             function*
               "this"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} !==typeof a&&\"function\"!==typeof a&&null!=a?B(\"85\"):void 0;this.updater.enqueueSetState(this,a,b,\"setState\")};E.prototype.forceUpdate=functi {snip}"
           frame (marked out of app by the client)
             module*
@@ -107,7 +107,7 @@ app:
               "react-dom.production.min.js"
             function*
               "this"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}"
           frame (marked out of app by the client)
             module*
@@ -116,7 +116,7 @@ app:
               "react-dom.production.min.js"
             function*
               "If"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t(\"185\"))}} {snip}"
           frame (marked out of app by the client)
             module*
@@ -125,7 +125,7 @@ app:
               "react-dom.production.min.js"
             function*
               "Yg"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}"
           frame (marked out of app by the client)
             module*
@@ -134,7 +134,7 @@ app:
               "react-dom.production.min.js"
             function*
               "Xg"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}"
           frame (marked out of app by the client)
             module*
@@ -143,7 +143,7 @@ app:
               "react-dom.production.min.js"
             function*
               "rh"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}"
           frame* (marked in-app by the client)
             module*
@@ -152,7 +152,7 @@ app:
               "groupeventdetails.jsx"
             function (ignored because sourcemap used and context line available)
               "X"
-            context-line*
+            context_line*
               "this.fetchData();"
           frame* (marked in-app by the client)
             module*
@@ -161,7 +161,7 @@ app:
               "groupeventdetails.jsx"
             function (ignored because sourcemap used and context line available)
               "this"
-            context-line*
+            context_line*
               "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
           frame* (marked in-app by the client)
             module*
@@ -170,7 +170,7 @@ app:
               "api.jsx"
             function (ignored because sourcemap used and context line available)
               "fetchGroupEventAndMarkSeen"
-            context-line*
+            context_line*
               "const preservedError = new Error();"
         type*
           "NotFoundError"
@@ -191,7 +191,7 @@ system:
               "_microtask.js"
             function (ignored because sourcemap used and context line available)
               "M"
-            context-line*
+            context_line*
               "fn();"
           frame*
             module*
@@ -200,7 +200,7 @@ system:
               "es6.promise.js"
             function (ignored because sourcemap used and context line available)
               "fn"
-            context-line*
+            context_line*
               "while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
           frame*
             module*
@@ -209,7 +209,7 @@ system:
               "es6.promise.js"
             function (ignored because sourcemap used and context line available)
               "run"
-            context-line*
+            context_line*
               "result = handler(value); // may throw"
           frame*
             module*
@@ -218,7 +218,7 @@ system:
               "asynctogenerator.js"
             function (ignored because sourcemap used and context line available)
               "_next"
-            context-line*
+            context_line*
               "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
           frame*
             module*
@@ -227,7 +227,7 @@ system:
               "asynctogenerator.js"
             function (ignored because sourcemap used and context line available)
               "asyncGeneratorStep"
-            context-line*
+            context_line*
               "var info = gen[key](arg);"
           frame*
             module*
@@ -236,7 +236,7 @@ system:
               "runtime.js"
             function (ignored because sourcemap used and context line available)
               "key"
-            context-line*
+            context_line*
               "return this._invoke(method, arg);"
           frame*
             module*
@@ -245,7 +245,7 @@ system:
               "runtime.js"
             function (ignored because sourcemap used and context line available)
               "this"
-            context-line*
+            context_line*
               "var record = tryCatch(innerFn, self, context);"
           frame*
             module*
@@ -254,7 +254,7 @@ system:
               "runtime.js"
             function (ignored because sourcemap used and context line available)
               "tryCatch"
-            context-line*
+            context_line*
               "return { type: \"normal\", arg: fn.call(obj, arg) };"
           frame*
             module*
@@ -263,7 +263,7 @@ system:
               "lazyload.jsx"
             function (ignored because sourcemap used and context line available)
               "fn"
-            context-line*
+            context_line*
               "this.setState({"
           frame*
             module*
@@ -272,7 +272,7 @@ system:
               "react.production.min.js"
             function*
               "this"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} !==typeof a&&\"function\"!==typeof a&&null!=a?B(\"85\"):void 0;this.updater.enqueueSetState(this,a,b,\"setState\")};E.prototype.forceUpdate=functi {snip}"
           frame*
             module*
@@ -281,7 +281,7 @@ system:
               "react-dom.production.min.js"
             function*
               "this"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}"
           frame*
             module*
@@ -290,7 +290,7 @@ system:
               "react-dom.production.min.js"
             function*
               "If"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t(\"185\"))}} {snip}"
           frame*
             module*
@@ -299,7 +299,7 @@ system:
               "react-dom.production.min.js"
             function*
               "Yg"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}"
           frame*
             module*
@@ -308,7 +308,7 @@ system:
               "react-dom.production.min.js"
             function*
               "Xg"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}"
           frame*
             module*
@@ -317,7 +317,7 @@ system:
               "react-dom.production.min.js"
             function*
               "rh"
-            context-line (discarded because line too long)
+            context_line (discarded because line too long)
               "{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}"
           frame*
             module*
@@ -326,7 +326,7 @@ system:
               "groupeventdetails.jsx"
             function (ignored because sourcemap used and context line available)
               "X"
-            context-line*
+            context_line*
               "this.fetchData();"
           frame*
             module*
@@ -335,7 +335,7 @@ system:
               "groupeventdetails.jsx"
             function (ignored because sourcemap used and context line available)
               "this"
-            context-line*
+            context_line*
               "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
           frame*
             module*
@@ -344,7 +344,7 @@ system:
               "api.jsx"
             function (ignored because sourcemap used and context line available)
               "fetchGroupEventAndMarkSeen"
-            context-line*
+            context_line*
               "const preservedError = new Error();"
         type*
           "NotFoundError"

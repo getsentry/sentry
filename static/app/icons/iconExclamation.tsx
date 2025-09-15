@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 /**
  * @deprecated This icon will be removed in new UI.
  */
-function IconExclamation(props: SVGIconProps) {
+export function IconExclamation(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -26,7 +26,3 @@ function IconExclamation(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconExclamation.displayName = 'IconExclamation';
-
-export {IconExclamation};

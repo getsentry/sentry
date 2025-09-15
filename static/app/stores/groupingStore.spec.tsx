@@ -31,6 +31,7 @@ describe('Grouping Store', () => {
           },
           state: 'unlocked',
           id: '2',
+          mergedBySeer: true,
         },
         {
           latestEvent: {
@@ -45,6 +46,7 @@ describe('Grouping Store', () => {
           },
           state: 'unlocked',
           id: '4',
+          mergedBySeer: true,
         },
         {
           latestEvent: {
@@ -239,6 +241,29 @@ describe('Grouping Store', () => {
           ]),
         });
       });
+    });
+
+    it('handles fingerprints with seer merging information', async () => {
+      await GroupingStore.onFetch([
+        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+      ]);
+
+      expect(trigger).toHaveBeenCalled();
+      const mergedItems = GroupingStore.getState().mergedItems;
+
+      // Check that fingerprints with metadata are properly handled
+      const fingerprintWithSeer = mergedItems.find((item: any) => item.id === '2');
+      expect(fingerprintWithSeer).toBeDefined();
+      expect(fingerprintWithSeer?.mergedBySeer).toBe(true);
+
+      const fingerprintWithSeerV2 = mergedItems.find((item: any) => item.id === '4');
+      expect(fingerprintWithSeerV2).toBeDefined();
+      expect(fingerprintWithSeerV2?.mergedBySeer).toBe(true);
+
+      // Check that fingerprints without seer merging are still handled correctly
+      const fingerprintWithoutSeer = mergedItems.find((item: any) => item.id === '3');
+      expect(fingerprintWithoutSeer).toBeDefined();
+      expect(fingerprintWithoutSeer?.mergedBySeer).toBeUndefined();
     });
 
     it('unsuccessfully fetches list of hashes items', () => {

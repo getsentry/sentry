@@ -1,5 +1,5 @@
 ---
-created: '2025-09-10T21:59:45.323709+00:00'
+created: '2025-09-11T18:40:11.825571+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -41,7 +41,7 @@ contributing variants:
                 "stripped_application_code"
           type*
             "<redacted>"
-          ns-error*
+          ns_error*
             domain*
               "<redacted>"
             code*
@@ -70,7 +70,7 @@ contributing variants:
                 "stripped_application_code"
           type*
             "<redacted>"
-          ns-error*
+          ns_error*
             domain*
               "<redacted>"
             code*
