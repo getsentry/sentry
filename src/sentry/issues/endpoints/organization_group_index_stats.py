@@ -15,6 +15,7 @@ from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -27,13 +28,15 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
     enforce_rate_limit = True
     owner = ApiOwner.ISSUES
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=1),
-            RateLimitCategory.USER: RateLimit(limit=10, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=1),
+                RateLimitCategory.USER: RateLimit(limit=10, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=1),
+            }
         }
-    }
+    )
 
     def get(self, request: Request, organization: Organization) -> Response:
         """

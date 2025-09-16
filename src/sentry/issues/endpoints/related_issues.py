@@ -9,6 +9,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.related.same_root_cause import same_root_cause_analysis
 from sentry.issues.related.trace_connected import trace_connected_analysis
 from sentry.models.group import Group
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -23,13 +24,15 @@ class RelatedIssuesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=15, window=5),
-            RateLimitCategory.USER: RateLimit(limit=15, window=5),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=15, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=15, window=5),
+                RateLimitCategory.USER: RateLimit(limit=15, window=5),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=15, window=1),
+            }
         }
-    }
+    )
 
     # We get a Group object since the endpoint is /issues/{issue_id}/related-issues
     def get(self, request: Request, group: Group) -> Response:
