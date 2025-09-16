@@ -10,6 +10,10 @@ import {AutofixStatus, AutofixStepType} from 'sentry/components/events/autofix/t
 describe('AutofixSteps', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {integrations: []},
+    });
   });
 
   const defaultProps = {

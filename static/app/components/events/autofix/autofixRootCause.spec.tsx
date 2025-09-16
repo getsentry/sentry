@@ -11,6 +11,10 @@ describe('AutofixRootCause', () => {
       method: 'POST',
       body: {success: true},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {integrations: []},
+    });
   });
 
   afterEach(() => {

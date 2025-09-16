@@ -7,18 +7,31 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {
+  makeAutofixQueryKey,
+  useCodingAgentIntegrations,
+  useLaunchCodingAgent,
+} from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
-import {IconArrow, IconChat, IconClose, IconCopy, IconFocus} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChat,
+  IconChevron,
+  IconClose,
+  IconCopy,
+  IconFocus,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -246,6 +259,7 @@ function AutofixRootCauseDisplay({
   event,
 }: AutofixRootCauseProps) {
   const cause = causes[0];
+  const organization = useOrganization();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const [isProvidingSolution, setIsProvidingSolution] = useState(false);
@@ -254,6 +268,13 @@ function AutofixRootCauseDisplay({
     groupId,
     runId,
   });
+  const {data: codingAgentResponse, isLoading: isLoadingAgents} =
+    useCodingAgentIntegrations();
+  const codingAgentIntegrations = codingAgentResponse?.integrations ?? [];
+  const {mutate: launchCodingAgent, isPending: isLaunchingAgent} = useLaunchCodingAgent(
+    groupId,
+    runId
+  );
 
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
@@ -277,6 +298,28 @@ function AutofixRootCauseDisplay({
     }
   };
 
+  // Find Cursor integration specifically
+  const cursorIntegration = codingAgentIntegrations.find(
+    integration => integration.provider === 'cursor'
+  );
+
+  const handleLaunchCodingAgent = () => {
+    if (!cursorIntegration) {
+      return;
+    }
+
+    launchCodingAgent({
+      integrationId: cursorIntegration.id,
+      agentName: cursorIntegration.name,
+      triggerSource: 'root_cause',
+    });
+
+    trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
+      organization,
+      group_id: groupId,
+    });
+  };
+
   const handleMySolution = () => {
     setIsProvidingSolution(true);
     setSolutionText('');
@@ -286,6 +329,14 @@ function AutofixRootCauseDisplay({
     setIsProvidingSolution(false);
     setSolutionText('');
   };
+
+  // Shared UI state for "Find Solution" controls
+  const isRootCauseAlreadySelected = Boolean(
+    rootCauseSelection && 'cause_id' in rootCauseSelection
+  );
+  const findSolutionPriority: React.ComponentProps<typeof Button>['priority'] =
+    isRootCauseAlreadySelected ? 'default' : 'primary';
+  const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
   const handleSubmitSolution = (e: React.FormEvent) => {
     e.preventDefault();
@@ -441,19 +492,51 @@ function AutofixRootCauseDisplay({
             >
               {t('Give Solution')}
             </Button>
-            <Button
-              size="sm"
-              priority={
-                rootCauseSelection && 'cause_id' in rootCauseSelection
-                  ? 'default'
-                  : 'primary'
-              }
-              busy={isSelectingRootCause}
-              onClick={handleSelectRootCause}
-              title={t('Let Seer plan a solution to this issue')}
-            >
-              {t('Find Solution')}
-            </Button>
+            {cursorIntegration ? (
+              <ButtonBar merged gap="0">
+                <Button
+                  size="sm"
+                  priority={findSolutionPriority}
+                  busy={isSelectingRootCause}
+                  disabled={isLoadingAgents}
+                  onClick={handleSelectRootCause}
+                  title={findSolutionTitle}
+                >
+                  {t('Find Solution')}
+                </Button>
+                <DropdownMenu
+                  items={[
+                    {
+                      key: 'cursor-agent',
+                      label: t('Send to Cursor Background Agent'),
+                      onAction: handleLaunchCodingAgent,
+                      disabled: isLoadingAgents || isLaunchingAgent,
+                    },
+                  ]}
+                  trigger={(triggerProps, isOpen) => (
+                    <DropdownTrigger
+                      {...triggerProps}
+                      size="sm"
+                      priority={findSolutionPriority}
+                      busy={isLaunchingAgent}
+                      disabled={isLoadingAgents}
+                      aria-label={t('More solution options')}
+                      icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                    />
+                  )}
+                />
+              </ButtonBar>
+            ) : (
+              <Button
+                size="sm"
+                priority={findSolutionPriority}
+                busy={isSelectingRootCause}
+                onClick={handleSelectRootCause}
+                title={findSolutionTitle}
+              >
+                {t('Find Solution')}
+              </Button>
+            )}
           </ButtonBar>
         )}
       </BottomButtonContainer>
@@ -570,4 +653,10 @@ const SolutionFormRow = styled('div')`
 const SolutionInput = styled(TextArea)`
   flex: 1;
   resize: none;
+`;
+
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-left: none;
 `;

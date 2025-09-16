@@ -10,12 +10,15 @@ import {
   replaceHeadersWithBold,
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
+import CodingAgentCard from 'sentry/components/events/autofix/codingAgentCard';
 import {
   AutofixStepType,
   type AutofixData,
   type AutofixProgressItem,
   type AutofixStep,
+  type SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
+import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -150,6 +153,25 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
     organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
   const steps = data.steps;
   const isMountedRef = useRef<boolean>(false);
+  const {repos} = useAutofixRepos(groupId);
+
+  const codingAgentData = Object.values(data.coding_agents || {}).map(agent => {
+    let repo: SeerRepoDefinition | undefined;
+    if (agent.results && agent.results.length > 0) {
+      const result = agent.results[0];
+      if (result) {
+        repo = repos?.find(
+          r =>
+            result.repo_provider === r.provider &&
+            `${r.owner}/${r.name}` === result.repo_full_name
+        );
+      }
+    }
+    return {
+      codingAgentState: agent,
+      repo,
+    };
+  });
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -256,6 +278,13 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
           </div>
         );
       })}
+      {codingAgentData.map(({codingAgentState, repo}) => (
+        <CodingAgentCard
+          key={`coding-agent-${codingAgentState.id}`}
+          codingAgentState={codingAgentState}
+          repo={repo}
+        />
+      ))}
       {shouldShowOutputStream && (
         <AutofixOutputStream
           stream={lastStep!.output_stream ?? ''}
