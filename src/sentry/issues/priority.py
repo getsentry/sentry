@@ -84,13 +84,13 @@ def update_priority(
     else:
         if get_group_type_by_type_id(group.type).track_priority_changes:
             if is_regression:
-                # in case the rollout somehow goes out between open period creation and priority update
                 try:
                     activity_entry_to_update = GroupOpenPeriodActivity.objects.get(
                         group_open_period=open_period, type=OpenPeriodActivityType.OPENED
                     )
                     activity_entry_to_update.update(value=priority)
                 except GroupOpenPeriodActivity.DoesNotExist:
+                    # in case the rollout somehow goes out between open period creation and priority update
                     GroupOpenPeriodActivity.objects.create(
                         date_added=open_period.date_started,
                         group_open_period=open_period,

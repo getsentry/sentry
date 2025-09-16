@@ -753,6 +753,51 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert activity_updates[1].type == OpenPeriodActivityType.STATUS_CHANGE
         assert activity_updates[1].value == PriorityLevel.HIGH
 
+    @with_feature("organizations:issue-open-periods")
+    @mock.patch("sentry.issues.ingest._process_existing_aggregate")
+    def test_update_group_priority_and_unresolve(self, mock_is_regression: mock.MagicMock) -> None:
+        # set up the group opening entry
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+            type=MetricIssue.type_id,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 1
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.MEDIUM
+
+        mock_is_regression.return_value = True
+
+        # mock a regression with priority change
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(
+            fingerprint=["some-fingerprint"],
+            type=MetricIssue.type_id,
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
+        mock_is_regression.assert_called()
+
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 1
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.HIGH
+
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
