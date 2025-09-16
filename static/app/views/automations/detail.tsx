@@ -37,7 +37,7 @@ import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {
   makeAutomationBasePathname,
-  makeAutomationDetailsPathname,
+  makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
@@ -251,7 +251,7 @@ function Actions({automation}: {automation: Automation}) {
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
-        to={`${makeAutomationDetailsPathname(organization.slug, automation.id)}edit/`}
+        to={makeAutomationEditPathname(organization.slug, automation.id)}
         priority="primary"
         icon={<IconEdit />}
         size="sm"
