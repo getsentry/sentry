@@ -10,6 +10,7 @@ import {
   createAskSeerItem,
   createFilterValueItem,
   createItem,
+  createRawSearchFilterContainsValueItem,
   createRawSearchFilterIsValueItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
@@ -18,6 +19,7 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterKeySearchItem = {
   description: string;
@@ -139,6 +141,10 @@ export function useSortedFilterKeyItems({
     enableAISearch,
   } = useSearchQueryBuilder();
 
+  const hasWildcardOperators = useOrganization().features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
   const searchableItems = useMemo<FilterKeySearchItem[]>(() => {
@@ -215,12 +221,17 @@ export function useSortedFilterKeyItems({
         !replaceRawSearchKeys?.length;
 
       const rawSearchFilterIsValueItems =
-        replaceRawSearchKeys?.map(key => {
+        replaceRawSearchKeys?.flatMap(key => {
           const value = inputValue?.includes(' ')
             ? `"${inputValue.replace(/"/g, '')}"`
             : inputValue;
 
-          return createRawSearchFilterIsValueItem(key, value);
+          return [
+            ...(hasWildcardOperators
+              ? [createRawSearchFilterContainsValueItem(key, value)]
+              : []),
+            createRawSearchFilterIsValueItem(key, value),
+          ];
         }) ?? [];
 
       const rawSearchReplacements: KeySectionItem = {
@@ -292,6 +303,7 @@ export function useSortedFilterKeyItems({
     filterValue,
     flatKeys,
     getFieldDefinition,
+    hasWildcardOperators,
     includeSuggestions,
     inputValue,
     matchKeySuggestions,
