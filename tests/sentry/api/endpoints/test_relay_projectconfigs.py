@@ -156,7 +156,9 @@ def test_internal_relays_should_receive_full_configs(
     ) == quotas.backend.get_downsampled_event_retention(default_project.organization)
 
     retentions = quotas.backend.get_retentions(default_project.organization)
-    assert safe.get_path(cfg, "config", "retentions") == {c.name: v for c, v in retentions.items()}
+    assert safe.get_path(cfg, "config", "retentions") == {
+        c.name: v.to_object() for c, v in retentions.items()
+    }
 
 
 @django_db_all
