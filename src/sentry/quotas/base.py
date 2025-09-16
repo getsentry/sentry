@@ -61,12 +61,12 @@ class AbuseQuota:
 @dataclass
 class RetentionSettings:
     standard: int
-    down_sampled: int
+    downsampled: int
 
     def to_object(self) -> Mapping[str, Any]:
         return {
             "standard": self.standard,
-            "downSampled": self.down_sampled,
+            "downsampled": self.downsampled,
         }
 
 
