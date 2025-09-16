@@ -52,7 +52,6 @@ def clear_future_release_resolutions(release):
     3. The resolution is still pending
     4. The resolution belongs to the same organization as the release
     """
-    # Check feature flag once for the release's organization
     if not features.has("organizations:resolve-in-future-release", release.organization):
         return
 
@@ -62,7 +61,7 @@ def clear_future_release_resolutions(release):
             future_release_version=release.version,
             status=GroupResolution.Status.pending,
             group__project__organization=release.organization,
-        ).select_related("group__project__organization")
+        )
     )
 
     if not resolution_list:
