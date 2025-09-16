@@ -4,7 +4,6 @@ import type {ComboBoxState} from '@react-stately/combobox';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {ExternalLink} from 'sentry/components/core/link';
 import {
   AskSeerLabel,
   AskSeerListItem,
