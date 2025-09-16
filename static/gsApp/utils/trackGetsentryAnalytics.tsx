@@ -45,6 +45,7 @@ type GetsentryEventParameters = {
   'add_event_cta.clicked_cta': AddEventCTA;
   'am_checkout.viewed': HasSub;
   'billing_details.updated_cc': {
+    isStripeComponent?: boolean;
     referrer?: string;
   };
   'billing_failure.button_clicked': {
@@ -57,6 +58,7 @@ type GetsentryEventParameters = {
     referrer?: string;
   };
   'billing_failure.paid_now': {
+    isStripeComponent?: boolean;
     referrer?: string;
   };
   'billing_failure.updated_cc': {

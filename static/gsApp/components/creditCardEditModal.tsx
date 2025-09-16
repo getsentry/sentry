@@ -7,8 +7,10 @@ import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import CreditCardSetup from 'getsentry/components/creditCardSetup';
+import StripeCreditCardSetup from 'getsentry/components/stripeCreditCardSetup';
 import type {Subscription} from 'getsentry/types';
 import {FTCConsentLocation} from 'getsentry/types';
+import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = ModalRenderProps & {
@@ -29,27 +31,49 @@ function CreditCardEditModal({
 }: Props) {
   const referrer = decodeScalar(location?.query?.referrer);
   const budgetModeText = subscription.planDetails.budgetTerm;
+  const shouldUseStripe = hasStripeComponentsFeature(organization);
+
+  const commonProps = {
+    organization,
+    location: FTCConsentLocation.BILLING_DETAILS,
+    referrer,
+    budgetModeText,
+    buttonText: t('Save Changes'),
+  };
+
   return (
     <Fragment>
       <Header>{t('Update Credit Card')}</Header>
       <Body>
-        <CreditCardSetup
-          isModal
-          organization={organization}
-          onCancel={closeModal}
-          onSuccess={data => {
-            onSuccess(data);
-            closeModal();
-            trackGetsentryAnalytics('billing_details.updated_cc', {
-              organization,
-              referrer: decodeScalar(referrer),
-            });
-          }}
-          buttonText={t('Save Changes')}
-          referrer={referrer}
-          location={FTCConsentLocation.BILLING_DETAILS}
-          budgetModeText={budgetModeText}
-        />
+        {shouldUseStripe ? (
+          <StripeCreditCardSetup
+            onCancel={closeModal}
+            onSuccessWithSubscription={onSuccess}
+            onSuccess={() => {
+              closeModal();
+              trackGetsentryAnalytics('billing_details.updated_cc', {
+                organization,
+                referrer: decodeScalar(referrer),
+                isStripeComponent: true,
+              });
+            }}
+            {...commonProps}
+          />
+        ) : (
+          <CreditCardSetup
+            isModal
+            onCancel={closeModal}
+            onSuccess={data => {
+              onSuccess(data);
+              closeModal();
+              trackGetsentryAnalytics('billing_details.updated_cc', {
+                organization,
+                referrer: decodeScalar(referrer),
+              });
+            }}
+            {...commonProps}
+          />
+        )}
       </Body>
     </Fragment>
   );
