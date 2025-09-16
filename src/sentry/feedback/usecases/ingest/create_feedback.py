@@ -358,9 +358,7 @@ def create_feedback_issue(
     )
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
-    if should_query_seer and features.has(
-        "organizations:user-feedback-ai-categorization", project.organization
-    ):
+    if should_query_seer:
         try:
             labels = generate_labels(feedback_message, project.organization_id)
             # This will rarely happen unless the user writes a really long feedback message

@@ -997,40 +997,35 @@ def test_create_feedback_adds_ai_labels(
 ) -> None:
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
     mock_has_seer_access.return_value = True
-    with Feature(
-        {
-            "organizations:user-feedback-ai-categorization": True,
-        }
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+
+    # This assumes that the maximum number of labels allowed is greater than 3
+    def mock_generate_labels(*args, **kwargs):
+        return ["User Interface", "Authentication", "Performance"]
+
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+        mock_generate_labels,
     ):
-        event = mock_feedback_event(default_project.id)
-        event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        # This assumes that the maximum number of labels allowed is greater than 3
-        def mock_generate_labels(*args, **kwargs):
-            return ["User Interface", "Authentication", "Performance"]
+        create_feedback_issue(
+            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
 
-        with patch(
-            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
-            mock_generate_labels,
-        ):
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
 
-            create_feedback_issue(
-                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
+    ai_labels = [
+        value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+    ]
 
-        assert mock_produce_occurrence_to_kafka.call_count == 1
-        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-        tags = produced_event["tags"]
+    expected_labels = ["Authentication", "Performance", "User Interface"]
 
-        ai_labels = [
-            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
-        ]
-
-        expected_labels = ["Authentication", "Performance", "User Interface"]
-
-        assert len(ai_labels) == 3
-        assert set(ai_labels) == set(expected_labels)
-        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
+    assert len(ai_labels) == 3
+    assert set(ai_labels) == set(expected_labels)
+    assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
 
 
 @django_db_all
@@ -1039,36 +1034,31 @@ def test_create_feedback_handles_label_generation_errors(
 ) -> None:
     """Test that create_feedback_issue continues to work even when generate_labels raises an error."""
     mock_has_seer_access.return_value = True
-    with Feature(
-        {
-            "organizations:user-feedback-ai-categorization": True,
-        }
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["message"] = "This is a valid feedback message"
+
+    # Mock generate_labels to raise an exception
+    def mock_generate_labels(*args, **kwargs):
+        raise Exception("Label generation failed")
+
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+        mock_generate_labels,
     ):
-        event = mock_feedback_event(default_project.id)
-        event["contexts"]["feedback"]["message"] = "This is a valid feedback message"
+        # This should not raise an exception and should still create the feedback
+        create_feedback_issue(
+            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
 
-        # Mock generate_labels to raise an exception
-        def mock_generate_labels(*args, **kwargs):
-            raise Exception("Label generation failed")
+    # Verify that the feedback was still created successfully
+    assert mock_produce_occurrence_to_kafka.call_count == 1
 
-        with patch(
-            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
-            mock_generate_labels,
-        ):
-            # This should not raise an exception and should still create the feedback
-            create_feedback_issue(
-                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
 
-        # Verify that the feedback was still created successfully
-        assert mock_produce_occurrence_to_kafka.call_count == 1
-
-        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-        tags = produced_event["tags"]
-
-        ai_labels = [tag for tag in tags.keys() if tag.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")]
-        assert len(ai_labels) == 0
-        assert f"{AI_LABEL_TAG_PREFIX}.labels" not in tags
+    ai_labels = [tag for tag in tags.keys() if tag.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")]
+    assert len(ai_labels) == 0
+    assert f"{AI_LABEL_TAG_PREFIX}.labels" not in tags
 
 
 @django_db_all
@@ -1077,60 +1067,55 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned. If the list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters, the list is truncated in this test to match the intended behaviour."""
     mock_has_seer_access.return_value = True
-    with Feature(
-        {
-            "organizations:user-feedback-ai-categorization": True,
-        }
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"][
+        "message"
+    ] = "This is a very complex feedback with many issues"
+
+    alphabet = "abcdefghijklmnopqrstuvwxyz"
+
+    # Mock generate_labels to return more than MAX_AI_LABELS labels
+    # The labels should be sorted alphabetically, so don't store numbers, instead use letters
+    def mock_generate_labels(*args, **kwargs):
+        return [f"{alphabet[i]}" for i in range(MAX_AI_LABELS + 5)]
+
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+        mock_generate_labels,
     ):
-        event = mock_feedback_event(default_project.id)
-        event["contexts"]["feedback"][
-            "message"
-        ] = "This is a very complex feedback with many issues"
+        create_feedback_issue(
+            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
 
-        alphabet = "abcdefghijklmnopqrstuvwxyz"
+    assert mock_produce_occurrence_to_kafka.call_count == 1
 
-        # Mock generate_labels to return more than MAX_AI_LABELS labels
-        # The labels should be sorted alphabetically, so don't store numbers, instead use letters
-        def mock_generate_labels(*args, **kwargs):
-            return [f"{alphabet[i]}" for i in range(MAX_AI_LABELS + 5)]
+    # Don't use ai_labels since we don't rely on dict order
+    expected_labels = [f"{alphabet[i]}" for i in range(MAX_AI_LABELS)]
 
-        with patch(
-            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
-            mock_generate_labels,
-        ):
-            create_feedback_issue(
-                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
+    # Truncate the labels so the serialized list is within the allowed length
+    while len(json.dumps(expected_labels)) > MAX_AI_LABELS_JSON_LENGTH:
+        expected_labels.pop()
 
-        assert mock_produce_occurrence_to_kafka.call_count == 1
+    labels_list_length = min(len(expected_labels), MAX_AI_LABELS)
 
-        # Don't use ai_labels since we don't rely on dict order
-        expected_labels = [f"{alphabet[i]}" for i in range(MAX_AI_LABELS)]
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
 
-        # Truncate the labels so the serialized list is within the allowed length
-        while len(json.dumps(expected_labels)) > MAX_AI_LABELS_JSON_LENGTH:
-            expected_labels.pop()
+    ai_labels = [
+        value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+    ]
+    assert (
+        len(ai_labels) == labels_list_length
+    ), "Should be truncated to exactly labels_list_length"
 
-        labels_list_length = min(len(expected_labels), MAX_AI_LABELS)
+    for i in range(labels_list_length):
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == expected_labels[i]
 
-        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-        tags = produced_event["tags"]
+    assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
 
-        ai_labels = [
-            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
-        ]
-        assert (
-            len(ai_labels) == labels_list_length
-        ), "Should be truncated to exactly labels_list_length"
-
-        for i in range(labels_list_length):
-            assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == expected_labels[i]
-
-        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
-
-        # Verify that labels beyond labels_list_length are not present
-        for i in range(labels_list_length, labels_list_length + 5):
-            assert f"{AI_LABEL_TAG_PREFIX}.label.{i}" not in tags
+    # Verify that labels beyond labels_list_length are not present
+    for i in range(labels_list_length, labels_list_length + 5):
+        assert f"{AI_LABEL_TAG_PREFIX}.label.{i}" not in tags
 
 
 @django_db_all
@@ -1139,40 +1124,35 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when the serialized list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters."""
     mock_has_seer_access.return_value = True
-    with Feature(
-        {
-            "organizations:user-feedback-ai-categorization": True,
-        }
+    event = mock_feedback_event(default_project.id)
+
+    event["contexts"]["feedback"][
+        "message"
+    ] = "This is a very complex feedback with many issues"
+
+    # The serialized list of labels should be longer than MAX_AI_LABELS_JSON_LENGTH characters, so we should only take the first item
+    def mock_generate_labels(*args, **kwargs):
+        return ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)] * 100
+
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+        mock_generate_labels,
     ):
-        event = mock_feedback_event(default_project.id)
-
-        event["contexts"]["feedback"][
-            "message"
-        ] = "This is a very complex feedback with many issues"
-
-        # The serialized list of labels should be longer than MAX_AI_LABELS_JSON_LENGTH characters, so we should only take the first item
-        def mock_generate_labels(*args, **kwargs):
-            return ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)] * 100
-
-        with patch(
-            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
-            mock_generate_labels,
-        ):
-            create_feedback_issue(
-                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-            )
-
-        assert mock_produce_occurrence_to_kafka.call_count == 1
-
-        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
-        tags = produced_event["tags"]
-
-        ai_labels = [
-            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
-        ]
-
-        assert len(ai_labels) == 1
-        assert tags[f"{AI_LABEL_TAG_PREFIX}.label.0"] == "a" * (MAX_AI_LABELS_JSON_LENGTH - 50)
-        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(
-            ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)]
+        create_feedback_issue(
+            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
+
+    ai_labels = [
+        value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+    ]
+
+    assert len(ai_labels) == 1
+    assert tags[f"{AI_LABEL_TAG_PREFIX}.label.0"] == "a" * (MAX_AI_LABELS_JSON_LENGTH - 50)
+    assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(
+        ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)]
+    )
