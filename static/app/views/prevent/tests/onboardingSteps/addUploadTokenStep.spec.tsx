@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
@@ -121,8 +121,7 @@ describe('AddUploadTokenStep', () => {
     );
 
     const link = await screen.findByRole('link', {name: 'repository secret'});
-    // this href is after "#" was normalized by the Link component
-    expect(link).toHaveAttribute('href', '/mock-pathname/');
+    expect(link).toHaveAttribute('href', '#');
   });
 
   it('handles valid GitHub naming characters in organization and repository names', async () => {
