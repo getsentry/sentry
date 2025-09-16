@@ -578,6 +578,8 @@ def detect_expired_preprod_artifacts():
         date_updated__lte=timeout_threshold,
     )
 
+    expired_artifact_ids = list(expired_artifacts.values_list("id", flat=True))
+
     try:
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             expired_artifacts_count = expired_artifacts.update(
@@ -593,6 +595,12 @@ def detect_expired_preprod_artifacts():
                         "expired_artifacts_count": expired_artifacts_count,
                     },
                 )
+
+                # Trigger status check updates for each expired artifact now that the state is FAILED
+                for artifact_id in expired_artifact_ids:
+                    create_preprod_status_check_task.apply_async(
+                        kwargs={"preprod_artifact_id": artifact_id}
+                    )
     except Exception:
         logger.exception(
             "preprod.tasks.detect_expired_preprod_artifacts.failed_to_batch_update_expired_artifacts",
