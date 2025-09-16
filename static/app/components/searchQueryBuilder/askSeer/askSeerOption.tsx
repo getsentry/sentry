@@ -46,10 +46,7 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
       <AskSeerLabel {...labelProps}>
-        <AskSeerLabel {...labelProps}>
-          {t('Ask Seer')} <FeatureBadge type="beta" />
-        </AskSeerLabel>
-        <FeatureBadge type="beta" />
+        {t('Ask Seer')} <FeatureBadge type="beta" />
       </AskSeerLabel>
     </AskSeerListItem>
   );
