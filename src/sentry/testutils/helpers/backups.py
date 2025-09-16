@@ -48,8 +48,10 @@ from sentry.explore.models import (
 )
 from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
 from sentry.insights.models import InsightsStarredSegment
+from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.project_data_forwarder import ProjectDataForwarder
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -751,6 +753,20 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             project=project,
             segment_name="test_transaction",
+        )
+
+        data_forwarder = DataForwarder.objects.create(
+            organization_id=org.id,
+            is_enabled=True,
+            enroll_new_projects=True,
+            enrolled_projects=[project.id],
+            provider="segment",
+            config={"write_key": "test_write_key"},
+        )
+        ProjectDataForwarder.objects.create(
+            data_forwarder=data_forwarder,
+            project_id=project.id,
+            overrides={"write_key": "test_override_write_key"},
         )
 
         return org

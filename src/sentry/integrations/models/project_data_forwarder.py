@@ -9,7 +9,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 @region_silo_model
 class ProjectDataForwarder(DefaultFieldsModel):
     """
-    Links DataForwardingConfig to specific projects with optional project-specific overrides.
+    Links DataForwarder to specific projects with optional project-specific overrides.
     """
 
     __relocation_scope__ = RelocationScope.Organization
