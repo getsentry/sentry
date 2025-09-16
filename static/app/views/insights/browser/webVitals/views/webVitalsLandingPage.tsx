@@ -30,7 +30,6 @@ import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/
 const WEB_VITALS_COUNT = 5;
 
 function WebVitalsLandingPage() {
-  const organization = useOrganization();
   const location = useLocation();
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({

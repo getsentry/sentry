@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {WebVital} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
@@ -124,8 +125,8 @@ function VitalMeter({
       <NoValue />
     );
 
-  const webVitalKey = `measurements.${webVital}`;
-  const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
+  const webVitalKey = `measurements.${webVital}` as WebVital;
+  const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey]!;
 
   const headerText = WEB_VITALS_METERS_CONFIG[webVital].name;
   const issueTypes = WEB_VITAL_PERFORMANCE_ISSUES[webVital];
