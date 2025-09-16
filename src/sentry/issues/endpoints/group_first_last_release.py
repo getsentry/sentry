@@ -5,6 +5,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.helpers.group_index import get_first_last_release
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -25,13 +26,20 @@ class GroupFirstLastReleaseEndpoint(GroupEndpoint):
         }
     )
 
-    def get(self, request: Request, group) -> Response:
-        """Get the first and last release for a group.
+    def get(self, request: Request, group: Group) -> Response:
+        """
+        Get the first and last release for a group, within the environments provided.
+        If no environments are provided, the data returned will be across all environments.
 
         This data used to be returned by default in group_details.py, but now that we
         can collapse it, we're providing this endpoint to fetch the data separately.
         """
-        first_release, last_release = get_first_last_release(request, group)
+
+        environment_names = list(set(request.GET.getlist("environment", default=[])))
+
+        first_release, last_release = get_first_last_release(
+            request, group, environment_names=environment_names
+        )
         data = {
             "id": str(group.id),
             "firstRelease": first_release,
