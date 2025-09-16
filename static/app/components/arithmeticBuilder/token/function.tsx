@@ -168,7 +168,7 @@ function ArgumentsGridList({
   });
 
   return (
-    <BaseGridCell {...gridProps} ref={ref}>
+    <ArgumentsGridWrapper {...gridProps} ref={ref}>
       {[...state.collection].map((item, index) => {
         const attribute = item.value;
 
@@ -195,7 +195,7 @@ function ArgumentsGridList({
           </BaseGridCell>
         );
       })}
-    </BaseGridCell>
+    </ArgumentsGridWrapper>
   );
 }
 
@@ -582,7 +582,7 @@ function InternalInput({
     (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
   ) {
     return (
-      <BaseGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
+      <ArgumentGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
         <InputBox
           tabIndex={-1}
           ref={inputRef}
@@ -598,12 +598,12 @@ function InternalInput({
           onKeyDownCapture={onKeyDownCapture}
         />
         {argumentIndex < functionToken.attributes.length - 1 && ','}
-      </BaseGridCell>
+      </ArgumentGridCell>
     );
   }
 
   return (
-    <BaseGridCell
+    <ArgumentGridCell
       {...rowProps}
       {...gridCellProps}
       tabIndex={isFocused ? 0 : -1}
@@ -661,7 +661,7 @@ function InternalInput({
           )
         }
       </ComboBox>
-    </BaseGridCell>
+    </ArgumentGridCell>
   );
 }
 
@@ -721,6 +721,7 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   height: 24px;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
+  max-width: 100%;
 
   :focus {
     background-color: ${p => p.theme.gray100};
@@ -742,6 +743,32 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
+  }
+`;
+
+const ArgumentsGridWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 100%;
+  max-width: 100%;
+`;
+
+const ArgumentGridCell = styled('div')`
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 100%;
+  flex: 0 1 auto;
+  max-width: 100%;
+
+  > div:first-child input {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 `;
 
