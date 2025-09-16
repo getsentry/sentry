@@ -1,4 +1,6 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, Literal
 
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.metrics.dummy import DummyMetricsBackend
@@ -15,7 +17,34 @@ def _initialize_backend(backend: str | None, backend_args: dict[str, Any]) -> Me
         return cls(**backend_args)
 
 
+CounterStrategy = Literal["primary", "secondary", "both"]
+
+
 class DualWriteMetricsBackend(MetricsBackend):
+    """
+    This backend will send eligible metrics to one or two backends.
+
+    The backends are configured using the `primary_backend{_args}` and `secondary_backend{_args}`
+    kwargs.
+
+    Metrics that are matching the `allowed_prefixes` will be routed according to the following
+    rules:
+
+    - "Distribution-like" metrics, such as `timing` and `distribution`, will be
+      sent to both configured backends.
+    - All other metrics (`incr`, `gauge`, `event`), which I call "counter-like"
+      will be routed according to the `counter_strategy` option:
+      - This can be `primary` to always send to the primary backend, effectively ignoring `allowed_prefixes`.
+      - Or it can be `both`, or `secondary`, in which case allow-listed metrics will
+        be send to both or the secondary backend only, accordingly.
+
+      The default is `secondary`, so that allowlisted metrics are *only* routed to the secondary
+      backend, to avoid double-counting.
+      This is not an issue with "distribution-like" metrics, as the currently configured `primary`
+      is synthesizing multiple metrics out of a single distribution metric,
+      which do not conflict with the distribution metric itself.
+    """
+
     def __init__(self, **kwargs: Any):
         super().__init__()
         self._primary_backend = _initialize_backend(
@@ -26,9 +55,16 @@ class DualWriteMetricsBackend(MetricsBackend):
         )
 
         self._allow_prefixes = tuple(kwargs.pop("allow_prefixes", []))
+        self._counter_strategy = kwargs.pop("counter_strategy", "secondary")
 
     def _is_allowed(self, key: str) -> bool:
         return key.startswith(self._allow_prefixes)
+
+    def _counter_choice(self, key: str) -> tuple[bool, bool]:
+        is_allowed = self._is_allowed(key)
+        use_primary = not is_allowed or self._counter_strategy != "secondary"
+        use_secondary = is_allowed and self._counter_strategy != "primary"
+        return use_primary, use_secondary
 
     def incr(
         self,
@@ -40,8 +76,12 @@ class DualWriteMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
-        self._primary_backend.incr(key, instance, tags, amount, sample_rate, unit, stacklevel + 1)
-        if self._is_allowed(key):
+        use_primary, use_secondary = self._counter_choice(key)
+        if use_primary:
+            self._primary_backend.incr(
+                key, instance, tags, amount, sample_rate, unit, stacklevel + 1
+            )
+        if use_secondary:
             self._secondary_backend.incr(
                 key, instance, tags, amount, sample_rate, unit, stacklevel + 1
             )
@@ -69,8 +109,12 @@ class DualWriteMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
-        self._primary_backend.gauge(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
-        if self._is_allowed(key):
+        use_primary, use_secondary = self._counter_choice(key)
+        if use_primary:
+            self._primary_backend.gauge(
+                key, value, instance, tags, sample_rate, unit, stacklevel + 1
+            )
+        if use_secondary:
             self._secondary_backend.gauge(
                 key, value, instance, tags, sample_rate, unit, stacklevel + 1
             )
@@ -105,18 +149,20 @@ class DualWriteMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         stacklevel: int = 0,
     ) -> None:
-        self._primary_backend.event(
-            title,
-            message,
-            alert_type,
-            aggregation_key,
-            source_type_name,
-            priority,
-            instance,
-            tags,
-            stacklevel + 1,
-        )
-        if self._is_allowed(title):
+        use_primary, use_secondary = self._counter_choice(title)
+        if use_primary:
+            self._primary_backend.event(
+                title,
+                message,
+                alert_type,
+                aggregation_key,
+                source_type_name,
+                priority,
+                instance,
+                tags,
+                stacklevel + 1,
+            )
+        if use_secondary:
             self._secondary_backend.event(
                 title,
                 message,
