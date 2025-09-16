@@ -2878,7 +2878,7 @@ register(
 register(
     "spans.buffer.compression.level",
     type=Int,
-    default=-1,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
