@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
@@ -8,15 +8,13 @@ import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TextProps} from 'sentry/components/core/text/text';
-import {IconChevron, IconLock} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {OnDemandBudgetMode, type Subscription} from 'getsentry/types';
+import {OnDemandBudgetMode, type Plan, type Subscription} from 'getsentry/types';
 import {
-  displayPercentage,
   formatReservedWithUnits,
   getActiveProductTrial,
   getPercentage,
@@ -69,8 +67,9 @@ function PaygStatusCell({
   );
 }
 
-function ProductGroupHeader({
-  children,
+function ProductRow({
+  plan,
+  productName,
   ariaLabel,
   isOpen,
   onToggle,
@@ -79,19 +78,33 @@ function ProductGroupHeader({
   status,
   formattedCurrentUsage,
   percentUsed,
+  isGroup,
+  icon,
 }: {
-  ariaLabel: string;
-  children: React.ReactNode;
   hasToggle: boolean;
-  isOpen: boolean;
   onDemandSpendUsed: number;
-  onToggle: () => void;
+  plan: Plan;
+  productName: React.ReactNode;
+  ariaLabel?: string;
   formattedCurrentUsage?: string;
+  icon?: React.ReactNode;
+  isGroup?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
   percentUsed?: number;
   status?: ProductStatus;
 }) {
+  const title = (
+    <Fragment>
+      {icon}
+      <Text textWrap="pretty" bold={isGroup}>
+        {' '}
+        {productName}
+      </Text>
+    </Fragment>
+  );
   return (
-    <Grid {...GRID_PROPS}>
+    <Grid {...GRID_PROPS} borderTop={isGroup ? 'primary' : undefined}>
       {hasToggle ? (
         <Container>
           <StyledButton
@@ -100,25 +113,27 @@ function ProductGroupHeader({
               isOpen ? <IconChevron direction="up" /> : <IconChevron direction="down" />
             }
             aria-label={ariaLabel}
-            onClick={() => onToggle()}
+            onClick={() => onToggle?.()}
           >
-            <Text bold>{children}</Text>
+            {title}
           </StyledButton>
         </Container>
       ) : (
-        <Container>
-          <Text bold>{children}</Text>
-        </Container>
+        <Container paddingLeft={isGroup ? undefined : '2xl'}>{title}</Container>
       )}
-      {status ? (
-        <StatusCell>
+      <StatusCell>
+        {status ? (
           <Tag type={PRODUCT_STATUS_TAG_TYPE[status]}>
-            {tct('[status]', {status: upperFirst(status).replace('_', ' ')})}
+            {status === ProductStatus.REQUIRES_PAYG
+              ? tct('Requires [budgetTerm]', {
+                  budgetTerm: plan.budgetTerm,
+                })
+              : tct('[status]', {status: upperFirst(status).replace('_', ' ')})}
           </Tag>
-        </StatusCell>
-      ) : (
-        <div />
-      )}
+        ) : (
+          <div />
+        )}
+      </StatusCell>
       {formattedCurrentUsage ? <Text>{formattedCurrentUsage}</Text> : <div />}
       {percentUsed ? (
         <Flex gap="sm" align="center">
@@ -128,9 +143,24 @@ function ProductGroupHeader({
       ) : (
         <div />
       )}
-      <PaygStatusCell>
-        {onDemandSpendUsed > 0 ? displayPriceWithCents({cents: onDemandSpendUsed}) : '-'}
-      </PaygStatusCell>
+      {status === ProductStatus.TRIAL_AVAILABLE ? (
+        <Flex justify="end">
+          <Button
+            size="xs"
+            icon={<IconLightning size="xs" />}
+            aria-label={t('Start free 14-day %s trial', productName)}
+            priority="primary"
+          >
+            {t('Start free 14-day trial')}
+          </Button>
+        </Flex>
+      ) : (
+        <PaygStatusCell>
+          {onDemandSpendUsed > 0
+            ? displayPriceWithCents({cents: onDemandSpendUsed})
+            : '-'}
+        </PaygStatusCell>
+      )}
     </Grid>
   );
 }
@@ -185,15 +215,16 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
         <Text {...tableHeaderProps}>{t('Reserved usage')}</Text>
         <PaygStatusCell {...tableHeaderProps}>{t('Pay-as-you-go spend')}</PaygStatusCell>
       </Grid>
-      <ProductGroupHeader
+      <ProductRow
+        plan={subscription.planDetails}
         ariaLabel={t('Toggle plan usage overview')}
         isOpen={!!openState.plan}
         onToggle={() => setOpenState({...openState, plan: !openState.plan})}
         hasToggle
         onDemandSpendUsed={subscription.onDemandSpendUsed}
-      >
-        {tct('[planName] Plan', {planName: subscription.planDetails.name})}
-      </ProductGroupHeader>
+        productName={tct('[planName] Plan', {planName: subscription.planDetails.name})}
+        isGroup
+      />
       {openState.plan && (
         <Fragment>
           {Object.entries(subscription.categories)
@@ -201,6 +232,11 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
               ([category]) => !allAddOnDataCategories.includes(category as DataCategory)
             )
             .map(([category, categoryDetails]) => {
+              const productName = getPlanCategoryName({
+                plan: subscription.planDetails,
+                category: category as DataCategory,
+                title: true,
+              });
               const reserved = categoryDetails.reserved ?? 0;
               const free = categoryDetails.free;
               const usage = categoryDetails.usage;
@@ -224,12 +260,6 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
                   : hasAccess
                     ? ProductStatus.ACTIVE
                     : ProductStatus.REQUIRES_PAYG;
-              const formattedStatus =
-                status === ProductStatus.REQUIRES_PAYG
-                  ? tct('Requires [budgetTerm]', {
-                      budgetTerm: subscription.planDetails.budgetTerm,
-                    })
-                  : tct('[status]', {status: upperFirst(status).replace('_', ' ')});
 
               const formattedUsage = formatReservedWithUnits(
                 usage,
@@ -242,55 +272,23 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
                 {useUnitScaling: true}
               );
               const percentUsed = getPercentage(usage, reserved + free);
-              const formattedPercentUsed = displayPercentage(usage, reserved + free);
-              const formattedPaygUsed =
-                categoryDetails.onDemandSpendUsed > 0
-                  ? displayPriceWithCents({
-                      cents: categoryDetails.onDemandSpendUsed,
-                    })
-                  : '-';
 
               return (
                 <Container key={category} borderTop="primary">
-                  <Grid {...GRID_PROPS} borderTop={undefined}>
-                    <Flex paddingLeft="2xl" gap="xs" align="start">
-                      {isPaygOnly && !hasAccess && (
-                        <Container paddingTop="0">
-                          <IconLock locked size="xs" />
-                        </Container>
-                      )}
-                      <Text textWrap="pretty">
-                        {getPlanCategoryName({
-                          plan: subscription.planDetails,
-                          category: category as DataCategory,
-                          title: true,
-                        })}
-                      </Text>
-                    </Flex>
-                    <StatusCell>
-                      <Tag type={PRODUCT_STATUS_TAG_TYPE[status]}>{formattedStatus}</Tag>
-                    </StatusCell>
-                    <Text>
-                      {isPaygOnly
+                  <ProductRow
+                    plan={subscription.planDetails}
+                    hasToggle={false}
+                    onDemandSpendUsed={categoryDetails.onDemandSpendUsed}
+                    productName={productName}
+                    icon={isPaygOnly ? <IconLock locked size="xs" /> : undefined}
+                    status={status}
+                    formattedCurrentUsage={
+                      isPaygOnly
                         ? formattedUsage
-                        : `${formattedUsage} / ${formattedReserved}`}
-                    </Text>
-                    {isPaygOnly ? (
-                      <Container>
-                        <Tag>
-                          {tct('[budgetTerm] only', {
-                            budgetTerm: capitalize(subscription.planDetails.budgetTerm),
-                          })}
-                        </Tag>
-                      </Container>
-                    ) : (
-                      <Flex gap="sm" align="center">
-                        <ReservedUsageBar percentUsed={percentUsed} />
-                        <Text>{formattedPercentUsed}</Text>
-                      </Flex>
-                    )}
-                    <PaygStatusCell>{formattedPaygUsed}</PaygStatusCell>
-                  </Grid>
+                        : `${formattedUsage} / ${formattedReserved}`
+                    }
+                    percentUsed={percentUsed}
+                  />
                 </Container>
               );
             })}
@@ -330,7 +328,8 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
 
           return (
             <Fragment key={addOn}>
-              <ProductGroupHeader
+              <ProductRow
+                plan={subscription.planDetails}
                 ariaLabel={t('Toggle %s usage overview', addOnName)}
                 isOpen={!!openState[addOn]}
                 onToggle={() => setOpenState({...openState, [addOn]: !openState[addOn]})}
@@ -345,9 +344,9 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
                 percentUsed={
                   reservedBudget && isEnabled ? reservedBudget.percentUsed : undefined
                 }
-              >
-                {addOnName}
-              </ProductGroupHeader>
+                productName={addOnName}
+                isGroup
+              />
               {isEnabled && openState[addOn] && (
                 <Fragment>
                   {Object.entries(subscription.categories)
