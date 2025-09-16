@@ -128,8 +128,8 @@ function outputMetadata(metadata: Metadata): void {
       {Key: 'Timestamp', Value: metadata.timestamp},
       {Key: 'GitCommit', Value: metadata.gitCommit || 'unknown'},
       {Key: 'GitBranch', Value: metadata.gitBranch || 'unknown'},
-      {Key: 'TotalFiles', Value: metadata.totalFiles},
-      {Key: 'AnalyzedFiles', Value: metadata.analyzedFiles},
+      {Key: 'TotalFiles', Value: metadata.totalFiles || 0},
+      {Key: 'AnalyzedFiles', Value: metadata.analyzedFiles || 0},
     ];
     logger.log(arrayToCSV(metadataData));
     logger.log();
@@ -138,9 +138,63 @@ function outputMetadata(metadata: Metadata): void {
     logger.log(`   • Timestamp: ${metadata.timestamp}`);
     logger.log(`   • Git Commit: ${metadata.gitCommit || 'unknown'}`);
     logger.log(`   • Git Branch: ${metadata.gitBranch || 'unknown'}`);
-    logger.log(`   • Total Files: ${metadata.totalFiles}`);
-    logger.log(`   • Analyzed Files: ${metadata.analyzedFiles}`);
+    logger.log(`   • Total Files: ${metadata.totalFiles || 0}`);
+    logger.log(`   • Analyzed Files: ${metadata.analyzedFiles || 0}`);
   }
+}
+
+// Git history functions
+interface GitCommit {
+  date: string;
+  hash: string;
+  timestamp: number;
+}
+
+function getCommitsInDateRange(startDate: string, intervalDays: number): GitCommit[] {
+  // Precompute interval dates to avoid processing too many commits
+  const intervalDates: string[] = [];
+  const start = new Date(startDate);
+  const now = new Date();
+
+  let currentDate = new Date(start);
+
+  while (currentDate <= now) {
+    intervalDates.push(currentDate.toISOString().split('T')[0]!);
+    currentDate = new Date(currentDate.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+  }
+
+  logger.log(`Getting first commit for ${intervalDates.length} interval dates...`);
+
+  const commits: GitCommit[] = [];
+
+  // Get the first commit for each interval date
+  for (const date of intervalDates) {
+    try {
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const nextDateStr = nextDate.toISOString().split('T')[0]!;
+
+      const output = child_process.execSync(
+        `git log --since="${date}" --until="${nextDateStr}" --format="%H,%ct" --reverse -n 1`,
+        {encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']}
+      );
+
+      const line = output.trim();
+      if (line.length > 0) {
+        const [hash, timestamp] = line.split(',');
+        commits.push({
+          hash: hash!,
+          date,
+          timestamp: parseInt(timestamp!, 10),
+        });
+      }
+    } catch (error) {
+      // Skip dates with no commits
+      continue;
+    }
+  }
+
+  return commits;
 }
 
 // CSV helper functions
@@ -174,9 +228,12 @@ function arrayToCSV(data: Array<Record<string, any>>): string {
 interface Config {
   components: Set<string> | null;
   debug: boolean;
+  interval: number;
+  outdir: string;
   outputFormat: 'table' | 'csv';
   searchDir: string | null;
   showLocations: boolean;
+  startDate: string | null;
   targetFile: string | null;
   topN: number;
   useGlob: boolean;
@@ -192,6 +249,9 @@ function parseArguments(args: string[]): Config {
     showLocations: false,
     useGlob: false,
     components: null,
+    startDate: null,
+    interval: 7,
+    outdir: '/tmp/analyze-styled-output',
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -232,6 +292,19 @@ function parseArguments(args: string[]): Config {
       } else {
         throw new Error(`Invalid output format: ${format}. Only 'csv' is supported.`);
       }
+      i++;
+    } else if (args[i] === '--start-date' && i + 1 < args.length) {
+      config.startDate = args[i + 1] ?? null;
+      i++;
+    } else if (args[i] === '--interval' && i + 1 < args.length) {
+      const intervalValue = parseInt(args[i + 1] ?? '7', 10);
+      if (isNaN(intervalValue) || intervalValue <= 0) {
+        throw new Error('--interval option must be a positive number');
+      }
+      config.interval = intervalValue;
+      i++;
+    } else if (args[i] === '--outdir' && i + 1 < args.length) {
+      config.outdir = args[i + 1] ?? './history-output';
       i++;
     } else if (!config.searchDir) {
       config.searchDir = args[i] ?? null;
@@ -295,29 +368,59 @@ function findTsxFiles(dir: string): string[] {
   }
 }
 
+function collectTsxFilesForCurrentState(c: Config): string[] {
+  if (c.targetFile) {
+    if (!fs.existsSync(c.targetFile)) {
+      logger.debug(`❌ Target file not found: ${c.targetFile}`);
+      return [];
+    }
+    if (!c.targetFile.endsWith('.tsx')) {
+      logger.debug(`❌ Target file is not a .tsx file: ${c.targetFile}`);
+      return [];
+    }
+    return [c.targetFile];
+  }
+  const searchDir = c.searchDir || './static/app';
+
+  if (!fs.existsSync(searchDir)) {
+    logger.debug(`❌ Search directory not found: ${searchDir}`);
+    return [];
+  }
+
+  if (c.useGlob) {
+    try {
+      return fs.globSync(searchDir);
+    } catch (error) {
+      logger.debug(`❌ Error with glob pattern: ${(error as Error).message}`);
+      return [];
+    }
+  } else {
+    return findTsxFiles(searchDir);
+  }
+}
+
 const config = parseArguments(process.argv.slice(2));
 validateConfig(config);
 
 // Update global logger with debug setting
 logger.setDebugEnabled(config.debug);
 
+// For non-historical analysis, collect files at startup
+// For historical analysis, files will be collected per commit
 let tsxFiles: string[] = [];
 
-if (config.targetFile) {
-  if (!fs.existsSync(config.targetFile)) {
-    logger.fatal(`❌ File not found: ${config.targetFile}`);
+if (!config.startDate) {
+  // Only collect files at startup for non-historical analysis
+  tsxFiles = collectTsxFilesForCurrentState(config);
+
+  // For non-historical analysis, exit if no files found
+  if (tsxFiles.length === 0) {
+    if (config.targetFile) {
+      logger.fatal(`❌ File not found: ${config.targetFile}`);
+    } else {
+      logger.fatal(`❌ No .tsx files found in search directory`);
+    }
     process.exit(1);
-  }
-  if (!config.targetFile.endsWith('.tsx')) {
-    logger.fatal(`❌ File must be a .tsx file: ${config.targetFile}`);
-    process.exit(1);
-  }
-  tsxFiles = [config.targetFile];
-} else {
-  if (config.useGlob) {
-    tsxFiles = fs.globSync(config.searchDir!);
-  } else {
-    tsxFiles = findTsxFiles(config.searchDir!);
   }
 }
 
@@ -332,6 +435,7 @@ abstract class BaseDetector {
   abstract name: string;
   abstract execute(node: ts.Node, context: DetectorContext): void;
   abstract results(): void;
+  abstract reset(): void;
 }
 
 interface DetectorConfiguration {
@@ -390,10 +494,36 @@ class CoreComponentImportsDetector extends BaseDetector {
     }
   }
 
+  reset(): void {
+    this.components.clear();
+    this.usage.clear();
+  }
+
   results(): void {
     if (this.usage.size === 0) {
       // Early return for empty usage - no computation needed
-      if (config.outputFormat !== 'csv') {
+      if (config.outputFormat === 'csv') {
+        logger.log('=== CORE COMPONENT USAGE (LAYOUT) ===');
+        logger.log(arrayToCSV([{Type: 'Layout', Component: '', Instances: 0}]));
+        logger.log();
+
+        logger.log('=== CORE COMPONENT USAGE (TEXT) ===');
+        logger.log(arrayToCSV([{Type: 'Text', Component: '', Instances: 0}]));
+        logger.log();
+
+        logger.log('=== CORE COMPONENT USAGE (ALL COMPONENTS) ===');
+        logger.log(arrayToCSV([{Component: '', Instances: 0}]));
+        logger.log();
+
+        logger.log('=== CORE COMPONENT USAGE (SUMMARY) ===');
+        logger.log(
+          arrayToCSV([
+            {Component: 'Total Files', Instances: 0},
+            {Component: 'Core Components', Instances: 0},
+          ])
+        );
+        logger.log();
+      } else {
         logger.log('\n🧩 Core Component Usage (from sentry/components/core):');
         logger.log('No core component usage found.');
       }
@@ -435,33 +565,61 @@ class CoreComponentImportsDetector extends BaseDetector {
       0
     );
 
+    // Prepare all components data sorted by usage
+    const allComponentsData = Array.from(this.usage.entries())
+      .map(([component, {count, files: _files}]) => ({
+        Component: component,
+        Instances: count,
+      }))
+      .sort((a, b) => b.Instances - a.Instances);
+
     if (config.outputFormat === 'csv') {
-      if (layout.length > 0) {
-        logger.log('=== CORE COMPONENT USAGE (LAYOUT) ===');
-        logger.log(arrayToCSV(layoutData));
-        logger.log();
-      }
+      // Always output layout section (with empty data if no results)
+      logger.log('=== CORE COMPONENT USAGE (LAYOUT) ===');
+      logger.log(
+        arrayToCSV(
+          layoutData.length > 0
+            ? layoutData
+            : [{Type: 'Layout', Component: '', Instances: 0}]
+        )
+      );
+      logger.log();
 
-      if (text.length > 0) {
-        logger.log('=== CORE COMPONENT USAGE (TEXT) ===');
-        logger.log(arrayToCSV(textData));
-        logger.log();
-      }
+      // Always output text section (with empty data if no results)
+      logger.log('=== CORE COMPONENT USAGE (TEXT) ===');
+      logger.log(
+        arrayToCSV(
+          textData.length > 0 ? textData : [{Type: 'Text', Component: '', Instances: 0}]
+        )
+      );
+      logger.log();
 
-      if (totalCount > 0) {
-        logger.log('=== CORE COMPONENT USAGE (ALL) ===');
-        logger.log(
-          arrayToCSV([
-            {Component: 'Total Files', Instances: tsxFiles.length},
-            {Component: 'Core Components', Instances: totalCount},
-          ])
-        );
-        logger.log();
-      }
+      // Always output all components listing
+      logger.log('=== CORE COMPONENT USAGE (ALL COMPONENTS) ===');
+      logger.log(
+        arrayToCSV(
+          allComponentsData.length > 0
+            ? allComponentsData
+            : [{Component: '', Instances: 0}]
+        )
+      );
+      logger.log();
+
+      // Always output summary
+      logger.log('=== CORE COMPONENT USAGE (SUMMARY) ===');
+      logger.log(
+        arrayToCSV([
+          {Component: 'Total Files', Instances: tsxFiles.length || 0},
+          {Component: 'Core Components', Instances: totalCount || 0},
+        ])
+      );
+      logger.log();
     } else {
       logger.log('\n🧩 Core Component Usage (from sentry/components/core):\n');
       logger.table(layoutData);
       logger.table(textData);
+      logger.log('\n📋 All Core Components:\n');
+      logger.table(allComponentsData);
     }
   }
 }
@@ -578,6 +736,12 @@ class StyledComponentsDetector extends BaseDetector {
     }
   }
 
+  reset(): void {
+    this.styledComponents = [];
+    this.componentCounts.clear();
+    this.cssRuleCounts.clear();
+  }
+
   private trackCssRules(cssRules: string): void {
     for (const line of cssRules.split('\n')) {
       if (
@@ -619,7 +783,15 @@ class StyledComponentsDetector extends BaseDetector {
   results(): void {
     if (this.styledComponents.length === 0) {
       // Early return for empty results - no computation needed
-      if (config.outputFormat !== 'csv') {
+      if (config.outputFormat === 'csv') {
+        logger.log(`=== TOP ${config.topN} MOST COMMONLY STYLED COMPONENTS ===`);
+        logger.log(arrayToCSV([{Component: '', Instances: 0}]));
+        logger.log();
+
+        logger.log(`=== TOP ${config.topN} MOST COMMONLY USED CSS RULES ===`);
+        logger.log(arrayToCSV([{CSSRule: '', Instances: 0}]));
+        logger.log();
+      } else {
         logger.log('\n📊 Found 0 styled components.');
       }
       return;
@@ -791,25 +963,29 @@ class StyledComponentsDetector extends BaseDetector {
 
     // ==== LOGGING PHASE ====
     if (config.outputFormat === 'csv') {
-      if (topComponents.length > 0) {
-        logger.log(`=== TOP ${config.topN} MOST COMMONLY STYLED COMPONENTS ===`);
-        const componentsData = topComponents.map(([component, count]) => ({
-          Component: component,
-          Instances: count,
-        }));
-        logger.log(arrayToCSV(componentsData));
-        logger.log();
-      }
+      // Always output top components section
+      logger.log(`=== TOP ${config.topN} MOST COMMONLY STYLED COMPONENTS ===`);
+      const componentsData =
+        topComponents.length > 0
+          ? topComponents.map(([component, count]) => ({
+              Component: component,
+              Instances: count,
+            }))
+          : [{Component: '', Instances: 0}];
+      logger.log(arrayToCSV(componentsData));
+      logger.log();
 
-      if (topCssRules.length > 0) {
-        logger.log(`=== TOP ${config.topN} MOST COMMONLY USED CSS RULES ===`);
-        const cssRulesData = topCssRules.map(([rule, count]) => ({
-          CSSRule: rule,
-          Instances: count,
-        }));
-        logger.log(arrayToCSV(cssRulesData));
-        logger.log();
-      }
+      // Always output top CSS rules section
+      logger.log(`=== TOP ${config.topN} MOST COMMONLY USED CSS RULES ===`);
+      const cssRulesData =
+        topCssRules.length > 0
+          ? topCssRules.map(([rule, count]) => ({
+              CSSRule: rule,
+              Instances: count,
+            }))
+          : [{CSSRule: '', Instances: 0}];
+      logger.log(arrayToCSV(cssRulesData));
+      logger.log();
     } else {
       // Output summary
       logger.log(` \n📊 Found ${totalStyledComponents} styled components:\n`);
@@ -933,6 +1109,10 @@ class FlexOnlyDivsDetector extends BaseDetector {
     }
   }
 
+  reset(): void {
+    this.styledComponents = [];
+  }
+
   results(): void {
     // ==== COMPUTATION PHASE ====
     const flexRules = new Set([
@@ -1004,7 +1184,11 @@ class FlexOnlyDivsDetector extends BaseDetector {
 
     // ==== LOGGING PHASE ====
     if (results.length === 0) {
-      if (config.outputFormat !== 'csv') {
+      if (config.outputFormat === 'csv') {
+        logger.log('=== STYLED DIVS WITH ONLY FLEX RULES ===');
+        logger.log(arrayToCSV([{Rank: 0, Component: '', Location: ''}]));
+        logger.log();
+      } else {
         logger.log('\n🎯 Styled Divs with Only Flex Rules:');
         logger.log('No styled divs found that only use flexbox rules.');
       }
@@ -1056,6 +1240,295 @@ function analyze(
   visit(sourceFile);
 }
 
+// History analysis functions
+let interruptRequested = false;
+
+interface CommitAnalysisResult {
+  commit: GitCommit;
+  filename: string;
+  output: string;
+}
+
+function processCommit(
+  commit: GitCommit,
+  originalBranch: string
+): CommitAnalysisResult | null {
+  if (interruptRequested) {
+    logger.log('🛑 Interrupt detected, skipping commit processing');
+    return null;
+  }
+
+  // Clean any uncommitted changes before checkout
+  // Use -f to force removal and -x to include ignored files
+  child_process.execSync('git clean -d -f -x', {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+
+  // Reset any staged changes
+  child_process.execSync('git reset --hard', {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+
+  // Checkout the commit (force checkout to handle conflicts)
+  child_process.execSync(`git checkout -f ${commit.hash}`, {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+
+  // Check if analyze-styled.ts exists in this commit
+  if (!fs.existsSync('scripts/analyze-styled.ts')) {
+    logger.debug('Script not found in commit, copying from current version...');
+    // Get the current script content and write it temporarily
+    child_process.execSync(
+      `git show ${originalBranch}:scripts/analyze-styled.ts > scripts/analyze-styled.ts`
+    );
+  }
+
+  // Collect files for this specific commit
+  const commitTsxFiles = collectTsxFilesForCurrentState(config);
+
+  if (commitTsxFiles.length === 0) {
+    logger.debug(
+      `No .tsx files found in commit ${commit.hash.substring(0, 7)}, skipping analysis.`
+    );
+    return null;
+  }
+
+  logger.debug(
+    `Found ${commitTsxFiles.length} .tsx files in commit ${commit.hash.substring(0, 7)}`
+  );
+
+  // Reset all detectors before analyzing this commit
+  for (const detector of detectorConfig.detectors) {
+    detector.reset();
+  }
+
+  // Capture the current stdout to save to file
+  const originalLog = logger.log;
+  const originalTable = logger.table;
+  let output = '';
+
+  logger.log = (...args: any[]) => {
+    output += args.join(' ') + '\n';
+  };
+  logger.table = (...args: any[]) => {
+    output += JSON.stringify(args[0], null, 2) + '\n';
+  };
+
+  // Run the analysis for this commit with commit-specific files
+  runCurrentAnalysis(commitTsxFiles);
+
+  // Restore original logging
+  logger.log = originalLog;
+  logger.table = originalTable;
+
+  // Return analysis result instead of writing immediately
+  const filename = `${commit.date}-${commit.hash.substring(0, 7)}.txt`;
+
+  logger.log(`✅ Completed analysis for ${commit.hash.substring(0, 7)}`);
+
+  return {
+    commit,
+    output,
+    filename,
+  };
+}
+
+function runHistoryAnalysis(c: Config) {
+  // Reset interrupt flag
+  interruptRequested = false;
+
+  if (!c.startDate) {
+    throw new Error('--start-date is required for historical analysis');
+  }
+
+  // Safety check: prevent running on dirty git tree
+  const gitInfo = getGitInfo();
+  if (gitInfo.status !== 'clean') {
+    throw new Error(
+      'Git tree is dirty. Please commit or stash your changes before running historical analysis.\n' +
+        'This safety check prevents potential data loss during git operations.'
+    );
+  }
+
+  // Ensure output directory exists
+  if (!fs.existsSync(c.outdir)) {
+    fs.mkdirSync(c.outdir, {recursive: true});
+  }
+
+  // Get current git state for restoration
+  const originalBranch = child_process
+    .execSync('git rev-parse --abbrev-ref HEAD', {encoding: 'utf8'})
+    .trim();
+  const hasUnstagedChanges =
+    child_process.execSync('git status --porcelain', {encoding: 'utf8'}).trim().length >
+    0;
+
+  // Set up cleanup function for process interrupts
+
+  // Set up interrupt handlers that set flag instead of immediately exiting
+  const handleInterrupt = (signal: string) => {
+    // Set flag first, before any other operations
+    interruptRequested = true;
+
+    logger.log('\n⚠️  Process interrupted, cleaning up...');
+    try {
+      // Clean any uncommitted changes (including ignored files)
+      child_process.execSync('git clean -d -f -x', {stdio: ['pipe', 'pipe', 'pipe']});
+      // Reset any staged changes
+      child_process.execSync('git reset --hard', {stdio: ['pipe', 'pipe', 'pipe']});
+      // Force checkout to restore original branch
+      child_process.execSync(`git checkout -f ${originalBranch}`, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      // Restore stashed changes if any existed
+      if (hasUnstagedChanges) {
+        child_process.execSync('git stash pop', {stdio: ['pipe', 'pipe', 'pipe']});
+      }
+      logger.log('✅ Cleanup completed, restored to original state');
+    } catch (error) {
+      logger.fatal('❌ Error during cleanup:', (error as Error).message);
+    }
+    process.exit(0);
+  };
+
+  // Register interrupt handlers with signal names
+  process.on('SIGINT', () => handleInterrupt('SIGINT'));
+  process.on('SIGTERM', () => handleInterrupt('SIGTERM'));
+  process.on('SIGUSR1', () => handleInterrupt('SIGUSR1'));
+  process.on('SIGUSR2', () => handleInterrupt('SIGUSR2'));
+
+  // Collect all analysis results in memory
+  const analysisResults: CommitAnalysisResult[] = [];
+
+  try {
+    // Stash changes if any exist
+    if (hasUnstagedChanges) {
+      child_process.execSync('git stash push -m "analyze-styled temporary stash"', {
+        stdio: 'inherit',
+      });
+    }
+    const commits = getCommitsInDateRange(c.startDate, c.interval);
+
+    logger.log(`Analyzing ${commits.length} commits at ${c.interval}-day intervals`);
+
+    for (let i = 0; i < commits.length; i++) {
+      // Check for interrupt before processing each commit
+      if (interruptRequested) {
+        logger.log(`\n⚠️  Interrupt received, stopping after ${i} commits processed.`);
+        break;
+      }
+
+      const commit = commits[i]!;
+      logger.log(
+        `\n[${i + 1}/${commits.length}] Processing commit ${commit.hash.substring(0, 7)} (${commit.date})`
+      );
+
+      try {
+        const result = processCommit(commit, originalBranch);
+        if (result) {
+          analysisResults.push(result);
+        }
+      } catch (error) {
+        logger.error(
+          `❌ Error processing commit ${commit.hash.substring(0, 7)}: ${(error as Error).message}`
+        );
+        continue;
+      }
+    }
+  } finally {
+    // Remove interrupt handlers
+    process.removeAllListeners('SIGINT');
+    process.removeAllListeners('SIGTERM');
+    process.removeAllListeners('SIGUSR1');
+    process.removeAllListeners('SIGUSR2');
+
+    // Restore original state
+    try {
+      // Clean any uncommitted changes before final checkout (including ignored files)
+      child_process.execSync('git clean -d -f -x', {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      // Reset any staged changes
+      child_process.execSync('git reset --hard', {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      // Force checkout to restore original branch
+      child_process.execSync(`git checkout -f ${originalBranch}`, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      // Restore stashed changes if any existed
+      if (hasUnstagedChanges) {
+        child_process.execSync('git stash pop', {stdio: ['pipe', 'pipe', 'pipe']});
+      }
+    } catch (error) {
+      logger.fatal('❌ Error restoring git state:', (error as Error).message);
+    }
+
+    // Write all analysis results to files after git state is restored
+    if (analysisResults.length > 0) {
+      logger.log(`\n📝 Writing ${analysisResults.length} analysis files...`);
+
+      // Ensure output directory exists
+      if (!fs.existsSync(c.outdir)) {
+        fs.mkdirSync(c.outdir, {recursive: true});
+      }
+
+      for (const result of analysisResults) {
+        try {
+          const filepath = path.join(c.outdir, result.filename);
+          fs.writeFileSync(filepath, result.output);
+          logger.log(`✅ Saved analysis to ${result.filename}`);
+        } catch (error) {
+          logger.error(
+            `❌ Error writing ${result.filename}: ${(error as Error).message}`
+          );
+        }
+      }
+    }
+  }
+
+  logger.log(`\n🎉 Historical analysis complete! Results saved in ${config.outdir}`);
+}
+
+function runCurrentAnalysis(filesToAnalyze?: string[]) {
+  // Use provided files or fall back to global tsxFiles
+  const files = filesToAnalyze || tsxFiles;
+
+  let successfullyAnalyzedFiles = 0;
+  // Process all files with detectors
+  for (const file of files) {
+    try {
+      const sourceCode = fs.readFileSync(file, 'utf8');
+      const sourceFile = ts.createSourceFile(
+        file,
+        sourceCode,
+        ts.ScriptTarget?.Latest,
+        true
+      );
+
+      analyze(sourceFile, file, detectorConfig);
+      successfullyAnalyzedFiles++;
+    } catch (error) {
+      logger.fatal(`❌ Error parsing ${file}:`, (error as Error).message);
+    }
+  }
+
+  // Collect and output metadata first (for CSV format)
+  const searchDirectory = config.searchDir || config.targetFile || './static/app';
+  const metadata = collectMetadata(
+    searchDirectory,
+    files.length,
+    successfullyAnalyzedFiles
+  );
+  outputMetadata(metadata);
+
+  // Execute detector results
+  for (const detector of detectorConfig.detectors) {
+    detector.results();
+  }
+}
+
 // Create detector configuration
 const detectorConfig: DetectorConfiguration = {
   detectors: [
@@ -1065,37 +1538,24 @@ const detectorConfig: DetectorConfiguration = {
   ],
 };
 
-// Collect and output metadata
-const searchDirectory = config.searchDir || config.targetFile || './static/app';
-let successfullyAnalyzedFiles = 0;
+// Setup graceful exit handler for main analysis
+function setupGracefulExit(): void {
+  const cleanup = () => {
+    logger.log('\n⚠️  Process interrupted, exiting gracefully...');
+    process.exit(0);
+  };
 
-// Process all files with detectors
-for (const file of tsxFiles) {
-  try {
-    const sourceCode = fs.readFileSync(file, 'utf8');
-    const sourceFile = ts.createSourceFile(
-      file,
-      sourceCode,
-      ts.ScriptTarget.Latest,
-      true
-    );
-
-    analyze(sourceFile, file, detectorConfig);
-    successfullyAnalyzedFiles++;
-  } catch (error) {
-    logger.fatal(`❌ Error parsing ${file}:`, (error as Error).message);
-  }
+  // Register interrupt handlers
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+  process.on('SIGUSR1', cleanup);
+  process.on('SIGUSR2', cleanup);
 }
 
-// Collect and output metadata first (for CSV format)
-const metadata = collectMetadata(
-  searchDirectory,
-  tsxFiles.length,
-  successfullyAnalyzedFiles
-);
-outputMetadata(metadata);
-
-// Execute detector results
-for (const detector of detectorConfig.detectors) {
-  detector.results();
+// Main execution: check if historical analysis is requested
+if (config.startDate) {
+  runHistoryAnalysis(config);
+} else {
+  setupGracefulExit();
+  runCurrentAnalysis();
 }
