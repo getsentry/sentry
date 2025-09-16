@@ -765,7 +765,7 @@ class ExhaustiveFixtures(Fixtures):
         )
         ProjectDataForwarder.objects.create(
             data_forwarder=data_forwarder,
-            project_id=project.id,
+            project_id=project,
             overrides={"write_key": "test_override_write_key"},
         )
 
