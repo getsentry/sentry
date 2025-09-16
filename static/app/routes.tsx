@@ -48,14 +48,6 @@ const routeHook = (name: HookName): SentryRouteObject => {
   };
 };
 
-const routeObjectHook = (name: HookName): SentryRouteObject => {
-  const route = HookStore.get(name)?.[0] ?? {};
-  return {
-    ...route,
-    deprecatedRouteProps: true,
-  };
-};
-
 function buildRoutes(): RouteObject[] {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
@@ -1313,7 +1305,7 @@ function buildRoutes(): RouteObject[] {
     deprecatedRouteProps: true,
   };
 
-  const subscriptionSettingsRoutes = routeObjectHook('routes:subscription-settings');
+  const subscriptionSettingsRoutes = routeHook('routes:subscription-settings');
 
   const legacySettingsRedirects: SentryRouteObject = {
     children: [

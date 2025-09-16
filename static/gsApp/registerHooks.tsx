@@ -63,7 +63,7 @@ import hookSidebarDropdownMenu from 'getsentry/hooks/sidebarDropdownMenu';
 import hookSidebarHelpMenu from 'getsentry/hooks/sidebarHelpMenu';
 import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedIndex';
 import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
-import SubscriptionSettingsRoutes from 'getsentry/hooks/subscriptionSettingsRoutes';
+import subscriptionSettingsRoutes from 'getsentry/hooks/subscriptionSettingsRoutes';
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
@@ -111,7 +111,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
    *
    */
-  'routes:subscription-settings': SubscriptionSettingsRoutes,
+  'routes:subscription-settings': subscriptionSettingsRoutes,
 
   /**
    * Analytics functionality

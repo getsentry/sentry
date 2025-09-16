@@ -3,10 +3,10 @@ import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 
 import settingsRoutes from 'getsentry/hooks/settingsRoutes';
 
-const SubscriptionSettingsRoutes: SentryRouteObject = {
+const subscriptionSettingsRoutes = (): SentryRouteObject => ({
   component: make(() => import('../components/subscriptionSettingsLayout')),
-  deprecatedRouteProps: true,
   children: [settingsRoutes()],
-};
+  deprecatedRouteProps: true,
+});
 
-export default SubscriptionSettingsRoutes;
+export default subscriptionSettingsRoutes;
