@@ -117,7 +117,7 @@ describe('CronDetectorDetails - check-ins', () => {
       expect(await screen.findByText('Failed')).toBeInTheDocument();
 
       // Should render table headers
-      expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();
+      expect(screen.getAllByRole('columnheader', {name: 'Status'})).toHaveLength(2);
       expect(screen.getByRole('columnheader', {name: 'Started'})).toBeInTheDocument();
       expect(screen.getByRole('columnheader', {name: 'Completed'})).toBeInTheDocument();
       expect(screen.getByRole('columnheader', {name: 'Duration'})).toBeInTheDocument();
