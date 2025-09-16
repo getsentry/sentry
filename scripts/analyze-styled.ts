@@ -62,6 +62,87 @@ class Logger {
 // Global logger instance, initialized with debug disabled
 const logger = new Logger(false);
 
+// Metadata collection interfaces
+interface Metadata {
+  analyzedFiles: number;
+  gitBranch: string | null;
+  gitCommit: string | null;
+  searchDirectory: string;
+  timestamp: string;
+  totalFiles: number;
+}
+
+// Metadata collection functions
+function getGitInfo(): {
+  branch: string | null;
+  commit: string | null;
+  status: string | null;
+} {
+  try {
+    const commit = child_process
+      .execSync('git rev-parse HEAD', {encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']})
+      .trim();
+
+    const branch = child_process
+      .execSync('git rev-parse --abbrev-ref HEAD', {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      })
+      .trim();
+
+    const status = child_process
+      .execSync('git status --porcelain', {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      })
+      .trim();
+
+    return {commit, branch, status: status || 'clean'};
+  } catch (error) {
+    logger.debug('❌ Error getting git info:', (error as Error).message);
+    return {commit: null, branch: null, status: null};
+  }
+}
+
+function collectMetadata(
+  searchDir: string,
+  totalFiles: number,
+  analyzedFiles: number
+): Metadata {
+  const gitInfo = getGitInfo();
+
+  return {
+    timestamp: new Date().toISOString(),
+    gitCommit: gitInfo.commit,
+    gitBranch: gitInfo.branch,
+    totalFiles,
+    analyzedFiles,
+    searchDirectory: searchDir,
+  };
+}
+
+function outputMetadata(metadata: Metadata): void {
+  if (config.outputFormat === 'csv') {
+    logger.log('=== METADATA ===');
+    const metadataData = [
+      {Key: 'Timestamp', Value: metadata.timestamp},
+      {Key: 'GitCommit', Value: metadata.gitCommit || 'unknown'},
+      {Key: 'GitBranch', Value: metadata.gitBranch || 'unknown'},
+      {Key: 'TotalFiles', Value: metadata.totalFiles},
+      {Key: 'AnalyzedFiles', Value: metadata.analyzedFiles},
+    ];
+    logger.log(arrayToCSV(metadataData));
+    logger.log();
+  } else {
+    logger.log('\n📋 Analysis Metadata:\n');
+    logger.log(`   • Timestamp: ${metadata.timestamp}`);
+    logger.log(`   • Git Commit: ${metadata.gitCommit || 'unknown'}`);
+    logger.log(`   • Git Branch: ${metadata.gitBranch || 'unknown'}`);
+    logger.log(`   • Total Files: ${metadata.totalFiles}`);
+    logger.log(`   • Analyzed Files: ${metadata.analyzedFiles}`);
+  }
+}
+
 // CSV helper functions
 function escapeCsvField(field: string | number): string {
   if (typeof field === 'number') return field.toString();
@@ -232,14 +313,12 @@ if (config.targetFile) {
     process.exit(1);
   }
   tsxFiles = [config.targetFile];
-  logger.log(`🔍 Analyzing single file: ${config.targetFile}\n`);
 } else {
   if (config.useGlob) {
     tsxFiles = fs.globSync(config.searchDir!);
   } else {
     tsxFiles = findTsxFiles(config.searchDir!);
   }
-  logger.log(`🔍 Analyzing ${tsxFiles.length} .tsx files for styled components...\n`);
 }
 
 // Detector configuration interfaces
@@ -340,16 +419,21 @@ class CoreComponentImportsDetector extends BaseDetector {
 
     // Prepare data structures for both output formats
     const layoutData = layout.map(([component, {count, files: _files}]) => ({
+      Type: 'Layout',
       Component: component,
       Instances: count,
-      Type: 'Layout',
     }));
 
     const textData = text.map(([component, {count, files: _files}]) => ({
+      Type: 'Text',
       Component: component,
       Instances: count,
-      Type: 'Text',
     }));
+
+    const totalCount = Array.from(this.usage.values()).reduce(
+      (sum, {count}) => sum + count,
+      0
+    );
 
     if (config.outputFormat === 'csv') {
       if (layout.length > 0) {
@@ -361,6 +445,17 @@ class CoreComponentImportsDetector extends BaseDetector {
       if (text.length > 0) {
         logger.log('=== CORE COMPONENT USAGE (TEXT) ===');
         logger.log(arrayToCSV(textData));
+        logger.log();
+      }
+
+      if (totalCount > 0) {
+        logger.log('=== CORE COMPONENT USAGE (ALL) ===');
+        logger.log(
+          arrayToCSV([
+            {Component: 'Total Files', Instances: tsxFiles.length},
+            {Component: 'Core Components', Instances: totalCount},
+          ])
+        );
         logger.log();
       }
     } else {
@@ -698,8 +793,7 @@ class StyledComponentsDetector extends BaseDetector {
     if (config.outputFormat === 'csv') {
       if (topComponents.length > 0) {
         logger.log(`=== TOP ${config.topN} MOST COMMONLY STYLED COMPONENTS ===`);
-        const componentsData = topComponents.map(([component, count], index) => ({
-          Rank: index + 1,
+        const componentsData = topComponents.map(([component, count]) => ({
           Component: component,
           Instances: count,
         }));
@@ -709,8 +803,7 @@ class StyledComponentsDetector extends BaseDetector {
 
       if (topCssRules.length > 0) {
         logger.log(`=== TOP ${config.topN} MOST COMMONLY USED CSS RULES ===`);
-        const cssRulesData = topCssRules.map(([rule, count], index) => ({
-          Rank: index + 1,
+        const cssRulesData = topCssRules.map(([rule, count]) => ({
           CSSRule: rule,
           Instances: count,
         }));
@@ -972,6 +1065,10 @@ const detectorConfig: DetectorConfiguration = {
   ],
 };
 
+// Collect and output metadata
+const searchDirectory = config.searchDir || config.targetFile || './static/app';
+let successfullyAnalyzedFiles = 0;
+
 // Process all files with detectors
 for (const file of tsxFiles) {
   try {
@@ -984,10 +1081,19 @@ for (const file of tsxFiles) {
     );
 
     analyze(sourceFile, file, detectorConfig);
+    successfullyAnalyzedFiles++;
   } catch (error) {
     logger.fatal(`❌ Error parsing ${file}:`, (error as Error).message);
   }
 }
+
+// Collect and output metadata first (for CSV format)
+const metadata = collectMetadata(
+  searchDirectory,
+  tsxFiles.length,
+  successfullyAnalyzedFiles
+);
+outputMetadata(metadata);
 
 // Execute detector results
 for (const detector of detectorConfig.detectors) {
