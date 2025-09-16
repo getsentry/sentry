@@ -52,7 +52,42 @@ describe('WebVitalMetersWithIssues', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query:
-            'is:unresolved issue.type:[performance_render_blocking_asset_span,performance_uncompressed_assets,performance_http_overhead,performance_consecutive_http,performance_n_plus_one_api_calls,performance_large_http_payload,performance_p95_endpoint_regression]',
+            'is:unresolved issue.type:[web_vitals,performance_render_blocking_asset_span,performance_uncompressed_assets,performance_http_overhead,performance_consecutive_http,performance_n_plus_one_api_calls,performance_large_http_payload,performance_p95_endpoint_regression] !web_vital:[fcp,inp,cls,ttfb]',
+        }),
+      })
+    );
+    expect(issuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            'is:unresolved issue.type:[web_vitals,performance_render_blocking_asset_span,performance_uncompressed_assets,performance_http_overhead,performance_consecutive_http,performance_n_plus_one_api_calls,performance_large_http_payload,performance_p95_endpoint_regression] !web_vital:[lcp,inp,cls,ttfb]',
+        }),
+      })
+    );
+    expect(issuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            'is:unresolved issue.type:[web_vitals,performance_http_overhead,performance_consecutive_http,performance_n_plus_one_api_calls,performance_large_http_payload,performance_p95_endpoint_regression] !web_vital:[lcp,fcp,cls,ttfb]',
+        }),
+      })
+    );
+    expect(issuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'is:unresolved issue.type:[web_vitals] !web_vital:[lcp,fcp,inp,ttfb]',
+        }),
+      })
+    );
+    expect(issuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            'is:unresolved issue.type:[web_vitals,performance_http_overhead] !web_vital:[lcp,fcp,inp,cls]',
         }),
       })
     );
