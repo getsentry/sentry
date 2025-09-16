@@ -170,7 +170,7 @@ export function DetectorDetailsOngoingIssues({
   return (
     <Section
       title={
-        <Flex>
+        <Flex justify="between" align="center">
           {tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
           <LinkButton
             size="xs"
