@@ -12,9 +12,10 @@ resources:
     WAI-ARIA Checkbox Practices: https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/
 ---
 
+import styled from '@emotion/styled';
+
 import {Checkbox} from 'sentry/components/core/checkbox';
 import * as Storybook from 'sentry/stories';
-import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 
 import APIReference from '!!type-loader!sentry/components/core/checkbox/index';
@@ -85,7 +86,14 @@ The indeterminate state is useful for parent checkboxes in hierarchical lists wh
     <Label>
       <Checkbox checked="indeterminate" /> Select all items
     </Label>
-    <div style={{marginLeft: space(3), display: 'flex', flexDirection: 'column', gap: space(1)}}>
+    <div
+      style={{
+        marginLeft: space(3),
+        display: 'flex',
+        flexDirection: 'column',
+        gap: space(1),
+      }}
+    >
       <Label>
         <Checkbox checked /> Item 1
       </Label>
@@ -147,11 +155,13 @@ Checkboxes are available in different sizes: `md`, `sm` (default), and `xs`.
 ## Usage Guidelines
 
 **Use checkboxes when:**
+
 - Users can select multiple options from a list
 - You need to represent a binary on/off state
 - Users need to opt-in to something (like newsletter subscriptions)
 
 **Don't use checkboxes when:**
+
 - Users can only select one option (use radio buttons instead)
 - You need an immediate action (use a toggle switch instead)
 
@@ -171,3 +181,5 @@ export const Label = styled('label')`
   margin-bottom: 0;
   cursor: pointer;
 `;
+
+;
