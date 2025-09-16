@@ -21,7 +21,6 @@ from sentry.feedback.usecases.label_generation import (
     MAX_AI_LABELS,
     MAX_AI_LABELS_JSON_LENGTH,
 )
-from sentry.feedback.usecases.spam_detection import spam_detection_enabled
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
@@ -525,7 +524,10 @@ def test_create_feedback_spam_detection_produce_to_kafka(
     expected_result,
     expected_evidence_display,
 ):
-    with patch(spam_detection_enabled, return_value=enabled):
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
+        return_value=enabled,
+    ):
         event = mock_feedback_event(default_project.id, message=input_message)
 
         mock_openai = Mock()
