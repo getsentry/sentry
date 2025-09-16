@@ -1,358 +1,276 @@
-import {useState} from 'react';
+import React, {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {Switch} from 'sentry/components/core/switch';
-import {Text} from 'sentry/components/core/text';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+
+import usePreventAIConfig from './hooks/usePreventAIConfig';
+import useUpdatePreventAIFeature from './hooks/useUpdatePreventAIFeature';
 
 interface RepoSettingsSidePanelProps {
   collapsed: boolean;
   onClose: () => void;
 }
 
-// Styled Components
-const PanelContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
-`;
-
-const PanelHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: ${space(3)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
-  flex-shrink: 0;
-`;
-
-const HeaderContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  flex: 1;
-`;
-
-const Title = styled('h3')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.headingColor};
-`;
-
-const CloseButton = styled(IconClose)`
-  color: ${p => p.theme.subText};
-  cursor: pointer;
-  padding: ${space(0.75)};
-
-  &:hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
-const PanelContent = styled('div')`
-  flex: 1;
-  overflow-y: auto;
-  padding: ${space(2)};
-`;
-
-const ContentSection = styled('div')`
-  margin-bottom: ${space(3)};
-`;
-
-const SectionTitle = styled('h4')`
-  margin: 0 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.headingColor};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const ToggleSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const ToggleItem = styled('div')<{isSubmenu?: boolean}>`
-  border-radius: ${space(1)};
-  padding: ${p =>
-    p.isSubmenu ? `${space(2)} ${space(2)} ${space(2)} ${space(4)}` : space(2)};
-  background: ${p => (p.isSubmenu ? p.theme.backgroundSecondary : p.theme.background)};
-  border: 1px solid ${p => (p.isSubmenu ? p.theme.border : 'transparent')};
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: ${p =>
-      p.isSubmenu ? p.theme.backgroundTertiary : p.theme.backgroundSecondary};
-  }
-`;
-
-const ToggleLabel = styled('label')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(2)};
-  cursor: pointer;
-  width: 100%;
-`;
-
-const ToggleLabelContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  flex: 1;
-`;
-
-const ToggleLabelTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.headingColor};
-`;
-
-const ToggleLabelDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const SubmenuSection = styled('div')`
-  margin-top: ${space(3)};
-  padding-left: ${space(2)};
-  border-left: 2px solid ${p => p.theme.border};
-`;
-
-const SubmenuTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.headingColor};
-  margin-bottom: ${space(2)};
-`;
-
-const SliderContainer = styled('div')`
-  padding: ${space(2)};
-  border-radius: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
-`;
-
-const SliderLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.headingColor};
-  margin-bottom: ${space(0.5)};
-`;
-
-const SliderDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(2)};
-`;
-
-const StyledRangeSlider = styled(RangeSlider)`
-  margin-bottom: ${space(2)};
-`;
-
-const SeverityLevelIndicator = styled('div')`
-  padding: ${space(1)} 0;
-  border-top: 1px solid ${p => p.theme.border};
-  text-align: center;
-`;
-
-export default function RepoSettingsPanel({
+export default function ManageReposPanel({
   collapsed,
   onClose,
 }: RepoSettingsSidePanelProps) {
-  const [prReviewEnabled, setPrReviewEnabled] = useState(false);
-  const [testGenerationEnabled, setTestGenerationEnabled] = useState(false);
-  const [errorPredictionEnabled, setErrorPredictionEnabled] = useState(false);
-  const [errorPredictionFrameworks, setErrorPredictionFrameworks] = useState(false);
-  const [errorPredictionPatterns, setErrorPredictionPatterns] = useState(false);
-  const [logafSeverityLevel, setLogafSeverityLevel] = useState<number>(0); // 0=low, 1=medium, 2=high, 3=critical
+  // TODO: Replace with actual repository name from context if available
+  const repository = undefined;
 
-  // Severity levels mapping
-  const severityAllowedValues = [0, 1, 2, 3];
+  // Use the config hook to get current feature state
+  const {data: config, isLoading} = usePreventAIConfig();
+  const {enableFeature} = useUpdatePreventAIFeature();
 
-  const formatSeverityLabel = (value: number | '') => {
-    if (value === '' || typeof value !== 'number') return 'Select level';
+  // Extract feature states from config, fallback to false if loading or missing
+  const enableTestGeneration = config?.features?.test_generation?.enabled ?? false;
+  const enablePRReview = config?.features?.vanilla_pr_review?.enabled ?? false;
+  const bugPredictionConfig = config?.features?.bug_prediction;
+  const enableErrorPrediction = bugPredictionConfig?.enabled ?? false;
+  const triggers = bugPredictionConfig?.triggers ?? [];
 
-    // Use explicit translation keys instead of dynamic values
-    switch (value) {
-      case 0:
-        return 'Low';
-      case 1:
-        return 'Medium';
-      case 2:
-        return 'High';
-      case 3:
-        return 'Critical';
-      default:
-        return 'Unknown';
-    }
-  };
+  // For error prediction, determine sub-toggle states from triggers
+  const errorPredAutoRun = triggers.includes('on_ready_for_review');
+  const errorPredMentionOnly = triggers.includes('on_command_phrase');
+
+  // Handlers for toggles
+  const handleToggleTestGeneration = useCallback(async () => {
+    const newValue = !enableTestGeneration;
+    await enableFeature({
+      feature: 'test_generation',
+      enabled: newValue,
+      triggers: newValue ? ['on_command_phrase'] : [],
+    });
+  }, [enableTestGeneration, enableFeature]);
+
+  const handleTogglePRReview = useCallback(async () => {
+    const newValue = !enablePRReview;
+    await enableFeature({
+      feature: 'vanilla_pr_review',
+      enabled: newValue,
+      triggers: newValue ? ['on_command_phrase'] : [],
+    });
+  }, [enablePRReview, enableFeature]);
+
+  const handleToggleErrorPrediction = useCallback(async () => {
+    const newValue = !enableErrorPrediction;
+    await enableFeature({
+      feature: 'bug_prediction',
+      enabled: newValue,
+      triggers: newValue ? ['on_ready_for_review', 'on_new_commit'] : [],
+    });
+    // No need to set sub-toggles, as they are derived from config
+  }, [enableErrorPrediction, enableFeature]);
+
+  const handleToggleErrorPredAutoRun = useCallback(async () => {
+    const newValue = !errorPredAutoRun;
+    // Compose triggers based on both sub-toggles
+    const newTriggers = [
+      ...(newValue ? ['on_ready_for_review'] : []),
+      ...(errorPredMentionOnly ? ['on_command_phrase'] : []),
+      ...(enableErrorPrediction ? ['on_new_commit'] : []),
+    ];
+    await enableFeature({
+      feature: 'bug_prediction',
+      enabled: enableErrorPrediction || newValue || errorPredMentionOnly,
+      triggers: newTriggers,
+    });
+  }, [errorPredAutoRun, errorPredMentionOnly, enableErrorPrediction, enableFeature]);
+
+  const handleToggleErrorPredMentionOnly = useCallback(async () => {
+    const newValue = !errorPredMentionOnly;
+    // Compose triggers based on both sub-toggles
+    const newTriggers = [
+      ...(errorPredAutoRun ? ['on_ready_for_review'] : []),
+      ...(newValue ? ['on_command_phrase'] : []),
+      ...(enableErrorPrediction ? ['on_new_commit'] : []),
+    ];
+    await enableFeature({
+      feature: 'bug_prediction',
+      enabled: enableErrorPrediction || errorPredAutoRun || newValue,
+      triggers: newTriggers,
+    });
+  }, [errorPredAutoRun, errorPredMentionOnly, enableErrorPrediction, enableFeature]);
 
   return (
     <SlideOverPanel
       collapsed={collapsed}
-      onOpen={() => {}}
       slidePosition="right"
-      panelWidth="340px"
-      ariaLabel="Prevent AI Settings"
+      ariaLabel="Settings Panel"
     >
-      <PanelContainer>
-        <PanelHeader>
-          <HeaderContent>
-            <Title>{t('Prevent AI Settings')}</Title>
-            <Text size="sm" variant="muted">
-              {t(
-                'These settings apply to the selected repository. To switch, use the repository selector in the page header.'
-              )}
-            </Text>
-          </HeaderContent>
-          <CloseButton size="lg" onClick={onClose} aria-label={t('Close Panel')} />
-        </PanelHeader>
-        <PanelContent>
-          <ContentSection>
-            <SectionTitle>{t('AI Features')}</SectionTitle>
-            <Text size="sm" variant="muted" style={{marginBottom: space(3)}}>
-              {t('Configure which AI features are enabled for this repository.')}
-            </Text>
+      <SettingsHeader>
+        <div>
+          <SettingsTitle>Prevent AI Settings</SettingsTitle>
+          <SettingsDescription>
+            These settings apply to the selected <b style={{color: '#6559C5'}}>enigma</b>{' '}
+            repository. To switch, use the repository selector in the page header.
+            {repository && (
+              <React.Fragment>
+                {' '}
+                Currently configuring settings for: <RepoName>{repository}</RepoName>
+              </React.Fragment>
+            )}
+          </SettingsDescription>
+        </div>
+        <Button
+          priority="transparent"
+          size="xs"
+          aria-label="Close Settings"
+          icon={<IconClose />}
+          onClick={onClose}
+        >
+          Close
+        </Button>
+      </SettingsHeader>
+      <SettingsContent>
+        <FeatureSection>
+          <div>
+            <FeatureSectionTitle>Enable PR Review</FeatureSectionTitle>
+            <FeatureSectionDescription>
+              Run when @sentry review is commented on a PR.
+            </FeatureSectionDescription>
+          </div>
+          <Switch
+            size="lg"
+            checked={enablePRReview}
+            onChange={handleTogglePRReview}
+            aria-label="Enable PR Review"
+            disabled={isLoading}
+          />
+        </FeatureSection>
 
-            <ToggleSection>
-              <ToggleItem>
-                <ToggleLabel htmlFor="pr-review">
-                  <ToggleLabelContent>
-                    <ToggleLabelTitle>{t('Enable PR Review')}</ToggleLabelTitle>
-                    <ToggleLabelDescription>
-                      {t('AI-powered code review suggestions on pull requests')}
-                    </ToggleLabelDescription>
-                  </ToggleLabelContent>
-                  <Switch
-                    id="pr-review"
-                    checked={prReviewEnabled}
-                    onChange={() => setPrReviewEnabled(!prReviewEnabled)}
-                    size="lg"
-                  />
-                </ToggleLabel>
-              </ToggleItem>
+        <FeatureSection>
+          <div>
+            <FeatureSectionTitle>Enable Test Generation</FeatureSectionTitle>
+            <FeatureSectionDescription>
+              Run when @sentry generate-test is commented on a PR.
+            </FeatureSectionDescription>
+          </div>
+          <Switch
+            size="lg"
+            checked={enableTestGeneration}
+            onChange={handleToggleTestGeneration}
+            aria-label="Enable Test Generation"
+            disabled={isLoading}
+          />
+        </FeatureSection>
 
-              <ToggleItem>
-                <ToggleLabel htmlFor="test-generation">
-                  <ToggleLabelContent>
-                    <ToggleLabelTitle>{t('Enable Test Generation')}</ToggleLabelTitle>
-                    <ToggleLabelDescription>
-                      {t('Automatically generate unit tests for new code')}
-                    </ToggleLabelDescription>
-                  </ToggleLabelContent>
-                  <Switch
-                    id="test-generation"
-                    checked={testGenerationEnabled}
-                    onChange={() => setTestGenerationEnabled(!testGenerationEnabled)}
-                    size="lg"
-                  />
-                </ToggleLabel>
-              </ToggleItem>
+        <FeatureSection>
+          <div>
+            <FeatureSectionTitle>Enable Error Prediction</FeatureSectionTitle>
+            <FeatureSectionDescription>
+              Allow organization members to review potential bugs.
+            </FeatureSectionDescription>
+          </div>
+          <Switch
+            size="lg"
+            checked={enableErrorPrediction}
+            onChange={handleToggleErrorPrediction}
+            aria-label="Enable Error Prediction"
+            disabled={isLoading}
+          />
+        </FeatureSection>
 
-              <ToggleItem>
-                <ToggleLabel htmlFor="error-prediction">
-                  <ToggleLabelContent>
-                    <ToggleLabelTitle>{t('Enable Error Prediction')}</ToggleLabelTitle>
-                    <ToggleLabelDescription>
-                      {t('Predict potential errors before they happen')}
-                    </ToggleLabelDescription>
-                  </ToggleLabelContent>
-                  <Switch
-                    id="error-prediction"
-                    checked={errorPredictionEnabled}
-                    onChange={() => setErrorPredictionEnabled(!errorPredictionEnabled)}
-                    size="lg"
-                  />
-                </ToggleLabel>
-
-                {errorPredictionEnabled && (
-                  <SubmenuSection>
-                    <SubmenuTitle>{t('Error Prediction Options')}</SubmenuTitle>
-
-                    <ToggleItem isSubmenu>
-                      <ToggleLabel htmlFor="prediction-frameworks">
-                        <ToggleLabelContent>
-                          <ToggleLabelTitle>{t('Framework Analysis')}</ToggleLabelTitle>
-                          <ToggleLabelDescription>
-                            {t('Analyze framework-specific error patterns')}
-                          </ToggleLabelDescription>
-                        </ToggleLabelContent>
-                        <Switch
-                          id="prediction-frameworks"
-                          checked={errorPredictionFrameworks}
-                          onChange={() =>
-                            setErrorPredictionFrameworks(!errorPredictionFrameworks)
-                          }
-                          size="lg"
-                        />
-                      </ToggleLabel>
-                    </ToggleItem>
-
-                    <ToggleItem isSubmenu>
-                      <ToggleLabel htmlFor="prediction-patterns">
-                        <ToggleLabelContent>
-                          <ToggleLabelTitle>
-                            {t('Code Pattern Analysis')}
-                          </ToggleLabelTitle>
-                          <ToggleLabelDescription>
-                            {t('Detect problematic code patterns and anti-patterns')}
-                          </ToggleLabelDescription>
-                        </ToggleLabelContent>
-                        <Switch
-                          id="prediction-patterns"
-                          checked={errorPredictionPatterns}
-                          onChange={() =>
-                            setErrorPredictionPatterns(!errorPredictionPatterns)
-                          }
-                          size="lg"
-                        />
-                      </ToggleLabel>
-                    </ToggleItem>
-                  </SubmenuSection>
-                )}
-              </ToggleItem>
-            </ToggleSection>
-          </ContentSection>
-
-          <ContentSection>
-            <SectionTitle>{t('LOGAF Configuration')}</SectionTitle>
-            <Text size="sm" variant="muted" style={{marginBottom: space(3)}}>
-              {t(
-                'Configure the severity level for LOGAF (Log Analysis Framework) processing.'
-              )}
-            </Text>
-
-            <SliderContainer>
-              <SliderLabel>{t('Severity Level')}</SliderLabel>
-              <SliderDescription>
-                {t('Set the minimum severity level for log analysis and alerts.')}
-              </SliderDescription>
-              <StyledRangeSlider
-                name="logaf-severity"
-                value={logafSeverityLevel}
-                allowedValues={severityAllowedValues}
-                formatLabel={formatSeverityLabel}
-                onChange={value => setLogafSeverityLevel(value as number)}
-                aria-label="LOGAF Severity Level"
+        {enableErrorPrediction && (
+          <NestedFieldGroup>
+            <FieldGroup
+              label="Auto Run on Opened Pull Requests"
+              help="Run when a PR is published, ignoring new pushes."
+              inline
+              flexibleControlStateSize
+            >
+              <Switch
+                size="lg"
+                checked={errorPredAutoRun}
+                onChange={handleToggleErrorPredAutoRun}
+                aria-label="Auto Run on Opened Pull Requests"
+                disabled={isLoading}
               />
-              <SeverityLevelIndicator>
-                <Text size="xs" variant="muted">
-                  {t('Current level')}:{' '}
-                  <strong>{formatSeverityLabel(logafSeverityLevel)}</strong>
-                </Text>
-              </SeverityLevelIndicator>
-            </SliderContainer>
-          </ContentSection>
-        </PanelContent>
-      </PanelContainer>
+            </FieldGroup>
+            <FieldGroup
+              label="Run When Mentioned"
+              help="Run when @sentry review is commented on a PR"
+              inline
+              flexibleControlStateSize
+            >
+              <Switch
+                size="lg"
+                checked={errorPredMentionOnly}
+                onChange={handleToggleErrorPredMentionOnly}
+                aria-label="Run When Mentioned"
+                disabled={isLoading}
+              />
+            </FieldGroup>
+          </NestedFieldGroup>
+        )}
+      </SettingsContent>
     </SlideOverPanel>
   );
 }
+
+const SettingsHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
+`;
+
+const SettingsTitle = styled('h3')`
+  margin: 0 0 4px 0;
+  font-size: ${p => p.theme.fontSize.xl};
+  color: ${p => p.theme.headingColor};
+`;
+
+const SettingsDescription = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  margin-bottom: 0;
+`;
+
+const RepoName = styled('span')`
+  color: #6559c5;
+  font-weight: bold;
+`;
+
+const SettingsContent = styled('div')`
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+const FeatureSection = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: 8px;
+  padding: 16px 20px;
+  border: 1px solid ${p => p.theme.border};
+`;
+
+const FeatureSectionTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.headingColor};
+`;
+
+const FeatureSectionDescription = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  margin-top: 2px;
+`;
+
+const NestedFieldGroup = styled('div')`
+  margin-left: 32px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;

@@ -1,20 +1,7 @@
 // import {useApiQuery} from 'sentry/utils/queryClient';
 // import useOrganization from 'sentry/utils/useOrganization';
 
-interface IntegrationRepo {
-  fullName: string;
-  id: string;
-  name: string;
-  url: string;
-}
-
-export interface IntegrationOrg {
-  id: string;
-  name: string;
-  provider: string;
-  repos: IntegrationRepo[];
-  avatarUrl?: string; // e.g., 'github', 'gitlab', etc.
-}
+import type {IntegrationOrg} from 'sentry/views/prevent/preventAI/types';
 
 export interface PreventAIIntegrationOrgsResponse {
   integrationOrgs: IntegrationOrg[];

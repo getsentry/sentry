@@ -4,12 +4,11 @@ import {t} from 'sentry/locale';
 import PreventAIManageRepos from 'sentry/views/prevent/preventAI/manageRepos';
 import PreventAIOnboarding from 'sentry/views/prevent/preventAI/onboarding';
 
-import {usePreventAIOrgRepos} from './usePreventAIOrgRepos';
+import {usePreventAIOrgRepos} from './hooks/usePreventAIOrgRepos';
 
 export default function PreventAIIndex() {
   const {data, isLoading, isError} = usePreventAIOrgRepos();
-  const hasAnyInstalledOrgs =
-    data?.integrationOrgs?.length && data.integrationOrgs.length > 0;
+  const hasOrgs = data?.integrationOrgs?.length && data.integrationOrgs.length > 0;
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -24,7 +23,7 @@ export default function PreventAIIndex() {
     );
   }
 
-  if (hasAnyInstalledOrgs) {
+  if (hasOrgs) {
     return <PreventAIManageRepos installedOrgs={data.integrationOrgs} />;
   }
 

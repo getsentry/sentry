@@ -4,13 +4,12 @@ import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSettings} from 'sentry/icons';
 import useOrganization from 'sentry/utils/useOrganization';
-import RepoSettingsPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
+import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import {PREVENT_AI_PAGE_TITLE} from 'sentry/views/prevent/settings';
 
 export default function PreventAIPageWrapper() {
@@ -49,7 +48,7 @@ export default function PreventAIPageWrapper() {
           <Layout.Main fullWidth>
             <Outlet />
           </Layout.Main>
-          <RepoSettingsPanel
+          <ManageReposPanel
             collapsed={!isSettingsPanelOpen}
             onClose={handleCloseSettings}
           />

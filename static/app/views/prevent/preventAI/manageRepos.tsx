@@ -5,15 +5,13 @@ import styled from '@emotion/styled';
 import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.png';
 import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.png';
 
-import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
-import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import RepoSettingsPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
+import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
-import type {IntegrationOrg} from 'sentry/views/prevent/preventAI/usePreventAIOrgRepos';
+import type {IntegrationOrg} from 'sentry/views/prevent/preventAI/types';
 
 import {FeatureOverview} from './onboarding';
 
@@ -27,7 +25,7 @@ export default function PreventAIManageRepos({
 
   return (
     <Flex direction="column" gap="2xl">
-      <ManageReposToolbar installedOrgs={installedOrgs} setIsPanelOpen={setIsPanelOpen} />
+      <ManageReposToolbar installedOrgs={installedOrgs} />
       <Flex
         direction="row"
         gap="md"
@@ -54,7 +52,7 @@ export default function PreventAIManageRepos({
             </Text>
           </Flex>
           <FeatureOverview />
-          <RepoSettingsPanel
+          <ManageReposPanel
             collapsed={!isPanelOpen}
             onClose={() => setIsPanelOpen(false)}
           />
