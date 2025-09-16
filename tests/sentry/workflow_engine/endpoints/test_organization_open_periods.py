@@ -45,7 +45,8 @@ class OrganizationOpenPeriodsTest(APITestCase):
         resp = self.get_success_response(
             self.organization.slug, qs_params={"detectorId": detector.id}
         )
-        assert resp.data == []
+        assert resp.status_code == 200
+        assert resp.data["detail"] == "Group not found. Could not query open periods."
 
     @with_feature("organizations:issue-open-periods")
     def test_open_period_linked_to_group(self) -> None:
@@ -85,7 +86,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert len(response.data) == 1
         resp = response.data[0]
         open_period = GroupOpenPeriod.objects.get(group=self.group)
-        assert resp["id"] == open_period.id
+        assert resp["id"] == str(open_period.id)
         assert resp["start"] == self.group.first_seen
         assert resp["end"] is None
         assert resp["duration"] is None
@@ -117,7 +118,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert response.status_code == 200, response.content
         resp = response.data[0]
         open_period = GroupOpenPeriod.objects.get(group=self.group, date_ended=resolved_time)
-        assert resp["id"] == open_period.id
+        assert resp["id"] == str(open_period.id)
         assert resp["start"] == self.group.first_seen
         assert resp["end"] == resolved_time
         assert resp["duration"] == resolved_time - self.group.first_seen
@@ -182,7 +183,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         resp = response.data[0]
         resp2 = response.data[1]
 
-        assert resp["id"] == open_period2.id
+        assert resp["id"] == str(open_period2.id)
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
         assert resp["duration"] == second_resolved_time - unresolved_time
@@ -191,7 +192,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
             second=0, microsecond=0
         )
 
-        assert resp2["id"] == open_period.id
+        assert resp2["id"] == str(open_period.id)
         assert resp2["start"] == self.group.first_seen
         assert resp2["end"] == resolved_time
         assert resp2["duration"] == resolved_time - self.group.first_seen
@@ -253,7 +254,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         resp = response.data[0]
-        assert resp["id"] == open_period.id
+        assert resp["id"] == str(open_period.id)
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
         assert resp["duration"] == second_resolved_time - unresolved_time

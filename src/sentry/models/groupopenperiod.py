@@ -1,7 +1,5 @@
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
 
 from django.conf import settings
 from django.contrib.postgres.constraints import ExclusionConstraint
@@ -18,26 +16,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class OpenPeriod:
-    id: int
-    start: datetime
-    end: datetime | None
-    duration: timedelta | None
-    is_open: bool
-    last_checked: datetime
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.id,
-            "start": self.start,
-            "end": self.end,
-            "duration": self.duration,
-            "isOpen": self.is_open,
-            "lastChecked": self.last_checked,
-        }
 
 
 class TsTzRange(models.Func):
@@ -145,9 +123,8 @@ def get_open_periods_for_group(
     group: Group,
     query_start: datetime | None = None,
     query_end: datetime | None = None,
-    offset: int | None = 0,
     limit: int | None = None,
-) -> list[OpenPeriod | None]:
+) -> list[GroupOpenPeriod | None]:
     if not features.has("organizations:issue-open-periods", group.organization):
         return []
 
@@ -156,22 +133,13 @@ def get_open_periods_for_group(
         query_start = min(group.first_seen, timezone.now() - timedelta(days=90))
 
     group_open_periods = GroupOpenPeriod.objects.filter(
-        group=group, date_started__gte=query_start, id__gte=offset
+        group=group,
+        date_started__gte=query_start,
     ).order_by("-date_started")[:limit]
     if query_end:
         group_open_periods = group_open_periods.filter(date_ended__lte=query_end)
 
-    return [
-        OpenPeriod(
-            id=period.id,
-            start=period.date_started,
-            end=period.date_ended,
-            duration=period.date_ended - period.date_started if period.date_ended else None,
-            is_open=period.date_ended is None,
-            last_checked=get_last_checked_for_open_period(group),
-        )
-        for period in group_open_periods
-    ]
+    return group_open_periods
 
 
 def create_open_period(group: Group, start_time: datetime) -> None:

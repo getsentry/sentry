@@ -16,6 +16,7 @@ from sentry.api.serializers.models.group import BaseGroupSerializerResponse, Sim
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_last_checked_for_open_period
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.rules.history.base import TimeSeriesValue
@@ -681,4 +682,28 @@ class DetectorWorkflowSerializer(Serializer):
             "id": str(obj.id),
             "detectorId": str(obj.detector.id),
             "workflowId": str(obj.workflow.id),
+        }
+
+
+class GroupOpenPeriodResponse(TypedDict):
+    id: int
+    start: datetime
+    end: datetime | None
+    duration: timedelta | None
+    is_open: bool
+    last_checked: datetime
+
+
+@register(GroupOpenPeriod)
+class GroupOpenPeriodSerializer(Serializer):
+    def serialize(
+        self, obj: GroupOpenPeriod, attrs: Mapping[str, Any], user, **kwargs
+    ) -> GroupOpenPeriodResponse:
+        return {
+            "id": str(obj.id),
+            "start": obj.date_started,
+            "end": obj.date_ended,
+            "duration": obj.date_ended - obj.date_started if obj.date_ended else None,
+            "isOpen": obj.date_ended is None,
+            "lastChecked": get_last_checked_for_open_period(obj.group),
         }
