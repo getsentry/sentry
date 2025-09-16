@@ -1,6 +1,8 @@
 import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
@@ -142,15 +144,18 @@ export function PrimaryNavigationItems() {
         </Feature>
 
         <Feature features={['prevent-ai']}>
-          <SidebarLink
-            to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-            activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
-            analyticsKey="prevent"
-            group={PrimaryNavGroup.PREVENT}
-            {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-          >
-            <IconPrevent />
-          </SidebarLink>
+          <SidebarLinkWithBadge>
+            <SidebarLink
+              to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
+              activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+              analyticsKey="prevent"
+              group={PrimaryNavGroup.PREVENT}
+              {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+            >
+              <IconPrevent />
+            </SidebarLink>
+            <BetaBadge type="beta" />
+          </SidebarLinkWithBadge>
         </Feature>
 
         <SeparatorItem />
@@ -200,3 +205,15 @@ export function PrimaryNavigationItems() {
     </Fragment>
   );
 }
+
+const SidebarLinkWithBadge = styled('div')`
+  position: relative;
+  height: 100%;
+`;
+
+const BetaBadge = styled(FeatureBadge)`
+  position: absolute;
+  pointer-events: none;
+  top: -2px;
+  right: 0;
+`;
