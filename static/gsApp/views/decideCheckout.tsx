@@ -7,8 +7,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {PlanTier} from 'getsentry/types';
-import {hasNewBillingUI, hasPartnerMigrationFeature} from 'getsentry/utils/billing';
+import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import AMCheckout from 'getsentry/views/amCheckout';
+import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 
 function DecideCheckout() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ function DecideCheckout() {
   const organization = useOrganization();
   const subscription = useSubscription();
   const [tier, setTier] = useState<string | null>(null);
-  const isNewCheckout = hasNewBillingUI(organization);
+  const isNewCheckout = hasCheckoutV3(organization);
 
   useEffect(() => {
     // if we're showing new checkout, ensure we show the checkout for
