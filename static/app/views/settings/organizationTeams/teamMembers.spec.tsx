@@ -409,4 +409,14 @@ describe('TeamMembers', () => {
     ).toBeEnabled();
     expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeEnabled();
   });
+
+  it('renders a "Pending" tag for pending team members', async () => {
+    render(<TeamMembers team={team} />, {
+      initialRouterConfig,
+      organization,
+    });
+
+    // MembersFixure has a single pending member
+    expect(await screen.findByText('Pending')).toBeInTheDocument();
+  });
 });
