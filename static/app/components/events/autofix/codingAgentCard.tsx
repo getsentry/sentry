@@ -125,9 +125,11 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                 <Content>
                   <CardHeader>
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
-                    <Tag type={getTagType(codingAgentState.status)}>
-                      {getStatusText(codingAgentState.status)}
-                    </Tag>
+                    <div>
+                      <Tag type={getTagType(codingAgentState.status)}>
+                        {getStatusText(codingAgentState.status)}
+                      </Tag>
+                    </div>
                   </CardHeader>
 
                   <CardContent>
