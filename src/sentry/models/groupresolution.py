@@ -42,6 +42,9 @@ class GroupResolution(Model):
     # This release field represents the latest release version associated with a group when the
     # user chooses "resolve in next release", and is set for both semver and date ordered releases
     current_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
+    # This release field represents the future release version associated with a group when the
+    # user chooses "resolve in future release"
+    future_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
     type = BoundedPositiveIntegerField(
         choices=((Type.in_next_release, "in_next_release"), (Type.in_release, "in_release")),
         null=True,
@@ -56,6 +59,12 @@ class GroupResolution(Model):
     class Meta:
         db_table = "sentry_groupresolution"
         app_label = "sentry"
+        indexes = [
+            models.Index(
+                fields=["type", "status", "future_release_version"],
+                name="groupres_future_release_idx",
+            ),
+        ]
 
     __repr__ = sane_repr("group_id", "release_id")
 
