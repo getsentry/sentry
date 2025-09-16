@@ -123,13 +123,13 @@ class ClearExpiredResolutionsTest(TestCase):
         updated_activity = Activity.objects.get(id=activity.id)
         assert updated_activity.data["version"] == new_release.version
 
-    @with_feature("organizations:resolve-in-future-release")
     def test_in_future_release_without_feature_flag(self) -> None:
         """Test that in_future_release resolutions are NOT cleared when feature flag is disabled."""
         project = self.create_project()
 
-        # Create group resolved in future release
+        # Create group in release 1.0.0 resolved in future release 2.0.0
         old_release = self.create_release(project=project, version="1.0.0")
+        old_release.add_project(project)
         group = self.create_group(
             project=project, status=GroupStatus.RESOLVED, active_at=timezone.now()
         )
@@ -141,16 +141,14 @@ class ClearExpiredResolutionsTest(TestCase):
             status=GroupResolution.Status.pending,
         )
 
-        # Create the 2.0.0 release but disable the feature flag
+        # Create the 2.0.0 release that should trigger resolution clearing
         new_release = self.create_release(
             project=project,
             version="2.0.0",
             date_added=timezone.now() + timedelta(minutes=1),
         )
 
-        # Temporarily disable the feature flag for this organization
-        with self.feature({"organizations:resolve-in-future-release": False}):
-            clear_expired_resolutions(new_release.id)
+        clear_expired_resolutions(new_release.id)
 
         # Resolution should remain unchanged
         updated_resolution = GroupResolution.objects.get(id=resolution.id)
@@ -208,11 +206,11 @@ class ClearExpiredResolutionsTest(TestCase):
             group=group,
             release=old_release,
             type=GroupResolution.Type.in_future_release,
-            future_release_version="3.0.0",  # Different version
+            future_release_version="3.0.0",
             status=GroupResolution.Status.pending,
         )
 
-        # Create the 2.0.0 release (different version than expected)
+        # Create the 2.0.0 release
         new_release = self.create_release(
             project=project,
             version="2.0.0",
@@ -221,7 +219,7 @@ class ClearExpiredResolutionsTest(TestCase):
 
         clear_expired_resolutions(new_release.id)
 
-        # Resolution should remain unchanged since version doesn't match
+        # Resolution should remain unchanged since versions don't match
         updated_resolution = GroupResolution.objects.get(id=resolution.id)
         assert updated_resolution.status == GroupResolution.Status.pending
         assert updated_resolution.release == old_release
@@ -232,7 +230,6 @@ class ClearExpiredResolutionsTest(TestCase):
         """Test that already resolved in_future_release resolutions are not affected."""
         project = self.create_project()
 
-        # Create group already resolved in future release
         old_release = self.create_release(project=project, version="1.0.0")
         group = self.create_group(
             project=project, status=GroupStatus.RESOLVED, active_at=timezone.now()
@@ -245,7 +242,6 @@ class ClearExpiredResolutionsTest(TestCase):
             status=GroupResolution.Status.resolved,  # Already resolved
         )
 
-        # Create the 2.0.0 release
         new_release = self.create_release(
             project=project,
             version="2.0.0",
@@ -324,7 +320,6 @@ class ClearExpiredResolutionsTest(TestCase):
         """Test that the task handles missing activity records gracefully."""
         project = self.create_project()
 
-        # Create group resolved in future release but without activity
         old_release = self.create_release(project=project, version="1.0.0")
         group = self.create_group(
             project=project, status=GroupStatus.RESOLVED, active_at=timezone.now()
