@@ -40,7 +40,7 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.constants import (
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
@@ -159,7 +159,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
-@region_silo_endpoint
+@all_silo_endpoint
 class SeerRpcServiceEndpoint(Endpoint):
     """
     RPC endpoint for seer microservice to call. Authenticated with a shared secret.
@@ -814,12 +814,18 @@ def get_github_enterprise_integration_config(
         logger.error("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")
         return {"success": False}
 
-    integration = integration_service.get_integration(
-        integration_id=integration_id,
-        provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-        organization_id=organization_id,
-        status=ObjectStatus.ACTIVE,
-    )
+    try:
+        integration = integration_service.get_integration(
+            integration_id=integration_id,
+            provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+    except Exception as e:
+        logger.error("Failed to get integration %s due to silo boundary violation: %s", integration_id, str(e))
+        # Return a more specific error for silo boundary violations
+        return {"success": False, "error": "Integration service unavailable from current silo context"}
+
     if integration is None:
         logger.error("Integration %s does not exist", integration_id)
         return {"success": False}
