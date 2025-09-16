@@ -231,7 +231,14 @@ function importSchema(
       : input.metadata.platform === 'javascript'
         ? 'javascript'
         : 'mobile',
-    input.shared.frames
+    input.shared.frames.map((frame, i) => {
+      const frameInfo = input.shared.frame_infos?.[i];
+      return {
+        ...frame,
+        count: frameInfo?.count,
+        weight: frameInfo?.weight,
+      };
+    })
   );
 
   return {
