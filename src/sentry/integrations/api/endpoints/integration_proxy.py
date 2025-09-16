@@ -23,7 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
 from sentry.metrics.base import Tags
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import ApiForbiddenError, ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
@@ -59,6 +59,7 @@ class IntegrationProxyFailureMetricType(StrEnum):
     INVALID_IDENTITY = "invalid_identity"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
+    FORBIDDEN_ERROR = "forbidden_error"
     UNKNOWN_ERROR = "unknown_error"
     FAILED_VALIDATION = "failed_validation"
 
@@ -295,9 +296,13 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             if self.integration is not None:
                 lifecycle.add_extras({"provider": self.integration.provider})
 
-            response = self._call_third_party_api(
-                request=request, full_url=full_url, headers=headers
-            )
+            try:
+                response = self._call_third_party_api(
+                    request=request, full_url=full_url, headers=headers
+                )
+            except (ApiTimeoutError, ApiForbiddenError, ApiHostError, IdentityNotValid) as e:
+                lifecycle.record_halt(e)
+                raise
 
         self._add_metric(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
@@ -316,17 +321,21 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if isinstance(exc, IdentityNotValid):
             logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_IDENTITY)
-            return self.respond(status=400)
+            return self.respond(context={"detail": str(exc)}, status=400)
         elif isinstance(exc, ApiHostError):
             logger.info(
                 "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
             )
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR)
-            return self.respond(status=exc.code)
+            return self.respond(context={"detail": exc.text}, status=exc.code)
         elif isinstance(exc, ApiTimeoutError):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
-            return self.respond(status=exc.code)
+            return self.respond(context={"detail": exc.text}, status=exc.code)
+        elif isinstance(exc, ApiForbiddenError):
+            logger.info("hybrid_cloud.integration_proxy.forbidden_error", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.FORBIDDEN_ERROR)
+            return self.respond(context={"detail": exc.text}, status=exc.code)
 
         self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)
