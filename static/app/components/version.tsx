@@ -26,7 +26,6 @@ type Props = {
   preservePageFilters?: boolean;
   /**
    * Will add project ID to the linked url (can be overridden by preservePageFilters).
-   * If not provided and user does not have global-views enabled, it will try to take it from current url query.
    */
   projectId?: string;
   /**
@@ -74,9 +73,6 @@ function Version({
   if (projectId) {
     // we can override preservePageFilters's project id
     releaseDetailProjectId = projectId;
-  } else if (!organization?.features.includes('global-views')) {
-    // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
-    releaseDetailProjectId = location?.query.project;
   }
 
   const renderVersion = () => {

@@ -240,9 +240,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     } = this.props;
 
     const query = {...queryExtra};
-    if (organization.features.includes('global-views')) {
-      query.project = router.location.query.project;
-    }
+    query.project = router.location.query.project;
     if (preserveQueryParams) {
       query.environment = [...environments];
       query.start = start ? getUtcDateString(start) : undefined;

@@ -45,7 +45,6 @@ import {
   type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewSectionProps = {
@@ -332,7 +331,6 @@ export default function IssueViewsList() {
   const openFeedbackForm = useFeedbackForm();
   const {mutate: createGroupSearchView, isPending: isCreatingView} =
     useCreateGroupSearchView();
-  const defaultProject = useDefaultProject();
   const prefersStackedNav = usePrefersStackedNav();
 
   if (!prefersStackedNav) {
@@ -344,7 +342,7 @@ export default function IssueViewsList() {
       {
         name: t('New View'),
         query: 'is:unresolved',
-        projects: defaultProject,
+        projects: [],
         environments: DEFAULT_ENVIRONMENTS,
         timeFilters: DEFAULT_TIME_FILTERS,
         querySort: IssueSortOptions.DATE,
