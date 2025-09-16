@@ -59,6 +59,12 @@ class GroupResolution(Model):
     class Meta:
         db_table = "sentry_groupresolution"
         app_label = "sentry"
+        indexes = [
+            models.Index(
+                fields=["type", "status", "future_release_version"],
+                name="groupres_future_release_idx",
+            ),
+        ]
 
     __repr__ = sane_repr("group_id", "release_id")
 
