@@ -221,7 +221,7 @@ class ProjectReplaySummaryTestCase(
         trace_id = uuid.uuid4().hex
         span_id = "1" + uuid.uuid4().hex[:15]
 
-        # Create a direct error event that is also trace connected.
+        # Create a direct error event that is not trace connected.
         direct_event_id = uuid.uuid4().hex
         direct_error_timestamp = now.timestamp() - 2
         self.store_event(
@@ -240,7 +240,7 @@ class ProjectReplaySummaryTestCase(
                     "replay": {"replay_id": self.replay_id},
                     "trace": {
                         "type": "trace",
-                        "trace_id": trace_id,
+                        "trace_id": uuid.uuid4().hex,
                         "span_id": span_id,
                     },
                 },
