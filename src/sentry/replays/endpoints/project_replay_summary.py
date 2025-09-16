@@ -22,7 +22,7 @@ from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment
 from sentry.replays.usecases.summarize import (
     fetch_error_details,
     fetch_trace_connected_errors,
-    get_summary_logs_from_segments,
+    get_summary_logs,
 )
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -288,7 +288,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             segment_data = iter_segment_data(segment_md)
 
             # Combine replay and error data and parse into logs.
-            logs = get_summary_logs_from_segments(segment_data, error_events, project.id)
+            logs = get_summary_logs(segment_data, error_events, project.id)
 
             # Post to Seer to start a summary task.
             # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we

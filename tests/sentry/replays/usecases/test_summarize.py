@@ -9,7 +9,7 @@ from sentry.replays.usecases.summarize import (
     EventDict,
     _parse_iso_timestamp_to_ms,
     as_log_message,
-    get_summary_logs_from_segments,
+    get_summary_logs,
 )
 from sentry.utils import json
 
@@ -102,7 +102,7 @@ def test_get_summary_logs_from_segments(mock_fetch_feedback_details: Mock) -> No
         ),
     ]
 
-    result = get_summary_logs_from_segments(_faker(), error_events=error_events, project_id=1)
+    result = get_summary_logs(_faker(), error_events=error_events, project_id=1)
 
     assert result == [
         "User experienced an error: 'BadError: something else bad' at 1756400489849.0",

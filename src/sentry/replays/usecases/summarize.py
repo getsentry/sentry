@@ -238,17 +238,17 @@ def generate_feedback_log_message(feedback: EventDict) -> str:
 
 
 @sentry_sdk.trace
-def get_summary_logs_from_segments(
+def get_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
     project_id: int,
 ) -> list[str]:
     # Sort error events by timestamp. This list includes all feedback events still.
     error_events.sort(key=lambda x: x["timestamp"])
-    return list(generate_summary_logs_from_segments(segment_data, error_events, project_id))
+    return list(generate_summary_logs(segment_data, error_events, project_id))
 
 
-def generate_summary_logs_from_segments(
+def generate_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
     project_id,
@@ -451,9 +451,9 @@ def _parse_url(s: str, trunc_length: int) -> str:
     return s
 
 
-def get_replay_summary_logs(project_id: int, replay_id: str, num_segments: int) -> list[str]:
+def rpc_get_replay_summary_logs(project_id: int, replay_id: str, num_segments: int) -> list[str]:
     """
-    Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
+    RPC call for Seer. Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
     """
 
     project = Project.objects.get(id=project_id)
@@ -518,6 +518,6 @@ def get_replay_summary_logs(project_id: int, replay_id: str, num_segments: int) 
     segment_data = iter_segment_data(segment_md)
 
     # Combine replay and error data and parse into logs.
-    logs = get_summary_logs_from_segments(segment_data, error_events, project.id)
+    logs = get_summary_logs(segment_data, error_events, project.id)
 
-    return logs
+    return {"logs": logs}
