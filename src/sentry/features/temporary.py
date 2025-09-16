@@ -612,9 +612,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=True)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Starfish: extract metrics from the spans
-    manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    manager.add("projects:span-metrics-extraction-addons", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables OTLP Trace ingestion in Relay for a project (see also `organizations:relay-otlp-traces-endpoint`)
     manager.add("projects:relay-otel-endpoint", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # EAP: extremely experimental flag that makes DDM page use EAP tables
