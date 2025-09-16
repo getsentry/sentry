@@ -169,7 +169,11 @@ function ReleaseEventsChart({
           disablePrevious
           showLegend
           projects={projects}
-          dataset={DiscoverDatasets.METRICS_ENHANCED}
+          dataset={
+            chartType === ReleaseComparisonChartType.ERROR_COUNT
+              ? DiscoverDatasets.ERRORS
+              : DiscoverDatasets.METRICS_ENHANCED
+          }
           environments={environments}
           start={start ?? null}
           end={end ?? null}
