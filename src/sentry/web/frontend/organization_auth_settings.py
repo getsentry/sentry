@@ -4,6 +4,7 @@ import logging
 
 from django import forms
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponse, HttpResponseBadRequest, HttpResponseBase
 from django.urls import reverse
@@ -43,7 +44,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
             organization_id=organization.id, user_id=request.user.id
         )
         if org_member is None:
-            return HttpResponseBadRequest()
+            raise PermissionDenied("User is not a member of the organization")
 
         member_role = roles.get(org_member.role)
         role_choices = [(r.id, r.name) for r in roles.get_all() if member_role.can_manage(r)]
