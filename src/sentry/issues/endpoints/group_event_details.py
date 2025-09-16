@@ -229,7 +229,11 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
         collapse = request.GET.getlist("collapse", [])
         if "stacktraceOnly" in collapse:
-            return Response(serialize(event, request.user, EventSerializer()))
+            serialized_event = serialize(event, request.user, EventSerializer())
+            # Handle case where serialization fails and returns None
+            if serialized_event is None:
+                return Response({"detail": "Event data unavailable due to serialization failure"}, status=503)
+            return Response(serialized_event)
 
         data = wrap_event_response(
             request_user=request.user,

@@ -41,6 +41,31 @@ def wrap_event_response(
         IssueEventSerializer(),
         include_full_release_data=include_full_release_data,
     )
+    
+    # Handle case where serialization fails and returns None
+    if event_data is None:
+        # Return a minimal response structure when serialization fails
+        event_data = {
+            "id": event.event_id,
+            "eventID": event.event_id,
+            "projectID": str(event.project_id),
+            "groupID": str(event.group_id) if event.group_id else None,
+            "dateCreated": event.datetime,
+            "message": "Event data unavailable due to serialization failure",
+            "platform": getattr(event, 'platform', None),
+            "type": getattr(event, 'get_event_type', lambda: 'default')(),
+            "tags": [],
+            "user": None,
+            "context": {},
+            "contexts": {},
+            "entries": [],
+            "errors": [],
+            "packages": {},
+            "sdk": {},
+            "size": 0,
+            "_meta": {},
+        }
+    
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None
