@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -60,10 +59,6 @@ function useSuspectAttributes({
   const formattedStartTimestamp = getUtcDateString(startTimestamp);
   const formattedEndTimestamp = getUtcDateString(endTimestamp);
 
-  const parsedFunction = parseFunction(chartInfo.yAxis);
-  const plottedFunctionName = parsedFunction?.name;
-  const plottedFunctionParameter = parsedFunction?.arguments[0];
-
   // Add the selected region by x-axis to the query, timestamp: [x1, x2]
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `>=${formattedStartTimestamp}`);
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `<=${formattedEndTimestamp}`);
@@ -77,18 +72,11 @@ function useSuspectAttributes({
       query_1: query1,
       query_2: query2,
       dataset,
-      function_name: plottedFunctionName,
-      function_parameter: plottedFunctionParameter,
+      function: chartInfo.yAxis,
+      above: 1,
       sampling: SAMPLING_MODE.NORMAL,
     };
-  }, [
-    query1,
-    query2,
-    pageFilters,
-    dataset,
-    plottedFunctionName,
-    plottedFunctionParameter,
-  ]);
+  }, [query1, query2, pageFilters, dataset, chartInfo.yAxis]);
 
   return useApiQuery<SuspectAttributesResult>(
     [
