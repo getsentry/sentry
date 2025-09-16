@@ -1,13 +1,14 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {TextProps} from 'sentry/components/core/text/text';
-import {IconChevron, IconDownload, IconGraph, IconLightning} from 'sentry/icons';
+import {IconChevron, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -28,19 +29,109 @@ interface UsageOverviewProps {
   subscription: Subscription;
 }
 
+enum ProductStatus {
+  ACTIVE = 'active',
+  TRIAL_AVAILABLE = 'trial_available',
+  NEEDS_PURCHASE = 'needs_purchase',
+  ACTIVE_TRIAL = 'active_trial',
+  REQUIRES_PAYG = 'requires_payg',
+}
+
+const PRODUCT_STATUS_TAG_TYPE = {
+  [ProductStatus.ACTIVE]: 'success',
+  [ProductStatus.TRIAL_AVAILABLE]: 'promotion',
+  [ProductStatus.NEEDS_PURCHASE]: 'default',
+  [ProductStatus.ACTIVE_TRIAL]: 'success',
+  [ProductStatus.REQUIRES_PAYG]: 'default',
+} satisfies Record<ProductStatus, TagProps['type']>;
+
 const GRID_PROPS = {
-  columns: {xs: 'repeat(4, 1fr)', md: 'repeat(5, 1fr)'},
+  columns: {xs: '2fr repeat(3, 1fr)', md: '2fr repeat(4, 1fr)'},
   padding: 'lg xl' as const,
   borderTop: 'primary' as const,
   gap: 'md' as const,
   align: 'center' as const,
 };
 
-function PaygStatusCell({children, bold}: {children: React.ReactNode; bold?: boolean}) {
+function PaygStatusCell({
+  children,
+  bold,
+  variant,
+}: {
+  children: React.ReactNode;
+  bold?: boolean;
+  variant?: TextProps<'span'>['variant'];
+}) {
   return (
-    <Text align="right" as="span" bold={bold}>
+    <Text align="right" as="span" bold={bold} variant={variant}>
       {children}
     </Text>
+  );
+}
+
+function ProductGroupHeader({
+  children,
+  ariaLabel,
+  isOpen,
+  onToggle,
+  hasToggle,
+  onDemandSpendUsed,
+  status,
+  formattedCurrentUsage,
+  percentUsed,
+}: {
+  ariaLabel: string;
+  children: React.ReactNode;
+  hasToggle: boolean;
+  isOpen: boolean;
+  onDemandSpendUsed: number;
+  onToggle: () => void;
+  formattedCurrentUsage?: string;
+  percentUsed?: number;
+  status?: ProductStatus;
+}) {
+  return (
+    <Grid {...GRID_PROPS}>
+      {hasToggle ? (
+        <Container>
+          <StyledButton
+            borderless
+            icon={
+              isOpen ? <IconChevron direction="up" /> : <IconChevron direction="down" />
+            }
+            aria-label={ariaLabel}
+            onClick={() => onToggle()}
+          >
+            <Text bold>{children}</Text>
+          </StyledButton>
+        </Container>
+      ) : (
+        <Container>
+          <Text bold>{children}</Text>
+        </Container>
+      )}
+      {status ? (
+        <StatusCell>
+          <Tag type={PRODUCT_STATUS_TAG_TYPE[status]}>
+            {tct('[status]', {status: upperFirst(status).replace('_', ' ')})}
+          </Tag>
+        </StatusCell>
+      ) : (
+        <div />
+      )}
+      {formattedCurrentUsage ? <Text>{formattedCurrentUsage}</Text> : <div />}
+      {percentUsed ? (
+        <Flex gap="sm" align="center">
+          <ReservedUsageBar percentUsed={percentUsed * 100} />
+          <Text>{percentUsed.toFixed(0) + '%'}</Text>
+        </Flex>
+      ) : (
+        <div />
+      )}
+      <PaygStatusCell>
+        {onDemandSpendUsed > 0 ? displayPriceWithCents({cents: onDemandSpendUsed}) : '-'}
+      </PaygStatusCell>
+    </Grid>
   );
 }
 
@@ -78,41 +169,31 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
     subscription.planDetails.addOnCategories
   ).flatMap(addOn => addOn.dataCategories);
 
+  const tableHeaderProps = {
+    variant: 'muted' as const,
+    bold: true,
+  };
+
   return (
     <Fragment>
-      {' '}
       <Grid background="secondary" {...GRID_PROPS}>
-        <Text bold>{t('Product')}</Text>
+        <Text {...tableHeaderProps}>{t('Product')}</Text>
         <StatusCell>
-          <Text bold>{t('Status')}</Text>
+          <Text {...tableHeaderProps}>{t('Status')}</Text>
         </StatusCell>
-        <Text bold>{t('Current usage')}</Text>
-        <Text bold>{t('Reserved usage')}</Text>
-        <PaygStatusCell bold>{t('Pay-as-you-go spend')}</PaygStatusCell>
+        <Text {...tableHeaderProps}>{t('Current usage')}</Text>
+        <Text {...tableHeaderProps}>{t('Reserved usage')}</Text>
+        <PaygStatusCell {...tableHeaderProps}>{t('Pay-as-you-go spend')}</PaygStatusCell>
       </Grid>
-      <Flex justify="between" borderTop="primary" padding="0 xl" align="center">
-        <StyledButton
-          borderless
-          icon={
-            openState.plan ? (
-              <IconChevron direction="up" />
-            ) : (
-              <IconChevron direction="down" />
-            )
-          }
-          aria-label={t('Toggle plan usage overview')}
-          onClick={() => setOpenState({...openState, plan: !openState.plan})}
-        >
-          <Text bold>
-            {tct('[planName] Plan', {planName: subscription.planDetails.name})}
-          </Text>
-        </StyledButton>
-        <PaygStatusCell>
-          {subscription.onDemandSpendUsed > 0
-            ? displayPriceWithCents({cents: subscription.onDemandSpendUsed})
-            : '-'}
-        </PaygStatusCell>
-      </Flex>
+      <ProductGroupHeader
+        ariaLabel={t('Toggle plan usage overview')}
+        isOpen={!!openState.plan}
+        onToggle={() => setOpenState({...openState, plan: !openState.plan})}
+        hasToggle
+        onDemandSpendUsed={subscription.onDemandSpendUsed}
+      >
+        {tct('[planName] Plan', {planName: subscription.planDetails.name})}
+      </ProductGroupHeader>
       {openState.plan && (
         <Fragment>
           {Object.entries(subscription.categories)
@@ -132,15 +213,24 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
                 category as DataCategory
               );
 
+              const isPaygOnly = reserved === 0;
+              const hasAccess =
+                reserved > 0 ||
+                (isPaygOnly && (hasSharedPayg || categoryDetails.onDemandBudget > 0));
               const status = activeProductTrial
-                ? t('Active trial')
+                ? ProductStatus.ACTIVE_TRIAL
                 : potentialProductTrial
-                  ? t('Trial available')
-                  : hasSharedPayg || reserved > 0 || categoryDetails.onDemandBudget > 0
-                    ? t('Active')
-                    : tct('Requires [budgetTerm]', {
-                        budgetTerm: subscription.planDetails.budgetTerm,
-                      });
+                  ? ProductStatus.TRIAL_AVAILABLE
+                  : hasAccess
+                    ? ProductStatus.ACTIVE
+                    : ProductStatus.REQUIRES_PAYG;
+              const formattedStatus =
+                status === ProductStatus.REQUIRES_PAYG
+                  ? tct('Requires [budgetTerm]', {
+                      budgetTerm: subscription.planDetails.budgetTerm,
+                    })
+                  : tct('[status]', {status: upperFirst(status).replace('_', ' ')});
+
               const formattedUsage = formatReservedWithUnits(
                 usage,
                 category as DataCategory,
@@ -153,7 +243,6 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
               );
               const percentUsed = getPercentage(usage, reserved + free);
               const formattedPercentUsed = displayPercentage(usage, reserved + free);
-              const isPaygOnly = reserved === 0;
               const formattedPaygUsed =
                 categoryDetails.onDemandSpendUsed > 0
                   ? displayPriceWithCents({
@@ -164,27 +253,22 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
               return (
                 <Container key={category} borderTop="primary">
                   <Grid {...GRID_PROPS} borderTop={undefined}>
-                    <Container paddingLeft="2xl">
-                      <Text>
+                    <Flex paddingLeft="2xl" gap="xs" align="start">
+                      {isPaygOnly && !hasAccess && (
+                        <Container paddingTop="0">
+                          <IconLock locked size="xs" />
+                        </Container>
+                      )}
+                      <Text textWrap="pretty">
                         {getPlanCategoryName({
                           plan: subscription.planDetails,
                           category: category as DataCategory,
                           title: true,
                         })}
                       </Text>
-                    </Container>
+                    </Flex>
                     <StatusCell>
-                      <Tag
-                        type={
-                          status === 'Active' || status === 'Active trial'
-                            ? 'success'
-                            : status === 'Trial available'
-                              ? 'promotion'
-                              : 'default'
-                        }
-                      >
-                        {status}
-                      </Tag>
+                      <Tag type={PRODUCT_STATUS_TAG_TYPE[status]}>{formattedStatus}</Tag>
                     </StatusCell>
                     <Text>
                       {isPaygOnly
@@ -237,91 +321,33 @@ function UsageOverviewTable({subscription}: UsageOverviewProps) {
           // TODO: fix this to show real status
           const isEnabled = (reservedBudget?.reservedBudget ?? 0) > 0;
           const status = activeProductTrial
-            ? t('Active trial')
+            ? ProductStatus.ACTIVE_TRIAL
             : potentialProductTrial
-              ? t('Trial available')
+              ? ProductStatus.TRIAL_AVAILABLE
               : isEnabled
-                ? t('Active')
-                : t('Needs purchase');
+                ? ProductStatus.ACTIVE
+                : ProductStatus.NEEDS_PURCHASE;
 
           return (
             <Fragment key={addOn}>
-              <Grid {...GRID_PROPS}>
-                {isEnabled ? (
-                  <Container>
-                    <StyledButton
-                      borderless
-                      icon={
-                        openState[addOn] ? (
-                          <IconChevron direction="up" />
-                        ) : (
-                          <IconChevron direction="down" />
-                        )
-                      }
-                      aria-label={t('Toggle %s usage overview', addOnName)}
-                      onClick={() =>
-                        setOpenState({...openState, [addOn]: !openState[addOn]})
-                      }
-                    >
-                      <Text bold>{addOnName}</Text>
-                    </StyledButton>
-                  </Container>
-                ) : (
-                  <Text bold>{addOnName}</Text>
-                )}
-                <StatusCell>
-                  <Tag
-                    type={
-                      status === 'Active' || status === 'Active trial'
-                        ? 'success'
-                        : status === 'Trial available'
-                          ? 'promotion'
-                          : 'default'
-                    }
-                  >
-                    {status}
-                  </Tag>
-                </StatusCell>
-                {reservedBudget && isEnabled ? (
-                  <Fragment>
-                    <Text>
-                      {displayPriceWithCents({cents: reservedBudget.totalReservedSpend})}{' '}
-                      /{' '}
-                      {displayPriceWithCents({
-                        cents: reservedBudget.reservedBudget + reservedBudget.freeBudget,
-                      })}
-                    </Text>
-                    <Flex gap="sm" align="center">
-                      <ReservedUsageBar percentUsed={reservedBudget.percentUsed * 100} />
-                      <Text>
-                        {displayPercentage(
-                          reservedBudget.totalReservedSpend,
-                          reservedBudget.reservedBudget + reservedBudget.freeBudget
-                        )}
-                      </Text>
-                    </Flex>
-                  </Fragment>
-                ) : (
-                  <Fragment>
-                    <div />
-                    <div />
-                  </Fragment>
-                )}
-                {isEnabled ? (
-                  <PaygStatusCell>
-                    {paygUsed > 0 ? displayPriceWithCents({cents: paygUsed}) : '-'}
-                  </PaygStatusCell>
-                ) : potentialProductTrial ? (
-                  // TODO: add link to start trial
-                  <Flex justify="end">
-                    <Button priority="primary" icon={<IconLightning />} size="xs">
-                      {t('Start 14 day free trial')}
-                    </Button>
-                  </Flex>
-                ) : (
-                  <div />
-                )}
-              </Grid>
+              <ProductGroupHeader
+                ariaLabel={t('Toggle %s usage overview', addOnName)}
+                isOpen={!!openState[addOn]}
+                onToggle={() => setOpenState({...openState, [addOn]: !openState[addOn]})}
+                hasToggle={isEnabled}
+                onDemandSpendUsed={paygUsed}
+                status={status}
+                formattedCurrentUsage={
+                  reservedBudget && isEnabled
+                    ? `${displayPriceWithCents({cents: reservedBudget.totalReservedSpend})} / ${displayPriceWithCents({cents: reservedBudget.reservedBudget + reservedBudget.freeBudget})}`
+                    : undefined
+                }
+                percentUsed={
+                  reservedBudget && isEnabled ? reservedBudget.percentUsed : undefined
+                }
+              >
+                {addOnName}
+              </ProductGroupHeader>
               {isEnabled && openState[addOn] && (
                 <Fragment>
                   {Object.entries(subscription.categories)
@@ -414,14 +440,6 @@ function UsageOverview({subscription}: UsageOverviewProps) {
             )}
           </Text>
         </Container>
-        <Flex gap="md">
-          <Button icon={<IconDownload size="sm" />}>
-            <Text size="sm">{t('Export CSV')}</Text>
-          </Button>
-          <Button icon={<IconGraph size="sm" />}>
-            <Text size="sm">{t('View usage history')}</Text>
-          </Button>
-        </Flex>
       </Flex>
       <UsageOverviewTable subscription={subscription} />
     </Container>
