@@ -140,71 +140,6 @@ function OpenPeriodsSubTableSkeleton() {
   );
 }
 
-interface OngoingIssueProps {
-  detector: Detector;
-  /**
-   * Helps the zoom function add padding on left and right of the open period.
-   * If intervalSeconds is 24 hours, we would want a lot more padding than if it's 1 minute.
-   */
-  intervalSeconds?: number;
-}
-
-export function DetectorDetailsOngoingIssues({
-  detector,
-  intervalSeconds,
-}: OngoingIssueProps) {
-  const organization = useOrganization();
-  const location = useLocation();
-  // TODO: We'll probably need to make a query to get all linked issues
-  const latestGroupId = detector.latestGroup?.id;
-  const numIssues = latestGroupId ? 1 : 0;
-
-  const issueSearchQueryParams = {
-    query: `is:unresolved detector:${detector.id}`,
-    limit: 5,
-    start: location.query.start,
-    end: location.query.end,
-    statsPeriod: location.query.statsPeriod,
-  };
-
-  return (
-    <Section
-      title={
-        <Flex justify="between" align="center">
-          {tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
-          <LinkButton
-            size="xs"
-            to={{
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: issueSearchQueryParams,
-            }}
-          >
-            {t('View All')}
-          </LinkButton>
-        </Flex>
-      }
-    >
-      <ErrorBoundary mini>
-        {latestGroupId ? (
-          <LatestGroupWithOpenPeriods
-            detector={detector}
-            groupId={latestGroupId}
-            intervalSeconds={intervalSeconds}
-          />
-        ) : (
-          <SimpleTable>
-            <SimpleTable.Empty>
-              <EmptyStateWarning small withIcon={false}>
-                {t('No ongoing issue found for this monitor')}
-              </EmptyStateWarning>
-            </SimpleTable.Empty>
-          </SimpleTable>
-        )}
-      </ErrorBoundary>
-    </Section>
-  );
-}
-
 function LatestGroupWithOpenPeriods({
   groupId,
   intervalSeconds,
@@ -322,6 +257,71 @@ function IssueAssigneeSelector({group}: {group: Group}) {
       handleAssigneeChange={handleAssigneeChange}
       showLabel
     />
+  );
+}
+
+interface OngoingIssueProps {
+  detector: Detector;
+  /**
+   * Helps the zoom function add padding on left and right of the open period.
+   * If intervalSeconds is 24 hours, we would want a lot more padding than if it's 1 minute.
+   */
+  intervalSeconds?: number;
+}
+
+export function DetectorDetailsOngoingIssues({
+  detector,
+  intervalSeconds,
+}: OngoingIssueProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  // TODO: We'll probably need to make a query to get all linked issues
+  const latestGroupId = detector.latestGroup?.id;
+  const numIssues = latestGroupId ? 1 : 0;
+
+  const issueSearchQueryParams = {
+    query: `is:unresolved detector:${detector.id}`,
+    limit: 5,
+    start: location.query.start,
+    end: location.query.end,
+    statsPeriod: location.query.statsPeriod,
+  };
+
+  return (
+    <Section
+      title={
+        <Flex justify="between" align="center">
+          {tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
+          <LinkButton
+            size="xs"
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: issueSearchQueryParams,
+            }}
+          >
+            {t('View All')}
+          </LinkButton>
+        </Flex>
+      }
+    >
+      <ErrorBoundary mini>
+        {latestGroupId ? (
+          <LatestGroupWithOpenPeriods
+            detector={detector}
+            groupId={latestGroupId}
+            intervalSeconds={intervalSeconds}
+          />
+        ) : (
+          <SimpleTable>
+            <SimpleTable.Empty>
+              <EmptyStateWarning small withIcon={false}>
+                {t('No ongoing issue found for this monitor')}
+              </EmptyStateWarning>
+            </SimpleTable.Empty>
+          </SimpleTable>
+        )}
+      </ErrorBoundary>
+    </Section>
   );
 }
 

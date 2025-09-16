@@ -36,18 +36,7 @@ describe('DetectorDetailsOngoingIssues', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1234/`,
-      body: {
-        ...detector.latestGroup,
-        openPeriods: [
-          {
-            start: '2025-06-01T10:00:00Z',
-            end: '2025-06-01T11:00:00Z',
-            duration: '3600',
-            isOpen: false,
-            lastChecked: '2025-06-01T11:00:00Z',
-          },
-        ],
-      },
+      body: detector.latestGroup,
     });
 
     MockApiClient.addMockResponse({
