@@ -273,7 +273,6 @@ def get_author_users_by_external_actors(
 def get_author_users_by_email(
     authors: list[CommitAuthor], organization_id: int
 ) -> tuple[dict[CommitAuthor, str], list[CommitAuthor]]:
-    found: dict[CommitAuthor, str] = {}
     author_email_map: dict[str, CommitAuthor] = {a.email.lower(): a for a in authors}
 
     users: list[RpcUser] = user_service.get_many(
@@ -285,17 +284,30 @@ def get_author_users_by_email(
     )
 
     if not users:
-        return found, authors
+        return {}, authors
 
     missed: dict[int, CommitAuthor] = {a.id: a for a in authors}
+    primary_match: dict[CommitAuthor, str] = {}
+    secondary_match: dict[CommitAuthor, str] = {}
 
     for user in users:
+
+        primary_email = user.email.lower()
+        if primary_email in author_email_map:
+            found_author = author_email_map[primary_email]
+            primary_match[found_author] = str(user.id)
+            missed.pop(found_author.id, None)
+
         for email in user.emails:
-            if email.lower() in author_email_map:
-                found_author = author_email_map[email.lower()]
-                found[found_author] = str(user.id)
-                del missed[found_author.id]
-                break
+            secondary_email = email.lower()
+            if secondary_email in author_email_map:
+                found_author = author_email_map[secondary_email]
+                if found_author not in primary_match:
+                    secondary_match[found_author] = str(user.id)
+                    missed.pop(found_author.id, None)
+
+    # merge matches, primary_match is kept if collision
+    found: dict[CommitAuthor, str] = secondary_match | primary_match
 
     return found, list(missed.values())
 
@@ -307,16 +319,18 @@ def get_cached_results(
     fetched = cache.get_many(
         [_user_to_author_cache_key(organization_id, author) for author in authors]
     )
-    if fetched:
-        missed = []
-        for author in authors:
-            fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
-            if fetched_user is None:
-                missed.append(author)
-            else:
-                cached_results[str(author.id)] = fetched_user
-    else:
-        missed = authors
+
+    if not fetched:
+        return cached_results, authors
+
+    missed = []
+    for author in authors:
+        fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
+        if fetched_user is None:
+            missed.append(author)
+        else:
+            cached_results[str(author.id)] = fetched_user
+
     return cached_results, missed
 
 
@@ -344,9 +358,6 @@ def get_users_for_authors(
         metrics.incr("sentry.release.get_users_for_authors.missed", amount=0)
         metrics.incr("sentry.release.get_users_for_authors.total", amount=len(cached_results))
         return cached_results
-
-    if isinstance(user, AnonymousUser):
-        user = None
 
     # User Mappings take precedence over email lookup (higher signal)
     external_actor_results, remaining_missed_authors = get_author_users_by_external_actors(
@@ -376,7 +387,11 @@ def get_users_for_authors(
 
     serialized_results: dict[str, UserSerializerResponse] = {}
     for commit_author, user_id in unserialized_results.items():
-        serialized_results[str(commit_author.id)] = user_id_to_serialized_user_map[user_id]
+        # edge case: a user from unserialized_results could not come back in serialized_users
+        if user_id in user_id_to_serialized_user_map:
+            serialized_results[str(commit_author.id)] = user_id_to_serialized_user_map[user_id]
+        else:
+            remaining_missed_authors.append(commit_author)
 
     authors_with_no_matches: dict[str, NonMappableUser] = {}
     for author in remaining_missed_authors:
