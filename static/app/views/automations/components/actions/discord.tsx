@@ -90,7 +90,7 @@ export function validateDiscordAction(action: Action): string | undefined {
   if (!action.integrationId) {
     return t('You must specify a Discord server.');
   }
-  if (!action.config.targetDisplay) {
+  if (!action.config.targetIdentifier) {
     return t('You must specify a channel ID or URL.');
   }
   return undefined;
