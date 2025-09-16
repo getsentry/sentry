@@ -81,7 +81,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 404
-        assert "not found" in response.json()["error"]
+        assert "The requested head preprod artifact does not exist" in response.json()["detail"]
 
     def test_get_build_details_feature_flag_disabled(self) -> None:
         with self.feature({"organizations:preprod-frontend-routes": False}):

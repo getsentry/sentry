@@ -35,7 +35,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
-  'enforce-stacked-navigation',
   'visibility-explore-view',
 ];
 
@@ -440,9 +439,7 @@ describe('Nav', () => {
       });
 
       renderGlobalModal();
-      renderNav({
-        features: ALL_AVAILABLE_FEATURES.concat('enforce-stacked-navigation'),
-      });
+      renderNav();
       await screen.findByRole('navigation', {name: 'Primary Navigation'});
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });

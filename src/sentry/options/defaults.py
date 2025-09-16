@@ -340,6 +340,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
 )
 
+# Deletions
+register(
+    "deletions.group-hashes-batch-size",
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
@@ -1138,7 +1145,7 @@ register(
     "embeddings-grouping.seer.delete-record-batch-size",
     type=Int,
     default=100,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
@@ -1224,6 +1231,13 @@ register(
 # Switch for new logic for release health metrics, based on filtering on org & project ids
 register(
     "release-health.use-org-and-project-filter",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "release-health.disable-release-last-seen-update",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2864,7 +2878,7 @@ register(
 register(
     "spans.buffer.compression.level",
     type=Int,
-    default=-1,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3333,7 +3347,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3425,6 +3439,11 @@ register(
 
 # Whether the new objectstore implementation is being used for attachments
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether the new objectstore implementation is being used for attachments in a double-write
+# configuration where it writes to the new objectstore alongside the existing filestore.
+# This is mutually exclusive with the above setting.
+register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Whether to use 60s granularity for the dynamic sampling query
 register(
@@ -3459,14 +3478,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether the async task fetches AI model prices from
-# external sources and stores them in cache.
-register(
-    "ai.model-costs.enable-external-price-fetch",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "commit.dual-write-start-date",
     type=String,

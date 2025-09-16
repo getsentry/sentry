@@ -77,6 +77,7 @@ from sentry.web.helpers import render_to_response
 from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
+from .utils import parse_github_blob_url
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -258,13 +259,15 @@ class GitHubIntegration(
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        branch, _, _ = url.partition("/")
+        if not repo.url:
+            return ""
+        branch, _ = parse_github_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        _, _, source_path = url.partition("/")
+        if not repo.url:
+            return ""
+        _, source_path = parse_github_blob_url(repo.url, url)
         return source_path
 
     def get_repositories(

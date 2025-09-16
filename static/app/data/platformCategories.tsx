@@ -399,7 +399,6 @@ export const profiling: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-wpf',
   'flutter',
-  'go',
   'javascript',
   'javascript-angular',
   'javascript-astro',

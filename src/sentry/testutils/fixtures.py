@@ -806,6 +806,7 @@ class Fixtures:
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         status: int = ObjectStatus.ACTIVE,
+        enabled: bool = True,
         mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
@@ -860,6 +861,7 @@ class Fixtures:
             project=project,
             name=name,
             status=status,
+            enabled=enabled,
             owner_user_id=owner_user_id,
             owner_team_id=owner_team_id,
             config={
@@ -886,19 +888,6 @@ class Fixtures:
                 state=DetectorPriorityLevel.OK,
                 is_triggered=False,
             )
-
-        # TODO(epurkhiser): Dual create a ProjectUptimeSubscription as well,
-        # can be removed once we completely remove ProjectUptimeSubscription
-        Factories.create_project_uptime_subscription(
-            project,
-            env,
-            uptime_subscription,
-            status,
-            mode,
-            name,
-            Actor.from_object(owner) if owner else None,
-            id,
-        )
 
         return detector
 

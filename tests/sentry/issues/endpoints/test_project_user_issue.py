@@ -147,7 +147,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
-    def test_web_vitals_issue_fingerprint_consistency(self) -> None:
+    def test_web_vitals_issue_fingerprint_uniqueness(self) -> None:
         data = {
             "transaction": "/test-transaction",
             "issueType": WebVitalsGroup.slug,
@@ -180,5 +180,8 @@ class ProjectUserIssueEndpointTest(APITestCase):
         fingerprint1 = call1_args[1]["occurrence"].fingerprint
         fingerprint2 = call2_args[1]["occurrence"].fingerprint
 
-        assert fingerprint1 == fingerprint2
-        assert fingerprint1 == ["insights-web-vitals-lcp-/test-transaction"]
+        assert len(fingerprint1) == 1
+        assert len(fingerprint2) == 1
+        assert fingerprint1[0].startswith("insights-web-vitals-lcp-/test-transaction-")
+        assert fingerprint2[0].startswith("insights-web-vitals-lcp-/test-transaction-")
+        assert fingerprint1 != fingerprint2

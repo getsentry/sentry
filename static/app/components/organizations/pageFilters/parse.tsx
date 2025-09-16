@@ -18,7 +18,15 @@ type ParamValue = string[] | SingleParamValue;
 const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?(-\\w+)?$';
 
 /**
- * Parses a stats period into `period` and `periodLength`
+ * Parses a stats period string into its numeric value and time unit.
+ *
+ * @param input - A stats period string (e.g., "1h", "30m", "7d", "2w") or IntervalPeriod object
+ * @returns An object with `period` (numeric string) and `periodLength` (time unit), or undefined if invalid
+ *
+ * @example
+ * parseStatsPeriod("1h") // returns { period: "1", periodLength: "h" }
+ * parseStatsPeriod("30m") // returns { period: "30", periodLength: "m" }
+ * parseStatsPeriod("invalid") // returns undefined
  */
 export function parseStatsPeriod(input: string | IntervalPeriod) {
   const result = input.match(STATS_PERIOD_PATTERN);

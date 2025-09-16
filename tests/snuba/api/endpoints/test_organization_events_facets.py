@@ -24,7 +24,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.min_ago_iso = self.min_ago.isoformat()
-        self.features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        self.features = {"organizations:discover-basic": True}
 
     def assert_facet(self, response, key, expected):
         actual = None

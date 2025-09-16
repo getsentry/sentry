@@ -11,7 +11,7 @@ class SyncReposSerializer(serializers.Serializer):
     Serializer for a sync repository response
     """
 
-    is_syncing = serializers.BooleanField()
+    isSyncing = serializers.BooleanField()
 
     def to_representation(self, graphql_response):
         """
@@ -26,7 +26,7 @@ class SyncReposSerializer(serializers.Serializer):
                 data = graphql_response["data"]["me"]
 
             response_data = {
-                "is_syncing": data["isSyncing"],
+                "isSyncing": data["isSyncing"],
             }
 
             return super().to_representation(response_data)

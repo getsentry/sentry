@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-function IconPanel({direction = 'up', ...props}: Props) {
+export function IconPanel({direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
@@ -32,7 +32,3 @@ function IconPanel({direction = 'up', ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconPanel.displayName = 'IconPanel';
-
-export {IconPanel};
