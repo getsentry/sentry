@@ -927,6 +927,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "insights.insightsstarredsegment": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "sentry.dataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
+            "sentry.projectdataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
             "monitors.monitor": [UUID4Comparator("guid")],
         },
     )
