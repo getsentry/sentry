@@ -1,5 +1,7 @@
 from unittest import mock
 
+from rest_framework.exceptions import ErrorDetail
+
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
@@ -41,6 +43,11 @@ class TestMSTeamsActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is False
+        assert validator.errors == {
+            "nonFieldErrors": [
+                ErrorDetail(string="Integration ID is required for msteams action", code="invalid")
+            ]
+        }
 
     def test_validate__missing_integration(self):
         validator = BaseActionValidator(
@@ -50,27 +57,35 @@ class TestMSTeamsActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is False
+        assert validator.errors == {
+            "nonFieldErrors": [
+                ErrorDetail(string="msteams integration with id 123 not found", code="invalid")
+            ]
+        }
 
-    def test_validate__invalid_channel_id(self):
+    @mock.patch("sentry.integrations.msteams.actions.form.find_channel_id")
+    def test_validate__invalid_channel_id(self, mock_find_channel_id):
+        mock_find_channel_id.return_value = None
+
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
-                "config": {"targetIdentifier": "C1234567890", "targetDisplay": "asdf"},
+                "config": {
+                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetIdentifier": "C1234567890",
+                    "targetDisplay": "asdf",
+                },
             },
             context={"organization": self.organization},
         )
 
         result = validator.is_valid()
         assert result is False
-
-    def test_validate__invalid_channel_name(self):
-        validator = BaseActionValidator(
-            data={
-                **self.valid_data,
-                "config": {"targetDisplay": "asdf"},
-            },
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
+        assert validator.errors == {
+            "all": [
+                ErrorDetail(
+                    string='The channel or user "asdf" could not be found in the msteams Team.',
+                    code="invalid",
+                )
+            ]
+        }
