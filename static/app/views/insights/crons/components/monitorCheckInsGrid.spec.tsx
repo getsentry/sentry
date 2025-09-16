@@ -249,4 +249,20 @@ describe('CheckInRow', () => {
     render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
     expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
   });
+
+  it('displays check-in ID and copy button', () => {
+    const checkIn = CheckInFixture({
+      id: 'abcd1234-5678-90ef-ghij-klmnopqrstuv',
+      status: CheckInStatus.OK,
+    });
+
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
+
+    // Check that the short ID is displayed
+    expect(screen.getByText('abcd1234')).toBeInTheDocument();
+
+    // Check that the copy button is present with the correct accessible name
+    const copyButton = screen.getByRole('button', {name: 'Copy Check-In ID'});
+    expect(copyButton).toBeInTheDocument();
+  });
 });

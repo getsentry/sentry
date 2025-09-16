@@ -25,6 +25,7 @@ export function MonitorCheckInsGrid({checkIns, isLoading, project, hasMultiEnv}:
       data={checkIns}
       columnOrder={[
         {key: 'status', width: 120, name: t('Status')},
+        {key: 'checkInId', width: 135, name: t('Check-In ID')},
         {key: 'started', width: 200, name: t('Started')},
         {key: 'completed', width: 240, name: t('Completed')},
         {key: 'duration', width: 150, name: t('Duration')},
