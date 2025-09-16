@@ -1976,7 +1976,7 @@ describe('Dashboards > Detail', () => {
       await userEvent.click(await screen.findByText('Editors:'));
 
       // selects 'Select All' so everyone has edit access
-      expect(await screen.findByText('Select All')).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Select All'})).toBeEnabled();
       expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
         'aria-selected',
         'false'
@@ -2063,7 +2063,7 @@ describe('Dashboards > Detail', () => {
       );
       await userEvent.click(await screen.findByText('Editors:'));
 
-      expect(await screen.findByText('Select All')).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Select All'})).toBeEnabled();
       expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
         'aria-selected',
         'false'
