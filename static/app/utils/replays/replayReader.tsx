@@ -511,6 +511,19 @@ export default class ReplayReader {
     return this._replayRecord.started_at.getTime() + start;
   };
 
+  getIsActive = () => {
+    // A replay is active if it's startTimestamp is <60 mins ago and endTimestamp is <15 mins ago
+    const startTimestampMs = this.getStartTimestampMs();
+    const endTimestampMs = startTimestampMs + this.getDurationMs();
+    const now = Date.now();
+    const SIXTY_MINUTES_MS = 60 * 60 * 1000;
+    const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+    return (
+      startTimestampMs > now - SIXTY_MINUTES_MS &&
+      endTimestampMs > now - FIFTEEN_MINUTES_MS
+    );
+  };
+
   getReplay = () => {
     return this._replayRecord;
   };

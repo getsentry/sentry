@@ -1,6 +1,7 @@
 import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion, type Variants} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -13,11 +14,13 @@ import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type TimeAndScrubberGridProps = {
@@ -87,6 +90,7 @@ export default function TimeAndScrubberGrid({
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const durationMs = replay?.getDurationMs();
+
   const timelineElemRef = useRef<HTMLDivElement>(null);
   const [timelineScale] = useTimelineScale();
   const timelineMouseTrackingProps = useTimelineMouseTracking({
@@ -101,6 +105,11 @@ export default function TimeAndScrubberGrid({
 
   return (
     <Grid id="replay-timeline-tooltip-container" isCompact={isCompact}>
+      {replay?.getIsActive() ? (
+        <Padded style={{gridArea: 'live'}}>
+          <Live />
+        </Padded>
+      ) : null}
       <Padded style={{gridArea: 'currentTime'}}>
         <ReplayCurrentTime />
       </Padded>
@@ -148,7 +157,7 @@ const Grid = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
   grid-template-areas:
-    '. timeline timelineSize'
+    'live timeline timelineSize'
     'currentTime scrubber duration';
   grid-column-gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
@@ -192,4 +201,31 @@ const Padded = styled('div')`
   display: flex;
   justify-content: center;
   padding-inline: ${space(1.5)};
+`;
+
+const LiveWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+function Live() {
+  return (
+    <LiveWrapper>
+      <LiveIndicator variants={liveAnimation} transition={testableTransition()} />
+      LIVE
+    </LiveWrapper>
+  );
+}
+
+const liveAnimation: Variants = {
+  initial: {opacity: 0, y: -10},
+  animate: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 10},
+};
+
+const LiveIndicator = styled(motion.div)`
+  margin: 0 6px;
+  --pulsingIndicatorRing: ${p => p.theme.success};
+  ${pulsingIndicatorStyles};
+  background-color: ${p => p.theme.success};
 `;
