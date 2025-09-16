@@ -88,6 +88,7 @@ function ReleaseCard({
     dateCreated,
     versionInfo,
     adoptionStages,
+    newGroups,
     projects,
   } = release;
 
@@ -267,6 +268,7 @@ function ReleaseCard({
                   location={location}
                   organization={organization}
                   project={project}
+                  newGroups={newGroups}
                   releaseVersion={version}
                   showPlaceholders={showHealthPlaceholders}
                   showReleaseAdoptionStages={showReleaseAdoptionStages}
