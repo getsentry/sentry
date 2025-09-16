@@ -394,21 +394,32 @@ def handle_resolve_in_release(
     elif status == "resolvedInFutureRelease" or status_details.get("inFutureRelease"):
         if len(projects) > 1:
             raise MultipleProjectsError()
-        # release to resolve by may not exist yet
-        release = status_details.get("inFutureRelease") or None
+
+        # release to resolve by may not exist yet -- just use a random placeholder
+        release = status_details.get("inFutureRelease")
+        release_placeholder = release or get_release_to_resolve_by(
+            projects[0]
+        )  # TODO THIS CAN NEVER BE NONE
+
         # get the original version string stored by the validator
         future_release_version = status_details.get("_future_release_version")
 
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {
-            # need to set "future_release_version" field in process_group_resolution instead
-            "version": ""
-        }
 
-        new_status_details["inFutureRelease"] = future_release_version
-        res_type = GroupResolution.Type.in_future_release
-        res_type_str = "in_future_release"
-        res_status = GroupResolution.Status.resolved if release else GroupResolution.Status.pending
+        if release:  # release exists, so just resolve in_release
+            new_status_details["inRelease"] = release.version
+            res_type = GroupResolution.Type.in_release
+            res_type_str = "in_release"
+            res_status = GroupResolution.Status.resolved
+            activity_data = {"version": release.version}
+        else:
+            new_status_details["inFutureRelease"] = future_release_version
+            res_type = GroupResolution.Type.in_future_release
+            res_type_str = "in_future_release"
+            res_status = GroupResolution.Status.pending
+            activity_data = {}  # set this in process_group_resolution
+
+        release = release_placeholder  # pass the placeholder to process_group_resolution
     elif status_details.get("inRelease"):
         # TODO(jess): We could update validation to check if release
         # applies to multiple projects, but I think we agreed to punt
@@ -611,7 +622,15 @@ def process_group_resolution(
                         # fall back to our current model
                         ...
         elif res_type == GroupResolution.Type.in_future_release and future_release_version:
-            resolution_params.update({"future_release_version": future_release_version})
+            resolution_params.update(
+                {
+                    "future_release_version": future_release_version,
+                    # these should be correctly set to in_release or in_future_release in handle_resolve_in_release
+                    # based on whether the future release actually exists:
+                    "type": res_type,
+                    "status": res_status,
+                }
+            )
 
             if follows_semver:
                 # activity status should look like "... resolved in version >future_release_version"
