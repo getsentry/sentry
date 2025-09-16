@@ -26,7 +26,7 @@ class OverwatchGithubWebhookForwarder:
         self.integration = integration
         self.publisher = OverwatchWebhookPublisher(integration_provider=integration.provider)
 
-    def should_forward_to_overwatch(self, event: dict[str, Any]) -> bool:
+    def should_forward_to_overwatch(self, event: Mapping[str, Any]) -> bool:
         return event.get("action") in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
 
     def get_organizations_with_consent(self, integration: Integration) -> list[OrganizationSummary]:
@@ -54,11 +54,9 @@ class OverwatchGithubWebhookForwarder:
         # Get consent status for all organizations, one request per region
         consent_statuses: dict[int, bool] = {}
         for region_name, org_ids in orgs_by_region.items():
-            region_consent_statuses = (
-                overwatch_consent_service.get_organization_prevent_consent_status(
-                    organization_ids=org_ids,
-                    region_name=region_name,
-                )
+            region_consent_statuses = overwatch_consent_service.get_organization_consent_status(
+                organization_ids=org_ids,
+                region_name=region_name,
             )
             for org_id, consent_status in region_consent_statuses.items():
                 consent_statuses[org_id] = consent_status.has_consent
