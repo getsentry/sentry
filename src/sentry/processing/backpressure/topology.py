@@ -17,25 +17,23 @@ class ProcessingServices(Enum):
 
 
 def get_all_services() -> list[str]:
-    return [item.value for item in ProcessingServices]
+    return [item.value for item in ProcessingServices if item != ProcessingServices.Celery]
 
 
 CONSUMERS = {
     # fallback if no explicit consumer was defined
     "default": get_all_services(),
-    "profiles": [ProcessingServices.Celery.value],
+    "profiles": [],
     # Transactions have been split into their own consumer here,
     # We should consider this for our other consumer types.
     # For example, `ingest-events` does not depend on `attachments-store`.
     "ingest": [
-        ProcessingServices.Celery.value,
         ProcessingServices.AttachmentsStore.value,
         ProcessingServices.ProcessingStore.value,
         ProcessingServices.ProcessingLocks.value,
         ProcessingServices.PostProcessLocks.value,
     ],
     "ingest-transactions": [
-        ProcessingServices.Celery.value,
         ProcessingServices.ProcessingStoreTransactions.value,
         ProcessingServices.ProcessingLocks.value,
         ProcessingServices.PostProcessLocks.value,

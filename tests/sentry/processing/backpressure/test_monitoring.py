@@ -68,7 +68,6 @@ def test_check_redis_health() -> None:
 )
 def test_record_consumer_health() -> None:
     unhealthy_services: MutableMapping[str, UnhealthyReasons] = {
-        "celery": [],
         "attachments-store": [],
         "processing-store": [],
         "processing-store-transactions": [],
@@ -78,7 +77,7 @@ def test_record_consumer_health() -> None:
     record_consumer_health(unhealthy_services)
     assert is_consumer_healthy() is True
 
-    unhealthy_services["celery"] = Exception("Couldn't check celery")
+    unhealthy_services["attachments-store"] = Exception("Couldn't check attachments-store")
     record_consumer_health(unhealthy_services)
     assert is_consumer_healthy() is False
 
