@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
