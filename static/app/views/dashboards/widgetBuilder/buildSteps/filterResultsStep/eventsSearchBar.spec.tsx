@@ -57,7 +57,7 @@ describe('EventsSearchBar', () => {
 
     // Check that "p50" (a function tag) is NOT in the dropdown
     expect(
-      within(await screen.findByRole('listbox')).queryByText('p50')
+      within(screen.getByRole('listbox')).queryByText('p50')
     ).not.toBeInTheDocument();
   });
 
@@ -90,7 +90,7 @@ describe('EventsSearchBar', () => {
     await userEvent.type(input, 'count_uni');
 
     expect(
-      await within(await screen.findByRole('listbox')).findByText('count_unique(...)')
+      await within(screen.getByRole('listbox')).findByText('count_unique(...)')
     ).toBeInTheDocument();
   });
 
@@ -122,7 +122,10 @@ describe('EventsSearchBar', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'transact');
 
-    const listbox = await screen.findByRole('listbox');
-    expect(await within(listbox).findByText('transaction')).toBeInTheDocument();
+    expect(
+      await within(screen.getByRole('listbox')).findByRole('option', {
+        name: 'transaction',
+      })
+    ).toBeInTheDocument();
   });
 });

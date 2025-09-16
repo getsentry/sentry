@@ -55,7 +55,7 @@ describe('ResultsSearchQueryBuilder', () => {
 
     // Check that "p50" (a function tag) is NOT in the dropdown
     expect(
-      within(await screen.findByRole('listbox')).queryByText('p50')
+      within(screen.getByRole('listbox')).queryByText('p50')
     ).not.toBeInTheDocument();
   });
 
@@ -86,7 +86,7 @@ describe('ResultsSearchQueryBuilder', () => {
     await userEvent.type(input, 'transact');
 
     expect(
-      await within(await screen.findByRole('listbox')).findByRole('option', {
+      await within(screen.getByRole('listbox')).findByRole('option', {
         name: 'transaction',
       })
     ).toBeInTheDocument();
