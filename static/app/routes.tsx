@@ -895,7 +895,6 @@ function buildRoutes(): RouteObject[] {
   };
 
   const orgSettingsChildren: SentryRouteObject[] = [
-    routeHook('routes:settings'),
     {
       index: true,
       name: t('General'),
@@ -1306,6 +1305,8 @@ function buildRoutes(): RouteObject[] {
     deprecatedRouteProps: true,
   };
 
+  const subscriptionSettingsRoutes = routeHook('routes:subscription-settings');
+
   const legacySettingsRedirects: SentryRouteObject = {
     children: [
       {
@@ -1342,14 +1343,19 @@ function buildRoutes(): RouteObject[] {
         name: t('Organization'),
         component: withDomainRequired(NoOp),
         customerDomainOnlyRoute: true,
-        children: [orgSettingsRoutes, projectSettingsRoutes],
+        children: [orgSettingsRoutes, projectSettingsRoutes, subscriptionSettingsRoutes],
         deprecatedRouteProps: true,
       },
       {
         path: ':orgId/',
         name: t('Organization'),
         component: withDomainRedirect(NoOp),
-        children: [orgSettingsRoutes, projectSettingsRoutes, legacySettingsRedirects],
+        children: [
+          orgSettingsRoutes,
+          projectSettingsRoutes,
+          subscriptionSettingsRoutes,
+          legacySettingsRedirects,
+        ],
         deprecatedRouteProps: true,
       },
     ],

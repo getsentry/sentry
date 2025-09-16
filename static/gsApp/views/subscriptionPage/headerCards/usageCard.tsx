@@ -10,10 +10,9 @@ import type {Organization} from 'sentry/types/organization';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 import {PlanTier, type Subscription} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
-import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -43,7 +42,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
   if (
     !intervalPrice ||
     !shouldSeeSpendVisibility(subscription) ||
-    hasCheckoutV3(organization) // TODO(checkout v3): remove this, this is temporary until the real header cards for V3 are implemented
+    hasNewBillingUI(organization) // TODO(checkout v3): remove this, this is temporary until the real header cards for V3 are implemented
   ) {
     return null;
   }
