@@ -131,6 +131,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       // TODO: After merge of ENG-5375 we don't need to run `markDelayedData` on output of `/events-timeseries/`
       const delayedTimeSeries = markDelayedData(timeSeries, INGESTION_DELAY);
 
+      yAxes.add(timeSeries.yAxis);
+
       return new PlottableDataConstructor(delayedTimeSeries, {
         color: COMMON_COLORS(theme)[delayedTimeSeries.yAxis],
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
