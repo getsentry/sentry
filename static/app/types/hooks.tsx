@@ -56,7 +56,7 @@ export type HookName = keyof Hooks;
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
   'routes:root': RouteObjectHook;
-  'routes:settings': RouteObjectHook;
+  'routes:subscription-settings': RouteObjectHook;
 };
 
 /**

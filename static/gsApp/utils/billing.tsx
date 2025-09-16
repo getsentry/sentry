@@ -311,6 +311,9 @@ export const hasPartnerMigrationFeature = (organization: Organization) =>
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
+export const hasNewBillingUI = (organization: Organization) =>
+  organization.features.includes('checkout-v3');
+
 export const hasStripeComponentsFeature = (organization: Organization) =>
   organization.features.includes('stripe-components');
 
