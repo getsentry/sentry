@@ -135,18 +135,17 @@ export function SpanDescription({
         project_id={span.project_id.toString()}
         organization={organization}
       />
-      <StyledLink
-        to={getSearchInExploreTarget(
-          organization,
-          location,
-          node.event?.projectID,
-          exploreAttributeName,
-          exploreAttributeValue,
-          TraceDrawerActionKind.INCLUDE
-        )}
-        disabled={!hasExploreEnabled}
-        onClick={() => {
-          if (hasExploreEnabled) {
+      {hasExploreEnabled && (
+        <StyledLink
+          to={getSearchInExploreTarget(
+            organization,
+            location,
+            node.event?.projectID,
+            exploreAttributeName,
+            exploreAttributeValue,
+            TraceDrawerActionKind.INCLUDE
+          )}
+          onClick={() => {
             traceAnalytics.trackExploreSearch(
               organization,
               exploreAttributeName,
@@ -154,17 +153,12 @@ export function SpanDescription({
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
-          } else {
-            trackAnalytics('trace.trace_layout.view_span_summary', {
-              organization,
-              module: resolvedModule,
-            });
-          }
-        }}
-      >
-        <IconGraph type="scatter" size="xs" />
-        {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
-      </StyledLink>
+          }}
+        >
+          <IconGraph type="scatter" size="xs" />
+          {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
+        </StyledLink>
+      )}
     </BodyContentWrapper>
   ) : null;
 

@@ -113,44 +113,45 @@ export function SpanDescription({
         project_id={node.event?.projectID}
         organization={organization}
       />
-      <StyledLink
-        to={getSearchInExploreTarget(
-          organization,
-          location,
-          node.event?.projectID,
-          SpanFields.SPAN_DESCRIPTION,
-          span.description!,
-          TraceDrawerActionKind.INCLUDE
-        )}
-        disabled={!hasExploreEnabled}
-        onClick={() => {
-          if (hasExploreEnabled) {
-            traceAnalytics.trackExploreSearch(
-              organization,
-              SpanFields.SPAN_DESCRIPTION,
-              span.description!,
-              TraceDrawerActionKind.INCLUDE,
-              'drawer'
-            );
-          } else if (hasNewSpansUIFlag) {
-            trackAnalytics('trace.trace_layout.view_span_summary', {
-              organization,
-              module: resolvedModule,
-            });
-          } else {
-            trackAnalytics('trace.trace_layout.view_similar_spans', {
-              organization,
-              module: resolvedModule,
-              source: 'span_description',
-            });
-          }
-        }}
-      >
-        <IconGraph type="scatter" size="xs" />
-        {hasNewSpansUIFlag || hasExploreEnabled
-          ? t('More Samples')
-          : t('View Similar Spans')}
-      </StyledLink>
+      {hasExploreEnabled && (
+        <StyledLink
+          to={getSearchInExploreTarget(
+            organization,
+            location,
+            node.event?.projectID,
+            SpanFields.SPAN_DESCRIPTION,
+            span.description!,
+            TraceDrawerActionKind.INCLUDE
+          )}
+          onClick={() => {
+            if (hasExploreEnabled) {
+              traceAnalytics.trackExploreSearch(
+                organization,
+                SpanFields.SPAN_DESCRIPTION,
+                span.description!,
+                TraceDrawerActionKind.INCLUDE,
+                'drawer'
+              );
+            } else if (hasNewSpansUIFlag) {
+              trackAnalytics('trace.trace_layout.view_span_summary', {
+                organization,
+                module: resolvedModule,
+              });
+            } else {
+              trackAnalytics('trace.trace_layout.view_similar_spans', {
+                organization,
+                module: resolvedModule,
+                source: 'span_description',
+              });
+            }
+          }}
+        >
+          <IconGraph type="scatter" size="xs" />
+          {hasNewSpansUIFlag || hasExploreEnabled
+            ? t('More Samples')
+            : t('View Similar Spans')}
+        </StyledLink>
+      )}
     </BodyContentWrapper>
   ) : null;
 
