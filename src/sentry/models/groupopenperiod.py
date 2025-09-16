@@ -12,6 +12,7 @@ from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 
@@ -124,7 +125,7 @@ def get_open_periods_for_group(
     query_start: datetime | None = None,
     query_end: datetime | None = None,
     limit: int | None = None,
-) -> list[GroupOpenPeriod] | list[None]:
+) -> BaseQuerySet[GroupOpenPeriod] | list[None]:
     if not features.has("organizations:issue-open-periods", group.organization):
         return []
 
@@ -139,7 +140,7 @@ def get_open_periods_for_group(
     if query_end:
         group_open_periods = group_open_periods.filter(date_ended__lte=query_end)
 
-    return [period for period in group_open_periods][:limit]
+    return group_open_periods[:limit]
 
 
 def create_open_period(group: Group, start_time: datetime) -> None:
