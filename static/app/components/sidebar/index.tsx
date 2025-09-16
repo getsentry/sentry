@@ -593,7 +593,7 @@ const responsiveFlex = (theme: Theme) => css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
+const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
   background: ${p => p.theme.sidebar.gradient};
   /* @TODO(jonasbadalic): This was a one off color defined in the theme */
   color: #9586a5;

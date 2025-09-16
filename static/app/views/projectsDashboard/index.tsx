@@ -36,7 +36,6 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import ProjectCard from './projectCard';
@@ -133,7 +132,6 @@ function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const prefersStackedNav = usePrefersStackedNav();
 
   useEffect(() => {
     return function cleanup() {
@@ -204,8 +202,8 @@ function Dashboard() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <Layout.Header unified={prefersStackedNav}>
-        <Layout.HeaderContent unified={prefersStackedNav}>
+      <Layout.Header unified>
+        <Layout.HeaderContent unified>
           <Layout.Title>
             {t('Projects')}
             <PageHeadingQuestionTooltip

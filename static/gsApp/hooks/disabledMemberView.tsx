@@ -10,8 +10,6 @@ import Footer from 'sentry/components/footer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageOverlay from 'sentry/components/pageOverlay';
-import {SidebarWrapper as LegacySidebarWrapper} from 'sentry/components/sidebar';
-import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -19,7 +17,6 @@ import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
@@ -40,8 +37,6 @@ function DisabledMemberView(props: Props) {
   const {subscription} = props;
   const orgSlug = subscription.slug;
 
-  const prefersStackedNav = usePrefersStackedNav();
-
   const {
     data: organization,
     isPending,
@@ -53,13 +48,6 @@ function DisabledMemberView(props: Props) {
       staleTime: 0,
     }
   );
-
-  useEffect(() => {
-    if (!prefersStackedNav) {
-      // needed to make the left margin work as expected
-      document.body.classList.add('body-sidebar');
-    }
-  }, [prefersStackedNav]);
 
   useEffect(() => {
     if (organization) {
@@ -131,18 +119,11 @@ function DisabledMemberView(props: Props) {
   );
   return (
     <PageContainer>
-      {prefersStackedNav ? (
-        <MinimalistSidebar>
-          {organization ? <OrgDropdown hideOrgLinks /> : null}
-          {<UserDropdown />}
-        </MinimalistSidebar>
-      ) : (
-        <MinimalistSidebarLegacy collapsed={false}>
-          {organization && (
-            <SidebarDropdown orientation="left" collapsed={false} hideOrgLinks />
-          )}
-        </MinimalistSidebarLegacy>
-      )}
+      <MinimalistSidebar>
+        {organization ? <OrgDropdown hideOrgLinks /> : null}
+        {<UserDropdown />}
+      </MinimalistSidebar>
+
       {organization && (
         <PageOverlay
           background={DeactivatedMember}
@@ -214,10 +195,6 @@ function DisabledMemberView(props: Props) {
 }
 
 export default withSubscription(DisabledMemberView);
-
-const MinimalistSidebarLegacy = styled(LegacySidebarWrapper)`
-  padding: 12px 19px;
-`;
 
 const MinimalistSidebar = styled('div')`
   height: 60px;

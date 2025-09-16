@@ -55,7 +55,6 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -124,9 +123,6 @@ function WidgetBuilderV2({
   const {navParentRef} = useNavContext();
   // Check if we have a valid nav reference
   const hasValidNav = Boolean(navParentRef?.current);
-  const prefersStackedNav = usePrefersStackedNav();
-
-  const hasNewNav = hasValidNav && prefersStackedNav;
 
   const dimensions = useDimensions({elementRef: navParentRef});
 
@@ -194,7 +190,7 @@ function WidgetBuilderV2({
                     <ContainerWithoutSidebar
                       sidebarCollapsed={sidebarCollapsed}
                       style={
-                        hasNewNav
+                        hasValidNav
                           ? isMediumScreen
                             ? {
                                 left: 0,
