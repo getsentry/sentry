@@ -247,6 +247,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raw_groupby=raw_groupby,
                     orderby=self.get_orderby(request),
                     limit=top_events,
+                    include_other=include_other,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
