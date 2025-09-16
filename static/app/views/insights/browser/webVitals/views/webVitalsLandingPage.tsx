@@ -12,7 +12,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import WebVitalMetersWithIssues from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
@@ -69,10 +68,6 @@ function WebVitalsLandingPage() {
     }
   });
 
-  const useWebVitalsIssues = organization.features.includes(
-    'performance-web-vitals-issues'
-  );
-
   return (
     <React.Fragment>
       <FrontendHeader module={ModuleName.VITAL} />
@@ -101,19 +96,11 @@ function WebVitalsLandingPage() {
                 </PerformanceScoreChartContainer>
                 <WebVitalMetersContainer>
                   {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
-                  {useWebVitalsIssues ? (
-                    <WebVitalMetersWithIssues
-                      projectData={projectData}
-                      projectScore={projectScore}
-                      onClick={webVital => setState({...state, webVital})}
-                    />
-                  ) : (
-                    <WebVitalMeters
-                      projectData={projectData}
-                      projectScore={projectScore}
-                      onClick={webVital => setState({...state, webVital})}
-                    />
-                  )}
+                  <WebVitalMetersWithIssues
+                    projectData={projectData}
+                    projectScore={projectScore}
+                    onClick={webVital => setState({...state, webVital})}
+                  />
                 </WebVitalMetersContainer>
                 <PagePerformanceTable />
                 <PagesTooltipContainer>
