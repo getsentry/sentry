@@ -367,3 +367,229 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         # Verify it returns an empty list
         assert isinstance(results, list)
         assert len(results) == 0
+
+    def test_case_insensitive_matching(self) -> None:
+        """Test that exception type matching is case insensitive."""
+        release = self.create_release(project=self.project, version="1.0.0")
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentryA",
+            provider="integrations:github",
+            external_id="1",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        # Store event with "TypeError" in the database
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {
+                    "values": [
+                        {"type": "TypeError", "value": "This a bad error", "data": {"values": []}}
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+        group.save()
+
+        # Test various case combinations should all match
+        test_cases = ["TypeError", "typeerror", "TYPEERROR", "TypeERROR", "tYpEeRrOr"]
+
+        for exception_type in test_cases:
+            seer_response = fetch_issues(
+                organization_id=self.organization.id,
+                provider="integrations:github",
+                external_id="1",
+                exception_type=exception_type,
+            )
+            assert seer_response["issues"] == [group.id], f"Failed for case: {exception_type}"
+            assert len(seer_response["issues_full"]) == 1
+
+    def test_normalized_matching_spaces(self) -> None:
+        """Test that exception type matching normalizes spaces and special characters."""
+        release = self.create_release(project=self.project, version="1.0.0")
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentryA",
+            provider="integrations:github",
+            external_id="1",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        # Store event with "Runtime Error" (with space) in the database
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Runtime Error",
+                            "value": "This a bad error",
+                            "data": {"values": []},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+        group.save()
+
+        # Test various normalized forms should all match
+        test_cases = [
+            "Runtime Error",
+            "RuntimeError",
+            "runtime error",
+            "runtimeerror",
+            "RUNTIME ERROR",
+            "RUNTIMEERROR",
+            "runtime_error",
+            "runtime-error",
+        ]
+
+        for exception_type in test_cases:
+            seer_response = fetch_issues(
+                organization_id=self.organization.id,
+                provider="integrations:github",
+                external_id="1",
+                exception_type=exception_type,
+            )
+            assert seer_response["issues"] == [
+                group.id
+            ], f"Failed for normalized case: {exception_type}"
+            assert len(seer_response["issues_full"]) == 1
+
+    def test_normalized_matching_special_characters(self) -> None:
+        """Test that exception type matching normalizes various special characters."""
+        release = self.create_release(project=self.project, version="1.0.0")
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentryA",
+            provider="integrations:github",
+            external_id="1",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        # Store event with "HTTP-404-Error" in the database
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {
+                    "values": [
+                        {"type": "HTTP-404-Error", "value": "Not found", "data": {"values": []}}
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+        group.save()
+
+        # Test various forms with different special characters should all match
+        test_cases = [
+            "HTTP-404-Error",
+            "HTTP 404 Error",
+            "HTTP_404_Error",
+            "HTTP.404.Error",
+            "HTTP404Error",
+            "http404error",
+            "HTTP  404  Error",  # multiple spaces
+            "HTTP__404__Error",  # multiple underscores
+        ]
+
+        for exception_type in test_cases:
+            seer_response = fetch_issues(
+                organization_id=self.organization.id,
+                provider="integrations:github",
+                external_id="1",
+                exception_type=exception_type,
+            )
+            assert seer_response["issues"] == [
+                group.id
+            ], f"Failed for special char case: {exception_type}"
+            assert len(seer_response["issues_full"]) == 1
+
+    def test_normalized_matching_multiple_groups(self) -> None:
+        """Test normalized matching works correctly with multiple different exception types."""
+        release = self.create_release(project=self.project, version="1.0.0")
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentryA",
+            provider="integrations:github",
+            external_id="1",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        # Create first group with "Value Error"
+        data1 = load_data("python", timestamp=before_now(minutes=1))
+        event1 = self.store_event(
+            data={
+                **data1,
+                "release": release.version,
+                "exception": {
+                    "values": [
+                        {"type": "Value Error", "value": "Bad value", "data": {"values": []}}
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group1 = event1.group
+        assert group1 is not None
+        group1.save()
+
+        # Create second group with "Type-Error"
+        data2 = load_data("python", timestamp=before_now(minutes=2))
+        event2 = self.store_event(
+            data={
+                **data2,
+                "release": release.version,
+                "exception": {
+                    "values": [{"type": "Type-Error", "value": "Bad type", "data": {"values": []}}]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group2 = event2.group
+        assert group2 is not None
+        group2.save()
+
+        # Test that "valueerror" matches only the first group
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="valueerror",
+        )
+        assert seer_response["issues"] == [group1.id]
+        assert len(seer_response["issues_full"]) == 1
+
+        # Test that "type error" matches only the second group
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="type error",
+        )
+        assert seer_response["issues"] == [group2.id]
+        assert len(seer_response["issues_full"]) == 1
+
+        # Test that "runtimeerror" matches neither
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="runtimeerror",
+        )
+        assert seer_response == {"issues": [], "issues_full": []}
