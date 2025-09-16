@@ -12,8 +12,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models import Condition, DataPacket
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
 

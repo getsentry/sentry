@@ -55,23 +55,26 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
 
 
 class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
+    has_group_by = True
+
     def test_get_empty_counter_state(self):
         return {name: None for name in self.state_manager.counter_names}
 
     def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
         return data_packet.packet.get("dedupe", 0)
 
-    def extract_value(self, data_packet: DataPacket[dict]) -> int:
+    def extract_value(self, data_packet: DataPacket[dict]):
         if data_packet.packet.get("value"):
-            return data_packet.packet["value"]
+            return {None: data_packet.packet["value"]}
 
-        return data_packet.packet.get("group_vals", 0)
+        return data_packet.packet.get("group_vals", {})
 
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[dict],
         priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey | None = None,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         value = self.extract_value(data_packet)
         return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
@@ -113,6 +116,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 evaluation_result: ProcessedDataConditionGroup,
                 data_packet: DataPacket[dict],
                 priority: DetectorPriorityLevel,
+                group_key: DetectorGroupKey | None = None,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
                 value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
@@ -142,6 +146,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 evaluation_result: ProcessedDataConditionGroup,
                 data_packet: DataPacket[dict],
                 priority: DetectorPriorityLevel,
+                group_key: DetectorGroupKey | None = None,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
                 value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))

@@ -55,6 +55,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                 evaluation_result: ProcessedDataConditionGroup,
                 data_packet: DataPacket[dict],
                 priority: DetectorPriorityLevel,
+                group_key: DetectorGroupKey | None = None,
             ) -> tuple[DetectorOccurrence, EventData]:
                 return (
                     DetectorOccurrence(
