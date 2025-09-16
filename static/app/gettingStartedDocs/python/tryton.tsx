@@ -174,9 +174,22 @@ logger.error('Something went wrong')`,
 
 const logsOnboarding = getPythonLogsOnboarding();
 
+const profilingOnboarding: OnboardingConfig = {
+  install: onboarding.install,
+  configure: onboarding.configure,
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: onboarding,
+  profilingOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
   logsOnboarding,
