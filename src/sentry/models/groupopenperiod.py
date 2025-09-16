@@ -130,16 +130,16 @@ def get_open_periods_for_group(
 
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
-        query_start = min(group.first_seen, timezone.now() - timedelta(days=90))
+        query_start = max(group.first_seen, timezone.now() - timedelta(days=90))
 
     group_open_periods = GroupOpenPeriod.objects.filter(
         group=group,
         date_started__gte=query_start,
-    ).order_by("-date_started")[:limit]
+    ).order_by("-date_started")
     if query_end:
         group_open_periods = group_open_periods.filter(date_ended__lte=query_end)
 
-    return group_open_periods
+    return group_open_periods[:limit]
 
 
 def create_open_period(group: Group, start_time: datetime) -> None:

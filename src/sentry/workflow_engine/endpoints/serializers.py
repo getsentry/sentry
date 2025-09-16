@@ -686,7 +686,7 @@ class DetectorWorkflowSerializer(Serializer):
 
 
 class GroupOpenPeriodResponse(TypedDict):
-    id: int
+    id: str
     start: datetime
     end: datetime | None
     duration: timedelta | None
