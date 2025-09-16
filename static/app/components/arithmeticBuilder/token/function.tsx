@@ -751,7 +751,8 @@ const ArgumentsGridWrapper = styled('div')`
   align-items: center;
   position: relative;
   height: 100%;
-  max-width: 100%;
+  flex-shrink: 1;
+  flex-grow: 0;
 `;
 
 const ArgumentGridCell = styled('div')`
@@ -760,14 +761,14 @@ const ArgumentGridCell = styled('div')`
   position: relative;
   height: 100%;
   flex: 0 1 auto;
-  max-width: 100%;
+  max-width: fit-content;
 
   > div:first-child input {
-    width: auto !important;
-    max-width: 100% !important;
+    width: 100% !important;
+    max-width: fit-content !important;
     min-width: 0 !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    text-overflow: ellipsis;
     white-space: nowrap !important;
   }
 `;
