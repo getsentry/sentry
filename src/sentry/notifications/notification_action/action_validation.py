@@ -3,6 +3,7 @@ from typing import Any
 from django.core.exceptions import ValidationError
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -67,6 +68,29 @@ class MSTeamsActionValidatorHandler(BaseActionValidatorHandler):
         self.validated_data["config"].update(
             {
                 "target_display": cleaned_data["channel"],
+                "target_identifier": cleaned_data["channel_id"],
+            }
+        )
+        return self.validated_data
+
+
+@action_validator_registry.register(Action.Type.DISCORD)
+class DiscordActionValidatorHandler(BaseActionValidatorHandler):
+    provider = Action.Type.DISCORD
+    notify_action_form = DiscordNotifyServiceForm
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        integration = _get_integration(self.validated_data, self.provider)
+
+        return {
+            "server": integration.id,
+            "channel_id": self.validated_data["config"]["target_identifier"],
+            "tags": self.validated_data["data"].get("tags"),
+        }
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        self.validated_data["config"].update(
+            {
                 "target_identifier": cleaned_data["channel_id"],
             }
         )

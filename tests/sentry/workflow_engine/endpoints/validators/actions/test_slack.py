@@ -42,6 +42,7 @@ class TestSlackActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is True
+        validator.save()
 
     def test_validate__missing_integration_id(self):
         del self.valid_data["integrationId"]
