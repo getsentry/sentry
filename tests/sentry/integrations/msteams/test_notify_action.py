@@ -8,7 +8,7 @@ import responses
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.msteams import MsTeamsNotifyServiceAction
+from sentry.integrations.msteams.actions.notification import MsTeamsNotifyServiceAction
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
