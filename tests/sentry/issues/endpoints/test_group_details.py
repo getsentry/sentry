@@ -459,9 +459,7 @@ class GroupUpdateTest(APITestCase):
         assert response.data["statusDetails"] == {}
 
     @with_feature("organizations:resolve-in-future-release")
-    def test_resolved_in_future_release_with_existing_release_helper(
-        self, use_semver: bool = True
-    ) -> None:
+    def test_resolved_in_future_existing_release_helper(self, use_semver: bool = True) -> None:
         self.login_as(user=self.user)
 
         future_release_version = "package@1.0.0" if use_semver else "version-a"
@@ -493,27 +491,25 @@ class GroupUpdateTest(APITestCase):
         assert resolution.future_release_version is None
         assert resolution.actor_id == self.user.id
 
-        # User should be subscribed to the group
         assert GroupSubscription.objects.filter(
             user_id=self.user.id, group=group, is_active=True
         ).exists()
 
-        # Activity should be created
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
         assert activity.data["version"] == future_release_version
 
-    def test_resolved_in_future_release_with_existing_release(self) -> None:
-        """Test resolving in future release when the target release already exists."""
-        self.test_resolved_in_future_release_with_existing_release_helper(use_semver=True)
-        self.test_resolved_in_future_release_with_existing_release_helper(use_semver=False)
+    def test_resolved_in_future_existing_release_semver(self) -> None:
+        """Test resolving in future release when the target release already exists and the project follows semver."""
+        self.test_resolved_in_future_existing_release_helper(use_semver=True)
+
+    def test_resolved_in_future_existing_release_no_semver(self) -> None:
+        """Test resolving in future release when the target release already exists and the project does not follow semver."""
+        self.test_resolved_in_future_existing_release_helper(use_semver=False)
 
     @with_feature("organizations:resolve-in-future-release")
-    def test_resolved_in_future_release_with_nonexistent_release_helper(
-        self, use_semver: bool = True
-    ) -> None:
-        """Test resolving in future release when the target release doesn't exist yet."""
+    def test_resolved_in_future_nonexistent_release_helper(self, use_semver: bool = True) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project_with_releases()
@@ -566,11 +562,11 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        # GroupResolution should be created as resolved in_future_release
+        # GroupResolution should be resolved in_future_release
         resolution = GroupResolution.objects.get(group=group)
-        assert (
-            resolution.release == placeholder_release
-        )  # placeholder release determined by get_release_to_resolve_by
+        # since GroupResolution.release is non-nullable, we set a placeholder release,
+        # which is determined by get_release_to_resolve_by:
+        assert resolution.release == placeholder_release
         assert resolution.type == GroupResolution.Type.in_future_release
         assert resolution.status == GroupResolution.Status.pending
         assert resolution.future_release_version == nonexistent_future_release_version
@@ -588,9 +584,13 @@ class GroupUpdateTest(APITestCase):
         else:
             assert activity.data["version"] == nonexistent_future_release_version
 
-    def test_resolved_in_future_release_with_nonexistent_release(self) -> None:
-        self.test_resolved_in_future_release_with_nonexistent_release_helper(use_semver=True)
-        self.test_resolved_in_future_release_with_nonexistent_release_helper(use_semver=False)
+    def test_resolved_in_future_nonexistent_release_semver(self) -> None:
+        """Test resolving in future release when the target release doesn't exist yet and the project follows semver."""
+        self.test_resolved_in_future_nonexistent_release_helper(use_semver=True)
+
+    def test_resolved_in_future_nonexistent_release_no_semver(self) -> None:
+        """Test resolving in future release when the target release doesn't exist yet and the project does not follow semver."""
+        self.test_resolved_in_future_nonexistent_release_helper(use_semver=False)
 
     def test_resolved_in_future_release_without_feature_flag(self) -> None:
         """Test that resolving in future release fails when feature flag is disabled."""
