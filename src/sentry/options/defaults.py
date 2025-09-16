@@ -3143,6 +3143,17 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Control whether delayed workflow engine evaluation is done
+# via the old process_pending_batch task with rules delayed processing, or
+# via the new schedule_delayed_workflows task.
+# NB: These tasks are allowed to run concurrently, so a naive switch here
+# may result in duplicate processing.
+register(
+    "workflow_engine.use_new_scheduling_task",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription

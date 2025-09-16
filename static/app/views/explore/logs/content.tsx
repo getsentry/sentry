@@ -30,7 +30,6 @@ import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -111,13 +110,11 @@ export default function LogsContent() {
 }
 
 function LogsHeader() {
-  const prefersStackedNav = usePrefersStackedNav();
-
   const pageId = useLogsId();
   const title = useLogsTitle();
   return (
-    <Layout.Header unified={prefersStackedNav}>
-      <Layout.HeaderContent unified={prefersStackedNav}>
+    <Layout.Header unified>
+      <Layout.HeaderContent unified>
         {title && defined(pageId) ? (
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
         ) : null}

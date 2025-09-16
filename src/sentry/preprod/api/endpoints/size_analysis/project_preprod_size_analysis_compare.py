@@ -273,6 +273,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
 
+        if head_artifact.build_configuration != base_artifact.build_configuration:
+            return Response(
+                {"error": "Head and base build configurations must be the same."}, status=400
+            )
+
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[head_artifact.id],
             preprod_artifact__project=project,
