@@ -253,6 +253,7 @@ export function AggregateFlamegraphTreeTable({
                   abbreviation
                 />
               }
+              showAvg
               avgWeight={
                 defined(r.item.node.frame.averageCallDuration) ? (
                   <PerformanceDuration
