@@ -923,7 +923,7 @@ class AMCheckout extends Component<Props, State> {
                     borderless
                     aria-label={t('Back to Subscription Overview')}
                     onClick={() => {
-                      navigate(`/settings/${organization.slug}/billing/`);
+                      navigate(`/settings/billing/`);
                     }}
                   >
                     <Flex gap="sm" align="center">

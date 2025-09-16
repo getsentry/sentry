@@ -126,7 +126,7 @@ function VitalMeter({
 
   const headerText = WEB_VITALS_METERS_CONFIG[webVital].name;
   const issueTypes = WEB_VITAL_PERFORMANCE_ISSUES[webVital];
-  const {data: issues} = useWebVitalsIssuesQuery({issueTypes});
+  const {data: issues} = useWebVitalsIssuesQuery({issueTypes, webVital});
   const hasIssues = issues && issues.length > 0;
   const meterBody = (
     <Fragment>
@@ -247,6 +247,7 @@ const getIssuesUrl = ({
 }) => {
   const query = getIssueQueryFilter({
     issueTypes: WEB_VITAL_PERFORMANCE_ISSUES[webVital],
+    webVital,
   });
   return `/organizations/${organization.slug}/issues/?${qs.stringify({
     query,
