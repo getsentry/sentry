@@ -9,7 +9,7 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
-import {SiblingAutogroupNode1} from './siblingAutogroupNode';
+import {SiblingAutogroupNode} from './siblingAutogroupNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
@@ -18,7 +18,7 @@ const createMockExtra = (
   ...overrides,
 });
 
-describe('SiblingAutogroupNode1', () => {
+describe('SiblingAutogroupNode', () => {
   describe('constructor', () => {
     it('should initialize with basic properties', () => {
       const extra = createMockExtra();
@@ -29,7 +29,7 @@ describe('SiblingAutogroupNode1', () => {
         },
       });
 
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.parent).toBeNull();
       expect(node.value).toBe(autogroupValue);
@@ -52,7 +52,7 @@ describe('SiblingAutogroupNode1', () => {
       });
 
       const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new SiblingAutogroupNode1(parentNode, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(parentNode, autogroupValue, extra);
 
       expect(node.parent).toBe(parentNode);
     });
@@ -66,7 +66,7 @@ describe('SiblingAutogroupNode1', () => {
         },
       });
 
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.value.autogrouped_by.op).toBe('custom.operation');
       expect(node.value.autogrouped_by.description).toBe('Custom operation description');
@@ -82,7 +82,7 @@ describe('SiblingAutogroupNode1', () => {
 
       const childNode1 = new EapSpanNode(null, childSpanValue1, extra);
       const childNode2 = new EapSpanNode(null, childSpanValue2, extra);
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       node.children = [childNode1, childNode2];
 
@@ -92,7 +92,7 @@ describe('SiblingAutogroupNode1', () => {
     it('should return undefined when no children', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.children).toEqual([]);
       expect(node.id).toBeUndefined();
@@ -106,7 +106,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'Database operations',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.op).toBe('db.query');
     });
@@ -119,7 +119,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'HTTP requests',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.description).toBe('HTTP requests');
     });
@@ -132,7 +132,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'Database operations',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.drawerTabsTitle).toBe('Autogroup - db.query');
     });
@@ -145,7 +145,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'GET /api/users',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.traceHeaderTitle).toEqual({
         title: 'http.request',
@@ -161,7 +161,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'Some description',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.traceHeaderTitle).toEqual({
         title: 'Trace',
@@ -185,7 +185,7 @@ describe('SiblingAutogroupNode1', () => {
 
       const childNode1 = new EapSpanNode(null, childSpanValue1, extra);
       const childNode2 = new EapSpanNode(null, childSpanValue2, extra);
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       node.children = [childNode1, childNode2];
 
@@ -201,7 +201,7 @@ describe('SiblingAutogroupNode1', () => {
       const childSpanValue = makeEAPSpan({event_id: 'child'});
 
       const childNode = new EapSpanNode(null, childSpanValue, extra);
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       node.children = [childNode];
 
@@ -219,7 +219,7 @@ describe('SiblingAutogroupNode1', () => {
       const childSpanValue = makeEAPSpan({event_id: 'child-span-id'});
 
       const childNode = new EapSpanNode(null, childSpanValue, extra);
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       node.children = [childNode];
 
@@ -231,7 +231,7 @@ describe('SiblingAutogroupNode1', () => {
     it('should return correct analyticsName', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.analyticsName()).toBe('sibling autogroup');
     });
@@ -244,7 +244,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'Custom description',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.printNode()).toBe('sibling autogroup (custom.operation: 0)');
     });
@@ -252,7 +252,7 @@ describe('SiblingAutogroupNode1', () => {
     it('should render waterfall row', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       const mockProps = {
         node: node as any,
@@ -269,7 +269,7 @@ describe('SiblingAutogroupNode1', () => {
     it('should render details', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       const mockProps = {
         node: node as any,
@@ -292,7 +292,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'Database operations',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.matchWithFreeText('db')).toBe(true);
       expect(node.matchWithFreeText('query')).toBe(true);
@@ -307,7 +307,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'SELECT * FROM users',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.matchWithFreeText('SELECT')).toBe(true);
       expect(node.matchWithFreeText('users')).toBe(true);
@@ -324,7 +324,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'Custom description',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.matchWithFreeText('custom')).toBe(true);
       expect(node.matchWithFreeText('autogroup')).toBe(true);
@@ -340,7 +340,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'GET /API/USERS',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.matchWithFreeText('HTTP')).toBe(true);
       expect(node.matchWithFreeText('http')).toBe(false);
@@ -357,7 +357,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'Test description',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.matchWithFreeText('123')).toBe(false); // Should not match non-string name
     });
@@ -372,7 +372,7 @@ describe('SiblingAutogroupNode1', () => {
           description: '',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.drawerTabsTitle).toBe('Autogroup - ');
       expect(node.printNode()).toBe('sibling autogroup (: 0)');
@@ -390,7 +390,7 @@ describe('SiblingAutogroupNode1', () => {
       const childNode1 = new EapSpanNode(null, childSpanValue1, extra);
       const childNode2 = new EapSpanNode(null, childSpanValue2, extra);
       const childNode3 = new EapSpanNode(null, childSpanValue3, extra);
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       node.children = [childNode1, childNode2, childNode3];
 
@@ -404,7 +404,7 @@ describe('SiblingAutogroupNode1', () => {
       const childSpanValue = makeEAPSpan({event_id: undefined});
 
       const childNode = new EapSpanNode(null, childSpanValue, extra);
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       node.children = [childNode];
 
@@ -414,7 +414,7 @@ describe('SiblingAutogroupNode1', () => {
     it('should compute autogroupedSegments with no children', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       const segments = node.autogroupedSegments;
       expect(segments).toBeDefined();
@@ -442,7 +442,7 @@ describe('SiblingAutogroupNode1', () => {
       );
 
       const childNodes = spans.map(span => new EapSpanNode(null, span, extra));
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       node.children = childNodes;
 
@@ -462,7 +462,7 @@ describe('SiblingAutogroupNode1', () => {
           description: 'Test operation',
         },
       });
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       // Initially 0
       expect(node.groupCount).toBe(0);
@@ -484,7 +484,7 @@ describe('SiblingAutogroupNode1', () => {
         },
       });
 
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       // Create child nodes
       const child1Value = makeEAPSpan({event_id: 'child-1'});
@@ -508,7 +508,7 @@ describe('SiblingAutogroupNode1', () => {
         },
       });
 
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
       expect(node.children).toEqual([]);
 
       expect(node.matchById('any-id')).toBe(false);
@@ -523,7 +523,7 @@ describe('SiblingAutogroupNode1', () => {
         },
       });
 
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       // Create child with undefined ID
       const childValue = makeEAPSpan({event_id: undefined});
@@ -542,7 +542,7 @@ describe('SiblingAutogroupNode1', () => {
         },
       });
 
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       // Create child with empty string ID
       const childValue = makeEAPSpan({event_id: ''});
@@ -562,7 +562,7 @@ describe('SiblingAutogroupNode1', () => {
         },
       });
 
-      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       const childValue = makeEAPSpan({event_id: 'CaseSensitiveId'});
       const child = new EapSpanNode(node, childValue, extra);

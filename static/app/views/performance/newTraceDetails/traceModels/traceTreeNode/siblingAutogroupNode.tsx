@@ -12,7 +12,7 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {computeCollapsedBarSpace} from './utils';
 
-export class SiblingAutogroupNode1 extends BaseNode<TraceTree.SiblingAutogroup> {
+export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   groupCount = 0;
 
   private _autogroupedSegments: Array<[number, number]> | undefined;
