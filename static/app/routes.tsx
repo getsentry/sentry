@@ -1350,7 +1350,12 @@ function buildRoutes(): RouteObject[] {
         path: ':orgId/',
         name: t('Organization'),
         component: withDomainRedirect(NoOp),
-        children: [orgSettingsRoutes, projectSettingsRoutes, legacySettingsRedirects],
+        children: [
+          orgSettingsRoutes,
+          projectSettingsRoutes,
+          subscriptionSettingsRoutes,
+          legacySettingsRedirects,
+        ],
         deprecatedRouteProps: true,
       },
     ],
