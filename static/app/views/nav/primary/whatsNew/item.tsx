@@ -23,7 +23,7 @@ interface BroadcastPanelItemProps
     'hasSeen' | 'category' | 'title' | 'message' | 'link' | 'mediaUrl'
   > {}
 
-export function BroadcastPanelItem({
+export function WhatsNewItem({
   hasSeen,
   title,
   message,

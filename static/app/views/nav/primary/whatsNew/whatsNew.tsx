@@ -2,7 +2,6 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -26,6 +25,7 @@ import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
+import {WhatsNewItem} from 'sentry/views/nav/primary/whatsNew/item';
 import {NavLayout} from 'sentry/views/nav/types';
 
 const MARK_SEEN_DELAY = 1000;
@@ -101,7 +101,7 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
   return (
     <Fragment>
       {broadcasts.map(item => (
-        <BroadcastPanelItem
+        <WhatsNewItem
           key={item.id}
           hasSeen={item.hasSeen}
           title={item.title}
