@@ -7,7 +7,7 @@ import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-tes
 import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
 
 import {Container, Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -158,14 +158,13 @@ export default function TestsOnboardingPage() {
           <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
             {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
             <div>
-              {tct(
-                'To learn more about Test Analytics, please visit [ourDocs:our docs].',
-                {
-                  ourDocs: (
-                    <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
-                  ),
-                }
-              )}
+              {tct('To learn more about Test Analytics, please visit [ourDocs].', {
+                ourDocs: (
+                  <Link to="https://docs.sentry.io/product/test-analytics/">
+                    our docs
+                  </Link>
+                ),
+              })}
             </div>
           </Flex>
         </OnboardingContent>

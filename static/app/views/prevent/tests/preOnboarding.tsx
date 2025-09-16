@@ -5,7 +5,7 @@ import testsAnalyticsSummary from 'sentry-images/features/test-analytics-summary
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -58,9 +58,9 @@ export default function TestPreOnboardingPage() {
               </li>
               <li>
                 {t('Identify the most problematic tests and prioritize fixes.')}{' '}
-                <ExternalLink href="https://docs.sentry.io/product/test-analytics/">
+                <Link to="https://docs.sentry.io/product/test-analytics/">
                   {t('Learn more')}
-                </ExternalLink>
+                </Link>
               </li>
             </ul>
           </StyledDiv>

@@ -8,7 +8,7 @@ import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
@@ -45,13 +45,10 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
       ? `https://${githubOrgDomain}/${repository}/settings/secrets/actions`
       : '#';
 
-  const headerText = tct(
-    `Step [step]: Add token as [repositorySecret:repository secret]`,
-    {
-      step,
-      repositorySecret: <ExternalLink href={githubUrl} />,
-    }
-  );
+  const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
+    step,
+    repositorySecret: <Link to={githubUrl}>{t('repository secret')}</Link>,
+  });
 
   const handleGenerateClick = () => {
     setShowTokenDetails(true);

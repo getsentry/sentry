@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,10 +42,12 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
         <OnboardingStep.Content>
           <p>
             {tct(
-              "Select your language below to generate your testing reports. If your language isn't listed, view [doc:this doc] to learn more about how to generate a file with the JUnit XML file format.",
+              "Select your language below to generate your testing reports. If your language isn't listed, view [doc] to learn more about how to generate a file with the JUnit XML file format.",
               {
                 doc: (
-                  <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
+                  <Link to="https://docs.sentry.io/product/test-analytics/">
+                    {t('this doc')}
+                  </Link>
                 ),
               }
             )}
