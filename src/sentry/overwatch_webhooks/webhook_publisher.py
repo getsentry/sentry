@@ -16,11 +16,11 @@ class OverwatchWebhookPublisher:
         This is pulled from our analytics pubsub logic. This ensures we noop
         if we don't have a valid configuration for pubsub.
         """
+        self._integration_provider = integration_provider
         try:
             # TODO: Validate that the publisher client version is correct.
             # TODO: Validate that the default credentials we're using for GCP work for in this context as well.
             self._publisher_client = PublisherClient()
-            self._integration_provider = integration_provider
         except GoogleAuthError:
             logger.warning("webhook_dispatcher.publisher_client.missing_auth")
             self._publisher_client = None
