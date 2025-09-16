@@ -11,7 +11,11 @@ logger = logging.getLogger(__name__)
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 #################
@@ -28,6 +32,8 @@ BUILD_1 = {
     "platform": "Android",
     "build_version": "1.0.3",
     "build_number": 42,
+    "build_configuration": "Debug",  # Head build configuration
+    "base_build_configuration": "Release",  # Base build configuration (test different configs!)
     "state": "processed_with_metrics",  # uploading, uploaded, failed, processed_no_metrics, processed_with_metrics, metrics_pending
     "create_base_artifacts": True,  # Create base artifacts for size comparison
     "create_multiple_metrics": False,  # Create watch/dynamic feature metrics in addition to main
@@ -39,6 +45,8 @@ BUILD_2 = {
     "platform": "iOS",
     "build_version": "1.0.3",
     "build_number": 15,
+    "build_configuration": "Release",  # Head build configuration
+    "base_build_configuration": "Release",  # Base build configuration (same - should compare)
     "state": "processed_with_metrics",  # uploading, uploaded, failed, processed_no_metrics, processed_with_metrics, metrics_pending
     "create_base_artifacts": True,  # Create base artifacts for size comparison
     "create_multiple_metrics": True,  # Create watch/dynamic feature metrics in addition to main
@@ -75,6 +83,32 @@ BUILD_2 = {
 #
 # 5. Pending size analysis:
 #    BUILD_1 = {..., "state": "metrics_pending"}  # Artifact processed, analysis pending
+#
+# 6. Build configuration testing:
+#    BUILD_1 = {..., "build_configuration": "Debug", "base_build_configuration": "Release"}
+#    # Head is Debug, base is Release - should show N/A for size changes (no comparison)
+#
+#    BUILD_1 = {..., "build_configuration": "Debug", "base_build_configuration": "Debug"}
+#    # Head is Debug, base is Debug - should show actual size changes (comparison works)
+
+
+def get_or_create_build_configuration(
+    project: "Project", config_name: str
+) -> "PreprodBuildConfiguration":
+    """Get or create a build configuration for the project."""
+    if not config_name:
+        return None
+
+    build_config, created = PreprodBuildConfiguration.objects.get_or_create(
+        project=project,
+        name=config_name,
+    )
+    if created:
+        logger.info("  ✓ Created build configuration: %s", config_name)
+    else:
+        logger.info("  ✓ Found existing build configuration: %s", config_name)
+
+    return build_config
 
 
 def create_size_metrics(
@@ -212,6 +246,11 @@ def create_base_artifacts_for_comparison(
 
         logger.info("📦 Creating base artifact for %s...", build_config["app_id"])
 
+        # Get or create base build configuration
+        base_build_config = get_or_create_build_configuration(
+            project, build_config.get("base_build_configuration")
+        )
+
         # Create base artifact with older build number
         base_artifact = PreprodArtifact.objects.create(
             project=project,
@@ -220,9 +259,14 @@ def create_base_artifacts_for_comparison(
             state=PreprodArtifact.ArtifactState.PROCESSED,
             build_version=build_config["build_version"],
             build_number=build_config["build_number"] - 1,  # Previous build number
+            build_configuration=base_build_config,
         )
         base_artifacts.append(base_artifact)
-        logger.info("  ✓ Created base artifact: %s", base_artifact.id)
+        logger.info(
+            "  ✓ Created base artifact: %s (build_config: %s)",
+            base_artifact.id,
+            base_build_config.name if base_build_config else "None",
+        )
 
         # Create base size metrics with smaller sizes (to show growth)
         if "android" in build_config["app_id"].lower():
@@ -372,6 +416,10 @@ def main() -> None:
 
         logger.info("🧪 Running test with %s build(s):", len(build_configs))
         for i, config in enumerate(build_configs, 1):
+            head_config = config.get("build_configuration", "None")
+            base_config = config.get("base_build_configuration", "None")
+            creates_base = config.get("create_base_artifacts", False)
+
             logger.info(
                 "  📱 BUILD_%s: %s (%s, state: %s)",
                 i,
@@ -379,6 +427,23 @@ def main() -> None:
                 config["platform"],
                 config["state"],
             )
+            logger.info(
+                "    Build configs: HEAD=%s, BASE=%s %s",
+                head_config,
+                base_config if creates_base else "N/A (no base)",
+                "🔄 (size comparison enabled)" if creates_base else "",
+            )
+
+            # Show expected behavior
+            if creates_base and head_config != "None" and base_config != "None":
+                if head_config == base_config:
+                    logger.info("    Expected: ✓ Size changes will be shown (matching configs)")
+                else:
+                    logger.info(
+                        "    Expected: ❌ N/A will be shown for size changes (different configs)"
+                    )
+            elif creates_base:
+                logger.info("    Expected: ⚠️  Undefined behavior (missing config info)")
 
         created_artifacts = []
 
@@ -399,6 +464,11 @@ def main() -> None:
                 build_config["state"]
             )
 
+            # Get or create head build configuration
+            head_build_config = get_or_create_build_configuration(
+                project, build_config.get("build_configuration")
+            )
+
             # Create artifact data
             artifact_data = {
                 "project": project,
@@ -407,6 +477,7 @@ def main() -> None:
                 "state": artifact_state,
                 "build_version": build_config["build_version"],
                 "build_number": build_config["build_number"],
+                "build_configuration": head_build_config,
             }
 
             # Add error message for failed state
@@ -420,9 +491,10 @@ def main() -> None:
             preprod_artifact = PreprodArtifact.objects.create(**artifact_data)
             created_artifacts.append(preprod_artifact)
             logger.info(
-                "  ✓ Created artifact: %s (state: %s)",
+                "  ✓ Created artifact: %s (state: %s, build_config: %s)",
                 preprod_artifact.id,
                 preprod_artifact.get_state_display(),
+                head_build_config.name if head_build_config else "None",
             )
 
             # Create size metrics if requested

@@ -175,6 +175,7 @@ class PreprodArtifact(DefaultFieldsModel):
             project__organization_id=self.project.organization_id,
             app_id=self.app_id,
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
+            build_configuration=self.build_configuration,
         )
 
     def get_head_artifacts_for_commit(
