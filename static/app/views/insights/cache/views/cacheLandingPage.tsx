@@ -1,16 +1,8 @@
-import React, {Fragment, useEffect} from 'react';
+import React from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {
-  DismissId,
-  PageAlert,
-  PageAlertProvider,
-  usePageAlert,
-} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -20,7 +12,7 @@ import {
   TransactionsTable,
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
-import {BASE_FILTERS, MODULE_DOC_LINK} from 'sentry/views/insights/cache/settings';
+import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -29,9 +21,6 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -41,22 +30,8 @@ import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types'
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanFields;
 
-const SDK_UPDATE_ALERT = (
-  <Fragment>
-    {t(
-      `If you're noticing missing cache data, try updating to the latest SDK or ensure spans are manually instrumented with the right attributes. To learn more, `
-    )}
-    <ExternalLink href={`${MODULE_DOC_LINK}#instrumentation`}>
-      {t('Read the Docs')}
-    </ExternalLink>
-  </Fragment>
-);
-
-const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
-
 export function CacheLandingPage() {
   const location = useLocation();
-  const {setPageInfo, pageAlert} = usePageAlert();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
@@ -68,15 +43,6 @@ export function CacheLandingPage() {
     moduleName: ModuleName.CACHE,
     requiredParams: ['transaction'],
   });
-
-  const {error: cacheMissRateError} = useSpanSeries(
-    {
-      yAxis: [`${CACHE_MISS_RATE}()`],
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_CACHE_HIT_MISS_CHART
-  );
 
   const {
     isFetching: isTransactionsListFetching,
@@ -120,33 +86,6 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );
 
-  const onboardingProject = useOnboardingProject();
-  const hasData = useHasFirstSpan(ModuleName.CACHE);
-
-  useEffect(() => {
-    // TODO: EAP does not use an indexer, so these metrics indexer errors are not possible. When EAP is fully rolled out, remove this check.
-    const hasMissingDataError =
-      cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
-      transactionsListError?.message === CACHE_ERROR_MESSAGE;
-
-    if (onboardingProject || !hasData) {
-      setPageInfo(undefined);
-      return;
-    }
-    if (pageAlert?.message !== SDK_UPDATE_ALERT) {
-      if (hasMissingDataError && hasData) {
-        setPageInfo(SDK_UPDATE_ALERT, {dismissId: DismissId.CACHE_SDK_UPDATE_ALERT});
-      }
-    }
-  }, [
-    cacheMissRateError?.message,
-    transactionsListError?.message,
-    setPageInfo,
-    hasData,
-    pageAlert?.message,
-    onboardingProject,
-  ]);
-
   const transactionDurationsMap = keyBy(transactionDurationData, 'transaction');
 
   const transactionsListWithDuration =
@@ -166,7 +105,6 @@ export function CacheLandingPage() {
       <ModuleFeature moduleName={ModuleName.CACHE}>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <PageAlert />
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ModulePageFilterBar moduleName={ModuleName.CACHE} />
@@ -202,9 +140,7 @@ export function CacheLandingPage() {
 function PageWithProviders() {
   return (
     <ModulePageProviders moduleName="cache" analyticEventName="insight.page_loads.cache">
-      <PageAlertProvider>
-        <CacheLandingPage />
-      </PageAlertProvider>
+      <CacheLandingPage />
     </ModulePageProviders>
   );
 }
