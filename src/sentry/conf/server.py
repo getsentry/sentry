@@ -3084,7 +3084,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
-    "sentry.integrations.msteams.MsTeamsIntegrationProvider",
+    "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",

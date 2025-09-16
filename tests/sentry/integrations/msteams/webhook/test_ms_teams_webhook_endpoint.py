@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import pytest
 
-from sentry.integrations.msteams import MsTeamsEvents, MsTeamsWebhookEndpoint
+from sentry.integrations.msteams.webhook import MsTeamsEvents, MsTeamsWebhookEndpoint
 
 
 class TestGeTeamInstallationRequestData(TestCase):

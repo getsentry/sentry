@@ -3,7 +3,9 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, Protocol, TypedDict
+
+from django.core.exceptions import ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -15,6 +17,8 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
@@ -478,3 +482,59 @@ class BaseMetricAlertHandler(ABC):
             organization=detector.project.organization,
             project=detector.project,
         )
+
+
+class NotificationActionForm(Protocol):
+    """Protocol for notification action forms since they have various inheritance layers and but all have the same __init__ signature"""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+
+    def is_valid(self) -> bool: ...
+
+    @property
+    def cleaned_data(self) -> dict[str, Any]: ...
+
+    @property
+    def errors(self) -> dict[str, Any]: ...
+
+
+def _get_integrations(organization: Organization, provider: str) -> list[RpcIntegration]:
+    return integration_service.get_integrations(
+        organization_id=organization.id,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        providers=[provider],
+    )
+
+
+class BaseActionValidatorHandler(ABC):
+    provider: str
+    notify_action_form: type[NotificationActionForm] | None
+
+    def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None:
+        self.validated_data = validated_data
+        self.organization = organization
+
+    def clean_data(self) -> dict[str, Any]:
+        if self.notify_action_form is None:
+            return self.validated_data
+
+        notify_action_form = self.notify_action_form(
+            data=self.generate_action_form_payload(),
+            integrations=_get_integrations(self.organization, self.provider),
+        )
+
+        if notify_action_form.is_valid():
+            return self.update_action_data(notify_action_form.cleaned_data)
+
+        raise ValidationError(notify_action_form.errors)
+
+    @abstractmethod
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        # translate validated data from BaseActionValidator to notify action form data
+        pass
+
+    @abstractmethod
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        # update BaseActionValidator data with cleaned notify action form data
+        pass
