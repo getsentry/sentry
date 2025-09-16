@@ -822,9 +822,16 @@ def get_github_enterprise_integration_config(
             status=ObjectStatus.ACTIVE,
         )
     except Exception as e:
-        logger.error("Failed to get integration %s due to silo boundary violation: %s", integration_id, str(e))
+        logger.error(
+            "Failed to get integration %s due to silo boundary violation: %s",
+            integration_id,
+            str(e),
+        )
         # Return a more specific error for silo boundary violations
-        return {"success": False, "error": "Integration service unavailable from current silo context"}
+        return {
+            "success": False,
+            "error": "Integration service unavailable from current silo context",
+        }
 
     if integration is None:
         logger.error("Integration %s does not exist", integration_id)
