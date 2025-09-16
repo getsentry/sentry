@@ -27,7 +27,7 @@ class CachedAttachment:
         type=None,
         chunks=None,
         data=UNINITIALIZED_DATA,
-        stored_id=None,
+        stored_id: str | None = None,
         cache=None,
         rate_limited=None,
         size=None,

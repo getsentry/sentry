@@ -7,6 +7,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 from urllib.parse import urljoin
 
 import orjson
@@ -15,6 +16,7 @@ from django.conf import settings
 from requests.exceptions import RequestException
 
 from sentry import options
+from sentry.attachments.base import CachedAttachment
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
     get_internal_source,
@@ -166,7 +168,9 @@ class Symbolicator:
                 # Otherwise, we are done processing, yay
                 return json_response
 
-    def process_minidump(self, platform, minidump, rewrite_first_module):
+    def process_minidump(
+        self, platform: str, minidump: CachedAttachment, rewrite_first_module: list[Any]
+    ):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
@@ -177,15 +181,27 @@ class Symbolicator:
             "options": '{"dif_candidates": true}',
         }
 
+        files: None | dict[str, bytes] = None
+        if minidump.stored_id:
+            data["stored_minidump"] = orjson.dumps(
+                {
+                    "organization_id": self.project.organization_id,
+                    "project_id": self.project.id,
+                    "stored_id": minidump.stored_id,
+                }
+            ).decode()
+        else:
+            files = {"upload_file_minidump": minidump.data}
+
         res = self._process(
             "process_minidump",
             "minidump",
             data=data,
-            files={"upload_file_minidump": minidump},
+            files=files,
         )
         return process_response(res)
 
-    def process_applecrashreport(self, platform, report):
+    def process_applecrashreport(self, platform: str, report: CachedAttachment):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
@@ -195,11 +211,23 @@ class Symbolicator:
             "options": '{"dif_candidates": true}',
         }
 
+        files: None | dict[str, bytes] = None
+        if report.stored_id:
+            data["stored_apple_crash_report"] = orjson.dumps(
+                {
+                    "organization_id": self.project.organization_id,
+                    "project_id": self.project.id,
+                    "stored_id": report.stored_id,
+                }
+            ).decode()
+        else:
+            files = {"apple_crash_report": report.data}
+
         res = self._process(
             "process_applecrashreport",
             "applecrashreport",
             data=data,
-            files={"apple_crash_report": report},
+            files=files,
         )
         return process_response(res)
 
