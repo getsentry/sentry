@@ -138,10 +138,7 @@ export class SentrySampledProfile extends Profile {
       child.lock();
     }
 
-    node.frame.selfWeight += weight;
-
     for (const stackNode of framesInStack) {
-      stackNode.frame.totalWeight += weight;
       stackNode.count++;
     }
 

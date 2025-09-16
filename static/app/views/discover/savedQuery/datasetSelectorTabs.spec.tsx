@@ -122,7 +122,7 @@ describe('Discover DatasetSelector', () => {
     );
   });
 
-  it('disables transactions dataset if org has deprecation feature', () => {
+  it('tooltip for transactions dataset if org has deprecation feature', async () => {
     const eventView = new EventView({
       ...EVENT_VIEW_CONSTRUCTOR_PROPS,
       dataset: DiscoverDatasets.ERRORS,
@@ -147,9 +147,11 @@ describe('Discover DatasetSelector', () => {
       }
     );
 
-    expect(screen.getByRole('tab', {name: 'Transactions'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    await userEvent.hover(screen.getByRole('tab', {name: 'Transactions'}));
+    expect(
+      await screen.findByText(
+        /Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon/i
+      )
+    ).toBeInTheDocument();
   });
 });

@@ -1,15 +1,6 @@
-export type SidebarOrientation = 'top' | 'left';
+import type {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 
-export enum SidebarPanelKey {
-  BROADCASTS = 'broadcasts',
-  ONBOARDING_WIZARD = 'todos',
-  SERVICE_INCIDENTS = 'statusupdate',
-  PERFORMANCE_ONBOARDING = 'performance_onboarding',
-  REPLAYS_ONBOARDING = 'replays_onboarding',
-  PROFILING_ONBOARDING = 'profiling_onboarding',
-  FEEDBACK_ONBOARDING = 'feedback_onboarding',
-  FEATURE_FLAG_ONBOARDING = 'flag_onboarding',
-}
+export type SidebarOrientation = 'top' | 'left';
 
 export type CommonSidebarProps = {
   /**
@@ -19,7 +10,7 @@ export type CommonSidebarProps = {
   /**
    * The currently shown sidebar flyout panel
    */
-  currentPanel: SidebarPanelKey | '';
+  currentPanel: OnboardingDrawerKey | '';
   /**
    * Triggered when the panel should be hidden
    */

@@ -189,6 +189,12 @@ def evaluate_workflow_triggers(
     # Retrieve these as a batch to avoid a query/cache-lookup per DCG.
     data_conditions_by_dcg_id = _get_data_conditions_for_group_by_dcg(dcg_ids)
 
+    project = event_data.event.project  # expected to be already cached
+    dual_processing_logs_enabled = features.has(
+        "organizations:workflow-engine-metric-alert-dual-processing-logs",
+        project.organization,
+    )
+
     for workflow in workflows:
         when_data_conditions = None
         if dcg_id := workflow.when_condition_group_id:
@@ -225,19 +231,17 @@ def evaluate_workflow_triggers(
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
-                if features.has(
-                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                    workflow.organization,
-                ):
+                if dual_processing_logs_enabled:
                     try:
-                        detector_workflow = DetectorWorkflow.objects.get(workflow_id=workflow.id)
+                        detector = WorkflowEventContext.get().detector
+                        detector_id = detector.id if detector else None
                         logger.info(
                             "workflow_engine.process_workflows.workflow_triggered",
                             extra={
                                 "workflow_id": workflow.id,
-                                "detector_id": detector_workflow.detector_id,
-                                "organization_id": workflow.organization.id,
-                                "project_id": event_data.group.project.id,
+                                "detector_id": detector_id,
+                                "organization_id": project.organization.id,
+                                "project_id": project.id,
                                 "group_type": event_data.group.type,
                             },
                         )
@@ -308,12 +312,19 @@ def evaluate_workflows_action_filters(
         [dcg.id for dcg in action_conditions_to_workflow.keys()]
     )
 
-    for action_condition_group, workflow in action_conditions_to_workflow.items():
-        env = (
-            Environment.objects.get_from_cache(id=workflow.environment_id)
-            if workflow.environment_id
-            else None
+    env_by_id: dict[int, Environment] = {
+        env.id: env
+        for env in Environment.objects.get_many_from_cache(
+            {
+                wf.environment_id
+                for wf in action_conditions_to_workflow.values()
+                if wf.environment_id
+            }
         )
+    }
+
+    for action_condition_group, workflow in action_conditions_to_workflow.items():
+        env = env_by_id.get(workflow.environment_id) if workflow.environment_id else None
         workflow_event_data = replace(event_data, workflow_env=env)
         group_evaluation, slow_conditions = process_data_condition_group(
             action_condition_group,

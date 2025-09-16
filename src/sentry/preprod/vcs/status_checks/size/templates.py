@@ -115,8 +115,29 @@ def _format_processing_summary(
         ):
             download_size = _format_file_size(size_metrics.max_download_size)
             install_size = _format_file_size(size_metrics.max_install_size)
-            download_change = _("N/A")
-            install_change = _("N/A")
+
+            # Get base metrics for comparison
+            base_artifact = artifact.get_base_artifact_for_commit().first()
+            base_metrics = (
+                base_artifact.get_size_metrics(
+                    metrics_artifact_type=size_metrics.metrics_artifact_type,
+                    identifier=size_metrics.identifier,
+                ).first()
+                if base_artifact
+                else None
+            )
+
+            if base_metrics:
+                download_change = _calculate_size_change(
+                    size_metrics.max_download_size, base_metrics.max_download_size
+                )
+                install_change = _calculate_size_change(
+                    size_metrics.max_install_size, base_metrics.max_install_size
+                )
+            else:
+                download_change = str(_("N/A"))
+                install_change = str(_("N/A"))
+
             table_rows.append(
                 f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {_('N/A')} |"
             )
@@ -126,11 +147,12 @@ def _format_processing_summary(
                 f"| {app_id_link} | {version_string} | {_('Processing...')} | - | {_('Processing...')} | - | {_('N/A')} |"
             )
 
+    install_label = _("Uncompressed") if artifact.is_android() else _("Install")
     return _(
-        "| Name | Version | Download | Change | Install | Change | Approval |\n"
+        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
         "|------|---------|----------|--------|---------|--------|----------|\n"
         "{table_rows}"
-    ).format(table_rows="\n".join(table_rows))
+    ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
 
 def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
@@ -191,9 +213,28 @@ def _format_success_summary(
         ):
             download_size = _format_file_size(size_metrics.max_download_size)
             install_size = _format_file_size(size_metrics.max_install_size)
-            # TODO(preprod): Calculate actual size changes
-            download_change = str(_("N/A"))
-            install_change = str(_("N/A"))
+
+            # Get base metrics for comparison
+            base_artifact = artifact.get_base_artifact_for_commit().first()
+            base_metrics = (
+                base_artifact.get_size_metrics(
+                    metrics_artifact_type=size_metrics.metrics_artifact_type,
+                    identifier=size_metrics.identifier,
+                ).first()
+                if base_artifact
+                else None
+            )
+
+            if base_metrics:
+                download_change = _calculate_size_change(
+                    size_metrics.max_download_size, base_metrics.max_download_size
+                )
+                install_change = _calculate_size_change(
+                    size_metrics.max_install_size, base_metrics.max_install_size
+                )
+            else:
+                download_change = str(_("N/A"))
+                install_change = str(_("N/A"))
         else:
             download_size = str(_("Unknown"))
             install_size = str(_("Unknown"))
@@ -204,11 +245,12 @@ def _format_success_summary(
             f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {_('N/A')} |"
         )
 
+    install_label = _("Uncompressed") if artifact.is_android() else _("Install")
     return _(
-        "| Name | Version | Download | Change | Install | Change | Approval |\n"
+        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
         "|------|---------|----------|--------|---------|--------|----------|\n"
         "{table_rows}"
-    ).format(table_rows="\n".join(table_rows))
+    ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
 
 def _get_metric_type_display_name(
@@ -252,6 +294,34 @@ def _create_sorted_artifact_metric_rows(
                 rows.append((artifact, metric))
 
     return rows
+
+
+def _calculate_size_change(head_size: int | None, base_size: int | None) -> str:
+    """Calculate size change between head and base.
+
+    Returns:
+        str: The formatted size change (e.g., "+1.5 MB", "-500.0 KB", "N/A")
+    """
+    if head_size is None or base_size is None:
+        return str(_("N/A"))
+
+    if base_size == 0:
+        if head_size == 0:
+            return "0 B"
+        else:
+            return f"+{_format_file_size(head_size)}"
+
+    absolute_change = head_size - base_size
+
+    # Format absolute change with +/- prefix
+    if absolute_change > 0:
+        change_display = f"+{_format_file_size(absolute_change)}"
+    elif absolute_change < 0:
+        change_display = f"-{_format_file_size(abs(absolute_change))}"
+    else:
+        change_display = "0 B"
+
+    return change_display
 
 
 def _format_file_size(size_bytes: int | None) -> str:

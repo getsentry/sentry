@@ -3121,7 +3121,51 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "enabled:creation"
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_cardinality_precedence_over_feature_checks(self, mock_query: mock.MagicMock) -> None:
+    def test_cardinality_check_with_feature_flag(self, mock_query: mock.MagicMock) -> None:
+        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
+            "sometag",
+        ]
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:high-cardinality"
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_feature_check_takes_precedence_over_cardinality(
+        self, mock_query: mock.MagicMock
+    ) -> None:
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
@@ -3158,7 +3202,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         for version in OnDemandMetricSpecVersioning.get_spec_versions():
             current_version = ondemand_objects.filter(spec_version=version.version).first()
             assert current_version is not None
-            assert current_version.extraction_state == "disabled:high-cardinality"
+            assert current_version.extraction_state == "disabled:pre-rollout"
 
     @mock.patch("sentry.api.serializers.rest_framework.dashboard.get_current_widget_specs")
     def test_cardinality_skips_non_discover_widget_types(
