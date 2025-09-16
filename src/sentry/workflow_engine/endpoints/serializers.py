@@ -690,8 +690,8 @@ class GroupOpenPeriodResponse(TypedDict):
     start: datetime
     end: datetime | None
     duration: timedelta | None
-    is_open: bool
-    last_checked: datetime
+    isOpen: bool
+    lastChecked: datetime
 
 
 @register(GroupOpenPeriod)

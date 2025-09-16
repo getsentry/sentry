@@ -124,7 +124,7 @@ def get_open_periods_for_group(
     query_start: datetime | None = None,
     query_end: datetime | None = None,
     limit: int | None = None,
-) -> list[GroupOpenPeriod | None]:
+) -> list[GroupOpenPeriod] | list[None]:
     if not features.has("organizations:issue-open-periods", group.organization):
         return []
 
@@ -139,7 +139,7 @@ def get_open_periods_for_group(
     if query_end:
         group_open_periods = group_open_periods.filter(date_ended__lte=query_end)
 
-    return group_open_periods[:limit]
+    return [period for period in group_open_periods][:limit]
 
 
 def create_open_period(group: Group, start_time: datetime) -> None:

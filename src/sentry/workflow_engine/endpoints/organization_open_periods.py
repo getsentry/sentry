@@ -130,9 +130,9 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 {"detail": "Group not found. Could not query open periods."},
                 status=status.HTTP_200_OK,
             )
-        limit = request.GET.get("per_page")
-        if limit:
-            limit = int(limit)
+        per_page: str | None = request.GET.get("per_page")
+        if per_page:
+            limit = int(per_page)
 
         open_periods = get_open_periods_for_group(
             group=target_group,
