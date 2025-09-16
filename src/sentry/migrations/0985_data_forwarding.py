@@ -52,7 +52,7 @@ class Migration(CheckedMigration):
                 ),
             ],
             options={
-                "db_table": "sentry_dataforwardingconfig",
+                "db_table": "sentry_dataforwarder",
                 "unique_together": {("organization_id", "provider")},
             },
         ),

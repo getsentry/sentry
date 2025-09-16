@@ -31,5 +31,5 @@ class DataForwarder(DefaultFieldsModel):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_dataforwardingconfig"
+        db_table = "sentry_dataforwarder"
         unique_together = (("organization_id", "provider"),)
