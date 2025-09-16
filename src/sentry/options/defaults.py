@@ -342,7 +342,7 @@ register(
 
 # Deletions
 register(
-    "deletions.group-hashes-fetch-batch-size",
+    "deletions.group-hashes-batch-size",
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2878,7 +2878,7 @@ register(
 register(
     "spans.buffer.compression.level",
     type=Int,
-    default=-1,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3141,6 +3141,17 @@ register(
     "workflow_engine.buffer.use_new_buffer",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Control whether delayed workflow engine evaluation is done
+# via the old process_pending_batch task with rules delayed processing, or
+# via the new schedule_delayed_workflows task.
+# NB: These tasks are allowed to run concurrently, so a naive switch here
+# may result in duplicate processing.
+register(
+    "workflow_engine.use_new_scheduling_task",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

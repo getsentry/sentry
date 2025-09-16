@@ -10,7 +10,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.api.base import audit_logger
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
@@ -53,12 +53,9 @@ def delete_group_list(
     if not all(g.project_id == project.id for g in group_list):
         raise ValueError("All groups must belong to the same project")
 
-    group_ids = []
-    error_ids = []
-    for g in group_list:
-        group_ids.append(g.id)
-        if g.issue_category == GroupCategory.ERROR:
-            error_ids.append(g.id)
+    group_ids = [g.id for g in group_list]
+    error_ids = [g.id for g in group_list if g.issue_category == GroupCategory.ERROR]
+    non_error_ids = [g.id for g in group_list if g.issue_category != GroupCategory.ERROR]
 
     transaction_id = uuid4().hex
     delete_logger.info(
@@ -79,8 +76,10 @@ def delete_group_list(
         },
     )
 
-    # Tell seer to delete grouping records for these groups
-    may_schedule_task_to_delete_hashes_from_seer(error_ids)
+    # Removing GroupHash rows prevents new events from associating to the groups
+    # we just deleted.
+    delete_group_hashes(project.id, error_ids, seer_deletion=True)
+    delete_group_hashes(project.id, non_error_ids)
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
@@ -90,10 +89,6 @@ def delete_group_list(
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
-
-    # Removing GroupHash rows prevents new events from associating to the groups
-    # we just deleted.
-    GroupHash.objects.filter(project_id=project.id, group_id__in=group_ids).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
@@ -108,6 +103,45 @@ def delete_group_list(
                 "transaction_id": str(transaction_id),
             }
         )
+
+
+def delete_group_hashes(
+    project_id: int,
+    group_ids: Sequence[int],
+    seer_deletion: bool = False,
+) -> None:
+    hashes_batch_size = options.get("deletions.group-hashes-batch-size")
+    total_hashes = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).count()
+
+    # Early return if there are no hashes to delete
+    if total_hashes == 0:
+        return
+
+    # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
+    hashes_batch_size = max(1, hashes_batch_size)
+
+    # We multiply by 1.1 to account for the fact that we may have deleted some hashes
+    # since we started the query. Ensure we always process at least one batch if there are hashes.
+    max_iterations = max(1, int(total_hashes * 1.1))
+    for _ in range(0, max_iterations, hashes_batch_size):
+        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
+            "id", "hash"
+        )[:hashes_batch_size]
+        hashes_chunk = list(qs)
+        if not hashes_chunk:
+            break
+        try:
+            if seer_deletion:
+                # Tell seer to delete grouping records for these groups
+                # It's low priority to delete the hashes from seer, so we don't want
+                # any network errors to block the deletion of the groups
+                hash_values = [gh[1] for gh in hashes_chunk]
+                may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
+        except Exception:
+            delete_logger.warning("Error scheduling task to delete hashes from seer")
+        finally:
+            hash_ids = [gh[0] for gh in hashes_chunk]
+            GroupHash.objects.filter(id__in=hash_ids).delete()
 
 
 def create_audit_entries(

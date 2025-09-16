@@ -223,7 +223,14 @@ logger.error('Something went wrong')`,
 const profilingOnboarding: OnboardingConfig = {
   install: () => [installStep()],
   configure: (params: Params) => [configureStep(params)],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+    },
+  ],
 };
 
 const logsOnboarding = getPythonLogsOnboarding();
