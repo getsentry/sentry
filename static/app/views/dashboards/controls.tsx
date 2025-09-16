@@ -9,7 +9,6 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
@@ -197,84 +196,87 @@ function Controls({
     : t('You do not have permission to edit this dashboard');
   return (
     <StyledButtonBar key="controls">
-      <FeedbackWidgetButton />
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
             <Feature features="dashboards-import">
-              <Button
-                data-test-id="dashboard-export"
-                onClick={e => {
-                  e.preventDefault();
-                  exportDashboard();
-                }}
-                icon={<IconDownload />}
-                priority="default"
-                size="sm"
-              >
-                {t('Export Dashboard')}
-              </Button>
+              <Tooltip title={t('Export Dashboard')}>
+                <Button
+                  data-test-id="dashboard-export"
+                  aria-label={t('export-dashboard')}
+                  onClick={e => {
+                    e.preventDefault();
+                    exportDashboard();
+                  }}
+                  icon={<IconDownload />}
+                  priority="default"
+                  size="sm"
+                />
+              </Tooltip>
             </Feature>
-            {dashboard.id !== 'default-overview' && (
-              <Button
-                size="sm"
-                aria-label={'dashboards-favourite'}
-                icon={
-                  <IconStar
-                    color={isFavorited ? 'yellow300' : 'gray300'}
-                    isSolid={isFavorited}
-                    aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
-                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                  />
-                }
-                onClick={async () => {
-                  try {
-                    setIsFavorited(!isFavorited);
-                    await updateDashboardFavorite(
-                      api,
-                      queryClient,
-                      organization,
-                      dashboard.id,
-                      !isFavorited
-                    );
-                    trackAnalytics('dashboards_manage.toggle_favorite', {
-                      organization,
-                      dashboard_id: dashboard.id,
-                      favorited: !isFavorited,
-                    });
-                  } catch (error) {
-                    // If the api call fails, revert the state
-                    setIsFavorited(isFavorited);
-                  }
-                }}
-              />
-            )}
             {dashboard.id !== 'default-overview' && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
               />
             )}
-            <Button
-              data-test-id="dashboard-edit"
-              onClick={e => {
-                e.preventDefault();
-                onEdit();
-              }}
-              icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
-              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
-              title={
-                isSaving
-                  ? DASHBOARD_SAVING_MESSAGE
-                  : hasEditAccess
-                    ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
-                    : t('You do not have permission to edit this dashboard')
-              }
-              priority="default"
-              size="sm"
-            >
-              {t('Edit Dashboard')}
-            </Button>
+            {dashboard.id !== 'default-overview' && (
+              <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
+                <Button
+                  size="sm"
+                  aria-label={t('star-dashboard')}
+                  icon={
+                    <IconStar
+                      color={isFavorited ? 'yellow300' : 'gray500'}
+                      isSolid={isFavorited}
+                      aria-label={isFavorited ? t('Unstar') : t('Star')}
+                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                    />
+                  }
+                  onClick={async () => {
+                    try {
+                      setIsFavorited(!isFavorited);
+                      await updateDashboardFavorite(
+                        api,
+                        queryClient,
+                        organization,
+                        dashboard.id,
+                        !isFavorited
+                      );
+                      trackAnalytics('dashboards_manage.toggle_favorite', {
+                        organization,
+                        dashboard_id: dashboard.id,
+                        favorited: !isFavorited,
+                      });
+                    } catch (error) {
+                      // If the api call fails, revert the state
+                      setIsFavorited(isFavorited);
+                    }
+                  }}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title={t('Edit Dashboard')}>
+              <Button
+                data-test-id="dashboard-edit"
+                aria-label={t('edit-dashboard')}
+                onClick={e => {
+                  e.preventDefault();
+                  onEdit();
+                }}
+                icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
+                disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
+                title={
+                  isSaving
+                    ? DASHBOARD_SAVING_MESSAGE
+                    : hasEditAccess
+                      ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                      : t('You do not have permission to edit this dashboard')
+                }
+                priority="default"
+                size="sm"
+              />
+            </Tooltip>
             {hasFeature ? (
               <Tooltip
                 title={tooltipMessage}
@@ -288,7 +290,7 @@ function Controls({
                     'aria-label': t('Add Widget'),
                     size: 'sm',
                     showChevron: true,
-                    icon: <IconAdd isCircled size="sm" />,
+                    icon: <IconAdd size="sm" />,
                     priority: 'primary',
                   }}
                   position="bottom-end"

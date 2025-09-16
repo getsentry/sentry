@@ -321,11 +321,11 @@ describe('Dashboards - DashboardTable', () => {
       }
     );
 
-    expect(screen.getByLabelText('Favorite Column')).toBeInTheDocument();
-    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
-    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+    expect(screen.getByLabelText('Star Column')).toBeInTheDocument();
+    expect(screen.queryAllByLabelText('Star')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('Unstar')).toHaveLength(1);
 
-    await userEvent.click(screen.queryAllByLabelText('Favorite')[0]!);
-    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(2);
+    await userEvent.click(screen.queryAllByLabelText('Star')[0]!);
+    expect(screen.queryAllByLabelText('Unstar')).toHaveLength(2);
   });
 });
