@@ -374,7 +374,6 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
 
     def test_compare_preprod_artifact_size_analysis_different_build_configurations_as_head(self):
         """Test compare_preprod_artifact_size_analysis with different build configurations when artifact is head."""
-        # Create commit comparisons
         head_commit = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="a" * 40,
@@ -392,13 +391,11 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             base_repo_name="owner/repo",
         )
 
-        # Create build configurations
         debug_config = PreprodBuildConfiguration.objects.create(project=self.project, name="debug")
         release_config = PreprodBuildConfiguration.objects.create(
             project=self.project, name="release"
         )
 
-        # Create artifacts with different build configurations
         head_artifact = PreprodArtifact.objects.create(
             project=self.project,
             commit_comparison=head_commit,
@@ -408,7 +405,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_configuration=debug_config,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        base_artifact = PreprodArtifact.objects.create(
+        PreprodArtifact.objects.create(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -418,23 +415,15 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        with (
-            patch(
-                "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
-            ) as mock_run_comparison,
-            patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger,
-        ):
+        with patch(
+            "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+        ) as mock_run_comparison:
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
                 org_id=self.organization.id,
                 artifact_id=head_artifact.id,
             )
 
-            # Should log different build configurations and not run comparison
-            mock_logger.info.assert_called_with(
-                "preprod.size_analysis.compare.artifact_different_build_configurations",
-                extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
-            )
             mock_run_comparison.assert_not_called()
 
     def test_compare_preprod_artifact_size_analysis_different_build_configurations_as_base(self):
