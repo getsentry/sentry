@@ -577,6 +577,512 @@ describe('BaseNode', () => {
     });
   });
 
+  describe('tree traversal methods', () => {
+    describe('getNextTraversalNodes', () => {
+      it('should return direct children', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+        const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+        const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
+
+        parent.children = [child1, child2];
+
+        const traversalNodes = parent.getNextTraversalNodes();
+        expect(traversalNodes).toHaveLength(2);
+        expect(traversalNodes).toContain(child1);
+        expect(traversalNodes).toContain(child2);
+        expect(traversalNodes).toBe(parent.children); // Should return the same array reference
+      });
+
+      it('should return empty array when no children', () => {
+        const extra = createMockExtra();
+        const node = new TestNode(null, createMockValue({event_id: 'leaf'}), extra);
+
+        expect(node.getNextTraversalNodes()).toEqual([]);
+        expect(node.getNextTraversalNodes()).toHaveLength(0);
+      });
+    });
+
+    describe('findChild', () => {
+      it('should find direct child matching predicate', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+        const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+        const child2 = new TestNode(parent, createMockValue({event_id: 'target'}), extra);
+
+        parent.children = [child1, child2];
+
+        const found = parent.findChild(node => node.id === 'target');
+        expect(found).toBe(child2);
+      });
+
+      it('should find self when matching predicate', () => {
+        const extra = createMockExtra();
+        const node = new TestNode(null, createMockValue({event_id: 'target'}), extra);
+
+        const found = node.findChild(n => n.id === 'target');
+        expect(found).toBe(node);
+      });
+
+      it('should find deeply nested child', () => {
+        const extra = createMockExtra();
+        const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+        const level1 = new TestNode(root, createMockValue({event_id: 'level1'}), extra);
+        const level2 = new TestNode(level1, createMockValue({event_id: 'level2'}), extra);
+        const target = new TestNode(level2, createMockValue({event_id: 'target'}), extra);
+
+        root.children = [level1];
+        level1.children = [level2];
+        level2.children = [target];
+
+        const found = root.findChild(node => node.id === 'target');
+        expect(found).toBe(target);
+      });
+
+      it('should return null when no match found', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+        const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+        const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
+
+        parent.children = [child1, child2];
+
+        const found = parent.findChild(node => node.id === 'nonexistent');
+        expect(found).toBeNull();
+      });
+
+      it('should find first matching child when multiple matches exist', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+        const child1 = new TestNode(
+          parent,
+          createMockValue({event_id: 'child1', op: 'http.request'}),
+          extra
+        );
+        const child2 = new TestNode(
+          parent,
+          createMockValue({event_id: 'child2', op: 'http.request'}),
+          extra
+        );
+
+        parent.children = [child1, child2];
+
+        const found = parent.findChild(node => node.op === 'http.request');
+        expect(found).toBe(parent); // Should find self first since traversal starts with self
+      });
+
+      it('should handle complex tree with multiple branches', () => {
+        const extra = createMockExtra();
+        const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+        const branch1 = new TestNode(root, createMockValue({event_id: 'branch1'}), extra);
+        const branch2 = new TestNode(root, createMockValue({event_id: 'branch2'}), extra);
+        const leaf1 = new TestNode(branch1, createMockValue({event_id: 'leaf1'}), extra);
+        const target = new TestNode(
+          branch2,
+          createMockValue({event_id: 'target'}),
+          extra
+        );
+
+        root.children = [branch1, branch2];
+        branch1.children = [leaf1];
+        branch2.children = [target];
+
+        const found = root.findChild(node => node.id === 'target');
+        expect(found).toBe(target);
+      });
+    });
+
+    describe('findAllChildren', () => {
+      it('should find all matching children', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(
+          null,
+          createMockValue({event_id: 'parent', op: 'transaction'}),
+          extra
+        );
+        const child1 = new TestNode(
+          parent,
+          createMockValue({event_id: 'child1', op: 'http.request'}),
+          extra
+        );
+        const child2 = new TestNode(
+          parent,
+          createMockValue({event_id: 'child2', op: 'db.query'}),
+          extra
+        );
+        const child3 = new TestNode(
+          parent,
+          createMockValue({event_id: 'child3', op: 'http.request'}),
+          extra
+        );
+
+        parent.children = [child1, child2, child3];
+
+        const found = parent.findAllChildren(node => node.op === 'http.request');
+        expect(found).toHaveLength(2);
+        expect(found).toContain(child1);
+        expect(found).toContain(child3);
+        expect(found).not.toContain(child2);
+      });
+
+      it('should include self when matching predicate', () => {
+        const extra = createMockExtra();
+        const node = new TestNode(
+          null,
+          createMockValue({event_id: 'target', op: 'http.request'}),
+          extra
+        );
+        const child = new TestNode(
+          node,
+          createMockValue({event_id: 'child', op: 'db.query'}),
+          extra
+        );
+
+        node.children = [child];
+
+        const found = node.findAllChildren(n => n.op === 'http.request');
+        expect(found).toHaveLength(1);
+        expect(found).toContain(node);
+      });
+
+      it('should find all nodes in complex tree structure', () => {
+        const extra = createMockExtra();
+        const root = new TestNode(
+          null,
+          createMockValue({event_id: 'root', op: 'transaction'}),
+          extra
+        );
+        const level1a = new TestNode(
+          root,
+          createMockValue({event_id: 'level1a', op: 'http.request'}),
+          extra
+        );
+        const level1b = new TestNode(
+          root,
+          createMockValue({event_id: 'level1b', op: 'db.query'}),
+          extra
+        );
+        const level2a = new TestNode(
+          level1a,
+          createMockValue({event_id: 'level2a', op: 'http.request'}),
+          extra
+        );
+        const level2b = new TestNode(
+          level1b,
+          createMockValue({event_id: 'level2b', op: 'http.request'}),
+          extra
+        );
+
+        root.children = [level1a, level1b];
+        level1a.children = [level2a];
+        level1b.children = [level2b];
+
+        const found = root.findAllChildren(node => node.op === 'http.request');
+        expect(found).toHaveLength(3);
+        expect(found).toContain(level1a);
+        expect(found).toContain(level2a);
+        expect(found).toContain(level2b);
+      });
+
+      it('should return empty array when no matches found', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(
+          null,
+          createMockValue({event_id: 'parent', op: 'transaction'}),
+          extra
+        );
+        const child = new TestNode(
+          parent,
+          createMockValue({event_id: 'child', op: 'db.query'}),
+          extra
+        );
+
+        parent.children = [child];
+
+        const found = parent.findAllChildren(node => node.op === 'nonexistent');
+        expect(found).toHaveLength(0);
+      });
+    });
+
+    describe('forEachChild', () => {
+      it('should visit all nodes including self', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+        const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+        const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
+
+        parent.children = [child1, child2];
+
+        const visitedIds: string[] = [];
+        parent.forEachChild(node => {
+          if (node.id) visitedIds.push(node.id);
+        });
+
+        expect(visitedIds).toHaveLength(3);
+        expect(visitedIds).toContain('parent');
+        expect(visitedIds).toContain('child1');
+        expect(visitedIds).toContain('child2');
+      });
+
+      it('should visit nodes in depth-first order', () => {
+        const extra = createMockExtra();
+        const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+        const level1 = new TestNode(root, createMockValue({event_id: 'level1'}), extra);
+        const level2 = new TestNode(level1, createMockValue({event_id: 'level2'}), extra);
+        const sibling = new TestNode(root, createMockValue({event_id: 'sibling'}), extra);
+
+        root.children = [level1, sibling];
+        level1.children = [level2];
+
+        const visitedIds: string[] = [];
+        root.forEachChild(node => {
+          if (node.id) visitedIds.push(node.id);
+        });
+
+        expect(visitedIds).toEqual(['root', 'sibling', 'level1', 'level2']);
+      });
+
+      it('should handle callback that modifies state', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+        const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+        const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
+
+        parent.children = [child1, child2];
+
+        let visitCount = 0;
+        const nodeDepths: number[] = [];
+
+        parent.forEachChild(node => {
+          visitCount++;
+          // Simulate setting depth based on visit order
+          node.depth = visitCount;
+          nodeDepths.push(node.depth);
+        });
+
+        expect(visitCount).toBe(3);
+        expect(nodeDepths).toEqual([1, 2, 3]);
+        expect(parent.depth).toBe(1);
+        expect(child2.depth).toBe(2);
+        expect(child1.depth).toBe(3);
+      });
+
+      it('should work with empty tree', () => {
+        const extra = createMockExtra();
+        const node = new TestNode(null, createMockValue({event_id: 'lonely'}), extra);
+
+        let visitCount = 0;
+        node.forEachChild(() => {
+          visitCount++;
+        });
+
+        expect(visitCount).toBe(1); // Should visit self
+      });
+    });
+
+    describe('findParent', () => {
+      it('should find direct parent matching predicate', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(
+          null,
+          createMockValue({event_id: 'parent', op: 'transaction'}),
+          extra
+        );
+        const child = new TestNode(
+          parent,
+          createMockValue({event_id: 'child', op: 'http.request'}),
+          extra
+        );
+
+        const found = child.findParent(node => node.op === 'transaction');
+        expect(found).toBe(parent);
+      });
+
+      it('should find deeply nested parent', () => {
+        const extra = createMockExtra();
+        const grandparent = new TestNode(
+          null,
+          createMockValue({event_id: 'grandparent', op: 'transaction'}),
+          extra
+        );
+        const parent = new TestNode(
+          grandparent,
+          createMockValue({event_id: 'parent', op: 'http.request'}),
+          extra
+        );
+        const child = new TestNode(
+          parent,
+          createMockValue({event_id: 'child', op: 'db.query'}),
+          extra
+        );
+
+        const found = child.findParent(node => node.op === 'transaction');
+        expect(found).toBe(grandparent);
+      });
+
+      it('should return null when no parent matches', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(
+          null,
+          createMockValue({event_id: 'parent', op: 'transaction'}),
+          extra
+        );
+        const child = new TestNode(
+          parent,
+          createMockValue({event_id: 'child', op: 'http.request'}),
+          extra
+        );
+
+        const found = child.findParent(node => node.op === 'nonexistent');
+        expect(found).toBeNull();
+      });
+
+      it('should return null when node has no parent', () => {
+        const extra = createMockExtra();
+        const root = new TestNode(
+          null,
+          createMockValue({event_id: 'root', op: 'transaction'}),
+          extra
+        );
+
+        const found = root.findParent(node => node.op === 'transaction');
+        expect(found).toBeNull();
+      });
+
+      it('should find first matching parent when multiple matches exist', () => {
+        const extra = createMockExtra();
+        const root = new TestNode(
+          null,
+          createMockValue({event_id: 'root', op: 'transaction'}),
+          extra
+        );
+        const level1 = new TestNode(
+          root,
+          createMockValue({event_id: 'level1', op: 'transaction'}),
+          extra
+        );
+        const level2 = new TestNode(
+          level1,
+          createMockValue({event_id: 'level2', op: 'http.request'}),
+          extra
+        );
+
+        const found = level2.findParent(node => node.op === 'transaction');
+        expect(found).toBe(level1); // Should find the closest matching parent
+      });
+
+      it('should work with complex predicate matching multiple properties', () => {
+        const extra = createMockExtra();
+        const root = new TestNode(
+          null,
+          createMockValue({
+            event_id: 'root',
+            op: 'transaction',
+            project_slug: 'frontend',
+          }),
+          extra
+        );
+        const parent = new TestNode(
+          root,
+          createMockValue({
+            event_id: 'parent',
+            op: 'http.request',
+            project_slug: 'backend',
+          }),
+          extra
+        );
+        const child = new TestNode(
+          parent,
+          createMockValue({
+            event_id: 'child',
+            op: 'db.query',
+            project_slug: 'backend',
+          }),
+          extra
+        );
+
+        // Find parent with specific op and project
+        const found = child.findParent(
+          node => node.op === 'transaction' && node.projectSlug === 'frontend'
+        );
+        expect(found).toBe(root);
+      });
+
+      it('should work with predicate that matches node properties', () => {
+        const extra = createMockExtra();
+        const parent = new TestNode(
+          null,
+          createMockValue({event_id: 'parent-id'}),
+          extra
+        );
+        // Add error to parent
+        parent.errors.add({
+          issue_id: 1,
+          event_id: 'error-1',
+        } as TraceTree.TraceErrorIssue);
+
+        const child = new TestNode(
+          parent,
+          createMockValue({event_id: 'child-id'}),
+          extra
+        );
+
+        const found = child.findParent(node => node.hasIssues);
+        expect(found).toBe(parent);
+      });
+
+      it('should handle predicate that checks for specific ID', () => {
+        const extra = createMockExtra();
+        const root = new TestNode(null, createMockValue({event_id: 'root-id'}), extra);
+        const parent = new TestNode(
+          root,
+          createMockValue({event_id: 'parent-id'}),
+          extra
+        );
+        const child = new TestNode(
+          parent,
+          createMockValue({event_id: 'child-id'}),
+          extra
+        );
+
+        const found = child.findParent(node => node.id === 'root-id');
+        expect(found).toBe(root);
+      });
+
+      it('should traverse entire parent chain', () => {
+        const extra = createMockExtra();
+
+        // Create a deep hierarchy
+        let current = new TestNode(
+          null,
+          createMockValue({event_id: 'level-0', op: 'root'}),
+          extra
+        );
+        const root = current;
+
+        for (let i = 1; i <= 5; i++) {
+          const newNode = new TestNode(
+            current,
+            createMockValue({
+              event_id: `level-${i}`,
+              op: i === 3 ? 'special' : 'normal',
+            }),
+            extra
+          );
+          current = newNode;
+        }
+
+        // From the deepest node, find the node with op 'special'
+        const found = current.findParent(node => node.op === 'special');
+        expect(found?.id).toBe('level-3');
+
+        // From the deepest node, find the root
+        const foundRoot = current.findParent(node => node.op === 'root');
+        expect(foundRoot).toBe(root);
+      });
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle null/undefined values gracefully', () => {
       const extra = createMockExtra();

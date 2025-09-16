@@ -4,7 +4,7 @@ import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -281,6 +281,66 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     this.depth = undefined;
   }
 
+  getNextTraversalNodes(): BaseNode[] {
+    return this.children;
+  }
+
+  findChild(predicate: (child: BaseNode) => boolean): BaseNode | null {
+    const queue: BaseNode[] = [this];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+
+      if (predicate(next)) {
+        return next;
+      }
+
+      queue.push(...next.getNextTraversalNodes());
+    }
+
+    return null;
+  }
+
+  findAllChildren(predicate: (child: BaseNode) => boolean): BaseNode[] {
+    const queue: BaseNode[] = [this];
+    const results: BaseNode[] = [];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+
+      if (predicate(next)) {
+        results.push(next);
+      }
+
+      queue.push(...next.getNextTraversalNodes());
+    }
+
+    return results;
+  }
+
+  forEachChild(callback: (child: BaseNode) => void) {
+    const queue: BaseNode[] = [this];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+
+      callback(next);
+
+      queue.push(...next.getNextTraversalNodes());
+    }
+  }
+
+  findParent(predicate: (parent: BaseNode) => boolean): BaseNode | null {
+    let current = this.parent;
+    while (current) {
+      if (predicate(current)) {
+        return current;
+      }
+      current = current.parent;
+    }
+    return null;
+  }
+
   expand(expanding: boolean, tree: TraceTree): boolean {
     const index = tree.list.indexOf(this as any);
 
@@ -301,7 +361,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       this.expanded = expanding;
     }
 
-    TraceTree.invalidate(this as any, true);
+    this.invalidate();
+    this.forEachChild(child => child.invalidate());
     return true;
   }
 

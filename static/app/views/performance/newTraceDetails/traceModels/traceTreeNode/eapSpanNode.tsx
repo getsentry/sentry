@@ -8,7 +8,7 @@ import {
   isEAPSpan,
   isEAPTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
@@ -30,7 +30,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     super(parent, value, extra);
 
     if (value.is_transaction) {
-      const closestEAPTransaction = TraceTree.ParentEAPTransaction(this as any);
+      const closestEAPTransaction = this.findParent(p => isEAPTransaction(p.value));
       this.parent = (closestEAPTransaction as any) ?? parent;
     }
 
@@ -208,14 +208,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       // direct eap-transaction children of the targetted eap-transaction node.
       if (this.value.is_transaction) {
         this._reparentEAPTransactions(
-          trace => trace.children.filter(c => isEAPTransaction(c.value)) as EapSpanNode[],
-          trace =>
-            TraceTree.Find(this as any, n => {
+          root => root.children.filter(c => isEAPTransaction(c.value)) as EapSpanNode[],
+          root =>
+            root.findChild(n => {
               if (isEAPSpan(n.value)) {
-                return n.value.event_id === trace.value.parent_span_id;
+                return n.value.event_id === root.value.parent_span_id;
               }
               return false;
-            }) as EapSpanNode | null
+            })
         );
 
         const browserRequestSpan = this.children.find(
@@ -238,15 +238,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       // in the collapsed state. This only targets the embedded transactions that are to be direct children of the node upon collapse.
       if (this.value.is_transaction) {
         this._reparentEAPTransactions(
-          trace =>
-            TraceTree.FindAll(
-              trace as any,
+          root =>
+            root.findAllChildren(
               n =>
                 isEAPTransaction(n.value) &&
-                n !== (trace as any) &&
-                TraceTree.ParentEAPTransaction(n) === (this as any)
-            ) as unknown as EapSpanNode[],
-          trace => TraceTree.ParentEAPTransaction(trace as any) as EapSpanNode | null
+                n !== root && // Ensure that the transaction is not the root
+                n.findParent(p => isEAPTransaction(p.value)) === root // Ensure that root is the closest eap-transaction. Room for improvement here, O(n^2)
+            ) as EapSpanNode[],
+          root => root.findParent(p => isEAPTransaction(p.value))
         );
       }
 
@@ -256,7 +255,8 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       }
     }
 
-    TraceTree.invalidate(this as any, true);
+    this.invalidate();
+    this.forEachChild(child => child.invalidate());
     return true;
   }
 

@@ -155,6 +155,10 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     return visibleChildren;
   }
 
+  getNextTraversalNodes(): BaseNode[] {
+    return [this.head];
+  }
+
   matchById(id: string): boolean {
     return this.head.id === id || this.tail.id === id;
   }

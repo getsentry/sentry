@@ -13,6 +13,9 @@ const mockOrganization = OrganizationFixture();
 const mockExtra = {organization: mockOrganization};
 const theme = ThemeFixture();
 
+const mockFromSpans = jest.fn();
+const mockApplyPreference = jest.fn();
+
 describe('TransactionNode', () => {
   describe('constructor', () => {
     it('initializes with basic transaction data', () => {
@@ -25,7 +28,13 @@ describe('TransactionNode', () => {
         timestamp: 2000,
       });
 
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.value).toBe(transaction);
       expect(node.canFetchChildren).toBe(true);
@@ -42,13 +51,25 @@ describe('TransactionNode', () => {
         performance_issues: [performanceIssue],
       });
 
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.occurrences.has(performanceIssue)).toBe(true);
     });
 
     it('handles null/undefined value gracefully', () => {
-      const node = new TransactionNode(null, null as any, mockExtra);
+      const node = new TransactionNode(
+        null,
+        null as any,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.value).toBeNull();
       expect(node.canFetchChildren).toBe(true);
@@ -69,7 +90,13 @@ describe('TransactionNode', () => {
         timestamp: 2500,
       });
 
-      node = new TransactionNode(null, transaction, mockExtra);
+      node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
     });
 
     it('returns correct id', () => {
@@ -132,7 +159,13 @@ describe('TransactionNode', () => {
         performance_issues: [performanceIssue],
       });
 
-      node = new TransactionNode(null, transaction, mockExtra);
+      node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
     });
 
     it('matches by event_id', () => {
@@ -166,7 +199,13 @@ describe('TransactionNode', () => {
         transaction: '/api/users/profile',
       });
 
-      node = new TransactionNode(null, transaction, mockExtra);
+      node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
     });
 
     it('matches by op substring', () => {
@@ -207,7 +246,13 @@ describe('TransactionNode', () => {
         sdk_name: 'javascript',
       });
 
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       const color = node.makeBarColor(theme);
       expect(typeof color).toBe('string');
@@ -217,7 +262,13 @@ describe('TransactionNode', () => {
   describe('analyticsName', () => {
     it('returns correct analytics name', () => {
       const transaction = makeTransaction();
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.analyticsName()).toBe('transaction');
     });
@@ -226,7 +277,13 @@ describe('TransactionNode', () => {
   describe('pathToNode', () => {
     it('returns correct path array', () => {
       const transaction = makeTransaction({event_id: 'my-event-id'});
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.pathToNode()).toEqual(['txn-my-event-id']);
     });
@@ -239,7 +296,13 @@ describe('TransactionNode', () => {
         'transaction.op': 'http.server',
       });
 
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.printNode()).toBe('GET /api/users - http.server');
     });
@@ -250,7 +313,13 @@ describe('TransactionNode', () => {
         'transaction.op': 'http.server',
       });
 
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.printNode()).toBe('unknown transaction - http.server');
     });
@@ -261,7 +330,13 @@ describe('TransactionNode', () => {
         'transaction.op': undefined as any,
       });
 
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.printNode()).toBe('GET /api/users - unknown op');
     });
@@ -272,7 +347,13 @@ describe('TransactionNode', () => {
         'transaction.op': undefined as any,
       });
 
-      const node = new TransactionNode(null, transaction, mockExtra);
+      const node = new TransactionNode(
+        null,
+        transaction,
+        mockExtra,
+        mockFromSpans,
+        mockApplyPreference
+      );
 
       expect(node.printNode()).toBe('unknown transaction - unknown op');
     });

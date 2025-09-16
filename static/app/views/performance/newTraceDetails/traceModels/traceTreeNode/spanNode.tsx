@@ -4,7 +4,8 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
@@ -59,10 +60,10 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
 
   pathToNode(): TraceTree.NodePath[] {
     const path: TraceTree.NodePath[] = [];
-    const closestTransaction = TraceTree.ParentTransaction(this as any);
+    const closestTransaction = this.findParent(p => isTransactionNode(p as any));
 
     if (closestTransaction) {
-      path.push(`txn-${closestTransaction.value.event_id}`);
+      path.push(`txn-${closestTransaction.id}`);
     }
 
     path.push(`span-${this.id}`);

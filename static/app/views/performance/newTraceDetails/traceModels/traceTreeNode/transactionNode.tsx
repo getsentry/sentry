@@ -10,7 +10,7 @@ import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceTransactionRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceTransactionRow';
@@ -23,14 +23,20 @@ const {info, fmt} = Sentry.logger;
 
 export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
+  private _fromSpans: typeof TraceTree.FromSpans;
+  private _applyPreferences: typeof TraceTree.ApplyPreferences;
 
   constructor(
     parent: BaseNode | null,
     value: TraceTree.Transaction,
-    extra: TraceTreeNodeExtra
+    extra: TraceTreeNodeExtra,
+    fromSpans: typeof TraceTree.FromSpans,
+    applyPreferences: typeof TraceTree.ApplyPreferences
   ) {
     super(parent, value, extra);
     this.canFetchChildren = true;
+    this._fromSpans = fromSpans;
+    this._applyPreferences = applyPreferences;
 
     if (value) {
       this.space = [
@@ -117,7 +123,8 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
     }
 
-    TraceTree.invalidate(this as any, true);
+    this.invalidate();
+    this.forEachChild(child => child.invalidate());
     return true;
   }
 
@@ -204,14 +211,13 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       // Find all transactions that are children of the current transaction
       // remove all non transaction events from current node and its children
       // point transactions back to their parents
-      const transactions = TraceTree.FindAll(
-        this as any,
-        c => isTransactionNode(c) && c !== (this as any)
+      const transactions = this.findAllChildren(
+        c => isTransactionNode(c as any) && c !== this
       );
 
       for (const trace of transactions) {
         // point transactions back to their parents
-        const parent = TraceTree.ParentTransaction(trace);
+        const parent = trace.findParent(p => isTransactionNode(p as any));
 
         // If they already have the correct parent, then we can skip this
         if (trace.parent === parent) {
@@ -235,7 +241,8 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
       tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
 
-      TraceTree.invalidate(this as any, true);
+      this.invalidate();
+      this.forEachChild(child => child.invalidate());
       return Promise.resolve(null);
     }
 
@@ -272,7 +279,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
         spans.data.sort((a: any, b: any) => a.start_timestamp - b.start_timestamp);
 
-        const [root, spanTreeSpaceBounds] = TraceTree.FromSpans(
+        const [root, spanTreeSpaceBounds] = this._fromSpans(
           this as any,
           spans.data,
           data
@@ -305,7 +312,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
           tree.dispatch('trace timeline change', tree.root.space);
         }
 
-        TraceTree.ApplyPreferences(root, {
+        this._applyPreferences(root, {
           organization: this.extra.organization,
           preferences: options.preferences,
         });
