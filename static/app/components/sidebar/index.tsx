@@ -40,8 +40,10 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import HookStore from 'sentry/stores/hookStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -81,21 +83,20 @@ import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
-import {SidebarPanelKey} from './types';
 
-function togglePanel(panel: SidebarPanelKey) {
-  SidebarPanelStore.togglePanel(panel);
+function togglePanel(panel: OnboardingDrawerKey) {
+  OnboardingDrawerStore.toggle(panel);
 }
 
 function hidePanel(hash?: string) {
-  SidebarPanelStore.hidePanel(hash);
+  OnboardingDrawerStore.close(hash);
 }
 
 function Sidebar() {
   const theme = useTheme();
   const location = useLocation();
   const preferences = useLegacyStore(PreferencesStore);
-  const activePanel = useLegacyStore(SidebarPanelStore);
+  const activePanel = useLegacyStore(OnboardingDrawerStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const hasOrganization = !!organization;
@@ -138,7 +139,7 @@ function Sidebar() {
   }, []);
 
   useEffect(() => {
-    Object.values(SidebarPanelKey).forEach(key => {
+    Object.values(OnboardingDrawerKey).forEach(key => {
       if (location?.hash === `#sidebar-${key}`) {
         togglePanel(key);
       }
@@ -482,31 +483,31 @@ function Sidebar() {
             {/* What are the onboarding sidebars? */}
             <PerformanceOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
+              onShowPanel={() => togglePanel(OnboardingDrawerKey.PERFORMANCE_ONBOARDING)}
               hidePanel={() => hidePanel('performance-sidequest')}
               {...sidebarItemProps}
             />
             <FeedbackOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
+              onShowPanel={() => togglePanel(OnboardingDrawerKey.FEEDBACK_ONBOARDING)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
             <ReplaysOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
+              onShowPanel={() => togglePanel(OnboardingDrawerKey.REPLAYS_ONBOARDING)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
             <FeatureFlagOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING)}
+              onShowPanel={() => togglePanel(OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
             <LegacyProfilingOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
+              onShowPanel={() => togglePanel(OnboardingDrawerKey.PROFILING_ONBOARDING)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
@@ -514,7 +515,7 @@ function Sidebar() {
             <SidebarSection noMargin noPadding>
               <OnboardingStatus
                 currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                onShowPanel={() => togglePanel(OnboardingDrawerKey.ONBOARDING_WIZARD)}
                 hidePanel={hidePanel}
                 {...sidebarItemProps}
               />
@@ -546,14 +547,14 @@ function Sidebar() {
                     orientation={orientation}
                     collapsed={collapsed}
                     currentPanel={activePanel}
-                    onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                    onShowPanel={() => togglePanel(OnboardingDrawerKey.BROADCASTS)}
                     hidePanel={hidePanel}
                   />
                   <ServiceIncidents
                     orientation={orientation}
                     collapsed={collapsed}
                     currentPanel={activePanel}
-                    onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                    onShowPanel={() => togglePanel(OnboardingDrawerKey.SERVICE_INCIDENTS)}
                     hidePanel={hidePanel}
                   />
                 </Fragment>
@@ -592,7 +593,7 @@ const responsiveFlex = (theme: Theme) => css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
+const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
   background: ${p => p.theme.sidebar.gradient};
   /* @TODO(jonasbadalic): This was a one off color defined in the theme */
   color: #9586a5;

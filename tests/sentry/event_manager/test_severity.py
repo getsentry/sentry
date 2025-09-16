@@ -398,6 +398,7 @@ class TestEventManagerSeverity(TestCase):
                 )
             ).save(self.project.id)
 
+            assert nope_event.group_id is not None
             group = Group.objects.get(id=nope_event.group_id)
 
             # This first assertion isn't useful in and of itself, but it allows us to prove

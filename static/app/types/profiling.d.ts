@@ -192,7 +192,7 @@ declare namespace Profiling {
     children?: Span[];
   };
 
-  type FrameInfo = {
+  type Frame = {
     col?: number;
     colno?: number;
     column?: number;
@@ -219,8 +219,18 @@ declare namespace Profiling {
     // nodejs only
     columnNumber?: number;
     lineNumber?: number;
+    resourceId?: number;
     scriptName?: string;
     scriptId?: number;
+
+    // metadata about the frame's occurrences and more
+    count?: number;
+    weight?: number;
+  };
+
+  type FrameInfo = {
+    count: number;
+    weight: number;
   };
 
   type FunctionMetric = {
@@ -313,7 +323,8 @@ declare namespace Profiling {
       >
     >;
     shared: {
-      frames: ReadonlyArray<Omit<Profiling.FrameInfo, 'key'>>;
+      frames: ReadonlyArray<Omit<Profiling.Frame, 'key'>>;
+      frame_infos?: ReadonlyArray<Profiling.FrameInfo, 'key'>;
       profile_ids?: ReadonlyArray<string>[];
       profiles?: ReadonlyArray<ProfileReference>;
     };

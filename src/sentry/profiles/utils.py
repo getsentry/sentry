@@ -12,7 +12,7 @@ from django.http import HttpResponse as SentryResponse
 from urllib3.connectionpool import ConnectionPool
 from urllib3.response import HTTPResponse as VroomResponse
 
-from sentry.grouping.enhancer import Enhancements, keep_profiling_rules
+from sentry.grouping.enhancer import EnhancementsConfig, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
 from sentry.utils.sdk import set_span_attribute
@@ -175,7 +175,7 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
     profiling_rules = keep_profiling_rules(rules_config)
     if profiling_rules == "":
         return
-    enhancements = Enhancements.from_rules_text(profiling_rules, referrer="profiling")
+    enhancements = EnhancementsConfig.from_rules_text(profiling_rules, referrer="profiling")
     if "version" in profile:
         enhancements.apply_category_and_updated_in_app_to_frames(
             profile["profile"]["frames"], profile["platform"], {}

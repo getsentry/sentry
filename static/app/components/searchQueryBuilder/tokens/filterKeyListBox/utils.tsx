@@ -19,7 +19,11 @@ import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  WildcardOperators,
+  type Token,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {
   getKeyLabel as getFilterKeyLabel,
   getKeyName,
@@ -156,6 +160,24 @@ export function createRawSearchFilterIsValueItem(
 
   return {
     key: getEscapedKey(`${key}:${value}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-is-value',
+  };
+}
+
+export function createRawSearchFilterContainsValueItem(
+  key: string,
+  value: string
+): RawSearchFilterIsValueItem {
+  const filter = `${key}:${WildcardOperators.CONTAINS}${escapeFilterValue(value)}`;
+
+  return {
+    key: getEscapedKey(`${key}:${WildcardOperators.CONTAINS}${value}`),
     label: <FormattedQuery query={filter} />,
     value: filter,
     textValue: filter,

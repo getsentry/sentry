@@ -1,10 +1,12 @@
 import {
-  allOperators,
+  comparisonOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
+  isInterchangeableFilterOperator,
   TermOperator,
   Token,
+  wildcardOperators,
   type AggregateFilter,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -26,6 +28,12 @@ export const OP_LABELS = {
   [TermOperator.LESS_THAN_EQUAL]: '<=',
   [TermOperator.EQUAL]: 'is',
   [TermOperator.NOT_EQUAL]: 'is not',
+  [TermOperator.CONTAINS]: 'contains',
+  [TermOperator.DOES_NOT_CONTAIN]: 'does not contain',
+  [TermOperator.STARTS_WITH]: 'starts with',
+  [TermOperator.DOES_NOT_START_WITH]: 'does not start with',
+  [TermOperator.ENDS_WITH]: 'ends with',
+  [TermOperator.DOES_NOT_END_WITH]: 'does not end with',
 };
 
 export const DATE_OP_LABELS = {
@@ -62,44 +70,67 @@ export function isAggregateFilterToken(
 }
 
 export function getValidOpsForFilter(
-  filterToken: TokenResult<Token.FILTER>
+  filterToken: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
 ): readonly TermOperator[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
-
-  if (fieldDefinition?.allowComparisonOperators) {
-    const validOps = new Set<TermOperator>(allOperators);
-
-    return [...validOps];
-  }
 
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
 
   // Determine any interchangeable filter types for our valid types
-  const interchangeableTypes = validTypes.map(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    type => interchangeableFilterOperators[type] ?? []
+  const interchangeableTypes = validTypes.flatMap(type =>
+    isInterchangeableFilterOperator(type) ? interchangeableFilterOperators[type] : []
   );
 
   // Combine all types
-  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
+  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes])];
 
   // Find all valid operations
   const validOps = new Set<TermOperator>(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
+
+  // Conditionally add comparison operators if they're not already present:
+  // - Field definition allows comparison operators
+  if (fieldDefinition?.allowComparisonOperators) {
+    comparisonOperators.forEach(op => validOps.add(op));
+  }
+
+  // Conditionally remove wildcard operators if:
+  // - Feature flag is not enabled
+  // - Field definition does not allow wildcard operators
+  // - Field definition is a string field
+  if (
+    !hasWildcardOperators ||
+    !areWildcardOperatorsAllowed(fieldDefinition) ||
+    fieldDefinition?.valueType !== FieldValueType.STRING
+  ) {
+    wildcardOperators.forEach(op => validOps.delete(op));
+  }
 
   return [...validOps];
 }
 
-export function escapeTagValue(value: string): string {
+interface EscapeTagValueOptions {
+  allowArrayValue?: boolean;
+}
+
+export function escapeTagValue(
+  value: string,
+  options: EscapeTagValueOptions = {}
+): string {
   if (!value) {
     return '';
   }
 
+  const {allowArrayValue = true} = options;
+
   // Wrap in quotes if there is a space or parens
-  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
+  const shouldEscape =
+    SHOULD_ESCAPE_REGEX.test(value) ||
+    (allowArrayValue && value.startsWith('[') && value.endsWith(']'));
+  return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
 export function unescapeTagValue(value: string): string {
@@ -180,8 +211,32 @@ export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
   }
 }
 
-export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
-  const operator = token.negated ? TermOperator.NOT_EQUAL : token.operator;
+export function getLabelAndOperatorFromToken(
+  token: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
+) {
+  let operator = token.operator;
+
+  if (hasWildcardOperators && token.negated && token.operator === TermOperator.CONTAINS) {
+    operator = TermOperator.DOES_NOT_CONTAIN;
+  } else if (
+    hasWildcardOperators &&
+    token.negated &&
+    token.operator === TermOperator.STARTS_WITH
+  ) {
+    operator = TermOperator.DOES_NOT_START_WITH;
+  } else if (
+    hasWildcardOperators &&
+    token.negated &&
+    token.operator === TermOperator.ENDS_WITH
+  ) {
+    operator = TermOperator.DOES_NOT_END_WITH;
+  } else if (hasWildcardOperators && token.operator === TermOperator.ENDS_WITH) {
+    operator = TermOperator.ENDS_WITH;
+  } else if (token.negated) {
+    operator = TermOperator.NOT_EQUAL;
+  }
+
   const label = OP_LABELS[operator] ?? operator;
 
   return {

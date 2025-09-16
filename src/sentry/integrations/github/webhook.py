@@ -458,7 +458,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="A",
                             )
@@ -469,7 +469,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="D",
                             )
@@ -480,7 +480,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="M",
                             )

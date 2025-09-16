@@ -13,11 +13,13 @@ import {space} from 'sentry/styles/space';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDetectorDateParams} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
@@ -48,10 +50,11 @@ function MetricDetectorChart({
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
+  const datasetConfig = getDatasetConfig(dataset);
   const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
-    aggregate: snubaQuery.aggregate,
+    aggregate: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
     interval: snubaQuery.timeWindow,
     query: snubaQuery.query,
     environment: snubaQuery.environment,
@@ -137,12 +140,18 @@ function MetricDetectorChart({
   }, [thresholdAdditionalSeries, openPeriodMarkerResult.incidentMarkerSeries]);
 
   const yAxes = useMemo(() => {
+    const {formatYAxisLabel} = getDetectorChartFormatters({
+      detectionType,
+      aggregate: snubaQuery.aggregate,
+    });
+
     const mainYAxis: YAXisComponentOption = {
       max: maxValue > 0 ? maxValue : undefined,
       min: 0,
       axisLabel: {
         // Hide the maximum y-axis label to avoid showing arbitrary threshold values
         showMaxLabel: false,
+        formatter: (value: number) => formatYAxisLabel(value),
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -155,7 +164,12 @@ function MetricDetectorChart({
     }
 
     return axes;
-  }, [maxValue, openPeriodMarkerResult.incidentMarkerYAxis]);
+  }, [
+    maxValue,
+    openPeriodMarkerResult.incidentMarkerYAxis,
+    detectionType,
+    snubaQuery.aggregate,
+  ]);
 
   const grid = useMemo(() => {
     return {
@@ -170,7 +184,7 @@ function MetricDetectorChart({
   if (isLoading) {
     return (
       <Flex height={CHART_HEIGHT} justify="center" align="center">
-        <Placeholder height={`${CHART_HEIGHT - 20}px`} />
+        <Placeholder height={`${CHART_HEIGHT}px`} />
       </Flex>
     );
   }
@@ -198,6 +212,12 @@ function MetricDetectorChart({
       grid={grid}
       xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
       ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
+      tooltip={{
+        valueFormatter: getDetectorChartFormatters({
+          detectionType,
+          aggregate: snubaQuery.aggregate,
+        }).formatTooltipValue,
+      }}
       {...chartZoomProps}
     />
   );

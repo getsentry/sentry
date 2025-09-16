@@ -49,6 +49,7 @@ from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA
 from .groupmeta import *  # NOQA
 from .groupopenperiod import *  # NOQA
+from .groupopenperiodactivity import *  # NOQA
 from .groupowner import *  # NOQA
 from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA

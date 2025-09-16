@@ -23,7 +23,7 @@ interface Props {
 }
 
 export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
-  const {detectorId} = uptimeRule;
+  const {id} = uptimeRule;
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
@@ -31,13 +31,13 @@ export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
   const {data: uptimeStats} = useUptimeMonitorStats({
-    detectorIds: [String(uptimeRule.detectorId)],
+    detectorIds: [String(uptimeRule.id)],
     timeWindowConfig,
   });
 
   useEffect(
-    () => uptimeStats?.[detectorId] && onStatsLoaded?.(uptimeStats[detectorId]),
-    [onStatsLoaded, uptimeStats, detectorId]
+    () => uptimeStats?.[id] && onStatsLoaded?.(uptimeStats[id]),
+    [onStatsLoaded, uptimeStats, id]
   );
 
   return (

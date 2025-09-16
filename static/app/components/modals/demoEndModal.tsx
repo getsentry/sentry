@@ -7,10 +7,11 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ModalTask from 'sentry/components/onboardingWizard/modalTask';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -92,7 +93,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
 
   const handleMoreTours = () => {
     closeModal?.();
-    SidebarPanelStore.togglePanel(SidebarPanelKey.ONBOARDING_WIZARD);
+    OnboardingDrawerStore.toggle(OnboardingDrawerKey.ONBOARDING_WIZARD);
     trackAnalytics('growth.end_modal_more_tours', {
       organization: null,
     });

@@ -24,7 +24,7 @@ from sentry.conf.types import kafka_definition
 from sentry.conf.types.kafka_definition import Topic as KafkaTopic
 from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
@@ -44,13 +44,7 @@ from sentry.uptime.detectors.result_handler import (
 )
 from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure, build_detector_fingerprint_component
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    UptimeStatus,
-    UptimeSubscription,
-    UptimeSubscriptionRegion,
-    get_project_subscription,
-)
+from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
@@ -75,7 +69,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             uptime_subscription=self.subscription,
             owner=self.user,
         )
-        self.project_subscription = get_project_subscription(self.detector)
 
     def send_result(
         self, result: CheckResult, consumer: ProcessingStrategy[KafkaPayload] | None = None
@@ -518,7 +511,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime",
             "organizations:uptime-create-issues",
         ]
-        self.project_subscription.update(mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING)
+        # Update detector mode configuration
         self.detector.update(
             config={
                 **self.detector.config,
@@ -618,7 +611,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert remove_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
+        assert remove_call_vals == [(DataCategory.UPTIME, self.detector.id)]
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()
@@ -626,18 +619,15 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         with pytest.raises(UptimeSubscription.DoesNotExist):
             self.subscription.refresh_from_db()
-        with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
-            self.project_subscription.refresh_from_db()
+        # Detector should be marked for pending deletion when subscription is removed
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
 
     def test_onboarding_success_ongoing(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
         ]
-        self.project_subscription.update(
-            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
-            date_added=datetime.now(timezone.utc) - timedelta(minutes=5),
-        )
         self.detector.update(
             config={
                 **self.detector.config,
@@ -686,11 +676,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime",
             "organizations:uptime-create-issues",
         ]
-        self.project_subscription.update(
-            mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
-            date_added=datetime.now(timezone.utc)
-            - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
-        )
         self.detector.update(
             config={
                 **self.detector.config,
@@ -750,8 +735,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-        self.project_subscription.refresh_from_db()
-        assert self.project_subscription.mode == UptimeMonitorMode.AUTO_DETECTED_ACTIVE
+        self.detector.refresh_from_db()
+        assert self.detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value
         self.subscription.refresh_from_db()
         assert self.subscription.interval_seconds == int(
             AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()

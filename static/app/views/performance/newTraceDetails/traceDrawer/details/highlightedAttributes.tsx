@@ -92,9 +92,9 @@ function getAISpanAttributes(
   }
 
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
-  const cachedTokens = attributes['gen_ai.usage.cached_tokens'];
+  const cachedTokens = attributes['gen_ai.usage.input_tokens.cached'];
   const outputTokens = attributes['gen_ai.usage.output_tokens'];
-  const reasoningTokens = attributes['gen_ai.usage.reasoning_tokens'];
+  const reasoningTokens = attributes['gen_ai.usage.output_tokens.reasoning'];
   const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
   if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {

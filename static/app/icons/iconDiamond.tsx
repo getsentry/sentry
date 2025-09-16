@@ -6,7 +6,7 @@ import {SvgIcon} from './svgIcon';
 /**
  * @deprecated This icon will be removed in new UI.
  */
-function IconDiamond(props: SVGIconProps) {
+export function IconDiamond(props: SVGIconProps) {
   const theme = useTheme();
 
   return (
@@ -21,7 +21,3 @@ function IconDiamond(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconDiamond.displayName = 'IconDiamond';
-
-export {IconDiamond};

@@ -441,6 +441,10 @@ function AnnotatedAttributeWrapper(props: {
   return props.children;
 }
 
+function ProjectRenderer(props: LogFieldRendererProps) {
+  return <span>{props.item.value}</span>;
+}
+
 /**
  * Only formats the field the same as discover does, does not apply any additional rendering, but has a container to fix styling.
  */
@@ -498,6 +502,7 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
   [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
   [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,
+  [OurLogKnownFieldKey.PROJECT]: ProjectRenderer,
   [OurLogKnownFieldKey.PAYLOAD_SIZE]: BasicDiscoverRenderer,
 };
 

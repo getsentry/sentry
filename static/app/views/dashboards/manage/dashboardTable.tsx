@@ -87,9 +87,9 @@ function FavoriteButton({
       borderless
       icon={
         <IconStar
-          color={favorited ? 'yellow300' : 'gray300'}
+          color={favorited ? 'yellow300' : 'gray500'}
           isSolid={favorited}
-          aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+          aria-label={favorited ? t('Unstar') : t('Star')}
           size="sm"
         />
       }
@@ -337,7 +337,7 @@ function DashboardTable({
               <StyledIconStar
                 color="yellow300"
                 isSolid
-                aria-label={t('Favorite Column')}
+                aria-label={t('Star Column')}
                 key="favorite-header"
               />,
             ];
