@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
@@ -28,6 +29,7 @@ import {
   getPlanIcon,
   getProductIcon,
   hasPartnerMigrationFeature,
+  isDeveloperPlan,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
@@ -95,7 +97,7 @@ interface BaseSummaryProps {
   formData: CheckoutFormData;
 }
 
-interface PlanSummaryProps extends BaseSummaryProps {}
+interface ItemsSummaryProps extends BaseSummaryProps {}
 
 interface SubtotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
@@ -116,15 +118,12 @@ interface TotalSummaryProps extends BaseSummaryProps {
   subscription: Subscription;
 }
 
-function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
+function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
-      Object.values(activePlan.availableReservedBudgetTypes).reduce((acc, type) => {
-        acc.push(...type.dataCategories);
-        return acc;
-      }, [] as DataCategory[]),
-    [activePlan.availableReservedBudgetTypes]
+      Object.values(activePlan.addOnCategories).flatMap(addOn => addOn.dataCategories),
+    [activePlan.addOnCategories]
   );
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
 
@@ -144,10 +143,12 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
             .filter(
               category =>
                 !additionalProductCategories.includes(category) &&
-                (formData.reserved[category] ?? 0) > 0
+                // only show PAYG-only categories for plans that can use PAYG for them
+                ((formData.reserved[category] ?? 0) > 0 || !isDeveloperPlan(activePlan))
             )
             .map(category => {
               const reserved = formData.reserved[category] ?? 0;
+              const isPaygOnly = reserved === 0;
               const eventBucket =
                 activePlan.planCategories[category] &&
                 activePlan.planCategories[category].length <= 1
@@ -165,7 +166,7 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
               return (
                 <ItemFlex key={category}>
                   <div>
-                    {formattedReserved}{' '}
+                    {isPaygOnly ? '' : `${formattedReserved} `}
                     {reserved === 1 && category !== DataCategory.ATTACHMENTS
                       ? getSingularCategoryName({
                           plan: activePlan,
@@ -175,13 +176,21 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
                       : getPlanCategoryName({
                           plan: activePlan,
                           category,
-                          capitalize: false,
+                          capitalize: isPaygOnly,
                         })}
                   </div>
-                  {price > 0 && (
+                  {price > 0 ? (
                     <div>
                       {formattedPrice}/{shortInterval}
                     </div>
+                  ) : (
+                    isPaygOnly && (
+                      <Tag>
+                        {tct('Available with [budgetTerm]', {
+                          budgetTerm: activePlan.budgetTerm,
+                        })}
+                      </Tag>
+                    )
                   )}
                 </ItemFlex>
               );

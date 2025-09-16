@@ -141,6 +141,10 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('25 GB attachments');
     expect(planItem).toHaveTextContent('$65/yr');
 
+    // PAYG-only categories are also shown for paid plans
+    expect(planItem).toHaveTextContent('Continuous profile hours');
+    expect(planItem).toHaveTextContent('Available with pay-as-you-go');
+
     const seerItem = screen.getByTestId('summary-item-product-seer');
     expect(seerItem).toHaveTextContent('Seer AI Agent');
     expect(seerItem).toHaveTextContent('$216/yr');
