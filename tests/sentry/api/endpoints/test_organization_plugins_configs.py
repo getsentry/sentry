@@ -33,7 +33,7 @@ class OrganizationPluginsTest(APITestCase):
             "jira",
             "opsgenie",
             "pagerduty",
-            "pivotal",
+            "litetracker",
             "pushover",
             "redmine",
             "segment",

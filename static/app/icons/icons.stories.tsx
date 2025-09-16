@@ -1581,7 +1581,7 @@ const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
   'msteams',
   'opsgenie',
   'pagerduty',
-  'pivotal',
+  'litetracker',
   'pushover',
   'redmine',
   'segment',

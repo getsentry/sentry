@@ -50,10 +50,10 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/{var}/{issue_id}/plugins/jira/link/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/jira/unlink/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/jira/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/pivotal/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/pivotal/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/pivotal/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/pivotal/autocomplete": {"GET", "POST"},
+    "/api/0/{var}/{issue_id}/plugins/litetracker/create/": {"GET", "POST"},
+    "/api/0/{var}/{issue_id}/plugins/litetracker/link/": {"GET", "POST"},
+    "/api/0/{var}/{issue_id}/plugins/litetracker/unlink/": {"GET", "POST"},
+    "/api/0/{var}/{issue_id}/plugins/litetracker/autocomplete": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/trello/create/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/trello/link/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/trello/unlink/": {"GET", "POST"},
@@ -174,19 +174,19 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/pivotal/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/litetracker/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/pivotal/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/litetracker/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/pivotal/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/litetracker/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/pivotal/autocomplete": {
+    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/litetracker/autocomplete": {
         "GET",
         "POST",
     },

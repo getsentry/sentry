@@ -15,10 +15,10 @@ from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
 DESCRIPTION = """
-Improve your productivity by creating tickets in Pivotal Tracker directly from Sentry issues.
-This integration also allows you to link Sentry issues to existing tickets in Pivotal Tracker.
+Improve your productivity by creating tickets in Litetracker directly from Sentry issues.
+This integration also allows you to link Sentry issues to existing tickets in Litetracker.
 
-Pivotal Tracker is a straightforward project-planning tool that helps software development
+Litetracker is a straightforward project-planning tool that helps software development
 teams form realistic expectations about when work might be completed based on the teams
 ongoing performance. Tracker visualizes your projects in the form of stories
 moving through your workflow, encouraging you to break down projects into manageable
@@ -26,24 +26,24 @@ chunks and have important conversations about deliverables and scope.
 """
 
 
-class PivotalPlugin(CorePluginMixin, IssuePlugin2):
+class LitetrackerPlugin(CorePluginMixin, IssuePlugin2):
     description = DESCRIPTION
-    slug = "pivotal"
-    title = "Pivotal Tracker"
+    slug = "litetracker"
+    title = "Litetracker"
     conf_title = title
-    conf_key = "pivotal"
+    conf_key = "litetracker"
     required_field = "token"
     feature_descriptions = [
         FeatureDescription(
             """
-            Create and link Sentry issue groups directly to a Pivotal Tracker ticket in any of your
+            Create and link Sentry issue groups directly to a Litetracker ticket in any of your
             projects, providing a quick way to jump from a Sentry bug to tracked ticket.
             """,
             IntegrationFeatures.ISSUE_BASIC,
         ),
         FeatureDescription(
             """
-            Link Sentry issues to existing Pivotal Tracker tickets.
+            Link Sentry issues to existing Litetracker tickets.
             """,
             IntegrationFeatures.ISSUE_BASIC,
         ),
@@ -69,20 +69,20 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
                 "default": "",
                 "type": "select",
                 "has_autocomplete": True,
-                "help": "Search Pivotal Stories by name or description.",
+                "help": "Search Litetracker Stories by name or description.",
             },
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": group.get_absolute_url(params={"referrer": "pivotal_plugin"}),
+                "default": group.get_absolute_url(params={"referrer": "litetracker_plugin"}),
                 "type": "textarea",
-                "help": ("Leave blank if you don't want to " "add a comment to the Pivotal story."),
+                "help": ("Leave blank if you don't want to " "add a comment to the Litetracker story."),
                 "required": False,
             },
         ]
 
     def handle_api_error(self, error: Exception) -> Response:
-        msg = "Error communicating with Pivotal Tracker"
+        msg = "Error communicating with Litetracker"
         status = 400 if isinstance(error, PluginError) else 502
         return Response({"error_type": "validation", "errors": {"__all__": msg}}, status=status)
 
@@ -122,21 +122,21 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             body = safe_urlread(req)
         except requests.RequestException as e:
             msg = str(e)
-            raise PluginError(f"Error communicating with Pivotal: {msg}")
+            raise PluginError(f"Error communicating with Litetracker: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
             msg = str(e)
-            raise PluginError(f"Error communicating with Pivotal: {msg}")
+            raise PluginError(f"Error communicating with Litetracker: {msg}")
 
         if req.status_code > 399:
             raise PluginError(json_resp["error"])
 
-    def build_api_url(self, group, pivotal_api=None):
+    def build_api_url(self, group, litetracker_api=None):
         project = self.get_option("project", group.project)
 
-        _url = f"https://www.pivotaltracker.com/services/v5/projects/{project}/{pivotal_api}"
+        _url = f"https://app.litetracker.com/services/v5/projects/{project}/{litetracker_api}"
 
         return _url
 
@@ -161,13 +161,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             body = safe_urlread(req)
         except requests.RequestException as e:
             msg = str(e)
-            raise PluginError(f"Error communicating with Pivotal: {msg}")
+            raise PluginError(f"Error communicating with Litetracker: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
             msg = str(e)
-            raise PluginError(f"Error communicating with Pivotal: {msg}")
+            raise PluginError(f"Error communicating with Litetracker: {msg}")
 
         if req.status_code > 399:
             raise PluginError(json_resp["error"])
@@ -178,14 +178,14 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         return "#%s" % issue_id
 
     def get_issue_url(self, group, issue_id: str) -> str:
-        return "https://www.pivotaltracker.com/story/show/%s" % issue_id
+        return "https://app.litetracker.com/story/show/%s" % issue_id
 
     def get_configure_plugin_fields(self, project, **kwargs):
         token = self.get_option("token", project)
         helptext = (
             "Enter your API Token (found on "
-            '<a href="https://www.pivotaltracker.com/profile"'
-            ">pivotaltracker.com/profile</a>)."
+            '<a href="https://app.litetracker.com/edit"'
+            ">app.litetracker.com/edit</a>)."
         )
         secret_field = get_secret_field_config(token, helptext, include_prefix=True)
         secret_field.update(

@@ -21,7 +21,7 @@ plugin_slugs = [
     "opsgenie",
     "os",
     "pagerduty",
-    "pivotal",
+    "litetracker",
     "pushover",
     "redmine",
     "segment",

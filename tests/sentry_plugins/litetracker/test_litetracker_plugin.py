@@ -4,17 +4,17 @@ import orjson
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
-from sentry_plugins.pivotal.plugin import PivotalPlugin
+from sentry_plugins.litetracker.plugin import LitetrackerPlugin
 
 
 def test_conf_key() -> None:
-    assert PivotalPlugin().conf_key == "pivotal"
+    assert LitetrackerPlugin().conf_key == "litetracker"
 
 
-class PivotalPluginTest(PluginTestCase):
+class LitetrackerPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self) -> PivotalPlugin:
-        return PivotalPlugin()
+    def plugin(self) -> LitetrackerPlugin:
+        return LitetrackerPlugin()
 
     def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
@@ -23,7 +23,7 @@ class PivotalPluginTest(PluginTestCase):
     def test_get_issue_url(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert (
-            self.plugin.get_issue_url(group, "1") == "https://www.pivotaltracker.com/story/show/1"
+            self.plugin.get_issue_url(group, "1") == "https://app.litetracker.com/story/show/1"
         )
 
     def test_is_configured(self) -> None:
@@ -41,7 +41,7 @@ class PivotalPluginTest(PluginTestCase):
         self.plugin.set_option("token", "abcdef", self.project)
         url = reverse(
             "sentry-api-0-project-plugin-details",
-            args=[self.org.slug, self.project.slug, "pivotal"],
+            args=[self.org.slug, self.project.slug, "litetracker"],
         )
         res = self.client.get(url)
         config = orjson.loads(res.content)["config"]

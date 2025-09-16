@@ -42,7 +42,7 @@ export const POPULARITY_WEIGHT: Record<string, number> = {
   asana: 8,
   trello: 8,
   heroku: 8,
-  pivotal: 8,
+  litetracker: 8,
   twilio: 8,
   pushover: 5,
   redmine: 5,

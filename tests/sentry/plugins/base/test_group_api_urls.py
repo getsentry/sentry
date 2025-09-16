@@ -3,7 +3,7 @@ from sentry_plugins.asana.plugin import AsanaPlugin
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin
 from sentry_plugins.github.plugin import GitHubPlugin
 from sentry_plugins.jira.plugin import JiraPlugin
-from sentry_plugins.pivotal.plugin import PivotalPlugin
+from sentry_plugins.litetracker.plugin import LitetrackerPlugin
 
 
 def test_load_plugin_group_urls() -> None:
@@ -11,7 +11,7 @@ def test_load_plugin_group_urls() -> None:
         (
             JiraPlugin(),
             GitHubPlugin(),
-            PivotalPlugin(),
+            LitetrackerPlugin(),
             BitbucketPlugin(),
             AsanaPlugin(),
         )

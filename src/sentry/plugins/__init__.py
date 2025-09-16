@@ -13,7 +13,7 @@ HIDDEN_PLUGINS = (
     "pushover",
     "twilio",
     "redmine",
-    "pivotal",
+    "litetracker",
     "splunk",
     "segment",
     "victorops",
