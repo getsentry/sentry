@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -749,3 +753,260 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         # iOS app should show "Install" not "Uncompressed"
         assert "Install" in ios_summary
         assert "Uncompressed" not in ios_summary
+
+
+@region_silo_test
+class BuildConfigurationComparisonTest(StatusCheckTestBase):
+    """Tests for ensuring artifacts with different build configurations are not compared."""
+
+    def test_different_build_configurations_not_compared(self):
+        """Test that artifacts with different build configurations (Debug vs Release) don't get compared."""
+        debug_config = PreprodBuildConfiguration.objects.create(project=self.project, name="Debug")
+        release_config = PreprodBuildConfiguration.objects.create(
+            project=self.project, name="Release"
+        )
+
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_sha_debug_vs_release",
+            base_sha="base_sha_debug_vs_release",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+        base_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_sha_debug_vs_release",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_release_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.mixed",
+            build_version="1.0.0",
+            build_number=100,
+            build_configuration=release_config,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_release_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(2.0 * 1024 * 1024),  # 2.0 MB (Release - optimized)
+            max_download_size=int(2.0 * 1024 * 1024),
+            min_install_size=int(4.0 * 1024 * 1024),  # 4.0 MB (Release - optimized)
+            max_install_size=int(4.0 * 1024 * 1024),
+        )
+
+        base_debug_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.mixed",
+            build_version="1.0.0",
+            build_number=100,
+            build_configuration=debug_config,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_debug_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(5.0 * 1024 * 1024),  # 5.0 MB (Debug - larger)
+            max_download_size=int(5.0 * 1024 * 1024),
+            min_install_size=int(10.0 * 1024 * 1024),  # 10.0 MB (Debug - larger)
+            max_install_size=int(10.0 * 1024 * 1024),
+        )
+
+        head_debug_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.mixed",
+            build_version="1.0.1",
+            build_number=101,
+            build_configuration=debug_config,
+        )
+
+        head_debug_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_debug_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(5.2 * 1024 * 1024),  # 5.2 MB (Debug - slight increase)
+            max_download_size=int(5.2 * 1024 * 1024),
+            min_install_size=int(10.3 * 1024 * 1024),  # 10.3 MB (Debug - slight increase)
+            max_install_size=int(10.3 * 1024 * 1024),
+        )
+
+        size_metrics_map = {head_debug_artifact.id: [head_debug_metrics]}
+
+        _, _, summary = format_status_check_messages(
+            [head_debug_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        # Verify current sizes are shown
+        assert "5.2 MB" in summary  # Current debug download size
+        assert "10.3 MB" in summary  # Current debug install size
+
+        # Verify that changes are calculated against the debug base (not release base)
+        # Expected: 5.2MB - 5.0MB = 204.8KB, 10.3MB - 10.0MB = 307.2KB
+        assert "+204.8 KB" in summary  # Debug download change (should be small)
+        assert "+307.2 KB" in summary  # Debug install change (should be small)
+
+        # Verify that it's NOT comparing against the release base artifact
+        # If it was comparing against release (wrong behavior), we would see much larger changes:
+        # 5.2MB - 2.0MB = 3.2MB, 10.3MB - 4.0MB = 6.3MB
+        assert "+3.2 MB" not in summary  # This would indicate wrong comparison to release base
+        assert "+6.3 MB" not in summary  # This would indicate wrong comparison to release base
+
+    def test_same_build_configuration_comparison_works(self):
+        """Test that artifacts with same build configuration are properly compared."""
+        release_config = PreprodBuildConfiguration.objects.create(
+            project=self.project, name="Release"
+        )
+
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_sha_same_config",
+            base_sha="base_sha_same_config",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+        base_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_sha_same_config",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.release",
+            build_version="1.0.0",
+            build_number=50,
+            build_configuration=release_config,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(3.0 * 1024 * 1024),  # 3.0 MB
+            max_download_size=int(3.0 * 1024 * 1024),
+            min_install_size=int(6.0 * 1024 * 1024),  # 6.0 MB
+            max_install_size=int(6.0 * 1024 * 1024),
+        )
+
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.release",
+            build_version="1.0.1",
+            build_number=51,
+            build_configuration=release_config,
+        )
+
+        head_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(3.1 * 1024 * 1024),  # 3.1 MB
+            max_download_size=int(3.1 * 1024 * 1024),
+            min_install_size=int(6.2 * 1024 * 1024),  # 6.2 MB
+            max_install_size=int(6.2 * 1024 * 1024),
+        )
+
+        size_metrics_map = {head_artifact.id: [head_metrics]}
+
+        _, _, summary = format_status_check_messages(
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        # Verify that comparison works properly for same configuration
+        assert "3.1 MB" in summary  # Current download size
+        assert "6.2 MB" in summary  # Current install size
+        assert "+102.4 KB" in summary  # 3.1MB - 3.0MB = 102.4KB
+        assert "+204.8 KB" in summary  # 6.2MB - 6.0MB = 204.8KB
+
+    def test_no_matching_build_configuration_shows_na(self):
+        """Test that when no matching build configuration exists, N/A is shown for changes."""
+        debug_config = PreprodBuildConfiguration.objects.create(project=self.project, name="Debug")
+        release_config = PreprodBuildConfiguration.objects.create(
+            project=self.project, name="Release"
+        )
+
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_sha_no_match",
+            base_sha="base_sha_no_match",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+        base_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_sha_no_match",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.nomatch",
+            build_version="1.0.0",
+            build_number=25,
+            build_configuration=release_config,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(2.5 * 1024 * 1024),  # 2.5 MB
+            max_download_size=int(2.5 * 1024 * 1024),
+            min_install_size=int(5.0 * 1024 * 1024),  # 5.0 MB
+            max_install_size=int(5.0 * 1024 * 1024),
+        )
+
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.nomatch",
+            build_version="1.0.1",
+            build_number=26,
+            build_configuration=debug_config,
+        )
+
+        head_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(6.0 * 1024 * 1024),  # 6.0 MB (Debug is larger)
+            max_download_size=int(6.0 * 1024 * 1024),
+            min_install_size=int(12.0 * 1024 * 1024),  # 12.0 MB (Debug is larger)
+            max_install_size=int(12.0 * 1024 * 1024),
+        )
+
+        size_metrics_map = {head_artifact.id: [head_metrics]}
+
+        _, _, summary = format_status_check_messages(
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        # Verify current sizes are shown
+        assert "6.0 MB" in summary  # Current debug download size
+        assert "12.0 MB" in summary  # Current debug install size
+
+        # Verify that N/A is shown for changes (no matching base configuration)
+        lines = summary.split("\n")
+        data_line = next(line for line in lines if "com.example.nomatch" in line)
+        # Should have N/A for both change columns
+        na_count = data_line.count("N/A")
+        assert na_count >= 2  # At least 2 N/A for the change columns
