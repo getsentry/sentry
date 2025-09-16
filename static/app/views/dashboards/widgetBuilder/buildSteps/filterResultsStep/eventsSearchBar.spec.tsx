@@ -1,15 +1,21 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {FieldKind} from 'sentry/utils/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 
-import ResultsSearchQueryBuilder from './resultsSearchQueryBuilder';
+import {EventsSearchBar} from './eventsSearchBar';
 
-describe('ResultsSearchQueryBuilder', () => {
+jest.mock('sentry/utils/useCustomMeasurements');
+
+describe('EventsSearchBar', () => {
+  let organization: Organization;
   beforeEach(() => {
+    organization = OrganizationFixture();
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/recent-searches/`,
       body: [],
@@ -19,32 +25,26 @@ describe('ResultsSearchQueryBuilder', () => {
       body: [],
       method: 'POST',
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/tags/`,
-      body: [{key: 'transaction', name: 'transaction', kind: FieldKind.FIELD}],
-    });
   });
 
   it('does not show function tags in has: dropdown', async () => {
-    const organization: Organization = OrganizationFixture({
-      features: ['performance-view'],
-    });
-
     render(
-      <ResultsSearchQueryBuilder
-        query={''}
-        onSearch={jest.fn()}
-        onChange={jest.fn()}
-        projectIds={[]}
-        supportedTags={{
-          environment: {key: 'environment', name: 'environment', kind: FieldKind.FIELD},
-          p50: {key: 'p50', name: 'p50', kind: FieldKind.FUNCTION},
-          transaction: {key: 'transaction', name: 'transaction', kind: FieldKind.FIELD},
-          user: {key: 'user', name: 'user', kind: FieldKind.FIELD},
+      <EventsSearchBar
+        onClose={jest.fn()}
+        dataset={DiscoverDatasets.TRANSACTIONS}
+        pageFilters={PageFiltersFixture()}
+        widgetQuery={{
+          aggregates: ['count_unique(browser.name)'],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+          fieldAliases: undefined,
+          fields: undefined,
+          isHidden: undefined,
+          onDemand: undefined,
+          selectedAggregate: undefined,
         }}
-        recentSearches={SavedSearchType.EVENT}
-        // This fields definition is what caused p50 to appear as a function tag
-        fields={[{field: 'p50(transaction.duration)'}]}
       />,
       {
         organization,
@@ -61,6 +61,20 @@ describe('ResultsSearchQueryBuilder', () => {
 
     await userEvent.type(input, '{Enter}');
 
+    // Check that a selected aggregate is in the dropdown
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Edit value for filter: has'})
+    );
+    await userEvent.type(
+      await screen.findByRole('combobox', {name: 'Edit filter value'}),
+      'count_uni'
+    );
+
+    listbox = await screen.findByRole('listbox');
+    await within(listbox).findByText('count_unique');
+
+    await userEvent.type(input, '{Enter}');
+
     // Check that a normal tag (e.g. "transaction") IS in the dropdown
     await userEvent.click(
       await screen.findByRole('button', {name: 'Edit value for filter: has'})
@@ -72,5 +86,6 @@ describe('ResultsSearchQueryBuilder', () => {
 
     listbox = await screen.findByRole('listbox');
     await within(listbox).findByText('transaction');
+    await userEvent.type(input, '{Enter}');
   });
 });
