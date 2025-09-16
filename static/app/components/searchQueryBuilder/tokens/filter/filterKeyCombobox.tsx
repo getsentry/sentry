@@ -47,7 +47,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     setDisplayAskSeer,
     currentInputValueRef,
     setAutoSubmitSeer,
-    gaveSeerConsent,
   } = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
