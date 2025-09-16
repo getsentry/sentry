@@ -5,6 +5,7 @@ import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
@@ -12,7 +13,6 @@ import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelin
 import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
-import {Flex} from 'sentry/components/replays/replayView';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';

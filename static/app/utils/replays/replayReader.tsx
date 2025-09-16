@@ -526,7 +526,7 @@ export default class ReplayReader {
     //                               replayEnd + 15 mins (0:27)
     //                     |---------|
     //
-    //                     |---------| <- (replay is "LIVE")
+    //                     |---------| ◀─ (replay is "LIVE")
 
     // Case #2:
     // Time (mins) ────────────────────────────────────────────────▶
