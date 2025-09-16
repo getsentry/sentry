@@ -10,7 +10,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {Separator} from 'sentry/components/core/separator';
+import {Separator, type SeparatorProps} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -204,7 +204,15 @@ export function FoldSection({
   );
 }
 
-export const SectionDivider = styled(Separator)`
+export const SectionDivider = styled(
+  ({orientation, margin, ...props}: SeparatorProps) => (
+    <Separator
+      orientation={orientation || 'horizontal'}
+      margin={margin || 'lg 0'}
+      {...props}
+    />
+  )
+)`
   &:last-child {
     display: none;
   }
