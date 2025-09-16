@@ -21,6 +21,7 @@ from sentry.feedback.usecases.label_generation import (
     MAX_AI_LABELS,
     MAX_AI_LABELS_JSON_LENGTH,
 )
+from sentry.feedback.usecases.spam_detection import spam_detection_enabled
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
@@ -506,7 +507,7 @@ def test_create_feedback_filters_no_contexts_or_message(
 
 @django_db_all
 @pytest.mark.parametrize(
-    "input_message, feature_flag, expected_result, expected_evidence_display",
+    "input_message, enabled, expected_result, expected_evidence_display",
     [
         ("This is definitely spam", True, True, "True"),
         ("Valid feedback message", True, False, "False"),
@@ -520,11 +521,11 @@ def test_create_feedback_spam_detection_produce_to_kafka(
     default_project,
     mock_produce_occurrence_to_kafka,
     input_message,
-    feature_flag,
+    enabled,
     expected_result,
     expected_evidence_display,
 ):
-    with Feature({"organizations:user-feedback-spam-ingest": feature_flag}):
+    with patch(spam_detection_enabled, return_value=enabled):
         event = mock_feedback_event(default_project.id, message=input_message)
 
         mock_openai = Mock()
@@ -553,13 +554,13 @@ def test_create_feedback_spam_detection_produce_to_kafka(
         is_spam_display = is_spam_displays[0] if is_spam_displays else None
         assert is_spam_display == expected_evidence_display
 
-        # Check spam_detection_enabled evidence (=feature_flag)
-        assert occurrence.evidence_data["spam_detection_enabled"] == feature_flag
+        # Check spam_detection_enabled evidence (=enabled)
+        assert occurrence.evidence_data["spam_detection_enabled"] == enabled
         enabled_displays = [
             e.value for e in occurrence.evidence_display if e.name == "spam_detection_enabled"
         ]
         enabled_display = enabled_displays[0] if enabled_displays else None
-        assert enabled_display == str(feature_flag)
+        assert enabled_display == str(enabled)
 
 
 @django_db_all
