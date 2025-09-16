@@ -68,7 +68,7 @@ class GroupResolution(Model):
         indexes = [
             models.Index(
                 fields=["type", "status", "future_release_version"],
-                name="sentry_groupresolution_future_release_idx",
+                name="groupres_future_release_idx",
             ),
         ]
 
