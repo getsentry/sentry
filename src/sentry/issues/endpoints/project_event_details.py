@@ -17,6 +17,7 @@ from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -41,7 +42,7 @@ def wrap_event_response(
         IssueEventSerializer(),
         include_full_release_data=include_full_release_data,
     )
-    
+
     # Handle case where serialization fails and returns None
     if event_data is None:
         # Return a minimal response structure when serialization fails
@@ -52,8 +53,8 @@ def wrap_event_response(
             "groupID": str(event.group_id) if event.group_id else None,
             "dateCreated": event.datetime,
             "message": "Event data unavailable due to serialization failure",
-            "platform": getattr(event, 'platform', None),
-            "type": getattr(event, 'get_event_type', lambda: 'default')(),
+            "platform": getattr(event, "platform", None),
+            "type": getattr(event, "get_event_type", lambda: "default")(),
             "tags": [],
             "user": None,
             "context": {},
@@ -65,7 +66,7 @@ def wrap_event_response(
             "size": 0,
             "_meta": {},
         }
-    
+
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None
@@ -116,13 +117,15 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            },
+        }
+    )
 
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
