@@ -13,6 +13,7 @@ import {
   type SearchItem,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {DeviceName} from 'sentry/components/deviceName';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
@@ -846,6 +847,7 @@ export function SearchQueryBuilderValueCombobox({
           // display and ask seer option in this list box.
           const hiddenOptions = new Set(props.hiddenOptions);
           hiddenOptions.delete(ASK_SEER_ITEM_KEY);
+          hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
 
           return (
             <ValueListBox
