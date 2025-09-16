@@ -44,9 +44,6 @@ class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
         codeowners: list[ProjectCodeOwners] = list(
             ProjectCodeOwners.objects.filter(project=project).order_by("-date_added")
         )
-        # TODO (ID-832): this manual updating can be removed once ProjectCodeOwners schemas are all updated to contain owner IDs
-        for codeowner in codeowners:
-            codeowner.update_schema(organization=project.organization, raw=codeowner.raw)
 
         return Response(
             serialize(
