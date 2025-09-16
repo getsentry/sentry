@@ -13,10 +13,10 @@ class OverwatchConsentServiceTest(TestCase):
             for key, value in options.items():
                 OrganizationOption.objects.set_value(org, key, value)
 
-    def test_get_organization_prevent_consent_status_delegation(self):
+    def test_get_organization_consent_status_delegation(self):
         org = self.create_organization()
 
-        result = overwatch_consent_service.get_organization_prevent_consent_status(
+        result = overwatch_consent_service.get_organization_consent_status(
             organization_ids=[org.id], region_name="us"
         )
 
@@ -26,7 +26,7 @@ class OverwatchConsentServiceTest(TestCase):
         assert result[org.id].organization_id == org.id
         assert isinstance(result[org.id].has_consent, bool)
 
-    def test_get_organization_prevent_consent_status_multiple_orgs(self):
+    def test_get_organization_consent_status_multiple_orgs(self):
         org1 = self.create_organization()
         org2 = self.create_organization()
 
@@ -38,7 +38,7 @@ class OverwatchConsentServiceTest(TestCase):
             org2, {"sentry:hide_ai_features": True, "sentry:enable_pr_review_test_generation": True}
         )
 
-        result = overwatch_consent_service.get_organization_prevent_consent_status(
+        result = overwatch_consent_service.get_organization_consent_status(
             organization_ids=[org1.id, org2.id], region_name="us"
         )
 
@@ -50,23 +50,23 @@ class OverwatchConsentServiceTest(TestCase):
         assert result[org2.id].organization_id == org2.id
         assert result[org2.id].has_consent is False
 
-    def test_get_organization_prevent_consent_status_empty_list(self):
-        result = overwatch_consent_service.get_organization_prevent_consent_status(
+    def test_get_organization_consent_status_empty_list(self):
+        result = overwatch_consent_service.get_organization_consent_status(
             organization_ids=[], region_name="us"
         )
 
         assert result == {}
 
-    def test_get_organization_prevent_consent_status_nonexistent_org(self):
+    def test_get_organization_consent_status_nonexistent_org(self):
         nonexistent_id = 999999
 
-        result = overwatch_consent_service.get_organization_prevent_consent_status(
+        result = overwatch_consent_service.get_organization_consent_status(
             organization_ids=[nonexistent_id], region_name="us"
         )
 
         assert result == {}
 
-    def test_get_organization_prevent_consent_status_mixed_existing_nonexistent(self):
+    def test_get_organization_consent_status_mixed_existing_nonexistent(self):
         org = self.create_organization()
         self._add_organization_options(
             org, {"sentry:hide_ai_features": False, "sentry:enable_pr_review_test_generation": True}
@@ -74,7 +74,7 @@ class OverwatchConsentServiceTest(TestCase):
 
         nonexistent_id = 999999
 
-        result = overwatch_consent_service.get_organization_prevent_consent_status(
+        result = overwatch_consent_service.get_organization_consent_status(
             organization_ids=[org.id, nonexistent_id], region_name="us"
         )
 

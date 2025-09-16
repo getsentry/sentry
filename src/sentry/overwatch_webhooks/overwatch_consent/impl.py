@@ -10,7 +10,7 @@ from sentry.overwatch_webhooks.overwatch_consent.service import OverwatchConsent
 
 
 class DatabaseBackedOverwatchConsentService(OverwatchConsentService):
-    def get_organization_prevent_consent_status(
+    def get_organization_consent_status(
         self, *, organization_ids: list[int], region_name: str
     ) -> dict[int, RpcOrganizationConsentStatus]:
         """

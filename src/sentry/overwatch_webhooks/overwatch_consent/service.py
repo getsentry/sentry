@@ -25,7 +25,7 @@ class OverwatchConsentService(RpcService):
 
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
-    def get_organization_prevent_consent_status(
+    def get_organization_consent_status(
         self, *, organization_ids: list[int], region_name: str
     ) -> dict[int, RpcOrganizationConsentStatus]:
         """
