@@ -1,10 +1,9 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Container} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -37,7 +36,6 @@ import {
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
-  hasNewBillingUI,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
@@ -109,14 +107,12 @@ function UsageHistory({subscription}: Props) {
     }
   );
 
-  const isNewBillingUI = hasNewBillingUI(organization);
-
   if (isPending) {
     return (
-      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+      <Fragment>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Container>
+      </Fragment>
     );
   }
 
@@ -132,7 +128,7 @@ function UsageHistory({subscription}: Props) {
   }
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+    <Fragment>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <Panel>
         <PanelHeader>{t('Usage History')}</PanelHeader>
@@ -143,7 +139,7 @@ function UsageHistory({subscription}: Props) {
         </PanelBody>
       </Panel>
       {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
-    </Container>
+    </Fragment>
   );
 }
 
