@@ -72,7 +72,7 @@ function useShowOnboarding() {
 
 function AgentsOverviewPage() {
   const organization = useOrganization();
-  const showOnboarding = true;
+  const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
   const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
 
