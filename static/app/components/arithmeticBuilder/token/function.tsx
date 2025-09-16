@@ -168,7 +168,7 @@ function ArgumentsGridList({
   });
 
   return (
-    <BaseGridCell {...gridProps} ref={ref}>
+    <ArgumentsGridWrapper {...gridProps} ref={ref}>
       {[...state.collection].map((item, index) => {
         const attribute = item.value;
 
@@ -177,7 +177,7 @@ function ArgumentsGridList({
         }
         const argument = {label: attribute.attribute, value: attribute.text};
         return (
-          <BaseGridCell key={`${attribute.key}-${attribute.attribute}`}>
+          <ArgumentGridCell key={`${attribute.key}-${attribute.attribute}`}>
             <InternalInput
               functionItem={functionItem}
               functionListState={functionListState}
@@ -192,10 +192,10 @@ function ArgumentsGridList({
               onArgumentsChange={onArgumentsChange}
             />
             {index < functionToken.attributes.length - 1 && ','}
-          </BaseGridCell>
+          </ArgumentGridCell>
         );
       })}
-    </BaseGridCell>
+    </ArgumentsGridWrapper>
   );
 }
 
@@ -582,8 +582,20 @@ function InternalInput({
     (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
   ) {
     return (
-      <BaseGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
-        <InputBox
+      <BaseGridCell
+        {...rowProps}
+        {...gridCellProps}
+        tabIndex={-1}
+        ref={gridCellRef}
+        style={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          minWidth: '20px',
+          flex: '0 1 auto',
+        }}
+      >
+        <FixedWidthInputBox
           tabIndex={-1}
           ref={inputRef}
           inputLabel={t('Add a value')}
@@ -608,8 +620,15 @@ function InternalInput({
       {...gridCellProps}
       tabIndex={isFocused ? 0 : -1}
       ref={gridCellRef}
+      style={{
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        minWidth: '20px',
+        flex: '0 1 auto',
+      }}
     >
-      <ComboBox
+      <StyledComboBox
         items={items}
         ref={inputRef}
         placeholder={
@@ -660,7 +679,7 @@ function InternalInput({
             </Item>
           )
         }
-      </ComboBox>
+      </StyledComboBox>
     </BaseGridCell>
   );
 }
@@ -721,6 +740,7 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   height: 24px;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
+  max-width: 264px;
 
   :focus {
     background-color: ${p => p.theme.gray100};
@@ -750,6 +770,40 @@ const BaseGridCell = styled('div')`
   align-items: center;
   position: relative;
   height: 100%;
+  flex-shrink: 1;
+`;
+
+const ArgumentsGridWrapper = styled(BaseGridCell)`
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 100%;
+  flex-shrink: 1;
+  max-width: 200px;
+`;
+
+const ArgumentGridCell = styled(BaseGridCell)`
+  flex: 0 1 auto;
+  min-width: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const FixedWidthInputBox = styled(InputBox)`
+  width: 100%;
+  min-width: 0;
+`;
+
+const StyledComboBox = styled(ComboBox)`
+  width: 100%;
+  min-width: 0;
+
+  input {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`
