@@ -134,6 +134,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         per_page = request.GET.get("per_page")
         if per_page:
             limit = int(per_page)
+            assert limit > 0
 
         open_periods = get_open_periods_for_group(
             group=target_group,
