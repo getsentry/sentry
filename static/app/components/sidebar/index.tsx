@@ -5,12 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
-import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
-import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
-import {LegacyProfilingOnboardingSidebar} from 'sentry/components/profiling/profilingOnboardingSidebar';
-import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
@@ -480,38 +475,6 @@ function Sidebar() {
 
         {hasOrganization && (
           <SidebarSectionGroup>
-            {/* What are the onboarding sidebars? */}
-            <PerformanceOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(OnboardingDrawerKey.PERFORMANCE_ONBOARDING)}
-              hidePanel={() => hidePanel('performance-sidequest')}
-              {...sidebarItemProps}
-            />
-            <FeedbackOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(OnboardingDrawerKey.FEEDBACK_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-            <ReplaysOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(OnboardingDrawerKey.REPLAYS_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-            <FeatureFlagOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-            <LegacyProfilingOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(OnboardingDrawerKey.PROFILING_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-
             <SidebarSection noMargin noPadding>
               <OnboardingStatus
                 currentPanel={activePanel}
