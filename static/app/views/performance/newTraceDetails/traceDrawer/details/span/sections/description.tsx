@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
@@ -124,32 +123,17 @@ export function SpanDescription({
             TraceDrawerActionKind.INCLUDE
           )}
           onClick={() => {
-            if (hasExploreEnabled) {
-              traceAnalytics.trackExploreSearch(
-                organization,
-                SpanFields.SPAN_DESCRIPTION,
-                span.description!,
-                TraceDrawerActionKind.INCLUDE,
-                'drawer'
-              );
-            } else if (hasNewSpansUIFlag) {
-              trackAnalytics('trace.trace_layout.view_span_summary', {
-                organization,
-                module: resolvedModule,
-              });
-            } else {
-              trackAnalytics('trace.trace_layout.view_similar_spans', {
-                organization,
-                module: resolvedModule,
-                source: 'span_description',
-              });
-            }
+            traceAnalytics.trackExploreSearch(
+              organization,
+              SpanFields.SPAN_DESCRIPTION,
+              span.description!,
+              TraceDrawerActionKind.INCLUDE,
+              'drawer'
+            );
           }}
         >
           <IconGraph type="scatter" size="xs" />
-          {hasNewSpansUIFlag || hasExploreEnabled
-            ? t('More Samples')
-            : t('View Similar Spans')}
+          {t('More Samples')}
         </StyledLink>
       )}
     </BodyContentWrapper>

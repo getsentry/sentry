@@ -1,9 +1,6 @@
 import {css, type Theme} from '@emotion/react';
 import Color from 'color';
 
-import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
-import {space} from 'sentry/styles/space';
-
 import type {SpanBarType} from './constants';
 import {getSpanBarColors} from './constants';
 
