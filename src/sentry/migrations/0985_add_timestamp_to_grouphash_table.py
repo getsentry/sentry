@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            db_operations=[
+            database_operations=[
                 migrations.AddField(
                     model_name="grouphash",
                     name="date_added",
