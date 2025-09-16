@@ -147,11 +147,12 @@ def _format_processing_summary(
                 f"| {app_id_link} | {version_string} | {_('Processing...')} | - | {_('Processing...')} | - | {_('N/A')} |"
             )
 
+    install_label = _("Uncompressed") if artifact.is_android() else _("Install")
     return _(
-        "| Name | Version | Download | Change | Install | Change | Approval |\n"
+        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
         "|------|---------|----------|--------|---------|--------|----------|\n"
         "{table_rows}"
-    ).format(table_rows="\n".join(table_rows))
+    ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
 
 def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
@@ -244,11 +245,12 @@ def _format_success_summary(
             f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {_('N/A')} |"
         )
 
+    install_label = _("Uncompressed") if artifact.is_android() else _("Install")
     return _(
-        "| Name | Version | Download | Change | Install | Change | Approval |\n"
+        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
         "|------|---------|----------|--------|---------|--------|----------|\n"
         "{table_rows}"
-    ).format(table_rows="\n".join(table_rows))
+    ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
 
 def _get_metric_type_display_name(
