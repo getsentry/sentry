@@ -16,6 +16,7 @@ import type {
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -316,6 +317,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 
     if (enableAISearch) {
       baseHidden.push(ASK_SEER_ITEM_KEY);
+      baseHidden.push(ASK_SEER_CONSENT_ITEM_KEY);
     }
 
     return new Set(baseHidden);

@@ -17,6 +17,7 @@ import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/token
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
+  createAskSeerConsentItem,
   createAskSeerItem,
   createRecentFilterItem,
   createRecentFilterOptionKey,
@@ -186,7 +187,9 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
 
     const askSeerItem = [];
     if (enableAISearch) {
-      askSeerItem.push(createAskSeerItem());
+      askSeerItem.push(
+        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+      );
     }
 
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
@@ -216,6 +219,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   }, [
     enableAISearch,
     filterKeys,
+    gaveSeerConsent,
     getFieldDefinition,
     recentFilters,
     recentSearches,
@@ -384,15 +388,6 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
-        if (!gaveSeerConsent) {
-          trackAnalytics('trace.explorer.ai_query_interface', {
-            organization,
-            action: 'consent_accepted',
-          });
-          seerAcknowledgeMutate();
-          return;
-        }
-
         trackAnalytics('trace.explorer.ai_query_interface', {
           organization,
           action: 'opened',
@@ -407,10 +402,18 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
 
         return;
       }
+
+      if (option.type === 'ask-seer-consent') {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'consent_accepted',
+        });
+        seerAcknowledgeMutate();
+        return;
+      }
     },
     [
       currentInputValueRef,
-      gaveSeerConsent,
       organization,
       seerAcknowledgeMutate,
       setAutoSubmitSeer,

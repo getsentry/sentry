@@ -30,6 +30,7 @@ import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
@@ -180,6 +181,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
+  const {gaveSeerConsent} = useSearchQueryBuilder();
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     const options = getHiddenOptions(
       items,
@@ -188,16 +190,29 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     );
 
     if (showAskSeerOption) {
-      options.add(ASK_SEER_ITEM_KEY);
+      if (gaveSeerConsent) {
+        options.add(ASK_SEER_ITEM_KEY);
+      } else {
+        options.add(ASK_SEER_CONSENT_ITEM_KEY);
+      }
     }
 
     return options;
-  }, [filterValue, items, maxOptions, shouldFilterResults, showAskSeerOption]);
+  }, [
+    filterValue,
+    gaveSeerConsent,
+    items,
+    maxOptions,
+    shouldFilterResults,
+    showAskSeerOption,
+  ]);
 
   const disabledKeys = useMemo(() => {
     const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
     return showAskSeerOption
-      ? baseDisabledKeys.filter(key => key !== ASK_SEER_ITEM_KEY)
+      ? baseDisabledKeys.filter(
+          key => key !== ASK_SEER_ITEM_KEY && key !== ASK_SEER_CONSENT_ITEM_KEY
+        )
       : baseDisabledKeys;
   }, [hiddenOptions, items, showAskSeerOption]);
 
