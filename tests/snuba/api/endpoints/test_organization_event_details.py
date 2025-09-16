@@ -333,7 +333,8 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
         )
 
     def test_get_without_feature(self) -> None:
-        response = self.client.get(self.url, {"averageColumn": "span.self_time"})
+        with self.feature({"organizations:insight-modules": False}):
+            response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
         entries = response.data["entries"]  # type: ignore[attr-defined]
         for entry in entries:
