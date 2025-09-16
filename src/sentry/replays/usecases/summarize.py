@@ -117,7 +117,7 @@ def fetch_trace_connected_errors(
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        error_query_results = []
+        error_query_results = {"data": []}
 
     # Query for issuePlatform dataset
     try:
@@ -139,7 +139,7 @@ def fetch_trace_connected_errors(
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        issue_query_results = []
+        issue_query_results = {"data": []}
 
     # Process results and convert to EventDict objects
     events = []
