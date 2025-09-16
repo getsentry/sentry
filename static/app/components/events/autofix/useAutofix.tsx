@@ -318,23 +318,30 @@ export function useCodingAgentIntegrations() {
   });
 }
 
+interface LaunchCodingAgentParams {
+  agentName: string;
+  integrationId: string;
+  triggerSource?: 'root_cause' | 'solution';
+}
+
 export function useLaunchCodingAgent(groupId: string, runId: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: {integrationId: string}) => {
+    mutationFn: (params: LaunchCodingAgentParams) => {
       return fetchMutation({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         method: 'POST',
         data: {
           integration_id: parseInt(params.integrationId, 10),
           run_id: parseInt(runId, 10),
+          trigger_source: params.triggerSource,
         },
       });
     },
-    onSuccess: () => {
-      addSuccessMessage('Cursor agent launched successfully');
+    onSuccess: (_, params) => {
+      addSuccessMessage(`${params.agentName} agent launched successfully`);
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(organization.slug, groupId, false),
       });
@@ -342,8 +349,8 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
         queryKey: makeAutofixQueryKey(organization.slug, groupId, true),
       });
     },
-    onError: () => {
-      addErrorMessage('Failed to launch Cursor agent');
+    onError: (_, params) => {
+      addErrorMessage(`Failed to launch ${params.agentName} agent`);
     },
   });
 }

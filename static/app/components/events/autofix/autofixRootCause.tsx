@@ -303,16 +303,18 @@ function AutofixRootCauseDisplay({
     integration => integration.provider === 'cursor'
   );
 
-  const handleLaunchCursorAgent = () => {
+  const handleLaunchCodingAgent = () => {
     if (!cursorIntegration) {
       return;
     }
 
     launchCodingAgent({
       integrationId: cursorIntegration.id,
+      agentName: cursorIntegration.name,
+      triggerSource: 'root_cause',
     });
 
-    trackAnalytics('autofix.cursor_agent.launch_from_root_cause', {
+    trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
       organization,
       group_id: groupId,
     });
@@ -327,6 +329,14 @@ function AutofixRootCauseDisplay({
     setIsProvidingSolution(false);
     setSolutionText('');
   };
+
+  // Shared UI state for "Find Solution" controls
+  const isRootCauseAlreadySelected = Boolean(
+    rootCauseSelection && 'cause_id' in rootCauseSelection
+  );
+  const findSolutionPriority: React.ComponentProps<typeof Button>['priority'] =
+    isRootCauseAlreadySelected ? 'default' : 'primary';
+  const findSolutionTitle = t('Let Seer plan a solution to this issue');
 
   const handleSubmitSolution = (e: React.FormEvent) => {
     e.preventDefault();
@@ -486,15 +496,11 @@ function AutofixRootCauseDisplay({
               <ButtonBar merged gap="0">
                 <Button
                   size="sm"
-                  priority={
-                    rootCauseSelection && 'cause_id' in rootCauseSelection
-                      ? 'default'
-                      : 'primary'
-                  }
+                  priority={findSolutionPriority}
                   busy={isSelectingRootCause}
                   disabled={isLoadingAgents}
                   onClick={handleSelectRootCause}
-                  title={t('Let Seer plan a solution to this issue')}
+                  title={findSolutionTitle}
                 >
                   {t('Find Solution')}
                 </Button>
@@ -503,7 +509,7 @@ function AutofixRootCauseDisplay({
                     {
                       key: 'cursor-agent',
                       label: t('Send to Cursor Background Agent'),
-                      onAction: handleLaunchCursorAgent,
+                      onAction: handleLaunchCodingAgent,
                       disabled: isLoadingAgents || isLaunchingAgent,
                     },
                   ]}
@@ -511,11 +517,7 @@ function AutofixRootCauseDisplay({
                     <DropdownTrigger
                       {...triggerProps}
                       size="sm"
-                      priority={
-                        rootCauseSelection && 'cause_id' in rootCauseSelection
-                          ? 'default'
-                          : 'primary'
-                      }
+                      priority={findSolutionPriority}
                       busy={isLaunchingAgent}
                       disabled={isLoadingAgents}
                       aria-label={t('More solution options')}
@@ -527,14 +529,10 @@ function AutofixRootCauseDisplay({
             ) : (
               <Button
                 size="sm"
-                priority={
-                  rootCauseSelection && 'cause_id' in rootCauseSelection
-                    ? 'default'
-                    : 'primary'
-                }
+                priority={findSolutionPriority}
                 busy={isSelectingRootCause}
                 onClick={handleSelectRootCause}
-                title={t('Let Seer plan a solution to this issue')}
+                title={findSolutionTitle}
               >
                 {t('Find Solution')}
               </Button>

@@ -17,7 +17,6 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -98,8 +97,8 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                         <Button
                           size="sm"
                           icon={<IconOpen />}
-                          analyticsEventName="Autofix: Open Cursor Agent"
-                          analyticsEventKey="autofix.cursor_agent.open"
+                          analyticsEventName="Autofix: Open Coding Agent"
+                          analyticsEventKey="autofix.coding_agent.open"
                         >
                           {t('Open in Cursor')}
                         </Button>
@@ -112,8 +111,8 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                           <Button
                             size="sm"
                             icon={<IconOpen />}
-                            analyticsEventName="Autofix: Open Cursor Agent PR"
-                            analyticsEventKey="autofix.cursor_agent.open_pr"
+                            analyticsEventName="Autofix: Open Coding Agent PR"
+                            analyticsEventKey="autofix.coding_agent.open_pr"
                             priority="primary"
                           >
                             {t('View Pull Request')}
@@ -126,11 +125,9 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                 <Content>
                   <CardHeader>
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
-                    <div>
-                      <Tag type={getTagType(codingAgentState.status)}>
-                        {getStatusText(codingAgentState.status)}
-                      </Tag>
-                    </div>
+                    <Tag type={getTagType(codingAgentState.status)}>
+                      {getStatusText(codingAgentState.status)}
+                    </Tag>
                   </CardHeader>
 
                   <CardContent>
@@ -230,7 +227,7 @@ const HeaderWrapper = styled('div')`
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
 `;
 
@@ -304,7 +301,7 @@ const ResultItem = styled('div')`
 
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
-    p.status === CodingAgentStatus.FAILED ? p.theme.red300 : p.theme.textColor};
+    p.status === CodingAgentStatus.FAILED ? p.theme.errorText : p.theme.textColor};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
