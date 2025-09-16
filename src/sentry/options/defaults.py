@@ -342,7 +342,7 @@ register(
 
 # Deletions
 register(
-    "deletions.group-hashes-fetch-batch-size",
+    "deletions.group-hashes-batch-size",
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
