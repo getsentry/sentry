@@ -52,7 +52,7 @@ describe('EventsSearchBar', () => {
     );
 
     // Focus the input and type "has:p" to simulate a search for p50
-    const input = await screen.findByRole('combobox');
+    const input = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.type(input, 'has:p');
 
     // Check that "p50" (a function tag) is NOT in the dropdown
@@ -62,27 +62,17 @@ describe('EventsSearchBar', () => {
     await userEvent.type(input, '{Enter}');
 
     // Check that a selected aggregate is in the dropdown
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Edit value for filter: has'})
-    );
-    await userEvent.type(
-      await screen.findByRole('combobox', {name: 'Edit filter value'}),
-      'count_uni'
-    );
+    await userEvent.clear(input);
+    await userEvent.type(input, 'count_uni');
 
     listbox = await screen.findByRole('listbox');
-    await within(listbox).findByText('count_unique');
+    await within(listbox).findByText('count_unique(...)');
 
     await userEvent.type(input, '{Enter}');
 
     // Check that a normal tag (e.g. "transaction") IS in the dropdown
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Edit value for filter: has'})
-    );
-    await userEvent.type(
-      await screen.findByRole('combobox', {name: 'Edit filter value'}),
-      'transact'
-    );
+    await userEvent.clear(input);
+    await userEvent.type(input, 'transact');
 
     listbox = await screen.findByRole('listbox');
     await within(listbox).findByText('transaction');
