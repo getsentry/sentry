@@ -72,10 +72,16 @@ export interface InsightsTimeSeriesWidgetProps
     yAxis?: string[];
   };
   samples?: Samples;
+  /**
+   * During the transition from the `/events-stats/` endpoint to the `/events-timeseries/` endpoint we accept both `timeSeries` and `series` so different components can pass different data. Eventually `series` will go away.
+   */
   series?: DiscoverSeries[];
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble' | 'none';
   stacked?: boolean;
+  /**
+   * During the transition from the `/events-stats/` endpoint to the `/events-timeseries/` endpoint we accept both `timeSeries` and `series` so different components can pass different data. Eventually `timeSeries` will take over.
+   */
   timeSeries?: TimeSeries[];
 }
 
