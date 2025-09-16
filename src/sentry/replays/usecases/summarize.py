@@ -476,9 +476,10 @@ def rpc_get_replay_summary_logs(
         fields=[],  # Defaults to all fields.
     )
 
-    # 404s are handled in the originating Sentry /summarize/ endpoint.
+    # 404s should be handled in the originating Sentry endpoint.
+    # If the replay is missing here just return an empty response.
     if not processed_response:
-        return []
+        return {"logs": []}
 
     error_ids = processed_response[0].get("error_ids", [])
     trace_ids = processed_response[0].get("trace_ids", [])
