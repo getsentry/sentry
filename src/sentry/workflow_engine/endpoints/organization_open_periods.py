@@ -131,7 +131,8 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 status=status.HTTP_200_OK,
             )
         limit = request.GET.get("per_page")
-        limit = int(limit) if limit else limit
+        if limit:
+            limit = int(limit)
 
         open_periods = get_open_periods_for_group(
             group=target_group,
