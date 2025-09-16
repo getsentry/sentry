@@ -12,8 +12,7 @@ class RepositorySerializer(serializers.Serializer):
     """
 
     uploadToken = serializers.CharField(allow_null=True)
-    activated = serializers.BooleanField()
-    active = serializers.BooleanField()
+    testAnalyticsEnabled = serializers.BooleanField()
 
     def to_representation(self, graphql_response):
         """

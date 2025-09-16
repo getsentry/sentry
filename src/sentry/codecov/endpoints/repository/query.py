@@ -7,8 +7,7 @@ query = """query GetRepo(
       __typename
       ... on Repository {
           uploadToken
-          activated
-          active
+          testAnalyticsEnabled
         }
       ... on NotFoundError {
         message
