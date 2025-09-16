@@ -8,7 +8,6 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const defaultReadableQueryParamsOptions: ReadableQueryParamsOptions = {
-  extrapolate: true,
   aggregateCursor: '',
   aggregateFields: [{groupBy: ''}, new VisualizeFunction('avg(foo)')],
   aggregateSortBys: [],
