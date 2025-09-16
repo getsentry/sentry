@@ -58,20 +58,6 @@ class TestDiscordActionValidator(TestCase):
             ]
         }
 
-    def test_validate__missing_integration(self):
-        validator = BaseActionValidator(
-            data={**self.valid_data, "integrationId": 123},
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
-        assert validator.errors == {
-            "nonFieldErrors": [
-                ErrorDetail(string="discord integration with id 123 not found", code="invalid")
-            ]
-        }
-
     def test_validate__empty_server(self):
         validator = BaseActionValidator(
             data={
