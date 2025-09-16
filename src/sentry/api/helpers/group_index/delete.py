@@ -14,7 +14,6 @@ from sentry import audit_log, options
 from sentry.api.base import audit_logger
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
@@ -54,8 +53,6 @@ def delete_group_list(
         raise ValueError("All groups must belong to the same project")
 
     group_ids = [g.id for g in group_list]
-    error_ids = [g.id for g in group_list if g.issue_category == GroupCategory.ERROR]
-    non_error_ids = [g.id for g in group_list if g.issue_category != GroupCategory.ERROR]
 
     transaction_id = uuid4().hex
     delete_logger.info(
@@ -75,11 +72,6 @@ def delete_group_list(
             "group_deletion_group_ids": str(group_ids),
         },
     )
-
-    # Removing GroupHash rows prevents new events from associating to the groups
-    # we just deleted.
-    delete_group_hashes(project.id, error_ids, seer_deletion=True)
-    delete_group_hashes(project.id, non_error_ids)
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]

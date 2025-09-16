@@ -6,8 +6,6 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry_sdk import set_tag
-
 from sentry import models
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
@@ -162,25 +160,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             return True
 
         self.mark_deletion_in_progress(instance_list)
-
-        error_group_ids = []
-        # XXX: If a group type has been removed, we shouldn't error here.
-        # Ideally, we should refactor `issue_category` to return None if the type is
-        # unregistered.
-        for group in instance_list:
-            try:
-                if group.issue_category == GroupCategory.ERROR:
-                    error_group_ids.append(group.id)
-            except InvalidGroupTypeError:
-                pass
-
-        # Avoid circular import
-        from sentry.api.helpers.group_index.delete import delete_group_hashes
-
-        delete_group_hashes(instance_list[0].project_id, error_group_ids, seer_deletion=True)
-
         self._delete_children(instance_list)
-
         # Remove group objects with children removed.
         self.delete_instance_bulk(instance_list)
 
@@ -194,6 +174,14 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
+        error_group_ids = [group.id for group in error_groups]
+        issue_platform_group_ids = [group.id for group in issue_platform_groups]
+
+        # Prevent circular import
+        from sentry.api.helpers.group_index.delete import delete_group_hashes
+
+        delete_group_hashes(instance_list[0].project_id, error_group_ids, seer_deletion=True)
+        delete_group_hashes(instance_list[0].project_id, issue_platform_group_ids)
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
@@ -202,9 +190,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
                 child_relations.append(BaseRelation(params=params, task=ErrorEventsDeletionTask))
 
             if issue_platform_groups:
-                # This helps creating custom Sentry alerts;
-                # remove when #proj-snuba-lightweight_delets is done
-                set_tag("issue_platform_deletion", True)
                 params = {"groups": issue_platform_groups}
                 child_relations.append(
                     BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
@@ -230,6 +215,9 @@ def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Gro
     error_groups = []
     issue_platform_groups = []
     for group in instance_list:
+        # XXX: If a group type has been removed, we shouldn't error here.
+        # Ideally, we should refactor `issue_category` to return None if the type is
+        # unregistered.
         try:
             if group.issue_category == GroupCategory.ERROR:
                 error_groups.append(group)
