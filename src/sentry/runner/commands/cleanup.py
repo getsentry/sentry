@@ -198,6 +198,8 @@ def cleanup(
 
         # list of models which this query is restricted to
         model_list = {m.lower() for m in model}
+        # Track which models were attempted for deletion
+        models_attempted: set[str] = set()
 
         def is_filtered(model: type[Model]) -> bool:
             silo_limit = getattr(model._meta, "silo_limit", None)
@@ -232,7 +234,14 @@ def cleanup(
             else:
                 remove_old_nodestore_values(days)
 
-        run_bulk_query_deletes(bulk_query_deletes, is_filtered, days, project, project_id)
+        run_bulk_query_deletes(
+            bulk_query_deletes,
+            is_filtered,
+            days,
+            project,
+            project_id,
+            models_attempted,
+        )
 
         debug_output("Running bulk deletes in DELETES")
         for model_tp, dtfield, order_by in deletes:
@@ -241,6 +250,7 @@ def cleanup(
             if is_filtered(model_tp):
                 debug_output(">> Skipping %s" % model_tp.__name__)
             else:
+                models_attempted.add(model_tp.__name__.lower())
                 imp = ".".join((model_tp.__module__, model_tp.__name__))
 
                 q = BulkDeleteQuery(
@@ -267,6 +277,7 @@ def cleanup(
                 result_value_getter=lambda item: item,
             ):
                 for model_tp, dtfield, order_by in to_delete_by_project:
+                    models_attempted.add(model_tp.__name__.lower())
                     debug_output(
                         f"Removing {model_tp.__name__} for days={days} project={project_id_for_deletion}"
                     )
@@ -297,6 +308,7 @@ def cleanup(
                 result_value_getter=lambda item: item,
             ):
                 for model_tp, dtfield, order_by in to_delete_by_organization:
+                    models_attempted.add(model_tp.__name__.lower())
                     debug_output(
                         f"Removing {model_tp.__name__} for days={days} organization={organization_id_for_deletion}"
                     )
@@ -331,6 +343,24 @@ def cleanup(
         duration = int(time.time() - start_time)
         metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
         click.echo("Clean up took %s second(s)." % duration)
+
+    # Check for models that were specified but never attempted
+    if model_list:
+        models_never_attempted = model_list - models_attempted
+        if models_never_attempted:
+            import logging
+
+            logger = logging.getLogger("sentry.cleanup")
+            logger.error(
+                "Models specified with --model were never attempted for deletion",
+                extra={
+                    "models_never_attempted": sorted(models_never_attempted),
+                    "possible_causes": [
+                        "The model is not in any cleanup processing list",
+                        "The model was filtered out by silo limits or router restrictions",
+                    ],
+                },
+            )
 
     if transaction:
         transaction.__exit__(None, None, None)
@@ -487,6 +517,7 @@ def run_bulk_query_deletes(
     days: int,
     project: str | None,
     project_id: int | None,
+    models_attempted: set[str],
 ) -> None:
     from sentry.db.deletion import BulkDeleteQuery
 
@@ -498,6 +529,7 @@ def run_bulk_query_deletes(
         if is_filtered(model_tp):
             debug_output(">> Skipping %s" % model_tp.__name__)
         else:
+            models_attempted.add(model_tp.__name__.lower())
             BulkDeleteQuery(
                 model=model_tp,
                 dtfield=dtfield,
