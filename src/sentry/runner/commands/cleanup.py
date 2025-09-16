@@ -358,18 +358,14 @@ def cleanup(
 
             logger = logging.getLogger("sentry.cleanup")
             logger.error(
-                "Models specified with --model were never attempted for deletion",
+                "Models specified with --model were never attempted for deletion, must configure cleanup for this model",
                 extra={
                     "models_never_attempted": sorted(models_never_attempted),
-                    "current_silo_mode": str(SiloMode.get_current_mode()),
                     "legitimately_filtered_models": (
                         sorted(models_legitimately_filtered)
                         if models_legitimately_filtered
                         else None
                     ),
-                    "possible_causes": [
-                        "The model is not in any cleanup processing list",
-                    ],
                 },
             )
 
