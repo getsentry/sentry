@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from django import forms
@@ -134,7 +134,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
             }
         ]
 
-    def update_organization_config(self, data: dict[str, Any]) -> None:
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         api_key = data.get("api_key")
         if not api_key:
             raise IntegrationError("API key is required")
