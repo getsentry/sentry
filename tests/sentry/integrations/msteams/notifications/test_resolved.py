@@ -57,7 +57,7 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
-    def test_resolved_in_release(self, mock_send_card) -> None:
+    def test_resolved_in_release(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly when an issue is resolved in a release.
         """

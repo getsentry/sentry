@@ -18,7 +18,6 @@ function readableQueryParamOptions(
   options: Partial<ReadableQueryParamsOptions> = {}
 ): ReadableQueryParamsOptions {
   return {
-    extrapolate: true,
     mode: Mode.SAMPLES,
     query: '',
     cursor: '',
@@ -50,22 +49,6 @@ describe('getReadableQueryParamsFromLocation', () => {
     const location = locationFixture({});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(new ReadableQueryParams(readableQueryParamOptions()));
-  });
-
-  it('decodes extrapolation on correctly', () => {
-    const location = locationFixture({extrapolate: '1'});
-    const queryParams = getReadableQueryParamsFromLocation(location, organization);
-    expect(queryParams).toEqual(
-      new ReadableQueryParams(readableQueryParamOptions({extrapolate: true}))
-    );
-  });
-
-  it('decodes extrapolation off correctly', () => {
-    const location = locationFixture({extrapolate: '0'});
-    const queryParams = getReadableQueryParamsFromLocation(location, organization);
-    expect(queryParams).toEqual(
-      new ReadableQueryParams(readableQueryParamOptions({extrapolate: false}))
-    );
   });
 
   it('decodes samples mode correctly', () => {
