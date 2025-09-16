@@ -342,7 +342,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                     assert span.get(self.RESULT_COLUMN) is None
 
     def test_get(self) -> None:
-        with self.feature("organizations:insights-initial-modules"):
+        with self.feature("organizations:insight-modules"):
             response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
         entries = response.data["entries"]  # type: ignore[attr-defined]
@@ -361,7 +361,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.ten_mins_ago,
             tags={"span.group": "26b881987e4bad99"},
         )
-        with self.feature("organizations:insights-initial-modules"):
+        with self.feature("organizations:insight-modules"):
             response = self.client.get(
                 self.url, {"averageColumn": ["span.self_time", "span.duration"]}
             )
@@ -380,7 +380,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
 
     def test_nan_column(self) -> None:
         # If there's nothing stored for a metric, span.duration in this case the query returns nan
-        with self.feature("organizations:insights-initial-modules"):
+        with self.feature("organizations:insight-modules"):
             response = self.client.get(
                 self.url, {"averageColumn": ["span.self_time", "span.duration"]}
             )
