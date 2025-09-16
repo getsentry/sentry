@@ -169,7 +169,7 @@ function AdditionalProductsSubstep({
   return (
     <Substep>
       <SubstepTitle>{t('Select additional products')}</SubstepTitle>
-      <Grid columns="1fr 1fr" gap="xl">
+      <Grid columns={{sm: '1fr', md: '1fr 1fr'}} gap="xl">
         <ProductSelect
           activePlan={activePlan}
           formData={formData}

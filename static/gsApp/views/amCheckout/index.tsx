@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -10,7 +10,7 @@ import moment from 'moment-timezone';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -867,6 +867,83 @@ class AMCheckout extends Component<Props, State> {
     const isOnSponsoredPartnerPlan =
       (subscription.partner?.isActive && subscription.isSponsored) || false;
 
+    const renderCheckoutContent = () => (
+      <Fragment>
+        <CheckoutBody>
+          {isNewCheckout && (
+            <BackButton
+              aria-label={t('Back to Subscription Overview')}
+              to={`/settings/${organization.slug}/billing/`}
+            >
+              <Flex gap="sm" align="center">
+                <IconArrow direction="left" />
+                <span>{t('Back')}</span>
+              </Flex>
+            </BackButton>
+          )}
+          {this.renderPartnerAlert()}
+          <CheckoutStepsContainer
+            data-test-id="checkout-steps"
+            isNewCheckout={!!isNewCheckout}
+          >
+            {this.renderSteps()}
+          </CheckoutStepsContainer>
+        </CheckoutBody>
+        <SidePanel>
+          <OverviewContainer isNewCheckout={!!isNewCheckout}>
+            {isNewCheckout ? (
+              <Cart
+                {...overviewProps}
+                referrer={this.referrer}
+                hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                formDataForPreview={formDataForPreview}
+                onSuccess={params => {
+                  this.setState(prev => ({...prev, ...params}));
+                }}
+              />
+            ) : checkoutTier === PlanTier.AM3 ? (
+              <CheckoutOverviewV2 {...overviewProps} />
+            ) : (
+              <CheckoutOverview {...overviewProps} />
+            )}
+            <SupportPrompt>
+              {t('Have a question?')}
+              <TextOverflow>
+                {tct('[help:Find an Answer] or [contact:Ask Support]', {
+                  help: (
+                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                  ),
+                  contact: <ZendeskLink subject="Billing Question" source="checkout" />,
+                })}
+              </TextOverflow>
+            </SupportPrompt>
+          </OverviewContainer>
+          <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
+          {subscription.canCancel && (
+            <CancelSubscription>
+              <LinkButton
+                to={`/settings/${organization.slug}/billing/cancel/`}
+                disabled={subscription.cancelAtPeriodEnd}
+              >
+                {subscription.cancelAtPeriodEnd
+                  ? t('Pending Cancellation')
+                  : t('Cancel Subscription')}
+              </LinkButton>
+            </CancelSubscription>
+          )}
+          {showAnnualTerms && (
+            <AnnualTerms>
+              {tct(
+                `Annual subscriptions require a one-year non-cancellable commitment.
+              By using Sentry you agree to our [terms: Terms of Service].`,
+                {terms: <a href="https://sentry.io/terms/" />}
+              )}
+            </AnnualTerms>
+          )}
+        </SidePanel>
+      </Fragment>
+    );
+
     return this.renderParentComponent({
       children: (
         <Flex width={'100%'} background={'secondary'} justify="center" padding="2xl">
@@ -897,90 +974,24 @@ class AMCheckout extends Component<Props, State> {
               data-test-id="change-subscription"
             />
           )}
-          <Flex
-            direction="column"
-            align="start"
-            gap="2xl"
-            maxWidth={isNewCheckout ? '1440px' : undefined}
-          >
-            <LogoSentry height="24px" />
-            <Flex gap="2xl" wrap={'wrap'} width="100%" align="center" paddingTop="xl">
-              <CheckoutBody>
-                <BackButton
-                  aria-label={t('Back to Subscription Overview')}
-                  to={`/settings/${organization.slug}/billing/`}
-                >
-                  <Flex gap="sm" align="center">
-                    <IconArrow direction="left" />
-                    <span>{t('Back')}</span>
-                  </Flex>
-                </BackButton>
-                {this.renderPartnerAlert()}
-                <CheckoutStepsContainer
-                  data-test-id="checkout-steps"
-                  isNewCheckout={!!isNewCheckout}
-                >
-                  {this.renderSteps()}
-                </CheckoutStepsContainer>
-              </CheckoutBody>
-              <SidePanel>
-                <OverviewContainer isNewCheckout={!!isNewCheckout}>
-                  {isNewCheckout ? (
-                    <Cart
-                      {...overviewProps}
-                      referrer={this.referrer}
-                      // TODO(checkout v3): we'll also need to fetch billing details but
-                      // this will be done in a later PR
-                      hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
-                      formDataForPreview={formDataForPreview}
-                      onSuccess={params => {
-                        this.setState(prev => ({...prev, ...params}));
-                      }}
-                    />
-                  ) : checkoutTier === PlanTier.AM3 ? (
-                    <CheckoutOverviewV2 {...overviewProps} />
-                  ) : (
-                    <CheckoutOverview {...overviewProps} />
-                  )}
-                  <SupportPrompt>
-                    {t('Have a question?')}
-                    <TextOverflow>
-                      {tct('[help:Find an Answer] or [contact:Ask Support]', {
-                        help: (
-                          <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
-                        ),
-                        contact: (
-                          <ZendeskLink subject="Billing Question" source="checkout" />
-                        ),
-                      })}
-                    </TextOverflow>
-                  </SupportPrompt>
-                </OverviewContainer>
-                <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
-                {subscription.canCancel && (
-                  <CancelSubscription>
-                    <LinkButton
-                      to={`/settings/${organization.slug}/billing/cancel/`}
-                      disabled={subscription.cancelAtPeriodEnd}
-                    >
-                      {subscription.cancelAtPeriodEnd
-                        ? t('Pending Cancellation')
-                        : t('Cancel Subscription')}
-                    </LinkButton>
-                  </CancelSubscription>
-                )}
-                {showAnnualTerms && (
-                  <AnnualTerms>
-                    {tct(
-                      `Annual subscriptions require a one-year non-cancellable commitment.
-                    By using Sentry you agree to our [terms: Terms of Service].`,
-                      {terms: <a href="https://sentry.io/terms/" />}
-                    )}
-                  </AnnualTerms>
-                )}
-              </SidePanel>
-            </Flex>
-          </Flex>
+          {isNewCheckout ? (
+            <Stack gap="2xl" align="start" width="100%" maxWidth="1440px">
+              <LogoSentry height="24px" />
+              <Flex gap="2xl" wrap="wrap" width="100%" align="start" paddingTop="xl">
+                {renderCheckoutContent()}
+              </Flex>
+            </Stack>
+          ) : (
+            <Grid
+              gap="2xl"
+              columns={{
+                sm: 'auto',
+                lg: '3fr 2fr',
+              }}
+            >
+              {renderCheckoutContent()}
+            </Grid>
+          )}
         </Flex>
       ),
     });

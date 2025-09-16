@@ -65,7 +65,7 @@ const FEATURES: Array<{features: string[]; plan: string}> = [
 
 function FeatureItem({feature, isIncluded}: {feature: string; isIncluded: boolean}) {
   return (
-    <FeatureItemContainer isIncluded={isIncluded}>
+    <FeatureItemContainer isIncluded={isIncluded} align="start" gap="md">
       <Container padding="0">
         {isIncluded ? (
           <IconCheckmark size="sm" color="success" />
@@ -126,9 +126,9 @@ function PlanFeatures({
       direction="column"
     >
       <Heading as="h3">
-        {t('What you get on the ')}
-        <Text underline>{activePlan.name}</Text>
-        {t(' plan:')}
+        {tct('What you get on the [planName] plan:', {
+          planName: <Text underline>{activePlan.name}</Text>,
+        })}
       </Heading>
       <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="md xl">
         {planToFeatures.map(({plan, features, perUnitPriceDiffs}, index) => {
@@ -196,9 +196,7 @@ const EventPriceWarning = styled(Flex)`
 `;
 
 const FeatureItemContainer = styled(Flex)<{isIncluded: boolean}>`
-  align-items: start;
   color: ${p => p.theme.textColor};
-  gap: ${p => p.theme.space.md};
   opacity: ${p => (p.isIncluded ? 1 : 0.5)};
 
   &:after {

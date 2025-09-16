@@ -140,7 +140,7 @@ function ProductSelect({
               isNewCheckout={isNewCheckout}
               isSelected={isSelected}
             >
-              <Flex direction="column" gap="md" padding="xl">
+              <Flex direction="column" gap="md" padding="xl" width="100%">
                 <Flex align="start" justify="between" gap="md">
                   <Container paddingTop="sm">
                     <Checkbox

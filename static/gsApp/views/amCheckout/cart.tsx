@@ -682,7 +682,7 @@ function Cart({
           <Flex gap="xs" align="center">
             <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
             <Button
-              aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
+              aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
               onClick={() => setSummaryIsOpen(!summaryIsOpen)}
               borderless
               size="xs"
