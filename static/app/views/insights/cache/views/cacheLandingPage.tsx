@@ -21,8 +21,6 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -87,9 +85,6 @@ export function CacheLandingPage() {
     },
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );
-
-  const onboardingProject = useOnboardingProject();
-  const hasData = useHasFirstSpan(ModuleName.CACHE);
 
   const transactionDurationsMap = keyBy(transactionDurationData, 'transaction');
 
