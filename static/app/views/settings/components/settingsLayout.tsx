@@ -15,23 +15,18 @@ type Props = {
 } & RouteComponentProps;
 
 function SettingsLayout(props: Props) {
-  const {children, params, routes, route} = props;
+  const {children, params, routes} = props;
 
   // We want child's view's props
   const childProps =
     children && isValidElement(children) ? (children.props as Props) : props;
   const childRoutes = childProps.routes || routes || [];
-  const childRoute = childProps.route || route || {};
 
   return (
     <SettingsColumn>
       <SettingsHeader>
         <HeaderContent>
-          <StyledSettingsBreadcrumb
-            params={params}
-            routes={childRoutes}
-            route={childRoute}
-          />
+          <StyledSettingsBreadcrumb params={params} routes={childRoutes} />
           <SettingsSearch />
         </HeaderContent>
       </SettingsHeader>

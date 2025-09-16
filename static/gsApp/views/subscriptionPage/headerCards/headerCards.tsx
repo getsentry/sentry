@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
+import {hasNewBillingUI} from 'getsentry/utils/billing';
 import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 import {SubscriptionCard} from './subscriptionCard';
@@ -22,7 +22,7 @@ export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   return (
     <ErrorBoundary mini>
       <SeerAutomationAlert organization={organization} />
-      <HeaderCardWrapper hasNewCheckout={hasCheckoutV3(organization)}>
+      <HeaderCardWrapper hasNewCheckout={hasNewBillingUI(organization)}>
         <SubscriptionCard organization={organization} subscription={subscription} />
         <UsageCard organization={organization} subscription={subscription} />
       </HeaderCardWrapper>
