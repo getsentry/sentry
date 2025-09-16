@@ -254,6 +254,15 @@ class PreprodArtifact(DefaultFieldsModel):
 
         return results
 
+    def is_android(self) -> bool:
+        return (
+            self.artifact_type == self.ArtifactType.AAB
+            or self.artifact_type == self.ArtifactType.APK
+        )
+
+    def is_ios(self) -> bool:
+        return self.artifact_type == self.ArtifactType.XCARCHIVE
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"
