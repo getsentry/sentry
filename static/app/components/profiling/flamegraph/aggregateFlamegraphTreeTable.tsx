@@ -74,9 +74,12 @@ function makeSortFunction(
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          const avgA = a.node.frame.averageCallDuration || 0;
-          const avgB = b.node.frame.averageCallDuration || 0;
-          return avgB - avgA;
+          const avgA = a.node.frame.averageCallDuration;
+          const avgB = b.node.frame.averageCallDuration;
+          if (defined(avgA) && defined(avgB)) {
+            return avgB - avgA;
+          }
+          return b.node.node.aggregate_duration_ns - a.node.node.aggregate_duration_ns;
         }
       : (
           a: VirtualizedTreeNode<FlamegraphFrame>,
@@ -84,7 +87,10 @@ function makeSortFunction(
         ) => {
           const avgA = a.node.frame.averageCallDuration || 0;
           const avgB = b.node.frame.averageCallDuration || 0;
-          return avgA - avgB;
+          if (defined(avgA) && defined(avgB)) {
+            return avgA - avgB;
+          }
+          return a.node.node.aggregate_duration_ns - b.node.node.aggregate_duration_ns;
         };
   }
 
@@ -253,6 +259,7 @@ export function AggregateFlamegraphTreeTable({
                   abbreviation
                 />
               }
+              showAvg
               avgWeight={
                 defined(r.item.node.frame.averageCallDuration) ? (
                   <PerformanceDuration
