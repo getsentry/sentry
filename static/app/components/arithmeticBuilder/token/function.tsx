@@ -588,27 +588,29 @@ function InternalInput({
         tabIndex={-1}
         ref={gridCellRef}
         style={{
-          overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
           minWidth: '20px',
+          maxWidth: '100%',
           flex: '0 1 auto',
         }}
       >
-        <FixedWidthInputBox
-          tabIndex={-1}
-          ref={inputRef}
-          inputLabel={t('Add a value')}
-          inputValue={displayValue}
-          onClick={onClick}
-          onInputBlur={onTextInputBlur}
-          onInputChange={onInputChange}
-          onInputCommit={onInputCommit}
-          onInputEscape={onInputEscape}
-          onInputFocus={onInputFocus}
-          onKeyDown={onKeyDown}
-          onKeyDownCapture={onKeyDownCapture}
-        />
+        <EllipsisWrapper>
+          <FixedWidthInputBox
+            tabIndex={-1}
+            ref={inputRef}
+            inputLabel={t('Add a value')}
+            inputValue={displayValue}
+            onClick={onClick}
+            onInputBlur={onTextInputBlur}
+            onInputChange={onInputChange}
+            onInputCommit={onInputCommit}
+            onInputEscape={onInputEscape}
+            onInputFocus={onInputFocus}
+            onKeyDown={onKeyDown}
+            onKeyDownCapture={onKeyDownCapture}
+          />
+        </EllipsisWrapper>
         {argumentIndex < functionToken.attributes.length - 1 && ','}
       </BaseGridCell>
     );
@@ -621,10 +623,10 @@ function InternalInput({
       tabIndex={isFocused ? 0 : -1}
       ref={gridCellRef}
       style={{
-        overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
         minWidth: '20px',
+        maxWidth: '100%',
         flex: '0 1 auto',
       }}
     >
@@ -785,24 +787,78 @@ const ArgumentsGridWrapper = styled(BaseGridCell)`
 const ArgumentGridCell = styled(BaseGridCell)`
   flex: 0 1 auto;
   min-width: 20px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  position: relative;
+
+  /* Allow content to be constrained for ellipsis */
+  > * {
+    max-width: 100%;
+  }
 `;
 
 const FixedWidthInputBox = styled(InputBox)`
   width: 100%;
   min-width: 0;
-`;
-
-const StyledComboBox = styled(ComboBox)`
-  width: 100%;
-  min-width: 0;
+  max-width: 100%;
 
   input {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    width: 100%;
+  }
+
+  /* Target any text display elements */
+  span,
+  div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+`;
+
+const EllipsisWrapper = styled('div')`
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+`;
+
+const StyledComboBox = styled(ComboBox)`
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  input {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  /* Target the wrapper that contains the input - be more specific */
+  > div:not([data-floating-ui-portal]) {
+    overflow: hidden;
+    max-width: 100%;
+  }
+
+  /* Specifically target text containers, but exclude dropdowns */
+  [role='combobox']:not([aria-expanded='true']),
+  [role='textbox'] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  /* Ensure dropdowns can overflow */
+  [role='listbox'],
+  [data-floating-ui-portal] {
+    overflow: visible !important;
   }
 `;
 
