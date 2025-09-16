@@ -67,7 +67,7 @@ export function DiscordNode() {
   );
 }
 
-export function TargetIdentifierField() {
+function TargetIdentifierField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
