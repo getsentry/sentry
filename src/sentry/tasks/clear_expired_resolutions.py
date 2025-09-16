@@ -47,39 +47,34 @@ def clear_next_release_resolutions(release):
 def clear_future_release_resolutions(release):
     """
     Clear group resolutions of type `in_future_release` where:
-    1. The organization has the "resolve-in-future-release" feature enabled
+    1. The organization the release belongs to has the "resolve-in-future-release" feature flag enabled
     2. The future_release_version matches the newly created release version
     3. The resolution is still pending
+    4. The resolution belongs to the same organization as the release
     """
+    # Check feature flag once for the release's organization
+    if not features.has("organizations:resolve-in-future-release", release.organization):
+        return
+
     resolution_list = list(
         GroupResolution.objects.filter(
             type=GroupResolution.Type.in_future_release,
             future_release_version=release.version,
             status=GroupResolution.Status.pending,
+            group__project__organization=release.organization,
         ).select_related("group__project__organization")
     )
 
     if not resolution_list:
         return
 
-    # Filter resolutions based on feature flag
-    filtered_resolutions = []
-    for resolution in resolution_list:
-        if features.has(
-            "organizations:resolve-in-future-release", resolution.group.project.organization
-        ):
-            filtered_resolutions.append(resolution)
-
-    if not filtered_resolutions:
-        return
-
-    GroupResolution.objects.filter(id__in=[r.id for r in filtered_resolutions]).update(
+    GroupResolution.objects.filter(id__in=[r.id for r in resolution_list]).update(
         release=release,
         type=GroupResolution.Type.in_release,
         status=GroupResolution.Status.resolved,
     )
 
-    for resolution in filtered_resolutions:
+    for resolution in resolution_list:
         try:
             activity = Activity.objects.filter(
                 group=resolution.group_id,
