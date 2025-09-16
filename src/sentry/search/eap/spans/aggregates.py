@@ -189,6 +189,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "number",
                     "percentage",
                     "currency",
+                    "boolean",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -202,6 +203,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "number",
                     "percentage",
                     "currency",
+                    "boolean",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 }

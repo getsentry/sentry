@@ -692,6 +692,68 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         na_count = watch_line.count("N/A")
         assert na_count >= 2  # At least 2 N/A for the change columns
 
+    def test_android_app_shows_uncompressed_label(self):
+        """Test that Android apps show 'Uncompressed' instead of 'Install' in column header."""
+        # Test Android app
+        android_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.android",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+
+        android_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=android_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,  # 1 MB
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,  # 2 MB
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        android_size_metrics_map = {android_artifact.id: [android_size_metrics]}
+
+        title, subtitle, android_summary = format_status_check_messages(
+            [android_artifact], android_size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        # Android app should show "Uncompressed" instead of "Install"
+        assert "Uncompressed" in android_summary
+        assert "Install" not in android_summary or android_summary.count("Install") == 0
+
+        # Test iOS app for comparison
+        ios_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+
+        ios_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=ios_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,  # 1 MB
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,  # 2 MB
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        ios_size_metrics_map = {ios_artifact.id: [ios_size_metrics]}
+
+        title, subtitle, ios_summary = format_status_check_messages(
+            [ios_artifact], ios_size_metrics_map, StatusCheckStatus.SUCCESS
+        )
+
+        # iOS app should show "Install" not "Uncompressed"
+        assert "Install" in ios_summary
+        assert "Uncompressed" not in ios_summary
+
 
 @region_silo_test
 class BuildConfigurationComparisonTest(StatusCheckTestBase):

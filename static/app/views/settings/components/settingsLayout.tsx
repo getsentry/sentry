@@ -9,24 +9,26 @@ import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
 
-type Props = {
-  children: React.ReactNode;
-  renderNavigation?: (opts: {isMobileNavVisible: boolean}) => React.ReactNode;
-} & RouteComponentProps;
+type Props = {children: React.ReactNode} & RouteComponentProps;
 
 function SettingsLayout(props: Props) {
-  const {children, params, routes} = props;
+  const {children, params, routes, route} = props;
 
   // We want child's view's props
   const childProps =
     children && isValidElement(children) ? (children.props as Props) : props;
   const childRoutes = childProps.routes || routes || [];
+  const childRoute = childProps.route || route || {};
 
   return (
     <SettingsColumn>
       <SettingsHeader>
         <HeaderContent>
-          <StyledSettingsBreadcrumb params={params} routes={childRoutes} />
+          <StyledSettingsBreadcrumb
+            params={params}
+            routes={childRoutes}
+            route={childRoute}
+          />
           <SettingsSearch />
         </HeaderContent>
       </SettingsHeader>
