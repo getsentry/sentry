@@ -156,8 +156,8 @@ class PreprodArtifact(DefaultFieldsModel):
     ) -> models.QuerySet["PreprodArtifact"]:
         """
         Get the base artifact for the same commit comparison (monorepo scenario).
-        There can only be one base artifact for a commit comparison, as we only create one
-        CommitComparison for a given build and head SHA.
+        Multiple artifacts can share the same commit comparison, but only one should
+        match the same (app_id, artifact_type, build_configuration) combination.
         """
         if not self.commit_comparison:
             return PreprodArtifact.objects.none()
