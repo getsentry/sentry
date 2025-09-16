@@ -23,6 +23,7 @@ from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     ApiRetryError,
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationError,
 )
 from sentry.users.models.identity import Identity
@@ -225,11 +226,12 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             scope.set_tag("stacktrace_link.used_version", False)
             try:
                 source_url = self.check_file(repo, filepath, default)
-            except ApiForbiddenError as e:
+            except (ApiForbiddenError, IntegrationConfigurationError) as e:
                 # Similar to the `check_file` implementation, we need to re-raise
                 # for 403 errors as these need to be propagated to the user.
                 lifecycle.record_halt(e)
                 raise
+
             return encode_url(source_url) if source_url else None
 
     def get_codeowner_file(
