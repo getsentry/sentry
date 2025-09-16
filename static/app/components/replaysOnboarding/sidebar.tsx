@@ -19,7 +19,6 @@ import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replay
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
   replayBackendPlatforms,
@@ -31,7 +30,9 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -41,8 +42,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export function useReplaysOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {openDrawer} = useDrawer();
@@ -62,7 +63,7 @@ export function useReplaysOnboardingDrawer() {
 function DrawerContent() {
   useEffect(() => {
     return () => {
-      SidebarPanelStore.hidePanel();
+      OnboardingDrawerStore.close();
     };
   }, []);
 
@@ -73,7 +74,7 @@ function LegacyReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
-  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
+  const isActive = currentPanel === OnboardingDrawerKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
   if (!isActive || !hasProjectAccess) {
@@ -101,8 +102,8 @@ function SidebarContent() {
     supportedProjects,
     unsupportedProjects,
   } = useCurrentProjectState({
-    currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-    targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+    currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
+    targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
     onboardingPlatforms: replayOnboardingPlatforms,
     allPlatforms: replayPlatforms,
   });

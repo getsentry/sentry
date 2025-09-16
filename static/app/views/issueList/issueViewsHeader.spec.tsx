@@ -11,7 +11,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
 
 describe('IssueViewsHeader', () => {
@@ -36,7 +35,6 @@ describe('IssueViewsHeader', () => {
 
   const organization = OrganizationFixture({
     access: ['org:read'],
-    features: ['enforce-stacked-navigation'],
   });
 
   const onIssueViewRouterConfig = {
@@ -52,14 +50,6 @@ describe('IssueViewsHeader', () => {
     },
     route: '/organizations/:orgId/issues/',
   };
-
-  ConfigStore.set('user', {
-    ...ConfigStore.get('user'),
-    options: {
-      ...ConfigStore.get('user').options,
-      prefersStackedNavigation: true,
-    },
-  });
 
   describe('edit menu', () => {
     it('does not render if not on a view', async () => {

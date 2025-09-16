@@ -1,7 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconShow(props: SVGIconProps) {
+export function IconShow(props: SVGIconProps) {
   return (
     <SvgIcon {...props} kind="path">
       <path d="M8,13.75c-3.61,0-5.48-3.13-5.97-4.79-.04-.14-.04-.28,0-.42.49-1.66,2.36-4.79,5.97-4.79s5.48,3.13,5.97,4.79c.04.14.04.28,0,.42-.49,1.66-2.36,4.79-5.97,4.79ZM3.54,8.75c.29.79,1.51,3.5,4.46,3.5s4.16-2.7,4.46-3.5c-.3-.8-1.52-3.5-4.46-3.5s-4.16,2.7-4.46,3.5Z" />
@@ -14,7 +14,3 @@ function IconShow(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconShow.displayName = 'IconShow';
-
-export {IconShow};

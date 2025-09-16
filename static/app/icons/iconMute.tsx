@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconMute(props: SVGIconProps) {
+export function IconMute(props: SVGIconProps) {
   const theme = useTheme();
 
   return (
@@ -26,7 +26,3 @@ function IconMute(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconMute.displayName = 'IconMute';
-
-export {IconMute};

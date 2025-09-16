@@ -387,7 +387,6 @@ const profilingOnboarding: OnboardingConfig = {
       description: t(
         'Verify that profiling is working correctly by simply using your application.'
       ),
-      configurations: [],
     },
   ],
   nextSteps: () => [],
@@ -517,7 +516,7 @@ SENTRY_ENABLE_LOGS=true
         {
           type: 'code',
           language: 'php',
-          code: `use Illuminate\Support\Facades\Log;
+          code: `use Illuminate\\Support\\Facades\\Log;
 
 // Log to all channels in the stack (including Sentry)
 Log::info('This is an info message');

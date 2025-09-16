@@ -1,4 +1,5 @@
 from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.db.models.expressions import Combinable
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -25,7 +26,7 @@ class MemberPermission(OrganizationPermission):
     }
 
 
-SORT_MAP = {
+SORT_MAP: dict[str, str | Combinable] = {
     "popularity": "popularity",
     "-popularity": "-popularity",
     "visited": F("last_visited").asc(nulls_first=True),

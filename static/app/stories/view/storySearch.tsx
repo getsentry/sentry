@@ -252,12 +252,13 @@ const StorySearchContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  margin-left: -${p => p.theme.space['2xl']};
 `;
 
 const StyledOverlay = styled(Overlay)`
   position: fixed;
   top: 48px;
-  left: 108px;
+  left: 256px;
   width: 320px;
   max-height: calc(100dvh - 128px);
   overflow-y: auto;

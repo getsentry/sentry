@@ -1,5 +1,5 @@
 ---
-created: '2025-05-12T23:41:22.757354+00:00'
+created: '2025-09-11T18:38:52.741934+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app:
               "base.py"
             function*
               "get_response"
-            context-line*
+            context_line*
               "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
           frame (marked out of app by the client)
             module*
@@ -26,7 +26,7 @@ app:
               "base.py"
             function*
               "view"
-            context-line*
+            context_line*
               "return self.dispatch(request, *args, **kwargs)"
           frame (marked out of app by the client)
             module*
@@ -35,7 +35,7 @@ app:
               "decorators.py"
             function*
               "_wrapper"
-            context-line*
+            context_line*
               "return bound_func(*args, **kwargs)"
           frame (marked out of app by the client)
             module*
@@ -44,7 +44,7 @@ app:
               "csrf.py"
             function*
               "wrapped_view"
-            context-line*
+            context_line*
               "return view_func(*args, **kwargs)"
           frame (marked out of app by the client)
             module*
@@ -53,7 +53,7 @@ app:
               "decorators.py"
             function*
               "bound_func"
-            context-line*
+            context_line*
               "return func(self, *args2, **kwargs2)"
           frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -62,7 +62,7 @@ app:
               "release_webhook.py"
             function*
               "dispatch"
-            context-line*
+            context_line*
               "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
           frame (marked out of app by the client)
             module*
@@ -71,7 +71,7 @@ app:
               "base.py"
             function*
               "dispatch"
-            context-line*
+            context_line*
               "return handler(request, *args, **kwargs)"
           frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -80,7 +80,7 @@ app:
               "release_webhook.py"
             function*
               "post"
-            context-line*
+            context_line*
               "hook.handle(request)"
           frame (marked in-app by the client but ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -89,7 +89,7 @@ app:
               "plugin.py"
             function*
               "handle"
-            context-line*
+            context_line*
               "email = request.POST['user']"
           frame (marked out of app by the client)
             module*
@@ -98,7 +98,7 @@ app:
               "datastructures.py"
             function*
               "__getitem__"
-            context-line*
+            context_line*
               "raise MultiValueDictKeyError(repr(key))"
         type*
           "MultiValueDictKeyError"
@@ -119,7 +119,7 @@ system:
               "base.py"
             function*
               "get_response"
-            context-line*
+            context_line*
               "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
           frame*
             module*
@@ -128,7 +128,7 @@ system:
               "base.py"
             function*
               "view"
-            context-line*
+            context_line*
               "return self.dispatch(request, *args, **kwargs)"
           frame*
             module*
@@ -137,7 +137,7 @@ system:
               "decorators.py"
             function*
               "_wrapper"
-            context-line*
+            context_line*
               "return bound_func(*args, **kwargs)"
           frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -146,7 +146,7 @@ system:
               "csrf.py"
             function*
               "wrapped_view"
-            context-line*
+            context_line*
               "return view_func(*args, **kwargs)"
           frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -155,7 +155,7 @@ system:
               "decorators.py"
             function*
               "bound_func"
-            context-line*
+            context_line*
               "return func(self, *args2, **kwargs2)"
           frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -164,7 +164,7 @@ system:
               "release_webhook.py"
             function*
               "dispatch"
-            context-line*
+            context_line*
               "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
           frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -173,7 +173,7 @@ system:
               "base.py"
             function*
               "dispatch"
-            context-line*
+            context_line*
               "return handler(request, *args, **kwargs)"
           frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -182,7 +182,7 @@ system:
               "release_webhook.py"
             function*
               "post"
-            context-line*
+            context_line*
               "hook.handle(request)"
           frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -191,7 +191,7 @@ system:
               "plugin.py"
             function*
               "handle"
-            context-line*
+            context_line*
               "email = request.POST['user']"
           frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
@@ -200,7 +200,7 @@ system:
               "datastructures.py"
             function*
               "__getitem__"
-            context-line*
+            context_line*
               "raise MultiValueDictKeyError(repr(key))"
         type*
           "MultiValueDictKeyError"

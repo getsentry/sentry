@@ -1,12 +1,10 @@
 import styled from '@emotion/styled';
 
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
-  AskSeerConsentItem,
   AskSeerItem,
   FilterValueItem,
   KeyItem,
@@ -19,7 +17,11 @@ import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  WildcardOperators,
+  type Token,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {
   getKeyLabel as getFilterKeyLabel,
   getKeyName,
@@ -166,6 +168,24 @@ export function createRawSearchFilterIsValueItem(
   };
 }
 
+export function createRawSearchFilterContainsValueItem(
+  key: string,
+  value: string
+): RawSearchFilterIsValueItem {
+  const filter = `${key}:${WildcardOperators.CONTAINS}${escapeFilterValue(value)}`;
+
+  return {
+    key: getEscapedKey(`${key}:${WildcardOperators.CONTAINS}${value}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-is-value',
+  };
+}
+
 export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
   const key = getKeyName(filter.key);
   return {
@@ -209,17 +229,6 @@ export function createAskSeerItem(): AskSeerItem {
     textValue: 'Ask Seer',
     type: 'ask-seer' as const,
     label: t('Ask Seer'),
-    hideCheck: true,
-  };
-}
-
-export function createAskSeerConsentItem(): AskSeerConsentItem {
-  return {
-    key: getEscapedKey(ASK_SEER_CONSENT_ITEM_KEY),
-    value: ASK_SEER_CONSENT_ITEM_KEY,
-    textValue: 'Enable Gen AI',
-    type: 'ask-seer-consent' as const,
-    label: t('Enable Gen AI'),
     hideCheck: true,
   };
 }

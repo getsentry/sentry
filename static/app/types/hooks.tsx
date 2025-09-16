@@ -107,6 +107,10 @@ type ContinuousProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
+type ContinuousProfilingBillingRequirementBannerProps = {
+  project: Project;
+};
+
 type CronsBillingBannerProps = {
   organization: Organization;
 };
@@ -184,6 +188,7 @@ type ComponentHooks = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
   'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
+  'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
@@ -232,7 +237,6 @@ type ComponentHooks = {
  */
 type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
-  'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
 };
@@ -272,8 +276,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:profiling-page': FeatureDisabledHook;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
-  'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
-  'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
@@ -603,25 +605,6 @@ type IntegrationsFeatureGatesHook = () => {
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
 };
 
-/**
- * Invite Button customization allows for a render-props component to replace
- * or intercept props of the button element.
- */
-type InviteButtonCustomizationHook = () => React.ComponentType<{
-  children: (opts: {
-    /**
-     * Whether the Invite Members button is active or not
-     */
-    disabled: boolean;
-    onTriggerModal: () => void;
-    /**
-     * Whether to display a message that new members must be registered via SSO
-     */
-    isSsoRequired?: boolean;
-  }) => React.ReactElement;
-  onTriggerModal: () => void;
-  organization: Organization;
-}>;
 /**
  * Invite Modal customization allows for a render-prop component to add
  * additional react elements into the modal, and add invite-send middleware.

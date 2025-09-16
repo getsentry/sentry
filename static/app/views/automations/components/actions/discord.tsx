@@ -24,8 +24,7 @@ export function DiscordDetails({
   handler: ActionHandler;
 }) {
   const integrationName =
-    handler.integrations?.find(i => i.id === action.integrationId)?.name ||
-    action.integrationId;
+    handler.integrations?.find(i => i.id === action.integrationId)?.name || t('unknown');
   const tags = String(action.data.tags);
 
   return tct(
