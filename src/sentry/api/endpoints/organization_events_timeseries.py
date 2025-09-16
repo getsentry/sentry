@@ -237,6 +237,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            if len(raw_groupby) == 0:
+                raise ParseError("groupBy is a required parameter when doing topEvents")
             if "timestamp" in raw_groupby:
                 raise ParseError("Cannot group by timestamp")
             if dataset in RPC_DATASETS:
