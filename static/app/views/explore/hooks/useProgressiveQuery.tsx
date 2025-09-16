@@ -11,14 +11,8 @@ const HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS = {
   samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
 } as const;
 
-const NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS = {
-  disableAggregateExtrapolation: '1',
-  samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-} as const;
-
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type SpansRPCQueryExtras = {
-  disableAggregateExtrapolation?: string;
   samplingMode?: SamplingMode;
 };
 
@@ -39,7 +33,6 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 
 interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
   canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']) => boolean;
-  disableExtrapolation?: boolean;
 }
 
 /**
@@ -64,20 +57,10 @@ export function useProgressiveQuery<
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
-  const disableExtrapolation = queryOptions?.disableExtrapolation || false;
-
-  const nonExtrapolatedMode = disableExtrapolation && queryHookArgs.enabled;
-  const nonExtrapolatedModeRequest = queryHookImplementation({
-    ...queryHookArgs,
-    queryExtras: NON_EXTRAPOLATED_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: nonExtrapolatedMode,
-  });
-
-  const normalMode = !disableExtrapolation && queryHookArgs.enabled;
   const normalSamplingModeRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: normalMode,
+    enabled: queryHookArgs.enabled,
   });
 
   let triggerHighAccuracy = false;
@@ -85,22 +68,14 @@ export function useProgressiveQuery<
     triggerHighAccuracy =
       queryOptions?.canTriggerHighAccuracy?.(normalSamplingModeRequest.result) ?? false;
   }
-  const highAccuracyMode =
-    !disableExtrapolation && queryHookArgs.enabled && triggerHighAccuracy;
+  // queryExtras is not passed in here because this request should be unsampled.
   const highAccuracyRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: highAccuracyMode,
+    enabled: queryHookArgs.enabled && triggerHighAccuracy,
   });
 
-  if (nonExtrapolatedMode) {
-    return {
-      ...nonExtrapolatedModeRequest,
-      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-    };
-  }
-
-  if (highAccuracyMode) {
+  if (highAccuracyRequest?.result?.isFetching || highAccuracyRequest?.result?.isFetched) {
     return {
       ...highAccuracyRequest,
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,

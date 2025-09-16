@@ -109,7 +109,6 @@ function useSpansQueryBase<T>({
     cursor,
     allowAggregateConditions,
     samplingMode: queryExtras?.samplingMode,
-    disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
   });
 
   if (trackResponseAnalytics) {
@@ -228,7 +227,6 @@ type WrappedDiscoverQueryProps<T> = {
   additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
   cursor?: string;
-  disableAggregateExtrapolation?: string;
   enabled?: boolean;
   initialData?: T;
   keepPreviousData?: boolean;
@@ -248,7 +246,6 @@ function useWrappedDiscoverQueryBase<T>({
   cursor,
   noPagination,
   allowAggregateConditions,
-  disableAggregateExtrapolation,
   samplingMode,
   pageFiltersReady,
   additionalQueryKey,
@@ -259,14 +256,8 @@ function useWrappedDiscoverQueryBase<T>({
   const organization = useOrganization();
 
   const queryExtras: Record<string, string> = {};
-  if (eventView.dataset === DiscoverDatasets.SPANS) {
-    if (samplingMode) {
-      queryExtras.sampling = samplingMode;
-    }
-
-    if (disableAggregateExtrapolation) {
-      queryExtras.disableAggregateExtrapolation = '1';
-    }
+  if (eventView.dataset === DiscoverDatasets.SPANS && samplingMode) {
+    queryExtras.sampling = samplingMode;
   }
 
   if (allowAggregateConditions !== undefined) {
