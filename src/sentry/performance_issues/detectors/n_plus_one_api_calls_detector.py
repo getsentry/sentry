@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
+from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -73,7 +74,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
+        return not features.has(
+            "organizations:experimental-n-plus-one-api-detector-rollout", organization
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
