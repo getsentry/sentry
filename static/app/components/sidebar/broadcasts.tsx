@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
@@ -12,6 +11,7 @@ import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import {WhatsNewItem} from 'sentry/views/nav/primary/whatsNew/item';
 
 import type {CommonSidebarProps} from './types';
 import {SidebarPanelKey} from './types';
@@ -117,7 +117,7 @@ export function Broadcasts({
             </SidebarPanelEmpty>
           ) : (
             broadcasts.map(item => (
-              <BroadcastPanelItem
+              <WhatsNewItem
                 key={item.id}
                 hasSeen={item.hasSeen}
                 title={item.title}

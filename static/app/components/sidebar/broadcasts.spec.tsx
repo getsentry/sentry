@@ -3,11 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {BROADCAST_CATEGORIES} from 'sentry/components/sidebar/broadcastPanelItem';
 import {Broadcasts} from 'sentry/components/sidebar/broadcasts';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {BROADCAST_CATEGORIES} from 'sentry/views/nav/primary/whatsNew/item';
 
 jest.mock('sentry/utils/analytics');
 
