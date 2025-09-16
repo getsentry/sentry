@@ -759,7 +759,7 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
             is_enabled=True,
             enroll_new_projects=True,
-            enrolled_projects=[project],
+            enrolled_projects=[project.id],
             provider="segment",
             config={"write_key": "test_write_key"},
         )
