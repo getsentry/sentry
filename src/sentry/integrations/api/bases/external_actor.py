@@ -39,6 +39,7 @@ AVAILABLE_PROVIDERS = {
 
 STRICT_NAME_PROVIDERS = {
     ExternalProviders.GITHUB,
+    ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviders.GITLAB,
 }
 

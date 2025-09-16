@@ -29,8 +29,14 @@ class CommitAuthor(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
+    # display name
     name = models.CharField(max_length=128, null=True)
     email = models.CharField(max_length=200)
+
+    # Format varies by provider:
+    # - GitHub/GitHub Enterprise: "github:username", "github_enterprise:username"
+    # - Other providers: null
+    # - Legacy data(?): integer (rare)
     external_id = models.CharField(max_length=164, null=True)
 
     objects: ClassVar[CommitAuthorManager] = CommitAuthorManager()
@@ -62,3 +68,13 @@ class CommitAuthor(Model):
             ).values_list("user_id", flat=True)
         )
         return [u for u in users if u.id in org_member_user_ids]
+
+    def get_username_from_external_id(self) -> str | None:
+        """
+        Note: only works for GitHub and GitHub Enterprise
+        """
+        return (
+            self.external_id.split(":", 1)[1]
+            if self.external_id and ":" in self.external_id
+            else None
+        )
