@@ -56,26 +56,73 @@ describe('EventsSearchBar', () => {
     await userEvent.type(input, 'has:p');
 
     // Check that "p50" (a function tag) is NOT in the dropdown
-    let listbox = await screen.findByRole('listbox');
-    expect(within(listbox).queryByText('p50')).not.toBeInTheDocument();
+    expect(
+      within(await screen.findByRole('listbox')).queryByText('p50')
+    ).not.toBeInTheDocument();
+  });
 
-    await userEvent.type(input, '{Enter}');
+  it('shows the selected aggregate in the dropdown', async () => {
+    render(
+      <EventsSearchBar
+        onClose={jest.fn()}
+        dataset={DiscoverDatasets.TRANSACTIONS}
+        pageFilters={PageFiltersFixture()}
+        widgetQuery={{
+          aggregates: ['count_unique(browser.name)'],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+          fieldAliases: undefined,
+          fields: undefined,
+          isHidden: undefined,
+          onDemand: undefined,
+          selectedAggregate: undefined,
+        }}
+      />,
+      {
+        organization,
+      }
+    );
 
-    // Check that a selected aggregate is in the dropdown
-    await userEvent.clear(input);
+    const input = await screen.findByRole('combobox', {name: 'Add a search term'});
+
     await userEvent.type(input, 'count_uni');
 
-    listbox = await screen.findByRole('listbox');
-    await within(listbox).findByText('count_unique(...)');
+    expect(
+      await within(await screen.findByRole('listbox')).findByText('count_unique(...)')
+    ).toBeInTheDocument();
+  });
 
-    await userEvent.type(input, '{Enter}');
+  it('shows normal tags, e.g. transaction, in the dropdown', async () => {
+    render(
+      <EventsSearchBar
+        onClose={jest.fn()}
+        dataset={DiscoverDatasets.TRANSACTIONS}
+        pageFilters={PageFiltersFixture()}
+        widgetQuery={{
+          aggregates: ['count_unique(browser.name)'],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+          fieldAliases: undefined,
+          fields: undefined,
+          isHidden: undefined,
+          onDemand: undefined,
+          selectedAggregate: undefined,
+        }}
+      />,
+      {
+        organization,
+      }
+    );
 
-    // Check that a normal tag (e.g. "transaction") IS in the dropdown
+    const input = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.clear(input);
     await userEvent.type(input, 'transact');
 
-    listbox = await screen.findByRole('listbox');
-    await within(listbox).findByText('transaction');
-    await userEvent.type(input, '{Enter}');
+    const listbox = await screen.findByRole('listbox');
+    expect(await within(listbox).findByText('transaction')).toBeInTheDocument();
   });
 });
