@@ -79,10 +79,6 @@ export const CallTreeTable = styled('div')`
     padding-right: ${space(1)};
     justify-content: flex-end;
 
-    &:nth-child(2) {
-      padding-right: 0;
-    }
-
     &:focus {
       outline: none;
     }
@@ -91,7 +87,7 @@ export const CallTreeTable = styled('div')`
   .${CallTreeTableClassNames.FRAME_CELL} {
     display: flex;
     align-items: center;
-    padding: 0 ${space(1)};
+    padding-left: ${space(1)};
     white-space: nowrap;
 
     &:focus {
