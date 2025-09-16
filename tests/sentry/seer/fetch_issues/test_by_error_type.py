@@ -593,3 +593,67 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             exception_type="runtimeerror",
         )
         assert seer_response == {"issues": [], "issues_full": []}
+
+    def test_unicode_normalization_consistency(self) -> None:
+        """Test that Unicode characters are handled consistently between Python and SQL."""
+        release = self.create_release(project=self.project, version="1.0.0")
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentryA",
+            provider="integrations:github",
+            external_id="1",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        # Store event with Unicode characters in exception type
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError测试",
+                            "value": "Unicode test error",
+                            "data": {"values": []},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+        group.save()
+
+        # Test that searching with Unicode characters works (Unicode gets stripped)
+        # Both the stored "ValueError测试" and search "ValueError测试" should normalize to "VALUEERROR"
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="ValueError测试",
+        )
+        assert seer_response["issues"] == [group.id]
+        assert len(seer_response["issues_full"]) == 1
+
+        # Test that searching with just ASCII part also works
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="ValueError",
+        )
+        assert seer_response["issues"] == [group.id]
+        assert len(seer_response["issues_full"]) == 1
+
+        # Test that searching with different Unicode characters that normalize to same ASCII works
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="ValueError测试αβ",  # Different Unicode chars
+        )
+        assert seer_response["issues"] == [group.id]
+        assert len(seer_response["issues_full"]) == 1
