@@ -24,15 +24,23 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const {project} = group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
+  const environments = useEnvironmentsFromUrl();
+
   const {data: allEnvironments} = useFetchAllEnvsGroupData(organization, group);
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
+    [
+      `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+      {
+        query: {
+          ...(environments.length > 0 ? {environment: environments} : {}),
+        },
+      },
+    ],
     {
       staleTime: 30000,
       gcTime: 30000,
     }
   );
-  const environments = useEnvironmentsFromUrl();
 
   const lastSeen = issueTypeConfig.useOpenPeriodChecks
     ? (group.openPeriods?.[0]?.lastChecked ?? group.lastSeen)
