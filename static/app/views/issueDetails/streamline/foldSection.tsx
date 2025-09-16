@@ -10,10 +10,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import {Disclosure} from 'sentry/components/core/disclosure';
-import {
-  Separator as CoreSeparator,
-  type SeparatorProps,
-} from 'sentry/components/core/separator';
+import {Separator, type SeparatorProps} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -202,13 +199,13 @@ export function FoldSection({
           <ErrorBoundary mini>{expanded ? children : null}</ErrorBoundary>
         </Disclosure.Content>
       </DisclosureWithScrollMargin>
-      <Separator orientation="horizontal" margin="lg 0" />
+      <SectionDivider orientation="horizontal" margin="lg 0" />
     </Fragment>
   );
 }
 
-export const Separator = styled((props: SeparatorProps) => (
-  <CoreSeparator
+export const SectionDivider = styled((props: SeparatorProps) => (
+  <Separator
     orientation={props.orientation || 'horizontal'}
     margin={props.margin || 'lg 0'}
     {...props}
