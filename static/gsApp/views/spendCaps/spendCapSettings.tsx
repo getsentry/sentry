@@ -1,10 +1,8 @@
 import type React from 'react';
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
@@ -27,8 +25,6 @@ import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {displayPrice, displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
 
-const SUGGESTED_SPENDING_CAPS = [300_00, 500_00, 1_000_00, 10_000_00];
-
 type PartialSpendCapUpdate = Partial<Record<DataCategory, number>> & {
   sharedMaxBudget?: number;
 };
@@ -45,13 +41,7 @@ interface SpendCapSettingsProps {
   currentReserved: Partial<Record<DataCategory, number>>;
   header: React.ReactNode;
   onDemandBudgets: OnDemandBudgets;
-  onUpdate: ({
-    onDemandBudgets,
-    fromButton,
-  }: {
-    onDemandBudgets: OnDemandBudgets;
-    fromButton?: boolean;
-  }) => void;
+  onUpdate: ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => void;
   isOpen?: boolean;
 }
 
@@ -72,13 +62,7 @@ interface SpendCapInputProps extends Pick<SpendCapSettingsProps, 'activePlan'> {
   budgetMode: OnDemandBudgetMode;
   category: DataCategory | null;
   currentSpendingCap: number;
-  onUpdate: ({
-    newData,
-    fromButton,
-  }: {
-    newData: PartialSpendCapUpdate;
-    fromButton?: boolean;
-  }) => void;
+  onUpdate: ({newData}: {newData: PartialSpendCapUpdate}) => void;
   reserved: number | null;
 }
 
@@ -129,9 +113,6 @@ function SpendCapInput({
   category,
   reserved,
 }: SpendCapInputProps) {
-  const [selectedButton, setSelectedButton] = useState<string | null>(
-    `button-${currentSpendingCap}`
-  );
   // category and reserved should never be null for per category but this makes TS happy
   const isPerCategory =
     budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
@@ -158,50 +139,23 @@ function SpendCapInput({
   };
 
   return (
-    <Flex align="center" justify="start" gap="md">
-      <ButtonBar merged gap="0">
-        {SUGGESTED_SPENDING_CAPS.map(cap => {
-          const isSelected = selectedButton === `button-${cap}`;
-          const formattedCap = displayPrice({cents: cap});
-          return (
-            <StyledButton
-              key={cap}
-              onClick={() => {
-                setSelectedButton(`button-${cap}`);
-                onUpdate({
-                  newData: {[inputName]: cap},
-                  fromButton: true,
-                });
-              }}
-              aria-checked={isSelected}
-              isSelected={isSelected}
-              aria-label={t('%s suggested %s spending cap', formattedCap, displayName)}
-            >
-              {formattedCap}
-            </StyledButton>
-          );
-        })}
-      </ButtonBar>
-      <Currency>
-        <StyledInput
-          aria-label={t('Custom %s spending cap', displayName)}
-          name={`spending-cap-${inputName}`}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          placeholder="300"
-          value={coerceValue(currentSpendingCap)}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            const parsedBudget = parseInputValue(e);
-            onUpdate({
-              newData: {[inputName]: parsedBudget},
-              fromButton: false,
-            });
-            setSelectedButton(`button-${parsedBudget}`);
-          }}
-        />
-      </Currency>
-    </Flex>
+    <Currency>
+      <StyledInput
+        aria-label={t('Custom %s spending cap', displayName)}
+        name={`spending-cap-${inputName}`}
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="300"
+        value={coerceValue(currentSpendingCap)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const parsedBudget = parseInputValue(e);
+          onUpdate({
+            newData: {[inputName]: parsedBudget},
+          });
+        }}
+      />
+    </Currency>
   );
 }
 
@@ -328,13 +282,7 @@ function InnerSpendCapSettings({
   currentReserved,
   additionalProducts,
 }: InnerSpendCapSettingsProps) {
-  const handleUpdate = ({
-    newData,
-    fromButton,
-  }: {
-    newData: PartialSpendCapUpdate;
-    fromButton?: boolean;
-  }) => {
+  const handleUpdate = ({newData}: {newData: PartialSpendCapUpdate}) => {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       onUpdate({
         onDemandBudgets: {
@@ -344,7 +292,6 @@ function InnerSpendCapSettings({
             ...newData,
           },
         },
-        fromButton,
       });
     } else {
       onUpdate({
@@ -352,7 +299,6 @@ function InnerSpendCapSettings({
           ...onDemandBudgets,
           ...newData,
         },
-        fromButton,
       });
     }
   };
@@ -670,14 +616,6 @@ const ExampleContainer = styled('div')`
 
   > p {
     margin: 0;
-  }
-`;
-
-// TODO(isabella): fix text color
-const StyledButton = styled(Button)<{isSelected: boolean}>`
-  color: ${p => (p.isSelected ? p.theme.activeText : p.theme.gray500)};
-  &:hover {
-    color: ${p => p.theme.activeText};
   }
 `;
 

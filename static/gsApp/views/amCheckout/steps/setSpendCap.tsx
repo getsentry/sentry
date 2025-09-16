@@ -42,13 +42,7 @@ function SetSpendCap({
   }, [formData.selectedProducts]);
 
   const handleBudgetChange = useCallback(
-    ({
-      onDemandBudgets,
-      fromButton,
-    }: {
-      fromButton: boolean;
-      onDemandBudgets: OnDemandBudgets;
-    }) => {
+    ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => {
       const totalBudget = getTotalBudget(onDemandBudgets);
       onUpdate({
         ...formData,
@@ -62,7 +56,7 @@ function SetSpendCap({
           subscription,
           plan: formData.plan,
           cents: totalBudget || 0,
-          method: fromButton ? 'button' : 'textbox',
+          method: 'textbox',
         });
       }
     },
@@ -87,9 +81,7 @@ function SetSpendCap({
       onDemandBudgets={
         formData.onDemandBudget ?? parseOnDemandBudgetsFromSubscription(subscription)
       }
-      onUpdate={({onDemandBudgets, fromButton}) =>
-        handleBudgetChange({onDemandBudgets, fromButton: !!fromButton})
-      }
+      onUpdate={({onDemandBudgets}) => handleBudgetChange({onDemandBudgets})}
       currentReserved={formData.reserved}
       additionalProducts={additionalProducts}
       isOpen={isOpen}
