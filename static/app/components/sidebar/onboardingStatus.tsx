@@ -14,6 +14,7 @@ import ProgressRing, {
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tn} from 'sentry/locale';
+import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -22,7 +23,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import type {CommonSidebarProps} from './types';
-import {SidebarPanelKey} from './types';
 
 type OnboardingStatusProps = CommonSidebarProps;
 
@@ -42,7 +42,7 @@ export function OnboardingStatus({
     false
   );
 
-  const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
+  const isActive = currentPanel === OnboardingDrawerKey.ONBOARDING_WIZARD;
   const demoMode = isDemoModeActive();
 
   const {

@@ -4,6 +4,8 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+from rest_framework.response import Response
+
 from sentry.integrations.discord.message_builder.base.component import (
     DiscordComponentCustomIds as CustomIds,
 )
@@ -56,7 +58,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
             user=self.user, identity_provider=self.provider, external_id=self.discord_user_id
         )
 
-    def send_interaction(self, data: Any | None = None, member: Any | None = None):
+    def send_interaction(self, data: Any | None = None, member: Any | None = None) -> Response:
         if data is None:
             data = {"custom_id": f"unknown:{self.group.id}"}
         if member is None:

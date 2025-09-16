@@ -21,7 +21,6 @@ describe('ExploreCharts', () => {
       <SpansQueryParamsProvider>
         <PageParamsProvider>
           <ExploreCharts
-            extrapolate
             confidences={[]}
             query={''}
             timeseriesResult={mockTimeseriesResult}
