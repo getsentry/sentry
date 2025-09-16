@@ -61,6 +61,13 @@ def compare_preprod_artifact_size_analysis(
     # Run all comparisons with artifact as head
     base_artifact = artifact.get_base_artifact_for_commit().first()
     if base_artifact:
+        if artifact.build_configuration != base_artifact.build_configuration:
+            logger.info(
+                "preprod.size_analysis.compare.artifact_different_build_configurations",
+                extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
+            )
+            return
+
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[base_artifact.id],
             preprod_artifact__project__organization_id=org_id,
@@ -112,6 +119,13 @@ def compare_preprod_artifact_size_analysis(
     # Also run comparisons with artifact as base
     head_artifacts = artifact.get_head_artifacts_for_commit()
     for head_artifact in head_artifacts:
+        if head_artifact.build_configuration != artifact.build_configuration:
+            logger.info(
+                "preprod.size_analysis.compare.head_artifact_different_build_configurations",
+                extra={"head_artifact_id": head_artifact.id, "base_artifact_id": artifact_id},
+            )
+            continue
+
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[head_artifact.id],
             preprod_artifact__project__organization_id=org_id,
@@ -192,6 +206,14 @@ def manual_size_analysis_comparison(
         logger.exception(
             "preprod.size_analysis.compare.manual.base_artifact_not_found",
             extra={"base_artifact_id": base_artifact_id},
+        )
+        return
+
+    # Should never be hit as we block this in manual compare endpoint, but safety check just in case
+    if head_artifact.build_configuration != base_artifact.build_configuration:
+        logger.info(
+            "preprod.size_analysis.compare.manual.different_build_configurations",
+            extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
         )
         return
 

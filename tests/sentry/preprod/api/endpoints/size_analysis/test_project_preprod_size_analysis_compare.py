@@ -8,6 +8,7 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
 )
 from sentry.testutils.cases import APITestCase
 
@@ -640,3 +641,24 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert watch_comparison_data["head_size_metric_id"] == head_watch_metric.id
         assert watch_comparison_data["base_size_metric_id"] == base_watch_metric.id
         assert watch_comparison_data["comparison_id"] == watch_comparison.id
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    def test_post_comparison_different_build_configurations(self):
+        """Test POST endpoint returns 400 when artifacts have different build configurations"""
+        # Create a build configuration for the base artifact
+        debug_config = PreprodBuildConfiguration.objects.create(project=self.project, name="debug")
+
+        # Update base artifact to have different build configuration
+        self.base_artifact.build_configuration = debug_config
+        self.base_artifact.save()
+
+        # Head artifact will have None/default, base will have debug config
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            self.head_artifact.id,
+            self.base_artifact.id,
+            method="post",
+            status_code=400,
+        )
+        assert response.data["error"] == "Head and base build configurations must be the same."
