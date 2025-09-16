@@ -9,11 +9,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
+from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
-from sentry.preprod.models import PreprodArtifact
 
 
 class LaunchpadServiceOrStaffPermission(StaffPermission):
@@ -35,7 +34,7 @@ class LaunchpadServiceOrStaffPermission(StaffPermission):
 
 
 @region_silo_endpoint
-class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
+class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -47,7 +46,7 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
     )
     permission_classes = (LaunchpadServiceOrStaffPermission,)
 
-    def get(self, request: Request, project, artifact_id) -> HttpResponseBase:
+    def get(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
         """
         Download a preprod artifact file
         ```````````````````````````````
@@ -58,23 +57,15 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
                                           artifact belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      artifact from.
-        :pparam string artifact_id: the ID of the preprod artifact to download.
+        :pparam string head_artifact_id: the ID of the preprod artifact to download.
         :auth: required
         """
 
-        try:
-            preprod_artifact = PreprodArtifact.objects.get(
-                project=project,
-                id=artifact_id,
-            )
-        except PreprodArtifact.DoesNotExist:
-            return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
-
-        if preprod_artifact.file_id is None:
+        if head_artifact.file_id is None:
             return Response({"error": "Preprod artifact file not available"}, status=404)
 
         try:
-            file_obj = File.objects.get(id=preprod_artifact.file_id)
+            file_obj = File.objects.get(id=head_artifact.file_id)
         except File.DoesNotExist:
             return Response({"error": "Preprod artifact file not found"}, status=404)
 
@@ -84,7 +75,7 @@ class ProjectPreprodArtifactDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Failed to retrieve preprod artifact file"}, status=500)
 
         # All preprod artifacts are zip files
-        filename = f"preprod_artifact_{artifact_id}.zip"
+        filename = f"preprod_artifact_{head_artifact.id}.zip"
 
         response = FileResponse(
             fp,
