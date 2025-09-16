@@ -205,8 +205,11 @@ export function FoldSection({
 }
 
 export const Separator = styled(
-  (props: {orientation?: string; margin?: string; [key: string]: any}) => (
-    <CoreSeparator orientation={props.orientation || "horizontal"} margin={props.margin || "lg 0"} />
+  (props: {[key: string]: any; margin?: string; orientation?: string}) => (
+    <CoreSeparator
+      orientation={props.orientation || 'horizontal'}
+      margin={props.margin || 'lg 0'}
+    />
   )
 )``;
 
