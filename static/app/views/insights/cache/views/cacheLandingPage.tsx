@@ -29,7 +29,6 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
@@ -68,15 +67,6 @@ export function CacheLandingPage() {
     moduleName: ModuleName.CACHE,
     requiredParams: ['transaction'],
   });
-
-  const {error: cacheMissRateError} = useSpanSeries(
-    {
-      yAxis: [`${CACHE_MISS_RATE}()`],
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_CACHE_HIT_MISS_CHART
-  );
 
   const {
     isFetching: isTransactionsListFetching,
@@ -122,30 +112,6 @@ export function CacheLandingPage() {
 
   const onboardingProject = useOnboardingProject();
   const hasData = useHasFirstSpan(ModuleName.CACHE);
-
-  useEffect(() => {
-    // TODO: EAP does not use an indexer, so these metrics indexer errors are not possible. When EAP is fully rolled out, remove this check.
-    const hasMissingDataError =
-      cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
-      transactionsListError?.message === CACHE_ERROR_MESSAGE;
-
-    if (onboardingProject || !hasData) {
-      setPageInfo(undefined);
-      return;
-    }
-    if (pageAlert?.message !== SDK_UPDATE_ALERT) {
-      if (hasMissingDataError && hasData) {
-        setPageInfo(SDK_UPDATE_ALERT, {dismissId: DismissId.CACHE_SDK_UPDATE_ALERT});
-      }
-    }
-  }, [
-    cacheMissRateError?.message,
-    transactionsListError?.message,
-    setPageInfo,
-    hasData,
-    pageAlert?.message,
-    onboardingProject,
-  ]);
 
   const transactionDurationsMap = keyBy(transactionDurationData, 'transaction');
 
