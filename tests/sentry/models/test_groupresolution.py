@@ -248,7 +248,7 @@ class GroupResolutionTest(TestCase):
             release=self.old_release,
             group=self.group,
             type=GroupResolution.Type.in_future_release,
-            future_release_version=self.new_release.version,  # "b"
+            future_release_version=self.new_release.version,
         )
 
         assert not GroupResolution.has_resolution(self.group, newer_release)
@@ -259,7 +259,7 @@ class GroupResolutionTest(TestCase):
             release=self.old_release,
             group=self.group,
             type=GroupResolution.Type.in_future_release,
-            future_release_version=self.new_release.version,  # "b"
+            future_release_version=self.new_release.version,
         )
 
         assert GroupResolution.has_resolution(self.group, self.old_release)
@@ -270,7 +270,7 @@ class GroupResolutionTest(TestCase):
             release=self.old_release,
             group=self.group,
             type=GroupResolution.Type.in_future_release,
-            future_release_version=self.new_release.version,  # "b"
+            future_release_version=self.new_release.version,
         )
 
         assert not GroupResolution.has_resolution(self.group, self.new_release)

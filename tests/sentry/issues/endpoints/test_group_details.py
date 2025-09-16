@@ -617,21 +617,6 @@ class GroupUpdateTest(APITestCase):
         # No GroupResolution should be created
         assert not GroupResolution.objects.filter(group=group).exists()
 
-    def test_resolved_in_future_release_invalid_version_format(self) -> None:
-        """Test that resolving in future release fails with invalid version format."""
-        # TODO: Implement test for invalid version format handling
-        pass
-
-    def test_resolved_in_future_release_activity_creation(self) -> None:
-        """Test that proper activity is created when resolving in future release."""
-        # TODO: Implement test for activity creation with future release resolution
-        pass
-
-    def test_resolved_in_future_release_group_subscription(self) -> None:
-        """Test that user is subscribed to group when resolving in future release."""
-        # TODO: Implement test for group subscription on future release resolution
-        pass
-
     def test_snooze_duration(self) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED)
 
