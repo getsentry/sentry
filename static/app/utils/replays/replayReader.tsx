@@ -512,15 +512,41 @@ export default class ReplayReader {
   };
 
   getIsActive = () => {
-    // A replay is active if it's startTimestamp is <60 mins ago and endTimestamp is <15 mins ago
+    // A replay is "LIVE" if:
+    // - now < replayStart + 60 mins
+    // - now < replayEnd + 15 mins
+
+    // Case #1:
+    // Time (mins) ─────────────────────────────────────────────▶
+
+    // replayStart (0:00)  replayEnd (0:12)
+    // |-------------------|
+    //                                                         replayStart + 60 mins (0:60)
+    // |-------------------------------------------------------|
+    //                               replayEnd + 15 mins (0:27)
+    //                     |---------|
+    //
+    //                     |---------| <- (replay is "LIVE")
+
+    // Case #2:
+    // Time (mins) ────────────────────────────────────────────────▶
+
+    // replayStart (0:00)                                replayEnd (0:55)
+    // |-------------------------------------------------|
+    //                                                         replayStart + 60 mins (0:60)
+    // |-------------------------------------------------------|
+    //                                                             replayEnd + 15 mins (1:10)
+    //                                                   |---------|
+    //
+    //                                                   |-----| ◀─ (replay is "LIVE")
     const startTimestampMs = this.getStartTimestampMs();
     const endTimestampMs = startTimestampMs + this.getDurationMs();
     const now = Date.now();
     const SIXTY_MINUTES_MS = 60 * 60 * 1000;
     const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
     return (
-      startTimestampMs > now - SIXTY_MINUTES_MS &&
-      endTimestampMs > now - FIFTEEN_MINUTES_MS
+      now < startTimestampMs + SIXTY_MINUTES_MS &&
+      now < endTimestampMs + FIFTEEN_MINUTES_MS
     );
   };
 
