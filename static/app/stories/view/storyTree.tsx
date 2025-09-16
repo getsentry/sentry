@@ -129,6 +129,7 @@ function folderOrSearchScoreFirst(
 
 const order: StoryCategory[] = [
   'foundations',
+  'principles',
   'typography',
   'layout',
   'core',
@@ -173,6 +174,7 @@ function normalizeFilename(filename: string) {
 
 export type StoryCategory =
   | 'foundations'
+  | 'principles'
   | 'core'
   | 'product'
   | 'typography'
@@ -182,6 +184,10 @@ export type StoryCategory =
 export function inferFileCategory(path: string): StoryCategory {
   if (isFoundationFile(path)) {
     return 'foundations';
+  }
+
+  if (isPrinciplesFile(path)) {
+    return 'principles';
   }
 
   if (isTypographyFile(path)) {
@@ -218,6 +224,10 @@ function isTypographyFile(file: string) {
 
 function isLayoutFile(file: string) {
   return file.includes('components/core/layout');
+}
+
+function isPrinciplesFile(file: string) {
+  return file.includes('components/core/principles');
 }
 
 function isProductFile(path: string): boolean {
