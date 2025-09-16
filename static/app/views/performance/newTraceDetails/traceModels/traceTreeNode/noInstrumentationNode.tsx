@@ -86,6 +86,10 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     return <MissingInstrumentationNodeDetails {...props} node={props.node} />;
   }
 
+  matchById(id: string): boolean {
+    return this.previous.id === id || this.next.id === id;
+  }
+
   matchWithFreeText(_query: string): boolean {
     return false;
   }

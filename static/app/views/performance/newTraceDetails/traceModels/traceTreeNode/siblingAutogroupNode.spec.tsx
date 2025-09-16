@@ -473,4 +473,104 @@ describe('SiblingAutogroupNode1', () => {
       expect(node.printNode()).toBe('sibling autogroup (test.op: 5)');
     });
   });
+
+  describe('matchById', () => {
+    it('should match by first child ID', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeSiblingAutogroup({
+        autogrouped_by: {
+          op: 'db.query',
+          description: 'Database operations',
+        },
+      });
+
+      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+
+      // Create child nodes
+      const child1Value = makeEAPSpan({event_id: 'child-1'});
+      const child2Value = makeEAPSpan({event_id: 'child-2'});
+      const child1 = new EapSpanNode(node, child1Value, extra);
+      const child2 = new EapSpanNode(node, child2Value, extra);
+
+      node.children = [child1, child2];
+
+      expect(node.matchById('child-1')).toBe(true);
+      expect(node.matchById('child-2')).toBe(false); // Only matches first child
+      expect(node.matchById('non-existent')).toBe(false);
+    });
+
+    it('should return false when no children exist', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeSiblingAutogroup({
+        autogrouped_by: {
+          op: 'http.request',
+          description: 'HTTP requests',
+        },
+      });
+
+      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+      expect(node.children).toEqual([]);
+
+      expect(node.matchById('any-id')).toBe(false);
+    });
+
+    it('should return false when first child has no ID', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeSiblingAutogroup({
+        autogrouped_by: {
+          op: 'custom.operation',
+          description: 'Custom operations',
+        },
+      });
+
+      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+
+      // Create child with undefined ID
+      const childValue = makeEAPSpan({event_id: undefined});
+      const child = new EapSpanNode(node, childValue, extra);
+      node.children = [child];
+
+      expect(node.matchById('any-id')).toBe(false);
+    });
+
+    it('should handle empty string ID in first child', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeSiblingAutogroup({
+        autogrouped_by: {
+          op: 'span.operation',
+          description: 'Span operations',
+        },
+      });
+
+      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+
+      // Create child with empty string ID
+      const childValue = makeEAPSpan({event_id: ''});
+      const child = new EapSpanNode(node, childValue, extra);
+      node.children = [child];
+
+      expect(node.matchById('')).toBe(true);
+      expect(node.matchById('any-id')).toBe(false);
+    });
+
+    it('should be case sensitive', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeSiblingAutogroup({
+        autogrouped_by: {
+          op: 'test.operation',
+          description: 'Test operations',
+        },
+      });
+
+      const node = new SiblingAutogroupNode1(null, autogroupValue, extra);
+
+      const childValue = makeEAPSpan({event_id: 'CaseSensitiveId'});
+      const child = new EapSpanNode(node, childValue, extra);
+      node.children = [child];
+
+      expect(node.matchById('CaseSensitiveId')).toBe(true);
+      expect(node.matchById('casesensitiveid')).toBe(false);
+      expect(node.matchById('CASESENSITIVEID')).toBe(false);
+    });
+  });
 });

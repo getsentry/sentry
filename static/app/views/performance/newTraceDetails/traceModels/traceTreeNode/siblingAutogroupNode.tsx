@@ -93,6 +93,10 @@ export class SiblingAutogroupNode1 extends BaseNode<TraceTree.SiblingAutogroup> 
     );
   }
 
+  matchById(id: string): boolean {
+    return this.children[0]?.id === id;
+  }
+
   matchWithFreeText(query: string): boolean {
     if (this.op?.includes(query)) {
       return true;

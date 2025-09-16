@@ -520,4 +520,258 @@ describe('NoInstrumentationNode', () => {
       expect(node.value.type).toBe('missing_instrumentation');
     });
   });
+
+  describe('matchById', () => {
+    it('should match by previous node ID', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: 'previous-span-id',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: 'next-span-id',
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('previous-span-id')).toBe(true);
+    });
+
+    it('should match by next node ID', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: 'previous-span-id',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: 'next-span-id',
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('next-span-id')).toBe(true);
+    });
+
+    it('should match both previous and next node IDs', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: 'previous-span-id',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: 'next-span-id',
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('previous-span-id')).toBe(true);
+      expect(node.matchById('next-span-id')).toBe(true);
+      expect(node.matchById('non-existent-id')).toBe(false);
+    });
+
+    it('should return false when neither previous nor next ID matches', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: 'previous-span-id',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: 'next-span-id',
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('different-id')).toBe(false);
+      expect(node.matchById('another-id')).toBe(false);
+    });
+
+    it('should handle undefined previous node ID', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: undefined,
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: 'next-span-id',
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('next-span-id')).toBe(true);
+      expect(node.matchById('undefined')).toBe(false);
+    });
+
+    it('should handle undefined next node ID', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: 'previous-span-id',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: undefined,
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('previous-span-id')).toBe(true);
+      expect(node.matchById('undefined')).toBe(false);
+    });
+
+    it('should handle both previous and next node IDs being undefined', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: undefined,
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: undefined,
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('any-id')).toBe(false);
+    });
+
+    it('should be case sensitive', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: 'CaseSensitivePrevious',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: 'CaseSensitiveNext',
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('CaseSensitivePrevious')).toBe(true);
+      expect(node.matchById('casesensitiveprevious')).toBe(false);
+      expect(node.matchById('CaseSensitiveNext')).toBe(true);
+      expect(node.matchById('casesensitivenext')).toBe(false);
+    });
+
+    it('should handle empty string IDs', () => {
+      const extra = createMockExtra();
+      const previousSpanValue = makeEAPSpan({
+        event_id: '',
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const nextSpanValue = makeEAPSpan({
+        event_id: 'next-span-id',
+        start_timestamp: 2000,
+        end_timestamp: 2500,
+      });
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        null,
+        missingInstrValue,
+        extra
+      );
+
+      expect(node.matchById('')).toBe(true);
+      expect(node.matchById('next-span-id')).toBe(true);
+    });
+  });
 });
