@@ -12,7 +12,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
-import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {FilterOperator as FilterOperatorComponent} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
@@ -170,6 +170,24 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
       <InteractionStateLayer />
       <FilterValueText token={token} />
     </ValueButton>
+  );
+}
+
+interface FilterOperatorProps {
+  item: Node<ParseResultToken>;
+  onOpenChange: (isOpen: boolean) => void;
+  state: ListState<ParseResultToken>;
+  token: TokenResult<Token.FILTER>;
+}
+
+function FilterOperator({token, state, item, onOpenChange}: FilterOperatorProps) {
+  return (
+    <FilterOperatorComponent
+      token={token}
+      state={state}
+      item={item}
+      onOpenChange={onOpenChange}
+    />
   );
 }
 
