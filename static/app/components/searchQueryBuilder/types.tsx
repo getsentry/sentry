@@ -16,7 +16,7 @@ export enum QueryInterfaceType {
 
 export type FocusOverride = {
   itemKey: string | 'end';
-  part?: 'value' | 'key';
+  part?: 'value' | 'key' | 'op';
 };
 
 export type FieldDefinitionGetter = (key: string) => FieldDefinition | null;

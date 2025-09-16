@@ -137,7 +137,7 @@ function calculateNextFocusForFilter(
   const part =
     definition && definition.kind === FieldKind.FUNCTION && definition.parameters?.length
       ? 'key'
-      : 'value';
+      : 'op';
 
   return {
     itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
