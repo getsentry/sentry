@@ -225,7 +225,13 @@ function ResultsSearchQueryBuilder(props: Props) {
 
     Object.assign(combinedTags, filteredTags, STATIC_SEMVER_TAGS, featureFlagTags);
 
-    combinedTags.has = getHasTag(combinedTags);
+    // Function tags should not be included in the has tag
+    const functionTagKeys = new Set(Object.keys(functionTags));
+    combinedTags.has = getHasTag(
+      Object.fromEntries(
+        Object.entries(combinedTags).filter(([key]) => !functionTagKeys.has(key))
+      )
+    );
 
     return combinedTags;
   }, [

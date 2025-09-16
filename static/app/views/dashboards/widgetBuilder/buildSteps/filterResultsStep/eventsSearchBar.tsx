@@ -1,6 +1,5 @@
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import type {PageFilters} from 'sentry/types/core';
-import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,7 +28,7 @@ export function EventsSearchBar({
   const {customMeasurements} = useCustomMeasurements();
   const eventView = eventViewFromWidget('', widgetQuery, pageFilters);
   const fields = eventView.hasAggregateField()
-    ? generateAggregateFields(organization, eventView.fields)
+    ? eventView.getAggregateFields()
     : eventView.fields;
 
   return (
