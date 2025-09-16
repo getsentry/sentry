@@ -225,7 +225,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert len(events) == 0
 
     @mock.patch("sentry.quotas.backend.remove_seat")
-    def test_delete_with_uptime_monitors(self, mock_remove_seat) -> None:
+    def test_delete_with_uptime_monitors(self, mock_remove_seat: mock.MagicMock) -> None:
         project = self.create_project(name="test")
         detector = self.create_uptime_detector(project=project)
         uptime_subscription = get_uptime_subscription(detector)
