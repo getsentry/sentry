@@ -204,13 +204,15 @@ export function FoldSection({
   );
 }
 
-export const SectionDivider = styled(({orientation, margin, ...props}: SeparatorProps) => (
-  <Separator
-    orientation={orientation || 'horizontal'}
-    margin={margin || 'lg 0'}
-    {...props}
-  />
-))`
+export const SectionDivider = styled(
+  ({orientation, margin, ...props}: SeparatorProps) => (
+    <Separator
+      orientation={orientation || 'horizontal'}
+      margin={margin || 'lg 0'}
+      {...props}
+    />
+  )
+)`
   &:last-child {
     display: none;
   }
