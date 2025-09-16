@@ -30,7 +30,7 @@ export function LatencyChart({id, error, destination, referrer, pageFilters}: Pr
     error: latencyError,
   } = useFetchSpanTimeSeries(
     {
-      yAxis: ['avg(span.duration)', 'avg(messaging.message.receive.latency)'],
+      yAxis: ['avg(messaging.message.receive.latency)', 'avg(span.duration)'],
       query: search,
       pageFilters,
     },
