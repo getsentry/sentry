@@ -1,7 +1,7 @@
 import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion, type Variants} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -20,7 +20,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type TimeAndScrubberGridProps = {
@@ -211,17 +210,11 @@ const LiveWrapper = styled('div')`
 function Live() {
   return (
     <LiveWrapper>
-      <LiveIndicator variants={liveAnimation} transition={testableTransition()} />
+      <LiveIndicator />
       LIVE
     </LiveWrapper>
   );
 }
-
-const liveAnimation: Variants = {
-  initial: {opacity: 0, y: -10},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 10},
-};
 
 const LiveIndicator = styled(motion.div)`
   margin: 0 6px;
