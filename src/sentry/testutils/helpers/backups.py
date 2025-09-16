@@ -756,16 +756,16 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         data_forwarder = DataForwarder.objects.create(
-            organization_id=org.id,
+            organization=org,
             is_enabled=True,
             enroll_new_projects=True,
-            enrolled_projects=[project.id],
+            enrolled_projects=[project],
             provider="segment",
             config={"write_key": "test_write_key"},
         )
         ProjectDataForwarder.objects.create(
             data_forwarder=data_forwarder,
-            project_id=project,
+            project=project,
             overrides={"write_key": "test_override_write_key"},
         )
 

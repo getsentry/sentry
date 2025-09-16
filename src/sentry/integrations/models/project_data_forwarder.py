@@ -19,13 +19,13 @@ class ProjectDataForwarder(DefaultFieldsModel):
         on_delete=models.CASCADE,
         related_name="projects",
     )
-    project_id = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     overrides = models.JSONField(default=dict)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_projectdataforwarder"
-        unique_together = (("data_forwarder", "project_id"),)
+        unique_together = (("data_forwarder", "project"),)
 
     def get_config(self) -> dict:
         """

@@ -13,7 +13,7 @@ class DataForwarder(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    organization_id = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     is_enabled = models.BooleanField(default=True)
 
     enroll_new_projects = models.BooleanField(default=False)
