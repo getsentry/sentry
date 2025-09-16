@@ -26,6 +26,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -47,13 +48,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            }
         }
-    }
+    )
 
     @track_slo_response("workflow")
     def get(self, request: Request, project: Project) -> Response:
