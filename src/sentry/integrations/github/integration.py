@@ -235,9 +235,10 @@ class GitHubIntegration(
     # IssueSyncIntegration configuration keys
     comment_key = None
     outbound_status_key = None
-    inbound_status_key = None
+    inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
+    resolution_strategy_key = "resolution_strategy"
 
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -473,14 +474,22 @@ class GitHubIntegration(
         Given webhook data, check whether the GitHub issue status changed.
         GitHub issues only have open/closed state.
         """
-        # Not implemented yet, so we return NOOP
+        if not features.has(
+            "organizations:integrations-github-inbound-status-sync", self.organization
+        ):
+            return ResolveSyncAction.NOOP
+
+        if data.get("action") == "closed":
+            return ResolveSyncAction.RESOLVE
+        elif data.get("action") == "reopened":
+            return ResolveSyncAction.UNRESOLVE
         return ResolveSyncAction.NOOP
 
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
         Return configuration options for the GitHub integration.
         """
-        config = []
+        config: list[dict[str, Any]] = []
 
         if features.has(
             "organizations:integrations-github-inbound-assignee-sync", self.organization
@@ -509,6 +518,35 @@ class GitHubIntegration(
                     ),
                     "default": False,
                 }
+            )
+        if features.has("organizations:integrations-github-inbound-status-sync", self.organization):
+            config.append(
+                {
+                    "name": self.inbound_status_key,
+                    "type": "boolean",
+                    "label": _("Sync GitHub Status to Sentry"),
+                    "help": _(
+                        "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
+                        "When a GitHub issue is reopened, unresolve its linked Sentry issue."
+                    ),
+                    "default": False,
+                }
+            )
+            config.append(
+                {
+                    "name": self.resolution_strategy_key,
+                    "label": "Resolve",
+                    "type": "select",
+                    "placeholder": "Resolve",
+                    "choices": [
+                        ("resolve", "Resolve"),
+                        ("resolve_current_release", "Resolve in Current Release"),
+                        ("resolve_next_release", "Resolve in Next Release"),
+                    ],
+                    "help": _(
+                        "Select what action to take on Sentry Issue when GitHub ticket is marked Closed."
+                    ),
+                },
             )
 
         context = organization_service.get_organization_by_id(
