@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -39,6 +40,7 @@ interface ToolbarVisualizeDropdownProps {
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   onDelete: () => void;
   parsedFunction: ParsedFunction | null;
+  label?: ReactNode;
 }
 
 export function ToolbarVisualizeDropdown({
@@ -49,6 +51,7 @@ export function ToolbarVisualizeDropdown({
   onChangeArgument,
   onDelete,
   parsedFunction,
+  label,
 }: ToolbarVisualizeDropdownProps) {
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
@@ -57,6 +60,7 @@ export function ToolbarVisualizeDropdown({
 
   return (
     <ToolbarRow>
+      {label}
       <AggregateCompactSelect
         searchable
         options={aggregateOptions}
