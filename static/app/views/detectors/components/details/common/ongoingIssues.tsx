@@ -2,6 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -151,12 +153,37 @@ export function DetectorDetailsOngoingIssues({
   detector,
   intervalSeconds,
 }: OngoingIssueProps) {
+  const organization = useOrganization();
+  const location = useLocation();
   // TODO: We'll probably need to make a query to get all linked issues
   const latestGroupId = detector.latestGroup?.id;
   const numIssues = latestGroupId ? 1 : 0;
 
+  const issueSearchQueryParams = {
+    query: `is:unresolved detector:${detector.id}`,
+    limit: 5,
+    start: location.query.start,
+    end: location.query.end,
+    statsPeriod: location.query.statsPeriod,
+  };
+
   return (
-    <Section title={tn('Ongoing Issue', 'Ongoing Issues', numIssues)}>
+    <Section
+      title={
+        <Flex>
+          {tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
+          <LinkButton
+            size="xs"
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: issueSearchQueryParams,
+            }}
+          >
+            {t('View All')}
+          </LinkButton>
+        </Flex>
+      }
+    >
       <ErrorBoundary mini>
         {latestGroupId ? (
           <LatestGroupWithOpenPeriods
