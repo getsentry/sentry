@@ -200,12 +200,17 @@ def cleanup(
         model_list = {m.lower() for m in model}
         # Track which models were attempted for deletion
         models_attempted: set[str] = set()
+        # Track which models were filtered out for legitimate reasons (silo/router)
+        models_legitimately_filtered: set[str] = set()
 
         def is_filtered(model: type[Model]) -> bool:
+            model_name = model.__name__.lower()
             silo_limit = getattr(model._meta, "silo_limit", None)
             if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
+                models_legitimately_filtered.add(model_name)
                 return True
             if router is not None and db_router.db_for_write(model) != router:
+                models_legitimately_filtered.add(model_name)
                 return True
             if not model_list:
                 return False
@@ -215,13 +220,13 @@ def cleanup(
 
         deletes = models_which_use_deletions_code_path()
 
-        remove_expired_values_for_lost_passwords(is_filtered)
+        remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
 
-        remove_expired_values_for_org_members(is_filtered, days)
+        remove_expired_values_for_org_members(is_filtered, days, models_attempted)
 
-        delete_api_models(is_filtered)
+        delete_api_models(is_filtered, models_attempted)
 
-        exported_data(is_filtered, silent)
+        exported_data(is_filtered, silent, models_attempted)
 
         project_id = None
         organization_id = None
@@ -328,7 +333,7 @@ def cleanup(
 
         task_queue.join()
 
-        remove_file_blobs(is_filtered, silent)
+        remove_file_blobs(is_filtered, silent, models_attempted)
 
     finally:
         # Shut down our pool
@@ -346,7 +351,8 @@ def cleanup(
 
     # Check for models that were specified but never attempted
     if model_list:
-        models_never_attempted = model_list - models_attempted
+        # Exclude models that were legitimately filtered out (silo/router restrictions)
+        models_never_attempted = model_list - models_attempted - models_legitimately_filtered
         if models_never_attempted:
             import logging
 
@@ -355,9 +361,14 @@ def cleanup(
                 "Models specified with --model were never attempted for deletion",
                 extra={
                     "models_never_attempted": sorted(models_never_attempted),
+                    "current_silo_mode": str(SiloMode.get_current_mode()),
+                    "legitimately_filtered_models": (
+                        sorted(models_legitimately_filtered)
+                        if models_legitimately_filtered
+                        else None
+                    ),
                     "possible_causes": [
                         "The model is not in any cleanup processing list",
-                        "The model was filtered out by silo limits or router restrictions",
                     ],
                 },
             )
@@ -366,20 +377,23 @@ def cleanup(
         transaction.__exit__(None, None, None)
 
 
-def remove_expired_values_for_lost_passwords(is_filtered: Callable[[type[Model]], bool]) -> None:
+def remove_expired_values_for_lost_passwords(
+    is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
+) -> None:
     from sentry.users.models.lostpasswordhash import LostPasswordHash
 
     debug_output("Removing expired values for LostPasswordHash")
     if is_filtered(LostPasswordHash):
         debug_output(">> Skipping LostPasswordHash")
     else:
+        models_attempted.add(LostPasswordHash.__name__.lower())
         LostPasswordHash.objects.filter(
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
 
 
 def remove_expired_values_for_org_members(
-    is_filtered: Callable[[type[Model]], bool], days: int
+    is_filtered: Callable[[type[Model]], bool], days: int, models_attempted: set[str]
 ) -> None:
     from sentry.models.organizationmember import OrganizationMember
 
@@ -387,11 +401,14 @@ def remove_expired_values_for_org_members(
     if is_filtered(OrganizationMember):
         debug_output(">> Skipping OrganizationMember")
     else:
+        models_attempted.add(OrganizationMember.__name__.lower())
         expired_threshold = timezone.now() - timedelta(days=days)
         OrganizationMember.objects.delete_expired(expired_threshold)
 
 
-def delete_api_models(is_filtered: Callable[[type[Model]], bool]) -> None:
+def delete_api_models(
+    is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
+) -> None:
     from sentry.models.apigrant import ApiGrant
     from sentry.models.apitoken import ApiToken
 
@@ -401,6 +418,7 @@ def delete_api_models(is_filtered: Callable[[type[Model]], bool]) -> None:
         if is_filtered(model_tp):
             debug_output(f">> Skipping {model_tp.__name__}")
         else:
+            models_attempted.add(model_tp.__name__.lower())
             queryset = model_tp.objects.filter(
                 expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
             )
@@ -415,7 +433,9 @@ def delete_api_models(is_filtered: Callable[[type[Model]], bool]) -> None:
             queryset.delete()
 
 
-def exported_data(is_filtered: Callable[[type[Model]], bool], silent: bool) -> None:
+def exported_data(
+    is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
+) -> None:
     from sentry.data_export.models import ExportedData
 
     if not silent:
@@ -424,6 +444,7 @@ def exported_data(is_filtered: Callable[[type[Model]], bool], silent: bool) -> N
     if is_filtered(ExportedData):
         debug_output(">> Skipping ExportedData files")
     else:
+        models_attempted.add(ExportedData.__name__.lower())
         export_data_queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
         for item in export_data_queryset:
             item.delete_file()
@@ -604,7 +625,9 @@ def prepare_deletes_by_organization(
     return organization_deletion_query, to_delete_by_organization
 
 
-def remove_file_blobs(is_filtered: Callable[[type[Model]], bool], silent: bool) -> None:
+def remove_file_blobs(
+    is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
+) -> None:
     from sentry.models.file import FileBlob
 
     # Clean up FileBlob instances which are no longer used and aren't super
@@ -613,6 +636,7 @@ def remove_file_blobs(is_filtered: Callable[[type[Model]], bool], silent: bool) 
     if is_filtered(FileBlob):
         debug_output(">> Skipping FileBlob")
     else:
+        models_attempted.add(FileBlob.__name__.lower())
         cleanup_unused_files(silent)
 
 
