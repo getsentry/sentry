@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {GHAWorkflowExpandable} from 'sentry/views/prevent/tests/onboardingSteps/GHAWorkflowExpandable';

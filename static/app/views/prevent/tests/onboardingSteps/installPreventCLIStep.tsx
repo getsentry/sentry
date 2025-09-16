@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {IconOpen} from 'sentry/icons';
