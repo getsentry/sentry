@@ -1009,9 +1009,7 @@ def test_create_feedback_adds_ai_labels(
         mock_generate_labels,
     ):
 
-        create_feedback_issue(
-            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
@@ -1046,9 +1044,7 @@ def test_create_feedback_handles_label_generation_errors(
         mock_generate_labels,
     ):
         # This should not raise an exception and should still create the feedback
-        create_feedback_issue(
-            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     # Verify that the feedback was still created successfully
     assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -1068,9 +1064,7 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
     """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned. If the list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters, the list is truncated in this test to match the intended behaviour."""
     mock_has_seer_access.return_value = True
     event = mock_feedback_event(default_project.id)
-    event["contexts"]["feedback"][
-        "message"
-    ] = "This is a very complex feedback with many issues"
+    event["contexts"]["feedback"]["message"] = "This is a very complex feedback with many issues"
 
     alphabet = "abcdefghijklmnopqrstuvwxyz"
 
@@ -1083,9 +1077,7 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
         "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
         mock_generate_labels,
     ):
-        create_feedback_issue(
-            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
 
@@ -1104,9 +1096,7 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
     ai_labels = [
         value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
     ]
-    assert (
-        len(ai_labels) == labels_list_length
-    ), "Should be truncated to exactly labels_list_length"
+    assert len(ai_labels) == labels_list_length, "Should be truncated to exactly labels_list_length"
 
     for i in range(labels_list_length):
         assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == expected_labels[i]
@@ -1126,9 +1116,7 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
     mock_has_seer_access.return_value = True
     event = mock_feedback_event(default_project.id)
 
-    event["contexts"]["feedback"][
-        "message"
-    ] = "This is a very complex feedback with many issues"
+    event["contexts"]["feedback"]["message"] = "This is a very complex feedback with many issues"
 
     # The serialized list of labels should be longer than MAX_AI_LABELS_JSON_LENGTH characters, so we should only take the first item
     def mock_generate_labels(*args, **kwargs):
@@ -1138,9 +1126,7 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
         "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
         mock_generate_labels,
     ):
-        create_feedback_issue(
-            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
 
