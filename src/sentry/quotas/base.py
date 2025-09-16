@@ -410,8 +410,8 @@ class Quota(Service):
         Returns ``None`` if events are to be stored indefinitely.
 
         :param organization: The organization model.
-        :param category: The category to retention policy for, if available,
-                         otherwise, returns the org level retention.
+        :param category: Return the retention policy for this data category.
+                         If this is not given, return the org-level policy.
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
 
