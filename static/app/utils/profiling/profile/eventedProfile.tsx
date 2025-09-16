@@ -97,7 +97,22 @@ export class EventedProfile extends Profile {
     return built;
   }
 
+  addWeightsToNodes(value: number) {
+    const delta = value - this.lastValue;
+
+    for (const node of this.calltree) {
+      node.totalWeight += delta;
+    }
+    const stackTop = this.calltree[this.calltree.length - 1];
+
+    if (stackTop) {
+      stackTop.selfWeight += delta;
+    }
+  }
+
   enterFrame(frame: Frame, at: number): void {
+    this.addWeightsToNodes(at);
+
     const lastTop = this.calltree[this.calltree.length - 1];
 
     if (lastTop) {
@@ -163,6 +178,8 @@ export class EventedProfile extends Profile {
   }
 
   leaveFrame(_event: Frame, at: number): void {
+    this.addWeightsToNodes(at);
+
     this.trackSampleStats(at);
 
     const leavingStackTop = this.calltree.pop();

@@ -67,7 +67,9 @@ export class Frame {
     this.totalCallDuration = frame.weight;
     this.averageCallDuration =
       defined(frame.weight) && defined(frame.count)
-        ? frame.weight / frame.count
+        ? frame.count
+          ? frame.weight / frame.count
+          : 0
         : undefined;
 
     // We are remapping some of the keys as they differ between platforms.
