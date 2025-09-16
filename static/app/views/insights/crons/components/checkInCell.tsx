@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -17,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -103,6 +106,7 @@ function getCompletionStatus({status, duration}: CheckIn) {
 export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const organization = useOrganization();
   const {
+    id,
     status,
     dateAdded,
     dateUpdated,
@@ -137,6 +141,19 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
     emptyCell
   );
 
+  const checkInIdColumn = (
+    <Flex gap="md">
+      <ShortId shortId={getShortEventId(id)} />
+      <CopyToClipboardButton
+        size="zero"
+        borderless
+        text={id.replaceAll('-', '')}
+        title={t('Copy full check-in identifier')}
+        aria-label={t('Copy Check-In ID')}
+      />
+    </Flex>
+  );
+
   // Missed rows are mostly empty
   if (status === CheckInStatus.MISSED) {
     switch (cellKey) {
@@ -144,6 +161,8 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
         return statusColumn;
       case 'environment':
         return environmentColumn;
+      case 'checkInId':
+        return checkInIdColumn;
       case 'expectedAt':
         return expectedAtColumn;
       default:
@@ -196,20 +215,20 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const groupsColumn =
     groups && groups.length > 0 ? (
       <IssuesContainer>
-        {groups.map(({id, shortId}) => (
+        {groups.map(({id: groupId, shortId}) => (
           <QuickContextHovercard
             dataRow={{
-              ['issue.id']: id,
+              ['issue.id']: groupId,
               issue: shortId,
             }}
             contextType={ContextType.ISSUE}
             organization={organization}
-            key={id}
+            key={groupId}
           >
             <StyledShortId
               shortId={shortId}
               avatar={<ProjectBadge project={project} hideName avatarSize={12} />}
-              to={`/organizations/${organization.slug}/issues/${id}/`}
+              to={`/organizations/${organization.slug}/issues/${groupId}/`}
             />
           </QuickContextHovercard>
         ))}
@@ -227,6 +246,8 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
       return completedColumn;
     case 'duration':
       return durationColumn;
+    case 'checkInId':
+      return checkInIdColumn;
     case 'issues':
       return groupsColumn;
     case 'environment':
