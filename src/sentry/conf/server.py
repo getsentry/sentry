@@ -1427,6 +1427,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},  # 1 minute
     },
+    "preprod-detect-expired-artifacts": {
+        "task": "sentry.preprod.tasks.detect_expired_preprod_artifacts",
+        # Run every 15 minutes to check for expired preprod artifacts
+        "schedule": crontab(minute="*/15"),
+        "options": {"expires": 15 * 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1799,6 +1805,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+    },
+    "preprod-detect-expired-artifacts": {
+        "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
 }
 
