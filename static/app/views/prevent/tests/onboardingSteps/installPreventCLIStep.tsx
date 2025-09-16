@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {IconOpen} from 'sentry/icons';
@@ -30,9 +30,9 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
     {
       step,
       preventLink: (
-        <Link to="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
+        <ExternalLink href="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
           {t('Sentry Prevent CLI')}
-        </Link>
+        </ExternalLink>
       ),
     }
   );
@@ -113,9 +113,9 @@ const CLILink = (
   <BottomParagraph>
     {tct('Learn more about the [cliLink].', {
       cliLink: (
-        <Link to="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
+        <ExternalLink href="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
           {t('Sentry Prevent CLI')} <IconOpen size="xs" />
-        </Link>
+        </ExternalLink>
       ),
     })}
   </BottomParagraph>
