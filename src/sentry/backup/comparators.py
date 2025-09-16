@@ -801,6 +801,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated"),
             ],
+            "sentry.dataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],
             "sentry.groupsearchviewlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated")
@@ -829,6 +830,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added"),
                 HashObfuscatingComparator("token"),
             ],
+            "sentry.projectdataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),
@@ -927,8 +929,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "insights.insightsstarredsegment": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
-            "sentry.dataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
-            "sentry.projectdataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
             "monitors.monitor": [UUID4Comparator("guid")],
         },
     )
