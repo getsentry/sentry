@@ -533,8 +533,6 @@ def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, in
 def create_schema_from_issue_owners(
     project_id: int,
     issue_owners: str | None,
-    # TODO: remove this parameter in follow-up PR
-    add_owner_ids: bool = False,
     remove_deleted_owners: bool = False,
 ) -> dict[str, Any] | None:
     if issue_owners is None:
