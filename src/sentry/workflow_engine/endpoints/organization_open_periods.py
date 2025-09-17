@@ -128,7 +128,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if not target_group:
             return Response(
                 {"detail": "Group not found. Could not query open periods."},
-                status=status.HTTP_200_OK,
+                status=status.HTTP_404_NOT_FOUND,
             )
         limit = None
         per_page = request.GET.get("per_page")
