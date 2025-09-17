@@ -1,13 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
-
-import ConfigStore from 'sentry/stores/configStore';
 
 import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -42,15 +39,6 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     subscription.categories.monitorSeats!.usageExceeded = true;
     subscription.categories.profileDuration!.usageExceeded = true;
     SubscriptionStore.set(organization.slug, subscription);
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {
-          ...UserFixture().options,
-          prefersStackedNavigation: true,
-        },
-      })
-    );
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({

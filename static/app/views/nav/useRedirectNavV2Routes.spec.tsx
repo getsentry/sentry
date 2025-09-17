@@ -1,9 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
 const mockUsingCustomerDomain = jest.fn();
@@ -37,18 +35,6 @@ describe('useRedirectNavV2Routes', () => {
 
   const organization = OrganizationFixture({
     slug: 'org-slug',
-  });
-
-  beforeEach(() => {
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {
-          ...UserFixture().options,
-          prefersStackedNavigation: true,
-        },
-      })
-    );
   });
 
   describe('customer domain', () => {

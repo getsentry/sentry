@@ -69,21 +69,6 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   mobile_screens_module: ModuleName.MOBILE_VITALS,
 };
 
-// Remove this when the new navigation is GA'd
-export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY: Partial<
-  Record<TraceViewSources, string>
-> = {
-  traces: 'traces',
-  metrics: 'metrics',
-  discover: 'discover',
-  profiling_flamegraph: 'profiling',
-  performance_transaction_summary: 'insights/summary',
-  issue_details: 'issues',
-  feedback_details: 'issues/feedback',
-  dashboards: 'dashboards',
-  logs: 'explore/logs',
-};
-
 export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   Record<TraceViewSources, string>
 > = {

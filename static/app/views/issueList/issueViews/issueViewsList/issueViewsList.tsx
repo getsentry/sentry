@@ -9,7 +9,6 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
-import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
@@ -45,7 +44,6 @@ import {
   type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -331,11 +329,6 @@ export default function IssueViewsList() {
   const openFeedbackForm = useFeedbackForm();
   const {mutate: createGroupSearchView, isPending: isCreatingView} =
     useCreateGroupSearchView();
-  const prefersStackedNav = usePrefersStackedNav();
-
-  if (!prefersStackedNav) {
-    return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
-  }
 
   const handleCreateView = () => {
     createGroupSearchView(

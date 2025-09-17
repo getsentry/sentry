@@ -86,14 +86,6 @@ describe('Nav', () => {
       url: `/organizations/org-slug/dashboards/`,
       body: [],
     });
-
-    ConfigStore.set('user', {
-      ...ConfigStore.get('user'),
-      options: {
-        ...ConfigStore.get('user').options,
-        prefersStackedNavigation: true,
-      },
-    });
     mockUsingCustomerDomain.mockReturnValue(true);
   });
 
