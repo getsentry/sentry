@@ -37,8 +37,7 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         parent = (
             Activity.objects.annotate(new_group_id=RawSQL("(data::json ->> 'newGroupId')", []))
             .filter(type=ActivityType.REPROCESS.value, new_group_id=str(group.id))
-            .order_by("-datetime")
-            .first()
+            .first()  # There should only be one activity
         )
         if parent and not is_group_finished(parent.group_id):
             return self.respond(
