@@ -110,7 +110,7 @@ def delete_group_hashes(
     # The loop will naturally terminate when no more hashes are found.
     max_iterations = 10000
     iterations = 0
-    
+
     while iterations < max_iterations:
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
             "id", "hash"
@@ -130,7 +130,7 @@ def delete_group_hashes(
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
             GroupHash.objects.filter(id__in=hash_ids).delete()
-        
+
         iterations += 1
 
 
