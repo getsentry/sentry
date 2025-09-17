@@ -37,7 +37,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                   isTooltipHoverable
                   unitStyle="regular"
                 />
-                {replay?.getIsActive() ? <Live /> : null}
+                {replay?.getIsLive() ? <Live /> : null}
               </TimeContainer>
             ) : null}
           </DisplayHeader>
