@@ -4,6 +4,7 @@ import {
   CronMonitorDataSourceFixture,
   CronMonitorEnvironmentFixture,
 } from 'sentry-fixture/detectors';
+import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {UserFixture} from 'sentry-fixture/user';
@@ -54,6 +55,10 @@ describe('CronDetectorDetails - check-ins', () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/monitors/${cronDataSource.queryObj.slug}/checkins/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: GroupFixture(),
     });
   });
 
@@ -112,7 +117,7 @@ describe('CronDetectorDetails - check-ins', () => {
       expect(await screen.findByText('Failed')).toBeInTheDocument();
 
       // Should render table headers
-      expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();
+      expect(screen.getAllByRole('columnheader', {name: 'Status'})).toHaveLength(2);
       expect(screen.getByRole('columnheader', {name: 'Started'})).toBeInTheDocument();
       expect(screen.getByRole('columnheader', {name: 'Completed'})).toBeInTheDocument();
       expect(screen.getByRole('columnheader', {name: 'Duration'})).toBeInTheDocument();

@@ -340,6 +340,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
 )
 
+# Deletions
+register(
+    "deletions.group-hashes-batch-size",
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
@@ -1138,7 +1145,7 @@ register(
     "embeddings-grouping.seer.delete-record-batch-size",
     type=Int,
     default=100,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
@@ -2871,7 +2878,7 @@ register(
 register(
     "spans.buffer.compression.level",
     type=Int,
-    default=-1,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3136,6 +3143,17 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Control whether delayed workflow engine evaluation is done
+# via the old process_pending_batch task with rules delayed processing, or
+# via the new schedule_delayed_workflows task.
+# NB: These tasks are allowed to run concurrently, so a naive switch here
+# may result in duplicate processing.
+register(
+    "workflow_engine.use_new_scheduling_task",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3340,7 +3358,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

@@ -1493,16 +1493,16 @@ wheels = [
 
 [[package]]
 name = "pydantic"
-version = "1.10.20"
+version = "1.10.23"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.20-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:d9041e27b36597a54fbe59c4f8e205748d72d455dfc29e98b5d72d97f7d0c036" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.20-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:13262acfdc60b8af048ee27483ebbcbdf5ea3217c8b8e4eede94373c8d65f6a5" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.20-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d1a58b0b07a8bce4c8fb368435571a8bcf0457332c503055b1bbff5e4e65c13e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.20-py3-none-any.whl", hash = "sha256:cd9c1a6a60d54281defb35292d3f2b70bce1b62fe404fd991688fa146715936a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:a6aa6881a18657fe66b9249e0572a9690ebc6f0b37c32872beb06bc51bff738f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c57bfade74111335062c8ac830d5a14004742ff5b037c52c410d9e9011258bf5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:723cb7f6aca0b471bac9d7dceb42d151d26aabdca655bd4190be3a7de008a054" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-py3-none-any.whl", hash = "sha256:6294bb84565c294a3a6408c52b26a42803f258d5ebfdb3ae896cd7cccfa07211" },
 ]
 
 [[package]]
@@ -2147,7 +2147,7 @@ requires-dist = [
     { name = "psutil", specifier = ">=5.9.7" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pycountry", specifier = ">=17.5.14" },
-    { name = "pydantic", specifier = ">=1.10.20" },
+    { name = "pydantic", specifier = ">=1.10.23,<2" },
     { name = "pyjwt", specifier = ">=2.4.0" },
     { name = "pymemcache", specifier = ">=4.0.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
@@ -2230,7 +2230,7 @@ dev = [
     { name = "sentry-cli", specifier = ">=2.16.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
     { name = "sentry-devenv", specifier = ">=1.22.0" },
-    { name = "sentry-forked-django-stubs", specifier = ">=5.2.2.post1" },
+    { name = "sentry-forked-django-stubs", specifier = ">=5.2.2.post2" },
     { name = "sentry-forked-djangorestframework-stubs", specifier = ">=3.16.2.post1" },
     { name = "time-machine", specifier = ">=2.16.0" },
     { name = "types-beautifulsoup4", specifier = ">=4.11.6" },
@@ -2300,7 +2300,7 @@ wheels = [
 
 [[package]]
 name = "sentry-forked-django-stubs"
-version = "5.2.2.post1"
+version = "5.2.2.post2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "django", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2309,7 +2309,7 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_forked_django_stubs-5.2.2.post1-py3-none-any.whl", hash = "sha256:8863f1d339200de4ed6a6a9e16ab24ef454d75202c97a73d98572f805d5cb24f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_forked_django_stubs-5.2.2.post2-py3-none-any.whl", hash = "sha256:612510066050aa93d24ea54735f7df6871ebe46c292398ac68ed2c0c2685b38a" },
 ]
 
 [[package]]

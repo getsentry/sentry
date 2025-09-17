@@ -46,6 +46,7 @@ class ExternalActor(ReplicatedRegionModel):
         ),
     )
     # The display name i.e. username, team name, channel name.
+    # if provider__in = [GITHUB, GITHUB_ENTERPRISE, GITLAB, CUSTOM], external_name starts with "@"
     external_name = models.TextField()
     # The unique identifier i.e user ID, channel ID.
     external_id = models.TextField(null=True)

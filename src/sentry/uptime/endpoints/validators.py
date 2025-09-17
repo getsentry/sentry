@@ -38,6 +38,8 @@ public suffix list (PSL). See `extract_domain_parts` fo more details
 """
 MAX_REQUEST_SIZE_BYTES = 1000
 
+from sentry.uptime.types import DEFAULT_DOWNTIME_THRESHOLD, DEFAULT_RECOVERY_THRESHOLD
+
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
     "disabled": ObjectStatus.DISABLED,
@@ -123,6 +125,18 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         allow_null=True,
         help_text="The body to send with the check request.",
     )
+    recovery_threshold = serializers.IntegerField(
+        required=False,
+        default=DEFAULT_RECOVERY_THRESHOLD,
+        min_value=1,
+        help_text="Number of consecutive successful checks required to mark monitor as recovered.",
+    )
+    downtime_threshold = serializers.IntegerField(
+        required=False,
+        default=DEFAULT_DOWNTIME_THRESHOLD,
+        min_value=1,
+        help_text="Number of consecutive failed checks required to mark monitor as down.",
+    )
 
     def validate(self, attrs):
         headers = []
@@ -202,6 +216,8 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 mode=validated_data.get("mode", UptimeMonitorMode.MANUAL),
                 owner=validated_data.get("owner"),
                 trace_sampling=validated_data.get("trace_sampling", False),
+                recovery_threshold=validated_data["recovery_threshold"],
+                downtime_threshold=validated_data["downtime_threshold"],
                 **method_headers_body,
             )
         except MaxManualUptimeSubscriptionsReached:
@@ -238,6 +254,18 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             else uptime_subscription.trace_sampling
         )
         status = data["status"] if "status" in data else instance.status
+        recovery_threshold = (
+            data["recovery_threshold"]
+            if "recovery_threshold" in data
+            # TODO: Remove DEFAULT_RECOVERY_THRESHOLD fallback after backfill migration ensures all configs have this value
+            else instance.config.get("recovery_threshold", DEFAULT_RECOVERY_THRESHOLD)
+        )
+        downtime_threshold = (
+            data["downtime_threshold"]
+            if "downtime_threshold" in data
+            # TODO: Remove DEFAULT_DOWNTIME_THRESHOLD fallback after backfill migration ensures all configs have this value
+            else instance.config.get("downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD)
+        )
 
         if "environment" in data:
             environment = Environment.get_or_create(
@@ -267,6 +295,8 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 owner=owner,
                 trace_sampling=trace_sampling,
                 status=status,
+                recovery_threshold=recovery_threshold,
+                downtime_threshold=downtime_threshold,
             )
         except UptimeMonitorNoSeatAvailable as err:
             # Nest seat availability errors under status. Since this is the
