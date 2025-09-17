@@ -96,7 +96,7 @@ function Live() {
 
 const LiveContainer = styled(Flex)`
   line-height: 1;
-  margin-top: 1px;
+  margin-top: 2px;
 `;
 
 const LiveIndicator = styled(motion.div)`
