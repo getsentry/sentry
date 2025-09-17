@@ -12,6 +12,7 @@ export interface BuildDetailsApiResponse {
 export interface BuildDetailsAppInfo {
   app_id?: string;
   artifact_type?: BuildDetailsArtifactType;
+  build_configuration?: string;
   build_number?: string;
   date_added?: string;
   date_built?: string;
@@ -19,8 +20,6 @@ export interface BuildDetailsAppInfo {
   name?: string;
   platform?: Platform;
   version?: string;
-  // build_configuration?: string; // Uncomment when available
-  // icon?: string | null; // Uncomment when available
 }
 
 interface BuildDetailsVcsInfo {

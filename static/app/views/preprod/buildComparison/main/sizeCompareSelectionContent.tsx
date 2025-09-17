@@ -10,7 +10,9 @@ import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconBranch} from 'sentry/components/prevent/branchSelector/iconBranch';
+import TimeSince from 'sentry/components/timeSince';
 import {
+  IconCalendar,
   IconClose,
   IconCode,
   IconCommit,
@@ -66,7 +68,7 @@ export function SizeCompareSelectionContent({
     per_page: 25,
     state: BuildDetailsState.PROCESSED,
     app_id: headBuildDetails.app_info?.app_id,
-    // TODO: Add build_configuration when field in API response
+    build_configuration: headBuildDetails.app_info?.build_configuration,
   };
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
@@ -249,6 +251,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const prNumber = build.vcs_info?.pr_number;
   const commitHash = build.vcs_info?.head_sha?.substring(0, 7);
   const branchName = build.vcs_info?.head_ref;
+  const dateAdded = build.app_info?.date_added;
   const downloadSize = build.size_info?.download_size_bytes;
   const installSize = build.size_info?.install_size_bytes;
 
@@ -260,10 +263,10 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
       gap="md"
     >
       <Flex direction="column" gap="sm" flex={1}>
-        <Flex align="center" gap="sm">
+        <Flex align="center" gap="md">
           {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
           {prNumber && (
-            <Flex align="center" gap="xs">
+            <Flex align="center" gap="sm">
               <Text>#{prNumber}</Text>
             </Flex>
           )}
@@ -271,22 +274,27 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
             <BuildItemBranchTag>{build.vcs_info?.head_ref}</BuildItemBranchTag>
           )}
           {commitHash && (
-            <Flex align="center" gap="xs">
+            <Flex align="center" gap="sm">
               <IconCommit size="xs" color="gray300" />
               <Text>{commitHash}</Text>
             </Flex>
           )}
         </Flex>
         <Flex align="center" gap="md">
-          {/* TODO: Add created at when field in API */}
+          {dateAdded && (
+            <Flex align="center" gap="sm">
+              <IconCalendar size="xs" color="gray300" />
+              <TimeSince date={dateAdded} />
+            </Flex>
+          )}
           {downloadSize && (
-            <Flex align="center" gap="xs">
+            <Flex align="center" gap="sm">
               <IconDownload size="xs" color="gray300" />
               <Text>{formatBytesBase10(downloadSize)}</Text>
             </Flex>
           )}
           {installSize && (
-            <Flex align="center" gap="xs">
+            <Flex align="center" gap="sm">
               <IconCode size="xs" color="gray300" />
               <Text>{formatBytesBase10(installSize)}</Text>
             </Flex>
