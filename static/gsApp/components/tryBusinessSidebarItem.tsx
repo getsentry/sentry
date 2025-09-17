@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -68,8 +68,10 @@ function TryBusinessNavigationItem({
   );
 }
 
-class TryBusinessSidebarItem extends Component<Props> {
-  componentDidMount() {
+function TryBusinessSidebarItem(props: Props) {
+  const [_rerenderTick, setRerenderTick] = useState(0);
+
+  useEffect(() => {
     const search = document.location.search;
     const params = ['utm_source', 'utm_medium', 'utm_term'];
 
@@ -82,79 +84,68 @@ class TryBusinessSidebarItem extends Component<Props> {
 
     if (document.location.hash === AUTO_OPEN_HASH) {
       openUpsellModal({
-        organization: this.props.organization,
+        organization: props.organization,
         source: source || 'direct',
       });
     }
-  }
+  }, [props.organization]);
 
-  openModal = () => {
-    const {organization} = this.props;
-    openUpsellModal({organization, source: 'try-business-sidebar'});
+  const openModal = useCallback(() => {
+    openUpsellModal({organization: props.organization, source: 'try-business-sidebar'});
     // force an update so we can re-render the sidebar item with the updated localstorage
     // where the new will be gone and add a delay since the modal takes time to open
-    setTimeout(() => this.forceUpdate(), 200);
-  };
+    setTimeout(() => setRerenderTick(tick => tick + 1), 200);
+  }, [props.organization]);
 
-  get labelText() {
-    const {subscription} = this.props;
-    // trial active
-    if (subscription.isTrial) {
+  const labelText = useMemo(() => {
+    if (props.subscription.isTrial) {
       return t('My Sentry Trial');
     }
-    // cannot trial so must upgrade
-    if (!subscription.canTrial) {
+    if (!props.subscription.canTrial) {
       return t('Upgrade Now');
     }
-    // special performance trial
-    if (!hasPerformance(subscription.planDetails)) {
+    if (!hasPerformance(props.subscription.planDetails)) {
       return t('Try Performance');
     }
-    // normal business trial
     return t('Free Trial');
+  }, [props.subscription]);
+
+  const {subscription, organization, ...sidebarItemProps} = props;
+
+  if (
+    (hasPerformance(subscription.planDetails) &&
+      isBizPlanFamily(subscription.planDetails)) ||
+    !subscription.canSelfServe
+  ) {
+    return null;
   }
 
-  render() {
-    const {subscription, organization, ...sidebarItemProps} = this.props;
-
-    // XXX: The try business sidebar item also acts as an upsell of the
-    // performance tier. So we'll actually want to show it to all users except
-    // those on the current business plan (who are on the highest plan).
-    if (
-      (hasPerformance(subscription.planDetails) &&
-        isBizPlanFamily(subscription.planDetails)) ||
-      !subscription.canSelfServe
-    ) {
-      return null;
-    }
-
-    if (prefersStackedNav(organization)) {
-      return (
-        <TryBusinessNavigationItem
-          organization={organization}
-          subscription={subscription}
-          label={this.labelText}
-          onClick={this.openModal}
-        />
-      );
-    }
-
+  if (prefersStackedNav(organization)) {
     return (
-      <TrialStartedSidebarItem {...{organization, subscription}}>
-        <SidebarItem
-          {...sidebarItemProps}
-          id="try-business"
-          icon={<IconBusiness size="md" />}
-          label={this.labelText}
-          onClick={this.openModal}
-          key="gs-try-business"
-          data-test-id="try-business-sidebar"
-          isNewSeenKeySuffix="-v1"
-          isNew={!subscription.isTrial && subscription.canTrial}
-        />
-      </TrialStartedSidebarItem>
+      <TryBusinessNavigationItem
+        organization={organization}
+        subscription={subscription}
+        label={labelText}
+        onClick={openModal}
+      />
     );
   }
+
+  return (
+    <TrialStartedSidebarItem {...{organization, subscription}}>
+      <SidebarItem
+        {...sidebarItemProps}
+        id="try-business"
+        icon={<IconBusiness size="md" />}
+        label={labelText}
+        onClick={openModal}
+        key="gs-try-business"
+        data-test-id="try-business-sidebar"
+        isNewSeenKeySuffix="-v1"
+        isNew={!subscription.isTrial && subscription.canTrial}
+      />
+    </TrialStartedSidebarItem>
+  );
 }
 
 const StackedNavTrialStartedSidebarItem = styled(TrialStartedSidebarItem)`

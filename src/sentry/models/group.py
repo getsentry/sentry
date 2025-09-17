@@ -444,6 +444,7 @@ class GroupManager(BaseManager["Group"]):
         activity_data: Mapping[str, Any] | None = None,
         send_activity_notification: bool = True,
         from_substatus: int | None = None,
+        detector_id: int | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.incidents.grouptype import MetricIssue
@@ -524,7 +525,13 @@ class GroupManager(BaseManager["Group"]):
 
             # TODO (aci cleanup): remove this once we've deprecated the incident model
             if group.type == MetricIssue.type_id:
-                update_incident_based_on_open_period_status_change(group, status)
+                if detector_id is None:
+                    logger.error(
+                        "Call to update metric issue status missing detector ID",
+                        extra={"group_id": group.id},
+                    )
+                    continue
+                update_incident_based_on_open_period_status_change(group, status, detector_id)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:

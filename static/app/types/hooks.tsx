@@ -56,7 +56,7 @@ export type HookName = keyof Hooks;
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
   'routes:root': RouteObjectHook;
-  'routes:settings': RouteObjectHook;
+  'routes:subscription-settings': RouteObjectHook;
 };
 
 /**
@@ -269,8 +269,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:profiling-page': FeatureDisabledHook;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
-  'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
-  'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;

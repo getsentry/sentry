@@ -30,14 +30,6 @@ export default function ResourceSummaryAverageSizeChartWidget(
     referrer,
   });
 
-  if (data) {
-    data[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {
-      type: 'dashed',
-    };
-    data[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`].lineStyle = {
-      type: 'dashed',
-    };
-  }
   return (
     <InsightsLineChartWidget
       {...props}

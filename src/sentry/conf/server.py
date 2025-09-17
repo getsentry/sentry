@@ -853,7 +853,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.beacon",
     "sentry.tasks.ping",
     "sentry.tasks.auth.check_auth",
-    "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
@@ -1104,7 +1103,6 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
-    Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue(
         "integrations_slack_activity_notify",
         routing_key="integrations_slack_activity_notify",
@@ -1209,6 +1207,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 10, "queue": "buffers.process_pending_batch"},
+    },
+    "flush-delayed-workflows": {
+        "task": "sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 10, "queue": "workflow_engine.process_workflows"},
     },
     "sync-options": {
         "task": "sentry.tasks.options.sync_options",
@@ -1571,7 +1575,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.autofix",
     "sentry.tasks.beacon",
     "sentry.tasks.check_am2_compatibility",
-    "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_resolutions",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.clear_expired_snoozes",
@@ -1635,6 +1638,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-buffers-batch": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending_batch",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "flush-delayed-workflows": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "sync-options": {
@@ -3058,7 +3065,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.8.0"
+SELF_HOSTED_STABLE_VERSION = "25.9.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3077,7 +3084,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
-    "sentry.integrations.msteams.MsTeamsIntegrationProvider",
+    "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
@@ -4133,6 +4140,3 @@ if ngrok_host and SILO_DEVSERVER:
     # the region API URL template is set to the ngrok host.
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
-
-if IS_DEV:
-    SENTRY_OPTIONS["taskworker.enabled"] = True

@@ -36,6 +36,7 @@ from sentry.issues.endpoints.project_event_details import (
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.filter import (
     FilterConvertParams,
     convert_search_filter_to_snuba_query,
@@ -122,13 +123,15 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=15, window=1),
-            RateLimitCategory.USER: RateLimit(limit=15, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=15, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=15, window=1),
+                RateLimitCategory.USER: RateLimit(limit=15, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=15, window=1),
+            }
         }
-    }
+    )
 
     @extend_schema(
         operation_id="Retrieve an Issue Event",

@@ -8,21 +8,17 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisCompareGetEvent,
     PreprodArtifactApiSizeAnalysisComparePostEvent,
 )
+from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compare_models import (
     SizeAnalysisCompareGETResponse,
     SizeAnalysisComparePOSTResponse,
     SizeAnalysisComparison,
 )
-from sentry.preprod.models import (
-    PreprodArtifact,
-    PreprodArtifactSizeComparison,
-    PreprodArtifactSizeMetrics,
-)
+from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 
@@ -30,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
+class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -38,7 +34,13 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
     }
 
     def get(
-        self, request: Request, project, head_artifact_id, base_artifact_id
+        self,
+        request: Request,
+        project,
+        head_artifact_id,
+        base_artifact_id,
+        head_artifact,
+        base_artifact,
     ) -> HttpResponseBase:
         """
         Get size analysis comparison results for a preprod artifact
@@ -75,22 +77,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
 
-        try:
-            head_preprod_artifact = PreprodArtifact.objects.get(
-                id=head_artifact_id,
-                project=project,
-            )
-        except PreprodArtifact.DoesNotExist:
-            return Response(
-                {"detail": f"Head PreprodArtifact with id {head_artifact_id} does not exist."},
-                status=404,
-            )
-
-        if head_preprod_artifact.project.id != project.id:
+        if head_artifact.project.id != project.id:
             return Response({"error": "Project not found"}, status=404)
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[head_preprod_artifact.id],
+            preprod_artifact_id__in=[head_artifact.id],
             preprod_artifact__project=project,
         ).select_related("preprod_artifact")
         head_size_metrics = list(head_size_metrics_qs)
@@ -101,22 +92,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
                 status=404,
             )
 
-        try:
-            base_preprod_artifact = PreprodArtifact.objects.get(
-                id=base_artifact_id,
-                project=project,
-            )
-        except PreprodArtifact.DoesNotExist:
-            return Response(
-                {"detail": f"Base PreprodArtifact with id {base_artifact_id} does not exist."},
-                status=404,
-            )
-
-        if base_preprod_artifact.project.id != project.id:
+        if base_artifact.project.id != project.id:
             return Response({"error": "Project not found"}, status=404)
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[base_preprod_artifact.id],
+            preprod_artifact_id__in=[base_artifact.id],
             preprod_artifact__project=project,
         ).select_related("preprod_artifact")
         base_size_metrics = list(base_size_metrics_qs)
@@ -250,7 +230,13 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
         return Response(response.dict())
 
     def post(
-        self, request: Request, project, head_artifact_id, base_artifact_id
+        self,
+        request: Request,
+        project,
+        head_artifact_id,
+        base_artifact_id,
+        head_artifact,
+        base_artifact,
     ) -> HttpResponseBase:
         """
         Trigger size analysis comparison for a preprod artifact
@@ -287,29 +273,13 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
 
-        try:
-            head_preprod_artifact = PreprodArtifact.objects.get(
-                id=head_artifact_id,
-                project=project,
-            )
-        except PreprodArtifact.DoesNotExist:
+        if head_artifact.build_configuration != base_artifact.build_configuration:
             return Response(
-                {"detail": f"Head PreprodArtifact with id {head_artifact_id} does not exist."},
-                status=404,
-            )
-        try:
-            base_preprod_artifact = PreprodArtifact.objects.get(
-                id=base_artifact_id,
-                project=project,
-            )
-        except PreprodArtifact.DoesNotExist:
-            return Response(
-                {"detail": f"Base PreprodArtifact with id {base_artifact_id} does not exist."},
-                status=404,
+                {"error": "Head and base build configurations must be the same."}, status=400
             )
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[head_preprod_artifact.id],
+            preprod_artifact_id__in=[head_artifact.id],
             preprod_artifact__project=project,
         ).select_related("preprod_artifact")
 
@@ -336,7 +306,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(ProjectEndpoint):
             )
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[base_preprod_artifact.id],
+            preprod_artifact_id__in=[base_artifact.id],
             preprod_artifact__project=project,
         ).select_related("preprod_artifact")
         if base_size_metrics_qs.count() == 0:
