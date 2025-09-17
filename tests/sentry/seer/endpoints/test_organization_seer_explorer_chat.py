@@ -102,7 +102,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == mock_response
         mock_call_seer_chat.assert_called_once_with(
-            self.organization, None, "What is this error about?", None, None
+            self.organization, None, "What is this error about?", None, None, None
         )
 
     @patch(
@@ -131,6 +131,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             "Follow up question",
             2,
             1704067200.0,
+            None,
         )
 
     def test_post_with_ai_features_disabled_returns_403(self) -> None:
@@ -230,5 +231,5 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
             assert response.status_code == 200
             assert response.data == mock_response
             mock_call_seer_chat.assert_called_once_with(
-                self.organization, None, "Test query", None, None
+                self.organization, None, "Test query", None, None, None
             )
