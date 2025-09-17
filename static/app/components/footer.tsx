@@ -93,6 +93,7 @@ function BaseFooter({className}: Props) {
 const WaitingIndicator = styled('div')`
   --pulsingIndicatorRing: ${p => p.theme.gray200};
   ${pulsingIndicatorStyles};
+  contain: layout;
 `;
 
 const LeftLinks = styled('div')`
@@ -144,7 +145,6 @@ const Footer = styled(BaseFooter)`
   align-content: center;
   padding: ${space(2)} ${space(4)};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */
-  overflow: hidden;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)};
