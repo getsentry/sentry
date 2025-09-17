@@ -311,9 +311,11 @@ def determine_eligible_recipients(
 
         # We're adding the current assignee to the list of suggested assignees because
         # a new issue could have multiple codeowners and one of them got auto-assigned.
-        group_assignee: GroupAssignee | None = GroupAssignee.objects.filter(
-            group_id=event.group_id
-        ).first()
+        group_assignee = (
+            GroupAssignee.objects.filter(group_id=event.group_id).first()
+            if event.group_id is not None
+            else None
+        )
         if group_assignee:
             outcome = "match"
             assignee_actor = group_assignee.assigned_actor()
