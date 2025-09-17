@@ -6,7 +6,6 @@ from django.apps import apps
 
 from sentry.db.models.base import Model
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker import namespaces
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import buffer_tasks
 from sentry.utils.locking import UnableToAcquireLock
@@ -62,21 +61,6 @@ def process_pending_batch() -> None:
             process_buffer()
     except UnableToAcquireLock as error:
         logger.warning("process_pending_batch.fail", extra={"error": error})
-
-
-@instrumented_task(
-    name="sentry.tasks.process_buffer.schedule_delayed_workflows",
-    queue="workflow_engine.process_workflows",
-    taskworker_config=TaskworkerConfig(
-        namespace=namespaces.workflow_engine_tasks,
-        processing_deadline_duration=40,
-    ),
-)
-def schedule_delayed_workflows() -> None:
-    # NOTE: This task was moved to the workflow_engine.tasks.workflows module, and this
-    # definition only remains to avoid noise as we transition.
-    # This should be safe to delete shortly after it is merged.
-    pass
 
 
 @instrumented_task(
