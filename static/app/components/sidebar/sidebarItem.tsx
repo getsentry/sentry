@@ -19,9 +19,9 @@ import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
 
 import type {SidebarOrientation} from './types';
-import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',

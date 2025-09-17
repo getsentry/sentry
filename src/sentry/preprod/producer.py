@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from enum import Enum
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
@@ -14,6 +14,11 @@ from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
+
+
+class PreprodFeature(Enum):
+    SIZE_ANALYSIS = "size_analysis"
+    BUILD_DISTRIBUTION = "build_distribution"
 
 
 def _get_preprod_producer():
@@ -33,13 +38,19 @@ def produce_preprod_artifact_to_kafka(
     project_id: int,
     organization_id: int,
     artifact_id: int,
-    **kwargs: Any,
+    requested_features: list[PreprodFeature] | None = None,
 ) -> None:
+    if requested_features is None:
+        # TODO(preprod): wire up to quota system and remove this default
+        requested_features = [
+            PreprodFeature.SIZE_ANALYSIS,
+            PreprodFeature.BUILD_DISTRIBUTION,
+        ]
     payload_data = {
         "artifact_id": str(artifact_id),
         "project_id": str(project_id),
         "organization_id": str(organization_id),
-        **kwargs,
+        "requested_features": [feature.value for feature in requested_features],
     }
 
     partition_key = f"{project_id}-{artifact_id}".encode()

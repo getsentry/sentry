@@ -143,9 +143,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if (
             all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
             and len(average_columns) > 0
-            and features.has(
-                "organizations:insights-initial-modules", organization, actor=request.user
-            )
+            and features.has("organizations:insight-modules", organization, actor=request.user)
         ):
             add_comparison_to_event(event=event, average_columns=average_columns, request=request)
 

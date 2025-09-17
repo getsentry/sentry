@@ -393,7 +393,7 @@ class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, G
 
 
 @dataclass(frozen=True)
-class PerformanceNPlusOneAPICallsGroupType(GroupType):
+class PerformanceNPlusOneAPICallsGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1010
     slug = "performance_n_plus_one_api_calls"
     description = "N+1 API Call"
