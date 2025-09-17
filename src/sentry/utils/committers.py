@@ -206,7 +206,7 @@ def _get_serialized_committers_from_group_owners(
         return []
 
     try:
-        commit = Commit.objects.get(id=owner.context.get("commitId"))
+        commit = Commit.objects.get(id=owner.context["commitId"])
     except Commit.DoesNotExist:
         return []
     commit_author = commit.author
