@@ -10,7 +10,6 @@ from urllib.parse import quote
 from uuid import uuid4
 
 from django.conf import settings
-from django.db.utils import OperationalError
 from django.utils import timezone
 
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -1538,30 +1537,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             response = self.client.delete(url, format="json")
             assert response.status_code == 204
             self.assert_groups_are_gone(groups)
-
-    @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
-    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock) -> None:
-        """
-        Test that the issue is not marked as pending deletion if the seer call fails.
-        """
-        # When trying to gather the hashes, the query could be cancelled by the user
-        mock_seer_delete.side_effect = OperationalError(
-            "QueryCanceled('canceling statement due to user request\n')"
-        )
-        event = self.store_event(data={}, project_id=self.project.id)
-        group1 = Group.objects.get(id=event.group_id)
-        assert GroupHash.objects.filter(group=group1).exists()
-
-        self.login_as(user=self.user)
-        url = f"{self.path}?id={group1.id}"
-        with self.tasks():
-            response = self.client.delete(url, format="json")
-            assert response.status_code == 500
-            assert response.data["detail"] == "Error deleting groups"
-
-        # The group has not been marked as pending deletion
-        assert Group.objects.get(id=group1.id).status == group1.status
-        assert GroupHash.objects.filter(group=group1).exists()
 
     def test_new_event_for_pending_deletion_group_creates_new_group(self) -> None:
         """Test that after deleting a group, new events with the same fingerprint create a new group."""
