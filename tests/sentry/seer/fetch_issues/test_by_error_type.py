@@ -368,8 +368,10 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         assert isinstance(results, list)
         assert len(results) == 0
 
-    def test_case_insensitive_matching(self) -> None:
-        """Test that exception type matching is case insensitive."""
+    def _setup_test_environment(
+        self, exception_type: str, exception_value: str = "Test error"
+    ) -> Group:
+        """Helper to set up test environment with a group containing the specified exception type."""
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
             project=self.project,
@@ -379,7 +381,6 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
-        # Store event with "TypeError" in the database
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
             data={
@@ -387,7 +388,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
                 "release": release.version,
                 "exception": {
                     "values": [
-                        {"type": "TypeError", "value": "This a bad error", "data": {"values": []}}
+                        {"type": exception_type, "value": exception_value, "data": {"values": []}}
                     ]
                 },
             },
@@ -396,55 +397,39 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         group = event.group
         assert group is not None
         group.save()
+        return group
 
-        # Test various case combinations should all match
-        test_cases = ["TypeError", "typeerror", "TYPEERROR", "TypeERROR", "tYpEeRrOr"]
+    def _assert_exception_type_matches(
+        self, search_exception_type: str, expected_group: Group
+    ) -> None:
+        """Helper to assert that a search exception type returns the expected group."""
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type=search_exception_type,
+        )
+        assert seer_response["issues"] == [expected_group.id]
+        assert len(seer_response["issues_full"]) == 1
 
-        for exception_type in test_cases:
-            seer_response = fetch_issues(
-                organization_id=self.organization.id,
-                provider="integrations:github",
-                external_id="1",
-                exception_type=exception_type,
-            )
-            assert seer_response["issues"] == [group.id], f"Failed for case: {exception_type}"
-            assert len(seer_response["issues_full"]) == 1
+    def _test_exception_type_variants(
+        self, stored_exception_type: str, search_variants: list[str]
+    ) -> None:
+        """Helper to test multiple search variants against a stored exception type."""
+        group = self._setup_test_environment(stored_exception_type)
+
+        for search_exception_type in search_variants:
+            with self.subTest(search_exception_type=search_exception_type):
+                self._assert_exception_type_matches(search_exception_type, group)
+
+    def test_case_insensitive_matching(self) -> None:
+        """Test that exception type matching is case insensitive."""
+        search_variants = ["TypeError", "typeerror", "TYPEERROR", "TypeERROR", "tYpEeRrOr"]
+        self._test_exception_type_variants("TypeError", search_variants)
 
     def test_normalized_matching_spaces(self) -> None:
         """Test that exception type matching normalizes spaces and special characters."""
-        release = self.create_release(project=self.project, version="1.0.0")
-        repo = self.create_repo(
-            project=self.project,
-            name="getsentry/sentryA",
-            provider="integrations:github",
-            external_id="1",
-        )
-        self.create_code_mapping(project=self.project, repo=repo)
-
-        # Store event with "Runtime Error" (with space) in the database
-        data = load_data("python", timestamp=before_now(minutes=1))
-        event = self.store_event(
-            data={
-                **data,
-                "release": release.version,
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Runtime Error",
-                            "value": "This a bad error",
-                            "data": {"values": []},
-                        }
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
-        assert group is not None
-        group.save()
-
-        # Test various normalized forms should all match
-        test_cases = [
+        search_variants = [
             "Runtime Error",
             "RuntimeError",
             "runtime error",
@@ -454,50 +439,11 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             "runtime_error",
             "runtime-error",
         ]
-
-        for exception_type in test_cases:
-            seer_response = fetch_issues(
-                organization_id=self.organization.id,
-                provider="integrations:github",
-                external_id="1",
-                exception_type=exception_type,
-            )
-            assert seer_response["issues"] == [
-                group.id
-            ], f"Failed for normalized case: {exception_type}"
-            assert len(seer_response["issues_full"]) == 1
+        self._test_exception_type_variants("Runtime Error", search_variants)
 
     def test_normalized_matching_special_characters(self) -> None:
         """Test that exception type matching normalizes various special characters."""
-        release = self.create_release(project=self.project, version="1.0.0")
-        repo = self.create_repo(
-            project=self.project,
-            name="getsentry/sentryA",
-            provider="integrations:github",
-            external_id="1",
-        )
-        self.create_code_mapping(project=self.project, repo=repo)
-
-        # Store event with "HTTP-404-Error" in the database
-        data = load_data("python", timestamp=before_now(minutes=1))
-        event = self.store_event(
-            data={
-                **data,
-                "release": release.version,
-                "exception": {
-                    "values": [
-                        {"type": "HTTP-404-Error", "value": "Not found", "data": {"values": []}}
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
-        assert group is not None
-        group.save()
-
-        # Test various forms with different special characters should all match
-        test_cases = [
+        search_variants = [
             "HTTP-404-Error",
             "HTTP 404 Error",
             "HTTP_404_Error",
@@ -507,18 +453,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             "HTTP  404  Error",  # multiple spaces
             "HTTP__404__Error",  # multiple underscores
         ]
-
-        for exception_type in test_cases:
-            seer_response = fetch_issues(
-                organization_id=self.organization.id,
-                provider="integrations:github",
-                external_id="1",
-                exception_type=exception_type,
-            )
-            assert seer_response["issues"] == [
-                group.id
-            ], f"Failed for special char case: {exception_type}"
-            assert len(seer_response["issues_full"]) == 1
+        self._test_exception_type_variants("HTTP-404-Error", search_variants)
 
     def test_normalized_matching_multiple_groups(self) -> None:
         """Test normalized matching works correctly with multiple different exception types."""
@@ -596,64 +531,9 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
     def test_unicode_normalization_consistency(self) -> None:
         """Test that Unicode characters are handled consistently between Python and SQL."""
-        release = self.create_release(project=self.project, version="1.0.0")
-        repo = self.create_repo(
-            project=self.project,
-            name="getsentry/sentryA",
-            provider="integrations:github",
-            external_id="1",
-        )
-        self.create_code_mapping(project=self.project, repo=repo)
-
-        # Store event with Unicode characters in exception type
-        data = load_data("python", timestamp=before_now(minutes=1))
-        event = self.store_event(
-            data={
-                **data,
-                "release": release.version,
-                "exception": {
-                    "values": [
-                        {
-                            "type": "ValueError测试",
-                            "value": "Unicode test error",
-                            "data": {"values": []},
-                        }
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
-        assert group is not None
-        group.save()
-
-        # Test that searching with Unicode characters works (Unicode gets stripped)
-        # Both the stored "ValueError测试" and search "ValueError测试" should normalize to "VALUEERROR"
-        seer_response = fetch_issues(
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="1",
-            exception_type="ValueError测试",
-        )
-        assert seer_response["issues"] == [group.id]
-        assert len(seer_response["issues_full"]) == 1
-
-        # Test that searching with just ASCII part also works
-        seer_response = fetch_issues(
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="1",
-            exception_type="ValueError",
-        )
-        assert seer_response["issues"] == [group.id]
-        assert len(seer_response["issues_full"]) == 1
-
-        # Test that searching with different Unicode characters that normalize to same ASCII works
-        seer_response = fetch_issues(
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="1",
-            exception_type="ValueError测试αβ",  # Different Unicode chars
-        )
-        assert seer_response["issues"] == [group.id]
-        assert len(seer_response["issues_full"]) == 1
+        search_variants = [
+            "ValueError测试",  # Same Unicode as stored
+            "ValueError",  # Just ASCII part
+            "ValueError测试αβ",  # Different Unicode chars that normalize to same ASCII
+        ]
+        self._test_exception_type_variants("ValueError测试", search_variants)
