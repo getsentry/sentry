@@ -51,7 +51,7 @@ class DataForwarderSerializer(Serializer):
             "projectConfigs": [
                 serialize(project_config, user=user) for project_config in project_configs
             ],
-            "dateCreated": obj.date_added,
+            "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
 
@@ -71,6 +71,6 @@ class ProjectDataForwarderSerializer(Serializer):
             "projectId": str(obj.project_id),
             "overrides": obj.overrides,
             "effectiveConfig": obj.get_config(),
-            "dateCreated": obj.date_added,
+            "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
