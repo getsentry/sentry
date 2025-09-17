@@ -47,7 +47,8 @@ class TestBaseActionValidator(TestCase):
             data={
                 **self.valid_data,
                 "type": "invalid_test",
-            }
+            },
+            context={"organization": self.organization},
         )
 
         result = validator.is_valid()
@@ -75,6 +76,7 @@ class TestBaseActionValidator(TestCase):
                 **self.valid_data,
                 "config": {"invalid": 1},
             },
+            context={"organization": self.organization},
         )
 
         result = validator.is_valid()
@@ -102,6 +104,7 @@ class TestBaseActionValidator(TestCase):
                 **self.valid_data,
                 "data": {"invalid": 1},
             },
+            context={"organization": self.organization},
         )
 
         result = validator.is_valid()
@@ -119,6 +122,7 @@ class TestBaseActionValidator(TestCase):
                     **self.valid_data,
                     "type": Action.Type.SLACK,
                 },
+                context={"organization": organization},
             )
 
         validator = make_validator()
@@ -139,6 +143,7 @@ class TestBaseActionValidator(TestCase):
                 "config": {"foo": "bar"},
                 "data": {"baz": "bar"},
             },
+            context={"organization": self.organization},
         )
         result = validator.is_valid()
         assert result is False
@@ -161,6 +166,7 @@ class TestBaseActionValidator(TestCase):
                 "data": {"baz": "bar"},
                 "integrationId": 1,
             },
+            context={"organization": self.organization},
         )
         result = validator.is_valid()
         assert result is False
