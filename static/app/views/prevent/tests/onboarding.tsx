@@ -1,5 +1,5 @@
-import {Fragment, useCallback, useState} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {Fragment, useCallback, useEffect, useState} from 'react';
+import {useNavigate, useSearchParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,6 +11,7 @@ import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {t, tct} from 'sentry/locale';
@@ -30,6 +31,8 @@ import {RunTestSuiteStep} from 'sentry/views/prevent/tests/onboardingSteps/runTe
 import {UploadFileCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/uploadFileCLIStep';
 import {ViewResultsInsightsStep} from 'sentry/views/prevent/tests/onboardingSteps/viewResultsInsightsStep';
 import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
+import {EmptySelectorsMessage} from 'sentry/views/prevent/tests/tests';
 
 enum SetupOption {
   GITHUB_ACTION = 'githubAction',
@@ -38,8 +41,10 @@ enum SetupOption {
 
 export default function TestsOnboardingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const opt = searchParams.get('opt');
+  const navigate = useNavigate();
   const organization = useOrganization();
+  const {integratedOrgId, repository} = usePreventContext();
+  const opt = searchParams.get('opt');
 
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
@@ -52,6 +57,18 @@ export default function TestsOnboardingPage() {
   );
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>(UploadPermission.OIDC);
+
+  const {data: repoData} = useRepo({
+    organizationSlug: organization.slug,
+    integratedOrgId,
+    repository,
+  });
+
+  useEffect(() => {
+    if (repoData?.testAnalyticsEnabled) {
+      navigate('/prevent/tests');
+    }
+  }, [repoData?.testAnalyticsEnabled, navigate]);
 
   const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
     [
@@ -87,7 +104,13 @@ export default function TestsOnboardingPage() {
 
   const uploadPermissionUploadTokenSteps = (
     <Fragment>
-      <AddUploadTokenStep step="2b" />
+      {/* this component currently only rendered when repository and integratedOrgId are defined */}
+      <AddUploadTokenStep
+        step="2b"
+        repoData={repoData}
+        repository={repository!}
+        integratedOrgId={integratedOrgId!}
+      />
       <AddScriptToYamlStep step="3" />
       <RunTestSuiteStep step="4" />
       <ViewResultsInsightsStep step="5" />
@@ -111,7 +134,13 @@ export default function TestsOnboardingPage() {
   const cliSteps = (
     <Fragment>
       <OutputCoverageFileStep step="1" />
-      <AddUploadTokenStep step="2" />
+      {/* this component currently only rendered when repository and integratedOrgId are defined */}
+      <AddUploadTokenStep
+        step="2"
+        repoData={repoData}
+        repository={repository!}
+        integratedOrgId={integratedOrgId!}
+      />
       <InstallPreventCLIStep step="3" />
       <UploadFileCLIStep previousStep="3" step="4" />
       <RunTestSuiteStep step="5" />
@@ -125,51 +154,60 @@ export default function TestsOnboardingPage() {
         <IntegratedOrgSelector />
         <RepoSelector />
       </PageFilterBar>
-      <OnboardingContainer>
-        <OnboardingContent>
-          <IntroContainer>
-            <Flex justify="between" gap="2xl">
+      {integratedOrgId && repository ? (
+        <OnboardingContainer>
+          <OnboardingContent>
+            <IntroContainer>
+              <Flex justify="between" gap="2xl">
+                <div>
+                  <GetStartedHeader>
+                    {t('Get Started with Test Analytics')}
+                  </GetStartedHeader>
+                  <TAValueText>
+                    {t(
+                      'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
+                    )}
+                  </TAValueText>
+                </div>
+                <PreviewImg
+                  src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
+                  alt={t('Test Analytics example')}
+                />
+              </Flex>
+            </IntroContainer>
+            <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
+            <RadioGroup
+              label="Select a setup option"
+              value={
+                opt === SetupOption.CLI ? SetupOption.CLI : SetupOption.GITHUB_ACTION
+              }
+              onChange={handleRadioChange}
+              choices={[
+                [SetupOption.GITHUB_ACTION, t('Use GitHub Actions to run my CI')],
+                [
+                  SetupOption.CLI,
+                  t("Use Sentry Prevent's CLI to upload testing reports"),
+                ],
+              ]}
+            />
+            <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
+              {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
               <div>
-                <GetStartedHeader>
-                  {t('Get Started with Test Analytics')}
-                </GetStartedHeader>
-                <TAValueText>
-                  {t(
-                    'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
-                  )}
-                </TAValueText>
+                {tct(
+                  'To learn more about Test Analytics, please visit [ourDocs:our docs].',
+                  {
+                    ourDocs: (
+                      <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
+                    ),
+                  }
+                )}
               </div>
-              <PreviewImg
-                src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
-                alt={t('Test Analytics example')}
-              />
             </Flex>
-          </IntroContainer>
-          <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
-          <RadioGroup
-            label="Select a setup option"
-            value={opt === SetupOption.CLI ? SetupOption.CLI : SetupOption.GITHUB_ACTION}
-            onChange={handleRadioChange}
-            choices={[
-              [SetupOption.GITHUB_ACTION, t('Use GitHub Actions to run my CI')],
-              [SetupOption.CLI, t("Use Sentry Prevent's CLI to upload testing reports")],
-            ]}
-          />
-          <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
-            {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
-            <div>
-              {tct(
-                'To learn more about Test Analytics, please visit [ourDocs:our docs].',
-                {
-                  ourDocs: (
-                    <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
-                  ),
-                }
-              )}
-            </div>
-          </Flex>
-        </OnboardingContent>
-      </OnboardingContainer>
+          </OnboardingContent>
+        </OnboardingContainer>
+      ) : (
+        <EmptySelectorsMessage />
+      )}
     </LayoutGap>
   );
 }

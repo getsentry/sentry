@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
@@ -39,10 +39,26 @@ describe('AddUploadTokenStep', () => {
     status: 'active',
   };
 
+  const mockRepoDataWithToken = {
+    testAnalyticsEnabled: false,
+    uploadToken: 'test-token',
+  };
+
+  const mockRepoDataWithoutToken = {
+    testAnalyticsEnabled: false,
+    uploadToken: null,
+  };
+
   const renderComponent = (props = {}) => {
     return render(
       <PreventContext.Provider value={mockPreventContext}>
-        <AddUploadTokenStep step="1" {...props} />
+        <AddUploadTokenStep
+          step="1"
+          repoData={mockRepoDataWithToken}
+          repository="test-repo"
+          integratedOrgId="123"
+          {...props}
+        />
       </PreventContext.Provider>,
       {
         organization: mockOrganization,
@@ -60,7 +76,7 @@ describe('AddUploadTokenStep', () => {
       body: [mockGitHubIntegration],
     });
 
-    renderComponent({step: '2'});
+    renderComponent({step: '2', repoData: mockRepoDataWithToken});
 
     await screen.findByText('Step 2: Add token as');
     expect(screen.getByText('Step 2: Add token as')).toBeInTheDocument();
@@ -87,7 +103,12 @@ describe('AddUploadTokenStep', () => {
 
     render(
       <PreventContext.Provider value={customContext}>
-        <AddUploadTokenStep step="1" />
+        <AddUploadTokenStep
+          step="1"
+          repoData={mockRepoDataWithToken}
+          repository="custom-repo"
+          integratedOrgId="456"
+        />
       </PreventContext.Provider>,
       {
         organization: customOrg,
@@ -114,7 +135,12 @@ describe('AddUploadTokenStep', () => {
 
     render(
       <PreventContext.Provider value={contextWithoutIntegration}>
-        <AddUploadTokenStep step="1" />
+        <AddUploadTokenStep
+          step="1"
+          repoData={mockRepoDataWithToken}
+          repository="test-repo"
+          integratedOrgId="123"
+        />
       </PreventContext.Provider>,
       {
         organization: mockOrganization,
@@ -145,7 +171,12 @@ describe('AddUploadTokenStep', () => {
 
     render(
       <PreventContext.Provider value={contextWithValidChars}>
-        <AddUploadTokenStep step="1" />
+        <AddUploadTokenStep
+          step="1"
+          repoData={mockRepoDataWithToken}
+          repository="test-repo_v2"
+          integratedOrgId="789"
+        />
       </PreventContext.Provider>,
       {
         organization: mockOrganization,
@@ -165,29 +196,12 @@ describe('AddUploadTokenStep', () => {
       body: [mockGitHubIntegration],
     });
 
-    renderComponent();
+    renderComponent({repoData: mockRepoDataWithoutToken});
 
     await screen.findByRole('button', {name: 'Generate Repository Token'});
     expect(
       screen.getByRole('button', {name: 'Generate Repository Token'})
     ).toBeInTheDocument();
-  });
-
-  it('shows token details after clicking generate button', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/test-org/integrations/',
-      body: [mockGitHubIntegration],
-    });
-
-    renderComponent();
-
-    const generateButton = screen.getByRole('button', {
-      name: 'Generate Repository Token',
-    });
-    await userEvent.click(generateButton);
-
-    expect(screen.getByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Regenerate'})).toBeInTheDocument();
   });
 
   it('renders repository admin text correctly', async () => {

@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -15,10 +15,9 @@ import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  useInfiniteTestResults,
-  type UseInfiniteTestResultsResult,
-} from 'sentry/views/prevent/tests/queries/useGetTestResults';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useInfiniteTestResults} from 'sentry/views/prevent/tests/queries/useGetTestResults';
+import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {DEFAULT_SORT} from 'sentry/views/prevent/tests/settings';
 import {Summaries} from 'sentry/views/prevent/tests/summaries/summaries';
 import type {ValidSort} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
@@ -27,7 +26,7 @@ import TestAnalyticsTable, {
 } from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
 import {TestSearchBar} from 'sentry/views/prevent/tests/testSearchBar/testSearchBar';
 
-function EmptySelectorsMessage() {
+export function EmptySelectorsMessage() {
   return (
     <MessageContainer>
       <StyledIconSearch color="subText" size="xl" />
@@ -42,12 +41,7 @@ function EmptySelectorsMessage() {
 export default function TestsPage() {
   const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
   const location = useLocation();
-
-  const response = useInfiniteTestResults({
-    cursor: location.query?.cursor as string | undefined,
-    navigation: location.query?.navigation as 'next' | 'prev' | undefined,
-  });
-  const defaultBranch = response.data?.defaultBranch;
+  const defaultBranch = location.query?.defaultBranch;
   const shouldDisplayTestSuiteDropdown = branch === null || branch === defaultBranch;
 
   const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
@@ -63,24 +57,47 @@ export default function TestsPage() {
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
-      {shouldDisplayContent ? <Content response={response} /> : <EmptySelectorsMessage />}
+      {shouldDisplayContent ? (
+        <Content integratedOrgId={integratedOrgId} repository={repository} />
+      ) : (
+        <EmptySelectorsMessage />
+      )}
     </LayoutGap>
   );
 }
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 interface TestResultsContentData {
-  response: UseInfiniteTestResultsResult;
+  integratedOrgId: string;
+  repository: string;
 }
 
-function Content({response}: TestResultsContentData) {
+function Content({integratedOrgId, repository}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
+  const organization = useOrganization();
   const {branch: selectedBranch} = usePreventContext();
+
+  const {data: repoData, isSuccess} = useRepo({
+    organizationSlug: organization.slug,
+    integratedOrgId,
+    repository,
+  });
+
+  useEffect(() => {
+    if (!repoData?.testAnalyticsEnabled && isSuccess) {
+      navigate('/prevent/tests/new');
+    }
+  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess]);
+
+  const response = useInfiniteTestResults({
+    cursor: location.query?.cursor as string | undefined,
+    navigation: location.query?.navigation as 'next' | 'prev' | undefined,
+  });
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
