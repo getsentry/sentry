@@ -382,7 +382,7 @@ class OrganizationEndpoint(Endpoint):
         NOTE: If both project_ids and project_slugs are passed, we will default
         to fetching projects via project_id list.
         """
-        qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        qs = Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
         if project_slugs and project_ids:
             raise ParseError(detail="Cannot query for both ids and slugs")
 
