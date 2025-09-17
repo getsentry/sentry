@@ -1552,12 +1552,14 @@ function buildRoutes(): RouteObject[] {
             {
               path: ':projectId/:detectorId/details/',
               component: make(() => import('sentry/views/alerts/rules/uptime/details')),
+              deprecatedRouteProps: true,
             },
             {
               path: 'existing-or-create/',
               component: make(
                 () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
               ),
+              deprecatedRouteProps: true,
             },
           ],
         },

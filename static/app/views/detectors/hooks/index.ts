@@ -115,7 +115,7 @@ export function useUpdateDetector<T extends Detector = Detector>() {
   });
 }
 
-export const makeDetectorDetailsQueryKey = ({
+const makeDetectorDetailsQueryKey = ({
   orgSlug,
   detectorId,
 }: {

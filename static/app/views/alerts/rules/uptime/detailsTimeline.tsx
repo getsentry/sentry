@@ -7,24 +7,23 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
-import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {OverviewRow} from 'sentry/views/insights/uptime/components/overviewTimeline/overviewRow';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
-import type {CheckStatusBucket} from './types';
+import type {CheckStatusBucket, UptimeRule} from './types';
 
 interface Props {
   /**
    * Called when stats have been loaded for this timeline.
    */
   onStatsLoaded: (stats: CheckStatusBucket[]) => void;
-  uptimeDetector: UptimeDetector;
+  uptimeRule: UptimeRule;
 }
 
-export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
-  const {id} = uptimeDetector;
+export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
+  const {id} = uptimeRule;
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
@@ -32,7 +31,7 @@ export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
   const {data: uptimeStats} = useUptimeMonitorStats({
-    detectorIds: [String(uptimeDetector.id)],
+    detectorIds: [String(uptimeRule.id)],
     timeWindowConfig,
   });
 
@@ -56,9 +55,9 @@ export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
         cursorOverlayAnchorOffset={10}
       />
       <OverviewRow
-        uptimeDetector={uptimeDetector}
+        uptimeRule={uptimeRule}
         timeWindowConfig={timeWindowConfig}
-        single
+        singleRuleView
       />
     </Panel>
   );

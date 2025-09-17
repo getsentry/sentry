@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -11,17 +12,20 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
+import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {type UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -30,8 +34,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
 import {OverviewTimeline} from 'sentry/views/insights/uptime/components/overviewTimeline';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/uptime/settings';
 
@@ -42,20 +46,44 @@ export default function UptimeOverview() {
   const project = decodeList(location.query?.project);
   const {projects} = useProjects();
 
+  function makeQueryKey() {
+    const {query, environment, owner, cursor, sort, asc} = location.query;
+    return [
+      `/organizations/${organization.slug}/uptime/`,
+      {
+        query: {
+          cursor,
+          query,
+          project,
+          environment,
+          owner,
+          includeNew: true,
+          per_page: 20,
+          sort,
+          asc,
+        },
+      },
+    ] as const;
+  }
+
   const {
-    data: detectors,
+    data: uptimeRules,
     getResponseHeader: uptimeListHeaders,
     isPending,
-  } = useDetectorsQuery<UptimeDetector>({
-    query: `type:uptime ${location.query.query}`,
-    cursor: decodeScalar(location.query.cursor),
-    projects: project.map(Number),
-  });
+  } = useApiQuery<UptimeRule[]>(makeQueryKey(), {staleTime: 0});
 
   useRouteAnalyticsEventNames('uptime.page_viewed', 'Uptime: Page Viewed');
-  useRouteAnalyticsParams({empty_state: !detectors || detectors.length === 0});
+  useRouteAnalyticsParams({empty_state: !uptimeRules || uptimeRules.length === 0});
 
   const uptimeListPageLinks = uptimeListHeaders?.('Link');
+
+  const handleSearch = (query: string) => {
+    const currentQuery = {...location.query, cursor: undefined};
+    navigate({
+      pathname: location.pathname,
+      query: normalizeDateTimeParams({...currentQuery, query}),
+    });
+  };
 
   const canCreateAlert =
     hasEveryAccess(['alerts:write'], {organization}) ||
@@ -99,30 +127,34 @@ export default function UptimeOverview() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <Filters>
-            <PageFilterBar>
-              <ProjectPageFilter resetParamsOnChange={['cursor']} />
-              <DatePageFilter />
-            </PageFilterBar>
-            <DetectorSearch
-              initialQuery=""
-              placeholder={t('Filter uptime monitors')}
-              excludeKeys={['type']}
-              onSearch={query => {
+            <OwnerFilter
+              selectedOwners={decodeList(location.query.owner)}
+              onChangeFilter={owner => {
                 navigate(
                   {
                     ...location,
-                    query: {...location.query, query, cursor: undefined},
+                    query: {...location.query, owner, cursor: undefined},
                   },
                   {replace: true}
                 );
               }}
             />
+            <PageFilterBar>
+              <ProjectPageFilter resetParamsOnChange={['cursor']} />
+              <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+              <DatePageFilter />
+            </PageFilterBar>
+            <SearchBar
+              query={decodeScalar(qs.parse(location.search)?.query, '')}
+              placeholder={t('Search by name or slug')}
+              onSearch={handleSearch}
+            />
           </Filters>
           {isPending ? (
             <LoadingIndicator />
-          ) : detectors?.length ? (
+          ) : uptimeRules?.length ? (
             <Fragment>
-              <OverviewTimeline uptimeDetectors={detectors} />
+              <OverviewTimeline uptimeRules={uptimeRules} />
               {uptimeListPageLinks && <Pagination pageLinks={uptimeListPageLinks} />}
             </Fragment>
           ) : (
