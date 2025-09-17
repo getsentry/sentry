@@ -1439,10 +1439,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     def assert_groups_being_deleted(self, groups: Sequence[Group]) -> None:
         for g in groups:
             assert Group.objects.get(id=g.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=g.id).exists()
-
-        # This is necessary before calling the delete task
-        Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
+            assert GroupHash.objects.filter(group_id=g.id).exists()
 
     def assert_groups_are_gone(self, groups: Sequence[Group]) -> None:
         for g in groups:
@@ -1515,6 +1512,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert response.status_code == 204
         self.assert_groups_being_deleted(groups)
 
+        # This is necessary to pretend we never called the API endpoint
+        Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
         with self.tasks():
             response = self.client.delete(url, format="json")
 
@@ -1549,20 +1548,20 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         original_group = event1.group
         original_group_id = original_group.id
 
-        # First we call the endpoint which will mark the group as pending deletion & delete the hashes
+        # First we delete the group & hashes
         self.login_as(user=self.user)
+        with self.tasks():
+            response = self.client.delete(f"{self.path}?id={original_group_id}", format="json")
+            assert response.status_code == 204
 
-        # Since we're calling without self.tasks(), the group will not be deleted
-        # We're emulating the delay between the endpoint being called and the task being executed
-        response = self.client.delete(f"{self.path}?id={original_group_id}", format="json")
-        assert response.status_code == 204
-
-        assert Group.objects.get(id=original_group_id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=original_group_id).exists()
+        self.assert_groups_are_gone([original_group])
 
         # Since the group hash has been deleted, a new group will be created
         event2 = self.store_event(data=data, project_id=self.project.id)
+        assert event1.get_primary_hash() == event2.get_primary_hash()
         # Verify a new group is created with a different ID
         new_group = event2.group
         assert new_group.id != original_group_id
-        assert Group.objects.filter(id=new_group.id).exists()
+        groups = Group.objects.all()
+        assert groups.count() == 1
+        assert groups.first() == new_group
