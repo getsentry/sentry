@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -9,7 +10,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -17,6 +18,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
+import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
   InvoiceItemType,
@@ -30,6 +32,7 @@ import {
   getPlanIcon,
   getProductIcon,
   hasPartnerMigrationFeature,
+  isBizPlanFamily,
   isDeveloperPlan,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
@@ -117,6 +120,14 @@ interface TotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
   renewalDate: Date | null;
   subscription: Subscription;
+}
+
+function ItemFlex({children}: {children: React.ReactNode}) {
+  return (
+    <StyledFlex justify="between" align="start" gap="3xl">
+      {children}
+    </StyledFlex>
+  );
 }
 
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
@@ -265,6 +276,12 @@ function SubtotalSummary({
       selectedProducts: formData.selectedProducts,
     });
   }, [activePlan, formData.reserved, formData.selectedProducts]);
+  const isDefaultPaygAmount = useMemo(() => {
+    const defaultAmount = isBizPlanFamily(activePlan)
+      ? PAYG_BUSINESS_DEFAULT
+      : PAYG_TEAM_DEFAULT;
+    return formData.onDemandMaxSpend === defaultAmount;
+  }, [activePlan, formData.onDemandMaxSpend]);
 
   return (
     <SummarySection>
@@ -277,13 +294,33 @@ function SubtotalSummary({
                   budgetTerm: capitalize(activePlan.budgetTerm),
                 })}
               </div>
-              <div>
-                $0-
-                {utils.displayPrice({
-                  cents: formData.onDemandMaxSpend,
-                })}
-                /mo
-              </div>
+              <Flex direction="column" gap="sm" align="end">
+                <Text>
+                  $0-
+                  {utils.displayPrice({
+                    cents: formData.onDemandMaxSpend,
+                  })}
+                  /mo
+                </Text>
+                <AnimatePresence>
+                  {isDefaultPaygAmount && (
+                    <motion.div
+                      initial={{opacity: 0, y: -10}}
+                      animate={{opacity: 1, y: 0}}
+                      exit={{opacity: 0, y: -10}}
+                      transition={{
+                        type: 'spring',
+                        duration: 0.4,
+                        bounce: 0.1,
+                      }}
+                    >
+                      <Tag icon={<IconSentry size="xs" />} type="info">
+                        <Text size="xs">{t('Default Amount')}</Text>
+                      </Tag>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Flex>
             </ItemFlex>
           </Item>
         )}
@@ -303,13 +340,13 @@ function SubtotalSummary({
                       budgetTerm: activePlan.budgetTerm,
                     })}
                   </div>
-                  <div>
+                  <Text>
                     $0-
                     {utils.displayPrice({
                       cents: budget,
                     })}
                     /mo
-                  </div>
+                  </Text>
                 </ItemFlex>
               </Item>
             );
@@ -798,11 +835,7 @@ const ItemWithIcon = styled(Item)`
   gap: ${p => p.theme.space.xs};
 `;
 
-const ItemFlex = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space['3xl']};
+const StyledFlex = styled(Flex)`
   line-height: 100%;
 
   > * {

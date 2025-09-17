@@ -3,10 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
-import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
@@ -57,7 +55,7 @@ describe('BuildYourPlan', () => {
   });
 
   function assertAllSubsteps(isNewCheckout: boolean) {
-    const substepTitles = ['Select additional products', 'Billing cycle'];
+    const substepTitles = ['Select additional products'];
 
     if (isNewCheckout) {
       substepTitles.forEach(title => {
@@ -110,22 +108,6 @@ describe('BuildYourPlan', () => {
   });
 
   describe('PlanSubstep', () => {
-    it('can toggle volume sliders', async () => {
-      renderCheckout(true);
-      expect(await screen.findByText('Reserve additional volume')).toBeInTheDocument();
-      expect(screen.queryByRole('slider')).not.toBeInTheDocument();
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Show reserved volume sliders'})
-      );
-      expect(screen.getAllByRole('slider').length).toBeGreaterThan(0);
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Hide reserved volume sliders'})
-      );
-      expect(screen.queryByRole('slider')).not.toBeInTheDocument();
-    });
-
     it('annotates the current plan', async () => {
       const bizOrg = OrganizationFixture();
       const businessSubscription = SubscriptionFixture({
@@ -155,102 +137,6 @@ describe('BuildYourPlan', () => {
       await userEvent.click(teamPlan);
       expect(teamPlan).toBeChecked();
       expect(businessPlan).not.toBeChecked();
-    });
-  });
-
-  describe('BillingCycleSubstep', () => {
-    beforeEach(() => {
-      setMockDate(new Date('2025-08-13'));
-    });
-
-    afterEach(() => {
-      resetMockDate();
-      organization.features = [];
-    });
-
-    async function assertCycleText({
-      monthlyInfo,
-      yearlyInfo,
-    }: {
-      monthlyInfo: string | RegExp;
-      yearlyInfo: string | RegExp;
-    }) {
-      expect(await screen.findByText('Billing cycle')).toBeInTheDocument();
-
-      const monthlyOption = screen.getByTestId('billing-cycle-option-monthly');
-      expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();
-      expect(within(monthlyOption).queryByText('save 10%')).not.toBeInTheDocument();
-      expect(within(monthlyOption).getByText(monthlyInfo)).toBeInTheDocument();
-      expect(within(monthlyOption).getByText('Cancel anytime')).toBeInTheDocument();
-
-      const yearlyOption = screen.getByTestId('billing-cycle-option-annual');
-      expect(within(yearlyOption).getByText('Yearly')).toBeInTheDocument();
-      expect(within(yearlyOption).getByText('save 10%')).toBeInTheDocument();
-      expect(within(yearlyOption).getByText(yearlyInfo)).toBeInTheDocument();
-      expect(
-        within(yearlyOption).getByText("Discount doesn't apply to pay-as-you-go usage")
-      ).toBeInTheDocument();
-    }
-
-    it('renders for coterm upgrade', async () => {
-      renderCheckout(true);
-      await assertCycleText({
-        monthlyInfo: /Billed monthly starting on August 13/,
-        yearlyInfo: /Billed every 12 months on the 13th of August/,
-      });
-    });
-
-    it('renders for monthly downgrade', async () => {
-      const annualSub = SubscriptionFixture({
-        planDetails: PlanDetailsLookupFixture('am2_business_auf'),
-        contractPeriodStart: '2025-07-16',
-        contractPeriodEnd: '2026-07-15',
-        organization,
-      });
-      SubscriptionStore.set(organization.slug, annualSub);
-      renderCheckout(true);
-      await assertCycleText({
-        monthlyInfo: /Billed monthly starting on July 16/,
-        yearlyInfo: /Billed every 12 months on the 13th of August/, // annual can be applied immediately
-      });
-    });
-
-    it('renders for migrating partner customers', async () => {
-      const partnerSub = SubscriptionFixture({
-        contractInterval: 'annual',
-        sponsoredType: 'FOO',
-        partner: {
-          isActive: true,
-          externalId: 'foo',
-          partnership: {
-            id: 'foo',
-            displayName: 'FOO',
-            supportNote: '',
-          },
-          name: '',
-        },
-        organization,
-      });
-      SubscriptionStore.set(organization.slug, partnerSub);
-      renderCheckout(true);
-      await assertCycleText({
-        monthlyInfo: /Billed monthly starting on your selected start date on submission/,
-        yearlyInfo: /Billed every 12 months from your selected start date on submission/,
-      });
-    });
-
-    it('can select billing cycle', async () => {
-      renderCheckout(true);
-
-      const monthly = await screen.findByRole('radio', {name: 'Monthly billing cycle'});
-      const annual = screen.getByRole('radio', {name: 'Yearly billing cycle'});
-
-      expect(monthly).toBeChecked();
-      expect(annual).not.toBeChecked();
-
-      await userEvent.click(annual);
-      expect(monthly).not.toBeChecked();
-      expect(annual).toBeChecked();
     });
   });
 });

@@ -74,6 +74,7 @@ import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
+import BillingCycle from 'getsentry/views/amCheckout/steps/checkoutV3/billingCycle';
 import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
 import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
@@ -295,7 +296,7 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
-      return [BuildYourPlan, SetSpendCap];
+      return [BuildYourPlan, SetSpendCap, BillingCycle];
     }
 
     const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
