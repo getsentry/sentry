@@ -6,6 +6,7 @@ from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifySe
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
+from sentry.integrations.opsgenie.actions.form import OpsgenieNotifyTeamForm
 from sentry.integrations.pagerduty.actions.form import PagerDutyNotifyServiceForm
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
@@ -164,6 +165,44 @@ class PagerdutyActionValidatorHandler(BaseActionValidatorHandler):
         return {
             "account": integration_id,
             "service": self.validated_data["config"]["target_identifier"],
+        }
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        return self.validated_data
+
+
+@action_validator_registry.register(Action.Type.OPSGENIE)
+class OpsgenieActionValidatorHandler(BaseActionValidatorHandler):
+    provider = Action.Type.OPSGENIE
+    notify_action_form = OpsgenieNotifyTeamForm
+
+    def _get_teams(self) -> list[tuple[int, str]]:
+        organization_integrations = integration_service.get_organization_integrations(
+            providers=[Action.Type.OPSGENIE], organization_id=self.organization.id
+        )
+
+        teams = []
+        for oi in organization_integrations:
+            team_table = oi.config.get("team_table")
+            if team_table:
+                teams += [(team["id"], team["team"]) for team in team_table]
+        return teams
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        payload = super().generate_action_form_payload()
+
+        return {
+            **payload,
+            "org_id": self.organization.id,
+            "teams": self._get_teams(),
+        }
+
+    def generate_action_form_data(self) -> dict[str, Any]:
+        integration_id = _get_integration_id(self.validated_data, self.provider)
+
+        return {
+            "account": integration_id,
+            "team": self.validated_data["config"]["target_identifier"],
         }
 
     def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
