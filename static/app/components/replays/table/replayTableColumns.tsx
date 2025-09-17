@@ -473,15 +473,15 @@ export const ReplaySelectColumn: ReplayTableColumn = {
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
         <CheckboxCellContainer>
           <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
-              <Checkbox
-                id={`replay-table-select-${replay.id}`}
-                disabled={isSelected(replay.id) === 'all-selected'}
-                checked={isSelected(replay.id) !== false}
-                onChange={() => {
-                  toggleSelected(replay.id);
-                }}
-              />
-            </CheckboxClickTarget>
+            <Checkbox
+              id={`replay-table-select-${replay.id}`}
+              disabled={isSelected(replay.id) === 'all-selected'}
+              checked={isSelected(replay.id) !== false}
+              onChange={() => {
+                toggleSelected(replay.id);
+              }}
+            />
+          </CheckboxClickTarget>
 
           <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
             <UnreadIndicator data-has-viewed={replay.has_viewed} />
