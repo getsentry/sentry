@@ -34,6 +34,14 @@ describe('ErrorDetectorDetails', () => {
       method: 'GET',
       body: UserFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: GroupFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/open-periods/`,
+      body: [],
+    });
   });
 
   describe('Resolve section', () => {
