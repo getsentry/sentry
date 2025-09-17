@@ -66,6 +66,11 @@ class BaseActionValidator(CamelSnakeSerializer):
 
         attrs = super().validate(attrs)
 
+        if not Action.Type(attrs["type"]).is_integration() and attrs.get("integration_id"):
+            raise serializers.ValidationError(
+                f"Integration ID is not allowed for action type {attrs["type"]}"
+            )
+
         if not (organization := self.context.get("organization")):
             raise serializers.ValidationError("Organization is required in the context")
 
