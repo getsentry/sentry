@@ -11,7 +11,6 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.types.region import find_regions_for_orgs
@@ -27,7 +26,7 @@ class AuthIdentity(ReplicatedControlModel):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     auth_provider = FlexibleForeignKey("sentry.AuthProvider")
     ident = models.CharField(max_length=128)
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = models.JSONField(default=dict)
     last_verified = models.DateTimeField(default=timezone.now)
     last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
