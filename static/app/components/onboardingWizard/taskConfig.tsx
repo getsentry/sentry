@@ -2,10 +2,11 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import type {OnboardingTask, OnboardingTaskDescriptor} from 'sentry/types/onboarding';
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
@@ -283,7 +284,7 @@ export function getOnboardingTasks({
         // Since the quick start panel is already open and closes on route change
         // Wait for the next tick to open the replay onboarding panel
         setTimeout(() => {
-          SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+          OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
         }, 0);
       },
       display: organization.features?.includes('session-replay'),

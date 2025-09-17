@@ -12,9 +12,7 @@ describe('IssueListContainer', () => {
     children: <div>Foo</div>,
   };
 
-  const organization = OrganizationFixture({
-    features: ['enforce-stacked-navigation'],
-  });
+  const organization = OrganizationFixture();
 
   const initialRouterConfig = {
     location: {

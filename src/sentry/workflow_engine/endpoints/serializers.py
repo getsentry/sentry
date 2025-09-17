@@ -11,14 +11,17 @@ from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_last_checked_for_open_period
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
+from sentry.types.actor import Actor
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models import (
     Action,
@@ -371,6 +374,13 @@ class DetectorSerializer(Serializer):
             .values_list("detector_id", "open_issues_count")
         )
 
+        # Serialize owners
+        owners = [item.owner for item in item_list if item.owner]
+        owners_serialized = serialize(
+            Actor.resolve_many(owners, filter_none=False), user, ActorSerializer()
+        )
+        owner_lookup = {owner: serialized for owner, serialized in zip(owners, owners_serialized)}
+
         for item in item_list:
             attrs[item]["data_sources"] = ds_map.get(item.id)
             attrs[item]["condition_group"] = condition_group_map.get(
@@ -390,9 +400,7 @@ class DetectorSerializer(Serializer):
                 attrs[item]["config"] = configs[item.id]
             else:
                 attrs[item]["config"] = item.config
-            actor = item.owner
-            if actor:
-                attrs[item]["owner"] = actor.identifier
+            attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
 
         return attrs
 
@@ -674,4 +682,28 @@ class DetectorWorkflowSerializer(Serializer):
             "id": str(obj.id),
             "detectorId": str(obj.detector.id),
             "workflowId": str(obj.workflow.id),
+        }
+
+
+class GroupOpenPeriodResponse(TypedDict):
+    id: str
+    start: datetime
+    end: datetime | None
+    duration: timedelta | None
+    isOpen: bool
+    lastChecked: datetime
+
+
+@register(GroupOpenPeriod)
+class GroupOpenPeriodSerializer(Serializer):
+    def serialize(
+        self, obj: GroupOpenPeriod, attrs: Mapping[str, Any], user, **kwargs
+    ) -> GroupOpenPeriodResponse:
+        return {
+            "id": str(obj.id),
+            "start": obj.date_started,
+            "end": obj.date_ended,
+            "duration": obj.date_ended - obj.date_started if obj.date_ended else None,
+            "isOpen": obj.date_ended is None,
+            "lastChecked": get_last_checked_for_open_period(obj.group),
         }

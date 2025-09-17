@@ -169,6 +169,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 query_string=query,
                 sampling_mode=sampling_mode,
                 debug=request.user.is_superuser and "debug" in request.GET,
+                case_insensitive="caseInsensitive" in request.GET,
             )
             return params
 

@@ -178,7 +178,12 @@ class TestDetectorSerializer(TestCase):
                 "thresholdPeriod": 1,
                 "detectionType": "static",
             },
-            "owner": self.user.get_actor_identifier(),
+            "owner": {
+                "email": self.user.email,
+                "id": str(self.user.id),
+                "name": self.user.get_username(),
+                "type": "user",
+            },
             "enabled": detector.enabled,
             "alertRuleId": None,
             "ruleId": None,

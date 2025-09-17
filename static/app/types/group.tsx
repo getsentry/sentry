@@ -936,7 +936,6 @@ export interface BaseGroup {
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
   latestEventHasAttachments?: boolean;
-  openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
   seerAutofixLastTriggered?: string | null;
   seerFixabilityScore?: number | null;
