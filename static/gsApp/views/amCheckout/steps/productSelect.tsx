@@ -27,6 +27,7 @@ import type {Color} from 'sentry/utils/theme';
 import {getProductIcon} from 'getsentry/utils/billing';
 import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
+import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -132,13 +133,12 @@ function ProductSelect({
 
         if (isNewCheckout) {
           return (
-            <ProductOptionNew
+            <CheckoutOption
               key={productInfo.apiName}
-              aria-label={ariaLabel}
-              data-test-id={`product-option-${productInfo.apiName}`}
+              ariaLabel={ariaLabel}
+              dataTestId={`product-option-${productInfo.apiName}`}
               onClick={toggleProductOption}
-              isNewCheckout={isNewCheckout}
-              isSelected={isSelected}
+              isSelected={!!isSelected}
             >
               <Flex direction="column" gap="md" padding="xl" width="100%">
                 <Flex align="start" justify="between" gap="md">
@@ -228,7 +228,7 @@ function ProductSelect({
                   </Flex>
                 </Flex>
               </Flex>
-            </ProductOptionNew>
+            </CheckoutOption>
           );
         }
 
@@ -338,76 +338,6 @@ function ProductSelect({
 }
 
 export default ProductSelect;
-
-const ProductOptionNew = styled(Flex)<{isNewCheckout?: boolean; isSelected?: boolean}>`
-  width: 100%;
-  color: ${p => p.theme.textColor};
-  cursor: pointer;
-  position: relative;
-
-  &:before,
-  &:after {
-    content: '';
-    display: block;
-    position: absolute;
-    inset: 0;
-  }
-
-  &::before {
-    height: calc(100% - ${p => p.theme.space['2xs']});
-    top: ${p => p.theme.space['2xs']};
-    transform: translateY(-${p => p.theme.space['2xs']});
-    box-shadow: 0 ${p => p.theme.space['2xs']} 0 0px
-      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
-    background: ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
-    border-radius: ${p => p.theme.borderRadius};
-  }
-
-  &::after {
-    background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
-    border: 1px solid
-      ${p => (p.isSelected ? p.theme.tokens.graphics.accent : p.theme.border)};
-    transform: ${p =>
-      p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
-    transition: transform 0.06s ease-in;
-  }
-
-  > * {
-    z-index: 1;
-    position: relative;
-    transform: ${p =>
-      p.isSelected ? 'translateY(0)' : `translateY(-${p.theme.space['2xs']})`};
-    transition: transform 0.06s ease-in;
-  }
-
-  &:hover {
-    &::after,
-    > * {
-      transform: ${p =>
-        p.isSelected
-          ? 'translateY(0)'
-          : `translateY(calc(-${p.theme.space['2xs']} - 2px))`};
-    }
-  }
-
-  &:active,
-  &[aria-expanded='true'],
-  &[aria-checked='true'] {
-    &::after,
-    > * {
-      transform: translateY(0);
-    }
-  }
-
-  &:disabled,
-  &[aria-disabled='true'] {
-    &::after,
-    > * {
-      transform: translateY(0px);
-    }
-  }
-`;
 
 const ProductOption = styled(PanelItem)<{isNewCheckout?: boolean; isSelected?: boolean}>`
   margin: ${p => (p.isNewCheckout ? '0' : p.theme.space.lg)};
