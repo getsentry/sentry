@@ -77,7 +77,6 @@ class BaseActionValidator(CamelSnakeSerializer):
         try:
             handler = action_validator_registry.get(attrs["type"])
         except NoRegistrationExistsError:
-            # TODO: remove try/catch when all existing action types are registered
             return attrs
 
         return handler(attrs, organization).clean_data()
