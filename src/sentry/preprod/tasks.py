@@ -135,7 +135,6 @@ def assemble_preprod_artifact(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
-            **kwargs,
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"

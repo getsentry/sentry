@@ -101,6 +101,7 @@ describe('Cart', () => {
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend cap$0-$300/mo');
     expect(cart).toHaveTextContent('Plan Total$89/mo');
+    expect(cart).toHaveTextContent('Default Amount');
     expect(within(cart).getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
   });
 

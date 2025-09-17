@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry.buffer.redis import RedisBuffer
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -28,6 +27,7 @@ from sentry.workflow_engine.tasks.delayed_workflows import (
     DelayedWorkflow,
     process_delayed_workflows,
 )
+from sentry.workflow_engine.tasks.workflows import schedule_delayed_workflows
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -198,7 +198,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 
 
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
-@mock.patch("sentry.workflow_engine.buffer.get_backend", new=lambda: RedisBuffer())
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
         (
@@ -494,3 +493,61 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
             process_delayed_workflows(list(project_ids.keys())[0])
             mock_trigger.assert_called_once()
+
+    def test_schedule_delayed_workflows_integration(self, mock_trigger: MagicMock) -> None:
+        self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            condition_result=True,
+            comparison={
+                "interval": "1h",
+                "value": 2,
+            },
+        )
+
+        assert (
+            buffer.get_backend().bulk_get_sorted_set(
+                self.buffer_keys,
+                min=0,
+                max=timezone.now().timestamp(),
+            )
+            == {}
+        )
+
+        # Create an event that should be buffered for delayed processing
+        event = self.create_error_event()
+        self.post_process_error(event)
+
+        project_ids = buffer.get_backend().bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=timezone.now().timestamp(),
+        )
+        assert project_ids, "Expected data to be buffered for delayed processing"
+
+        with patch(
+            "sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async"
+        ) as mock_apply_async:
+            with self.options(
+                {
+                    "workflow_engine.use_new_scheduling_task": True,
+                    "delayed_workflow.rollout": True,
+                }
+            ):
+                # Call schedule_delayed_workflows - this runs the real buffer processing
+                schedule_delayed_workflows()
+
+            # Verify that process_delayed_workflows.apply_async was called
+            mock_apply_async.assert_called()
+            call_kwargs = mock_apply_async.call_args[1]["kwargs"]
+            assert "project_id" in call_kwargs
+            assert call_kwargs["project_id"] == self.project.id
+
+        assert (
+            buffer.get_backend().bulk_get_sorted_set(
+                self.buffer_keys,
+                min=0,
+                max=timezone.now().timestamp(),
+            )
+            == {}
+        )

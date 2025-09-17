@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from collections import defaultdict
 from datetime import timedelta
@@ -176,6 +177,8 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
             )
 
         parent_span_id = last_span.get("parent_span_id")
+        if self.stored_problems.get(fingerprint):
+            logging.info("Multiple N+1 API Call Problems for Fingerprint")
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
