@@ -24,19 +24,31 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const {project} = group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
-  const {data: allEnvironments} = useFetchAllEnvsGroupData(organization, group);
+  const environments = useEnvironmentsFromUrl();
+
+  const {data: allEnvsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
+    [
+      `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+      {
+        query: {
+          ...(environments.length > 0 ? {environment: environments} : {}),
+        },
+      },
+    ],
     {
       staleTime: 30000,
       gcTime: 30000,
     }
   );
-  const environments = useEnvironmentsFromUrl();
 
   const lastSeen = issueTypeConfig.useOpenPeriodChecks
     ? (group.openPeriods?.[0]?.lastChecked ?? group.lastSeen)
     : group.lastSeen;
+
+  const lastSeenGlobal = issueTypeConfig.useOpenPeriodChecks
+    ? lastSeen
+    : (allEnvsGroupData?.lastSeen ?? lastSeen);
 
   const shortEnvironmentLabel =
     environments.length > 1
@@ -45,10 +57,6 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
         ? environments[0]
         : undefined;
 
-  const dateGlobal = issueTypeConfig.useOpenPeriodChecks
-    ? lastSeen
-    : (allEnvironments?.lastSeen ?? lastSeen);
-
   return (
     <Flex direction="column" gap="sm">
       <div>
@@ -56,7 +64,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
           <Title>{t('Last seen')}</Title>
           <SeenInfo
             date={lastSeen}
-            dateGlobal={dateGlobal}
+            dateGlobal={lastSeenGlobal}
             organization={organization}
             projectId={project.id}
             projectSlug={project.slug}
@@ -72,7 +80,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
           <Title>{t('First seen')}</Title>
           <SeenInfo
             date={group.firstSeen}
-            dateGlobal={allEnvironments?.firstSeen ?? group.firstSeen}
+            dateGlobal={allEnvsGroupData?.firstSeen ?? group.firstSeen}
             organization={organization}
             projectId={project.id}
             projectSlug={project.slug}
