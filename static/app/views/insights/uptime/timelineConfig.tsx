@@ -25,7 +25,11 @@ export const reasonToText: Record<
   CheckStatusReason,
   (check: UptimeCheck) => React.ReactNode
 > = {
-  [CheckStatusReason.FAILURE]: check => t('HTTP %s', check.httpStatusCode),
+  [CheckStatusReason.FAILURE]: check =>
+    // TODO(epurkhiser): Not all failures include a HTTP status code, we
+    // should display the `status_reason_description` somewhere (this is not
+    // currently exposed to the frontend)
+    check.httpStatusCode ? t('HTTP %s', check.httpStatusCode) : null,
   [CheckStatusReason.TIMEOUT]: _ => t('Timeout'),
   [CheckStatusReason.DNS_ERROR]: _ => t('DNS Error'),
   [CheckStatusReason.TLS_ERROR]: _ => t('TLS Connection Error'),
