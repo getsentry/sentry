@@ -3,7 +3,6 @@ import Color from 'color';
 
 export const COUNT_COLOR = (theme: Theme) => theme.chart.getColorPalette(0)[0];
 export const THROUGHPUT_COLOR = (theme: Theme) => theme.chart.getColorPalette(3)[3];
-export const TXN_THROUGHPUT_COLOR = (theme: Theme) => theme.chart.getColorPalette(3)[2];
 export const AVG_COLOR = (theme: Theme) => theme.chart.getColorPalette(0)[0];
 
 // TODO: Synchronize with `theme.tsx` or `CHART_PALETTE`

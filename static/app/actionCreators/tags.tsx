@@ -165,54 +165,6 @@ export function fetchTagValues({
   });
 }
 
-export function fetchSpanFieldValues({
-  api,
-  orgSlug,
-  fieldKey,
-  endpointParams,
-  projectIds,
-  search,
-  dataset,
-}: {
-  api: Client;
-  fieldKey: string;
-  orgSlug: string;
-  dataset?: 'spans' | 'spansIndexed';
-  endpointParams?: Query;
-  projectIds?: string[];
-  search?: string;
-}): Promise<TagValue[]> {
-  const url = `/organizations/${orgSlug}/spans/fields/${fieldKey}/values/`;
-
-  const query: Query = {};
-  if (search) {
-    query.query = search;
-  }
-  if (projectIds) {
-    query.project = projectIds;
-  }
-  if (endpointParams) {
-    if (endpointParams.start) {
-      query.start = endpointParams.start;
-    }
-    if (endpointParams.end) {
-      query.end = endpointParams.end;
-    }
-    if (endpointParams.statsPeriod) {
-      query.statsPeriod = endpointParams.statsPeriod;
-    }
-  }
-  if (dataset === 'spans') {
-    query.dataset = 'spans';
-    query.type = 'string';
-  }
-
-  return api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
-}
-
 /**
  * Fetch feature flag values for an organization. This is done by querying ERRORS with useFlagsBackend=1.
  * This only returns feature flags and not tags.

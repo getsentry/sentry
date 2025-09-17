@@ -13,7 +13,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
-} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/utils';
 
 interface Props {
   category: string | undefined;

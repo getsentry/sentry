@@ -1890,27 +1890,6 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/performance/transactionSummary/transactionProfiles')
       ),
     },
-    {
-      path: 'spans/',
-      children: [
-        {
-          index: true,
-          component: make(
-            () => import('sentry/views/performance/transactionSummary/transactionSpans')
-          ),
-        },
-        {
-          path: ':spanSlug/',
-          component: make(
-            () =>
-              import(
-                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
-              )
-          ),
-          deprecatedRouteProps: true,
-        },
-      ],
-    },
   ];
 
   const moduleRoutes: SentryRouteObject[] = [
