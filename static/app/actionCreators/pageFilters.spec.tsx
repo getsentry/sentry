@@ -433,6 +433,61 @@ describe('PageFilters ActionCreators', () => {
       pageFilterStorageMock.mockRestore();
     });
 
+    it('fallbacks to global state with storageNamespace empty', () => {
+      const storageNamespace = 'insights:frontend';
+      const insightsKey = `global-selection:${storageNamespace}:${organization.slug}`;
+      const globalKey = `global-selection:${organization.slug}`;
+
+      localStorage.setItem(
+        globalKey,
+        JSON.stringify({
+          environments: [],
+          projects: [1],
+          pinnedFilters: ['datetime', 'projects', 'environments'],
+          start: null,
+          end: null,
+          period: '30d',
+          utc: null,
+        })
+      );
+
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        shouldEnforceSingleProject: false,
+        storageNamespace,
+      });
+      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
+      expect(localStorage.getItem).toHaveBeenCalledWith(globalKey);
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: [],
+          projects: [1],
+          datetime: {
+            period: '30d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+        }),
+        new Set(['datetime', 'projects', 'environments']),
+        true
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: [],
+            project: ['1'],
+            statsPeriod: '30d',
+          },
+        })
+      );
+    });
+
     it('uses global datetime with storageNamespace', () => {
       const storageNamespace = 'insights:frontend';
       const insightsKey = `global-selection:${storageNamespace}:${organization.slug}`;

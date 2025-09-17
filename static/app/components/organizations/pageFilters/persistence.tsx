@@ -102,53 +102,68 @@ export function setPageFiltersStorage(
  * Retrieves the page filters from local storage
  */
 export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
-  const localStorageKey = makeLocalStorageKey(
-    storageNamespace.length > 0 ? `${storageNamespace}:${orgSlug}` : orgSlug
-  );
-  const globalSelectionKey = makeLocalStorageKey(orgSlug);
+  const globalSelectionValue = decodePageFilter(orgSlug);
+  const storageNamespaceValue = decodePageFilter(`${storageNamespace}:${orgSlug}`);
 
-  const value = localStorage.getItem(localStorageKey);
-  const globalSelectionValue = localStorage.getItem(globalSelectionKey);
+  const hasStorageNamespace = storageNamespaceValue && storageNamespace.length > 0;
 
-  if (!value || !globalSelectionValue) {
+  if (!globalSelectionValue && hasStorageNamespace) {
+    const state = getStateFromQuery(
+      {
+        project: storageNamespaceValue.projects.map(String),
+        environment: storageNamespaceValue.environments,
+      },
+      {allowAbsoluteDatetime: true}
+    );
+    return {state, pinnedFilters: new Set(storageNamespaceValue.pinnedFilters)};
+  }
+  if (globalSelectionValue) {
+    // storageNamespace only applies to project/environment selection
+    const projects = hasStorageNamespace
+      ? storageNamespaceValue.projects
+      : globalSelectionValue.projects;
+    const environments = hasStorageNamespace
+      ? storageNamespaceValue.environments
+      : globalSelectionValue.environments;
+    const pinnedFilters = hasStorageNamespace
+      ? storageNamespaceValue.pinnedFilters
+      : globalSelectionValue.pinnedFilters;
+
+    const {start, end, period, utc} = globalSelectionValue;
+
+    const state = getStateFromQuery(
+      {
+        project: projects.map(String),
+        environment: environments,
+        start,
+        end,
+        period,
+        utc,
+      },
+      {allowAbsoluteDatetime: true}
+    );
+    return {state, pinnedFilters: new Set(pinnedFilters)};
+  }
+  return null;
+}
+
+function decodePageFilter(key: string): StoredObject | null {
+  const storageKey = makeLocalStorageKey(key);
+
+  const value = localStorage.getItem(storageKey);
+  if (!value) {
     return null;
   }
 
-  let decoded: StoredObject;
-  let decodedGlobalSelection: StoredObject;
-
   try {
-    decoded = JSON.parse(value);
-    decodedGlobalSelection = JSON.parse(globalSelectionValue);
+    const decodedValue = JSON.parse(value);
+    return decodedValue;
   } catch (err) {
-    // use default if invalid
     Sentry.captureException(err);
     console.error(err); // eslint-disable-line no-console
 
     return null;
   }
-
-  const {projects, environments, pinnedFilters} = decoded;
-  const {
-    start: globalStart,
-    end: globalEnd,
-    period: globalPeriod,
-    utc: globalUtc,
-  } = decodedGlobalSelection;
-
-  const state = getStateFromQuery(
-    {
-      project: projects.map(String),
-      environment: environments,
-      start: globalStart,
-      end: globalEnd,
-      period: globalPeriod,
-      utc: globalUtc,
-    },
-    {allowAbsoluteDatetime: true}
-  );
-
-  return {state, pinnedFilters: new Set(pinnedFilters)};
 }
 
 /**
