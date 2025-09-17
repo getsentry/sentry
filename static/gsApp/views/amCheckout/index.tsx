@@ -871,6 +871,13 @@ class AMCheckout extends Component<Props, State> {
     const renderCheckoutContent = () => (
       <Fragment>
         <CheckoutBody>
+          {!isNewCheckout && (
+            <SettingsPageHeader
+              title="Change Subscription"
+              colorSubtitle={subscriptionDiscountInfo}
+              data-test-id="change-subscription"
+            />
+          )}
           {isNewCheckout && (
             <BackButton
               aria-label={t('Back to Subscription Overview')}
@@ -967,13 +974,6 @@ class AMCheckout extends Component<Props, State> {
             <Alert.Container>
               <Alert type="info">{promotionDisclaimerText}</Alert>
             </Alert.Container>
-          )}
-          {!isNewCheckout && (
-            <SettingsPageHeader
-              title="Change Subscription"
-              colorSubtitle={subscriptionDiscountInfo}
-              data-test-id="change-subscription"
-            />
           )}
           {isNewCheckout ? (
             <Stack gap="2xl" align="start" width="100%" maxWidth="1440px">
