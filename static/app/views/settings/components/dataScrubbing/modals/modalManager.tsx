@@ -351,7 +351,7 @@ class ModalManager extends Component<Props, State> {
   }
 }
 
-function ModalManagerWithStorage(
+function ModalManagerWithLocalStorage(
   props: Omit<Props, 'sourceGroupData' | 'saveToSourceGroupData'>
 ) {
   const {sourceGroupData, saveToSourceGroupData} = useSourceGroupData();
@@ -365,4 +365,4 @@ function ModalManagerWithStorage(
   );
 }
 
-export default ModalManagerWithStorage;
+export default ModalManagerWithLocalStorage;
