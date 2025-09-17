@@ -162,7 +162,7 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.ERRORED_SESSIONS:
         return [colors[12]];
       case ReleaseComparisonChartType.UNHANDLED_SESSIONS:
-        return [colors[12]];
+        return [colors[13]];
       case ReleaseComparisonChartType.CRASHED_SESSIONS:
         return [theme.red300];
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
@@ -174,7 +174,7 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.ERRORED_USERS:
         return [colors[12]];
       case ReleaseComparisonChartType.UNHANDLED_USERS:
-        return [colors[12]];
+        return [colors[13]];
       case ReleaseComparisonChartType.CRASHED_USERS:
         return [theme.red300];
       case ReleaseComparisonChartType.SESSION_COUNT:
