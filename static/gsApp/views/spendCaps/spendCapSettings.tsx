@@ -656,7 +656,7 @@ const BudgetMode = styled('div')<{isSelected: boolean}>`
 const InnerContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
-  border-bottom: 3px solid ${p => p.theme.border};
+  border-bottom: ${p => (p.theme.isChonk ? '3px' : '1px')} solid ${p => p.theme.border};
   padding: ${p => p.theme.space.xl};
   display: flex;
   flex-direction: column;

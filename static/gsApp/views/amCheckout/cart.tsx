@@ -735,7 +735,7 @@ export default Cart;
 const CartContainer = styled(Panel)`
   display: flex;
   flex-direction: column;
-  border-bottom: 3px solid ${p => p.theme.border};
+  border-bottom: ${p => (p.theme.isChonk ? '3px' : '1px')} solid ${p => p.theme.border};
   padding-bottom: ${p => p.theme.space.xl};
 
   > *:first-child {
