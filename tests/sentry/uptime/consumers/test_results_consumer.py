@@ -777,7 +777,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.detectors.result_handler.logger") as onboarding_logger,
             mock.patch(
                 "sentry.uptime.detectors.result_handler.update_uptime_detector",
-                side_effect=UptimeMonitorNoSeatAvailable("No seat available"),
+                side_effect=UptimeMonitorNoSeatAvailable(None),
             ),
             self.tasks(),
             self.feature(features),
