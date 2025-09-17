@@ -168,7 +168,6 @@ declare namespace Profiling {
   interface SampledProfile extends RawProfileBase {
     weights: number[];
     samples: number[][];
-    samples_profiles?: number[][];
     samples_examples?: number[][];
     sample_durations_ns?: number[];
     type: 'sampled';

@@ -65,20 +65,6 @@ function sortSamples(
   return stacksWithWeights(profile, profiles, frameFilter).sort(sortStacks);
 }
 
-function mergeProfileExamples(
-  profiles: Readonly<Profiling.SampledProfile['samples_profiles']>,
-  profileReferences: Readonly<Profiling.SampledProfile['samples_examples']>
-): number[][] {
-  const merged: number[][] = [];
-
-  const l = Math.max(profiles?.length ?? 0, profileReferences?.length ?? 0);
-  for (let i = 0; i < l; i++) {
-    merged[i] = (profiles?.[i] ?? []).concat(profileReferences?.[i] ?? []);
-  }
-
-  return merged;
-}
-
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class SampledProfile extends Profile {
   static FromProfile(
@@ -110,14 +96,11 @@ export class SampledProfile extends Profile {
     let resolvedProfileIds: Profiling.ProfileReference[][] = [];
     if (
       options.type === 'flamegraph' &&
-      (sampledProfile.samples_profiles || sampledProfile.samples_examples) &&
+      sampledProfile.samples_examples &&
       options.profiles
     ) {
       resolvedProfileIds = resolveFlamegraphSamplesProfileIds(
-        mergeProfileExamples(
-          sampledProfile.samples_profiles,
-          sampledProfile.samples_examples
-        ),
+        sampledProfile.samples_examples,
         options.profiles.slice()
       );
     }
