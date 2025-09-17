@@ -61,6 +61,7 @@ export function useTestResultsAggregates() {
 
       return result as TestResultAggregate;
     },
+    enabled: !!(integratedOrgId && repository && preventPeriod),
   });
 
   const memoizedData = useMemo(() => {
