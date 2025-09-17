@@ -9,6 +9,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {
   ProfilingContextMenu,
@@ -17,9 +18,13 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy, IconDocs, IconLink} from 'sentry/icons';
+import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useStoryBookFiles} from 'sentry/stories/view/useStoriesLoader';
+import {
+  isMDXStory,
+  useStoriesLoader,
+  useStoryBookFiles,
+} from 'sentry/stories/view/useStoriesLoader';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -460,6 +465,16 @@ function MenuItem(props: {
   storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
+  // Load story to check for Figma link if it's an MDX file
+  const storyQuery = useStoriesLoader({
+    files: props.storybook?.endsWith('.mdx') ? [props.storybook] : [],
+  });
+
+  const story = storyQuery.data?.[0];
+
+  const figmaLink =
+    story && isMDXStory(story) ? story.exports.frontmatter?.resources?.figma : null;
+
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
@@ -573,6 +588,26 @@ function MenuItem(props: {
                   {t('View Storybook')}
                 </ProfilingContextMenuItemButton>
               ) : null}
+              <ProfilingContextMenuItemButton
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => {
+                    if (figmaLink) {
+                      window.open(figmaLink, '_blank');
+                      props.onAction();
+                    }
+                  },
+                })}
+                disabled={storyQuery.isLoading || !figmaLink}
+                icon={
+                  storyQuery.isLoading ? (
+                    <LoadingIndicator mini size={12} />
+                  ) : (
+                    <IconOpen size="xs" />
+                  )
+                }
+              >
+                {t('Open in Figma')}
+              </ProfilingContextMenuItemButton>
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
