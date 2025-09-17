@@ -13,19 +13,18 @@ export function getAppSizeCategoryInfo(
 
   const colorPalette = theme.chart.getColorPalette(7);
 
-  const filesColor = 'hsla(270, 20%, 50%, 0.5)';
+  const neutralColor = 'hsla(270, 20%, 50%, 0.5)';
   const groupColor1 = colorPalette[0];
   const groupColor2 = colorPalette[1];
   const groupColor3 = colorPalette[2];
   const groupColor4 = colorPalette[3];
   const groupColor5 = colorPalette[4];
   const groupColor6 = colorPalette[5];
-  const groupColor7 = colorPalette[6];
 
   return {
     [TreemapType.FILES]: {
-      color: filesColor,
-      headerColor: createHeaderColor(filesColor),
+      color: neutralColor,
+      headerColor: createHeaderColor(neutralColor),
       displayName: t('Files'),
     },
     [TreemapType.EXECUTABLES]: {
@@ -134,13 +133,13 @@ export function getAppSizeCategoryInfo(
       displayName: t('External Methods'),
     },
     [TreemapType.OTHER]: {
-      color: groupColor7,
-      headerColor: createHeaderColor(groupColor7),
+      color: neutralColor,
+      headerColor: createHeaderColor(neutralColor),
       displayName: t('Other'),
     },
     [TreemapType.UNMAPPED]: {
-      color: groupColor7,
-      headerColor: createHeaderColor(groupColor7),
+      color: neutralColor,
+      headerColor: createHeaderColor(neutralColor),
       displayName: t('Unmapped'),
     },
     [TreemapType.EXTENSIONS]: {
