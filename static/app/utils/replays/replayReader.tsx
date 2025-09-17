@@ -512,6 +512,9 @@ export default class ReplayReader {
   };
 
   getIsActive = () => {
+    // A replay is "LIVE" when:
+    // - its been less than 60 minutes since replay started AND
+    // - its been less than 15 minutes since replay ended
     const startTimestampMs = this.getStartTimestampMs();
     const endTimestampMs = startTimestampMs + this.getDurationMs();
     const now = Date.now();
