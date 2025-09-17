@@ -17,6 +17,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -31,6 +32,13 @@ def test_bucket_num_groups() -> None:
 
 @freeze_time(FROZEN_TIME)
 class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.mock_redis_buffer = mock_redis_buffer()
+        self.mock_redis_buffer.__enter__()
+
+    def tearDown(self) -> None:
+        self.mock_redis_buffer.__exit__(None, None, None)
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})

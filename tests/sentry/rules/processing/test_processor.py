@@ -23,6 +23,7 @@ from sentry.rules.filters.base import EventFilter
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -48,6 +49,7 @@ class MockConditionTrue(EventCondition):
         return True
 
 
+@mock_redis_buffer()
 class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
     def setUp(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)

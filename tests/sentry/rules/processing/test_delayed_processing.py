@@ -1512,16 +1512,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         )
 
     def test_cleanup_redis(self) -> None:
-        # Use sentry's main buffer for delayed_processing, not workflow engine buffer
-        from sentry import buffer
-
-        value = json.dumps({"event_id": None, "occurrence_id": None})
-        buffer.backend.push_to_hash(
-            model=Project,
-            filters={"project_id": self.project.id},
-            field=f"{self.rule.id}:{self.group.id}",
-            value=value,
-        )
+        self.push_to_hash(self.project.id, self.rule.id, self.group.id)
 
         rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
         rules_to_groups[self.rule.id].add(self.group.id)
