@@ -615,28 +615,27 @@ export default function ReleaseComparisonChart({
         {
           type: ReleaseComparisonChartType.UNHANDLED_SESSIONS,
           role: 'children',
-          drilldown: null,
-          // drilldown: defined(issuesTotals?.handled) ? (
-          //   <Tooltip title={t('Open in Issues')}>
-          //     <GlobalSelectionLink
-          //       to={getReleaseHandledIssuesUrl(
-          //         organization.slug,
-          //         project.id,
-          //         release.version,
-          //         {start, end, period: period ?? undefined}
-          //       )}
-          //     >
-          //       {tct('([count] handled [issues])', {
-          //         count: issuesTotals?.handled
-          //           ? issuesTotals.handled >= 100
-          //             ? '99+'
-          //             : issuesTotals.handled
-          //           : 0,
-          //         issues: tn('issue', 'issues', issuesTotals?.handled),
-          //       })}
-          //     </GlobalSelectionLink>
-          //   </Tooltip>
-          // ) : null,
+          drilldown: defined(issuesTotals?.handled) ? (
+            <Tooltip title={t('Open in Issues')}>
+              <GlobalSelectionLink
+                to={getReleaseUnhandledIssuesUrl(
+                  organization.slug,
+                  project.id,
+                  release.version,
+                  {start, end, period: period ?? undefined}
+                )}
+              >
+                {tct('([count] unhandled [issues])', {
+                  count: issuesTotals?.handled
+                    ? issuesTotals.handled >= 100
+                      ? '99+'
+                      : issuesTotals.handled
+                    : 0,
+                  issues: tn('issue', 'issues', issuesTotals?.handled),
+                })}
+              </GlobalSelectionLink>
+            </Tooltip>
+          ) : null,
           thisRelease: defined(releaseUnhandledSessions)
             ? displaySessionStatusPercent(releaseUnhandledSessions)
             : null,
