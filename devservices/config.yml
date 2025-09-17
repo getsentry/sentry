@@ -80,8 +80,6 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/taskbroker.git
         mode: containerized
-    rabbitmq:
-      description: Messaging and streaming broker
     memcached:
       description: Memcached used for caching
     spotlight:
