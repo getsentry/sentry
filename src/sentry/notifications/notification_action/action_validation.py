@@ -1,7 +1,5 @@
 from typing import Any
 
-from django.core.exceptions import ValidationError
-
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
@@ -17,23 +15,14 @@ from sentry.workflow_engine.models.action import Action
 from .types import BaseActionValidatorHandler
 
 
-# TODO: move this to the base or refactor to use for integration actions only
-def _get_integration_id(validated_data: dict[str, Any], provider: str) -> str:
-    if not (integration_id := validated_data.get("integration_id")):
-        raise ValidationError(f"Integration ID is required for {provider} action")
-    return integration_id
-
-
 @action_validator_registry.register(Action.Type.SLACK)
 class SlackActionValidatorHandler(BaseActionValidatorHandler):
     provider = Action.Type.SLACK
     notify_action_form = SlackNotifyServiceForm
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "workspace": integration_id,
+            "workspace": self.validated_data["integration_id"],
             "channel": self.validated_data["config"]["target_display"],
             "channel_id": self.validated_data["config"].get("target_identifier"),
             "tags": self.validated_data["data"].get("tags"),
@@ -55,10 +44,8 @@ class MSTeamsActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = MsTeamsNotifyServiceForm
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "team": integration_id,
+            "team": self.validated_data["integration_id"],
             "channel": self.validated_data["config"]["target_display"],
         }
 
@@ -78,10 +65,8 @@ class DiscordActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = DiscordNotifyServiceForm
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "server": integration_id,
+            "server": self.validated_data["integration_id"],
             "channel_id": self.validated_data["config"]["target_identifier"],
             "tags": self.validated_data["data"].get("tags"),
         }
@@ -99,10 +84,8 @@ class TicketingActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = IntegrationNotifyServiceForm
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "integration": integration_id,
+            "integration": self.validated_data["integration_id"],
         }
 
     def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
@@ -160,10 +143,8 @@ class PagerdutyActionValidatorHandler(BaseActionValidatorHandler):
         }
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "account": integration_id,
+            "account": self.validated_data["integration_id"],
             "service": self.validated_data["config"]["target_identifier"],
         }
 
@@ -198,10 +179,8 @@ class OpsgenieActionValidatorHandler(BaseActionValidatorHandler):
         }
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        integration_id = _get_integration_id(self.validated_data, self.provider)
-
         return {
-            "account": integration_id,
+            "account": self.validated_data["integration_id"],
             "team": self.validated_data["config"]["target_identifier"],
         }
 

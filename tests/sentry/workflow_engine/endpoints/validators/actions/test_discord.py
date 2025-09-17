@@ -43,21 +43,6 @@ class TestDiscordActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__missing_integration_id(self):
-        del self.valid_data["integrationId"]
-        validator = BaseActionValidator(
-            data={**self.valid_data},
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
-        assert validator.errors == {
-            "nonFieldErrors": [
-                ErrorDetail(string="Integration ID is required for discord action", code="invalid")
-            ]
-        }
-
     def test_validate__empty_server(self):
         validator = BaseActionValidator(
             data={
