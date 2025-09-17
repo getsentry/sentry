@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {useGlobalOmniActions} from 'sentry/components/omniSearch/useGlobalOmniActions';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
@@ -21,6 +22,7 @@ function NavContent() {
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavGroup();
+  useGlobalOmniActions();
 
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
