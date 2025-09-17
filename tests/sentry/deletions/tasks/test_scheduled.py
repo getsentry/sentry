@@ -7,6 +7,7 @@ from unittest.mock import Mock
 from django.db.models import QuerySet
 
 from sentry.constants import ObjectStatus
+from sentry.db.models import Model
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
     RegionScheduledDeletion,
@@ -37,11 +38,11 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         raise NotImplementedError("Subclasses should implement")
 
     @abstractmethod
-    def create_simple_deletion(self) -> QuerySet:
+    def create_simple_deletion(self) -> QuerySet[Model]:
         raise NotImplementedError("Subclasses should implement!")
 
     @abstractmethod
-    def create_does_not_proceed_deletion(self) -> QuerySet:
+    def create_does_not_proceed_deletion(self) -> QuerySet[Model]:
         raise NotImplementedError("Subclasses should implement!")
 
     @abstractmethod
