@@ -11,7 +11,7 @@ export function getAppSizeCategoryInfo(
     return color(baseColor).alpha(0.6).string();
   };
 
-  const colorPalette = theme.chart.getColorPalette(7);
+  const colorPalette = theme.chart.getColorPalette(6);
 
   const neutralColor = 'hsla(270, 20%, 50%, 0.5)';
   const groupColor1 = colorPalette[0];
@@ -68,8 +68,8 @@ export function getAppSizeCategoryInfo(
       displayName: t('Plist Files'),
     },
     [TreemapType.DYLD]: {
-      color: groupColor5,
-      headerColor: createHeaderColor(groupColor5),
+      color: groupColor1,
+      headerColor: createHeaderColor(groupColor1),
       displayName: t('Dynamic Libraries'),
     },
     [TreemapType.MACHO]: {
