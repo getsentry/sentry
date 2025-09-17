@@ -8,6 +8,7 @@ __all__ = (
     "DetectorSerializer",
     "DetectorWorkflowSerializer",
     "WorkflowSerializer",
+    "GroupOpenPeriodSerializer",
 )
 
 
@@ -19,4 +20,5 @@ from .data_condition_serializer import DataConditionSerializer
 from .data_source_serializer import DataSourceSerializer
 from .detector_serializer import DetectorSerializer
 from .detector_workflow_serializer import DetectorWorkflowSerializer
+from .group_open_period_serializer import GroupOpenPeriodSerializer
 from .workflow_serializer import WorkflowSerializer
