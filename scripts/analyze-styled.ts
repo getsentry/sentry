@@ -1455,7 +1455,7 @@ function runHistoryAnalysis(c: Config) {
   // Set up cleanup function for process interrupts
 
   // Set up interrupt handlers that set flag instead of immediately exiting
-  const handleInterrupt = (signal: string) => {
+  const handleInterrupt = (_signal: string) => {
     // Set flag first, before any other operations
     interruptRequested = true;
 
