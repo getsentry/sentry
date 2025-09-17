@@ -70,7 +70,7 @@ def release_filter_converter(
 
 
 def matches_slug_pattern(slug_pattern: str, slug: str) -> bool:
-    return re.match(slug_pattern, slug)
+    return bool(re.match(slug_pattern, slug))
 
 
 def matches_slug_patterns(slug_patterns: list[str], slug: str) -> bool:
