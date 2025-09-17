@@ -192,5 +192,3 @@ export function useAsciiSnapshot() {
 
   return capture;
 }
-
-export default useAsciiSnapshot;
