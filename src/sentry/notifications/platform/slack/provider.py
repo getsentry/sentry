@@ -87,10 +87,11 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         validate_integration_for_target(target=target)
 
         # 3. Validate the Slack channel or user exists
+        channel_name = target.specific_data["channel_name"]
         try:
             validate_slack_entity_id(
                 integration_id=target.integration_id,
-                input_name=target.resource_id,
+                input_name=channel_name,
                 input_id=target.resource_id,
             )
         except (ValidationError, IntegrationError) as e:

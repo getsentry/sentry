@@ -96,6 +96,7 @@ class SlackNotificationProviderValidateTargetTest(TestCase):
         resource_id: str = "C1234567890",
         resource_type: NotificationTargetResourceType = NotificationTargetResourceType.CHANNEL,
         integration: Any = None,
+        channel_name: str = "general",
     ) -> IntegrationNotificationTarget:
         target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
@@ -103,6 +104,7 @@ class SlackNotificationProviderValidateTargetTest(TestCase):
             resource_type=resource_type,
             integration_id=integration.id if integration else self.integration.id,
             organization_id=self.organization.id,
+            specific_data={"channel_name": channel_name},
         )
 
         # Manually set the integration fields (prepare_targets is a stub)
@@ -138,6 +140,7 @@ class SlackNotificationProviderValidateTargetTest(TestCase):
             resource_type=NotificationTargetResourceType.CHANNEL,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
+            specific_data={"channel_name": "general"},
         )
 
         with pytest.raises(NotificationProviderError, match="Target intended for 'email' provider"):
@@ -151,6 +154,7 @@ class SlackNotificationProviderValidateTargetTest(TestCase):
             resource_type=NotificationTargetResourceType.EMAIL,  # Not supported by Slack
             integration_id=self.integration.id,
             organization_id=self.organization.id,
+            specific_data={"channel_name": "general"},
         )
 
         with pytest.raises(
@@ -168,6 +172,7 @@ class SlackNotificationProviderValidateTargetTest(TestCase):
             resource_type=NotificationTargetResourceType.CHANNEL,
             integration_id=999,
             organization_id=self.organization.id,
+            specific_data={"channel_name": "general"},
         )
         rpc_org_integration = integration_service.get_organization_integration(
             integration_id=target.integration_id,
@@ -190,6 +195,7 @@ class SlackNotificationProviderValidateTargetTest(TestCase):
             resource_type=NotificationTargetResourceType.CHANNEL,
             integration_id=999,
             organization_id=self.organization.id,
+            specific_data={"channel_name": "general"},
         )
         rpc_integration = integration_service.get_integration(integration_id=target.integration_id)
         object.__setattr__(target, "integration", rpc_integration)
@@ -209,13 +215,21 @@ class SlackNotificationProviderValidateTargetTest(TestCase):
         mock_validate_integration.return_value = None  # Integration validation passes
         mock_validate_slack.side_effect = ValidationError("Invalid channel")
 
-        target = self._create_target(resource_id="invalid-channel")
+        target = self._create_target(
+            resource_id="invalid-channel", channel_name="invalid-channel-name"
+        )
 
         with pytest.raises(
             NotificationProviderError,
             match="Slack channel or user with id 'invalid-channel' could not be validated",
         ):
             SlackNotificationProvider.validate_target(target=target)
+
+        mock_validate_slack.assert_called_once_with(
+            integration_id=self.integration.id,
+            input_name="invalid-channel-name",
+            input_id="invalid-channel",
+        )
 
 
 class SlackNotificationProviderSendTest(TestCase):
@@ -229,13 +243,16 @@ class SlackNotificationProviderSendTest(TestCase):
             metadata={"domain_name": "test-workspace.slack.com"},
         )
 
-    def _create_target(self, resource_id: str = "C1234567890") -> IntegrationNotificationTarget:
+    def _create_target(
+        self, resource_id: str = "C1234567890", channel_name: str = "general"
+    ) -> IntegrationNotificationTarget:
         target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
             resource_id=resource_id,
             resource_type=NotificationTargetResourceType.CHANNEL,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
+            specific_data={"channel_name": channel_name},
         )
 
         # Manually set the integration fields (prepare_targets is a stub)
@@ -306,6 +323,7 @@ class SlackNotificationProviderSendTest(TestCase):
             resource_type=NotificationTargetResourceType.DIRECT_MESSAGE,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
+            specific_data={"channel_name": "user-dm"},
         )
 
         # Manually set the integration fields (prepare_targets is a stub)
