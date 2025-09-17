@@ -37,11 +37,18 @@ function StripeWrapper({
     <Elements
       stripe={stripe}
       options={{
+        fonts: [
+          {
+            family: 'Rubik',
+            src: `url(${window.location.origin.replace('http://', 'https://')}/sentry-fonts/rubik-regular.woff)`,
+          },
+        ],
         currency: 'usd',
         loader: 'always',
         appearance: {
           theme: prefersDarkMode ? 'night' : 'stripe',
           variables: {
+            fontFamily: theme.text.family,
             borderRadius: theme.borderRadius,
             colorBackground: theme.background,
             colorText: theme.textColor,
