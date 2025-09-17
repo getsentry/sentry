@@ -49,7 +49,6 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["stacktraceOrder"] == int(StacktraceOrder.DEFAULT)
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
-        assert not resp.data["options"]["prefersStackedNavigation"]
         assert not resp.data["options"]["prefersChonkUI"]
 
     def test_superuser_simple(self) -> None:
@@ -122,7 +121,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
                 "prefersNextjsInsightsOverview": True,
-                "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
             },
         )
