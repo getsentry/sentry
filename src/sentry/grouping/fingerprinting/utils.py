@@ -56,7 +56,7 @@ class EventDatastore:
         self._messages: list[_MessageInfo] | None = None
         self._log_info: list[_LogInfo] | None = None
         self._toplevel: list[_MessageInfo | _ExceptionInfo] | None = None
-        self._tags: list[dict[str, str]] | None = None
+        self._tags: list[dict[str, str | None]] | None = None
         self._sdk: list[_SdkInfo] | None = None
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
@@ -128,7 +128,7 @@ class EventDatastore:
             self._toplevel = [*self._get_messages(), *self._get_exceptions()]
         return self._toplevel
 
-    def _get_tags(self) -> list[dict[str, str]]:
+    def _get_tags(self) -> list[dict[str, str | None]]:
         if self._tags is None:
             self._tags = [
                 {"tags.%s" % k: v for (k, v) in get_path(self.event, "tags", filter=True) or ()}
