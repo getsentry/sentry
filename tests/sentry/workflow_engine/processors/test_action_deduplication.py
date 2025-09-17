@@ -3,6 +3,7 @@ from django.db.models import Value
 
 from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action
@@ -349,7 +350,7 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": "user-123@example.com",
             },
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
@@ -359,9 +360,7 @@ class TestActionDeduplication(TestCase):
                 "target_type": ActionTarget.SPECIFIC,
                 "target_identifier": "user-123@example.com",
             },
-            data={
-                "fallthroughType": "none",
-            },
+            data={},
         )
 
         actions_queryset = Action.objects.filter(
@@ -384,7 +383,7 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": "user-123@example.com",
             },
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
@@ -395,7 +394,7 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": "user-123@example.com",
             },
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
