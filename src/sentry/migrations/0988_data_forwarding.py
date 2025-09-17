@@ -44,7 +44,7 @@ class Migration(CheckedMigration):
                 ("provider", models.CharField(max_length=64)),
                 ("config", models.JSONField(default=dict)),
                 (
-                    "organization_id",
+                    "organization",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         on_delete=django.db.models.deletion.CASCADE, to="sentry.organization"
                     ),
@@ -98,6 +98,6 @@ class Migration(CheckedMigration):
         ),
         migrations.AlterUniqueTogether(
             name="dataforwarder",
-            unique_together={("organization_id", "provider")},
+            unique_together={("organization", "provider")},
         ),
     ]
