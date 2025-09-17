@@ -74,7 +74,6 @@ import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
-import BillingCycle from 'getsentry/views/amCheckout/steps/checkoutV3/billingCycle';
 import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
 import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
@@ -296,7 +295,7 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
-      return [BuildYourPlan, SetSpendCap, BillingCycle];
+      return [BuildYourPlan, SetSpendCap];
     }
 
     const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
@@ -871,6 +870,13 @@ class AMCheckout extends Component<Props, State> {
     const renderCheckoutContent = () => (
       <Fragment>
         <CheckoutBody>
+          {!isNewCheckout && (
+            <SettingsPageHeader
+              title="Change Subscription"
+              colorSubtitle={subscriptionDiscountInfo}
+              data-test-id="change-subscription"
+            />
+          )}
           {isNewCheckout && (
             <BackButton
               aria-label={t('Back to Subscription Overview')}
@@ -967,13 +973,6 @@ class AMCheckout extends Component<Props, State> {
             <Alert.Container>
               <Alert type="info">{promotionDisclaimerText}</Alert>
             </Alert.Container>
-          )}
-          {!isNewCheckout && (
-            <SettingsPageHeader
-              title="Change Subscription"
-              colorSubtitle={subscriptionDiscountInfo}
-              data-test-id="change-subscription"
-            />
           )}
           {isNewCheckout ? (
             <Stack gap="2xl" align="start" width="100%" maxWidth="1440px">
