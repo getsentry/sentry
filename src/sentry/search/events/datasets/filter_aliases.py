@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 
 from snuba_sdk import Column, Condition, Function, Op
@@ -68,6 +69,14 @@ def release_filter_converter(
     return builder.default_filter_converter(SearchFilter(search_filter.key, operator, value))
 
 
+def matches_slug_pattern(slug_pattern: str, slug: str) -> bool:
+    return re.match(slug_pattern, slug)
+
+
+def matches_slug_patterns(slug_patterns: list[str], slug: str) -> bool:
+    return any(matches_slug_pattern(slug_pattern, slug) for slug_pattern in slug_patterns)
+
+
 def project_slug_converter(
     builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
@@ -81,13 +90,21 @@ def project_slug_converter(
             'Cannot query for has:project or project:"" as every event will have a project'
         )
 
-    slugs = to_list(value)
+    slug_patterns = to_list(value)
+
     project_slugs: Mapping[str, int] = {
         slug: project_id
         for slug, project_id in builder.params.project_slug_map.items()
-        if slug in slugs
+        if matches_slug_patterns(slug_patterns, slug)
     }
-    missing: list[str] = [slug for slug in slugs if slug not in project_slugs]
+    missing: list[str] = [
+        slug_pattern
+        for slug_pattern in slug_patterns
+        if not any(
+            matches_slug_pattern(slug_pattern, project_slug)
+            for project_slug in project_slugs.keys()
+        )
+    ]
     if missing and search_filter.operator in constants.EQUALITY_OPERATORS:
         raise InvalidSearchQuery(
             f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
