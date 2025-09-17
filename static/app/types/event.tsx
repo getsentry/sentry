@@ -531,8 +531,6 @@ export enum UnityContextKey {
   TARGET_FRAME_RATE = 'target_frame_rate',
 }
 
-// Unity Context
-// TODO(Priscila): Add this context to the docs
 export interface UnityContext {
   [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
   [UnityContextKey.EDITOR_VERSION]: string;
