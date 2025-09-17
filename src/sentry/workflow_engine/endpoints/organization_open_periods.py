@@ -24,7 +24,9 @@ from sentry.exceptions import InvalidParams
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.models.organization import Organization
-from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import GroupOpenPeriodSerializer
+from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
+    GroupOpenPeriodSerializer,
+)
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
