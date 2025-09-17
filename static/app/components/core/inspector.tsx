@@ -684,15 +684,15 @@ function getComponentStorybookFile(
   const sourcePath = getSourcePath(el);
   if (!sourcePath) return null;
 
-  const mdx = sourcePath.replace(/\.tsx$/, '.mdx');
+  const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
 
-  if (stories[mdx] && getFileName(mdx) === getFileName(sourcePath)) {
-    return mdx;
+  if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {
+    return mdxSourcePath;
   }
 
-  const tsx = sourcePath.replace(/\.tsx$/, '.stories.tsx');
-  if (stories[tsx] && getFileName(tsx) === getFileName(sourcePath)) {
-    return tsx;
+  const tsxSourcePath = sourcePath.replace(/\.tsx$/, '.stories.tsx');
+  if (stories[tsxSourcePath] && getFileName(tsxSourcePath) === getFileName(sourcePath)) {
+    return tsxSourcePath;
   }
 
   return stories[sourcePath] || null;
