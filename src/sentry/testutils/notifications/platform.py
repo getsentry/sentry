@@ -23,6 +23,10 @@ class MockNotification(NotificationData):
 class MockNotificationTemplate(NotificationTemplate[MockNotification]):
     category = NotificationCategory.DEBUG
 
+    @property
+    def example_data(self) -> MockNotification:
+        return MockNotification(message="This is a mock notification")
+
     def render(self, data: MockNotification) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject="Mock Notification",
@@ -30,25 +34,11 @@ class MockNotificationTemplate(NotificationTemplate[MockNotification]):
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],
-            footer="This is a mock footer",
             chart=NotificationRenderedImage(
                 url="https://raw.githubusercontent.com/knobiknows/all-the-bufo/main/all-the-bufo/bufo-pog.png",
                 alt_text="Bufo Pog",
             ),
-        )
-
-    def render_example(self) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(
-            subject="Mock Notification",
-            body="This is a mock notification",
-            actions=[
-                NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
-            ],
             footer="This is a mock footer",
-            chart=NotificationRenderedImage(
-                url="https://raw.githubusercontent.com/knobiknows/all-the-bufo/main/all-the-bufo/bufo-pog.png",
-                alt_text="Bufo Pog",
-            ),
         )
 
 

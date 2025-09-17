@@ -1,0 +1,57 @@
+{% load sentry_helpers %} {% load sentry_assets %}
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% include "sentry/emails/email-styles.html" %}
+  </head>
+  <body class="{% block bodyclass %}{% endblock %}">
+    <table class="main">
+      <tr>
+        <td>
+          <div class="header">
+            <div class="container">
+              <h1>
+                <a href="{% absolute_uri %}"
+                  ><img
+                    src="{% absolute_asset_url 'sentry' 'images/email/sentry_logo_full.png' %}"
+                    width="125px"
+                    height="29px"
+                    alt="Sentry"
+                /></a>
+              </h1>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div class="container">
+            <div class="inner">
+              <h3>{{subject}}</h3>
+              <p>{{body}}</p>
+              {% if actions %}
+                <p>
+                  {% for action_label, action_link in actions %}
+                  <a class="btn btn-default" href="{{action_link}}">{{action_label}}</a>
+                  {% endfor %}
+                </p>
+              {% endif %}
+              {% if chart_url %}
+              <img src="{{chart_url}}" alt="{{chart_alt_text}}" />
+              {% endif %}
+            </div>
+          </div>
+          {% if footer %}
+          <div class="container">
+            <div class="footer">
+              <p>{{footer}}</p>
+            </div>
+          </div>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
