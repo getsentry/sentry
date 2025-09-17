@@ -37,7 +37,6 @@ import {
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
-  hasNewBillingUI,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
@@ -109,11 +108,9 @@ function UsageHistory({subscription}: Props) {
     }
   );
 
-  const isNewBillingUI = hasNewBillingUI(organization);
-
   if (isPending) {
     return (
-      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+      <Container>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
       </Container>
@@ -132,7 +129,7 @@ function UsageHistory({subscription}: Props) {
   }
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+    <Container>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <Panel>
         <PanelHeader>{t('Usage History')}</PanelHeader>
