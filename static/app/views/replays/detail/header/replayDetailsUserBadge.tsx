@@ -1,5 +1,5 @@
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {Flex} from 'sentry/components/core/layout';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -9,7 +9,6 @@ import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingSt
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
@@ -92,18 +91,35 @@ function Live() {
   );
 }
 
-const LiveIndicator = styled(motion.div)`
-  margin-left: 6px;
-  --pulsingIndicatorRing: ${p => p.theme.success};
-  ${pulsingIndicatorStyles};
+const pulse = keyframes`
+  0% {
+    transform: scale(0.1);
+    opacity: 1
+  }
+
+  40%, 100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+`;
+
+const LiveIndicator = styled('div')`
+  background: ${p => p.theme.success};
   height: 8px;
   width: 8px;
+  position: relative;
+  border-radius: 50%;
+  margin-left: 6px;
 
   &:before {
-    height: 25px;
-    width: 25px;
-    top: -8.5px;
-    left: -8.5px;
+    content: '';
+    animation: ${pulse} 3s ease-out infinite;
+    border: 4px solid ${p => p.theme.success};
+    position: absolute;
+    border-radius: 50%;
+    height: 20px;
+    width: 20px;
+    top: -6px;
+    left: -6px;
   }
-  background-color: ${p => p.theme.success};
 `;
