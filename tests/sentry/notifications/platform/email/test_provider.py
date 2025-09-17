@@ -34,6 +34,10 @@ class EmailRendererTest(TestCase):
         assert content_type == "text/html"
         text_content = email.body
 
+        # Helping the type checker
+        assert self.rendered_template.chart is not None
+        assert self.rendered_template.footer is not None
+
         for element in [
             self.rendered_template.subject,
             self.rendered_template.body,
@@ -43,8 +47,8 @@ class EmailRendererTest(TestCase):
             self.rendered_template.chart.alt_text,
             self.rendered_template.footer,
         ]:
-            assert element in text_content
-            assert element in html_content
+            assert element in str(text_content)
+            assert element in str(html_content)
 
 
 class EmailNotificationProviderTest(TestCase):
@@ -68,7 +72,7 @@ class EmailNotificationProviderTest(TestCase):
         assert EmailNotificationProvider.is_available(organization=self.organization) is True
 
     @mock.patch("sentry.notifications.platform.email.provider.send_messages")
-    def test_send(self, mock_send_messages) -> None:
+    def test_send(self, mock_send_messages: mock.MagicMock) -> None:
         email = EmailRenderer.render(data=self.data, rendered_template=self.rendered_template)
         EmailNotificationProvider.send(target=self.target, renderable=email)
         mock_send_messages.assert_called_once()
