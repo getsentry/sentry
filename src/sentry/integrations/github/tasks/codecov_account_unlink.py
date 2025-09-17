@@ -44,7 +44,6 @@ def codecov_account_unlink(
         )
         return
 
-    # From GitHubIntegrationProvider, src/sentry/integrations/github/integration.py:693
     github_org_name = integration.name
 
     try:

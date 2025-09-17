@@ -33,7 +33,7 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
 
         codecov_account_unlink(
             integration_id=self.integration.id,
-            organization_id=self.organization.id,
+            organization_ids=[self.organization.id],
         )
 
         mock_codecov_client_class.assert_called_once_with(
@@ -41,7 +41,7 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
         )
 
         expected_request_data = {
-            "sentry_org_id": str(self.organization.id),
+            "sentry_org_ids": [str(self.organization.id)],
         }
         mock_client.post.assert_called_once_with(
             endpoint="/internal/account/unlink/",
@@ -53,50 +53,11 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
         with patch("sentry.integrations.github.tasks.codecov_account_unlink.logger") as mock_logger:
             codecov_account_unlink(
                 integration_id=99999,  # Non-existent integration
-                organization_id=self.organization.id,
+                organization_ids=[self.organization.id],
             )
 
             mock_logger.warning.assert_called_once_with(
                 "codecov.account_unlink.missing_integration", extra={"integration_id": 99999}
-            )
-
-    def test_codecov_account_unlink_missing_organization(self):
-        with patch("sentry.integrations.github.tasks.codecov_account_unlink.logger") as mock_logger:
-            codecov_account_unlink(
-                integration_id=self.integration.id,
-                organization_id=99999,  # Non-existent organization
-            )
-
-            mock_logger.warning.assert_called_once_with(
-                "codecov.account_unlink.missing_organization", extra={"organization_id": 99999}
-            )
-
-    @patch("sentry.integrations.github.tasks.codecov_account_unlink.CodecovApiClient")
-    def test_codecov_account_unlink_missing_service_id(self, mock_codecov_client_class):
-        integration_no_service_id = self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org-no-service",
-            external_id="456789",
-            metadata={},  # No account_id
-            status=ObjectStatus.DISABLED,
-        )
-
-        mock_client = MagicMock()
-        mock_codecov_client_class.return_value = mock_client
-
-        with patch("sentry.integrations.github.tasks.codecov_account_unlink.logger") as mock_logger:
-            codecov_account_unlink(
-                integration_id=integration_no_service_id.id,
-                organization_id=self.organization.id,
-            )
-
-            mock_logger.warning.assert_called_once_with(
-                "codecov.account_unlink.missing_service_id",
-                extra={
-                    "integration_id": integration_no_service_id.id,
-                    "github_org": "test-org-no-service",
-                },
             )
 
     @patch("sentry.integrations.github.tasks.codecov_account_unlink.CodecovApiClient")
@@ -106,7 +67,7 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
         with patch("sentry.integrations.github.tasks.codecov_account_unlink.logger") as mock_logger:
             codecov_account_unlink(
                 integration_id=self.integration.id,
-                organization_id=self.organization.id,
+                organization_ids=[self.organization.id],
             )
 
             mock_logger.exception.assert_called_once_with(
@@ -128,7 +89,7 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
         with patch("sentry.integrations.github.tasks.codecov_account_unlink.logger") as mock_logger:
             codecov_account_unlink(
                 integration_id=self.integration.id,
-                organization_id=self.organization.id,
+                organization_ids=[self.organization.id],
             )
 
             mock_logger.exception.assert_called_once_with(
