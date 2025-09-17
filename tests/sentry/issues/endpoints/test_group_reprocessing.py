@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
 
@@ -17,7 +18,7 @@ class GroupReprocessingEndpointTest(APITestCase):
     def _url(self, group_id: int) -> str:
         return f"/api/0/issues/{group_id}/reprocessing/"
 
-    def _create_reprocess_activity(self, old_group, new_group, event_count=10):
+    def _create_reprocess_activity(self, old_group: Group, new_group: Group, event_count: int = 10):
         return Activity.objects.create(
             project=self.project,
             group_id=old_group.id,
