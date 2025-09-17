@@ -16,7 +16,6 @@ class Platform(StrEnum):
 
 
 class BuildDetailsAppInfo(BaseModel):
-    created_at: str | None = None
     app_id: str | None
     name: str | None
     version: str | None
