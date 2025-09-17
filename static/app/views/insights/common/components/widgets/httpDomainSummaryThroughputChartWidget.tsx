@@ -1,8 +1,8 @@
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 
@@ -17,14 +17,13 @@ export default function HttpDomainSummaryThroughputChartWidget(
     isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: ['epm()'],
-      transformAliasToInputFormat: true,
+      pageFilters: props.pageFilters,
     },
-    Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART,
-    props.pageFilters
+    Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART
   );
 
   return (
@@ -33,7 +32,7 @@ export default function HttpDomainSummaryThroughputChartWidget(
       id="httpDomainSummaryThroughputChartWidget"
       title={getThroughputChartTitle('http')}
       queryInfo={{search, referrer}}
-      series={[throughputData['epm()']]}
+      timeSeries={throughputData?.timeSeries}
       isLoading={isThroughputDataLoading}
       error={throughputError}
     />
