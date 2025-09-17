@@ -1,13 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
-
-import ConfigStore from 'sentry/stores/configStore';
 
 import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -20,7 +17,7 @@ const MOCK_TODAY = 1654492173000;
 const MOCK_PERIOD_START = 1652140800; // May 10 2022
 const MOCK_BEFORE_PERIOD_START = 1652054400; // May 09 2022
 
-describe('PrimaryNavigationQuotaExceeded', function () {
+describe('PrimaryNavigationQuotaExceeded', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
@@ -42,15 +39,6 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     subscription.categories.monitorSeats!.usageExceeded = true;
     subscription.categories.profileDuration!.usageExceeded = true;
     SubscriptionStore.set(organization.slug, subscription);
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {
-          ...UserFixture().options,
-          prefersStackedNavigation: true,
-        },
-      })
-    );
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -112,7 +100,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     ).toBe('Mon Jun 06 2022');
   }
 
-  it('should render for multiple categories', async function () {
+  it('should render for multiple categories', async () => {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
     // open the alert
@@ -121,14 +109,18 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     // doesn't show categories with <=1 reserved tier and no PAYG
     expect(
       screen.getByText(
-        /You’ve run out of errors, replays, spans, and continuous profile hours for this billing cycle./
+        /You have used up your quota for errors, replays, spans, and continuous profile hours. Monitoring and new data for these features are paused until your quota resets./
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/cron monitors/)).not.toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    ).toBeInTheDocument();
   });
 
-  it('should render for single category', async function () {
+  it('should render for single category', async () => {
     const newSub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -147,12 +139,18 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     expect(await screen.findByText('Error Quota Exceeded')).toBeInTheDocument();
     expect(
-      screen.getByText(/You’ve run out of errors for this billing cycle./)
+      screen.getByText(
+        /You have used up your quota for errors. Monitoring and new data are paused until your quota resets./
+      )
     ).toBeInTheDocument(); // doesn't show categories with <=1 reserved tier and no PAYG
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    ).toBeInTheDocument();
   });
 
-  it('should not render for zero categories', function () {
+  it('should not render for zero categories', () => {
     const newSub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -169,7 +167,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(screen.queryByText('Quotas Exceeded')).not.toBeInTheDocument();
   });
 
-  it('should render PAYG categories when there is shared PAYG', async function () {
+  it('should render PAYG categories when there is shared PAYG', async () => {
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
       'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
@@ -183,16 +181,23 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /You’ve run out of errors, replays, spans, cron monitors, and continuous profile hours for this billing cycle./
+        /You have used up your quota for errors, replays, spans, and continuous profile hours./
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByText(/You have also reached your quota for cron monitors./)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    ).toBeInTheDocument();
 
     // reset
     subscription.onDemandMaxSpend = 0;
   });
 
-  it('should render PAYG categories with per category PAYG', async function () {
+  it('should render PAYG categories with per category PAYG', async () => {
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
       'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
@@ -213,17 +218,24 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /You’ve run out of errors, replays, spans, cron monitors, and continuous profile hours for this billing cycle./
+        /You have used up your quota for errors, replays, spans, and continuous profile hours./
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByText(/You have also reached your quota for cron monitors./)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    ).toBeInTheDocument();
 
     // reset
     subscription.onDemandMaxSpend = 0;
     subscription.onDemandBudgets = undefined;
   });
 
-  it('should not render for managed orgs', function () {
+  it('should not render for managed orgs', () => {
     subscription.canSelfServe = false;
     SubscriptionStore.set(organization.slug, subscription);
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -236,7 +248,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     subscription.canSelfServe = true;
   });
 
-  it('should update prompts when checkbox is toggled', async function () {
+  it('should update prompts when dismissed', async () => {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
     // open the alert
@@ -244,11 +256,15 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
 
     // stop the alert from animating
-    await userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    );
     expect(promptMock).toHaveBeenCalledTimes(4); // one for each category
   });
 
-  it('should update prompts when non-billing user takes action', async function () {
+  it('should update prompts when non-billing user takes action', async () => {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
     // open the alert
@@ -262,7 +278,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(requestUpgradeMock).toHaveBeenCalled();
   });
 
-  it('should update prompts when billing user on free plan takes action', async function () {
+  it('should update prompts when billing user on free plan takes action', async () => {
     organization.access = ['org:billing'];
     const freeSub = SubscriptionFixture({
       organization,
@@ -294,7 +310,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(customerPutMock).toHaveBeenCalled();
   });
 
-  it('should auto open based on localStorage', async function () {
+  it('should auto open based on localStorage', async () => {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(
       await screen.findByRole('button', {name: 'Billing Status'})
@@ -310,7 +326,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     assertLocalStorageStateAfterAutoOpen();
   });
 
-  it('should not auto open if explicitly dismissed', async function () {
+  it('should not auto open if explicitly dismissed', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -347,7 +363,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(localStorage).toHaveLength(0);
   });
 
-  it('should auto open if explicitly dismissed before current billing cycle', async function () {
+  it('should auto open if explicitly dismissed before current billing cycle', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -370,7 +386,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
   });
 
-  it('should auto open the alert when categories have changed', async function () {
+  it('should auto open the alert when categories have changed', async () => {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(screen.queryByText('Quotas Exceeded')).not.toBeInTheDocument();
 
@@ -383,7 +399,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     assertLocalStorageStateAfterAutoOpen();
   });
 
-  it('should auto open the alert when more than a day has passed', async function () {
+  it('should auto open the alert when more than a day has passed', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
       'Sun Jun 05 2022'
@@ -393,7 +409,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     assertLocalStorageStateAfterAutoOpen();
   });
 
-  it('should auto open the alert when the last shown date is before the current usage cycle started', async function () {
+  it('should auto open the alert when the last shown date is before the current usage cycle started', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
       'Sun May 29 2022'

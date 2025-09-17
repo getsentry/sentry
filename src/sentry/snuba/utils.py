@@ -109,9 +109,11 @@ ERROR_ONLY_FIELDS = [
 ]
 
 
-def get_dataset(dataset_label: str) -> Any | None:
+def get_dataset(dataset_label: str | None) -> Any | None:
     if dataset_label in DEPRECATED_LABELS:
         logger.warning("query.deprecated_dataset.%s", dataset_label)
+    if dataset_label is None:
+        return None
     return DATASET_OPTIONS.get(dataset_label)
 
 

@@ -55,21 +55,6 @@ class UserOptionManager(OptionManager["UserOption"]):
             result = self.get_all_values(user, project)
         return result.get(key, default)
 
-    def unset_value(self, user: User, project: Project, key: str) -> None:
-        """
-        This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
-        """
-        self.filter(user=user, project=project, key=key).delete()
-
-        if not hasattr(self, "_metadata"):
-            return
-
-        metakey = self._make_key(user, project=project)
-
-        if metakey not in self._option_cache:
-            return
-        self._option_cache[metakey].pop(key, None)
-
     def set_value(self, user: User | int, key: str, value: Any, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
@@ -109,7 +94,7 @@ class UserOptionManager(OptionManager["UserOption"]):
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
-        uid = user.id if user and not isinstance(user, int) else user
+        uid = user if isinstance(user, int) else user.id
         metakey = self._make_key(user, project=project, organization=organization)
         project_id: int | None = project.id if isinstance(project, Model) else project
         organization_id: int | None = (
@@ -168,8 +153,6 @@ class UserOption(Model):
         - Whether the user prefers the new stacked navigation experience (boolean)
     - prefers_nextjs_insights_overview
         - Whether the user prefers the new NextJS insights overview experience (boolean)
-    - prefers_agents_insights_module
-        - Whether the user prefers the new Agents insights module experience (boolean)
      - prefers_chonk_ui
         - Whether the user prefers the new Chonk UI experience (boolean)
      - language
@@ -218,7 +201,7 @@ class UserOption(Model):
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")
 
     @classmethod
-    def get_relocation_ordinal_fields(self, json_model: Any) -> list[str] | None:
+    def get_relocation_ordinal_fields(cls, json_model: Any) -> list[str] | None:
         # "global" user options (those with no organization and/or project scope) get a custom
         # ordinal; non-global ones use the default ordering.
         org_id = json_model["fields"].get("organization_id", None)

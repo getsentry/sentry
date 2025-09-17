@@ -11,7 +11,6 @@ import type {
   FilterValueItem,
   KeyItem,
   KeySectionItem,
-  RawSearchFilterHasValueItem,
   RawSearchFilterIsValueItem,
   RawSearchItem,
   RecentQueryItem,
@@ -20,7 +19,11 @@ import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  WildcardOperators,
+  type Token,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {
   getKeyLabel as getFilterKeyLabel,
   getKeyName,
@@ -28,7 +31,7 @@ import {
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {type FieldDefinition, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
@@ -167,25 +170,21 @@ export function createRawSearchFilterIsValueItem(
   };
 }
 
-export function createRawSearchFilterHasValueItem(
+export function createRawSearchFilterContainsValueItem(
   key: string,
   value: string
-): RawSearchFilterHasValueItem {
-  const escapedValue = escapeFilterValue(value);
-  const inputValue = escapedValue?.includes(' ')
-    ? `"*${escapedValue.replace(/"/g, '')}*"`
-    : `*${escapedValue}*`;
-  const filter = `${key}:${inputValue}`;
+): RawSearchFilterIsValueItem {
+  const filter = `${key}:${WildcardOperators.CONTAINS}${escapeFilterValue(value)}`;
 
   return {
-    key: getEscapedKey(`${key}:${inputValue}`),
+    key: getEscapedKey(`${key}:${WildcardOperators.CONTAINS}${value}`),
     label: <FormattedQuery query={filter} />,
     value: filter,
     textValue: filter,
     hideCheck: true,
     showDetailsInOverlay: true,
     details: null,
-    type: 'raw-search-filter-has-value',
+    type: 'raw-search-filter-is-value',
   };
 }
 

@@ -1,19 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import type {Organization} from 'sentry/types/organization';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-function createWrapper(organization: Organization) {
-  return function ({children}: {children: React.ReactNode}) {
-    return <OrganizationContext value={organization}>{children}</OrganizationContext>;
-  };
-}
 
 describe('useRole', () => {
   const organization = OrganizationFixture({
@@ -32,8 +24,8 @@ describe('useRole', () => {
   });
 
   it('has a sufficient role', () => {
-    const {result} = renderHook(() => useRole({role: 'attachmentsRole'}), {
-      wrapper: createWrapper(organization),
+    const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
+      organization,
     });
     expect(result.current.hasRole).toBe(true);
     expect(result.current.roleRequired).toBe('admin');
@@ -45,8 +37,8 @@ describe('useRole', () => {
       orgRole: 'member',
     });
     OrganizationStore.onUpdate(org, {replace: true});
-    const {result} = renderHook(() => useRole({role: 'attachmentsRole'}), {
-      wrapper: createWrapper(org),
+    const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
+      organization: org,
     });
     expect(result.current.hasRole).toBe(false);
   });
@@ -58,8 +50,8 @@ describe('useRole', () => {
       access: ['org:superuser'],
     });
     OrganizationStore.onUpdate(org, {replace: true});
-    const {result} = renderHook(() => useRole({role: 'attachmentsRole'}), {
-      wrapper: createWrapper(org),
+    const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
+      organization: org,
     });
     expect(result.current.hasRole).toBe(true);
   });
@@ -67,8 +59,8 @@ describe('useRole', () => {
   it('handles no organization.orgRoleList', () => {
     const org = {...organization, orgRoleList: []};
     OrganizationStore.onUpdate(org, {replace: true});
-    const {result} = renderHook(() => useRole({role: 'attachmentsRole'}), {
-      wrapper: createWrapper(org),
+    const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
+      organization: org,
     });
     expect(result.current.hasRole).toBe(false);
   });

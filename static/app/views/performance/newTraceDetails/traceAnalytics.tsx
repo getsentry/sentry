@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
@@ -8,17 +7,22 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
-export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
+export type TraceTreeSource =
+  | 'trace_view'
+  | 'replay_details'
+  | 'issue_details_trace_preview'
+  | 'issue_details_span_evidence'
+  | 'issue_details_anr_root_cause';
 
-const {info, fmt} = Sentry.logger;
-
-const trackTraceMetadata = (
+const trackTraceSuccessState = (
   tree: TraceTree,
   projects: Project[],
   organization: Organization,
   hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource,
-  traceAge: string
+  source: TraceTreeSource,
+  traceAge: string,
+  issuesCount: number,
+  eapSpansCount: number
 ) => {
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
@@ -46,6 +50,8 @@ const trackTraceMetadata = (
     organization,
     source,
     trace_age: traceAge,
+    issues_count: issuesCount,
+    eap_spans_count: eapSpansCount,
   });
 };
 
@@ -144,6 +150,17 @@ const trackSearchFocus = (organization: Organization) =>
     organization,
   });
 
+const trackEAPSpanHasDetails = (
+  organization: Organization,
+  hasProfileDetails: boolean,
+  hasLogsDetails: boolean
+) =>
+  trackAnalytics('trace.trace_drawer_details.eap_span_has_details', {
+    organization,
+    has_profile_details: hasProfileDetails,
+    has_logs_details: hasLogsDetails,
+  });
+
 const trackResetZoom = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.reset_zoom', {
     organization,
@@ -173,16 +190,23 @@ const trackMissingSpansDocLinkClicked = (organization: Organization) =>
     organization,
   });
 
-const trackTraceEmptyState = (organization: Organization, source: TraceWaterFallSource) =>
+const trackTraceEmptyState = (organization: Organization, source: TraceTreeSource) =>
   trackAnalytics('trace.load.empty_state', {
     organization,
     source,
   });
 
-const trackTraceErrorState = (organization: Organization, source: TraceWaterFallSource) =>
+const trackTraceErrorState = (
+  organization: Organization,
+  source: TraceTreeSource,
+  span_count: number | null,
+  error_status: number | null
+) =>
   trackAnalytics('trace.load.error_state', {
     organization,
     source,
+    span_count,
+    error_status,
   });
 
 const trackQuotaExceededLearnMoreClicked = (
@@ -240,46 +264,13 @@ const trackMissingInstrumentationPreferenceChange = (
     enabled,
   });
 
-function trackTraceShape(
-  tree: TraceTree,
-  projects: Project[],
-  organization: Organization,
-  hasExceededPerformanceUsageLimit: boolean | null,
-  source: TraceWaterFallSource,
-  traceAge: string
-) {
-  switch (tree.shape) {
-    case TraceShape.BROKEN_SUBTRACES:
-    case TraceShape.EMPTY_TRACE:
-    case TraceShape.MULTIPLE_ROOTS:
-    case TraceShape.ONE_ROOT:
-    case TraceShape.NO_ROOT:
-    case TraceShape.ONLY_ERRORS:
-    case TraceShape.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceMetadata(
-        tree,
-        projects,
-        organization,
-        hasExceededPerformanceUsageLimit,
-        source,
-        traceAge
-      );
-      break;
-    default: {
-      Sentry.captureMessage('Unknown trace type');
-      info(fmt`Unknown trace type: ${tree.shape}`);
-    }
-  }
-}
-
 const traceAnalytics = {
   // Trace Onboarding
   trackTracingOnboarding,
   trackPlatformDocsViewed,
   trackPerformanceSetupDocsViewed,
   // Trace shape
-  trackTraceMetadata,
-  trackTraceShape,
+  trackTraceSuccessState,
   trackTraceEmptyState,
   trackTraceErrorState,
   // Drawer actions
@@ -310,6 +301,8 @@ const traceAnalytics = {
   // Trace Preferences
   trackAutogroupingPreferenceChange,
   trackMissingInstrumentationPreferenceChange,
+  // Trace Drawer Details
+  trackEAPSpanHasDetails,
 };
 
 export {traceAnalytics};

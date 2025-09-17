@@ -32,7 +32,7 @@ class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
         self.organization.save()
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
         self._caplog = caplog
 
     @patch.object(

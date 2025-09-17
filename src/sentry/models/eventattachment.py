@@ -6,6 +6,7 @@ from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
 
+import sentry_sdk
 import zstandard
 from django.core.cache import cache
 from django.db import models
@@ -17,11 +18,16 @@ from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, s
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
+from sentry.objectstore import attachments
+from sentry.objectstore.metrics import measure_storage_operation
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
-from sentry.utils.storage import measure_storage_put
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
+
+V1_PREFIX = "eventattachments/v1/"
+V2_PREFIX = "v2/"
 
 
 def get_crashreport_key(group_id: int) -> str:
@@ -113,9 +119,18 @@ class EventAttachment(Model):
         if self.blob_path:
             if self.blob_path.startswith(":"):
                 pass  # nothing to do for inline-stored attachments
-            elif self.blob_path.startswith("eventattachments/v1/"):
+
+            elif self.blob_path.startswith(V1_PREFIX):
                 storage = get_storage()
-                storage.delete(self.blob_path)
+                with measure_storage_operation("delete", "attachments"):
+                    storage.delete(self.blob_path)
+
+            elif self.blob_path.startswith(V2_PREFIX):
+                organization_id = _get_organization(self.project_id)
+                attachments.for_project(organization_id, self.project_id).delete(
+                    self.blob_path.removeprefix(V2_PREFIX)
+                )
+
             else:
                 raise NotImplementedError()
 
@@ -128,44 +143,69 @@ class EventAttachment(Model):
         if self.blob_path.startswith(":"):
             return BytesIO(self.blob_path[1:].encode())
 
-        elif self.blob_path.startswith("eventattachments/v1/"):
+        elif self.blob_path.startswith(V1_PREFIX):
             storage = get_storage()
-            compressed_blob = storage.open(self.blob_path)
+            with measure_storage_operation("get", "attachments", self.size) as metric_emitter:
+                compressed_blob = storage.open(self.blob_path)
+                # We want to log the compressed size here but we want to stream the payload.
+                # Accessing `.size` does additional metadata requests, for which we
+                # just swallow the costs.
+                metric_emitter.record_compressed_size(compressed_blob.size, "zstd")
+
             dctx = zstandard.ZstdDecompressor()
             return dctx.stream_reader(compressed_blob, read_across_frames=True)
+
+        elif self.blob_path.startswith(V2_PREFIX):
+            id = self.blob_path.removeprefix(V2_PREFIX)
+            organization_id = _get_organization(self.project_id)
+            response = attachments.for_project(organization_id, self.project_id).get(id)
+            return response.payload
 
         raise NotImplementedError()
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
-        from sentry.models.files import FileBlob
-
         content_type = normalize_content_type(attachment.content_type, attachment.name)
-        data = attachment.data
-
-        if len(data) == 0:
+        if attachment.size == 0:
             return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
+        if attachment.stored_id is not None:
+            checksum = sha1().hexdigest()  # TODO: can we just remove the checksum requirement?
+            blob_path = V2_PREFIX + attachment.stored_id
+            return PutfileResult(
+                content_type=content_type, size=attachment.size, sha1=checksum, blob_path=blob_path
+            )
 
+        data = attachment.data
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
 
-        metrics.distribution(
-            "storage.put.size",
-            size,
-            tags={"usecase": "attachments", "compression": "none"},
-            unit="byte",
-        )
-
         if can_store_inline(data):
             blob_path = ":" + data.decode()
-        else:
-            blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
+
+        elif not in_random_rollout("objectstore.enable_for.attachments"):
+            from sentry.models.files import FileBlob
+
+            object_key = FileBlob.generate_unique_path()
+            blob_path = V1_PREFIX
+            if in_random_rollout("objectstore.double_write.attachments"):
+                try:
+                    organization_id = _get_organization(project_id)
+                    attachments.for_project(organization_id, project_id).put(data, id=object_key)
+                    metrics.incr("storage.attachments.double_write")
+                    blob_path += V2_PREFIX
+                except Exception:
+                    sentry_sdk.capture_exception()
+            blob_path += object_key
 
             storage = get_storage()
-            compressed_blob = zstandard.compress(data)
-
-            with measure_storage_put(len(compressed_blob), "attachments", "zstd"):
+            with measure_storage_operation("put", "attachments", size) as metric_emitter:
+                compressed_blob = zstandard.compress(data)
+                metric_emitter.record_compressed_size(len(compressed_blob), "zstd")
                 storage.save(blob_path, BytesIO(compressed_blob))
+
+        else:
+            organization_id = _get_organization(project_id)
+            blob_path = V2_PREFIX + attachments.for_project(organization_id, project_id).put(data)
 
         return PutfileResult(
             content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
@@ -176,3 +216,9 @@ def normalize_content_type(content_type: str | None, name: str) -> str:
     if content_type:
         return content_type.split(";")[0].strip()
     return mimetypes.guess_type(name)[0] or "application/octet-stream"
+
+
+def _get_organization(project_id: int) -> int:
+    from sentry.models.project import Project
+
+    return Project.objects.get_from_cache(id=project_id).organization_id

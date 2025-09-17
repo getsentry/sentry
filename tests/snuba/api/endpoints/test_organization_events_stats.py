@@ -36,7 +36,7 @@ class _EventDataDict(TypedDict):
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user
@@ -81,7 +81,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, data, url=None, features=None):
         if features is None:
@@ -1248,7 +1248,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
 
 class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -2827,7 +2827,7 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -2934,7 +2934,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3020,7 +3020,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 
 class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTestCase):
     # This is implemented almost exactly the same as spans, add a simple test case for a sanity check
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3125,7 +3125,7 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
 
 
 class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3141,7 +3141,22 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "NameError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                            {
+                                "type": "FooError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 1}],
+                                },
+                            },
+                        ],
+                    },
                     "fingerprint": ["group1"],
                 },
                 "project": self.project2,
@@ -3154,7 +3169,22 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "NameError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                            {
+                                "type": "FooError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 1}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project2,
                 "count": 6,
@@ -3166,7 +3196,22 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "NameError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                            {
+                                "type": "FooError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 1}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project,
                 "count": 5,
@@ -3178,7 +3223,16 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group4"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup", "env": "prod"},
-                    "exception": {"values": [{"type": "ValueError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project,
                 "count": 4,
@@ -3189,7 +3243,22 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup", "env": "staging"},
-                    "exception": {"values": [{"type": "NameError"}, {"type": "FooError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "NameError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                            {
+                                "type": "FooError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 1}],
+                                },
+                            },
+                        ],
+                    },
                     "fingerprint": ["group7"],
                 },
                 "project": self.project,
@@ -3203,7 +3272,16 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group5"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup", "env": "dev"},
-                    "exception": {"values": [{"type": "ValueError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project,
                 "count": 2,
@@ -3215,7 +3293,16 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
                     "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup", "env": "dev"},
-                    "exception": {"values": [{"type": "ValueError"}]},
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "stacktrace": {
+                                    "frames": [{"stack_level": 0}],
+                                },
+                            },
+                        ],
+                    },
                 },
                 "project": self.project,
                 "count": 1,
@@ -3279,9 +3366,51 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
+    def test_top_event_with_null_value(self):
+        self.store_event(
+            {
+                "message": "null-value",
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
+                "user": {"email": self.user.email},
+                "tags": {"shared-tag": "yup", "env": "prod"},
+                "exception": {
+                    "values": [
+                        {"type": "NameError", "value": "name"},
+                        {"type": "FooError", "value": None},
+                    ]
+                },
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        )
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "error.value"],
+                    "query": "message:null-value",
+                    "dataset": "errors",
+                    "topEvents": "1",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+        assert "[name,(no value)]" in data
+        results = data["[name,(no value)]"]
+        assert results["order"] == 0
+        assert [x[1][0]["count"] for x in results["data"]] == [1, 0]
+
     def test_top_events_with_array_field(self) -> None:
         """
-        Test that when doing a qurey on top events with an array field that its handled correctly
+        Test that when doing a query on top events with an array field that its handled correctly
         """
 
         with self.feature(self.enabled_features):
@@ -3310,6 +3439,38 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         assert "[ValueError]" in data
         assert [attrs[0]["count"] for _, attrs in data["[NameError,FooError]"]["data"]] == [2, 0]
         assert [attrs[0]["count"] for _, attrs in data["[ValueError]"]["data"]] == [1, 0]
+
+    def test_top_events_with_stack_level(self) -> None:
+        """
+        Test that when doing a query on top events with an array field that its handled correctly
+        """
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "project": self.project.id,
+                    "query": "!error.type:*Exception*",
+                    "yAxis": "count_unique(user)",
+                    "orderby": ["-count_unique(user)"],
+                    "field": ["stack.stack_level", "count_unique(user)"],
+                    "topEvents": "2",
+                    "dataset": "errors",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data
+        assert len(data) == 2
+        assert "[0,1]" in data
+        assert "[0]" in data
+        assert [attrs[0]["count"] for _, attrs in data["[0,1]"]["data"]] == [2, 0]
+        assert [attrs[0]["count"] for _, attrs in data["[0]"]["data"]] == [1, 0]
 
     def test_top_events_with_projects_other(self) -> None:
         with self.feature(self.enabled_features):
@@ -3535,7 +3696,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user

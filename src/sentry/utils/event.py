@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
+from time import time
 from typing import TYPE_CHECKING, Any
 
+from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 def has_stacktrace(event_data: Mapping[str, Any]) -> bool:
@@ -90,3 +92,35 @@ def is_event_from_browser_javascript_sdk(event: dict[str, Any]) -> bool:
         "sentry.javascript.svelte",
         "sentry.javascript.sveltekit",
     ]
+
+
+def track_event_since_received(
+    step: str,
+    event_data: MutableMapping[str, Any] | None,
+    tags: dict[str, str] | None = None,
+) -> None:
+    """
+    Helper function to track event timing metrics.
+    """
+    from sentry import reprocessing2
+
+    if not event_data:
+        return
+
+    received_at = event_data.get("received")
+    if not received_at:
+        return
+
+    platform = event_data.get("platform")
+
+    metrics.timing(
+        "events.since_received",
+        time() - received_at,
+        instance=platform if platform else None,
+        tags={
+            **(tags if tags is not None else {}),
+            "step": step,
+            "reprocessing": "true" if reprocessing2.is_reprocessed_event(event_data) else "false",
+            "type": event_data.get("type"),
+        },
+    )

@@ -24,7 +24,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:

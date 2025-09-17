@@ -6,11 +6,11 @@ from django.utils import timezone
 from sentry.models.files import FileBlob
 
 
-def find_missing_chunks(organization_id: int, chunks: set[str]):
+def find_missing_chunks(organization_id: int, chunks: set[str]) -> list[str]:
     """Returns a list of chunks which are missing for an org."""
     with sentry_sdk.start_span(op="find_missing_chunks") as span:
         span.set_tag("organization_id", organization_id)
-        span.set_attribute("chunks_size", len(chunks))
+        span.set_data("chunks_size", len(chunks))
 
         if not chunks:
             return []

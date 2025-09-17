@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -10,6 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
+from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -23,7 +25,7 @@ from sentry.performance_issues.base import (
     get_url_from_span,
     parameterize_url,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration
+from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -51,7 +53,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
-        if not NPlusOneAPICallsDetector.is_span_eligible(span):
+        if not self._is_span_eligible(span):
             return
 
         op = span.get("op", None)
@@ -73,7 +75,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
+        return not features.has(
+            "organizations:experimental-n-plus-one-api-detector-rollout", organization
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
@@ -86,8 +90,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         return True
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
         hash = span.get("hash", None)
@@ -129,10 +132,22 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not url:
             return False
 
+        # Check if any spans have filtered URLs
+        if has_filtered_url(self._event, span):
+            return False
+
         # Once most users update their SDKs to use the latest standard, we
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
-        parsed_url = urlparse(str(url))
+        try:
+            parsed_url = urlparse(str(url))
+        except ValueError:
+            event_has_meta = "_meta" in self._event
+            logging.exception(
+                "N+1 API Calls Detector: URL parsing failed",
+                extra={"event_has_meta": event_has_meta},
+            )
+            return False
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern

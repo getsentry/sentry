@@ -9,10 +9,10 @@ jest.mock('sentry/components/charts/baseChart', () => {
   return jest.fn().mockImplementation(() => <div data-test-id="area-chart" />);
 });
 
-describe('EventsChart with legend', function () {
+describe('EventsChart with legend', () => {
   const {router, organization} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     mockZoomRange(1543449600000, 1543708800000);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
@@ -34,7 +34,7 @@ describe('EventsChart with legend', function () {
     });
   });
 
-  it('renders a legend if enabled', async function () {
+  it('renders a legend if enabled', async () => {
     render(
       <EventsChart
         api={new MockApiClient()}

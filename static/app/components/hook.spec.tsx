@@ -14,12 +14,12 @@ function HookWrapper(props: any) {
   );
 }
 
-describe('Hook', function () {
-  afterEach(function () {
+describe('Hook', () => {
+  afterEach(() => {
     HookStore.init();
   });
 
-  it('renders component from a hook', function () {
+  it('renders component from a hook', () => {
     HookStore.add('sidebar:help-menu', ({organization}) => (
       <HookWrapper key={0} organization={organization}>
         {organization.slug}
@@ -37,7 +37,7 @@ describe('Hook', function () {
     expect(screen.getByTestId('hook-wrapper')).toHaveTextContent('org-slug');
   });
 
-  it('can re-render when hooks get after initial render', function () {
+  it('can re-render when hooks get after initial render', () => {
     HookStore.add('sidebar:help-menu', ({organization}) => (
       <HookWrapper key={0} organization={organization}>
         Old Hook
@@ -65,7 +65,7 @@ describe('Hook', function () {
     expect(screen.getByText(/Old Hook/)).toBeInTheDocument();
   });
 
-  it('can use children as a render prop', function () {
+  it('can use children as a render prop', () => {
     let idx = 0;
     render(
       <Hook name="sidebar:help-menu" organization={OrganizationFixture()}>

@@ -2,9 +2,9 @@ from dataclasses import asdict
 
 from django.db.models import Value
 
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
@@ -16,12 +16,14 @@ from sentry.workflow_engine.tasks.utils import (
     build_workflow_event_data_from_event,
 )
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context
+from sentry.workflow_engine.utils import log_context, timeout_grouping_context
 
 logger = log_context.get_logger(__name__)
 
 
-def build_trigger_action_task_params(action, detector, event_data: WorkflowEventData):
+def build_trigger_action_task_params(
+    action: Action, detector: Detector, event_data: WorkflowEventData
+) -> dict[str, object]:
     """
     Build parameters for trigger_action task invocation.
 
@@ -51,7 +53,6 @@ def build_trigger_action_task_params(action, detector, event_data: WorkflowEvent
         "group_state": event_data.group_state,
         "has_reappeared": event_data.has_reappeared,
         "has_escalated": event_data.has_escalated,
-        "workflow_env_id": event_data.workflow_env.id if event_data.workflow_env else None,
     }
 
 
@@ -73,7 +74,7 @@ def build_trigger_action_task_params(action, detector, event_data: WorkflowEvent
         ),
     ),
 )
-@retry
+@retry(timeouts=True, raise_on_no_retries=False)
 def trigger_action(
     action_id: int,
     detector_id: int,
@@ -85,7 +86,6 @@ def trigger_action(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
-    workflow_env_id: int | None,
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
@@ -113,11 +113,11 @@ def trigger_action(
             project_id=project_id,
             event_id=event_id,
             group_id=group_id,
+            workflow_id=workflow_id,
             occurrence_id=occurrence_id,
             group_state=group_state,
             has_reappeared=has_reappeared,
             has_escalated=has_escalated,
-            workflow_env_id=workflow_env_id,
         )
 
     elif activity_id is not None:
@@ -137,7 +137,10 @@ def trigger_action(
     )
 
     if should_trigger_actions:
-        action.trigger(event_data, detector)
+        # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
+        # in this scope is grouped properly.
+        with timeout_grouping_context(action.type):
+            action.trigger(event_data, detector)
     else:
         logger.info(
             "workflow_engine.triggered_actions.dry-run",

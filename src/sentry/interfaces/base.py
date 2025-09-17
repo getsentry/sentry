@@ -99,7 +99,7 @@ class Interface:
     def __getattr__(self, name):
         return self._data[name]
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name, value) -> None:
         if name == "_data":
             self.__dict__["_data"] = value
         else:

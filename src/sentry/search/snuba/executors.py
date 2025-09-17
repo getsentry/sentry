@@ -721,7 +721,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     aggregation_defs = {
         "times_seen": ["count()", ""],
-        "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
+        "first_seen": ["multiply(toUInt64(min(coalesce(group_first_seen, timestamp))), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
         "trends": trends_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
@@ -862,8 +862,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             group_ids = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-            span.set_attribute("Max Candidates", max_candidates)
-            span.set_attribute("Result Size", len(group_ids))
+            span.set_data("Max Candidates", max_candidates)
+            span.set_data("Result Size", len(group_ids))
         metrics.distribution("snuba.search.num_candidates", len(group_ids))
         too_many_candidates = False
         if not group_ids:

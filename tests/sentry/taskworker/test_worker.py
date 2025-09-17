@@ -17,7 +17,6 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 from sentry_sdk.crons import MonitorStatus
-from usageaccountant import UsageUnit
 
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
@@ -28,6 +27,7 @@ from sentry.taskworker.worker import TaskWorker
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded, child_process
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.redis import redis_clusters
 
 SIMPLE_TASK = InflightTaskActivation(
@@ -150,6 +150,7 @@ COMPRESSED_TASK = InflightTaskActivation(
 
 
 @pytest.mark.django_db
+@thread_leak_allowlist(reason="taskworker", issue=97034)
 class TestTaskWorker(TestCase):
     def test_tasks_exist(self) -> None:
         import sentry.taskworker.tasks.examples as example_tasks
@@ -160,7 +161,7 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_task(self) -> None:
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
@@ -173,7 +174,7 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_no_task(self) -> None:
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
@@ -185,7 +186,7 @@ class TestTaskWorker(TestCase):
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
@@ -218,7 +219,7 @@ class TestTaskWorker(TestCase):
         # be processed.
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -257,8 +258,7 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where taskworker.fetch_next.disabled_pools is defined
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051",
-            num_brokers=1,
+            broker_hosts=["127.0.0.1:50051"],
             max_child_task_count=1,
             process_type="fork",
             processing_pool_name="testing",
@@ -294,7 +294,7 @@ class TestTaskWorker(TestCase):
         # We should retain the result until RPC succeeds.
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -337,7 +337,7 @@ class TestTaskWorker(TestCase):
         # to raise and catch a NoRetriesRemainingError
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -432,39 +432,6 @@ def test_child_process_remove_start_time_kwargs() -> None:
     result = processed.get()
     assert result.task_id == activation.activation.id
     assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
-
-
-@pytest.mark.django_db
-@mock.patch("sentry.usage_accountant.record")
-def test_child_process_complete_record_usage(mock_record: mock.Mock) -> None:
-    todo: queue.Queue[InflightTaskActivation] = queue.Queue()
-    processed: queue.Queue[ProcessingResult] = queue.Queue()
-    shutdown = Event()
-
-    todo.put(SIMPLE_TASK)
-
-    with override_options({"shared_resources_accounting_enabled": ["taskworker"]}):
-        child_process(
-            todo,
-            processed,
-            shutdown,
-            max_task_count=1,
-            processing_pool_name="test",
-            process_type="fork",
-        )
-
-    assert todo.empty()
-    result = processed.get()
-    assert result.task_id == SIMPLE_TASK.activation.id
-    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
-
-    assert mock_record.call_count == 1
-    mock_record.assert_called_with(
-        resource_id="taskworker",
-        app_feature="examples",
-        amount=mock.ANY,
-        usage_type=UsageUnit.MILLISECONDS,
-    )
 
 
 @pytest.mark.django_db

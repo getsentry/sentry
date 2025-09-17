@@ -1,138 +1,303 @@
-import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {
-  type Docs,
-  type OnboardingConfig,
-  StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {IconLock} from 'sentry/icons/iconLock';
-import {t, tct} from 'sentry/locale';
+import styled from '@emotion/styled';
 
-const onboarding: OnboardingConfig = {
-  install: params => [
+import devkitCrashesStep1 from 'sentry-images/tempest/devkit-crashes-step1.png';
+import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
+import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
+import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
+
+import {Flex} from 'sentry/components/core/layout/flex';
+import {ExternalLink} from 'sentry/components/core/link';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {
+  type BasePlatformOptions,
+  type Docs,
+  type DocsParams,
+  type OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {t, tct} from 'sentry/locale';
+import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
+import {
+  ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
+  AllowListIPAddresses,
+} from 'sentry/views/settings/project/tempest/allowListIPAddresses';
+import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
+import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
+
+type Params = DocsParams;
+
+enum InstallationMode {
+  RETAIL = 'retail',
+  DEVKIT = 'devkit',
+}
+
+const isRetailMode = (params: Params) =>
+  params.platformOptions?.installationMode === InstallationMode.RETAIL;
+
+const platformOptions = {
+  installationMode: {
+    label: t('Installation Mode'),
+    items: [
+      {
+        label: t('Retail'),
+        value: InstallationMode.RETAIL,
+      },
+      {
+        label: t('Devkit'),
+        value: InstallationMode.DEVKIT,
+      },
+    ],
+    defaultValue: InstallationMode.DEVKIT,
+  },
+} satisfies BasePlatformOptions;
+
+const onboardingRetail: OnboardingConfig = {
+  install: (params: Params) => [
     {
-      type: StepType.INSTALL,
+      title: t('Retrieve Back Office Server Credential from Sony'),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Retrieve the Back Office Server Credentials (Client ID and Secret) for the title of interest.'
+          ),
+        },
+        {
+          type: 'alert',
+          alertType: 'warning',
+          showIcon: true,
+          text: t(
+            'To avoid problems with rate limiting it is preferred to have a separate set of credentials that are only used by Sentry.'
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'Once you have the credentials, save them to your project. You can achieve that by clicking on the button below.'
+          ),
+        },
+        {
+          type: 'custom',
+          content: (
+            <AddCredentialsButton
+              project={params.project}
+              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+            />
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'After adding credentials, check their status in [projectSettingsLink:Project Settings > PlayStation] to ensure they are valid before proceeding with the instructions below.',
+            {
+              projectSettingsLink: (
+                <ExternalLink
+                  href={`/settings/projects/${params.project.slug}/playstation/?tab=retail`}
+                  openInNewTab
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      title: t('Allow list our IP Addresses'),
+      content: [
+        {
+          type: 'text',
+          text: ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
+        },
+        {
+          type: 'custom',
+          content: <AllowListIPAddresses />,
+        },
+      ],
+    },
+    {
+      title: t('Configure data collection'),
+      collapsible: true,
       content: [
         {
           type: 'text',
           text: tct(
-            'Our [sentryPlayStationLink:Sentry PlayStation SDK] extends the core [sentryNativeLink:sentry-native] library with PlayStation-specific implementations for standalone engines and proprietary game engines.',
+            'Enable [strong:Attach Dumps] to automatically include Prospero crash dumps for debugging and [strong:Attach Screenshots] to include crash screenshots when available.',
             {
-              code: <code />,
-              sentryPlayStationLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-playstation" />
-              ),
-              sentryNativeLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-native" />
-              ),
+              strong: <strong />,
             }
           ),
         },
         {
           type: 'alert',
           alertType: 'warning',
-          icon: <IconLock size="sm" locked />,
-          text: tct(
-            '[strong:Access Restricted]. The PlayStation SDK is distributed through a [privateRepositoryLink:private repository] under NDA.',
-            {
-              strong: <strong />,
-              privateRepositoryLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-playstation" />
-              ),
-            }
-          ),
           showIcon: true,
-          trailingItems: (
-            <Button
-              size="sm"
-              priority="primary"
-              onClick={() => {
-                openPrivateGamingSdkAccessModal({
-                  organization: params.organization,
-                  projectSlug: params.projectSlug,
-                  projectId: params.projectId,
-                  sdkName: 'PlayStation',
-                  gamingPlatform: 'playstation',
-                });
-              }}
-            >
-              {t('Request Access')}
-            </Button>
-          ),
-        },
-        {
-          type: 'text',
           text: t(
-            'Once the access is granted, you can proceed with the SDK integration.'
-          ),
-        },
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'The [privateRepositoryLink:private repository] contains complete setup instructions and configuration examples in the sample folder. Here is a basic example of how to initialize the SDK:',
-            {
-              privateRepositoryLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-playstation" />
-              ),
-            }
+            'Both screenshots and crash dump files consume from your attachments quota.'
           ),
         },
         {
-          type: 'code',
-          language: 'c',
-          code: `
-#include <sentry.h>
-
-int main(void) {
-  sentry_options_t *options = sentry_options_new();
-  sentry_options_set_dsn(options, "${params.dsn.public}");
-  sentry_options_set_release(options, "my-project-name@2.3.12");
-  sentry_options_set_debug(options, 1);
-  // Example of PlayStation-specific configuration options
-  // (including database path) are available in the sample folder of the private repository.
-  sentry_init(options);
-
-  /* ... */
-
-  // make sure everything flushes
-  sentry_close();
-}`,
+          type: 'custom',
+          content: (
+            <ConfigForm organization={params.organization} project={params.project} />
+          ),
         },
       ],
     },
   ],
   verify: () => [
     {
-      type: StepType.VERIFY,
+      title: t('Look for events'),
       content: [
         {
           type: 'text',
           text: t(
-            'Once integrated, verify that your Sentry integration is working correctly by sending a test event:'
+            'Once you provided credentials, Sentry will make an initial request to verify the credentials are correct and the IPs are allowlisted, if either of these are not the case an error will be displayed in the UI. After that new crashes are pulled once every minute. Events generated from crashes can be filtered using:'
           ),
         },
         {
           type: 'code',
           language: 'c',
-          code: `
-sentry_capture_event(sentry_value_new_message_event(
-  /*   level */ SENTRY_LEVEL_INFO,
-  /*  logger */ "custom",
-  /* message */ "It works!"
-));`,
+          code: `os.name: PlayStation`,
         },
+      ],
+    },
+  ],
+};
+
+const onboardingDevkit: OnboardingConfig = {
+  install: (params: Params) => [
+    {
+      title: t('Copy PlayStation Ingestion URL'),
+      content: [
+        {
+          type: 'text',
+          text: t('This is the URL where your crash reports will be sent:'),
+        },
+        {
+          type: 'code',
+          language: 'bash',
+          code: params.dsn.playstation,
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      title: t('Using Windows tool to set up Upload URL'),
+      content: [
         {
           type: 'text',
           text: t(
-            'After sending this test event, you should see it appear in your Sentry dashboard, confirming that the PlayStation integration is working correctly.'
+            'Using Windows tool enter that link into the DevKit as the URL to the Recap Server.'
+          ),
+        },
+        {
+          type: 'custom',
+          content: (
+            <Flex justify="center">
+              <CardIllustration src={windowToolImg} alt={t('Windows tool screenshot')} />
+            </Flex>
+          ),
+        },
+      ],
+    },
+    {
+      title: t('Using DevKit Directly to set up Upload URL'),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            "If you haven't done it via Windows tool, you can set up the Upload URL directly in the DevKit. It is under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL'."
+          ),
+        },
+        {
+          type: 'custom',
+          content: (
+            <Flex direction="column" gap="lg" align="center">
+              <CardIllustration
+                src={devkitCrashesStep1}
+                alt={t('DevKit set up screenshot step 1')}
+              />
+              <CardIllustration
+                src={devkitCrashesStep2}
+                alt={t('DevKit set up screenshot step 2')}
+              />
+              <CardIllustration
+                src={devkitCrashesStep3}
+                alt={t('DevKit set up screenshot step 3')}
+              />
+            </Flex>
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      title: t('Important Notes'),
+      content: [
+        {
+          type: 'custom',
+          content: (
+            <List symbol="bullet">
+              <ListItem>
+                {t(
+                  'If you are trying to re-attempt the upload of a failed crash that occurred before entering the URL it might be that the DevKit still tries to send the crash to the previously specified URL.'
+                )}
+              </ListItem>
+              <ListItem>
+                {t(
+                  'There is currently a limit on the size of files we support, as such, uploading large dumps or long videos may fail. During the first setup it is recommended to not send any videos, and once you made sure everything works, you can start sending larger attachments.'
+                )}
+              </ListItem>
+            </List>
+          ),
+        },
+      ],
+    },
+  ],
+};
+
+const onboarding: OnboardingConfig = {
+  install: (params: Params) => {
+    return isRetailMode(params)
+      ? onboardingRetail.install(params)
+      : onboardingDevkit.install(params);
+  },
+  configure: (params: Params) => {
+    return isRetailMode(params)
+      ? onboardingRetail.configure(params)
+      : onboardingDevkit.configure(params);
+  },
+  verify: (params: Params) => [
+    ...(isRetailMode(params)
+      ? onboardingRetail.verify(params)
+      : onboardingDevkit.verify(params)),
+    {
+      title: t('PlayStation SDK (Optional)'),
+      collapsible: true,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'We offer a PlayStation SDK built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for proprietary engines, or extend your Native, Unreal, or Unity setup. Request access below.',
+            {
+              sentryNativeRepoLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-native" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: (
+            <RequestSdkAccessButton
+              organization={params.organization}
+              project={params.project}
+              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+            />
           ),
         },
       ],
@@ -142,6 +307,17 @@ sentry_capture_event(sentry_value_new_message_event(
 
 const docs: Docs = {
   onboarding,
+  platformOptions,
 };
 
 export default docs;
+
+const CardIllustration = styled('img')`
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowLight};
+`;

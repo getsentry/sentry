@@ -31,7 +31,7 @@ class TestResultsEndpoint(CodecovEndpoint):
     }
 
     # Disable pagination requirement for this endpoint
-    def has_pagination(self, response):
+    def has_pagination(self, response) -> bool:
         return True
 
     @extend_schema(
@@ -62,9 +62,7 @@ class TestResultsEndpoint(CodecovEndpoint):
 
         owner_slug = owner.name
 
-        sort_by = request.query_params.get(
-            "sortBy", f"-{OrderingParameter.COMMITS_WHERE_FAIL.value}"
-        )
+        sort_by = request.query_params.get("sortBy", f"-{OrderingParameter.RUNS_FAILED.value}")
 
         if sort_by.startswith("-"):
             sort_by = sort_by[1:]

@@ -27,7 +27,7 @@ class NotificationPlugin(Plugin):
     )
     project_conf_form: type[forms.Form] = NotificationConfigurationForm
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "notification"
 
     def notify(self, notification: Notification, raise_exception: bool = False) -> None:

@@ -107,14 +107,6 @@ export function useLogsAutoRefreshContinued() {
   return autoRefresh === 'enabled' && pausedAtAllowedToContinue(pausedAt);
 }
 
-export function useAutorefreshEnabledOrWithinPauseWindow() {
-  const {autoRefresh, pausedAt} = useLogsAutoRefresh();
-  return (
-    autoRefresh === 'enabled' ||
-    (autoRefresh === 'paused' && withinPauseWindow(autoRefresh, pausedAt))
-  );
-}
-
 function withinPauseWindow(autoRefresh: AutoRefreshState, pausedAt: number | undefined) {
   return (
     (autoRefresh === 'paused' || autoRefresh === 'enabled') &&

@@ -41,7 +41,6 @@ export function isVisualize(value: any): value is Visualize {
   );
 }
 
-export type BaseAggregateField = GroupBy | BaseVisualize;
 export type AggregateField = GroupBy | Visualize;
 
 export function defaultAggregateFields(): AggregateField[] {

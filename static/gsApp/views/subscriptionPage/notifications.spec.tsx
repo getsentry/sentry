@@ -7,13 +7,13 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import Notifications from 'getsentry/views/subscriptionPage/notifications';
 
-describe('Subscription > Notifications', function () {
+describe('Subscription > Notifications', () => {
   const organization = OrganizationFixture({
     slug: 'chum-bucket',
   });
   const subscription = SubscriptionFixture({organization});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/spend-notifications/`,
@@ -49,7 +49,7 @@ describe('Subscription > Notifications', function () {
     SubscriptionStore.set(organization.slug, subscription);
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
       {organization}
@@ -75,7 +75,7 @@ describe('Subscription > Notifications', function () {
     expect(screen.getByRole('button', {name: 'Save Changes'})).toBeDisabled();
   });
 
-  it('renders an error for non-billing users', async function () {
+  it('renders an error for non-billing users', async () => {
     organization.access = [];
     render(
       <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
@@ -89,7 +89,7 @@ describe('Subscription > Notifications', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders On-Demand Consumption if on-demand is enabled', async function () {
+  it('renders On-Demand Consumption if on-demand is enabled', async () => {
     subscription.planDetails.allowOnDemand = true;
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -110,7 +110,7 @@ describe('Subscription > Notifications', function () {
     expect(screen.getByText('50%')).toBeInTheDocument();
   });
 
-  it('enables delete button if there is more than two thresholds for a section', async function () {
+  it('enables delete button if there is more than two thresholds for a section', async () => {
     subscription.planDetails.allowOnDemand = true;
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -132,7 +132,7 @@ describe('Subscription > Notifications', function () {
     expect(deleteButtons[2]).toBeEnabled();
   });
 
-  it('allows 9 thresholds per section max', async function () {
+  it('allows 9 thresholds per section max', async () => {
     render(
       <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
       {organization}
@@ -156,7 +156,7 @@ describe('Subscription > Notifications', function () {
     expect(screen.queryByText('Add threshold')).not.toBeInTheDocument();
   });
 
-  it('reverts to saved thresholds on reset', async function () {
+  it('reverts to saved thresholds on reset', async () => {
     render(
       <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
       {organization}

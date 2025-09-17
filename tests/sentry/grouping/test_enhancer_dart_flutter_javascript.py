@@ -16,7 +16,7 @@ class _BaseJavaScriptDartFlutterEnhancerTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.enhancements = ENHANCEMENT_BASES["newstyle:2023-01-11"]
+        self.enhancements = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
 
     def apply_rules(self, frame: dict[str, str]) -> dict[str, Any]:
         frames = [frame]

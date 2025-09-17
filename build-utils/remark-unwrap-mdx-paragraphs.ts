@@ -1,5 +1,4 @@
-import type {Node, Literal, Parent} from 'hast';
-
+import type {Literal, Node, Parent} from 'hast';
 import {visit} from 'unist-util-visit';
 
 /**

@@ -3,6 +3,7 @@ import {useCallback, useState} from 'react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -20,6 +21,7 @@ interface Visualization {
 
 interface SeerSearchQuery {
   groupBys: string[];
+  mode: string;
   query: string;
   sort: string;
   statsPeriod: string;
@@ -33,6 +35,7 @@ export interface SeerSearchItem<S extends string> extends SeerSearchQuery {
 interface SeerSearchResponse {
   queries: Array<{
     group_by: string[];
+    mode: string;
     query: string;
     sort: string;
     stats_period: string;
@@ -42,6 +45,7 @@ interface SeerSearchResponse {
     }>;
   }>;
   status: string;
+  unsupported_reason?: string;
 }
 
 export const useSeerSearch = () => {
@@ -50,6 +54,7 @@ export const useSeerSearch = () => {
   const organization = useOrganization();
   const memberProjects = projects.filter(p => p.isMember);
   const [rawResult, setRawResult] = useState<SeerSearchQuery[]>([]);
+  const [unsupportedReason, setUnsupportedReason] = useState<string | null>(null);
 
   const {
     mutate: submitQuery,
@@ -75,6 +80,7 @@ export const useSeerSearch = () => {
       });
     },
     onSuccess: result => {
+      setUnsupportedReason(result.unsupported_reason || null);
       setRawResult(
         result.queries.map((query: any) => {
           const visualizations =
@@ -89,11 +95,13 @@ export const useSeerSearch = () => {
             sort: query?.sort ?? '',
             groupBys: query?.group_by ?? [],
             statsPeriod: query?.stats_period ?? '',
+            mode: query?.mode ?? 'spans',
           };
         })
       );
     },
     onError: (error: Error) => {
+      setUnsupportedReason(null);
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
     },
   });
@@ -103,6 +111,7 @@ export const useSeerSearch = () => {
     submitQuery,
     isPending,
     isError,
+    unsupportedReason,
   };
 };
 
@@ -111,8 +120,7 @@ export const useApplySeerSearchQuery = () => {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
 
-  const {setDisplayAskSeer, setDisplayAskSeerFeedback, askSeerSuggestedQueryRef} =
-    useSearchQueryBuilder();
+  const {askSeerSuggestedQueryRef} = useSearchQueryBuilder();
 
   return useCallback(
     (result: SeerSearchQuery) => {
@@ -139,7 +147,13 @@ export const useApplySeerSearchQuery = () => {
         },
       };
 
-      const mode = groupBys.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
+      // TODO: Include traces mode once we can switch the table in getExploreUrl
+      const mode =
+        groupBys.length > 0
+          ? Mode.AGGREGATE
+          : result.mode === 'aggregates'
+            ? Mode.AGGREGATE
+            : Mode.SAMPLES;
       const visualize =
         visualizations?.map((v: Visualization) => ({
           chartType: v.chartType,
@@ -164,17 +178,14 @@ export const useApplySeerSearchQuery = () => {
         sort,
         mode,
       });
+      trackAnalytics('trace.explorer.ai_query_applied', {
+        organization,
+        query,
+        group_by_count: groupBys.length,
+        visualize_count: visualizations.length,
+      });
       navigate(url, {replace: true, preventScrollReset: true});
-      setDisplayAskSeerFeedback(true);
-      setDisplayAskSeer(false);
     },
-    [
-      askSeerSuggestedQueryRef,
-      navigate,
-      organization,
-      pageFilters.selection,
-      setDisplayAskSeer,
-      setDisplayAskSeerFeedback,
-    ]
+    [askSeerSuggestedQueryRef, navigate, organization, pageFilters.selection]
   );
 };

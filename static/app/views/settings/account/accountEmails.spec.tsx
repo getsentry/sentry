@@ -13,8 +13,8 @@ jest.mock('scroll-to-element', () => {});
 
 const ENDPOINT = '/users/me/emails/';
 
-describe('AccountEmails', function () {
-  beforeEach(function () {
+describe('AccountEmails', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -22,11 +22,11 @@ describe('AccountEmails', function () {
     });
   });
 
-  it('renders with emails', function () {
+  it('renders with emails', () => {
     render(<AccountEmails />);
   });
 
-  it('can remove an email', async function () {
+  it('can remove an email', async () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
@@ -54,7 +54,7 @@ describe('AccountEmails', function () {
     );
   });
 
-  it('can change a secondary email to primary an email', async function () {
+  it('can change a secondary email to primary an email', async () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -79,7 +79,7 @@ describe('AccountEmails', function () {
     );
   });
 
-  it('can resend verification email', async function () {
+  it('can resend verification email', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}confirm/`,
       method: 'POST',
@@ -104,7 +104,7 @@ describe('AccountEmails', function () {
     );
   });
 
-  it('can add a secondary email', async function () {
+  it('can add a secondary email', async () => {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',

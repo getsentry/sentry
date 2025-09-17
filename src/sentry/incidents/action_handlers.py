@@ -506,15 +506,19 @@ def generate_incident_trigger_email_context(
     alert_context: AlertContext,
     open_period_context: OpenPeriodContext,
     trigger_status: TriggerStatus,
-    trigger_threshold: float,
+    trigger_threshold: float | None,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
-):
+) -> dict[str, Any]:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
     snuba_query = metric_issue_context.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
-    is_threshold_type_above = alert_context.threshold_type == AlertRuleThresholdType.ABOVE
+    is_threshold_type_above = (
+        alert_context.threshold_type == AlertRuleThresholdType.ABOVE
+        or alert_context.threshold_type == AnomalyDetectionThresholdType.ABOVE
+    )
     subscription = metric_issue_context.subscription
     alert_link_params = {
         "referrer": "metric_alert_email",
@@ -685,7 +689,8 @@ def email_users(
         user = users[index]
         # TODO(iamrajjoshi): Temporarily assert that alert_threshold is not None
         # This should be removed when we update the typing and fetch the trigger_threshold in the new system
-        assert alert_context.alert_threshold is not None
+        if trigger_status == TriggerStatus.ACTIVE:
+            assert alert_context.alert_threshold is not None
 
         email_context = generate_incident_trigger_email_context(
             project=project,

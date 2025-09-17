@@ -68,6 +68,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             activity_data=status_change.get("activity_data"),
+            detector_id=status_change.get("detector_id"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
         kick_off_status_syncs.apply_async(
@@ -92,6 +93,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             activity_data=status_change.get("activity_data"),
+            detector_id=status_change.get("detector_id"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED)
         kick_off_status_syncs.apply_async(
@@ -130,6 +132,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             activity_type=activity_type,
             from_substatus=group.substatus,
             activity_data=status_change.get("activity_data"),
+            detector_id=status_change.get("detector_id"),
         )
         add_group_to_inbox(group, group_inbox_reason)
         kick_off_status_syncs.apply_async(
@@ -239,6 +242,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "new_status": payload["new_status"],
         "new_substatus": payload.get("new_substatus", None),
         "detector_id": payload.get("detector_id", None),
+        "activity_data": payload.get("activity_data", None),
     }
 
     process_occurrence_data(data)

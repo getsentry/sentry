@@ -11,11 +11,11 @@ import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/c
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PerformanceScoreBreakdownChartWidget', function () {
+describe('PerformanceScoreBreakdownChartWidget', () => {
   const organization = OrganizationFixture();
   let eventsStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -45,7 +45,7 @@ describe('PerformanceScoreBreakdownChartWidget', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 
@@ -80,8 +80,8 @@ describe('PerformanceScoreBreakdownChartWidget', function () {
     );
   });
 
-  describe('formatTimeSeriesResultsToChartData', function () {
-    it('formats time series results using provided order', function () {
+  describe('formatTimeSeriesResultsToChartData', () => {
+    it('formats time series results using provided order', () => {
       const result = formatTimeSeriesResultsToChartData(
         {
           lcp: [],

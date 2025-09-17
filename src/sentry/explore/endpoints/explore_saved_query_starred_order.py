@@ -32,7 +32,7 @@ class ExploreSavedQueryStarredOrderSerializer(serializers.Serializer):
 @region_silo_endpoint
 class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.EXPLORE
     permission_classes = (MemberPermission,)
 
     def has_feature(self, organization, request):

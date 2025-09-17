@@ -142,7 +142,7 @@ def get_project_base_url_rank_key(project: Project) -> str:
     return f"p:r:{project.id}"
 
 
-def build_organization_bucket_key(bucket: int):
+def build_organization_bucket_key(bucket: int) -> str:
     return f"o:{bucket}"
 
 

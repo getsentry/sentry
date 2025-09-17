@@ -36,7 +36,7 @@ import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface SpanProfileProps {
   event: Readonly<EventTransaction> | null;
-  node: MissingInstrumentationNode;
+  missingInstrumentationNode: MissingInstrumentationNode;
   profileID: string | undefined;
   profilerID: string | undefined;
   project: Project | undefined;
@@ -47,7 +47,7 @@ export function ProfilePreview({
   profileID,
   profilerID,
   event,
-  node,
+  missingInstrumentationNode,
 }: SpanProfileProps) {
   const profiles = useProfiles();
   const profileGroup = useProfileGroup();
@@ -56,9 +56,8 @@ export function ProfilePreview({
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
   const spanThreadId = useMemo(() => {
-    const value = node.previous.value ?? node.next.value ?? null;
-    return 'data' in value ? value.data?.['thread.id'] : null;
-  }, [node]);
+    return event?.contexts?.trace?.data?.['thread.id'] ?? null;
+  }, [event]);
 
   const profile = useMemo(() => {
     if (defined(spanThreadId)) {
@@ -75,10 +74,12 @@ export function ProfilePreview({
   }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
-    return isEAPSpanNode(node.previous)
-      ? (TraceTree.ParentEAPTransaction(node)?.profiles?.length ?? 0) > 0
-      : (TraceTree.ParentTransaction(node)?.profiles?.length ?? 0) > 0;
-  }, [node]);
+    return isEAPSpanNode(missingInstrumentationNode.previous)
+      ? (TraceTree.ParentEAPTransaction(missingInstrumentationNode)?.profiles?.length ??
+          0) > 0
+      : (TraceTree.ParentTransaction(missingInstrumentationNode)?.profiles?.length ?? 0) >
+          0;
+  }, [missingInstrumentationNode]);
 
   const flamegraph = useMemo(() => {
     if (!transactionHasProfile || !profile) {
@@ -89,8 +90,8 @@ export function ProfilePreview({
   }, [transactionHasProfile, profile]);
 
   const target = useMemo(() => {
-    if (defined(project?.slug)) {
-      if (defined(profileID)) {
+    if (project?.slug) {
+      if (profileID) {
         // we want to try to go straight to the same config view as the preview
         const query = canvasView?.configView
           ? {
@@ -110,7 +111,7 @@ export function ProfilePreview({
         });
       }
 
-      if (defined(event) && defined(profilerID)) {
+      if (event && profilerID) {
         const query = {
           eventId: event.id,
           tid: spanThreadId,
@@ -149,11 +150,11 @@ export function ProfilePreview({
   const startTimestamp = profile?.timestamp ?? event?.startTimestamp;
   const relativeStartTimestamp =
     transactionHasProfile && defined(startTimestamp)
-      ? node.value.start_timestamp - startTimestamp
+      ? missingInstrumentationNode.value.start_timestamp - startTimestamp
       : 0;
   const relativeStopTimestamp =
     transactionHasProfile && defined(startTimestamp)
-      ? node.value.timestamp - startTimestamp
+      ? missingInstrumentationNode.value.timestamp - startTimestamp
       : flamegraph.configSpace.width;
 
   function handleGoToProfile() {
@@ -167,11 +168,11 @@ export function ProfilePreview({
     <TextBlock>{t('Or, see if profiling can provide more context on this:')}</TextBlock>
   );
 
-  if (defined(target) && transactionHasProfile) {
+  if (target && transactionHasProfile) {
     return (
       <FlamegraphThemeProvider>
         {message}
-        <SectionDivider />
+        <SectionDivider orientation="horizontal" />
         <InterimSection
           title={t('Profile')}
           type="no_instrumentation_profile"

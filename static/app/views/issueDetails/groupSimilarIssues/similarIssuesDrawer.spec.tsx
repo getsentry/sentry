@@ -9,7 +9,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {SimilarIssuesDrawer} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssuesDrawer';
 
-describe('SimilarIssuesDrawer', function () {
+describe('SimilarIssuesDrawer', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({features: ['similarity-view']});
   const group = GroupFixture();
@@ -18,7 +18,7 @@ describe('SimilarIssuesDrawer', function () {
   });
   let mockSimilarIssues: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
@@ -40,9 +40,17 @@ describe('SimilarIssuesDrawer', function () {
       url: `/issues/${group.id}/related-issues/`,
       body: {data: [], type: 'same_root_cause'},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/latest/`,
+      body: {},
+    });
   });
 
-  it('renders the content as expected', async function () {
+  it('renders the content as expected', async () => {
     render(<SimilarIssuesDrawer group={group} project={project} />, {
       organization,
       router,

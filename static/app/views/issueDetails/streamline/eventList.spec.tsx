@@ -86,7 +86,7 @@ describe('EventList', () => {
     });
   }
 
-  it('renders the list using a discover event query', async function () {
+  it('renders the list using a discover event query', async () => {
     renderAllEvents();
     const {result} = renderHook(() => useEventColumns(group, organization));
 
@@ -125,7 +125,7 @@ describe('EventList', () => {
     }
   });
 
-  it('updates query from location param change', async function () {
+  it('updates query from location param change', async () => {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
     const locationQuery = {
       query: {

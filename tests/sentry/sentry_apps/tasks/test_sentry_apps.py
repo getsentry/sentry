@@ -10,7 +10,6 @@ from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import SentryAppStatus
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.types import EventLifecycleOutcome
@@ -32,6 +31,7 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     workflow_notification,
 )
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
@@ -62,11 +62,11 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-def raiseStatusFalse():
+def raiseStatusFalse() -> bool:
     return False
 
 
-def raiseStatusTrue():
+def raiseStatusTrue() -> bool:
     return True
 
 

@@ -122,9 +122,7 @@ def child_process(
     child_worker_init(process_type)
 
     from django.core.cache import cache
-    from usageaccountant import UsageUnit
 
-    from sentry import usage_accountant
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.retry import NoRetriesRemainingError
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
@@ -338,6 +336,7 @@ def child_process(
                 execution_start_time,
                 execution_complete_time,
                 processing_pool_name,
+                inflight.host,
             )
 
     def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
@@ -348,45 +347,44 @@ def child_process(
         args = parameters.get("args", [])
         kwargs = parameters.get("kwargs", {})
 
-        with sentry_sdk.continue_trace(headers):
-            attributes = {
-                "taskworker": {
-                    "task": activation.taskname,
-                },
+        transaction = sentry_sdk.continue_trace(
+            environ_or_headers=headers,
+            op="queue.task.taskworker",
+            name=activation.taskname,
+            origin="taskworker",
+        )
+        sampling_context = {
+            "taskworker": {
+                "task": activation.taskname,
             }
+        }
+        with (
+            track_memory_usage(
+                "taskworker.worker.memory_change",
+                tags={"namespace": activation.namespace, "taskname": activation.taskname},
+            ),
+            sentry_sdk.isolation_scope(),
+            sentry_sdk.start_transaction(transaction, custom_sampling_context=sampling_context),
+        ):
+            transaction.set_data(
+                "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
+            )
+            task_added_time = activation.received_at.ToDatetime().timestamp()
+            # latency attribute needs to be in milliseconds
+            latency = (time.time() - task_added_time) * 1000
 
-            with (
-                track_memory_usage(
-                    "taskworker.worker.memory_change",
-                    tags={"namespace": activation.namespace, "taskname": activation.taskname},
-                ),
-                sentry_sdk.isolation_scope(),
-                sentry_sdk.start_span(
-                    op="queue.task.taskworker",
-                    name=activation.taskname,
-                    origin="taskworker",
-                    attributes=attributes,
-                ) as root_span,
-            ):
-                root_span.set_attribute(
-                    "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
+            with sentry_sdk.start_span(
+                op=OP.QUEUE_PROCESS,
+                name=activation.taskname,
+                origin="taskworker",
+            ) as span:
+                span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+                span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+                span.set_data(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
+                span.set_data(
+                    SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts
                 )
-                task_added_time = activation.received_at.ToDatetime().timestamp()
-                # latency attribute needs to be in milliseconds
-                latency = (time.time() - task_added_time) * 1000
-
-                with sentry_sdk.start_span(
-                    op=OP.QUEUE_PROCESS,
-                    name=activation.taskname,
-                    origin="taskworker",
-                ) as span:
-                    span.set_attribute(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
-                    span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
-                    span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
-                    span.set_attribute(
-                        SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts
-                    )
-                    span.set_attribute(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+                span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
                 # TODO(taskworker) remove this when doing cleanup
                 # The `__start_time` parameter is spliced into task parameters by
@@ -397,9 +395,9 @@ def child_process(
 
                 try:
                     task_func(*args, **kwargs)
-                    root_span.set_status(SPANSTATUS.OK)
+                    transaction.set_status(SPANSTATUS.OK)
                 except Exception:
-                    root_span.set_status(SPANSTATUS.INTERNAL_ERROR)
+                    transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
                     raise
 
     def record_task_execution(
@@ -408,6 +406,7 @@ def child_process(
         start_time: float,
         completion_time: float,
         processing_pool_name: str,
+        taskbroker_host: str,
     ) -> None:
         task_added_time = activation.received_at.ToDatetime().timestamp()
         execution_duration = completion_time - start_time
@@ -429,6 +428,7 @@ def child_process(
                 "taskname": activation.taskname,
                 "status": status_name(status),
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
         metrics.distribution(
@@ -438,6 +438,7 @@ def child_process(
                 "namespace": activation.namespace,
                 "taskname": activation.taskname,
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
         metrics.distribution(
@@ -447,15 +448,15 @@ def child_process(
                 "namespace": activation.namespace,
                 "taskname": activation.taskname,
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
 
         namespace = taskregistry.get(activation.namespace)
-        usage_accountant.record(
-            resource_id="taskworker",
-            app_feature=namespace.app_feature,
+        metrics.incr(
+            "taskworker.cogs.usage",
             amount=int(execution_duration * 1000),
-            usage_type=UsageUnit.MILLISECONDS,
+            tags={"feature": namespace.app_feature},
         )
 
         if (

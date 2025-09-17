@@ -46,7 +46,9 @@ class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
             payload={
                 "organization_id": organization_id,
                 "org_auth_token_id": org_auth_token_id,
-                "date_last_used": date_last_used,
+                "date_last_used": (
+                    date_last_used.isoformat() if date_last_used is not None else None
+                ),
                 "project_last_used_id": project_last_used_id,
             },
         ).save()

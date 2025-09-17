@@ -47,7 +47,6 @@ import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {
   withoutPerformanceSupport,
@@ -56,7 +55,9 @@ import {
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
@@ -219,7 +220,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
       location.hash === '#performance-sidequest' &&
       projectsForOnboarding.some(p => p.id === project.id)
     ) {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+      OnboardingDrawerStore.open(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
     }
   }, [location.hash, projectsForOnboarding, project.id, showOnboardingChecklist]);
 
@@ -263,7 +264,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
         onClick={event => {
           event.preventDefault();
           window.location.hash = 'performance-sidequest';
-          SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+          OnboardingDrawerStore.open(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
         }}
       >
         {t('Set Up Tracing')}
@@ -583,8 +584,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
     dsn,
     organization,
     platformKey: project.platform || 'other',
-    projectId: project.id,
-    projectSlug: project.slug,
+    project,
     isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,

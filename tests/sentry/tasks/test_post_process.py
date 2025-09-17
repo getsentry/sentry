@@ -16,8 +16,6 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
-from sentry.eventstore.models import Event
-from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
@@ -53,6 +51,8 @@ from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.merge import merge_groups
@@ -976,6 +976,86 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(None, extra_team.id), (self.user.id, None)} == {
             (o.user_id, o.team_id) for o in owners
         }
+
+    def test_owner_assignment_existing_assignee_preserved(self):
+        """
+        Tests that if a group already has an assignee, post-processing won't reassign it
+        even if ownership rules change in the interim.
+        """
+        other_team = self.create_team()
+        ProjectTeam.objects.create(team=other_team, project=self.project)
+
+        rules = [
+            Rule(Matcher("path", "src/*"), [Owner("team", self.team.slug)]),
+            Rule(Matcher("path", "src/app/*"), [Owner("team", other_team.slug)]),
+        ]
+        self.prj_ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema(rules),
+            fallthrough=True,
+            auto_assignment=True,
+        )
+
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        # No assignee should exist prior to post processing
+        assert not event.group.assignee_set.exists()
+
+        # First post-processing - should assign to other_team (last matching rule)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee.team == other_team
+
+        new_rules = [
+            Rule(Matcher("path", "src/app/*"), [Owner("team", other_team.slug)]),
+            Rule(Matcher("path", "src/*"), [Owner("team", self.team.slug)]),
+        ]
+        self.prj_ownership.schema = dump_schema(new_rules)
+        self.prj_ownership.save()
+
+        # Run post-processing again - assignee should NOT change
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee.team == other_team
+
+        # If we had a completely new group, it would get assigned to self.team (new last matching rule)
+        fresh_event = self.create_event(
+            data={
+                "message": "fresh event",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/fresh.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=fresh_event,
+        )
+
+        fresh_assignee = fresh_event.group.assignee_set.first()
+        assert fresh_assignee.team == self.team
 
     def test_owner_assignment_assign_user(self) -> None:
         self.make_ownership()

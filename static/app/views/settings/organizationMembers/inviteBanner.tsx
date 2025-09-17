@@ -87,7 +87,7 @@ export function InviteBanner({
           integrationMissingMembers.integration === 'github'
       )[0];
       setMissingMembers(githubMissingMembers?.users || []);
-    } catch (err) {
+    } catch (err: any) {
       if (err.status !== 403) {
         addErrorMessage(t('Unable to fetching missing commit authors'));
       }

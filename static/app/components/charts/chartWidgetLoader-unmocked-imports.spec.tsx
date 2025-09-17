@@ -2,7 +2,9 @@
 import fs from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
-import {TimeSeriesFixture} from 'sentry-fixture/discoverSeries';
+
+import {DiscoverSeriesFixture} from 'sentry-fixture/discoverSeries';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -12,8 +14,14 @@ import type {ChartId} from './chartWidgetLoader';
 import {ChartWidgetLoader} from './chartWidgetLoader';
 
 function mockDiscoverSeries(seriesName: string) {
-  return TimeSeriesFixture({
+  return DiscoverSeriesFixture({
     seriesName,
+  });
+}
+
+function mockTimeSeries(yAxis: string) {
+  return TimeSeriesFixture({
+    yAxis,
   });
 }
 
@@ -70,6 +78,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
         'span.group': 'abc123',
         'span.description': 'span1',
         'sentry.normalized_description': 'span1',
+        'project.id': 123,
         transaction: 'transaction_a',
       },
     ],
@@ -121,6 +130,36 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'count()': {
         data: [],
       },
+    },
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
+  useFetchSpanTimeSeries: jest.fn(() => ({
+    data: {
+      timeSeries: [
+        mockTimeSeries('epm()'),
+        mockTimeSeries('count(span.duration)'),
+        mockTimeSeries('avg(span.duration)'),
+        mockTimeSeries('p95(span.duration)'),
+        mockTimeSeries('trace_status_rate(internal_error)'),
+        mockTimeSeries('cache_miss_rate()'),
+        mockTimeSeries('http_response_rate(3)'),
+        mockTimeSeries('http_response_rate(4)'),
+        mockTimeSeries('http_response_rate(5)'),
+        mockTimeSeries('avg(span.self_time)'),
+        mockTimeSeries('avg(http.response_content_length)'),
+        mockTimeSeries('avg(http.response_transfer_size)'),
+        mockTimeSeries('avg(http.decoded_response_content_length)'),
+        mockTimeSeries('avg(messaging.message.receive.latency)'),
+        mockTimeSeries('performance_score(measurements.score.lcp)'),
+        mockTimeSeries('performance_score(measurements.score.fcp)'),
+        mockTimeSeries('performance_score(measurements.score.cls)'),
+        mockTimeSeries('performance_score(measurements.score.inp)'),
+        mockTimeSeries('performance_score(measurements.score.ttfb)'),
+        mockTimeSeries('count()'),
+      ],
     },
     isPending: false,
     error: null,

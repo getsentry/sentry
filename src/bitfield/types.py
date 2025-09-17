@@ -11,7 +11,7 @@ class Bit:
         if not self.is_set:
             self.mask = ~self.mask
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<%s: number=%d, is_set=%s>" % (self.__class__.__name__, self.number, self.is_set)
 
     def __int__(self):
@@ -132,13 +132,13 @@ class BitHandler:
     def __cmp__(self, other):
         return cmp(self._value, other)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<{}: {}>".format(
             self.__class__.__name__,
             ", ".join(f"{k}={self.get_bit(n).is_set}" for n, k in enumerate(self._keys)),
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._value)
 
     def __int__(self):
@@ -181,7 +181,7 @@ class BitHandler:
 
     __getitem__ = __getattr__
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key, value) -> None:
         if key.startswith("_"):
             return object.__setattr__(self, key, value)
         if key not in self._keys:

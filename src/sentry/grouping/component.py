@@ -4,9 +4,12 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
-from typing import Any, Self
+from typing import Any
+
+import sentry_sdk
 
 from sentry.grouping.utils import hash_from_values
+from sentry.utils.env import in_test_environment
 
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
@@ -145,16 +148,21 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         if values is not None:
             if contributes is None:
                 contributes = _calculate_contributes(values)
+
+            # Ensure components which wrap primitives only ever have one child
+            if len(values) > 0 and any(isinstance(value, (int, str)) for value in values):
+                try:
+                    assert (
+                        len(values) == 1
+                    ), f"Components which wrap primitives can wrap at most one value. Got {values}."
+                except AssertionError as e:
+                    if in_test_environment():
+                        raise
+                    sentry_sdk.capture_exception(e)
+
             self.values = values
         if contributes is not None:
             self.contributes = contributes
-
-    def shallow_copy(self) -> Self:
-        """Creates a shallow copy."""
-        copy = object.__new__(self.__class__)
-        copy.__dict__.update(self.__dict__)
-        copy.values = list(self.values)
-        return copy
 
     def iter_values(self) -> Generator[str | int]:
         """
@@ -206,7 +214,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
 
 class ContextLineGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "context-line"
+    id: str = "context_line"
 
 
 class ErrorTypeGroupingComponent(BaseGroupingComponent[str]):
@@ -229,8 +237,18 @@ class ModuleGroupingComponent(BaseGroupingComponent[str]):
     id: str = "module"
 
 
-class NSErrorGroupingComponent(BaseGroupingComponent[str | int]):
-    id: str = "ns-error"
+class NSErrorDomainGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "domain"
+
+
+class NSErrorCodeGroupingComponent(BaseGroupingComponent[int]):
+    id: str = "code"
+
+
+class NSErrorGroupingComponent(
+    BaseGroupingComponent[NSErrorDomainGroupingComponent | NSErrorCodeGroupingComponent]
+):
+    id: str = "ns_error"
 
 
 FrameGroupingComponentChildren = (
@@ -331,7 +349,7 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
-    id: str = "chained-exception"
+    id: str = "chained_exception"
     frame_counts: Counter[str]
     reverse_when_serializing: bool = False
 
@@ -378,13 +396,13 @@ class CSPGroupingComponent(
 class ExpectCTGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-ct"
+    id: str = "expect_ct"
 
 
 class ExpectStapleGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-staple"
+    id: str = "expect_staple"
 
 
 class HPKPGroupingComponent(

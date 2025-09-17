@@ -5,13 +5,15 @@ import time
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import sentry_sdk
 from django.core.exceptions import SuspiciousFileOperation
 
-from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
+from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA, STATIC_ROOT
 from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
+from sentry.utils.platform_categories import CONSOLES
 
 logger = logging.getLogger(__name__)
 epoch = datetime.fromtimestamp(0)
@@ -103,13 +105,13 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
 
 
 def load_data(
-    platform,
-    default=None,
-    sample_name=None,
+    platform: str,
+    default: str | None = None,
+    sample_name: str | None = None,
     timestamp=None,
     start_timestamp=None,
-    trace=None,
-    span_id=None,
+    trace: str | None = None,
+    span_id: str | None = None,
     spans=None,
     trace_context=None,
     fingerprint=None,
@@ -302,6 +304,61 @@ def load_data(
     return data
 
 
+def load_console_screenshot():
+    expected_commonpath = os.path.realpath(os.path.join(STATIC_ROOT, "images"))
+    image_path = os.path.join(expected_commonpath, "console-screenshot.png")
+    image_real_path = os.path.realpath(image_path)
+
+    if expected_commonpath != os.path.commonpath([expected_commonpath, image_real_path]):
+        raise SuspiciousFileOperation("illegal path access")
+
+    if os.path.exists(image_path):
+        return image_path
+    else:
+        return None
+
+
+def create_console_screenshot_attachment(event, project, platform):
+    from sentry.attachments.base import CachedAttachment
+    from sentry.models.eventattachment import EventAttachment
+
+    screenshot_path = load_console_screenshot()
+
+    if not screenshot_path:
+        return None
+
+    try:
+        with open(screenshot_path, "rb") as f:
+            image_data = f.read()
+    except OSError:
+        return None
+
+    try:
+        attachment = CachedAttachment(
+            name="screenshot.png",
+            content_type="image/png",
+            data=image_data,
+            type="event.attachment",
+        )
+
+        file_result = EventAttachment.putfile(project.id, attachment)
+
+        EventAttachment.objects.create(
+            event_id=event.event_id,
+            project_id=project.id,
+            group_id=event.group_id,
+            type=attachment.type,
+            name=attachment.name,
+            content_type=file_result.content_type,
+            size=file_result.size,
+            sha1=file_result.sha1,
+            blob_path=file_result.blob_path,
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+
 def create_n_plus_one_issue(data):
     timestamp = datetime.fromtimestamp(data["start_timestamp"])
     n_plus_one_db_duration = timedelta(milliseconds=100)
@@ -419,7 +476,12 @@ def create_sample_event(
                 PERFORMANCE_ISSUE_CREATORS[issue](data)
 
     data.update(kwargs)
-    return create_sample_event_basic(data, project.id, raw=raw, tagged=tagged)
+    event = create_sample_event_basic(data, project.id, raw=raw, tagged=tagged)
+
+    if platform in CONSOLES:
+        create_console_screenshot_attachment(event, project, platform)
+
+    return event
 
 
 def create_sample_event_basic(

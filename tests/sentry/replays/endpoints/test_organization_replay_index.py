@@ -25,7 +25,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {"organizations:session-replay": True}
 
     def test_feature_flag_disabled(self) -> None:
@@ -1830,7 +1830,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400
 
-    def _test_empty_filters(self, query_key, field, null_value, nonnull_value):
+    def _test_empty_filters(
+        self,
+        query_key: str,
+        field: str,
+        null_value: str | int | None,
+        nonnull_value: str | int | bool,
+    ) -> None:
         """
         Tests filters on a nullable field such as user.email:"", !user.email:"", user.email:["", ...].
         Due to clickhouse aggregations, these queries are handled as a special case which needs testing.

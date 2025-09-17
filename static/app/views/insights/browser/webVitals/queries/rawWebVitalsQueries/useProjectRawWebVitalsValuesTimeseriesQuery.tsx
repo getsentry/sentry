@@ -1,6 +1,7 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -44,7 +45,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'count_scores(measurements.score.inp)',
       ],
     },
-    'api.performance.browser.web-vitals.timeseries'
+    Referrer.WEB_VITAL_TIMESERIES
   );
 
   return result;

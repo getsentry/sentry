@@ -25,8 +25,6 @@ import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -44,7 +42,6 @@ import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLay
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
-import {spansRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
 import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -102,8 +99,6 @@ function TransactionHeader({
           return tagsRouteWithQuery(routeQuery);
         case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
-        case Tab.SPANS:
-          return spansRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
@@ -320,9 +315,6 @@ function TransactionHeader({
     }
     if (view === BACKEND_LANDING_SUB_PATH) {
       return <BackendHeader {...headerProps} />;
-    }
-    if (view === AI_LANDING_SUB_PATH) {
-      return <AiHeader {...headerProps} />;
     }
     if (view === MOBILE_LANDING_SUB_PATH) {
       return <MobileHeader {...headerProps} />;

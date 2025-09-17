@@ -20,9 +20,8 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task
 from sentry.utils import metrics
-from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.imports import import_string
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -154,9 +153,9 @@ class TaskNamespace:
             name=activation.taskname,
             origin="taskworker",
         ) as span:
-            span.set_attribute(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
-            span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
-            span.set_attribute(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+            span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+            span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
             produce_future = self._producer(topic).produce(
                 ArroyoTopic(name=topic.value),
@@ -193,9 +192,7 @@ class TaskNamespace:
         if topic not in self._producers:
 
             def factory() -> KafkaProducer:
-                cluster_name = get_topic_definition(topic)["cluster"]
-                producer_config = get_kafka_producer_cluster_options(cluster_name)
-                return KafkaProducer(producer_config)
+                return get_arroyo_producer(f"sentry.taskworker.{topic.value}", topic)
 
             self._producers[topic] = SingletonProducer(factory, max_futures=1000)
         return self._producers[topic]

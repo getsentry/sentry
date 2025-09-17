@@ -2,11 +2,11 @@ import type {ReactNode} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
 import {AdminSecondaryNav} from 'sentry/views/nav/secondary/sections/admin/adminSecondaryNav';
-import CodecovSecondaryNav from 'sentry/views/nav/secondary/sections/codecov/codecovSecondaryNav';
 import {DashboardsSecondaryNav} from 'sentry/views/nav/secondary/sections/dashboards/dashboardsSecondaryNav';
 import {ExploreSecondaryNav} from 'sentry/views/nav/secondary/sections/explore/exploreSecondaryNav';
 import {InsightsSecondaryNav} from 'sentry/views/nav/secondary/sections/insights/insightsSecondaryNav';
 import {IssuesSecondaryNav} from 'sentry/views/nav/secondary/sections/issues/issuesSecondaryNav';
+import PreventSecondaryNav from 'sentry/views/nav/secondary/sections/prevent/preventSecondaryNav';
 import {SettingsSecondaryNav} from 'sentry/views/nav/secondary/sections/settings/settingsSecondaryNav';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
@@ -21,7 +21,7 @@ export function SecondaryNavContent({group}: {group: PrimaryNavGroup}): ReactNod
     case PrimaryNavGroup.EXPLORE:
       return <ExploreSecondaryNav />;
     case PrimaryNavGroup.PREVENT:
-      return <CodecovSecondaryNav />;
+      return <PreventSecondaryNav />;
     case PrimaryNavGroup.SETTINGS:
       return <SettingsSecondaryNav />;
     case PrimaryNavGroup.ADMIN:

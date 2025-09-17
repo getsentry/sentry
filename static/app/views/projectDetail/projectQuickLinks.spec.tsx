@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectQuickLinks from 'sentry/views/projectDetail/projectQuickLinks';
 
-describe('ProjectDetail > ProjectQuickLinks', function () {
+describe('ProjectDetail > ProjectQuickLinks', () => {
   const {organization, router} = initializeOrg({
     organization: {features: ['performance-view']},
   });
@@ -14,7 +14,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     jest.clearAllMocks();
   });
 
-  it('renders a list', async function () {
+  it('renders a list', async () => {
     render(
       <ProjectQuickLinks
         organization={organization}
@@ -46,7 +46,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     });
   });
 
-  it('disables link if feature is missing', async function () {
+  it('disables link if feature is missing', async () => {
     render(
       <ProjectQuickLinks
         organization={{...organization, features: []}}

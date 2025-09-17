@@ -1,15 +1,16 @@
 import {useCallback, useState} from 'react';
 
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
-  type UseApiQueryOptions,
   useQueryClient,
+  type ApiQueryKey,
+  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 export type SeerExplorerResponse = {
@@ -78,13 +79,11 @@ export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
+  const captureAsciiSnapshot = useAsciiSnapshot();
 
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
-  const [optimisticMessageIds, setOptimisticMessageIds] = useState<Set<string>>(
-    new Set()
-  );
 
   const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(orgSlug || '', currentRunId || undefined),
@@ -107,61 +106,18 @@ export const useSeerExplorer = () => {
         return;
       }
 
+      // Capture a coarse ASCII screenshot of the user's screen for extra context
+      const screenshot = captureAsciiSnapshot?.();
+
       setWaitingForResponse(true);
 
       // Calculate insert index first
-      const wasDeleted = deletedFromIndex !== null;
       const effectiveMessageLength =
         deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
       // Generate timestamp in seconds to match backend format
       const timestamp = Date.now() / 1000;
-
-      // Optimistically add user message to the UI
-      if (currentRunId && apiData?.session) {
-        const userMessage: Block = {
-          id: `user-${timestamp}`,
-          message: {
-            role: 'user',
-            content: query,
-          },
-          timestamp: new Date().toISOString(),
-          loading: false,
-        };
-
-        const loadingMessage: Block = {
-          id: `loading-${timestamp}`,
-          message: {
-            role: 'assistant',
-            content: 'Thinking...',
-          },
-          timestamp: new Date().toISOString(),
-          loading: true,
-        };
-
-        // Use the effective message list (considering deletions) for optimistic update
-        const effectiveMessages = wasDeleted
-          ? apiData.session.blocks.slice(0, calculatedInsertIndex)
-          : apiData.session.blocks;
-
-        const updatedSession = {
-          ...apiData.session,
-          blocks: [...effectiveMessages, userMessage, loadingMessage],
-          status: 'processing' as const,
-        };
-
-        // Track optimistic message IDs
-        setOptimisticMessageIds(
-          prev => new Set([...prev, userMessage.id, loadingMessage.id])
-        );
-
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(orgSlug, currentRunId),
-          {session: updatedSession}
-        );
-      }
 
       try {
         const response = (await api.requestPromise(
@@ -172,6 +128,7 @@ export const useSeerExplorer = () => {
               query,
               insert_index: calculatedInsertIndex,
               message_timestamp: timestamp,
+              on_page_context: screenshot,
             },
           }
         )) as SeerExplorerChatResponse;
@@ -181,16 +138,11 @@ export const useSeerExplorer = () => {
           setCurrentRunId(response.run_id);
         }
 
-        // Clear deletedFromIndex since we just sent a message from that point
-        if (deletedFromIndex !== null) {
-          setDeletedFromIndex(null);
-        }
-
         // Invalidate queries to fetch fresh data
         queryClient.invalidateQueries({
           queryKey: makeSeerExplorerQueryKey(orgSlug, response.run_id),
         });
-      } catch (e) {
+      } catch (e: any) {
         setWaitingForResponse(false);
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
@@ -199,14 +151,21 @@ export const useSeerExplorer = () => {
         );
       }
     },
-    [queryClient, api, orgSlug, currentRunId, apiData, deletedFromIndex]
+    [
+      queryClient,
+      api,
+      orgSlug,
+      currentRunId,
+      apiData,
+      deletedFromIndex,
+      captureAsciiSnapshot,
+    ]
   );
 
   const startNewSession = useCallback(() => {
     setCurrentRunId(null);
     setWaitingForResponse(false);
     setDeletedFromIndex(null);
-    setOptimisticMessageIds(new Set());
     if (orgSlug) {
       setApiQueryData<SeerExplorerResponse>(
         queryClient,
@@ -221,41 +180,32 @@ export const useSeerExplorer = () => {
   }, []);
 
   // Always filter messages based on deletedFromIndex before any other processing
-  let sessionData = apiData?.session ?? null;
-  if (sessionData?.blocks && deletedFromIndex !== null) {
-    // Separate optimistic messages from real messages
-    const optimisticMessages = sessionData.blocks.filter(msg =>
-      optimisticMessageIds.has(msg.id)
-    );
-    const realMessages = sessionData.blocks.filter(
-      msg => !optimisticMessageIds.has(msg.id)
-    );
+  const sessionData = apiData?.session ?? null;
 
-    // Filter out real messages from the deleted index onwards, but keep optimistic messages
-    const filteredRealMessages = realMessages.slice(0, deletedFromIndex);
+  const filteredSessionData = (() => {
+    if (sessionData?.blocks && deletedFromIndex !== null) {
+      return {
+        ...sessionData,
+        blocks: sessionData.blocks.slice(0, deletedFromIndex),
+      } as NonNullable<typeof sessionData>;
+    }
+    return sessionData;
+  })();
 
-    sessionData = {
-      ...sessionData,
-      blocks: [...filteredRealMessages, ...optimisticMessages],
-    };
-  }
-
-  if (waitingForResponse && sessionData?.blocks) {
+  if (waitingForResponse && filteredSessionData?.blocks) {
     // Stop waiting once we see the response is no longer loading
-    const hasLoadingMessage = sessionData.blocks.some(block => block.loading);
+    const hasLoadingMessage = filteredSessionData.blocks.some(block => block.loading);
 
-    if (!hasLoadingMessage && sessionData.status !== 'processing') {
+    if (!hasLoadingMessage && filteredSessionData.status !== 'processing') {
       setWaitingForResponse(false);
       // Clear deleted index once response is complete
       setDeletedFromIndex(null);
-      // Clear optimistic message IDs since they should now be real messages
-      setOptimisticMessageIds(new Set());
     }
   }
 
   return {
-    sessionData,
-    isPolling: isPolling(sessionData, waitingForResponse),
+    sessionData: filteredSessionData,
+    isPolling: isPolling(filteredSessionData, waitingForResponse),
     isPending,
     sendMessage,
     startNewSession,

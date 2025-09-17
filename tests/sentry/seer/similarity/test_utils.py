@@ -3,7 +3,6 @@ from collections.abc import Callable
 from typing import Any, Literal, cast
 from unittest.mock import MagicMock, patch
 
-from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
@@ -16,6 +15,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
     has_too_many_contributing_frames,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 
@@ -72,7 +72,7 @@ class GetStacktraceStringTest(TestCase):
                                                 "values": ["divide_by_zero"],
                                             },
                                             {
-                                                "id": "context-line",
+                                                "id": "context_line",
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
@@ -115,7 +115,7 @@ class GetStacktraceStringTest(TestCase):
                 "hint": None,
                 "values": [
                     {
-                        "id": "chained-exception",
+                        "id": "chained_exception",
                         "name": None,
                         "contributes": True,
                         "hint": None,
@@ -160,7 +160,7 @@ class GetStacktraceStringTest(TestCase):
                                                         "values": ["divide_by_zero"],
                                                     },
                                                     {
-                                                        "id": "context-line",
+                                                        "id": "context_line",
                                                         "name": None,
                                                         "contributes": True,
                                                         "hint": None,
@@ -226,7 +226,7 @@ class GetStacktraceStringTest(TestCase):
                                                         "values": ["<module>"],
                                                     },
                                                     {
-                                                        "id": "context-line",
+                                                        "id": "context_line",
                                                         "name": None,
                                                         "contributes": True,
                                                         "hint": None,
@@ -262,7 +262,7 @@ class GetStacktraceStringTest(TestCase):
                                                         "values": ["divide_by_zero"],
                                                     },
                                                     {
-                                                        "id": "context-line",
+                                                        "id": "context_line",
                                                         "name": None,
                                                         "contributes": True,
                                                         "hint": None,
@@ -379,7 +379,7 @@ class GetStacktraceStringTest(TestCase):
                                         "values": ["index.php"],
                                     },
                                     {
-                                        "id": "context-line",
+                                        "id": "context_line",
                                         "contributes": True,
                                         "values": ["$server->emit($server->run());"],
                                     },
@@ -472,7 +472,7 @@ class GetStacktraceStringTest(TestCase):
                             "values": ["hello_there"],
                         },
                         {
-                            "id": "context-line",
+                            "id": "context_line",
                             "name": None,
                             "contributes": contributes,
                             "hint": None,

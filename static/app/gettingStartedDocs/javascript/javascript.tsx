@@ -36,7 +36,10 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
 
@@ -423,8 +426,8 @@ Sentry.init({
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // send console.log, console.error, and console.warn calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
 });
 \`\`\`
@@ -513,7 +516,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
             {tct('You can review or change these settings in [link:Project Settings].', {
               link: (
                 <Link
-                  to={`/settings/${params.organization.slug}/projects/${params.projectSlug}/loader-script/`}
+                  to={`/settings/${params.organization.slug}/projects/${params.project.slug}/loader-script/`}
                 />
               ),
             })}
@@ -573,7 +576,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           trackAnalytics('onboarding.js_loader_npm_docs_optional_shown', {
             organization: params.organization,
             platform: params.platformKey,
-            project_id: params.projectId,
+            project_id: params.project.id,
           });
         }
       },
@@ -594,7 +597,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -603,7 +606,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -611,7 +614,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     return ({previousProducts, products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         previousProducts,
         projectKey: params.projectKeyId,
@@ -623,7 +626,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     return products => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -689,7 +692,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -697,7 +700,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     return ({products}) => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -708,7 +711,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     return products => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
+        projectSlug: params.project.slug,
         products,
         projectKey: params.projectKeyId,
         api: params.api,
@@ -720,7 +723,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
         organization: params.organization,
         platform: params.platformKey,
-        project_id: params.projectId,
+        project_id: params.project.id,
       });
     };
   },
@@ -1004,6 +1007,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
   docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'javascript',
+  sdkPackage: '@sentry/browser',
+});
+
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
@@ -1088,6 +1097,7 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

@@ -15,7 +15,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
-describe('Dashboards > ReleaseWidgetQueries', function () {
+describe('Dashboards > ReleaseWidgetQueries', () => {
   const {organization} = initializeOrg();
 
   const badMessage = 'Bad request data';
@@ -73,15 +73,15 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
   const api = new MockApiClient();
 
-  beforeEach(function () {
+  beforeEach(() => {
     setMockDate(new Date('2022-08-02'));
   });
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     resetMockDate();
   });
 
-  it('can send chart requests', async function () {
+  it('can send chart requests', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`session.all`),
@@ -121,7 +121,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('fetches release data when sorting on release for metrics api', async function () {
+  it('fetches release data when sorting on release for metrics api', async () => {
     const mockRelease = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -189,7 +189,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('calls session api when session.status is a group by', async function () {
+  it('calls session api when session.status is a group by', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: MetricsFieldFixture(`count_unique(user)`),
@@ -234,7 +234,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     });
   });
 
-  it('appends dashboard filters to releases request', async function () {
+  it('appends dashboard filters to releases request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
@@ -264,7 +264,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('strips injected sort columns', async function () {
+  it('strips injected sort columns', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
@@ -464,7 +464,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('can send table requests', async function () {
+  it('can send table requests', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
@@ -569,7 +569,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('can send big number requests', async function () {
+  it('can send big number requests', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`count_unique(sentry.sessions.user)`),
@@ -617,7 +617,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('can send multiple API requests', async function () {
+  it('can send multiple API requests', async () => {
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
@@ -677,7 +677,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('sets errorMessage when the first request fails', async function () {
+  it('sets errorMessage when the first request fails', async () => {
     const failMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       statusCode: 400,
@@ -711,7 +711,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('adjusts interval based on date window', async function () {
+  it('adjusts interval based on date window', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
@@ -908,7 +908,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     expect(releasesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('escapes release versions with spaces and special characters', async function () {
+  it('escapes release versions with spaces and special characters', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`session.status`),

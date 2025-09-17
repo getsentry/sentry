@@ -11,18 +11,10 @@ from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOW
 pytestmark = pytest.mark.sentry_metrics
 
 
-class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
-    is_eap = False
 
-    @property
-    def dataset(self):
-        if self.is_eap:
-            return "spans"
-        else:
-            return "spansIndexed"
-
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -53,7 +45,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -62,14 +54,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
         assert response.data["meta"]["fields"]["count()"] == "integer"
 
         rows = data[0:6]
@@ -79,14 +71,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def test_handle_nans_from_snuba(self) -> None:
         self.store_spans(
             [self.create_span({"description": "foo"}, start_ts=self.day_ago)],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
             data={
                 "yAxis": "avg(measurements.lcp)",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "transformAliasToInputFormat": 1,
             },
         )
@@ -114,7 +106,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 self.create_span({"description": "bar"}, start_ts=self.day_ago),
                 self.create_span({"description": "bar"}, start_ts=self.two_days_ago),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -122,7 +114,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "field": ["span.description", "p50(measurements.lcp)", "avg(measurements.lcp)"],
                 "yAxis": ["p50(measurements.lcp)", "avg(measurements.lcp)"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 1,
                 "partial": 1,
@@ -165,7 +157,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -174,14 +166,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "interval": "1h",
                 "yAxis": "count_unique(foo)",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
         assert response.data["meta"]["fields"]["count_unique(foo)"] == "integer"
 
         rows = data[0:6]
@@ -199,7 +191,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for hour, duration in enumerate(event_durations)
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -209,14 +201,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "interval": "1h",
                 "yAxis": "p95()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "transformAliasToInputFormat": 1,
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
         rows = data[0:6]
         for test in zip(event_durations, rows):
@@ -239,7 +231,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -248,7 +240,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "interval": "1h",
                 "yAxis": ["count()", "p95()"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "transformAliasToInputFormat": 1,
             },
         )
@@ -282,28 +274,27 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ]
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
-        for axis in ["epm()", "spm()"]:
-            response = self._do_request(
-                data={
-                    "start": self.day_ago,
-                    "end": self.day_ago + timedelta(hours=6),
-                    "interval": "1h",
-                    "yAxis": axis,
-                    "project": self.project.id,
-                    "dataset": self.dataset,
-                    "transformAliasToInputFormat": 1,
-                },
-            )
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 6
-            assert response.data["meta"]["dataset"] == self.dataset
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": "epm()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == "spans"
 
-            rows = data[0:6]
-            for test in zip(event_counts, rows):
-                assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
+        rows = data[:6]
+        for test in zip(event_counts, rows):
+            self.assertAlmostEqual(test[1][1][0]["count"], test[0] / (3600.0 / 60.0))
 
     def test_throughput_epm_day_rollup(self) -> None:
         # Each of these denotes how many events to create in each minute
@@ -314,30 +305,28 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 [
                     self.create_span(
                         {"description": "foo", "sentry_tags": {"status": "success"}},
-                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                        start_ts=self.two_days_ago + timedelta(hours=hour, minutes=minute),
                     )
                     for minute in range(count)
                 ]
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
-        for axis in ["epm()", "spm()"]:
-            response = self._do_request(
-                data={
-                    "start": self.day_ago,
-                    "end": self.day_ago + timedelta(hours=24),
-                    "interval": "24h",
-                    "yAxis": axis,
-                    "project": self.project.id,
-                    "dataset": self.dataset,
-                    "transformAliasToInputFormat": 1,
-                },
-            )
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 2
-            assert response.data["meta"]["dataset"] == self.dataset
-            assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
+        response = self._do_request(
+            data={
+                "start": self.two_days_ago,
+                "end": self.day_ago,
+                "interval": "24h",
+                "yAxis": "epm()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert response.data["meta"]["dataset"] == "spans"
+        self.assertAlmostEqual(data[0][1][0]["count"], sum(event_counts) / (86400.0 / 60.0))
 
     def test_throughput_epm_hour_rollup_offset_of_hour(self) -> None:
         # Each of these denotes how many events to create in each hour
@@ -353,29 +342,33 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
-        for axis in ["epm()", "spm()"]:
-            response = self._do_request(
-                data={
-                    "start": self.day_ago + timedelta(minutes=30),
-                    "end": self.day_ago + timedelta(hours=6, minutes=30),
-                    "interval": "1h",
-                    "yAxis": axis,
-                    "project": self.project.id,
-                    "dataset": self.dataset,
-                    "transformAliasToInputFormat": 1,
-                },
-            )
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 6
-            assert response.data["meta"]["dataset"] == self.dataset
+        response = self._do_request(
+            data={
+                "start": self.day_ago + timedelta(minutes=30),
+                "end": self.day_ago + timedelta(hours=6, minutes=30),
+                "interval": "1h",
+                "yAxis": "epm()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 7
+        assert meta["dataset"] == "spans"
 
-            rows = data[0:6]
-            for test in zip(event_counts, rows):
-                assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
+        rows = data[0:6]
+        for test in zip(event_counts, rows):
+            self.assertAlmostEqual(test[1][1][0]["count"], test[0] / (3600.0 / 60.0))
 
+        assert meta["units"] == {"epm()": "1/minute"}
+        assert meta["fields"] == {"epm()": "rate"}
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
     def test_throughput_eps_minute_rollup(self) -> None:
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -390,7 +383,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for second in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         for axis in ["eps()", "sps()"]:
             response = self._do_request(
@@ -400,14 +393,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "dataset": self.dataset,
+                    "dataset": "spans",
                     "transformAliasToInputFormat": 1,
                 },
             )
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["meta"]["dataset"] == self.dataset
+            assert response.data["meta"]["dataset"] == "spans"
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -435,7 +428,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -447,7 +440,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "field": ["transaction", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -467,7 +460,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for expected, result in zip([0, 2, 0, 0, 0, 0], rows):
             assert result[1][0]["count"] == expected, "Other"
 
-        assert response.data["Other"]["meta"]["dataset"] == self.dataset
+        assert response.data["Other"]["meta"]["dataset"] == "spans"
 
     def test_top_events_empty_other(self) -> None:
         self.store_spans(
@@ -479,7 +472,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for transaction in ["foo", "bar"]
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -491,7 +484,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "field": ["transaction", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -504,10 +497,46 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             rows = response.data[key]["data"][0:6]
             for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
                 assert result[1][0]["count"] == expected, key
-        assert response.data["foo"]["meta"]["dataset"] == self.dataset
+        assert response.data["foo"]["meta"]["dataset"] == "spans"
+
+    def test_top_events_exclude_other(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": transaction, "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000 if transaction in ["foo", "bar"] else 100,
+                )
+                for transaction in ["foo", "bar", "qux"]
+            ],
+            is_eap=True,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["transaction", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 1,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "Other" not in response.data
+        assert "foo" in response.data
+        assert "bar" in response.data
+        for key in ["foo", "bar"]:
+            rows = response.data[key]["data"][0:6]
+            for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
+                assert result[1][0]["count"] == expected, key
+            assert response.data[key]["meta"]["dataset"] == "spans"
 
     def test_top_events_multi_y_axis(self) -> None:
-        # Each of these denotes how many events to create in each minute
         self.store_spans(
             [
                 self.create_span(
@@ -517,7 +546,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for transaction in ["foo", "bar", "baz"]
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -529,7 +558,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "field": ["transaction", "count()", "p50(span.duration)"],
                 "orderby": ["transaction"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -540,7 +569,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             assert key in response.data
             for y_axis in ["count()", "p50(span.duration)"]:
                 assert y_axis in response.data[key]
-                assert response.data[key][y_axis]["meta"]["dataset"] == self.dataset
+                assert response.data[key][y_axis]["meta"]["dataset"] == "spans"
             counts = response.data[key]["count()"]["data"][0:6]
             for expected, result in zip([0, 1, 0, 0, 0, 0], counts):
                 assert result[1][0]["count"] == expected, key
@@ -549,7 +578,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 assert result[1][0]["count"] == expected, key
 
     def test_top_events_with_project(self) -> None:
-        # Each of these denotes how many events to create in each minute
         projects = [self.create_project(), self.create_project()]
         self.store_spans(
             [
@@ -561,7 +589,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for project in projects
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
         self.store_spans(
             [
@@ -570,7 +598,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -581,7 +609,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count()",
                 "field": ["project", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -595,10 +623,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             rows = response.data[key]["data"][0:6]
             for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
                 assert result[1][0]["count"] == expected, key
-        assert response.data["Other"]["meta"]["dataset"] == self.dataset
+        assert response.data["Other"]["meta"]["dataset"] == "spans"
 
     def test_top_events_with_project_and_project_id(self) -> None:
-        # Each of these denotes how many events to create in each minute
         projects = [self.create_project(), self.create_project()]
         self.store_spans(
             [
@@ -610,7 +637,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for project in projects
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
         self.store_spans(
             [
@@ -619,7 +646,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -630,7 +657,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count()",
                 "field": ["project", "project.id", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -646,10 +673,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             rows = response.data[key]["data"][0:6]
             for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
                 assert result[1][0]["count"] == expected, key
-        assert response.data["Other"]["meta"]["dataset"] == self.dataset
+        assert response.data["Other"]["meta"]["dataset"] == "spans"
 
     def test_top_events_with_no_data(self) -> None:
-        # Each of these denotes how many events to create in each minute
         response = self._do_request(
             data={
                 "start": self.day_ago,
@@ -658,7 +684,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count()",
                 "field": ["project", "project.id", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -668,14 +694,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def test_count_unique_nans(self) -> None:
         self.store_span(
             self.create_span(start_ts=self.two_days_ago + timedelta(minutes=1)),
-            is_eap=self.is_eap,
+            is_eap=True,
         )
         response = self._do_request(
             data={
                 "field": ["count_unique(foo)"],
                 "yAxis": ["count_unique(foo)"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 1,
                 "partial": 1,
                 "per_page": 50,
@@ -685,10 +711,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             },
         )
         assert response.status_code == 200, response.content
-
-
-class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
-    is_eap = True
 
     def test_count_extrapolation(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -707,7 +729,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -716,13 +738,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
         rows = data[0:6]
         for test in zip(event_counts, rows):
@@ -745,7 +767,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -754,14 +776,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
         for expected, actual in zip(event_counts, data[0:6]):
             assert actual[1][0]["count"] == expected * 10
@@ -810,7 +832,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         y_axes = [
             "count()",
@@ -835,7 +857,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     "interval": "1h",
                     "yAxis": y_axis,
                     "project": self.project.id,
-                    "dataset": self.dataset,
+                    "dataset": "spans",
                 },
             )
             assert response.status_code == 200, (y_axis, response.content)
@@ -897,7 +919,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -906,7 +928,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1h",
                 "yAxis": ["count()", "p95(measurements.lcp)"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -981,7 +1003,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
         event_counts = [0, 1, 0, 0, 0, 0]
 
@@ -994,7 +1016,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "field": ["transaction", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -1028,7 +1050,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     assert actual["value"] == pytest.approx(0.1)
                 else:
                     assert actual["value"] is None
-            assert response.data["Other"]["meta"]["dataset"] == self.dataset
+            assert response.data["Other"]["meta"]["dataset"] == "spans"
 
     def test_comparison_delta(self) -> None:
         event_counts = [6, 0, 6, 4, 0, 4]
@@ -1049,7 +1071,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                         for minute in range(count)
                     ],
                 )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -1058,14 +1080,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "comparisonDelta": 24 * 60 * 60,
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 24
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
         rows = data[0:6]
         for expected, actual in zip(event_counts, rows):
@@ -1085,7 +1107,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -1094,131 +1116,19 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "comparisonDelta": 24 * 60 * 60,
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 24
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
         rows = data[0:6]
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0]
             assert test[1][1][0]["comparisonCount"] == 0
-
-    def test_throughput_epm_hour_rollup(self) -> None:
-        # Each of these denotes how many events to create in each hour
-        event_counts = [6, 0, 6, 3, 0, 3]
-        spans = []
-        for hour, count in enumerate(event_counts):
-            spans.extend(
-                [
-                    self.create_span(
-                        {"description": "foo", "sentry_tags": {"status": "success"}},
-                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
-                    )
-                    for minute in range(count)
-                ]
-            )
-        self.store_spans(spans, is_eap=self.is_eap)
-
-        response = self._do_request(
-            data={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=6),
-                "interval": "1h",
-                "yAxis": "epm()",
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "transformAliasToInputFormat": 1,
-            },
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
-
-        rows = data[:6]
-        for test in zip(event_counts, rows):
-            self.assertAlmostEqual(test[1][1][0]["count"], test[0] / (3600.0 / 60.0))
-
-    def test_throughput_epm_day_rollup(self) -> None:
-        # Each of these denotes how many events to create in each minute
-        event_counts = [6, 0, 6, 3, 0, 3]
-        spans = []
-        for hour, count in enumerate(event_counts):
-            spans.extend(
-                [
-                    self.create_span(
-                        {"description": "foo", "sentry_tags": {"status": "success"}},
-                        start_ts=self.two_days_ago + timedelta(hours=hour, minutes=minute),
-                    )
-                    for minute in range(count)
-                ]
-            )
-        self.store_spans(spans, is_eap=self.is_eap)
-
-        response = self._do_request(
-            data={
-                "start": self.two_days_ago,
-                "end": self.day_ago,
-                "interval": "24h",
-                "yAxis": "epm()",
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "transformAliasToInputFormat": 1,
-            },
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert response.data["meta"]["dataset"] == self.dataset
-        self.assertAlmostEqual(data[0][1][0]["count"], sum(event_counts) / (86400.0 / 60.0))
-
-    def test_throughput_epm_hour_rollup_offset_of_hour(self) -> None:
-        # Each of these denotes how many events to create in each hour
-        event_counts = [6, 0, 6, 3, 0, 3]
-        spans = []
-        for hour, count in enumerate(event_counts):
-            spans.extend(
-                [
-                    self.create_span(
-                        {"description": "foo", "sentry_tags": {"status": "success"}},
-                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute + 30),
-                    )
-                    for minute in range(count)
-                ],
-            )
-        self.store_spans(spans, is_eap=self.is_eap)
-
-        response = self._do_request(
-            data={
-                "start": self.day_ago + timedelta(minutes=30),
-                "end": self.day_ago + timedelta(hours=6, minutes=30),
-                "interval": "1h",
-                "yAxis": "epm()",
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "transformAliasToInputFormat": 1,
-            },
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 7
-        assert meta["dataset"] == self.dataset
-
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            self.assertAlmostEqual(test[1][1][0]["count"], test[0] / (3600.0 / 60.0))
-
-        assert meta["units"] == {"epm()": "1/minute"}
-        assert meta["fields"] == {"epm()": "rate"}
-
-    @pytest.mark.xfail(reason="epm not implemented yet")
-    def test_throughput_eps_minute_rollup(self) -> None:
-        super().test_throughput_eps_minute_rollup()
 
     def test_invalid_intervals(self) -> None:
         response = self._do_request(
@@ -1230,7 +1140,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "field": ["transaction", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -1245,15 +1155,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "field": ["transaction", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
         )
         assert response.status_code == 400, response.content
-
-    def test_handle_nans_from_snuba_top_n(self) -> None:
-        super().test_handle_nans_from_snuba_top_n()
 
     def test_project_filters(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -1268,7 +1175,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         for querystring in [f"project:{self.project.slug}", f"project:[{self.project.slug}]"]:
             response = self._do_request(
@@ -1279,13 +1186,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     "yAxis": "count()",
                     "query": querystring,
                     "project": self.project.id,
-                    "dataset": self.dataset,
+                    "dataset": "spans",
                 },
             )
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["meta"]["dataset"] == self.dataset
+            assert response.data["meta"]["dataset"] == "spans"
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -1300,7 +1207,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "yAxis": "count()",
                 "query": "project:foobar",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 400, response.content
@@ -1322,7 +1229,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         for querystring in ["device.class:low", "device.class:[low,medium]"]:
             response = self._do_request(
@@ -1333,13 +1240,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     "yAxis": "count()",
                     "query": querystring,
                     "project": self.project.id,
-                    "dataset": self.dataset,
+                    "dataset": "spans",
                 },
             )
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["meta"]["dataset"] == self.dataset
+            assert response.data["meta"]["dataset"] == "spans"
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -1375,7 +1282,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count[1])
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -1387,7 +1294,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "topEvents": 5,
                 "query": "",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -1431,7 +1338,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1444,7 +1351,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "count(span.self_time):>4",
                 "orderby": ["-count_span_self_time"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 5,
             },
@@ -1486,7 +1393,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1496,7 +1403,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "cache_miss_rate()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -1506,7 +1413,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0.0
         assert data[1][1][0]["count"] == 1.0
         assert data[2][1][0]["count"] == 0.25
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
     def test_trace_status_rate(self) -> None:
         self.store_spans(
@@ -1536,7 +1443,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1546,7 +1453,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "trace_status_rate(ok)",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -1556,7 +1463,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0.0
         assert data[1][1][0]["count"] == 0.5
         assert data[2][1][0]["count"] == 0.75
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
     def test_count_op(self) -> None:
         self.store_spans(
@@ -1574,7 +1481,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1584,7 +1491,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "count_op(queue.publish)",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -1594,7 +1501,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0.0
         assert data[1][1][0]["count"] == 2.0
         assert data[2][1][0]["count"] == 1.0
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
     def test_top_events_with_escape_characters(self) -> None:
         key = "test\\n*"
@@ -1618,7 +1525,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     duration=2000,
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1630,7 +1537,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "field": ["foo", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -1651,7 +1558,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "time_spent_percentage(span.self_time)",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
 
@@ -1678,7 +1585,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1689,7 +1596,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "span.module:http",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -1698,7 +1605,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0.0
         assert data[1][1][0]["count"] == 1.0
         assert data[2][1][0]["count"] == 0.0
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
     def test_module_alias_multi_value(self) -> None:
         self.store_spans(
@@ -1730,7 +1637,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1741,7 +1648,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "span.module:[http,cache]",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -1750,7 +1657,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0.0
         assert data[1][1][0]["count"] == 2.0
         assert data[2][1][0]["count"] == 0.0
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
     def test_http_response_rate(self) -> None:
         self.store_spans(
@@ -1780,7 +1687,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1791,7 +1698,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "",
                 "yAxis": ["http_response_rate(5)"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -1829,7 +1736,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -1840,7 +1747,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "",
                 "yAxis": ["http_response_rate(4)", "http_response_rate(5)"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -1868,7 +1775,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         span2["span_id"] = "b" * 16
         self.store_spans(
             [span, span2],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
         response = self._do_request(
             data={
@@ -1877,7 +1784,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "sampling": "PREFLIGHT",
             },
         )
@@ -1888,7 +1795,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0
         assert data[1][1][0]["count"] == 512  # The preflight table is 1/512 of the full table
         assert data[2][1][0]["count"] == 0
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
         assert response.data["meta"]["dataScanned"] == "partial"
 
         response = self._do_request(
@@ -1898,7 +1805,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "sampling": "BEST_EFFORT",
             },
         )
@@ -1909,7 +1816,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0
         assert data[1][1][0]["count"] == 2
         assert data[2][1][0]["count"] == 0
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
         assert response.data["meta"]["dataScanned"] == "full"
 
     @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
@@ -1928,7 +1835,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         span2["span_id"] = "b" * 16
         self.store_spans(
             [span, span2],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
         response = self._do_request(
             data={
@@ -1940,7 +1847,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "topEvents": 1,
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "sampling": "PREFLIGHT",
             },
         )
@@ -1962,7 +1869,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "topEvents": 1,
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "sampling": "BEST_EFFORT",
             },
         )
@@ -1983,7 +1890,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "",
                 "yAxis": ["count()"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 400, response.content
@@ -2003,7 +1910,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for _ in range(count)
                 ]
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
         response = self._do_request(
             data={
                 "start": self.day_ago,
@@ -2012,7 +1919,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "",
                 "yAxis": ["count()"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -2039,7 +1946,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         span2["span_id"] = "b" * 16
         self.store_spans(
             [span, span2],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
         response = self._do_request(
             data={
@@ -2048,7 +1955,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "sampling": "NORMAL",
             },
         )
@@ -2063,7 +1970,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "sampling": "PREFLIGHT",
             },
         )
@@ -2078,7 +1985,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
 
@@ -2092,7 +1999,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "sampling": "HIGHEST_ACCURACY",
             },
         )
@@ -2111,7 +2018,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -2119,7 +2026,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "field": ["is_transaction", "count(span.duration)"],
                 "yAxis": ["count(span.duration)"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 1,
                 "topEvents": 2,
                 "partial": 1,
@@ -2169,7 +2076,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 start_ts=self.day_ago + timedelta(hours=12, minutes=5),
             )
         )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         # This should be set to 10:00 the previous day
         query_start = self.day_ago + timedelta(minutes=12)
@@ -2181,13 +2088,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 13
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
         # The timestamp of the first event should be 10:00, and there should only be 1 event
         assert data[0] == (self.day_ago.timestamp(), [{"count": 1}])
         # The timestamp of the last event should be 22:00 and there should also only be 1 event
@@ -2204,7 +2111,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "field": ["timestamp", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -2227,7 +2134,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -2237,7 +2144,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": "equation|count() * 2",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -2247,7 +2154,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0.0
         assert data[1][1][0]["count"] == 4.0
         assert data[2][1][0]["count"] == 2.0
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
     def test_equation_all_symbols(self) -> None:
         self.store_spans(
@@ -2265,7 +2172,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         equation = "equation|count() * 2 + 2 - 2 / 2"
@@ -2276,7 +2183,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": equation,
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -2286,7 +2193,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0][1][0]["count"] == 0.0
         assert data[1][1][0]["count"] == 5.0
         assert data[2][1][0]["count"] == 3.0
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
     def test_simple_equation_with_multi_axis(self) -> None:
         self.store_spans(
@@ -2304,7 +2211,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -2314,7 +2221,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1m",
                 "yAxis": ["equation|count() * 2", "equation|count() - 2"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -2366,7 +2273,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=True,
         )
 
         response = self._do_request(
@@ -2379,7 +2286,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "field": ["description", "equation|count() * 2"],
                 "orderby": "-equation|count() * 2",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
             },
         )
         assert response.status_code == 200, response.content
@@ -2414,7 +2321,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=self.is_eap)
+        self.store_spans(spans, is_eap=True)
 
         response = self._do_request(
             data={
@@ -2423,14 +2330,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "disableAggregateExtrapolation": 1,
             },
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataset"] == "spans"
 
         rows = data[0:6]
         for test in zip(event_counts, rows):
@@ -2449,7 +2356,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "",
                 "yAxis": ["count()"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "debug": True,
             },
         )
@@ -2470,7 +2377,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "query": "",
                 "yAxis": ["count()"],
                 "project": self.project.id,
-                "dataset": self.dataset,
+                "dataset": "spans",
                 "debug": True,
             },
         )
@@ -2484,3 +2391,41 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "aggregate"
             ]
         )
+
+    def test_groupby_non_existent_attribute(self):
+        self.store_spans(
+            [
+                self.create_span({"description": "span"}, start_ts=self.day_ago),
+                self.create_span({"description": "span"}, start_ts=self.day_ago),
+                self.create_span(
+                    {
+                        "description": "span",
+                        "tags": {"foo": "foo"},
+                        "measurements": {"bar": {"value": 1}},
+                    },
+                    start_ts=self.day_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count(span.duration)",
+                "field": ["foo", "tags[bar,number]", "count(span.duration)"],
+                "orderby": ["-count(span.duration)"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        count_none = sum(entry[1][0]["count"] for entry in response.data["None,None"]["data"])
+        assert count_none == 2
+
+        count_foo_1 = sum(entry[1][0]["count"] for entry in response.data["foo,1.0"]["data"])
+        assert count_foo_1 == 1

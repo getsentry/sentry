@@ -23,7 +23,11 @@ class VstsSearchEndpoint(SourceCodeSearchEndpoint):
         return VstsIntegration
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
-        with self.record_event(SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES).capture():
+        with self.record_event(
+            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES,
+            organization_id=installation.organization_id,
+            integration_id=installation.org_integration.integration_id,
+        ).capture():
             if not query:
                 return Response([])
 

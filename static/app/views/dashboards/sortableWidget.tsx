@@ -1,4 +1,4 @@
-import {type ComponentProps, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -10,18 +10,18 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
 import {
+  WidgetType,
   type DashboardFilters,
   type DashboardPermissions,
   type Widget,
   type WidgetQuery,
-  WidgetType,
 } from './types';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 

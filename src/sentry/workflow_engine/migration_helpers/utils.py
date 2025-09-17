@@ -3,6 +3,8 @@ from typing import cast
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 MAX_ACTIONS = 3
 
@@ -13,6 +15,16 @@ ACTION_TYPE_TO_STRING = {
     AlertRuleTriggerAction.Type.OPSGENIE.value: "Opsgenie",
     AlertRuleTriggerAction.Type.DISCORD.value: "Discord",
 }
+
+
+def get_resolve_threshold(condition_group: DataConditionGroup) -> float:
+    """
+    Returns the resolution threshold for a static or percent-based metric issue
+    """
+    resolve_condition = DataCondition.objects.get(
+        condition_result=DetectorPriorityLevel.OK, condition_group=condition_group
+    )
+    return resolve_condition.comparison
 
 
 def get_action_description(action: AlertRuleTriggerAction) -> str:

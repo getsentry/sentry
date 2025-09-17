@@ -18,6 +18,16 @@ GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_failure"
 The GroupType slug for UptimeDomainCheckFailure GroupTypes.
 """
 
+DEFAULT_RECOVERY_THRESHOLD = 1
+"""
+Default number of consecutive successful checks required to mark monitor as recovered.
+"""
+
+DEFAULT_DOWNTIME_THRESHOLD = 3
+"""
+Default number of consecutive failed checks required to mark monitor as down.
+"""
+
 RegionScheduleMode = Literal["round_robin"]
 """
 Defines how we'll schedule checks based on other active regions.
@@ -112,7 +122,6 @@ class EapCheckEntry:
     """
 
     uptime_check_id: str
-    uptime_monitor_id: int
     timestamp: datetime
     scheduled_check_time: datetime
     check_status: CheckStatus
@@ -135,6 +144,8 @@ class UptimeSummary:
     failed_checks: int
     downtime_checks: int
     missed_window_checks: int
+    # TODO(epurkhiser): Remove None option once we're only using the uptime results table
+    avg_duration_us: float | None
 
 
 class UptimeMonitorMode(enum.IntEnum):
@@ -144,7 +155,3 @@ class UptimeMonitorMode(enum.IntEnum):
     AUTO_DETECTED_ONBOARDING = 2
     # Auto-detected by our system and actively monitoring
     AUTO_DETECTED_ACTIVE = 3
-
-
-# TODO(epurkhiser): interop with getsentry
-ProjectUptimeSubscriptionMode = UptimeMonitorMode

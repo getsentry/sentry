@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
@@ -16,7 +16,6 @@ import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
-  areWildcardOperatorsAllowed,
   formatFilterValue,
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -24,8 +23,8 @@ import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuil
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
@@ -33,8 +32,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {prettifyTagKey} from 'sentry/utils/fields';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -49,13 +47,6 @@ interface FilterValueProps extends SearchQueryTokenProps {
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
-  const hasWildcardOperators = useOrganization().features.includes(
-    'search-query-builder-wildcard-operators'
-  );
-  const fieldDefinition = useMemo(
-    () => getFieldDefinition(token.key.text),
-    [token.key.text]
-  );
 
   if (token.filter === FilterType.HAS) {
     return (
@@ -71,39 +62,21 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const items = token.value.items;
 
       if (items.length === 1 && items[0]!.value) {
-        const allContains =
-          items[0]!.value.type === Token.VALUE_TEXT && !!items[0]!.value.wildcard;
-
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue({
-              token: items[0]!.value,
-              stripWildcards:
-                allContains &&
-                hasWildcardOperators &&
-                areWildcardOperatorsAllowed(fieldDefinition),
-            })}
+            {formatFilterValue({token: items[0]!.value})}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
-      const allContains = items.every(
-        item => item?.value?.type === Token.VALUE_TEXT && item.value.wildcard
-      );
 
       return (
         <FilterValueList>
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {formatFilterValue({
-                  token: item.value!,
-                  stripWildcards:
-                    allContains &&
-                    hasWildcardOperators &&
-                    areWildcardOperatorsAllowed(fieldDefinition),
-                })}
+                {formatFilterValue({token: item.value!})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -122,17 +95,9 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       );
     }
     default: {
-      const allContains = token.value.type === Token.VALUE_TEXT && !!token.value.wildcard;
-
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue({
-            token: token.value,
-            stripWildcards:
-              allContains &&
-              hasWildcardOperators &&
-              areWildcardOperatorsAllowed(fieldDefinition),
-          })}
+          {formatFilterValue({token: token.value})}
         </FilterValueSingleTruncatedValue>
       );
     }

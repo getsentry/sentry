@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 import pytest
 from django.conf import settings
 
@@ -18,7 +20,7 @@ class UserSubscriptionsNewsletterTest(APITestCase):
     method = "put"
 
     @pytest.fixture(autouse=True)
-    def enable_newsletter(self):
+    def enable_newsletter(self) -> Generator[None]:
         with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
             yield
 

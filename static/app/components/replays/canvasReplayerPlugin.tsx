@@ -1,15 +1,15 @@
-import * as Sentry from '@sentry/react';
 import {
   canvasMutation,
+  EventType,
+  IncrementalSource,
   type canvasMutationData,
   type canvasMutationParam,
-  EventType,
   type eventWithTime,
-  IncrementalSource,
   type Replayer,
   type ReplayPlugin,
 } from '@sentry-internal/rrweb';
 import type {CanvasArg} from '@sentry-internal/rrweb-types';
+import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {deserializeCanvasArg} from './deserializeCanvasArgs';
@@ -232,9 +232,9 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
   // event for all canvas mutation events before the current replay time
   const debouncedProcessQueuedEvents = debounce(
     function processQueuedEvents() {
-      const canvasIds = Array.from(canvases.keys());
       const queuedEventIds = Array.from(handleQueue.keys());
       const queuedEventIdsSet = new Set(queuedEventIds);
+      const canvasIds = Array.from(canvases.keys());
       const unusedCanvases = canvasIds.filter(id => !queuedEventIdsSet.has(id));
 
       // Compare the canvas ids from canvas mutation events against existing
@@ -243,7 +243,8 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       unusedCanvases.forEach(id => {
         const el = containers.get(id);
         if (el) {
-          el.src = '';
+          // this is valid URL for a blank image
+          el.src = 'data:,';
         }
       });
 
@@ -332,7 +333,8 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
       if (node.nodeName === 'CANVAS' && node.nodeType === 1) {
         // Add new image container that will be written to
-        const el = containers.get(id) || document.createElement('img');
+        const ownerDoc = (node as Element).ownerDocument || document;
+        const el = containers.get(id) || ownerDoc.createElement('img');
         (node as HTMLCanvasElement).appendChild(el);
         containers.set(id, el);
       }
@@ -343,6 +345,9 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       if (!queueItem) {
         return;
       }
+      // Ensure that queued calls from `processEventSync` (e.g. when you seek into the middle of the replay) is called before continue to process the current event.
+      // Otherwise, if it runs after `processEvent`, `processQueuedEvents` will incorrectly clear the canvas assuming that the last queued event == current event.
+      debouncedProcessQueuedEvents.flush();
       const [event, replayer] = queueItem;
       processEvent(event, {replayer}).catch(handleProcessEventError);
     },

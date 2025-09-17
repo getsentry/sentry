@@ -38,7 +38,7 @@ class TestNotificationUtilities(TestCase):
         self,
         actual: Mapping[Actor, Mapping[str, RpcIntegration | Integration]],
         expected: Mapping[User, Mapping[str, RpcIntegration | Integration]],
-    ):
+    ) -> None:
         assert actual == {Actor.from_orm_user(k): v for (k, v) in expected.items()}
 
     def test_simple(self) -> None:

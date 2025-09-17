@@ -3,13 +3,12 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, Protocol, TypedDict
 
-import sentry_sdk
+from django.core.exceptions import ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import GroupEvent
 from sentry.incidents.grouptype import MetricIssueEvidenceData
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -18,17 +17,21 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -206,16 +209,13 @@ class BaseIssueAlertHandler(ABC):
         This method will collect the futures from the activate_downstream_actions method.
         Based off of rule_processor.apply in rules/processing/processor.py
         """
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.invoke_legacy_registry.activate_downstream_actions"
-        ):
-            if not isinstance(event_data.event, GroupEvent):
-                raise ValueError(
-                    f"WorkflowEventData.event expected GroupEvent, but received: {type(event_data.event).__name__}"
-                )
+        if not isinstance(event_data.event, GroupEvent):
+            raise ValueError(
+                f"WorkflowEventData.event expected GroupEvent, but received: {type(event_data.event).__name__}"
+            )
 
-            grouped_futures = activate_downstream_actions(rule, event_data.event, notification_uuid)
-            return grouped_futures.values()
+        grouped_futures = activate_downstream_actions(rule, event_data.event, notification_uuid)
+        return grouped_futures.values()
 
     @staticmethod
     def execute_futures(
@@ -228,16 +228,13 @@ class BaseIssueAlertHandler(ABC):
         This method will execute the futures.
         Based off of process_rules in post_process.py
         """
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
-        ):
-            if not isinstance(event_data.event, GroupEvent):
-                raise ValueError(
-                    "WorkflowEventData.event is not a GroupEvent when evaluating issue alerts"
-                )
+        if not isinstance(event_data.event, GroupEvent):
+            raise ValueError(
+                "WorkflowEventData.event is not a GroupEvent when evaluating issue alerts"
+            )
 
-            for callback, future in futures:
-                safe_execute(callback, event_data.event, future)
+        for callback, future in futures:
+            safe_execute(callback, event_data.event, future)
 
     @staticmethod
     def send_test_notification(
@@ -255,11 +252,8 @@ class BaseIssueAlertHandler(ABC):
                 "WorkflowEventData.event is not a GroupEvent when sending test notification"
             )
 
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
-        ):
-            for callback, future in futures:
-                callback(event_data.event, future)
+        for callback, future in futures:
+            callback(event_data.event, future)
 
     @classmethod
     def invoke_legacy_registry(
@@ -275,38 +269,34 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
+        # Create a notification uuid
+        notification_uuid = str(uuid.uuid4())
 
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.invoke_legacy_registry"
-        ):
-            # Create a notification uuid
-            notification_uuid = str(uuid.uuid4())
+        # Create a rule
+        rule = cls.create_rule_instance_from_action(action, detector, event_data)
 
-            # Create a rule
-            rule = cls.create_rule_instance_from_action(action, detector, event_data)
+        logger.info(
+            "notification_action.execute_via_issue_alert_handler",
+            extra={
+                "action_id": action.id,
+                "detector_id": detector.id,
+                "event_data": asdict(event_data),
+                "rule_id": rule.id,
+                "rule_project_id": rule.project.id,
+                "rule_environment_id": rule.environment_id,
+                "rule_label": rule.label,
+                "rule_data": rule.data,
+            },
+        )
+        # Get the futures
+        futures = cls.get_rule_futures(event_data, rule, notification_uuid)
 
-            logger.info(
-                "notification_action.execute_via_issue_alert_handler",
-                extra={
-                    "action_id": action.id,
-                    "detector_id": detector.id,
-                    "event_data": asdict(event_data),
-                    "rule_id": rule.id,
-                    "rule_project_id": rule.project.id,
-                    "rule_environment_id": rule.environment_id,
-                    "rule_label": rule.label,
-                    "rule_data": rule.data,
-                },
-            )
-            # Get the futures
-            futures = cls.get_rule_futures(event_data, rule, notification_uuid)
-
-            # Execute the futures
-            # If the rule id is -1, we are sending a test notification
-            if rule.id == TEST_NOTIFICATION_ID:
-                cls.send_test_notification(event_data, futures)
-            else:
-                cls.execute_futures(event_data, futures)
+        # Execute the futures
+        # If the rule id is -1, we are sending a test notification
+        if rule.id == TEST_NOTIFICATION_ID:
+            cls.send_test_notification(event_data, futures)
+        else:
+            cls.execute_futures(event_data, futures)
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
@@ -349,25 +339,28 @@ class BaseMetricAlertHandler(ABC):
         detector: Detector,
         evidence_data: MetricIssueEvidenceData,
         group_status: GroupStatus,
-        priority_level: int | None,
+        detector_priority_level: DetectorPriorityLevel,
     ) -> AlertContext:
         return AlertContext.from_workflow_engine_models(
-            detector, evidence_data, group_status, priority_level
+            detector, evidence_data, group_status, detector_priority_level
         )
 
     @classmethod
     def build_metric_issue_context(
-        cls, group: Group, evidence_data: MetricIssueEvidenceData, priority_level: int | None
+        cls,
+        group: Group,
+        evidence_data: MetricIssueEvidenceData,
+        detector_priority_level: DetectorPriorityLevel,
     ) -> MetricIssueContext:
-        return MetricIssueContext.from_group_event(group, evidence_data, priority_level)
+        return MetricIssueContext.from_group_event(group, evidence_data, detector_priority_level)
 
     @classmethod
-    def build_open_period_context(cls, event: GroupEvent) -> OpenPeriodContext:
-        return OpenPeriodContext.from_group(event.group)
+    def build_open_period_context(cls, group: Group) -> OpenPeriodContext:
+        return OpenPeriodContext.from_group(group)
 
     @classmethod
-    def get_trigger_status(cls, event: GroupEvent) -> TriggerStatus:
-        if event.group.status == GroupStatus.RESOLVED or event.group.status == GroupStatus.IGNORED:
+    def get_trigger_status(cls, group: Group) -> TriggerStatus:
+        if group.status == GroupStatus.RESOLVED or group.status == GroupStatus.IGNORED:
             return TriggerStatus.RESOLVED
         return TriggerStatus.ACTIVE
 
@@ -385,6 +378,46 @@ class BaseMetricAlertHandler(ABC):
     ) -> None:
         raise NotImplementedError
 
+    @staticmethod
+    def _extract_from_group_event(
+        event: GroupEvent,
+    ) -> tuple[MetricIssueEvidenceData, DetectorPriorityLevel]:
+        """
+        Extract evidence data and priority from a GroupEvent
+        """
+
+        if event.occurrence is None:
+            raise ValueError("Event occurrence is required for alert context")
+
+        if event.occurrence.priority is None:
+            raise ValueError("Event occurrence priority is required for alert context")
+
+        evidence_data = MetricIssueEvidenceData(**event.occurrence.evidence_data)
+        priority = DetectorPriorityLevel(event.occurrence.priority)
+        return evidence_data, priority
+
+    @staticmethod
+    def _extract_from_activity(
+        event: Activity,
+    ) -> tuple[MetricIssueEvidenceData, DetectorPriorityLevel]:
+        """
+        Extract evidence data and priority from an Activity event
+        """
+
+        if event.type != ActivityType.SET_RESOLVED.value:
+            raise ValueError(
+                "Activity type must be SET_RESOLVED to invoke metric alert legacy registry"
+            )
+
+        if event.data is None or not event.data:
+            raise ValueError("Activity data is required for alert context")
+
+        evidence_data_dict = dict(event.data)
+        priority = DetectorPriorityLevel.OK
+        evidence_data = MetricIssueEvidenceData(**evidence_data_dict)
+
+        return evidence_data, priority
+
     @classmethod
     def invoke_legacy_registry(
         cls,
@@ -392,54 +425,121 @@ class BaseMetricAlertHandler(ABC):
         action: Action,
         detector: Detector,
     ) -> None:
-        if not isinstance(event_data.event, GroupEvent):
+
+        event = event_data.event
+
+        # Extract evidence data and priority based on event type
+        if isinstance(event, GroupEvent):
+            evidence_data, priority = cls._extract_from_group_event(event)
+        elif isinstance(event, Activity):
+            # we only want to fire resolution activities if we are single processing
+            if not features.has(
+                "organizations:workflow-engine-single-process-metric-issues",
+                event_data.group.organization,
+            ):
+                return
+
+            evidence_data, priority = cls._extract_from_activity(event)
+        else:
             raise ValueError(
-                "WorkflowEventData.event must be a GroupEvent to invoke metric alert legacy registry"
+                "WorkflowEventData.event must be a GroupEvent or Activity to invoke metric alert legacy registry"
             )
 
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.metric_alert.invoke_legacy_registry"
-        ):
-            event = event_data.event
-            if not isinstance(event, GroupEvent) or event.occurrence is None:
-                raise ValueError("Event occurrence is required for alert context")
+        notification_context = cls.build_notification_context(action)
+        alert_context = cls.build_alert_context(
+            detector, evidence_data, event_data.group.status, priority
+        )
 
-            evidence_data = MetricIssueEvidenceData(**event.occurrence.evidence_data)
+        metric_issue_context = cls.build_metric_issue_context(
+            event_data.group, evidence_data, priority
+        )
+        open_period_context = cls.build_open_period_context(event_data.group)
 
-            notification_context = cls.build_notification_context(action)
-            alert_context = cls.build_alert_context(
-                detector, evidence_data, event_data.group.status, event.occurrence.priority
-            )
+        trigger_status = cls.get_trigger_status(event_data.group)
 
-            metric_issue_context = cls.build_metric_issue_context(
-                event_data.group, evidence_data, event.occurrence.priority
-            )
-            open_period_context = cls.build_open_period_context(event)
+        notification_uuid = str(uuid.uuid4())
 
-            trigger_status = cls.get_trigger_status(event)
+        logger.info(
+            "notification_action.execute_via_metric_alert_handler",
+            extra={
+                "action_id": action.id,
+                "detector_id": detector.id,
+                "event_data": asdict(event_data),
+                "notification_context": asdict(notification_context),
+                "alert_context": asdict(alert_context),
+                "metric_issue_context": asdict(metric_issue_context),
+                "open_period_context": asdict(open_period_context),
+                "trigger_status": trigger_status,
+            },
+        )
+        cls.send_alert(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            trigger_status=trigger_status,
+            notification_uuid=notification_uuid,
+            organization=detector.project.organization,
+            project=detector.project,
+        )
 
-            notification_uuid = str(uuid.uuid4())
 
-            logger.info(
-                "notification_action.execute_via_metric_alert_handler",
-                extra={
-                    "action_id": action.id,
-                    "detector_id": detector.id,
-                    "event_data": asdict(event_data),
-                    "notification_context": asdict(notification_context),
-                    "alert_context": asdict(alert_context),
-                    "metric_issue_context": asdict(metric_issue_context),
-                    "open_period_context": asdict(open_period_context),
-                    "trigger_status": trigger_status,
-                },
-            )
-            cls.send_alert(
-                notification_context=notification_context,
-                alert_context=alert_context,
-                metric_issue_context=metric_issue_context,
-                open_period_context=open_period_context,
-                trigger_status=trigger_status,
-                notification_uuid=notification_uuid,
-                organization=detector.project.organization,
-                project=detector.project,
-            )
+class NotificationActionForm(Protocol):
+    """Protocol for notification action forms since they have various inheritance layers and but all have the same __init__ signature"""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+
+    def is_valid(self) -> bool: ...
+
+    @property
+    def cleaned_data(self) -> dict[str, Any]: ...
+
+    @property
+    def errors(self) -> dict[str, Any]: ...
+
+
+def _get_integrations(organization: Organization, provider: str) -> list[RpcIntegration]:
+    return integration_service.get_integrations(
+        organization_id=organization.id,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        providers=[provider],
+    )
+
+
+class BaseActionValidatorHandler(ABC):
+    provider: str
+    notify_action_form: type[NotificationActionForm] | None
+
+    def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None:
+        self.validated_data = validated_data
+        self.organization = organization
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        return {
+            "data": self.generate_action_form_data(),
+            "integrations": _get_integrations(self.organization, self.provider),
+        }
+
+    def clean_data(self) -> dict[str, Any]:
+        if self.notify_action_form is None:
+            return self.validated_data
+
+        notify_action_form = self.notify_action_form(
+            **self.generate_action_form_payload(),
+        )
+
+        if notify_action_form.is_valid():
+            return self.update_action_data(notify_action_form.cleaned_data)
+
+        raise ValidationError(notify_action_form.errors)
+
+    @abstractmethod
+    def generate_action_form_data(self) -> dict[str, Any]:
+        # translate validated data from BaseActionValidator to notify action form data
+        pass
+
+    @abstractmethod
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        # update BaseActionValidator data with cleaned notify action form data
+        pass

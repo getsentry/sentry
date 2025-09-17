@@ -52,14 +52,14 @@ export function SvgIcon(props: IconProps) {
     return (
       <svg
         role="img"
-        viewBox={'1.25 1.25 13.5 13.5'}
+        viewBox={'1 1 14 14'}
         height={size}
         width={size}
         fill="none"
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.25px"
+        strokeWidth="1px"
         {...rest}
       />
     );

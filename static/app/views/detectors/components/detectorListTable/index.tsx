@@ -1,7 +1,6 @@
-import type {ComponentProps} from 'react';
+import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -9,17 +8,21 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
 import {
   DetectorListRow,
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
+import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 type DetectorListTableProps = {
+  allResultsVisible: boolean;
   detectors: Detector[];
   isError: boolean;
   isPending: boolean;
   isSuccess: boolean;
+  queryCount: string;
   sort: Sort | undefined;
 };
 
@@ -72,41 +75,105 @@ function DetectorListTable({
   isError,
   isSuccess,
   sort,
+  queryCount,
+  allResultsVisible,
 }: DetectorListTableProps) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const detectorIds = new Set(detectors.map(d => d.id));
+  const togglePageSelected = (pageSelected: boolean) => {
+    if (pageSelected) {
+      setSelected(detectorIds);
+    } else {
+      setSelected(new Set<string>());
+    }
+  };
+  const pageSelected = detectorIds.difference(selected).size === 0;
+
+  const handleSelect = useCallback(
+    (id: string) => {
+      const newSelected = new Set(selected);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      setSelected(newSelected);
+    },
+    [selected]
+  );
+
+  const canEnable = useMemo(
+    () => detectors.some(d => selected.has(d.id) && !d.enabled),
+    [detectors, selected]
+  );
+  const canDisable = useMemo(
+    () => detectors.some(d => selected.has(d.id) && d.enabled),
+    [detectors, selected]
+  );
+
+  const selectedDetectors = detectors.filter(d => selected.has(d.id));
+  const canEditDetectors = useCanEditDetectors({detectors: selectedDetectors});
+
   return (
     <Container>
       <DetectorListSimpleTable>
-        <SimpleTable.Header>
-          <HeaderCell sortKey="name" sort={sort}>
-            {t('Name')}
-          </HeaderCell>
-          <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
-            {t('Type')}
-          </HeaderCell>
-          <HeaderCell data-column-name="last-issue" divider sort={sort}>
-            {t('Last Issue')}
-          </HeaderCell>
-          <HeaderCell data-column-name="assignee" divider sort={sort}>
-            {t('Assignee')}
-          </HeaderCell>
-          <HeaderCell
-            data-column-name="connected-automations"
-            divider
-            sortKey="connectedWorkflows"
-            sort={sort}
-          >
-            {t('Automations')}
-          </HeaderCell>
-        </SimpleTable.Header>
-        {isError && <LoadingError message={t('Error loading monitors')} />}
-        {isPending && <LoadingSkeletons />}
-        {isSuccess && detectors.length > 0 ? (
-          detectors.map(detector => (
-            <DetectorListRow key={detector.id} detector={detector} />
-          ))
+        {selected.size === 0 ? (
+          <SimpleTable.Header>
+            <HeaderCell sortKey="name" sort={sort}>
+              <NamePadding>{t('Name')}</NamePadding>
+            </HeaderCell>
+            <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
+              {t('Type')}
+            </HeaderCell>
+            <HeaderCell
+              data-column-name="last-issue"
+              divider
+              sortKey="latestGroup"
+              sort={sort}
+            >
+              {t('Last Issue')}
+            </HeaderCell>
+            <HeaderCell data-column-name="assignee" divider sort={sort}>
+              {t('Assignee')}
+            </HeaderCell>
+            <HeaderCell
+              data-column-name="connected-automations"
+              divider
+              sortKey="connectedWorkflows"
+              sort={sort}
+            >
+              {t('Automations')}
+            </HeaderCell>
+          </SimpleTable.Header>
         ) : (
+          <DetectorsTableActions
+            key="actions"
+            selected={selected}
+            pageSelected={pageSelected}
+            togglePageSelected={togglePageSelected}
+            queryCount={queryCount}
+            allResultsVisible={allResultsVisible}
+            showDisable={canDisable}
+            showEnable={canEnable}
+            canEdit={canEditDetectors}
+            // TODO: Check if metric detector limit is reached
+            detectorLimitReached={false}
+          />
+        )}
+        {isError && <SimpleTable.Empty>{t('Error loading monitors')}</SimpleTable.Empty>}
+        {isPending && <LoadingSkeletons />}
+        {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
         )}
+        {detectors.map(detector => (
+          <DetectorListRow
+            key={detector.id}
+            detector={detector}
+            selected={selected.has(detector.id)}
+            onSelect={handleSelect}
+          />
+        ))}
       </DetectorListSimpleTable>
     </Container>
   );
@@ -114,6 +181,10 @@ function DetectorListTable({
 
 const Container = styled('div')`
   container-type: inline-size;
+`;
+
+const NamePadding = styled('div')`
+  padding-left: 28px;
 `;
 
 const DetectorListSimpleTable = styled(SimpleTable)`

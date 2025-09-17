@@ -11,10 +11,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
-import {getRelativeDate} from 'sentry/components/timeSince';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -29,25 +27,23 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
-import {traceAnalytics} from './traceAnalytics';
 import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
-import TraceTypeWarnings from './traceTypeWarnings';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceIssuesOnLoad} from './useTraceOnLoad';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
+import {useTraceWaterfallModels} from './useTraceWaterfallModels';
 
 const noopTraceSearch = () => {};
 
@@ -88,7 +84,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     null
   );
 
-  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
+  const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
@@ -123,29 +119,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     [organization, projects, traceDispatch]
   );
 
-  const {
-    data: {hasExceededPerformanceUsageLimit},
-    isLoading: isLoadingSubscriptionDetails,
-  } = usePerformanceSubscriptionDetails();
-
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    const traceTimestamp = props.tree.root.children[0]?.space?.[0];
-    const traceAge = defined(traceTimestamp)
-      ? getRelativeDate(traceTimestamp, 'ago')
-      : 'unknown';
+    const traceNode = props.tree.root.children[0];
 
-    if (!isLoadingSubscriptionDetails) {
-      traceAnalytics.trackTraceShape(
-        props.tree,
-        projectsRef.current,
-        props.organization,
-        hasExceededPerformanceUsageLimit,
-        'issue_details',
-        traceAge
-      );
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
     }
 
     // Construct the visual representation of the tree
@@ -200,7 +181,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
         for (const o of n.occurrences) {
-          if (o.event_id === props.event.occurrence?.id) {
+          if (o.event_id === props.event.eventID) {
             return true;
           }
         }
@@ -315,10 +296,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     viewManager,
     traceScheduler,
     props.tree,
-    props.organization,
     props.event,
-    isLoadingSubscriptionDetails,
-    hasExceededPerformanceUsageLimit,
     problemSpans.affectedSpanIds,
   ]);
 
@@ -343,11 +321,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   return (
     <Fragment>
-      <TraceTypeWarnings
-        tree={props.tree}
-        traceSlug={props.traceSlug}
-        organization={organization}
-      />
       <IssuesTraceGrid
         layout={traceState.preferences.layout}
         rowCount={
@@ -383,9 +356,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         </IssuesTraceContainer>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
-          <TraceWaterfallState.Loading />
+          <TraceWaterfallState.Loading trace={props.trace} />
         ) : props.tree.type === 'error' ? (
-          <TraceWaterfallState.Error />
+          <TraceWaterfallState.Error trace={props.trace} />
         ) : props.tree.type === 'empty' ? (
           <TraceWaterfallState.Empty />
         ) : null}

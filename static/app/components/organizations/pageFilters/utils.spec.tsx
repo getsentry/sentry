@@ -1,6 +1,6 @@
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 
-describe('isSelectionEqual', function () {
+describe('isSelectionEqual', () => {
   const base = {
     projects: [1, 2],
     environments: ['prod'],
@@ -12,7 +12,7 @@ describe('isSelectionEqual', function () {
     },
   };
 
-  it('compares projects', function () {
+  it('compares projects', () => {
     let changed = {...base, projects: [1]};
     expect(isSelectionEqual(base, changed)).toBe(false);
 
@@ -23,7 +23,7 @@ describe('isSelectionEqual', function () {
     expect(isSelectionEqual(base, changed)).toBe(false);
   });
 
-  it('compares environments', function () {
+  it('compares environments', () => {
     let changed = {...base, environments: ['staging']};
     expect(isSelectionEqual(base, changed)).toBe(false);
 
@@ -34,13 +34,13 @@ describe('isSelectionEqual', function () {
     expect(isSelectionEqual(base, changed)).toBe(false);
   });
 
-  it('compares period', function () {
+  it('compares period', () => {
     const changed = {...base};
     changed.datetime.period = '7d';
     expect(isSelectionEqual(base, changed)).toBe(true);
   });
 
-  it('compares start/end safely', function () {
+  it('compares start/end safely', () => {
     // Same datetime but different object.
     const changed = {
       ...base,
@@ -49,7 +49,7 @@ describe('isSelectionEqual', function () {
     expect(isSelectionEqual(base, changed)).toBe(false);
   });
 
-  it('compares start/end as value', function () {
+  it('compares start/end as value', () => {
     // Same datetime but different object.
     let changed = {
       ...base,

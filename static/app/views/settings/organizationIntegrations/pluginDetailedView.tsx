@@ -18,10 +18,10 @@ import type {
 } from 'sentry/types/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -39,6 +39,9 @@ import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import PluginDeprecationAlert from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
+
+// TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
+const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
 
 function makePluginQueryKey({
   orgSlug,
@@ -323,8 +326,9 @@ function PluginDetailedView() {
               hideButtonIfDisabled={false}
               requiresAccess={false}
               renderTopButton={
-                // TODO @sentaur-athena: remove this once we have a solution to deprecate the heroku plugin
-                plugin.id === 'heroku' ? renderTopButton : renderDeprecatedButton
+                TEMPORARY_PERMITTED_PLUGINS.has(plugin.id)
+                  ? renderTopButton
+                  : renderDeprecatedButton
               }
             />
           }

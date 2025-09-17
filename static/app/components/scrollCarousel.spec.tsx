@@ -2,7 +2,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 
-describe('ScrollCarousel', function () {
+describe('ScrollCarousel', () => {
   let intersectionOnbserverCb: (
     entries: Array<Partial<IntersectionObserverEntry>>
   ) => void = jest.fn();
@@ -22,7 +22,7 @@ describe('ScrollCarousel', function () {
     disconnect() {}
   };
 
-  it('hides arrows if content does not overflow in x', function () {
+  it('hides arrows if content does not overflow in x', () => {
     render(
       <ScrollCarousel aria-label="example">
         <div data-test-id="child-1" />
@@ -40,7 +40,7 @@ describe('ScrollCarousel', function () {
     expect(screen.queryByRole('button', {name: 'Scroll right'})).not.toBeInTheDocument();
   });
 
-  it('shows right arrow when elements exist to the right', async function () {
+  it('shows right arrow when elements exist to the right', async () => {
     render(
       <ScrollCarousel aria-label="example" data-test-id="scroll">
         <div data-test-id="child-1" />
@@ -74,7 +74,7 @@ describe('ScrollCarousel', function () {
     expect(scrollContainer.scrollTo).toHaveBeenCalled();
   });
 
-  it('shows left arrow when elements exist to the left', async function () {
+  it('shows left arrow when elements exist to the left', async () => {
     render(
       <ScrollCarousel aria-label="example" data-test-id="scroll">
         <div data-test-id="child-1" />

@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceNPlusOneExperimentalGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.performance_issues.base import DetectorType
@@ -23,7 +23,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 
 @pytest.mark.django_db
 class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
-    fingerprint_prefix = "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES_EXPERIMENTAL"
+    fingerprint_prefix = "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
 
     def setUp(self) -> None:
         super().setUp()
@@ -46,14 +46,14 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
 
     def test_detects_n_plus_one_with_unparameterized_query(
         self,
-    ):
+    ) -> None:
         event = get_event("n-plus-one-in-django-index-view-unparameterized")
         assert self.find_problems(event) == [
             PerformanceProblem(
                 fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = 1 LIMIT 21",
-                type=PerformanceNPlusOneExperimentalGroupType,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=["8dd7a5869a4f4583"],
                 cause_span_ids=["9179e43ae844b174"],
                 offender_span_ids=[
@@ -102,13 +102,13 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
 
     def test_does_not_detect_n_plus_one_with_source_redis_query_with_noredis_detector(
         self,
-    ):
+    ) -> None:
         event = get_event("n-plus-one-in-django-index-view-source-redis")
         assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one_with_repeating_redis_query_with_noredis_detector(
         self,
-    ):
+    ) -> None:
         event = get_event("n-plus-one-in-django-index-view-repeating-redis")
         assert self.find_problems(event) == []
 
@@ -127,7 +127,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
                 fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                type=PerformanceNPlusOneExperimentalGroupType,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=["8dd7a5869a4f4583"],
                 cause_span_ids=["9179e43ae844b174"],
                 offender_span_ids=[
@@ -165,7 +165,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
 
     def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
         self,
-    ):
+    ) -> None:
         index_n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         new_n_plus_one_event = get_event("n-plus-one-in-django-new-view")
 
@@ -186,7 +186,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
             PerformanceProblem(
                 fingerprint=f"{self.fingerprint_prefix}-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
                 op="db",
-                type=PerformanceNPlusOneExperimentalGroupType,
+                type=PerformanceNPlusOneGroupType,
                 desc='SELECT "expense_expenses"."id", "expense_expenses"."report_id", "expense_expenses"."amount" FROM "expense_expenses" WHERE "expense_expenses"."report_id" = %s',
                 parent_span_ids=["81a4b462bdc5c764"],
                 cause_span_ids=["99797d06e2fa9750"],
@@ -250,7 +250,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
                 fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                type=PerformanceNPlusOneExperimentalGroupType,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=["8dd7a5869a4f4583"],
                 cause_span_ids=["9179e43ae844b174"],
                 offender_span_ids=[
@@ -310,7 +310,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
                 fingerprint=f"{self.fingerprint_prefix}-4e7d5e9be7cb7af2dc8af3ab6be354707e3ab2bc",
                 op="db",
                 desc='{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}',
-                type=PerformanceNPlusOneExperimentalGroupType,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=["991fdf5c47a068b0"],
                 cause_span_ids=["398687f1a7e9cf73"],
                 offender_span_ids=offender_spans_ids,

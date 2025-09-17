@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsExperimentalGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.performance_issues.base import DetectorType, parameterize_url
 from sentry.performance_issues.detectors.experiments.n_plus_one_api_calls_detector import (
     NPlusOneAPICallsExperimentalDetector,
@@ -26,7 +26,7 @@ from sentry.testutils.performance_issues.event_generators import (
 
 @pytest.mark.django_db
 class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
-    type_id = PerformanceNPlusOneAPICallsExperimentalGroupType.type_id
+    type_id = PerformanceNPlusOneAPICallsGroupType.type_id
 
     def setUp(self) -> None:
         super().setUp()
@@ -79,7 +79,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
             PerformanceProblem(
                 fingerprint=f"1-{self.type_id}-d750ce46bb1b13dd5780aac48098d5e20eea682c",
                 op="http.client",
-                type=PerformanceNPlusOneAPICallsExperimentalGroupType,
+                type=PerformanceNPlusOneAPICallsGroupType,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
                 parent_span_ids=["a0c39078d1570b00"],
                 cause_span_ids=[],
@@ -145,7 +145,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
-        assert problems[0].title == "N+1 API Call (Experimental)"
+        assert problems[0].title == "N+1 API Call"
 
     def test_does_not_detect_problems_with_low_total_duration_of_spans(self) -> None:
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
@@ -300,6 +300,18 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
 
         assert problem1.fingerprint == problem2.fingerprint
 
+    def test_does_not_include_empty_path_params_in_evidence(self) -> None:
+        """Test that empty path_params lists are properly filtered out."""
+        # Create URLs that have no path parameters (only query parameters)
+        # This would result in path_params being a list of empty lists [[], [], []]
+        event = self.create_event(lambda i: f"GET /api/users?user_id={i}")
+        [problem] = self.find_problems(event)
+
+        assert problem.evidence_data is not None
+        # If `path_params` is a list of empty lists, we shouldn't return any path parameters
+        path_params = problem.evidence_data.get("path_parameters", [])
+        assert path_params == []
+
 
 @pytest.mark.parametrize(
     "url,parameterized_url",
@@ -428,8 +440,10 @@ def test_parameterizes_url(url, parameterized_url) -> None:
         },
     ],
 )
+@pytest.mark.django_db
 def test_allows_eligible_spans(span) -> None:
-    assert NPlusOneAPICallsExperimentalDetector.is_span_eligible(span)
+    detector = NPlusOneAPICallsExperimentalDetector(get_detection_settings(), {})
+    assert detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
@@ -486,8 +500,10 @@ def test_allows_eligible_spans(span) -> None:
         },
     ],
 )
+@pytest.mark.django_db
 def test_rejects_ineligible_spans(span) -> None:
-    assert not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span)
+    detector = NPlusOneAPICallsExperimentalDetector(get_detection_settings(), {})
+    assert not detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(

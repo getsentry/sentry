@@ -1,7 +1,10 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
+import {type PaymentIntentResult} from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -10,7 +13,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import type {SubmitData} from 'getsentry/components/creditCardForm';
 import CreditCardForm from 'getsentry/components/creditCardForm';
+import StripeCreditCardForm from 'getsentry/components/stripeForms/stripeCreditCardForm';
 import type {Invoice, PaymentCreateResponse} from 'getsentry/types';
+import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -35,18 +40,17 @@ function InvoiceDetailsPaymentForm({
     undefined
   );
   const location = useLocation();
+  const endpoint = `/organizations/${invoice.customer.slug}/payments/${invoice.id}/new/`;
 
   const loadData = useCallback(async () => {
     setIntentError(undefined);
     try {
-      const payload: PaymentCreateResponse = await api.requestPromise(
-        `/organizations/${invoice.customer.slug}/payments/${invoice.id}/new/`
-      );
+      const payload: PaymentCreateResponse = await api.requestPromise(endpoint);
       setIntentData(payload);
     } catch (e) {
       setIntentError(t('Unable to initialize payment, please try again later.'));
     }
-  }, [api, invoice.customer.slug, invoice.id]);
+  }, [api, endpoint]);
 
   useEffect(() => {
     loadData();
@@ -70,7 +74,7 @@ function InvoiceDetailsPaymentForm({
         payment_method: {card: cardElement},
         return_url: intentData.returnUrl,
       })
-      .then((result: stripe.PaymentIntentResponse) => {
+      .then((result: PaymentIntentResult) => {
         if (result.error) {
           setIntentError(result.error.message);
           return;
@@ -86,24 +90,46 @@ function InvoiceDetailsPaymentForm({
   }
   const error = validationError || intentError;
   const errorRetry = intentError ? () => loadData() : undefined;
+  const shouldUseStripe = hasStripeComponentsFeature(organization);
+  const commonProps = {
+    referrer: decodeScalar(location?.query?.referrer),
+    buttonText: t('Pay Now'),
+    error,
+  };
 
   return (
     <Fragment>
       <Header>{t('Pay Invoice')}</Header>
       <Body>
-        <p>
-          {tct('Complete payment for [amount] USD', {
-            amount: displayPriceWithCents({cents: invoice.amountBilled ?? 0}),
-          })}
-        </p>
-        <CreditCardForm
-          buttonText={t('Pay Now')}
-          error={error}
-          errorRetry={errorRetry}
-          footerClassName="modal-footer"
-          onCancel={() => closeModal()}
-          onSubmit={handleSubmit}
-        />
+        <Flex direction="column" gap="sm">
+          <Text as="p">
+            {tct('Complete payment for [amount] USD', {
+              amount: displayPriceWithCents({cents: invoice.amountBilled ?? 0}),
+            })}
+          </Text>
+          {shouldUseStripe ? (
+            <StripeCreditCardForm
+              onCancel={() => closeModal()}
+              amount={invoice.amountBilled ?? 0}
+              cardMode={'payment'}
+              onSuccess={() => {
+                reloadInvoice();
+                closeModal();
+              }}
+              organization={organization}
+              intentDataEndpoint={endpoint}
+              {...commonProps}
+            />
+          ) : (
+            <CreditCardForm
+              errorRetry={errorRetry}
+              footerClassName="modal-footer"
+              onCancel={() => closeModal()}
+              onSubmit={handleSubmit}
+              {...commonProps}
+            />
+          )}
+        </Flex>
       </Body>
     </Fragment>
   );

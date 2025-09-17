@@ -10,6 +10,7 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.models.commitcomparison import CommitComparison
 
 
 @region_silo_model
@@ -111,7 +112,14 @@ class PreprodArtifact(DefaultFieldsModel):
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)
 
-    commit = FlexibleForeignKey("sentry.Commit", null=True, on_delete=models.SET_NULL)
+    commit_comparison = FlexibleForeignKey(
+        "sentry.CommitComparison", null=True, on_delete=models.SET_NULL
+    )
+
+    # DEPRECATED, soon to be removed
+    commit = FlexibleForeignKey(
+        "sentry.Commit", null=True, on_delete=models.SET_NULL, db_constraint=False
+    )
 
     # Installable file like IPA or APK
     installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
@@ -124,6 +132,137 @@ class PreprodArtifact(DefaultFieldsModel):
 
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
+
+    def get_sibling_artifacts_for_commit(self) -> models.QuerySet["PreprodArtifact"]:
+        """
+        Get all artifacts for the same commit comparison (monorepo scenario).
+
+        Note: Always includes the calling artifact itself along with any siblings.
+        Results are filtered by the current artifact's organization for security.
+
+        Returns:
+            QuerySet of PreprodArtifact objects, ordered by app_id for stable results
+        """
+        if not self.commit_comparison:
+            return PreprodArtifact.objects.none()
+
+        return PreprodArtifact.objects.filter(
+            commit_comparison=self.commit_comparison,
+            project__organization_id=self.project.organization_id,
+        ).order_by("app_id")
+
+    def get_base_artifact_for_commit(
+        self, artifact_type: ArtifactType | None = None
+    ) -> models.QuerySet["PreprodArtifact"]:
+        """
+        Get the base artifact for the same commit comparison (monorepo scenario).
+        Multiple artifacts can share the same commit comparison, but only one should
+        match the same (app_id, artifact_type, build_configuration) combination.
+        """
+        if not self.commit_comparison:
+            return PreprodArtifact.objects.none()
+
+        try:
+            base_commit_comparison = CommitComparison.objects.get(
+                head_sha=self.commit_comparison.base_sha,
+                organization_id=self.project.organization_id,
+            )
+        except CommitComparison.DoesNotExist:
+            return PreprodArtifact.objects.none()
+
+        return PreprodArtifact.objects.filter(
+            commit_comparison=base_commit_comparison,
+            project__organization_id=self.project.organization_id,
+            app_id=self.app_id,
+            artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
+            build_configuration=self.build_configuration,
+        )
+
+    def get_head_artifacts_for_commit(
+        self, artifact_type: ArtifactType | None = None
+    ) -> models.QuerySet["PreprodArtifact"]:
+        """
+        Get all head artifacts for the same commit comparison (monorepo scenario).
+        There can be multiple head artifacts for a commit comparison, as multiple
+        CommitComparisons can have the same base SHA.
+        """
+        if not self.commit_comparison:
+            return PreprodArtifact.objects.none()
+
+        head_commit_comparisons = CommitComparison.objects.filter(
+            base_sha=self.commit_comparison.head_sha,
+            organization_id=self.project.organization_id,
+        )
+
+        return PreprodArtifact.objects.filter(
+            commit_comparison__in=head_commit_comparisons,
+            project__organization_id=self.project.organization_id,
+            app_id=self.app_id,
+            artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
+        )
+
+    def get_size_metrics(
+        self,
+        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        identifier: str | None = None,
+    ) -> models.QuerySet["PreprodArtifactSizeMetrics"]:
+        """Get size metrics for this artifact with optional filtering."""
+        queryset = self.preprodartifactsizemetrics_set.all()
+
+        if metrics_artifact_type is not None:
+            queryset = queryset.filter(metrics_artifact_type=metrics_artifact_type)
+
+        if identifier is not None:
+            queryset = queryset.filter(identifier=identifier)
+
+        return queryset
+
+    @classmethod
+    def get_size_metrics_for_artifacts(
+        cls,
+        artifacts: models.QuerySet["PreprodArtifact"] | list["PreprodArtifact"],
+        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        identifier: str | None = None,
+    ) -> dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]]:
+        """
+        Get size metrics for multiple artifacts using a single query.
+
+        Returns:
+            Dict mapping artifact_id -> QuerySet of size metrics
+        """
+        from sentry.preprod.models import PreprodArtifactSizeMetrics
+
+        if isinstance(artifacts, list):
+            artifact_ids = [a.id for a in artifacts]
+        else:
+            artifact_ids = list(artifacts.values_list("id", flat=True))
+
+        if not artifact_ids:
+            return {}
+
+        queryset = PreprodArtifactSizeMetrics.objects.filter(preprod_artifact_id__in=artifact_ids)
+
+        if metrics_artifact_type is not None:
+            queryset = queryset.filter(metrics_artifact_type=metrics_artifact_type)
+
+        if identifier is not None:
+            queryset = queryset.filter(identifier=identifier)
+
+        # Group results by artifact_id
+        results: dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]] = {}
+        for artifact_id in artifact_ids:
+            results[artifact_id] = queryset.filter(preprod_artifact_id=artifact_id)
+
+        return results
+
+    def is_android(self) -> bool:
+        return (
+            self.artifact_type == self.ArtifactType.AAB
+            or self.artifact_type == self.ArtifactType.APK
+        )
+
+    def is_ios(self) -> bool:
+        return self.artifact_type == self.ArtifactType.XCARCHIVE
 
     class Meta:
         app_label = "preprod"
@@ -213,6 +352,9 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         choices=MetricsArtifactType.as_choices(), null=True
     )
 
+    # Some apps can have multiple ArtifactTypes (e.g. Android dynamic features) so need an identifier to differentiate.
+    identifier = models.CharField(max_length=255, null=True)
+
     # Size analysis processing state
     state = BoundedPositiveIntegerField(
         default=SizeAnalysisState.PENDING, choices=SizeAnalysisState.as_choices()
@@ -235,7 +377,20 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizemetrics"
-        unique_together = ("preprod_artifact", "metrics_artifact_type")
+        constraints = [
+            # Unique constraint that properly handles NULL values
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type", "identifier"],
+                name="preprod_artifact_size_metrics_unique",
+                condition=models.Q(identifier__isnull=False),
+            ),
+            # Additional unique constraint for records without identifier
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type"],
+                name="preprod_artifact_size_metrics_unique_no_identifier",
+                condition=models.Q(identifier__isnull=True),
+            ),
+        ]
 
 
 @region_silo_model
@@ -261,3 +416,76 @@ class InstallablePreprodArtifact(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_installablepreprodartifact"
+
+
+@region_silo_model
+class PreprodArtifactSizeComparison(DefaultFieldsModel):
+    """
+    Represents a size comparison between two preprod artifact size analyses.
+    This is created when a user manually compares builds or when Git based comparisons are run.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    head_size_analysis = FlexibleForeignKey(
+        "preprod.PreprodArtifactSizeMetrics",
+        on_delete=models.CASCADE,
+        related_name="size_comparisons_head_size_analysis",
+    )
+    base_size_analysis = FlexibleForeignKey(
+        "preprod.PreprodArtifactSizeMetrics",
+        on_delete=models.CASCADE,
+        related_name="size_comparisons_base_size_analysis",
+    )
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+
+    # File id of the size diff json in filestore
+    file_id = BoundedBigIntegerField(db_index=True, null=True)
+
+    class State(IntEnum):
+        PENDING = 0
+        """The comparison has not started yet."""
+        PROCESSING = 1
+        """The comparison is in progress."""
+        SUCCESS = 2
+        """The comparison completed successfully."""
+        FAILED = 3
+        """The comparison failed. See error_code and error_message for details."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.PENDING, "pending"),
+                (cls.PROCESSING, "processing"),
+                (cls.SUCCESS, "success"),
+                (cls.FAILED, "failed"),
+            )
+
+    # The state of the comparison
+    state = BoundedPositiveIntegerField(
+        default=State.PENDING,
+        choices=State.as_choices(),
+    )
+
+    class ErrorCode(IntEnum):
+        UNKNOWN = 0
+        """The error code is unknown. Try to use a descriptive error code if possible."""
+        TIMEOUT = 1
+        """The size analysis comparison timed out."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.UNKNOWN, "unknown"),
+                (cls.TIMEOUT, "timeout"),
+            )
+
+    # Set when state is FAILED
+    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
+    error_message = models.TextField(null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodartifactsizecomparison"
+        unique_together = ("organization_id", "head_size_analysis", "base_size_analysis")

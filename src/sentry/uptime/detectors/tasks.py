@@ -25,9 +25,8 @@ from sentry.uptime.detectors.ranking import (
     should_detect_for_organization,
     should_detect_for_project,
 )
-from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
-    create_project_uptime_subscription,
+    create_uptime_detector,
     delete_uptime_detector,
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
@@ -36,6 +35,7 @@ from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.models.detector import Detector
 
 UPTIME_USER_AGENT = "SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/)"
 LAST_PROCESSED_KEY = "uptime_detector_last_processed"
@@ -249,7 +249,7 @@ def process_candidate_url(
     return True
 
 
-def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscription:
+def monitor_url_for_project(project: Project, url: str) -> Detector:
     """
     Start monitoring a url for a project. Creates a subscription using our onboarding interval and links the project to
     it. Also deletes any other auto-detected monitors since this one should replace them.
@@ -257,7 +257,7 @@ def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscrip
     for uptime_detector in get_auto_monitored_detectors_for_project(project):
         delete_uptime_detector(uptime_detector)
     metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
-    return create_project_uptime_subscription(
+    return create_uptime_detector(
         project,
         # TODO(epurkhiser): This is where we would put the environment object
         # from autodetection if we decide to do that.

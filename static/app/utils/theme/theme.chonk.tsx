@@ -1,5 +1,5 @@
 import type React from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled, {
   type CreateStyledComponent,
   type FilteringStyledOptions,
@@ -943,11 +943,6 @@ const generateAliases = (
     warning: colors.yellow200,
     warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Background of alert banners at the top
-   */
-  bannerBackground: colors.gray500,
 });
 
 const fontSize = {

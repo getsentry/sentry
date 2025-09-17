@@ -1,18 +1,19 @@
 import {ErrorDetectorFixture} from 'sentry-fixture/detectors';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ErrorDetectorDetails} from 'sentry/views/detectors/components/details/error';
 
-describe('ErrorDetectorDetails', function () {
+describe('ErrorDetectorDetails', () => {
   const defaultProps = {
     detector: ErrorDetectorFixture(),
     project: ProjectFixture(),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
@@ -28,10 +29,23 @@ describe('ErrorDetectorDetails', function () {
       method: 'GET',
       body: [GroupFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/1/',
+      method: 'GET',
+      body: UserFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: GroupFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/open-periods/`,
+      body: [],
+    });
   });
 
-  describe('Resolve section', function () {
-    it('displays the auto-resolve time when it is configured', async function () {
+  describe('Resolve section', () => {
+    it('displays the auto-resolve time when it is configured', async () => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
@@ -47,7 +61,7 @@ describe('ErrorDetectorDetails', function () {
       ).toBeInTheDocument();
     });
 
-    it('displays correct text when auto-resolve is disabled', async function () {
+    it('displays correct text when auto-resolve is disabled', async () => {
       const project = ProjectFixture({resolveAge: 0});
 
       render(<ErrorDetectorDetails {...defaultProps} project={project} />);

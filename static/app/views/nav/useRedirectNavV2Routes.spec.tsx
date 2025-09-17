@@ -1,9 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
 const mockUsingCustomerDomain = jest.fn();
@@ -39,51 +37,9 @@ describe('useRedirectNavV2Routes', () => {
     slug: 'org-slug',
   });
 
-  beforeEach(() => {
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {
-          ...UserFixture().options,
-          prefersStackedNavigation: true,
-        },
-      })
-    );
-  });
-
   describe('customer domain', () => {
     beforeEach(() => {
       mockUsingCustomerDomain.mockReturnValue(true);
-    });
-
-    it('should not redirect if does not prefer stacked navigation', () => {
-      ConfigStore.set(
-        'user',
-        UserFixture({
-          options: {
-            ...UserFixture().options,
-            prefersStackedNavigation: false,
-          },
-        })
-      );
-
-      render(
-        <TestComponent oldPathPrefix="/projects/" newPathPrefix="/insights/projects/" />,
-        {
-          organization: OrganizationFixture({
-            slug: 'org-slug',
-            features: [],
-          }),
-
-          initialRouterConfig: {
-            location: {
-              pathname: '/projects/123/',
-            },
-          },
-        }
-      );
-
-      expect(screen.getByText('no redirect')).toBeInTheDocument();
     });
 
     it('should redirect on match', () => {
@@ -163,6 +119,19 @@ describe('useRedirectNavV2Routes', () => {
       );
 
       expect(screen.getByText('no redirect')).toBeInTheDocument();
+    });
+
+    it('handles settings routes', () => {
+      render(<TestComponent oldPathPrefix="/stats/" newPathPrefix="/settings/stats/" />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/stats/',
+          },
+        },
+      });
+
+      expect(screen.getByText('/settings/org-slug/stats/')).toBeInTheDocument();
     });
   });
 });

@@ -13,8 +13,7 @@
         "value": {
           "type": "valueText",
           "value": "release",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -34,8 +33,7 @@
         "value": {
           "type": "valueText",
           "value": "hi:there",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}
@@ -55,8 +53,7 @@
         "value": {
           "type": "valueText",
           "value": "hi there",
-          "quoted": true,
-          "wildcard": false
+          "quoted": true
         }
       },
       {"type": "spaces", "value": ""}

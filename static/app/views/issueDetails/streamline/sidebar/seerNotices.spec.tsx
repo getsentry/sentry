@@ -1,14 +1,12 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
-describe('SeerNotices', function () {
+describe('SeerNotices', () => {
   const createRepository = (overrides = {}) => ({
     external_id: 'repo-123',
     name: 'org/repo',
@@ -51,7 +49,6 @@ describe('SeerNotices', function () {
       url: `/projects/${organization.slug}/${ProjectFixture().slug}/autofix-repos/`,
       body: [createRepository()],
     });
-    ConfigStore.set('user', UserFixture());
   });
 
   it('shows automation step if automation is allowed and tuning is off', async () => {
@@ -90,13 +87,6 @@ describe('SeerNotices', function () {
       },
     });
     const project = getProjectWithAutomation('high');
-    ConfigStore.set('user', {
-      ...ConfigStore.get('user'),
-      options: {
-        ...ConfigStore.get('user').options,
-        prefersStackedNavigation: true,
-      },
-    });
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
       organization: {
         ...organization,

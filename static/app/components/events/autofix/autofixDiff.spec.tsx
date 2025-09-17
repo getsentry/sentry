@@ -14,7 +14,7 @@ import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('AutofixDiff', function () {
+describe('AutofixDiff', () => {
   const defaultProps = {
     diff: [AutofixDiffFilePatch()],
     groupId: '1',
@@ -27,7 +27,7 @@ describe('AutofixDiff', function () {
     (addErrorMessage as jest.Mock).mockClear();
   });
 
-  it('displays a modified file diff correctly', function () {
+  it('displays a modified file diff correctly', () => {
     render(<AutofixDiff {...defaultProps} />);
 
     // File path
@@ -72,7 +72,7 @@ describe('AutofixDiff', function () {
     expect(screen.getAllByTestId('line-context')).toHaveLength(6);
   });
 
-  it('can collapse a file diff', async function () {
+  it('can collapse a file diff', async () => {
     render(<AutofixDiff {...defaultProps} />);
 
     expect(screen.getAllByTestId('line-context')).toHaveLength(6);
@@ -86,7 +86,7 @@ describe('AutofixDiff', function () {
     expect(screen.getAllByTestId('line-context')).toHaveLength(6);
   });
 
-  it('can edit changes', async function () {
+  it('can edit changes', async () => {
     render(<AutofixDiff {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit changes'}));
@@ -119,7 +119,7 @@ describe('AutofixDiff', function () {
     ).toHaveLength(1); // one in the header of the diff and none in the popup
   });
 
-  it('can reject changes', async function () {
+  it('can reject changes', async () => {
     render(<AutofixDiff {...defaultProps} />);
 
     MockApiClient.addMockResponse({
@@ -135,7 +135,7 @@ describe('AutofixDiff', function () {
     expect(screen.queryByTestId('line-removed')).not.toBeInTheDocument();
   });
 
-  it('shows error message on failed edit', async function () {
+  it('shows error message on failed edit', async () => {
     render(<AutofixDiff {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit changes'}));
@@ -159,7 +159,7 @@ describe('AutofixDiff', function () {
     });
   });
 
-  it('does not show edit buttons when editable is false', function () {
+  it('does not show edit buttons when editable is false', () => {
     render(<AutofixDiff {...defaultProps} editable={false} />);
 
     expect(screen.queryByRole('button', {name: 'Edit changes'})).not.toBeInTheDocument();

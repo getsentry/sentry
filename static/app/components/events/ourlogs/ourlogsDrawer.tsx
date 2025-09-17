@@ -19,7 +19,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
@@ -30,21 +29,26 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface LogIssueDrawerProps {
   event: Event;
   group: Group;
   project: Project;
+  embeddedOptions?: {
+    openWithExpandedIds?: string[];
+  };
 }
 
-export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
+export function OurlogsDrawer({
+  event,
+  project,
+  group,
+  embeddedOptions,
+}: LogIssueDrawerProps) {
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
-  const hasInfiniteFeature = useOrganization().features.includes(
-    'ourlogs-infinite-scroll'
-  );
+
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemAttributes('string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
@@ -89,11 +93,11 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
         </EventNavigator>
         <EventDrawerBody ref={containerRef}>
           <LogsTableContainer>
-            {hasInfiniteFeature ? (
-              <LogsInfiniteTable embedded scrollContainer={containerRef} />
-            ) : (
-              <LogsTable allowPagination embedded />
-            )}
+            <LogsInfiniteTable
+              embedded
+              scrollContainer={containerRef}
+              embeddedOptions={embeddedOptions}
+            />
           </LogsTableContainer>
         </EventDrawerBody>
       </EventDrawerContainer>

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -7,6 +7,8 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {AggregateProfileSource} from 'sentry/utils/analytics/profilingAnalyticsEvents';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
@@ -19,10 +21,14 @@ import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirt
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {
+  VirtualizedTreeRenderedRow,
+  VirtualizedTreeRenderedRowHandlers,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
@@ -68,13 +74,17 @@ function makeSortFunction(
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          return b.node.node.aggregate_duration_ns - a.node.node.aggregate_duration_ns;
+          const avgA = a.node.frame.averageCallDuration || 0;
+          const avgB = b.node.frame.averageCallDuration || 0;
+          return avgB - avgA;
         }
       : (
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          return a.node.node.aggregate_duration_ns - b.node.node.aggregate_duration_ns;
+          const avgA = a.node.frame.averageCallDuration || 0;
+          const avgB = b.node.frame.averageCallDuration || 0;
+          return avgA - avgB;
         };
   }
 
@@ -104,17 +114,21 @@ function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
 interface AggregateFlamegraphTreeTableProps {
   canvasPoolManager: CanvasPoolManager;
   frameFilter: 'system' | 'application' | 'all';
+  profileType: AggregateProfileSource;
   recursion: 'collapsed' | null;
   expanded?: boolean;
   withoutBorders?: boolean;
 }
 
 export function AggregateFlamegraphTreeTable({
+  canvasPoolManager,
   expanded,
+  profileType,
   recursion,
   frameFilter,
   withoutBorders,
 }: AggregateFlamegraphTreeTableProps) {
+  const organization = useOrganization();
   const dispatch = useDispatchFlamegraphState();
   const profiles = useFlamegraphProfiles();
   const profileGroup = useProfileGroup();
@@ -204,14 +218,14 @@ export function AggregateFlamegraphTreeTable({
   const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r: any,
+        r: VirtualizedTreeRenderedRow<FlamegraphFrame>,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }: any
+        }: VirtualizedTreeRenderedRowHandlers<FlamegraphFrame>
       ) => {
         return (
           <CallTreeTableRow
@@ -239,6 +253,15 @@ export function AggregateFlamegraphTreeTable({
                   abbreviation
                 />
               }
+              showAvg
+              avgWeight={
+                defined(r.item.node.frame.averageCallDuration) ? (
+                  <PerformanceDuration
+                    nanoseconds={r.item.node.frame.averageCallDuration}
+                    abbreviation
+                  />
+                ) : undefined
+              }
               selfWeight={r.item.node.node.totalWeight.toFixed(0)}
               relativeSelfWeight={relativeWeight(
                 referenceNode.node.totalWeight,
@@ -259,14 +282,14 @@ export function AggregateFlamegraphTreeTable({
   const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r: any,
+        r: VirtualizedTreeRenderedRow<FlamegraphFrame>,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }: any
+        }: VirtualizedTreeRenderedRowHandlers<FlamegraphFrame>
       ) => {
         return (
           <CallTreeTableRow
@@ -324,13 +347,14 @@ export function AggregateFlamegraphTreeTable({
     containerStyles: fixedContainerStyles,
     handleSortingChange,
     handleExpandTreeNode,
-    handleRowClick,
+    handleRowClick: _handleRowClick,
     handleRowKeyDown,
     handleRowMouseEnter,
     selectedNodeIndex,
-    clickedGhostRowRef: clickedGhostRowRef,
-    hoveredGhostRowRef: hoveredGhostRowRef,
-  } = useVirtualizedTree({
+    clickedGhostRowRef,
+    hoveredGhostRowRef,
+    getNodeAtIndex,
+  } = useVirtualizedTree<FlamegraphFrame>({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
@@ -340,6 +364,20 @@ export function AggregateFlamegraphTreeTable({
     tree,
     virtualizedTree,
   });
+
+  const handleRowClick = useCallback(
+    (index: number) => {
+      const handler = _handleRowClick(index);
+      return function (evt: React.MouseEvent<HTMLElement>) {
+        const frame: FlamegraphFrame | undefined = getNodeAtIndex(index);
+        if (frame) {
+          canvasPoolManager.dispatch('highlight frame', [[frame], 'selected']);
+        }
+        handler(evt);
+      };
+    },
+    [canvasPoolManager, _handleRowClick, getNodeAtIndex]
+  );
 
   const onSortChange = useCallback(
     (newSort: 'sample count' | 'duration' | 'name') => {
@@ -399,9 +437,9 @@ export function AggregateFlamegraphTreeTable({
             <CallTreeTableHeaderButton onClick={onSortByDuration}>
               <InteractionStateLayer />
               <span>
-                {t('Duration')}{' '}
+                {t('Average Duration')}{' '}
                 <QuestionTooltip
-                  title={t('Aggregated duration of this frame across different samples')}
+                  title={t('Average duration of this frame across different samples.')}
                   size="sm"
                   position="top"
                 />
@@ -435,8 +473,15 @@ export function AggregateFlamegraphTreeTable({
             <div ref={setFixedScrollContainerRef} style={scrollContainerStyles}>
               <div style={fixedContainerStyles}>
                 {renderItems.map(r => {
+                  const handler = handleRowClick(r.key);
                   return fixedRenderRow(r, {
-                    handleRowClick: handleRowClick(r.key),
+                    handleRowClick: (evt: MouseEvent<HTMLElement>) => {
+                      trackAnalytics('profiling_views.flamegraph.click.highlight_frame', {
+                        organization,
+                        profile_type: profileType,
+                      });
+                      handler(evt);
+                    },
                     handleRowMouseEnter: handleRowMouseEnter(r.key),
                     handleExpandTreeNode,
                     handleRowKeyDown,
@@ -455,8 +500,11 @@ export function AggregateFlamegraphTreeTable({
             <div ref={setDynamicScrollContainerRef} style={scrollContainerStyles}>
               <div style={fixedContainerStyles}>
                 {renderItems.map(r => {
+                  const handler = handleRowClick(r.key);
                   return dynamicRenderRow(r, {
-                    handleRowClick: handleRowClick(r.key),
+                    handleRowClick: (evt: MouseEvent<HTMLElement>) => {
+                      handler(evt);
+                    },
                     handleRowMouseEnter: handleRowMouseEnter(r.key),
                     handleExpandTreeNode,
                     handleRowKeyDown,

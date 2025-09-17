@@ -229,7 +229,7 @@ function TrendChart({
                 currentSeriesNames={[trendDisplay]}
                 partial
                 withoutZerofill={withoutZerofill}
-                referrer="api.performance.transaction-summary.trends-chart"
+                referrer="api.insights.transaction-summary.trends-chart"
               >
                 {({errored, loading, reloading, timeseriesData, timeframe}) => {
                   return (
@@ -270,7 +270,7 @@ function TrendChart({
           currentSeriesNames={[trendDisplay]}
           partial
           withoutZerofill={withoutZerofill}
-          referrer="api.performance.transaction-summary.trends-chart"
+          referrer="api.insights.transaction-summary.trends-chart"
         >
           {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => {
             return (

@@ -81,7 +81,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
                 ).getvalue()
                 self.relocation_storage.save(f"{dir}/encrypted/file.tar", BytesIO(self.tarball))
 
-    def mock_kms_client(self, fake_kms_client: mock.Mock):
+    def mock_kms_client(self, fake_kms_client: mock.Mock) -> None:
         unwrapped = unwrap_encrypted_export_tarball(BytesIO(self.tarball))
         plaintext_dek = LocalFileDecryptor.from_bytes(
             self.priv_key_pem

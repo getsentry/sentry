@@ -2,19 +2,19 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {findSuggestedColumns, viewSamplesTarget} from 'sentry/views/explore/utils';
 
-describe('viewSamplesTarget', function () {
+describe('viewSamplesTarget', () => {
   const project = ProjectFixture();
   const projects = [project];
-  const visualize = new Visualize('count(span.duration)');
+  const visualize = new VisualizeFunction('count(span.duration)');
   const sort = {
     field: 'count(span.duration)',
     kind: 'desc' as const,
   };
 
-  it('simple drill down with no group bys', function () {
+  it('simple drill down with no group bys', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
@@ -36,7 +36,7 @@ describe('viewSamplesTarget', function () {
     });
   });
 
-  it('simple drill down with single group by', function () {
+  it('simple drill down with single group by', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
@@ -58,7 +58,7 @@ describe('viewSamplesTarget', function () {
     });
   });
 
-  it('simple drill down with multiple group bys', function () {
+  it('simple drill down with multiple group bys', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
@@ -84,7 +84,7 @@ describe('viewSamplesTarget', function () {
     });
   });
 
-  it('simple drill down with on environment', function () {
+  it('simple drill down with on environment', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
@@ -110,7 +110,7 @@ describe('viewSamplesTarget', function () {
     });
   });
 
-  it('simple drill down with on project id', function () {
+  it('simple drill down with on project id', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
@@ -136,7 +136,7 @@ describe('viewSamplesTarget', function () {
     });
   });
 
-  it('simple drill down with on project slug', function () {
+  it('simple drill down with on project slug', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
       location,
@@ -163,7 +163,7 @@ describe('viewSamplesTarget', function () {
   });
 });
 
-describe('findSuggestedColumns', function () {
+describe('findSuggestedColumns', () => {
   it.each([
     {
       cols: [],
@@ -272,7 +272,7 @@ describe('findSuggestedColumns', function () {
     },
   ])(
     'should inject $cols when changing from `$oldQuery` to `$newQuery`',
-    function ({cols, oldQuery, newQuery}) {
+    ({cols, oldQuery, newQuery}) => {
       const oldSearch = new MutableSearch(oldQuery);
       const newSearch = new MutableSearch(newQuery);
       const suggestion = findSuggestedColumns(newSearch, oldSearch, {

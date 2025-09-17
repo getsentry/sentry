@@ -18,8 +18,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
-  type GroupTag,
   useGroupTagsReadable,
+  type GroupTag,
 } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
@@ -97,6 +97,7 @@ export default function TagFacets({
   const {isPending, isError, data, refetch} = useGroupTagsReadable({
     groupId,
     environment: environments,
+    limit: 4,
   });
 
   const tagsData = useMemo((): Record<string, GroupTag> => {

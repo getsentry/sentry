@@ -9,6 +9,7 @@ import {
   serverless,
 } from 'sentry/data/platformCategories';
 import type {PlatformKey} from 'sentry/types/project';
+
 /**
  *
  * @param platform - a SDK platform, for example `node-express`, `javascript-react`

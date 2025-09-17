@@ -10,7 +10,7 @@ import {makeCloseButton} from 'sentry/components/globalModal/components';
 import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/teamAccessRequestModal';
 import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
 
-describe('TeamAccessRequestModal', function () {
+describe('TeamAccessRequestModal', () => {
   let createMock: any;
 
   const closeModal = jest.fn();
@@ -35,7 +35,7 @@ describe('TeamAccessRequestModal', function () {
     return render(<TeamAccessRequestModal {...modalRenderProps} />);
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     createMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`,
@@ -43,7 +43,7 @@ describe('TeamAccessRequestModal', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', () => {
     const {container} = renderComponent();
 
     expect(container).toHaveTextContent(
@@ -51,14 +51,14 @@ describe('TeamAccessRequestModal', function () {
     );
   });
 
-  it('creates access request on continue', async function () {
+  it('creates access request on continue', async () => {
     renderComponent();
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(createMock).toHaveBeenCalled();
   });
 
-  it('closes modal on cancel', async function () {
+  it('closes modal on cancel', async () => {
     renderComponent();
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));

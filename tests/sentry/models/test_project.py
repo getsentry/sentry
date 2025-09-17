@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from unittest import skip
 from unittest.mock import MagicMock, patch
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
@@ -460,7 +461,7 @@ class ProjectOptionsTests(TestCase):
         self.project_template = self.create_project_template(organization=self.project.organization)
         self.project.template = self.project_template
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
         self.project_template.delete()
@@ -471,6 +472,7 @@ class ProjectOptionsTests(TestCase):
         ProjectOption.objects.set_value(self.project, self.option_key, True)
         assert self.project.get_option(self.option_key) is True
 
+    @skip("Template feature is not active at the moment")
     def test_get_template_option(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")

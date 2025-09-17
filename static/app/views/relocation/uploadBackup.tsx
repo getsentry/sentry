@@ -92,7 +92,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
         )
       );
       onComplete(result.uuid);
-    } catch (error) {
+    } catch (error: any) {
       if (error.status === 409) {
         addErrorMessage(IN_PROGRESS_RELOCATION_ERROR_MSG);
       } else if (error.status === 429) {

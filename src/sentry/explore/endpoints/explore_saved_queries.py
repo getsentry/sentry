@@ -270,7 +270,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
     def has_feature(self, organization, request):

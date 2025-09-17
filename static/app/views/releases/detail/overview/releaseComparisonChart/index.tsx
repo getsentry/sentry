@@ -18,10 +18,10 @@ import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
-  type Organization,
-  type SessionApiResponse,
   SessionFieldWithOperation,
   SessionStatus,
+  type Organization,
+  type SessionApiResponse,
 } from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {

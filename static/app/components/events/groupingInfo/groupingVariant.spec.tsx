@@ -54,9 +54,9 @@ describe('Grouping Variant', () => {
   it('renders the span hashes for performance issues from event data', () => {
     render(
       <GroupingVariant
-        showGroupingConfig={false}
         variant={performanceIssueVariant}
         event={event}
+        showNonContributing={false}
       />
     );
 
@@ -80,9 +80,9 @@ describe('Grouping Variant', () => {
   it('renders grouping details for occurrence-backed performance issues', () => {
     render(
       <GroupingVariant
-        showGroupingConfig={false}
         variant={performanceIssueVariant}
         event={occurrenceEvent}
+        showNonContributing={false}
       />
     );
 

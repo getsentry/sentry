@@ -1,4 +1,6 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {createMockAttributeResults} from 'sentry-fixture/log';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
@@ -9,6 +11,7 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Edit from 'sentry/views/settings/components/dataScrubbing/modals/edit';
 import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
@@ -28,11 +31,13 @@ const rule = rules[2]!;
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
+const emptyAttributeResults = createMockAttributeResults(true);
+const mockAttributeResults = createMockAttributeResults();
 
 jest.mock('sentry/views/settings/components/dataScrubbing/submitRules');
 
-describe('Edit Modal', function () {
-  it('open Edit Rule Modal', async function () {
+describe('Edit Modal', () => {
+  it('open Edit Rule Modal', async () => {
     const handleCloseModal = jest.fn();
 
     render(
@@ -49,6 +54,7 @@ describe('Edit Modal', function () {
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
         rule={rule}
+        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -128,7 +134,7 @@ describe('Edit Modal', function () {
     expect(handleCloseModal).toHaveBeenCalled();
   });
 
-  it('edit Rule Modal', async function () {
+  it('edit Rule Modal', async () => {
     render(
       <Edit
         Body={ModalBody}
@@ -143,6 +149,7 @@ describe('Edit Modal', function () {
         orgSlug={organizationSlug}
         onSubmitSuccess={jest.fn()}
         rule={rule}
+        attributeResults={emptyAttributeResults}
       />
     );
 
@@ -186,5 +193,109 @@ describe('Edit Modal', function () {
         source: valueSuggestions[2]!.value,
       },
     ]);
+  });
+
+  it('does not show dataset selector without ourlogs-enabled feature', () => {
+    render(
+      <Edit
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        Header={makeClosableHeader(jest.fn())}
+        Footer={ModalFooter}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={jest.fn()}
+        rule={rule}
+        attributeResults={emptyAttributeResults}
+      />
+    );
+
+    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Errors, Transactions, Attachments')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
+    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+  });
+});
+
+describe('Edit Modal with ourlogs-enabled', () => {
+  const organization = OrganizationFixture({
+    features: ['ourlogs-enabled'],
+  });
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'user.email', name: 'user.email', kind: 'tag'},
+        {key: 'user.id', name: 'user.id', kind: 'tag'},
+        {key: 'custom.field', name: 'custom.field', kind: 'tag'},
+        {key: 'request.method', name: 'request.method', kind: 'tag'},
+        {key: 'response.status', name: 'response.status', kind: 'tag'},
+      ],
+    });
+  });
+
+  it('shows dataset selector when ourlogs-enabled', () => {
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <Edit
+          Body={ModalBody}
+          closeModal={jest.fn()}
+          CloseButton={makeCloseButton(jest.fn())}
+          Header={makeClosableHeader(jest.fn())}
+          Footer={ModalFooter}
+          projectId={projectId}
+          savedRules={rules}
+          api={api}
+          endpoint={endpoint}
+          orgSlug={organizationSlug}
+          onSubmitSuccess={jest.fn()}
+          rule={rule}
+          attributeResults={mockAttributeResults}
+        />
+      </OrganizationContext.Provider>
+    );
+
+    expect(screen.getByText('Dataset')).toBeInTheDocument();
+    expect(screen.getByText('Errors, Transactions, Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Logs')).toBeInTheDocument();
+  });
+
+  it('shows attribute field when logs dataset is selected', async () => {
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <Edit
+          Body={ModalBody}
+          closeModal={jest.fn()}
+          CloseButton={makeCloseButton(jest.fn())}
+          Header={makeClosableHeader(jest.fn())}
+          Footer={ModalFooter}
+          projectId={projectId}
+          savedRules={rules}
+          api={api}
+          endpoint={endpoint}
+          orgSlug={organizationSlug}
+          onSubmitSuccess={jest.fn()}
+          rule={rule}
+          attributeResults={mockAttributeResults}
+        />
+      </OrganizationContext.Provider>
+    );
+
+    await userEvent.click(screen.getByLabelText('Logs'));
+
+    expect(screen.getByText('Attribute')).toBeInTheDocument();
+    expect(screen.queryByText('Source')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Use event ID for auto-completion'})
+    ).not.toBeInTheDocument();
   });
 });

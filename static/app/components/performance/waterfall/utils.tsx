@@ -1,31 +1,8 @@
 import {css, type Theme} from '@emotion/react';
 import Color from 'color';
 
-import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
-import {space} from 'sentry/styles/space';
-
 import type {SpanBarType} from './constants';
 import {getSpanBarColors} from './constants';
-
-export const getBackgroundColor = ({
-  showStriping,
-  showDetail,
-  theme,
-}: {
-  theme: Theme;
-  showDetail?: boolean;
-  showStriping?: boolean;
-}) => {
-  if (showDetail) {
-    return theme.textColor;
-  }
-
-  if (showStriping) {
-    return theme.backgroundSecondary;
-  }
-
-  return theme.background;
-};
 
 export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: Theme) {
   if (spanBarType) {
@@ -57,151 +34,6 @@ export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: The
   return null;
 }
 
-export const getDurationPillAlignment = ({
-  durationDisplay,
-}: {
-  durationDisplay: DurationDisplay;
-  theme: Theme;
-  spanBarType?: SpanBarType;
-}) => {
-  switch (durationDisplay) {
-    case 'left':
-      return css`
-        right: calc(100% + ${space(0.5)});
-      `;
-    case 'right':
-      return css`
-        left: calc(100% + ${space(0.75)});
-      `;
-    default:
-      return css`
-        right: ${space(0.75)};
-      `;
-  }
-};
-
-export const getDurationPillColors = ({
-  durationDisplay,
-  theme,
-  showDetail,
-  spanBarType,
-}: {
-  durationDisplay: DurationDisplay;
-  showDetail: boolean;
-  theme: Theme;
-  spanBarType?: SpanBarType;
-}) => {
-  if (durationDisplay === 'inset') {
-    const {alternate, insetTextColor} = getSpanBarColors(spanBarType, theme);
-    return `background: ${alternate}; color: ${insetTextColor};`;
-  }
-
-  return `color: ${showDetail ? theme.gray200 : theme.gray300};`;
-};
-
-export const getToggleTheme = ({
-  theme,
-  isExpanded,
-  disabled,
-  errored,
-  isSpanGroupToggler,
-  spanBarType,
-}: {
-  disabled: boolean;
-  errored: boolean;
-  isExpanded: boolean;
-  theme: Theme;
-  isSpanGroupToggler?: boolean;
-  spanBarType?: SpanBarType;
-}) => {
-  if (spanBarType) {
-    const {primary} = getSpanBarColors(spanBarType, theme);
-    return css`
-      background: ${primary};
-      border: 2px solid ${theme.button.default.border};
-      color: ${theme.button.primary.color};
-      cursor: pointer;
-    `;
-  }
-
-  const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
-  const errorTheme = theme.button.danger;
-
-  const background = errored
-    ? isExpanded
-      ? buttonTheme.background
-      : errorTheme.background
-    : buttonTheme.background;
-  const border = errored ? errorTheme.background : buttonTheme.border;
-  const color = errored
-    ? isExpanded
-      ? errorTheme.background
-      : buttonTheme.color
-    : buttonTheme.color;
-
-  if (isSpanGroupToggler) {
-    return css`
-      background: ${theme.blue300};
-      border: 2px solid ${theme.button.default.border};
-      color: ${color};
-      cursor: pointer;
-    `;
-  }
-
-  if (disabled) {
-    return css`
-      background: ${background};
-      border: 2px solid ${border};
-      color: ${color};
-      cursor: default;
-    `;
-  }
-
-  return css`
-    background: ${background};
-    border: 2px solid ${border};
-    color: ${color};
-  `;
-};
-
-export const getDurationDisplay = ({
-  width,
-  left,
-}: {
-  left: undefined | number;
-  width: undefined | number;
-}): DurationDisplay => {
-  const spaceNeeded = 0.3;
-
-  if (left === undefined || width === undefined) {
-    return 'inset';
-  }
-  if (left + width < 1 - spaceNeeded) {
-    return 'right';
-  }
-  if (left > spaceNeeded) {
-    return 'left';
-  }
-  return 'inset';
-};
-
-export const getHumanDuration = (duration: number): string => {
-  // note: duration is assumed to be in seconds
-  const durationMs = duration * 1000;
-  return `${durationMs.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}ms`;
-};
-
-type Rect = {
-  height: number;
-  width: number;
-  // x and y are left/top coords respectively
-  x: number;
-  y: number;
-};
-
 // get position of element relative to top/left of document
 export const getOffsetOfElement = (element: Element) => {
   // left and top are relative to viewport
@@ -212,24 +44,6 @@ export const getOffsetOfElement = (element: Element) => {
   const scrollTop = window.pageYOffset;
 
   return {x: left + scrollLeft, y: top + scrollTop};
-};
-
-export const rectOfContent = (element: Element): Rect => {
-  const {x, y} = getOffsetOfElement(element);
-
-  // offsets for the border and any scrollbars (clientLeft and clientTop),
-  // and if the element was scrolled (scrollLeft and scrollTop)
-  //
-  // NOTE: clientLeft and clientTop does not account for any margins nor padding
-  const contentOffsetLeft = element.clientLeft - element.scrollLeft;
-  const contentOffsetTop = element.clientTop - element.scrollTop;
-
-  return {
-    x: x + contentOffsetLeft,
-    y: y + contentOffsetTop,
-    width: element.scrollWidth,
-    height: element.scrollHeight,
-  };
 };
 
 const getLetterIndex = (letter: string): number => {

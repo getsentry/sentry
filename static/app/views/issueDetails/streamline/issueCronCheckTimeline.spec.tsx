@@ -73,7 +73,7 @@ describe('IssueCronCheckTimeline', () => {
     });
   });
 
-  it('renders the cron check timeline with a legend and data', async function () {
+  it('renders the cron check timeline with a legend and data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitors-stats/`,
       query: {
@@ -110,7 +110,7 @@ describe('IssueCronCheckTimeline', () => {
     expect(screen.queryByText('dev')).not.toBeInTheDocument();
   });
 
-  it('hides statuses from legend if not present in data', async function () {
+  it('hides statuses from legend if not present in data', async () => {
     const newBucket = {
       ...mockBucket,
       // OK is always shown, even with no data
@@ -150,7 +150,7 @@ describe('IssueCronCheckTimeline', () => {
     });
   });
 
-  it('displays multiple environment legends and labels', async function () {
+  it('displays multiple environment legends and labels', async () => {
     const envBucketMapping = {
       dev: {
         [CheckInStatus.OK]: 1,

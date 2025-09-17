@@ -10,13 +10,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    JSONField,
-    Model,
-    control_silo_model,
-    region_silo_model,
-)
+from sentry.db.models import BoundedBigIntegerField, Model, control_silo_model, region_silo_model
 from sentry.deletions import RELOCATED_MODELS
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.services.user import RpcUser
@@ -57,7 +51,7 @@ class BaseScheduledDeletion(Model):
     date_added = models.DateTimeField(default=timezone.now)
     date_scheduled = models.DateTimeField(default=default_date_schedule)
     actor_id = BoundedBigIntegerField(null=True)
-    data = JSONField(default=dict)
+    data = models.JSONField(default=dict)
     in_progress = models.BooleanField(default=False)
 
     @classmethod

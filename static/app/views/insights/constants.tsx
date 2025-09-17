@@ -1,7 +1,7 @@
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 export const STARFISH_AGGREGATION_FIELDS: Partial<

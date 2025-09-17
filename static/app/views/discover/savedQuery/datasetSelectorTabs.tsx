@@ -7,8 +7,8 @@ import {
   ERROR_ONLY_FIELDS,
   explodeField,
   getAggregations,
-  type QueryFieldValue,
   TRANSACTION_ONLY_FIELDS,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {FieldKey, SpanOpBreakdown} from 'sentry/utils/fields';
@@ -126,7 +126,6 @@ export function DatasetSelectorTabs(props: Props) {
     {
       value: SavedQueryDatasets.TRANSACTIONS,
       label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
-      disabled: deprecatingTransactionsDataset,
       tooltip: deprecatingTransactionsDataset
         ? {
             title: getTransactionDeprecationMessage(tracesUrl),
@@ -171,11 +170,7 @@ export function DatasetSelectorTabs(props: Props) {
     >
       <TabList hideBorder>
         {options.map(option => (
-          <TabList.Item
-            key={option.value}
-            disabled={option.disabled}
-            tooltip={option.tooltip}
-          >
+          <TabList.Item key={option.value} tooltip={option.tooltip}>
             {option.label}
           </TabList.Item>
         ))}

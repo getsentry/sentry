@@ -7,7 +7,6 @@ import {
   IncrementalSource,
   isRRWebChangeFrame,
   type RecordingFrame,
-  type ReplayFrame,
 } from 'sentry/utils/replays/types';
 
 type DiffMutation = Record<
@@ -251,7 +250,7 @@ export default function useExtractDiffMutations({
   leftOffsetMs,
   replay,
   rightOffsetMs,
-}: Props): UseQueryResult<Map<ReplayFrame, DiffMutation>> {
+}: Props): UseQueryResult<Map<RecordingFrame, DiffMutation>, Error> {
   const startTimestampMs = replay.getReplay().started_at.getTime();
   const rangeStartTimestampMs = startTimestampMs + leftOffsetMs;
   const rangeEndTimestampMs = startTimestampMs + rightOffsetMs;

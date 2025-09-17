@@ -31,24 +31,24 @@ function renderComponent(isHidden: boolean) {
   );
 }
 
-describe('ProjectEnvironments', function () {
+describe('ProjectEnvironments', () => {
   const project = ProjectFixture({
     defaultEnvironment: 'production',
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       body: project,
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  describe('render active', function () {
-    it('renders empty message', function () {
+  describe('render active', () => {
+    it('renders empty message', () => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: [],
@@ -61,7 +61,7 @@ describe('ProjectEnvironments', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders environment list', function () {
+    it('renders environment list', () => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: EnvironmentsFixture(),
@@ -73,8 +73,8 @@ describe('ProjectEnvironments', function () {
     });
   });
 
-  describe('render hidden', function () {
-    it('renders empty message', function () {
+  describe('render hidden', () => {
+    it('renders empty message', () => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: [],
@@ -87,7 +87,7 @@ describe('ProjectEnvironments', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders environment list', function () {
+    it('renders environment list', () => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: HiddenEnvironmentsFixture(),
@@ -99,11 +99,11 @@ describe('ProjectEnvironments', function () {
     });
   });
 
-  describe('toggle', function () {
+  describe('toggle', () => {
     let hideMock: jest.Mock;
     let showMock: jest.Mock;
     const baseUrl = '/projects/org-slug/project-slug/environments/';
-    beforeEach(function () {
+    beforeEach(() => {
       hideMock = MockApiClient.addMockResponse({
         url: `${baseUrl}production/`,
         method: 'PUT',
@@ -118,7 +118,7 @@ describe('ProjectEnvironments', function () {
       });
     });
 
-    it('hides', async function () {
+    it('hides', async () => {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: EnvironmentsFixture(),
@@ -141,7 +141,7 @@ describe('ProjectEnvironments', function () {
       );
     });
 
-    it('hides names requiring encoding', async function () {
+    it('hides names requiring encoding', async () => {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: [{id: '1', name: '%app_env%', isHidden: false}],
@@ -164,7 +164,7 @@ describe('ProjectEnvironments', function () {
       );
     });
 
-    it('shows', async function () {
+    it('shows', async () => {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: HiddenEnvironmentsFixture(),
@@ -182,7 +182,7 @@ describe('ProjectEnvironments', function () {
       );
     });
 
-    it('does not have "All Environments" rows', function () {
+    it('does not have "All Environments" rows', () => {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: HiddenEnvironmentsFixture(),

@@ -1,6 +1,6 @@
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 

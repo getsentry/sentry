@@ -193,7 +193,7 @@ const getReactNativeProfilingOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: t(
-        'To confirm that profiling is working correctly, run your application and check the Sentry profiles page for the collected profiles.'
+        'Verify that profiling is working correctly by simply using your application.'
       ),
     },
   ],
@@ -292,7 +292,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     label: 'npx',
                     value: 'npx',
                     language: 'bash',
-                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.projectSlug}`,
+                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.project.slug}`,
                   },
                 ],
               },

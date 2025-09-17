@@ -11,8 +11,8 @@ import MetricRuleDuplicate from './duplicate';
 import type {Action} from './types';
 import {AlertRuleTriggerType} from './types';
 
-describe('MetricRuleDuplicate', function () {
-  beforeEach(function () {
+describe('MetricRuleDuplicate', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -57,7 +57,7 @@ describe('MetricRuleDuplicate', function () {
     });
   });
 
-  it('renders new alert form with values copied over', async function () {
+  it('renders new alert form with values copied over', async () => {
     const rule = MetricRuleFixture();
     rule.triggers.push({
       label: AlertRuleTriggerType.WARNING,
@@ -105,7 +105,7 @@ describe('MetricRuleDuplicate', function () {
     expect(screen.getByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
   });
 
-  it('duplicates slack actions', async function () {
+  it('duplicates slack actions', async () => {
     const rule = MetricRuleFixture();
     rule.triggers[0]!.actions.push({
       id: '13',

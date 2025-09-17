@@ -36,7 +36,7 @@ class UserSocialAuth(models.Model):
         unique_together = ("provider", "uid", "user")
         app_label = "social_auth"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return associated user unicode representation"""
         return f"{self.user} - {self.provider.title()}"
 

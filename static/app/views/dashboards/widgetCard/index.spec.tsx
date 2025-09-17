@@ -14,7 +14,6 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -23,13 +22,16 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
-jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
+jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization', () => ({
+  TableWidgetVisualization: jest.fn(() => <div />),
+}));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
-describe('Dashboards > WidgetCard', function () {
+describe('Dashboards > WidgetCard', () => {
   const {router, organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
@@ -95,7 +97,7 @@ describe('Dashboards > WidgetCard', function () {
     navigate: jest.fn(),
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {meta: {isMetricsData: false}},
@@ -113,11 +115,11 @@ describe('Dashboards > WidgetCard', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async function () {
+  it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async () => {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
     renderWithProviders(
       <WidgetCard
@@ -144,7 +146,7 @@ describe('Dashboards > WidgetCard', function () {
     });
   });
 
-  it('renders with Open in Discover button', async function () {
+  it('renders with Open in Discover button', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -164,11 +166,11 @@ describe('Dashboards > WidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 
-  it('renders widget description in dashboard', async function () {
+  it('renders widget description in dashboard', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -189,7 +191,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
-  it('renders Discover button with prepended fields pulled from equations', async function () {
+  it('renders Discover button with prepended fields pulled from equations', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -223,11 +225,11 @@ describe('Dashboards > WidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
 
-  it('renders button to open Discover with Top N', async function () {
+  it('renders button to open Discover with Top N', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -258,11 +260,11 @@ describe('Dashboards > WidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/explore/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
-  it('allows Open in Discover when the widget contains custom measurements', async function () {
+  it('allows Open in Discover when the widget contains custom measurements', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -294,11 +296,11 @@ describe('Dashboards > WidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&queryDataset=error-events&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&queryDataset=error-events&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );
   });
 
-  it('calls onDuplicate when Duplicate Widget is clicked', async function () {
+  it('calls onDuplicate when Duplicate Widget is clicked', async () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
@@ -325,7 +327,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not add duplicate widgets if max widget is reached', async function () {
+  it('does not add duplicate widgets if max widget is reached', async () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
@@ -352,7 +354,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(mock).toHaveBeenCalledTimes(0);
   });
 
-  it('calls onEdit when Edit Widget is clicked', async function () {
+  it('calls onEdit when Edit Widget is clicked', async () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
@@ -379,7 +381,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders delete widget option', async function () {
+  it('renders delete widget option', async () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
@@ -412,7 +414,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(mock).toHaveBeenCalled();
   });
 
-  it('calls events with a limit of 20 items', async function () {
+  it('calls events with a limit of 20 items', async () => {
     const mock = jest.fn();
 
     renderWithProviders(
@@ -448,7 +450,7 @@ describe('Dashboards > WidgetCard', function () {
     });
   });
 
-  it('calls events with a default limit of 5 items', async function () {
+  it('calls events with a default limit of 5 items', async () => {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
@@ -482,7 +484,7 @@ describe('Dashboards > WidgetCard', function () {
     });
   });
 
-  it('has sticky table headers and scroll', async function () {
+  it('has sticky table headers and scroll', async () => {
     const tableWidget: Widget = {
       title: 'Table Widget',
       interval: '5m',
@@ -520,13 +522,14 @@ describe('Dashboards > WidgetCard', function () {
     await waitFor(() => expect(eventsMock).toHaveBeenCalled());
 
     await waitFor(() =>
-      expect((SimpleTableChart as jest.Mock).mock.calls[0][0]).toEqual(
-        expect.objectContaining({stickyHeaders: true})
+      expect(TableWidgetVisualization).toHaveBeenCalledWith(
+        expect.objectContaining({scrollable: true}),
+        undefined
       )
     );
   });
 
-  it('calls release queries', function () {
+  it('calls release queries', () => {
     const widget: Widget = {
       title: 'Release Widget',
       interval: '5m',
@@ -604,7 +607,7 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
+  it('renders chart using axis and tooltip formatters from custom measurement meta', async () => {
     const spy = jest.spyOn(LineChart, 'LineChart');
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -665,7 +668,7 @@ describe('Dashboards > WidgetCard', function () {
         widgetLegendState={widgetLegendState}
       />
     );
-    await waitFor(function () {
+    await waitFor(() => {
       expect(eventsStatsMock).toHaveBeenCalled();
     });
 
@@ -680,7 +683,7 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async function () {
+  it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async () => {
     const spy = jest.spyOn(LineChart, 'LineChart');
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -765,7 +768,7 @@ describe('Dashboards > WidgetCard', function () {
         widgetLegendState={widgetLegendState}
       />
     );
-    await waitFor(function () {
+    await waitFor(() => {
       expect(eventsStatsMock).toHaveBeenCalled();
     });
     await waitFor(() => {
@@ -781,7 +784,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
   });
 
-  it('displays indexed badge in preview mode', async function () {
+  it('displays indexed badge in preview mode', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -806,7 +809,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
   });
 
-  it('displays the discover split warning icon when the dataset source is forced', async function () {
+  it('displays the discover split warning icon when the dataset source is forced', async () => {
     const testWidget = {
       ...WidgetFixture(),
       datasetSource: DatasetSource.FORCED,

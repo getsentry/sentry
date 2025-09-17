@@ -3,10 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {
-  SIDEBAR_MOBILE_HEIGHT,
-  TOPBAR_MOBILE_HEIGHT,
-} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -20,7 +16,7 @@ import {
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/nav/constants';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {
@@ -51,10 +47,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const isStuck = useIsStuck(nav);
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const {dispatch} = useIssueDetails();
-  const prefersStackedNav = usePrefersStackedNav();
-  const sidebarHeight = isScreenMedium
-    ? parseInt(prefersStackedNav ? TOPBAR_MOBILE_HEIGHT : SIDEBAR_MOBILE_HEIGHT, 10)
-    : 0;
+  const sidebarHeight = isScreenMedium ? NAV_MOBILE_TOPBAR_HEIGHT : 0;
 
   useLayoutEffect(() => {
     if (!nav) {

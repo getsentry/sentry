@@ -16,12 +16,12 @@ import OrganizationFeatureFlagsChangeTracking, {
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
 
-describe('OrganizationFeatureFlagsIndex', function () {
+describe('OrganizationFeatureFlagsIndex', () => {
   const SECRETS_ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
   const LOGS_ENDPOINT = '/organizations/org-slug/flags/logs/';
   const {organization} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1234/',
       body: {},
@@ -34,11 +34,11 @@ describe('OrganizationFeatureFlagsIndex', function () {
     OrganizationsStore.addOrReplace(organization);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows secrets', async function () {
+  it('shows secrets', async () => {
     const secrets: Secret[] = [
       SecretFixture(),
       SecretFixture({id: 2, provider: 'openfeature', secret: '456def****'}),
@@ -68,7 +68,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
     );
   });
 
-  it('handle error when loading secrets', async function () {
+  it('handle error when loading secrets', async () => {
     const mock = MockApiClient.addMockResponse({
       url: SECRETS_ENDPOINT,
       method: 'GET',
@@ -88,7 +88,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
-  it('shows empty state', async function () {
+  it('shows empty state', async () => {
     const secrets: Secret[] = [];
 
     MockApiClient.addMockResponse({
@@ -106,8 +106,8 @@ describe('OrganizationFeatureFlagsIndex', function () {
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  describe('removing', function () {
-    it('allows to remove secrets', async function () {
+  describe('removing', () => {
+    it('allows to remove secrets', async () => {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       const secrets: Secret[] = [
@@ -153,7 +153,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
-    it('does not allow to remove without permission', async function () {
+    it('does not allow to remove without permission', async () => {
       const org = OrganizationFixture({
         access: ['org:integrations'],
       });

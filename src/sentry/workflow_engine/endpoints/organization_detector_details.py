@@ -21,13 +21,16 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.constants import ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
     can_edit_detector,
@@ -154,7 +157,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic(router.db_for_write(Detector)):
-            updated_detector = validator.save()
+            with in_test_hide_transaction_boundary():
+                updated_detector = validator.save()
 
             workflow_ids = request.data.get("workflowIds")
             if workflow_ids is not None:
@@ -199,6 +203,10 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
         detector.update(status=ObjectStatus.PENDING_DELETION)
+
+        if detector.type == MetricIssue.slug:
+            schedule_update_project_config(detector)
+
         create_audit_entry(
             request=request,
             organization=detector.project.organization,
