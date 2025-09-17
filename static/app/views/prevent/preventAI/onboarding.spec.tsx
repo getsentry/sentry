@@ -66,14 +66,14 @@ describe('PreventAIOnboarding', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const orgSettingsLink = screen.getByRole('link', {name: 'organization settings'});
-    expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org');
+    expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org/#hideAiFeatures');
 
     const sentryGitHubAppLink = screen.getByRole('link', {
       name: 'Sentry GitHub App',
     });
     expect(sentryGitHubAppLink).toHaveAttribute(
       'href',
-      '/settings/test-org/integrations/github'
+      '/settings/test-org/integrations/github/'
     );
 
     const githubIntegrationLink = screen.getByRole('link', {
