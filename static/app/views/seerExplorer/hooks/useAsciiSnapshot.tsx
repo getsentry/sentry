@@ -5,7 +5,7 @@ import {useCallback, useEffect, useRef} from 'react';
  * visible elements onto a character grid based on their bounding rectangles.
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
-export function useAsciiSnapshot() {
+function useAsciiSnapshot() {
   const mousePosRef = useRef<{inWindow: boolean; x: number; y: number} | null>(null);
 
   useEffect(() => {
@@ -192,3 +192,5 @@ export function useAsciiSnapshot() {
 
   return capture;
 }
+
+export default useAsciiSnapshot;
