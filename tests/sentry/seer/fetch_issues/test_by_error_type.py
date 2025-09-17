@@ -367,3 +367,173 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
         # Verify it returns an empty list
         assert isinstance(results, list)
         assert len(results) == 0
+
+    def _setup_test_environment(
+        self, exception_type: str, exception_value: str = "Test error"
+    ) -> Group:
+        """Helper to set up test environment with a group containing the specified exception type."""
+        release = self.create_release(project=self.project, version="1.0.0")
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentryA",
+            provider="integrations:github",
+            external_id="1",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {
+                    "values": [
+                        {"type": exception_type, "value": exception_value, "data": {"values": []}}
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+        group.save()
+        return group
+
+    def _assert_exception_type_matches(
+        self, search_exception_type: str, expected_group: Group
+    ) -> None:
+        """Helper to assert that a search exception type returns the expected group."""
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type=search_exception_type,
+        )
+        assert seer_response["issues"] == [expected_group.id]
+        assert len(seer_response["issues_full"]) == 1
+
+    def _test_exception_type_variants(
+        self, stored_exception_type: str, search_variants: list[str]
+    ) -> None:
+        """Helper to test multiple search variants against a stored exception type."""
+        group = self._setup_test_environment(stored_exception_type)
+
+        for search_exception_type in search_variants:
+            with self.subTest(search_exception_type=search_exception_type):
+                self._assert_exception_type_matches(search_exception_type, group)
+
+    def test_case_insensitive_matching(self) -> None:
+        """Test that exception type matching is case insensitive."""
+        search_variants = ["TypeError", "typeerror", "TYPEERROR", "TypeERROR", "tYpEeRrOr"]
+        self._test_exception_type_variants("TypeError", search_variants)
+
+    def test_normalized_matching_spaces(self) -> None:
+        """Test that exception type matching normalizes spaces and special characters."""
+        search_variants = [
+            "Runtime Error",
+            "RuntimeError",
+            "runtime error",
+            "runtimeerror",
+            "RUNTIME ERROR",
+            "RUNTIMEERROR",
+            "runtime_error",
+            "runtime-error",
+        ]
+        self._test_exception_type_variants("Runtime Error", search_variants)
+
+    def test_normalized_matching_special_characters(self) -> None:
+        """Test that exception type matching normalizes various special characters."""
+        search_variants = [
+            "HTTP-404-Error",
+            "HTTP 404 Error",
+            "HTTP_404_Error",
+            "HTTP.404.Error",
+            "HTTP404Error",
+            "http404error",
+            "HTTP  404  Error",  # multiple spaces
+            "HTTP__404__Error",  # multiple underscores
+        ]
+        self._test_exception_type_variants("HTTP-404-Error", search_variants)
+
+    def test_normalized_matching_multiple_groups(self) -> None:
+        """Test normalized matching works correctly with multiple different exception types."""
+        release = self.create_release(project=self.project, version="1.0.0")
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentryA",
+            provider="integrations:github",
+            external_id="1",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        # Create first group with "Value Error"
+        data1 = load_data("python", timestamp=before_now(minutes=1))
+        event1 = self.store_event(
+            data={
+                **data1,
+                "release": release.version,
+                "exception": {
+                    "values": [
+                        {"type": "Value Error", "value": "Bad value", "data": {"values": []}}
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group1 = event1.group
+        assert group1 is not None
+        group1.save()
+
+        # Create second group with "Type-Error"
+        data2 = load_data("python", timestamp=before_now(minutes=2))
+        event2 = self.store_event(
+            data={
+                **data2,
+                "release": release.version,
+                "exception": {
+                    "values": [{"type": "Type-Error", "value": "Bad type", "data": {"values": []}}]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group2 = event2.group
+        assert group2 is not None
+        group2.save()
+
+        # Test that "valueerror" matches only the first group
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="valueerror",
+        )
+        assert seer_response["issues"] == [group1.id]
+        assert len(seer_response["issues_full"]) == 1
+
+        # Test that "type error" matches only the second group
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="type error",
+        )
+        assert seer_response["issues"] == [group2.id]
+        assert len(seer_response["issues_full"]) == 1
+
+        # Test that "runtimeerror" matches neither
+        seer_response = fetch_issues(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="runtimeerror",
+        )
+        assert seer_response == {"issues": [], "issues_full": []}
+
+    def test_unicode_normalization_consistency(self) -> None:
+        """Test that Unicode characters are handled consistently between Python and SQL."""
+        search_variants = [
+            "ValueError测试",  # Same Unicode as stored
+            "ValueError",  # Just ASCII part
+            "ValueError测试αβ",  # Different Unicode chars that normalize to same ASCII
+        ]
+        self._test_exception_type_variants("ValueError测试", search_variants)
