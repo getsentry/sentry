@@ -144,7 +144,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(
             user=self.user, key="prefers_issue_details_streamlined_ui"
         )
-        assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
         assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
         assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
 
