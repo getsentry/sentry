@@ -438,7 +438,6 @@ export const ReplaySelectColumn: ReplayTableColumn = {
     },
     replays,
   }) => {
-    const organization = useOrganization();
     return (
       <CheckboxHeaderContainer>
         <Checkbox
@@ -466,7 +465,6 @@ export const ReplaySelectColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: undefined,
   Component: ({replay}) => {
-    const organization = useOrganization();
     const {isSelected, toggleSelected} = useListItemCheckboxContext();
     if (replay.is_archived) {
       return null;
