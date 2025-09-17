@@ -5,7 +5,6 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export interface GroupTag {
   key: string;
@@ -66,6 +65,7 @@ export function useGroupTags(
   return useApiQuery<GroupTag[]>(
     makeGroupTagsQueryKey({
       orgSlug: organization.slug,
+      limit: 3,
       ...parameters,
     }),
     {
@@ -80,14 +80,12 @@ export function useGroupTags(
  * Primarily used for tag facets
  */
 export function useGroupTagsReadable(
-  parameters: Omit<FetchIssueTagsParameters, 'orgSlug' | 'limit' | 'readable'>,
+  parameters: Omit<FetchIssueTagsParameters, 'orgSlug' | 'readable'>,
   options: GroupTagUseQueryOptions = {}
 ) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   return useGroupTags(
     {
       readable: true,
-      limit: hasStreamlinedUI ? 3 : 4,
       ...parameters,
     },
     options

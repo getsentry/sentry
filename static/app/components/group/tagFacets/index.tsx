@@ -97,6 +97,7 @@ export default function TagFacets({
   const {isPending, isError, data, refetch} = useGroupTagsReadable({
     groupId,
     environment: environments,
+    limit: 4,
   });
 
   const tagsData = useMemo((): Record<string, GroupTag> => {
