@@ -1026,6 +1026,95 @@ class StyledComponentsDetector extends BaseDetector {
   }
 }
 
+class StyledUsagePerFileDetector extends BaseDetector {
+  name = 'StyledUsagePerFile';
+  private fileStyledCounts = new Map<string, number>();
+  private filesWithStyled = new Set<string>();
+  private totalTsxFiles = new Set<string>();
+
+  execute(node: ts.Node, context: DetectorContext): void {
+    // Track all TSX files we analyze
+    this.totalTsxFiles.add(context.fileName);
+
+    if (!ts.isTaggedTemplateExpression(node)) return;
+
+    const taggedExpr = node;
+
+    if (taggedExpr.tag.kind === ts.SyntaxKind.CallExpression) {
+      const callExpr = taggedExpr.tag as ts.CallExpression;
+
+      if (callExpr.expression.getText() === 'styled') {
+        const currentCount = this.fileStyledCounts.get(context.fileName) || 0;
+        this.fileStyledCounts.set(context.fileName, currentCount + 1);
+        this.filesWithStyled.add(context.fileName);
+      }
+    }
+  }
+
+  reset(): void {
+    this.fileStyledCounts.clear();
+    this.filesWithStyled.clear();
+    this.totalTsxFiles.clear();
+  }
+
+  results(): void {
+    const totalFiles = this.totalTsxFiles.size;
+    const filesWithStyledCount = this.filesWithStyled.size;
+    const percentageWithStyled =
+      totalFiles > 0 ? ((filesWithStyledCount / totalFiles) * 100).toFixed(1) : '0.0';
+
+    // Get top N files by styled call count
+    const sortedFiles = Array.from(this.fileStyledCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, config.topN);
+
+    if (config.outputFormat === 'csv') {
+      // Files with most styled calls
+      logger.log(`=== TOP ${config.topN} FILES BY STYLED CALL COUNT ===`);
+      const filesData =
+        sortedFiles.length > 0
+          ? sortedFiles.map(([file, count]) => ({
+              File: file,
+              StyledCalls: count,
+            }))
+          : [{File: '', StyledCalls: 0}];
+      logger.log(arrayToCSV(filesData));
+      logger.log();
+
+      // Summary statistics
+      logger.log('=== STYLED USAGE STATISTICS ===');
+      logger.log(
+        arrayToCSV([
+          {Metric: 'Total TSX Files', Value: totalFiles},
+          {Metric: 'Files with Styled Calls', Value: filesWithStyledCount},
+          {Metric: 'Percentage with Styled Calls', Value: `${percentageWithStyled}%`},
+        ])
+      );
+      logger.log();
+    } else {
+      logger.log('\n📄 Styled Usage Per File:\n');
+
+      if (sortedFiles.length > 0) {
+        logger.log(`🏆 Top ${config.topN} files by styled call count:\n`);
+        logger.table(
+          sortedFiles.map(([file, count], index) => ({
+            Rank: index + 1,
+            File: file.replace(process.cwd() + '/', ''),
+            'Styled Calls': count,
+          }))
+        );
+      }
+
+      logger.log('\n📊 Usage Statistics:\n');
+      logger.log(`   • Total TSX files analyzed: ${totalFiles}`);
+      logger.log(`   • Files containing styled calls: ${filesWithStyledCount}`);
+      logger.log(
+        `   • Percentage of TSX files with styled calls: ${percentageWithStyled}%`
+      );
+    }
+  }
+}
+
 class FlexOnlyDivsDetector extends BaseDetector {
   name = 'FlexOnlyDivs';
   private styledComponents: StyledComponent[] = [];
@@ -1535,6 +1624,7 @@ const detectorConfig: DetectorConfiguration = {
     new StyledComponentsDetector(),
     new CoreComponentImportsDetector(),
     new FlexOnlyDivsDetector(),
+    new StyledUsagePerFileDetector(),
   ],
 };
 
