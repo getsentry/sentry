@@ -7,7 +7,13 @@ export interface Block {
 
 interface Message {
   content: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'tool_use';
+  tool_calls?: ToolCall[];
+}
+
+interface ToolCall {
+  args: string;
+  function: string;
 }
 
 export type PanelSize = 'max' | 'med' | 'min';
