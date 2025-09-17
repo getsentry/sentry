@@ -32,6 +32,7 @@ type ParamKeys =
   | 'integrationSlug'
   | 'issueId'
   | 'memberId'
+  | 'notificationSource'
   | 'orgId'
   | 'projectId'
   | 'regionName'
