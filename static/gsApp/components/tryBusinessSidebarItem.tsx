@@ -1,14 +1,12 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavContext} from 'sentry/views/nav/context';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -110,7 +108,7 @@ function TryBusinessSidebarItem(props: Props) {
     return t('Free Trial');
   }, [props.subscription]);
 
-  const {subscription, organization, ...sidebarItemProps} = props;
+  const {subscription, organization} = props;
 
   if (
     (hasPerformance(subscription.planDetails) &&
@@ -120,31 +118,13 @@ function TryBusinessSidebarItem(props: Props) {
     return null;
   }
 
-  if (prefersStackedNav(organization)) {
-    return (
-      <TryBusinessNavigationItem
-        organization={organization}
-        subscription={subscription}
-        label={labelText}
-        onClick={openModal}
-      />
-    );
-  }
-
   return (
-    <TrialStartedSidebarItem {...{organization, subscription}}>
-      <SidebarItem
-        {...sidebarItemProps}
-        id="try-business"
-        icon={<IconBusiness size="md" />}
-        label={labelText}
-        onClick={openModal}
-        key="gs-try-business"
-        data-test-id="try-business-sidebar"
-        isNewSeenKeySuffix="-v1"
-        isNew={!subscription.isTrial && subscription.canTrial}
-      />
-    </TrialStartedSidebarItem>
+    <TryBusinessNavigationItem
+      organization={organization}
+      subscription={subscription}
+      label={labelText}
+      onClick={openModal}
+    />
   );
 }
 
