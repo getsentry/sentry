@@ -111,19 +111,17 @@ def delete_group_hashes(
     seer_deletion: bool = False,
 ) -> None:
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
-    total_hashes = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).count()
-
-    # Early return if there are no hashes to delete
-    if total_hashes == 0:
-        return
 
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
     hashes_batch_size = max(1, hashes_batch_size)
 
-    # We multiply by 1.1 to account for the fact that we may have deleted some hashes
-    # since we started the query. Ensure we always process at least one batch if there are hashes.
-    max_iterations = max(1, int(total_hashes * 1.1))
-    for _ in range(0, max_iterations, hashes_batch_size):
+    # Set a reasonable upper bound on iterations to prevent infinite loops.
+    # This replaces the expensive COUNT(*) query that was causing database timeouts.
+    # The loop will naturally terminate when no more hashes are found.
+    max_iterations = 10000
+    iterations = 0
+    
+    while iterations < max_iterations:
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
             "id", "hash"
         )[:hashes_batch_size]
@@ -142,6 +140,8 @@ def delete_group_hashes(
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
             GroupHash.objects.filter(id__in=hash_ids).delete()
+        
+        iterations += 1
 
 
 def create_audit_entries(
