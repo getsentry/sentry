@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+from django.core.exceptions import ValidationError
 from slack_sdk.models.blocks import (
     ActionsBlock,
     Block,
@@ -11,7 +12,9 @@ from slack_sdk.models.blocks import (
     SectionBlock,
 )
 
-from sentry.notifications.platform.provider import NotificationProvider
+from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.utils.channel import validate_slack_entity_id
+from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
@@ -22,7 +25,9 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTargetResourceType,
 )
+from sentry.notifications.platform.utiils import validate_integration_for_target
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class SlackRenderable(TypedDict):
@@ -70,10 +75,41 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     ]
 
     @classmethod
+    def validate_target(cls, *, target: NotificationTarget) -> None:
+        super().validate_target(target=target)
+
+        assert isinstance(
+            target, cls.target_class
+        ), "Target for SlackNotificationProvider must be a IntegrationNotificationTarget"
+
+        # 1. Validate the integration exists
+        # 2. Validate the organization integration exists
+        validate_integration_for_target(target=target)
+
+        # 3. Validate the Slack channel or user exists
+        try:
+            validate_slack_entity_id(
+                integration_id=target.integration_id,
+                input_name=target.resource_id,
+                input_id=target.resource_id,
+            )
+        except (ValidationError, IntegrationError) as e:
+            raise NotificationProviderError(
+                f"Slack channel or user with id '{target.resource_id}' could not be validated"
+            ) from e
+
+    @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
+        # I currently view this as akin to a rollout or feature flag for the registry
         return False
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:
-        pass
+        if not isinstance(target, cls.target_class):
+            raise NotificationProviderError(
+                f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
+            )
+
+        client = SlackSdkClient(integration_id=target.integration_id)
+        client.chat_postMessage(channel=target.resource_id, blocks=renderable["blocks"])
