@@ -710,6 +710,9 @@ class MonitorEnvironment(Model):
         except MonitorIncident.DoesNotExist:
             return None
 
+    def build_occurrence_fingerprint(self) -> str:
+        return f"crons:{self.id}"
+
 
 @receiver(pre_save, sender=MonitorEnvironment)
 def check_monitor_environment_limits(sender, instance, **kwargs):

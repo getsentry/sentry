@@ -592,6 +592,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enables CMD+K supercharged (omni search)
     manager.add("organizations:cmd-k-supercharged", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
+    # Enables using a consistent occurrence fingerprint for a given MonitorEnvironment
+    manager.add("organizations:crons-consistent-fingerprint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.
 
