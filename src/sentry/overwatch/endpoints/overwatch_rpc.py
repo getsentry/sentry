@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 import logging
@@ -55,9 +56,9 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
         signature_input = body
 
         # TODO: When OVERWATCH_RPC_SHARED_SECRET becomes list[str], iterate over keys
-        computed = hmac.new(
-            settings.OVERWATCH_RPC_SHARED_SECRET.encode(), signature_input, hashlib.sha256
-        ).hexdigest()
+        # Decode the base64 encoded shared secret
+        decoded_sig = base64.b64decode(settings.OVERWATCH_RPC_SHARED_SECRET)
+        computed = hmac.new(decoded_sig, signature_input, hashlib.sha256).hexdigest()
         is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
         if is_valid:
             return True
