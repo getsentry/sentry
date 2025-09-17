@@ -5,7 +5,6 @@ import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
@@ -15,7 +14,6 @@ import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
@@ -90,7 +88,6 @@ export default function TimeAndScrubberGrid({
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const durationMs = replay?.getDurationMs();
-
   const timelineElemRef = useRef<HTMLDivElement>(null);
   const [timelineScale] = useTimelineScale();
   const timelineMouseTrackingProps = useTimelineMouseTracking({
@@ -105,11 +102,6 @@ export default function TimeAndScrubberGrid({
 
   return (
     <Grid id="replay-timeline-tooltip-container" isCompact={isCompact}>
-      {replay?.getIsActive() ? (
-        <Padded style={{gridArea: 'live'}}>
-          <Live />
-        </Padded>
-      ) : null}
       <Padded style={{gridArea: 'currentTime'}}>
         <ReplayCurrentTime />
       </Padded>
@@ -201,20 +193,4 @@ const Padded = styled('div')`
   display: flex;
   justify-content: center;
   padding-inline: ${space(1.5)};
-`;
-
-function Live() {
-  return (
-    <Flex align="center">
-      <LiveIndicator />
-      {t('LIVE')}
-    </Flex>
-  );
-}
-
-const LiveIndicator = styled(motion.div)`
-  margin: 0 6px;
-  --pulsingIndicatorRing: ${p => p.theme.success};
-  ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.success};
 `;
