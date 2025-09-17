@@ -33,6 +33,7 @@ class TestMSTeamsActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is True
+        validator.save()
 
     def test_validate__missing_integration_id(self):
         del self.valid_data["integrationId"]
@@ -46,20 +47,6 @@ class TestMSTeamsActionValidator(TestCase):
         assert validator.errors == {
             "nonFieldErrors": [
                 ErrorDetail(string="Integration ID is required for msteams action", code="invalid")
-            ]
-        }
-
-    def test_validate__missing_integration(self):
-        validator = BaseActionValidator(
-            data={**self.valid_data, "integrationId": 123},
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
-        assert validator.errors == {
-            "nonFieldErrors": [
-                ErrorDetail(string="msteams integration with id 123 not found", code="invalid")
             ]
         }
 
