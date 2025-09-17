@@ -795,7 +795,7 @@ def label(expr: Column | CurriedFunction | Function | ScalarType) -> str:
         return json.dumps(expr)
 
 
-def extrapolation_mode(label: str, settings: Settings):
+def extrapolation_mode(label: str, settings: Settings) -> ExtrapolationMode.ValueType:
     modes = settings.get("extrapolation_modes", {})
     return EXTRAPOLATION_MODE_MAP[modes.get(label, "none")]
 
