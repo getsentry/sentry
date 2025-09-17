@@ -954,3 +954,56 @@ class GetUsersForAuthorsUserMappingsTest(TestCase):
         assert users[str(author.id)].get("id", "not present") == "not present"
         assert users[str(author.id)]["email"] == "found@company.com"
         assert users[str(author.id)]["name"] == "CommitAuthor Fallback Name"
+
+    def test_external_actor_duplicate_external_name_prefers_most_recent(self) -> None:
+        """Edge case: ExternalActor objects with the same external_name
+        map to multiple sentry users - select most recently created ExternalActor"""
+        project = self.create_project()
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=integration.id
+        )
+
+        user0 = self.create_user(email="user0@company.com", name="User 0")
+        self.create_member(user=user0, organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@duplicate_name",
+            user_id=user0.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+
+        user1 = self.create_user(email="user1@company.com", name="User 1")
+        self.create_member(user=user1, organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@duplicate_name",
+            user_id=user1.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+
+        user2 = self.create_user(email="user2@company.com", name="User 2")
+        self.create_member(user=user2, organization=project.organization)
+        ExternalActor.objects.create(
+            external_name="@duplicate_name",
+            user_id=user2.id,
+            organization_id=project.organization_id,
+            integration_id=integration.id,
+            provider=200,
+        )
+
+        author = CommitAuthor.objects.create(
+            email="12345+duplicateuser@users.noreply.github.com",
+            name="Duplicate User Commit Name",
+            external_id="github:duplicate_name",
+            organization_id=project.organization_id,
+        )
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+
+        assert len(users) == 1
+        assert users[str(author.id)].get("id", "not present") == str(user2.id)
+        assert users[str(author.id)]["email"] == "user2@company.com"
+        assert users[str(author.id)]["name"] == "User 2"

@@ -250,11 +250,15 @@ def get_author_users_by_external_actors(
     if not usernames_to_authors:
         return found, authors
 
-    external_actors = ExternalActor.objects.filter(
-        external_name__in=list(usernames_to_authors.keys()),
-        organization_id=organization_id,
-        user_id__isnull=False,  # excludes team mappings
-    ).values_list("user_id", "external_name")
+    external_actors = (
+        ExternalActor.objects.filter(
+            external_name__in=list(usernames_to_authors.keys()),
+            organization_id=organization_id,
+            user_id__isnull=False,  # excludes team mappings
+        )
+        .order_by("id")
+        .values_list("user_id", "external_name")
+    )
 
     if not external_actors:
         return found, authors
@@ -265,7 +269,7 @@ def get_author_users_by_external_actors(
         if external_name in usernames_to_authors:
             found_author = usernames_to_authors[external_name]
             found[found_author] = str(user_id)
-            del missed[found_author.id]
+            missed.pop(found_author.id, None)
 
     return found, list(missed.values())
 
