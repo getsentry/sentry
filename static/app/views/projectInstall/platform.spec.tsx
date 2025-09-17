@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
 type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
@@ -62,13 +62,13 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 }
 
-describe('ProjectInstallPlatform', function () {
-  beforeEach(function () {
+describe('ProjectInstallPlatform', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ConfigStore.init();
   });
 
-  it('should render NotFound if no matching integration/platform', async function () {
+  it('should render NotFound if no matching integration/platform', async () => {
     const {organization, routerProps, project} = initializeOrg({
       router: {
         params: {
@@ -80,12 +80,7 @@ describe('ProjectInstallPlatform', function () {
     mockProjectApiResponses([{...project, platform: 'lua'}]);
 
     render(
-      <ProjectInstallPlatform
-        {...routerProps}
-        platform={undefined}
-        currentPlatformKey={'lua' as PlatformKey}
-        project={project}
-      />,
+      <ProjectInstallPlatform {...routerProps} platform={undefined} project={project} />,
       {
         organization,
       }
@@ -94,7 +89,7 @@ describe('ProjectInstallPlatform', function () {
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('should display info for a non-supported platform', async function () {
+  it('should display info for a non-supported platform', async () => {
     const {organization, routerProps, project} = initializeOrg({
       router: {
         params: {
@@ -117,12 +112,7 @@ describe('ProjectInstallPlatform', function () {
     mockProjectApiResponses([{...project, platform: platform.id}]);
 
     render(
-      <ProjectInstallPlatform
-        {...routerProps}
-        platform={platform}
-        project={project}
-        currentPlatformKey={platform.id}
-      />,
+      <ProjectInstallPlatform {...routerProps} platform={platform} project={project} />,
       {
         organization,
       }
@@ -133,7 +123,7 @@ describe('ProjectInstallPlatform', function () {
     ).toBeInTheDocument();
   });
 
-  it('should not render performance/session replay buttons for errors only self-hosted', async function () {
+  it('should not render performance/session replay buttons for errors only self-hosted', async () => {
     const project = ProjectFixture({platform: 'javascript'});
 
     const {routerProps} = initializeOrg({
@@ -158,12 +148,7 @@ describe('ProjectInstallPlatform', function () {
     };
 
     render(
-      <ProjectInstallPlatform
-        {...routerProps}
-        project={project}
-        platform={platform}
-        currentPlatformKey={platform.id}
-      />
+      <ProjectInstallPlatform {...routerProps} project={project} platform={platform} />
     );
 
     expect(

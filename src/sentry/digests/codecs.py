@@ -13,7 +13,7 @@ class Codec:
 
 class CompressedPickleCodec(Codec):
     def encode(self, value: Any) -> bytes:
-        return zlib.compress(pickle.dumps(value))
+        return zlib.compress(pickle.dumps(value, protocol=5))
 
     def decode(self, value: bytes) -> Any:
         return pickle.loads(zlib.decompress(value))

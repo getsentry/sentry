@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './aspnet';
 
-describe('aspnet onboarding docs', function () {
-  it('renders errors onboarding docs correctly', async function () {
+describe('aspnet onboarding docs', () => {
+  it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.aspnet': {
@@ -30,7 +30,7 @@ describe('aspnet onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });

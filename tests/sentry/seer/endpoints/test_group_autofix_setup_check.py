@@ -4,13 +4,96 @@ from unittest.mock import MagicMock, patch
 import orjson
 from django.utils import timezone
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.models.repository import Repository
-from sentry.seer.endpoints.group_autofix_setup_check import get_repos_and_access
+from sentry.seer.endpoints.group_autofix_setup_check import (
+    get_autofix_integration_setup_problems,
+    get_repos_and_access,
+)
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+
+
+class GetAutofixIntegrationSetupProblemsTestCase(TestCase):
+    def test_missing_integration(self) -> None:
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result == "integration_missing"
+
+    def test_supported_github_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITHUB.value,
+            external_id="1",
+        )
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result is None
+
+    def test_supported_github_integration_with_disabled_status(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITHUB.value,
+            external_id="1",
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.disable()
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result == "integration_missing"
+
+    def test_supported_github_enterprise_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            external_id="1",
+        )
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result is None
+
+    def test_supported_github_enterprise_integration_with_disabled_status(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            external_id="1",
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.disable()
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result == "integration_missing"
+
+    def test_unsupported_gitlab_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.GITLAB.value,
+            external_id="1",
+        )
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result == "integration_missing"
 
 
 @with_feature("organizations:gen-ai-features")

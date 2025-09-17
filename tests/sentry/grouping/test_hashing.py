@@ -4,7 +4,6 @@ from time import time
 from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfig
 from sentry.grouping.ingest.hashing import (
     _calculate_event_grouping,
@@ -16,6 +15,7 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -75,6 +75,7 @@ class SecondaryGroupingTest(TestCase):
         # Make sure that events did get into same group because of secondary grouping, not because
         # of hashes which come from primary grouping only
         assert not set(event.get_hashes()) & set(event2.get_hashes())  # No overlap
+        assert event.group_id is not None
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)

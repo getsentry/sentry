@@ -73,6 +73,10 @@ class GroupOpenPeriod(DefaultFieldsModel):
         indexes = (
             # get all open periods since a certain date
             models.Index(fields=("group", "date_started")),
+            models.Index(
+                models.F("data__pending_incident_detector_id"),
+                name="data__pend_inc_detector_id_idx",
+            ),
         )
 
         constraints = (
@@ -168,6 +172,7 @@ def get_open_periods_for_group(
     # If there are no open periods in the table, we need to calculate them
     # from the activity log.
     # TODO(snigdha): This is temporary until we have backfilled the GroupOpenPeriod table
+    logger.warning("Open periods not fully backfilled", extra={"group_id": group.id})
 
     if query_start is None or query_end is None:
         query_start = timezone.now() - timedelta(days=90)
@@ -276,9 +281,9 @@ def update_group_open_period(
     if not features.has("organizations:issue-open-periods", group.project.organization):
         return
 
-    # Until we've backfilled the GroupOpenPeriod table, we don't want to update open periods for
-    # groups that weren't initially created with one.
-    if not has_initial_open_period(group):
+    # If a group was missed during backfill, we can create a new open period for it on unresolve.
+    if not has_any_open_period(group) and new_status == GroupStatus.UNRESOLVED:
+        create_open_period(group, timezone.now())
         return
 
     open_period = get_latest_open_period(group)
@@ -302,8 +307,8 @@ def update_group_open_period(
         open_period.reopen_open_period()
 
 
-def has_initial_open_period(group: Group) -> bool:
-    return GroupOpenPeriod.objects.filter(group=group, date_started__lte=group.first_seen).exists()
+def has_any_open_period(group: Group) -> bool:
+    return GroupOpenPeriod.objects.filter(group=group).exists()
 
 
 def get_latest_open_period(group: Group) -> GroupOpenPeriod | None:

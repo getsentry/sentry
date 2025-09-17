@@ -6,20 +6,19 @@ from datetime import timedelta
 from django.db import router
 from django.utils import timezone
 
+from sentry import options
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
-# TODO: merge this with artifact bundles
-# Number of days that determine whether a debug file is ready for being renewed.
-AVAILABLE_FOR_RENEWAL_DAYS = 30
 
-
-def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]):
+def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]) -> None:
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
-    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+    threshold_date = now - timedelta(
+        days=options.get("system.debug-files-renewal-age-threshold-days")
+    )
 
     # We first check if any file needs renewal, before going to the database.
     needs_bump = any(dif.date_accessed <= threshold_date for dif in debug_files)

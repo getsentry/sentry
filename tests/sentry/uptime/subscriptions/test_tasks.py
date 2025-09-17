@@ -23,11 +23,10 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
 from sentry.uptime.models import (
-    ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
+    get_uptime_subscription,
 )
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
@@ -469,6 +468,19 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
             "default", sub, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
         )
 
+    def test_invalid_status(self) -> None:
+        sub = self.create_subscription(
+            UptimeSubscription.Status.DELETING, subscription_id=uuid.uuid4().hex
+        )
+        self.task(sub.id)
+        self.metrics.incr.assert_called_once_with(
+            "uptime.subscriptions.{}.incorrect_status".format(
+                self.status_translations[self.expected_status]
+            ),
+            sample_rate=1.0,
+        )
+        self.assert_redis_config("default", sub, None, None)
+
 
 class BrokenMonitorCheckerTest(UptimeTestCase):
     def test(self) -> None:
@@ -508,7 +520,7 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         )
 
     def test_handle_disable_detector_exceptions(self) -> None:
-        self.create_project_uptime_subscription(
+        self.create_uptime_detector(
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             uptime_status=UptimeStatus.FAILED,
             uptime_status_update_date=timezone.now() - timedelta(days=8),
@@ -517,12 +529,10 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         with (
             self.tasks(),
             mock.patch(
-                "sentry.uptime.subscriptions.subscriptions.get_project_subscription",
-                side_effect=ProjectUptimeSubscription.DoesNotExist,
+                "sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",
+                side_effect=Exception("Test exception"),
             ),
-            mock.patch(
-                "sentry.uptime.subscriptions.tasks.logger",
-            ) as logger,
+            mock.patch("sentry.uptime.subscriptions.tasks.logger") as logger,
         ):
             # Does not raise
             broken_monitor_checker()
@@ -536,20 +546,20 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         expected_status: int,
         expected_uptime_status: UptimeStatus,
     ):
-        proj_sub = self.create_project_uptime_subscription(
+        detector = self.create_uptime_detector(
             mode=mode,
             uptime_status=uptime_status,
             uptime_status_update_date=update_date,
         )
+        uptime_subscription = get_uptime_subscription(detector)
+
         with self.tasks():
             broken_monitor_checker()
 
-        proj_sub.refresh_from_db()
-        assert proj_sub.status == expected_status
-        assert proj_sub.uptime_subscription.uptime_status == expected_uptime_status
+        uptime_subscription.refresh_from_db()
+        assert uptime_subscription.uptime_status == expected_uptime_status
 
-        detector = get_detector(proj_sub.uptime_subscription)
-        assert detector
+        detector.refresh_from_db()
         if expected_status == ObjectStatus.ACTIVE:
             assert detector.enabled
         else:

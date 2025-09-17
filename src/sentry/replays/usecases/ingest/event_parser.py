@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar
 
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
@@ -41,6 +41,12 @@ class ClickEvent:
     url: str | None
 
 
+@dataclass(frozen=True)
+class MultiClickEvent:
+    click_event: ClickEvent
+    click_count: int
+
+
 @dataclass
 class HydrationError:
     timestamp: float
@@ -56,6 +62,7 @@ class MutationEvent:
 class ParsedEventMeta:
     canvas_sizes: list[int]
     click_events: list[ClickEvent]
+    multiclick_events: list[MultiClickEvent]
     hydration_errors: list[HydrationError]
     mutation_events: list[MutationEvent]
     options_events: list[dict[str, Any]]
@@ -93,7 +100,7 @@ class EventType(Enum):
     CLICK = 1
     CONSOLE = 2
     DEAD_CLICK = 3
-    FCP = 4
+    # FCP = 4 deprecated
     FEEDBACK = 5
     HYDRATION_ERROR = 6
     LCP = 7
@@ -112,6 +119,7 @@ class EventType(Enum):
     UNKNOWN = 20
     CLS = 21
     NAVIGATION_SPAN = 22
+    MULTI_CLICK = 23
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -159,6 +167,8 @@ def which(event: dict[str, Any]) -> EventType:
                             return EventType.DEAD_CLICK
                     else:
                         return EventType.SLOW_CLICK
+                elif category == "ui.multiClick":
+                    return EventType.MULTI_CLICK
                 elif category == "navigation":
                     return EventType.NAVIGATION
                 elif category == "console":
@@ -191,8 +201,6 @@ def which(event: dict[str, Any]) -> EventType:
                 elif op == "web-vital":
                     if payload["description"] == "largest-contentful-paint":
                         return EventType.LCP
-                    elif payload["description"] == "first-contentful-paint":
-                        return EventType.FCP
                     elif payload["description"] == "cumulative-layout-shift":
                         return EventType.CLS
                     else:
@@ -219,6 +227,52 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
         yield (which(event), event)
 
 
+def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
+    """
+    Returns the time unit of event["timestamp"] for a replay event.
+    This is not guaranteed to match event.data.payload.timestamp.
+
+    We do not allow wildcard or default cases. Please be explicit when adding new types.
+    Beware that EventType.UNKNOWN returns "ms" but there's no way to know the actual unit.
+    """
+    match event_type:
+        case (
+            EventType.CLS
+            | EventType.LCP
+            | EventType.MEMORY
+            | EventType.MUTATIONS
+            | EventType.NAVIGATION_SPAN
+            | EventType.RESOURCE_FETCH
+            | EventType.RESOURCE_IMAGE
+            | EventType.RESOURCE_SCRIPT
+            | EventType.RESOURCE_XHR
+            | EventType.UI_BLUR
+            | EventType.UI_FOCUS
+        ):
+            return "s"
+        case (
+            EventType.CANVAS
+            | EventType.CONSOLE
+            | EventType.CLICK
+            | EventType.DEAD_CLICK
+            | EventType.RAGE_CLICK
+            | EventType.SLOW_CLICK
+            | EventType.MULTI_CLICK
+            | EventType.HYDRATION_ERROR
+            | EventType.NAVIGATION
+            | EventType.OPTIONS
+            | EventType.UNKNOWN
+            | EventType.FEEDBACK  # feedback breadcrumbs from the SDK have MS timestamps.
+        ):
+            return "ms"
+
+
+def get_timestamp_ms(event: dict[str, Any], event_type: EventType) -> float:
+    if get_timestamp_unit(event_type) == "s":
+        return float(event.get("timestamp", 0) * 1000)
+    return float(event.get("timestamp", 0))
+
+
 #
 # EAP Trace Item Processor
 #
@@ -226,7 +280,7 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
 
 class EAPEventsBuilder:
 
-    def __init__(self, context: EventContext):
+    def __init__(self, context: EventContext) -> None:
         self.context = context
         self.events: list[TraceItem] = []
 
@@ -337,6 +391,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["timestamp"]),
             }
+        case EventType.MULTI_CLICK:
+            return None
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
             payload_data = payload.get("data", {})
@@ -413,13 +469,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
             }
-        case EventType.LCP | EventType.FCP | EventType.CLS:
+        case EventType.LCP | EventType.CLS:
             payload = event["data"]["payload"]
 
             if event_type == EventType.CLS:
                 category = "web-vital.cls"
-            elif event_type == EventType.FCP:
-                category = "web-vital.fcp"
             else:
                 category = "web-vital.lcp"
 
@@ -537,16 +591,18 @@ class HighlightedEvents(TypedDict, total=False):
     hydration_errors: list[HydrationError]
     mutations: list[MutationEvent]
     clicks: list[ClickEvent]
+    multiclicks: list[MultiClickEvent]
     request_response_sizes: list[tuple[int | None, int | None]]
     options: list[dict[str, Any]]
 
 
 class HighlightedEventsBuilder:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.events: HighlightedEvents = {
             "canvas_sizes": [],
             "clicks": [],
+            "multiclicks": [],
             "hydration_errors": [],
             "mutations": [],
             "options": [],
@@ -562,6 +618,7 @@ class HighlightedEventsBuilder:
         return ParsedEventMeta(
             self.events["canvas_sizes"],
             self.events["clicks"],
+            self.events["multiclicks"],
             self.events["hydration_errors"],
             self.events["mutations"],
             self.events["options"],
@@ -605,6 +662,9 @@ def as_highlighted_event(
     elif event_type == EventType.RAGE_CLICK:
         click = parse_click_event(event["data"]["payload"], is_dead=True, is_rage=True)
         return {"clicks": [click]} if click else {}
+    elif event_type == EventType.MULTI_CLICK:
+        multiclick = parse_multiclick_event(event["data"]["payload"])
+        return {"multiclicks": [multiclick]} if multiclick else {}
     elif event_type == EventType.RESOURCE_FETCH or event_type == EventType.RESOURCE_XHR:
         lengths = parse_network_content_lengths(event)
         if lengths != (None, None):
@@ -672,6 +732,16 @@ def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> 
         timestamp=int(payload["timestamp"]),
         title=attributes.get("title", "")[:64],
         url=payload["data"].get("url"),
+    )
+
+
+def parse_multiclick_event(payload: dict[str, Any]) -> MultiClickEvent | None:
+    click_event = parse_click_event(payload, is_dead=False, is_rage=False)
+    if not click_event:
+        return None
+    return MultiClickEvent(
+        click_event=click_event,
+        click_count=payload["data"].get("clickCount", 0),
     )
 
 

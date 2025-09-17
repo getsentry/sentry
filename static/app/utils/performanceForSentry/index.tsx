@@ -54,7 +54,7 @@ export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDura
   }
 };
 
-export const PerformanceInteraction = (function () {
+const PerformanceInteraction = (function () {
   let _INTERACTION_SPAN: Span | null = null;
   let _INTERACTION_TIMEOUT_ID: number | undefined = undefined;
   return {
@@ -92,7 +92,7 @@ export const PerformanceInteraction = (function () {
           _INTERACTION_SPAN.setAttribute('ui.interaction.finish', 'timeout');
           PerformanceInteraction.finishInteraction(true);
         }, timeout);
-      } catch (e) {
+      } catch (e: any) {
         Sentry.captureMessage(e);
       }
     },
@@ -116,20 +116,12 @@ export const PerformanceInteraction = (function () {
         _INTERACTION_SPAN = null;
 
         return;
-      } catch (e) {
+      } catch (e: any) {
         Sentry.captureMessage(e);
       }
     },
   };
 })();
-
-export function CustomProfiler({id, children}: {children: ReactNode; id: string}) {
-  return (
-    <Profiler id={id} onRender={onRenderCallback}>
-      {children}
-    </Profiler>
-  );
-}
 
 /**
  * This component wraps the main component on a page with a measurement checking for visual completedness.

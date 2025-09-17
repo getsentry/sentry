@@ -1,5 +1,9 @@
+from collections.abc import Sequence
+from typing import Any
+
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -9,8 +13,8 @@ from sentry.utils.sdk import bind_organization_context
 from .organization import OrganizationPermission
 
 
-def has_team_permission(request, team, scope_map):
-    allowed_scopes = set(scope_map.get(request.method, []))
+def has_team_permission(request: Request, team: Team, scope_map: dict[str, Sequence[str]]) -> bool:
+    allowed_scopes = set(scope_map.get(request.method or "", []))
     return any(request.access.has_team_scope(team, s) for s in allowed_scopes)
 
 
@@ -22,7 +26,7 @@ class TeamPermission(OrganizationPermission):
         "DELETE": ["team:admin"],
     }
 
-    def has_object_permission(self, request: Request, view, team):
+    def has_object_permission(self, request: Request, view: APIView, team: Any) -> bool:
         has_org_scope = super().has_object_permission(request, view, team.organization)
         if has_org_scope:
             # Org-admin has "team:admin", but they can only act on their teams
@@ -36,8 +40,13 @@ class TeamEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (TeamPermission,)
 
     def convert_args(
-        self, request: Request, organization_id_or_slug, team_id_or_slug, *args, **kwargs
-    ):
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        team_id_or_slug: str | int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         try:
             team = (
                 Team.objects.filter(

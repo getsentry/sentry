@@ -1,4 +1,4 @@
-import {type CSSProperties, useState} from 'react';
+import {useState, type CSSProperties} from 'react';
 
 import {chonkFor} from 'sentry/components/core/chonk';
 import {space} from 'sentry/styles/space';

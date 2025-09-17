@@ -12,7 +12,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class OAuthAuthorizeCodeTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/authorize/"
 
     def setUp(self) -> None:
@@ -144,6 +144,21 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         assert not ApiToken.objects.filter(user=self.user).exists()
 
+    def test_requires_redirect_uri_when_multiple_registered(self) -> None:
+        self.login_as(self.user)
+        # Update application to have multiple registered redirect URIs
+        self.application.redirect_uris = "https://example.com\nhttps://example.org/callback"
+        self.application.save()
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        # Must require redirect_uri when multiple are registered (RFC 6749 §3.1.2.3)
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>redirect_uri</em> parameter."
+
     def test_approve_flow_bypass_prompt(self) -> None:
         self.login_as(self.user)
 
@@ -246,7 +261,7 @@ class OAuthAuthorizeCodeTest(TestCase):
 @control_silo_test
 class OAuthAuthorizeTokenTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/authorize/"
 
     def setUp(self) -> None:
@@ -351,7 +366,7 @@ class OAuthAuthorizeTokenTest(TestCase):
 @control_silo_test
 class OAuthAuthorizeOrgScopedTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return "/oauth/authorize/"
 
     def setUp(self) -> None:

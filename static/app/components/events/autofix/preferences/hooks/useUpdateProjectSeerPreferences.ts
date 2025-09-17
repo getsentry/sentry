@@ -12,7 +12,7 @@ export function useUpdateProjectSeerPreferences(project: Project) {
     mutationFn: (data: ProjectSeerPreferences) => {
       const payload: ProjectSeerPreferences = {
         repositories: data.repositories,
-        automated_run_stopping_point: data.automated_run_stopping_point ?? 'solution',
+        automated_run_stopping_point: data.automated_run_stopping_point ?? 'root_cause',
       };
       return api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/seer/preferences/`,

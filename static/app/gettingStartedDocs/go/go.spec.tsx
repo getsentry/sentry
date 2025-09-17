@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './go';
 
-describe('go onboarding docs', function () {
-  it('renders errors onboarding docs correctly', function () {
+describe('go onboarding docs', () => {
+  it('renders errors onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -16,7 +16,7 @@ describe('go onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
@@ -29,7 +29,7 @@ describe('go onboarding docs', function () {
     }
   });
 
-  it('renders logs onboarding docs correctly', async function () {
+  it('renders logs onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.LOGS],
     });
@@ -40,7 +40,7 @@ describe('go onboarding docs', function () {
     }
   });
 
-  it('renders performance and logs onboarding docs correctly', async function () {
+  it('renders performance and logs onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
     });

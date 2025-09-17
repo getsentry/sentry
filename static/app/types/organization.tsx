@@ -102,7 +102,6 @@ export interface Organization extends OrganizationSummary {
     | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
-  effectiveSampleRate?: number | null;
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
@@ -311,7 +310,7 @@ type AccuracyStatsItem<T> = {
   value: T;
 };
 
-export type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
+type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
 
 // API response for a single Discover timeseries
 export type EventsStats = {

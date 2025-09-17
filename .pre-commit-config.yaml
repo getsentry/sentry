@@ -60,8 +60,7 @@ repos:
         name: lint-requirements
         entry: python -m tools.lint_requirements
         language: python
-        files: requirements-.*\.txt$
-        additional_dependencies: [packaging==24.1]
+        files: (^|/)uv\.lock$
       - id: check-mypy-bypass
         name: do not bypass the type checker
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
@@ -166,6 +165,8 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1

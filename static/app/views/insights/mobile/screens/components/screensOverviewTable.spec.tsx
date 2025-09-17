@@ -18,7 +18,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('ScreensOverviewTable', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules'],
+    features: ['insight-modules'],
   });
   const project = ProjectFixture();
 

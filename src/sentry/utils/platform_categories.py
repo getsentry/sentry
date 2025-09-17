@@ -84,6 +84,7 @@ BACKEND = {
     "node-express",
     "node-fastify",
     "node-hapi",
+    "node-hono",
     "node-koa",
     "node-nestjs",
     "perl",
@@ -158,14 +159,18 @@ DESKTOP = {
     "unreal",
 }
 
+CONSOLES = {
+    "nintendo-switch",
+    "playstation",
+    "xbox",
+}
+
 GAMING = {
     "godot",
     "native",
-    "nintendo-switch",
-    "playstation",
     "unity",
     "unreal",
-    "xbox",
+    *CONSOLES,
 }
 
 CATEGORY_LIST = [
@@ -175,6 +180,7 @@ CATEGORY_LIST = [
     {id: "desktop", "name": _("Desktop"), "platforms": DESKTOP},
     {id: "serverless", "name": _("Serverless"), "platforms": SERVERLESS},
     {id: "gaming", "name": _("Gaming"), "platforms": GAMING},
+    {id: "other", "name": _("Other"), "platforms": {"other"}},
 ]
 
 # Mirrors `const sourceMaps` in sentry/static/app/data/platformCategories.tsx

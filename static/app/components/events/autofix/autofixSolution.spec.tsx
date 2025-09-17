@@ -7,8 +7,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
-import type {AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
-import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
+import {
+  type AutofixData,
+  type AutofixSolutionTimelineEvent,
+} from 'sentry/components/events/autofix/types';
+import {
+  useAutofixData,
+  useAutofixRepos,
+} from 'sentry/components/events/autofix/useAutofix';
 
 jest.mock('sentry/components/events/autofix/useAutofix');
 
@@ -43,6 +49,12 @@ describe('AutofixSolution', () => {
     jest.mocked(useAutofixRepos).mockReturnValue({
       repos: [],
       codebases: {},
+    });
+
+    jest.mocked(useAutofixData).mockReset();
+    jest.mocked(useAutofixData).mockReturnValue({
+      data: {} as AutofixData,
+      isPending: false,
     });
 
     MockApiClient.addMockResponse({

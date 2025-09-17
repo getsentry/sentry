@@ -7,12 +7,12 @@ import HookStore from 'sentry/stores/hookStore';
 
 import hookSidebarDropdownMenu from 'getsentry/hooks/sidebarDropdownMenu';
 
-describe('sidebar:organization-dropdown-menu', function () {
-  beforeEach(function () {
+describe('sidebar:organization-dropdown-menu', () => {
+  beforeEach(() => {
     HookStore.init();
   });
 
-  it('renders "Support" link', async function () {
+  it('renders "Support" link', async () => {
     HookStore.add('sidebar:organization-dropdown-menu', hookSidebarDropdownMenu);
 
     render(<SidebarDropdown orientation="top" collapsed={false} />);
@@ -25,7 +25,7 @@ describe('sidebar:organization-dropdown-menu', function () {
     );
   });
 
-  it('renders "Usage & Billing" link only for `org:billing` access', async function () {
+  it('renders "Usage & Billing" link only for `org:billing` access', async () => {
     HookStore.add('sidebar:organization-dropdown-menu', hookSidebarDropdownMenu);
 
     const billingOrg = OrganizationFixture({access: ['org:billing']});

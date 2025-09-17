@@ -6,14 +6,14 @@ from django.core import mail
 from django.db import models
 
 from sentry import audit_log
-from sentry.api.endpoints.organization_details import (
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.services.auth import AuthenticatedToken
+from sentry.core.endpoints.organization_details import (
     flag_has_changed,
     has_changed,
     old_value,
     update_tracked_data,
 )
-from sentry.auth.authenticators.totp import TotpInterface
-from sentry.auth.services.auth import AuthenticatedToken
 from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
@@ -95,7 +95,9 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.flags.early_adopter = True
         org.flags.codecov_access = True
         org.flags.require_2fa = True
-        org.flags.disable_member_project_creation = True
+        org.flags.disable_member_project_creation = (
+            False  # set to True by default for new orgs in save()
+        )
         org.flags.prevent_superuser_access = True
         org.flags.disable_member_invite = True
         assert flag_has_changed(org, "allow_joinleave") is False

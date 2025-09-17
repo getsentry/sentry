@@ -1,3 +1,4 @@
+import {act} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -18,37 +19,9 @@ import type {Subscription as TSubscription} from 'getsentry/types';
 import {FTCConsentLocation, PlanTier} from 'getsentry/types';
 import {BillingDetails as BillingDetailsView} from 'getsentry/views/subscriptionPage/billingDetails';
 
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    cb(() => ({
-      createToken: jest.fn(
-        () =>
-          new Promise(resolve => {
-            resolve({token: {id: 'STRIPE_TOKEN'}});
-          })
-      ),
-      confirmCardSetup(secretKey: string, _options: any) {
-        if (secretKey !== 'ERROR') {
-          return new Promise(resolve => {
-            resolve({setupIntent: {payment_method: 'pm_abc123'}});
-          });
-        }
-        return new Promise(resolve => {
-          resolve({error: {message: 'card invalid'}});
-        });
-      },
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
-        })),
-      })),
-    }));
-  },
-}));
+// Stripe mocks handled by global setup.ts
 
-describe('Subscription > BillingDetails', function () {
+describe('Subscription > BillingDetails', () => {
   const {organization, router} = initializeOrg({
     organization: {access: ['org:billing']},
   });
@@ -90,7 +63,7 @@ describe('Subscription > BillingDetails', function () {
     });
   });
 
-  it('renders an error for non-billing roles', async function () {
+  it('renders an error for non-billing roles', async () => {
     const org = {...organization, access: OrganizationFixture().access};
 
     MockApiClient.addMockResponse({
@@ -112,7 +85,7 @@ describe('Subscription > BillingDetails', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders with subscription', async function () {
+  it('renders with subscription', async () => {
     render(
       <BillingDetailsView
         organization={organization}
@@ -121,12 +94,11 @@ describe('Subscription > BillingDetails', function () {
       />
     );
 
-    const section = await screen.findByTestId('account-balance');
-    expect(within(section).getByText(/account balance/i)).toBeInTheDocument();
-    expect(within(section).getByText('$100 credit')).toBeInTheDocument();
+    await screen.findByLabelText(/account balance/i);
+    expect(screen.getByText('$100 credit')).toBeInTheDocument();
   });
 
-  it('renders without credit if account balance > 0', async function () {
+  it('renders without credit if account balance > 0', async () => {
     const sub: TSubscription = {...subscription, accountBalance: 10_000};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -138,13 +110,12 @@ describe('Subscription > BillingDetails', function () {
       />
     );
 
-    const section = await screen.findByTestId('account-balance');
-    expect(within(section).getByText(/account balance/i)).toBeInTheDocument();
-    expect(within(section).getByText('$100')).toBeInTheDocument();
-    expect(within(section).queryByText('credit')).not.toBeInTheDocument();
+    await screen.findByLabelText(/account balance/i);
+    expect(screen.getByText('$100')).toBeInTheDocument();
+    expect(screen.queryByText('$100 credit')).not.toBeInTheDocument();
   });
 
-  it('hides account balance when it is 0', async function () {
+  it('hides account balance when it is 0', async () => {
     const sub = {...subscription, accountBalance: 0};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -156,7 +127,7 @@ describe('Subscription > BillingDetails', function () {
       />
     );
 
-    await screen.findByRole('textbox', {name: /street address 1/i});
+    await screen.findByText('Address Line 1');
     expect(screen.queryByText(/account balance/i)).not.toBeInTheDocument();
   });
 
@@ -169,14 +140,14 @@ describe('Subscription > BillingDetails', function () {
       />
     );
 
-    await screen.findByRole('textbox', {name: 'Street Address 1'});
-    expect(screen.getByRole('textbox', {name: 'Postal Code'})).toBeInTheDocument();
+    await screen.findByText('Address Line 1');
+    expect(screen.getAllByText('Postal Code')).toHaveLength(2);
     expect(screen.getByText('94242')).toBeInTheDocument();
     expect(screen.getByText(/credit card number/i)).toBeInTheDocument();
     expect(screen.getByText('xxxx xxxx xxxx 4242')).toBeInTheDocument();
   });
 
-  it('can update credit card with setupintent', async function () {
+  it('can update credit card with setupintent', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -209,7 +180,7 @@ describe('Subscription > BillingDetails', function () {
       />
     );
 
-    await screen.findByRole('textbox', {name: /street address 1/i});
+    await screen.findByText('Address Line 1');
     await userEvent.click(screen.getByRole('button', {name: 'Update card'}));
 
     const {waitForModalToHide} = renderGlobalModal();
@@ -226,14 +197,11 @@ describe('Subscription > BillingDetails', function () {
     await userEvent.click(inModal.getByRole('button', {name: 'Save Changes'}));
     await waitForModalToHide();
 
-    // Save billing details
-    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
-
     expect(updateMock).toHaveBeenCalledWith(
       `/customers/${organization.slug}/`,
       expect.objectContaining({
         data: expect.objectContaining({
-          paymentMethod: 'pm_abc123',
+          paymentMethod: 'test-pm',
           ftcConsentLocation: FTCConsentLocation.BILLING_DETAILS,
         }),
       })
@@ -241,12 +209,12 @@ describe('Subscription > BillingDetails', function () {
 
     expect(screen.getByText('xxxx xxxx xxxx 1111')).toBeInTheDocument();
     expect(screen.getByText('94107')).toBeInTheDocument();
-    SubscriptionStore.get(subscription.slug, function (sub) {
+    SubscriptionStore.get(subscription.slug, sub => {
       expect(sub.paymentSource?.last4).toBe('1111');
     });
   });
 
-  it('shows an error if the setupintent creation fails', async function () {
+  it('shows an error if the setupintent creation fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
@@ -261,7 +229,7 @@ describe('Subscription > BillingDetails', function () {
       />
     );
 
-    await screen.findByRole('textbox', {name: /street address 1/i});
+    await screen.findByText('Address Line 1');
     await userEvent.click(screen.getByRole('button', {name: 'Update card'}));
 
     renderGlobalModal();
@@ -271,7 +239,7 @@ describe('Subscription > BillingDetails', function () {
     });
   });
 
-  it('shows an error when confirmSetup fails', async function () {
+  it('shows an error when confirmSetup fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
@@ -291,7 +259,7 @@ describe('Subscription > BillingDetails', function () {
       />
     );
 
-    await screen.findByRole('textbox', {name: /street address 1/i});
+    await screen.findByText('Address Line 1');
     await userEvent.click(screen.getByRole('button', {name: 'Update card'}));
 
     renderGlobalModal();
@@ -304,7 +272,7 @@ describe('Subscription > BillingDetails', function () {
     expect(await screen.findByText('card invalid')).toBeInTheDocument();
   });
 
-  it('renders open credit card modal with billing failure query', async function () {
+  it('renders open credit card modal with billing failure query', async () => {
     router.location = {
       ...router.location,
       query: {referrer: 'billing-failure'},
@@ -324,7 +292,7 @@ describe('Subscription > BillingDetails', function () {
       />
     );
 
-    await screen.findByRole('textbox', {name: /street address 1/i});
+    await screen.findByText('Address Line 1');
     expect(
       screen.getByText(/Your credit card will be charged upon update./)
     ).toBeInTheDocument();
@@ -339,7 +307,7 @@ describe('Subscription > BillingDetails', function () {
   });
 });
 
-describe('Billing details form', function () {
+describe('Billing details form', () => {
   const {router} = initializeOrg();
   const organization = OrganizationFixture({
     access: ['org:billing'],
@@ -382,9 +350,10 @@ describe('Billing details form', function () {
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
+    organization.features = [];
   });
 
-  it('renders billing details form', async function () {
+  it('renders billing details form', async () => {
     render(
       <BillingDetailsView
         organization={organization}
@@ -393,17 +362,24 @@ describe('Billing details form', function () {
       />
     );
 
-    await screen.findByRole('textbox', {name: 'Street Address 1'});
-    expect(screen.getByRole('textbox', {name: 'Street Address 2'})).toBeInTheDocument();
+    await screen.findByRole('button', {name: 'Update details'});
+    await userEvent.click(screen.getByRole('button', {name: 'Update details'}));
+    renderGlobalModal();
+    const modal = await screen.findByRole('dialog');
+    const inModal = within(modal);
+
+    expect(inModal.getByRole('textbox', {name: 'Street Address 1'})).toBeInTheDocument();
+    expect(inModal.getByRole('textbox', {name: 'Street Address 2'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Country'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'City'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'State / Region'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Postal Code'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Company Name'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Billing Email'})).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Vat Number'})).not.toBeInTheDocument();
+    expect(inModal.getByRole('textbox', {name: 'State / Region'})).toBeInTheDocument();
+    expect(inModal.getByRole('textbox', {name: 'Postal Code'})).toBeInTheDocument();
+    expect(inModal.getByRole('textbox', {name: 'Company Name'})).toBeInTheDocument();
+    expect(inModal.getByRole('textbox', {name: 'Billing Email'})).toBeInTheDocument();
+    expect(inModal.queryByRole('textbox', {name: 'Vat Number'})).not.toBeInTheDocument();
   });
 
-  it('can submit form', async function () {
+  it('can submit form', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -418,20 +394,24 @@ describe('Billing details form', function () {
       />
     );
 
-    await screen.findByRole('textbox', {name: /street address 1/i});
+    await screen.findByRole('button', {name: 'Update details'});
+    await userEvent.click(screen.getByRole('button', {name: 'Update details'}));
+    renderGlobalModal();
+    const modal = await screen.findByRole('dialog');
+    const inModal = within(modal);
 
     // renders initial data
-    expect(screen.getByDisplayValue('123 Street')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('San Francisco')).toBeInTheDocument();
-    expect(screen.getByText('California')).toBeInTheDocument();
-    expect(screen.getByText('United States')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('12345')).toBeInTheDocument();
+    expect(inModal.getByDisplayValue('123 Street')).toBeInTheDocument();
+    expect(inModal.getByDisplayValue('San Francisco')).toBeInTheDocument();
+    expect(inModal.getByText('California')).toBeInTheDocument();
+    expect(inModal.getByText('United States')).toBeInTheDocument();
+    expect(inModal.getByDisplayValue('12345')).toBeInTheDocument();
 
     // update field
-    await userEvent.clear(screen.getByRole('textbox', {name: /postal code/i}));
-    await userEvent.type(screen.getByRole('textbox', {name: /postal code/i}), '98765');
+    await userEvent.clear(inModal.getByRole('textbox', {name: /postal code/i}));
+    await userEvent.type(inModal.getByRole('textbox', {name: /postal code/i}), '98765');
 
-    await userEvent.click(screen.getByRole('button', {name: /save changes/i}));
+    await userEvent.click(inModal.getByRole('button', {name: /save changes/i}));
 
     expect(updateMock).toHaveBeenCalledWith(
       `/customers/${organization.slug}/billing-details/`,
@@ -440,5 +420,68 @@ describe('Billing details form', function () {
         data: {...BillingDetailsFixture(), postalCode: '98765'},
       })
     );
+  });
+
+  it('displays tax number field for country with sales tax', async () => {
+    const billingDetailsWithPhilippines = BillingDetailsFixture({
+      countryCode: 'PH',
+      taxNumber: '123456789000',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+      body: billingDetailsWithPhilippines,
+    });
+
+    render(
+      <BillingDetailsView
+        organization={organization}
+        subscription={subscription}
+        location={router.location}
+      />
+    );
+
+    await screen.findByRole('button', {name: 'Update details'});
+    await userEvent.click(screen.getByRole('button', {name: 'Update details'}));
+    renderGlobalModal();
+    const modal = await screen.findByRole('dialog');
+    const inModal = within(modal);
+
+    // Philippines should display TIN field
+    expect(inModal.getByRole('textbox', {name: 'TIN'})).toBeInTheDocument();
+    expect(inModal.getByDisplayValue('123456789000')).toBeInTheDocument();
+
+    // Help text should mention Taxpayer Identification Number
+    expect(inModal.getByText(/Taxpayer Identification Number/)).toBeInTheDocument();
+  });
+
+  it('uses stripe components when flag is enabled', async () => {
+    organization.features = ['stripe-components'];
+
+    render(
+      <BillingDetailsView
+        organization={organization}
+        subscription={subscription}
+        location={router.location}
+      />
+    );
+
+    await screen.findByRole('button', {name: 'Update details'});
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', {name: 'Update details'}));
+      renderGlobalModal();
+    });
+    const modal = await screen.findByRole('dialog');
+    const inModal = within(modal);
+
+    // check for our custom fields outside of the Stripe components
+    expect(inModal.getByRole('textbox', {name: 'Billing email'})).toBeInTheDocument();
+
+    // There shouldn't be any of the fields from the LegacyBillingDetailsForm
+    expect(
+      inModal.queryByRole('textbox', {name: 'Street Address 1'})
+    ).not.toBeInTheDocument();
   });
 });

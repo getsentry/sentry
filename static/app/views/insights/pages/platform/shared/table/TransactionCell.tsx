@@ -50,7 +50,7 @@ export function TransactionCell({
         column: {kind: 'field', field: 'transaction'},
       }}
       dataRow={dataRow as any}
-      allowActions={[Actions.ADD]}
+      allowActions={[Actions.ADD, Actions.OPEN_INTERNAL_LINK]}
       handleCellAction={() => setTransactionFilter(transaction)}
     >
       <CellWrapper>

@@ -6,7 +6,8 @@ from datetime import timedelta
 from typing import Any
 from urllib.parse import urlparse
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsExperimentalGroupType
+from sentry import features
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -20,7 +21,7 @@ from sentry.performance_issues.base import (
     parameterize_url,
     parameterize_url_with_result,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration
+from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -73,7 +74,9 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
+        return features.has(
+            "organizations:experimental-n-plus-one-api-detector-rollout", organization
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
@@ -128,6 +131,9 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         if not url:
             return False
 
+        if has_filtered_url(self._event, span):
+            return False
+
         # Once most users update their SDKs to use the latest standard, we
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
@@ -174,7 +180,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
             fingerprint=fingerprint,
             op=last_span["op"],
             desc=problem_description,
-            type=PerformanceNPlusOneAPICallsExperimentalGroupType,
+            type=PerformanceNPlusOneAPICallsGroupType,
             cause_span_ids=[],
             parent_span_ids=[parent_span_id] if parent_span_id else [],
             offender_span_ids=offender_span_ids,
@@ -259,7 +265,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
         fingerprint = fingerprint_http_spans([self.spans[0]])
 
-        return f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-{fingerprint}"
+        return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
         span_a_start = span_a["start_timestamp"]

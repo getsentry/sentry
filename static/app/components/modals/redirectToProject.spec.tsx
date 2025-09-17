@@ -7,8 +7,8 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 jest.unmock('sentry/utils/recreateRoute');
 
-describe('RedirectToProjectModal', function () {
-  it('has timer to redirect to new slug after mounting', function () {
+describe('RedirectToProjectModal', () => {
+  it('has timer to redirect to new slug after mounting', () => {
     jest.useFakeTimers();
     const {routerProps} = initializeOrg({
       router: {

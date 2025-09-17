@@ -1,7 +1,7 @@
-import ModalStore from 'sentry/stores/modalStore';
+import {openModal} from 'sentry/actionCreators/modal';
 
 export async function redirectToProject(newProjectSlug: string) {
   const {default: Modal} = await import('sentry/components/modals/redirectToProject');
 
-  ModalStore.openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
+  openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
 }

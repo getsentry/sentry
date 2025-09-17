@@ -15,8 +15,8 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import type {TraceFullDetailed} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
@@ -143,7 +143,7 @@ const mockedTrace = (project: Project) => {
     timestamp: 1678290375.150561,
     start_timestamp: 1678290374.150561,
     children: [],
-  } as QuickTraceEvent;
+  } as Partial<TraceFullDetailed>;
 };
 
 const mockGroupApis = (
@@ -152,7 +152,7 @@ const mockGroupApis = (
   group: Group,
   event: Event,
   replayId?: string,
-  trace?: QuickTraceEvent
+  trace?: Partial<TraceFullDetailed>
 ) => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/1/events/',
@@ -337,6 +337,12 @@ const mockGroupApis = (
       steps: [],
     },
   });
+
+  MockApiClient.addMockResponse({
+    url: '/subscriptions/org-slug/',
+    method: 'GET',
+    body: {},
+  });
 };
 
 describe('groupEventDetails', () => {
@@ -344,11 +350,11 @@ describe('groupEventDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('redirects on switching to an invalid environment selection for event', async function () {
+  it('redirects on switching to an invalid environment selection for event', async () => {
     const props = makeDefaultMockData();
     props.router.params.eventId = props.event.id;
     mockGroupApis(props.organization, props.project, props.group, props.event);
@@ -372,7 +378,7 @@ describe('groupEventDetails', () => {
     await waitFor(() => expect(props.router.replace).toHaveBeenCalled());
   });
 
-  it('does not redirect when switching to a valid environment selection for event', async function () {
+  it('does not redirect when switching to a valid environment selection for event', async () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
@@ -391,7 +397,7 @@ describe('groupEventDetails', () => {
     expect(props.router.replace).not.toHaveBeenCalled();
   });
 
-  it('displays error on event error', async function () {
+  it('displays error on event error', async () => {
     const props = makeDefaultMockData();
 
     mockGroupApis(
@@ -423,7 +429,7 @@ describe('groupEventDetails', () => {
     expect(await screen.findByText(/couldn't track down an event/)).toBeInTheDocument();
   });
 
-  it('renders the Span Evidence section for Performance Issues', async function () {
+  it('renders the Span Evidence section for Performance Issues', async () => {
     const props = makeDefaultMockData();
     const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
@@ -449,7 +455,7 @@ describe('groupEventDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the Function Evidence section for Profile Issues', async function () {
+  it('renders the Function Evidence section for Profile Issues', async () => {
     const props = makeDefaultMockData();
     const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,

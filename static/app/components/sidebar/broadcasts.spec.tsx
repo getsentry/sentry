@@ -3,11 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {BROADCAST_CATEGORIES} from 'sentry/components/sidebar/broadcastPanelItem';
 import {Broadcasts} from 'sentry/components/sidebar/broadcasts';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {BROADCAST_CATEGORIES} from 'sentry/views/nav/primary/whatsNew/item';
 
 jest.mock('sentry/utils/analytics');
 
@@ -28,10 +28,10 @@ function renderMockRequests({
   });
 }
 
-describe('Broadcasts', function () {
+describe('Broadcasts', () => {
   const category = 'blog';
 
-  it('renders empty state', async function () {
+  it('renders empty state', async () => {
     const organization = OrganizationFixture();
 
     renderMockRequests({orgSlug: organization.slug});
@@ -40,7 +40,7 @@ describe('Broadcasts', function () {
       <Broadcasts
         orientation="left"
         collapsed={false}
-        currentPanel={SidebarPanelKey.BROADCASTS}
+        currentPanel={OnboardingDrawerKey.BROADCASTS}
         onShowPanel={() => jest.fn()}
         hidePanel={jest.fn()}
       />
@@ -49,7 +49,7 @@ describe('Broadcasts', function () {
     expect(await screen.findByText(/No recent updates/)).toBeInTheDocument();
   });
 
-  it('renders a broadcast item with media content correctly', async function () {
+  it('renders a broadcast item with media content correctly', async () => {
     const organization = OrganizationFixture();
     const broadcast = BroadcastFixture({
       mediaUrl:
@@ -63,7 +63,7 @@ describe('Broadcasts', function () {
       <Broadcasts
         orientation="left"
         collapsed={false}
-        currentPanel={SidebarPanelKey.BROADCASTS}
+        currentPanel={OnboardingDrawerKey.BROADCASTS}
         onShowPanel={() => jest.fn()}
         hidePanel={jest.fn()}
       />

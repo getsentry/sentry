@@ -1,4 +1,5 @@
 import sys
+import time
 from typing import Any
 
 import click
@@ -77,10 +78,13 @@ def _attempt_update(
     is_flag=True,
     help="Hide the actual value of the option on DB when detecting drift.",
 )
+@click.option("--timestamp", type=float, help="Timestamp to measure latency for the automator.")
 @log_options()
 @click.pass_context
 @configuration
-def configoptions(ctx: click.Context, dry_run: bool, file: str | None, hide_drift: bool) -> None:
+def configoptions(
+    ctx: click.Context, dry_run: bool, file: str | None, hide_drift: bool, timestamp: float | None
+) -> None:
     """
     Makes changes to options in bulk starting from a yaml file.
     Contrarily to the `config` command, this is meant to perform
@@ -117,6 +121,7 @@ def configoptions(ctx: click.Context, dry_run: bool, file: str | None, hide_drif
     from sentry import options
 
     ctx.obj["dry_run"] = dry_run
+    ctx.obj["timestamp"] = timestamp
 
     with open(file) if file is not None else sys.stdin as stream:
         options_to_update = safe_load(stream)
@@ -126,7 +131,9 @@ def configoptions(ctx: click.Context, dry_run: bool, file: str | None, hide_drif
 
     drifted_options = set()
     invalid_options = set()
-    presenter_delegator = PresenterDelegator("options-automator", dry_run=dry_run)
+    presenter_delegator = PresenterDelegator(
+        "options-automator", dry_run=dry_run, timestamp=timestamp
+    )
     ctx.obj["presenter_delegator"] = presenter_delegator
 
     for key, value in options_to_update.items():
@@ -211,6 +218,13 @@ def patch(ctx: click.Context) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
+    if ctx.obj["timestamp"] is not None:
+        metrics.distribution(
+            key="options_automator.latency_seconds",
+            value=time.time() - ctx.obj["timestamp"],
+            tags={"status": status},
+            sample_rate=1.0,
+        )
     exit(ret_val)
 
 
@@ -306,5 +320,12 @@ def sync(ctx: click.Context) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
+    if ctx.obj["timestamp"] is not None:
+        metrics.distribution(
+            key="options_automator.latency_seconds",
+            value=time.time() - ctx.obj["timestamp"],
+            tags={"status": status},
+            sample_rate=1.0,
+        )
 
     exit(ret_val)

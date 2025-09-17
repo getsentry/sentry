@@ -1,3 +1,4 @@
+import zoneinfo
 from datetime import timedelta
 from typing import cast
 from unittest import mock
@@ -11,12 +12,13 @@ from django.utils import timezone
 
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import MonitorIncidentType, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import TeamStatus
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -31,6 +33,7 @@ from sentry.tasks.summaries.utils import (
 )
 from sentry.tasks.summaries.weekly_reports import (
     OrganizationReportBatch,
+    date_format,
     group_status_to_color,
     prepare_organization_report,
     prepare_template_context,
@@ -44,9 +47,10 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user_option import UserOption
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import redis
-from sentry.utils.dates import floor_to_utc_day
+from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.outcomes import Outcome
 
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
@@ -169,6 +173,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 type="reports",
                 defaults={"value": value},
             )
+
+    def _set_timezone(self, user, value):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserOption.objects.set_value(user=user, key="timezone", value=value)
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
@@ -889,6 +897,42 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             "replay_count": 6,
             "transaction_count": 0,
         }
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_message_builder_timezone(self, message_builder: mock.MagicMock) -> None:
+        # fill with data so report not skipped
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        self._set_timezone(self.user, "US/Pacific")
+
+        prepare_organization_report(
+            self.timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            self._dummy_batch_id,
+            dry_run=False,
+            target_user=self.user.id,
+        )
+
+        utc_start = to_datetime(self.timestamp - ONE_DAY * 7)
+        utc_end = to_datetime(self.timestamp)
+
+        local_timezone = zoneinfo.ZoneInfo("US/Pacific")
+        local_start = date_format(utc_start.astimezone(local_timezone))
+        local_end = date_format(utc_end.astimezone(local_timezone))
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert context["organization"] == self.organization
+            assert context["user_project_count"] == 1
+            assert context["start"] == local_start
+            assert context["end"] == local_end
+            assert f"Weekly Report for {self.organization.name}" in message_params["subject"]
+            assert local_start in message_params["subject"]
 
     def test_group_status_to_color_obj_correct_length(self) -> None:
         # We want to check for the values because GroupHistoryStatus.UNRESOLVED and GroupHistoryStatus.ONGOING have the same value

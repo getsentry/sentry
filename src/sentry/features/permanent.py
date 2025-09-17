@@ -9,7 +9,7 @@ from sentry.features.manager import FeatureManager
 # XXX: See `features/__init__.py` for documentation on how to use feature flags
 
 
-def register_permanent_features(manager: FeatureManager):
+def register_permanent_features(manager: FeatureManager) -> None:
     """
     These flags are permanent.
 
@@ -34,10 +34,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:crash-rate-alerts": True,
         # Allow organizations to configure custom external symbol sources.
         "organizations:custom-symbol-sources": True,
-        # Enable readonly dashboards
-        "organizations:dashboards-basic": True,
-        # Enable custom editable dashboards
-        "organizations:dashboards-edit": True,
         # Enable data forwarding functionality for organizations.
         "organizations:data-forwarding": True,
         # Enable discover 2 basic functions

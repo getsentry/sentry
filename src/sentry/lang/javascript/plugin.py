@@ -36,7 +36,7 @@ def generate_modules(data):
 class JavascriptPlugin(Plugin2):
     can_disable = False
 
-    def can_configure_for_project(self, project, **kwargs):
+    def can_configure_for_project(self, project, **kwargs) -> bool:
         return False
 
     def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:

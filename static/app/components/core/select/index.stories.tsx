@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
+import types from '!!type-loader!sentry/components/core/select';
 
 import {Select} from 'sentry/components/core/select';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import * as Storybook from 'sentry/stories';
-
-import types from '!!type-loader!sentry/components/core/select';
 
 export default Storybook.story('Select', (story, APIReference) => {
   APIReference(types.Select);

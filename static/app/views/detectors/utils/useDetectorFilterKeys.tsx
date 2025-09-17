@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {TagCollection} from 'sentry/types/group';
-import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 
 const DETECTOR_FILTER_KEYS: Record<
@@ -43,29 +43,34 @@ const DETECTOR_FILTER_KEYS: Record<
   },
 };
 
-export function useDetectorFilterKeys(): {
+interface UseDetectorFilterKeysOptions {
+  /**
+   * Detector filter keys to exclude
+   */
+  excludeKeys?: string[];
+}
+
+export function useDetectorFilterKeys({excludeKeys}: UseDetectorFilterKeysOptions): {
   filterKeys: TagCollection;
   getFieldDefinition: FieldDefinitionGetter;
 } {
   const assignedValues = useAssignedSearchValues();
 
   const filterKeys = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(DETECTOR_FILTER_KEYS).map(([key, config]) => {
-        const isAssignee = key === 'assignee';
-
-        return [
+    const entries = Object.entries(DETECTOR_FILTER_KEYS)
+      .filter(([key]) => !excludeKeys?.includes(key))
+      .map(([key, config]) => [
+        key,
+        {
           key,
-          {
-            key,
-            name: key,
-            predefined: config.predefined,
-            values: isAssignee ? assignedValues : undefined,
-          },
-        ];
-      })
-    );
-  }, [assignedValues]);
+          name: key,
+          predefined: config.predefined,
+          values: key === 'assignee' ? assignedValues : undefined,
+        },
+      ]);
+
+    return Object.fromEntries(entries);
+  }, [excludeKeys, assignedValues]);
 
   const getFieldDefinition = useCallback<FieldDefinitionGetter>((key: string) => {
     return DETECTOR_FILTER_KEYS[key]?.fieldDefinition ?? null;

@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import GlobalModal from 'sentry/components/globalModal';
 import OrganizationSecurityAndPrivacy from 'sentry/views/settings/organizationSecurityAndPrivacy';
 
-describe('OrganizationSecurityAndPrivacy', function () {
+describe('OrganizationSecurityAndPrivacy', () => {
   const {organization} = initializeOrg();
 
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     });
   });
 
-  it('shows require2fa switch', async function () {
+  it('shows require2fa switch', async () => {
     render(<OrganizationSecurityAndPrivacy />);
 
     expect(
@@ -33,7 +33,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     ).toBeInTheDocument();
   });
 
-  it('returns to "off" if switch enable fails (e.g. API error)', async function () {
+  it('returns to "off" if switch enable fails (e.g. API error)', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -66,7 +66,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     ).not.toBeChecked();
   });
 
-  it('renders join request switch', async function () {
+  it('renders join request switch', async () => {
     render(<OrganizationSecurityAndPrivacy />);
 
     expect(
@@ -76,7 +76,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     ).toBeInTheDocument();
   });
 
-  it('enables require2fa but cancels confirm modal', async function () {
+  it('enables require2fa but cancels confirm modal', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -107,7 +107,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     expect(mock).not.toHaveBeenCalled();
   });
 
-  it('enables require2fa with confirm modal', async function () {
+  it('enables require2fa with confirm modal', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',

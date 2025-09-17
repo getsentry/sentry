@@ -18,8 +18,8 @@ export const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
-  const {setDisplayAskSeer} = useSearchQueryBuilder();
   const organization = useOrganization();
+  const {setDisplayAskSeer} = useSearchQueryBuilder();
 
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {

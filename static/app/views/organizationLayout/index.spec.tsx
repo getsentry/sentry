@@ -19,8 +19,8 @@ jest.mock(
     }
 );
 
-describe('OrganizationLayout', function () {
-  beforeEach(function () {
+describe('OrganizationLayout', () => {
+  beforeEach(() => {
     OrganizationStore.reset();
     ProjectsStore.reset();
     PageFiltersStore.reset();
@@ -35,10 +35,18 @@ describe('OrganizationLayout', function () {
       url: '/organizations/org-slug/environments/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/starred/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: [],
+    });
   });
 
   describe('deletion states', () => {
-    it('should render a restoration prompt', async function () {
+    it('should render a restoration prompt', async () => {
       const organization = OrganizationFixture({
         status: {
           id: 'pending_deletion',
@@ -65,7 +73,7 @@ describe('OrganizationLayout', function () {
       ).toBeInTheDocument();
     });
 
-    it('should render a restoration prompt without action for members', async function () {
+    it('should render a restoration prompt without action for members', async () => {
       const organization = OrganizationFixture({
         access: [],
         status: {
@@ -95,7 +103,7 @@ describe('OrganizationLayout', function () {
     });
   });
 
-  it('should render a deletion in progress prompt', async function () {
+  it('should render a deletion in progress prompt', async () => {
     const organization = OrganizationFixture({
       status: {
         id: 'deletion_in_progress',
@@ -122,7 +130,7 @@ describe('OrganizationLayout', function () {
     expect(screen.queryByLabelText('Restore Organization')).not.toBeInTheDocument();
   });
 
-  it('displays system alerts', async function () {
+  it('displays system alerts', async () => {
     OrganizationStore.onUpdate(OrganizationFixture());
 
     AlertStore.addAlert({
@@ -163,7 +171,7 @@ describe('OrganizationLayout', function () {
       });
     });
 
-    it('can render navigation without an organization', async function () {
+    it('can render navigation without an organization', async () => {
       OrganizationStore.setNoOrganization();
 
       render(

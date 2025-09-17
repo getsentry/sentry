@@ -11,17 +11,17 @@ import OrganizationStore from './stores/organizationStore';
 
 jest.unmock('sentry/api');
 
-describe('api', function () {
+describe('api', () => {
   let api: Client;
 
-  beforeEach(function () {
+  beforeEach(() => {
     api = new MockApiClient();
     setWindowLocation('https://sentry.io/');
   });
 
-  describe('Client', function () {
-    describe('cancel()', function () {
-      it('should abort any open XHR requests', function () {
+  describe('Client', () => {
+    describe('cancel()', () => {
+      it('should abort any open XHR requests', () => {
         const abort1 = jest.fn();
         const abort2 = jest.fn();
 
@@ -43,7 +43,7 @@ describe('api', function () {
     });
   });
 
-  it('does not call success callback if 302 was returned because of a project slug change', function () {
+  it('does not call success callback if 302 was returned because of a project slug change', () => {
     const successCb = jest.fn();
     api.activeRequests = {
       id: {alive: true, requestPromise: new Promise(() => null), cancel: jest.fn()},
@@ -65,7 +65,7 @@ describe('api', function () {
     expect(successCb).not.toHaveBeenCalled();
   });
 
-  it('handles error callback', function () {
+  it('handles error callback', () => {
     jest.spyOn(api, 'wrapCallback').mockImplementation((_id: string, func: any) => func);
     const errorCb = jest.fn();
     const args = ['test', true, 1] as unknown as [ResponseMeta, string, string];
@@ -81,7 +81,7 @@ describe('api', function () {
     expect(errorCb).toHaveBeenCalledWith(...args);
   });
 
-  it('handles undefined error callback', function () {
+  it('handles undefined error callback', () => {
     expect(() =>
       api.handleRequestError(
         {
@@ -97,7 +97,7 @@ describe('api', function () {
   });
 });
 
-describe('resolveHostname', function () {
+describe('resolveHostname', () => {
   let devUi: boolean | undefined;
   let location: Location;
   let configstate: ReturnType<typeof ConfigStore.getState>;
@@ -105,7 +105,7 @@ describe('resolveHostname', function () {
   const controlPath = '/api/0/broadcasts/';
   const regionPath = '/api/0/organizations/slug/issues/';
 
-  beforeEach(function () {
+  beforeEach(() => {
     configstate = ConfigStore.getState();
     location = window.location;
     devUi = window.__SENTRY_DEV_UI;
@@ -127,7 +127,7 @@ describe('resolveHostname', function () {
     ConfigStore.loadInitialData(configstate);
   });
 
-  it('does nothing without feature', function () {
+  it('does nothing without feature', () => {
     ConfigStore.loadInitialData({
       ...configstate,
       // Remove the feature flag
@@ -145,7 +145,7 @@ describe('resolveHostname', function () {
     expect(result).toBe(`https://de.sentry.io${regionPath}`);
   });
 
-  it('does not override region in _admin', function () {
+  it('does not override region in _admin', () => {
     setWindowLocation('https://sentry.io/_admin/');
 
     // Adds domain to control paths
@@ -164,7 +164,7 @@ describe('resolveHostname', function () {
     expect(result).toBe(`https://de.sentry.io${regionPath}`);
   });
 
-  it('adds domains when feature enabled', function () {
+  it('adds domains when feature enabled', () => {
     setWindowLocation('https://us.sentry.io/');
     let result = resolveHostname(regionPath);
     expect(result).toBe('https://us.sentry.io/api/0/organizations/slug/issues/');
@@ -173,7 +173,7 @@ describe('resolveHostname', function () {
     expect(result).toBe('https://sentry.io/api/0/broadcasts/');
   });
 
-  it('matches if querystrings are in path', function () {
+  it('matches if querystrings are in path', () => {
     const result = resolveHostname(
       '/api/0/organizations/acme/sentry-app-components/?projectId=123'
     );
@@ -182,7 +182,7 @@ describe('resolveHostname', function () {
     );
   });
 
-  it('uses paths for region silo in dev-ui', function () {
+  it('uses paths for region silo in dev-ui', () => {
     window.__SENTRY_DEV_UI = true;
 
     let result = resolveHostname(regionPath);
@@ -192,7 +192,7 @@ describe('resolveHostname', function () {
     expect(result).toBe('/api/0/broadcasts/');
   });
 
-  it('removes sentryUrl from dev-ui mode requests', function () {
+  it('removes sentryUrl from dev-ui mode requests', () => {
     window.__SENTRY_DEV_UI = true;
 
     let result = resolveHostname(regionPath, 'https://sentry.io');
@@ -202,7 +202,7 @@ describe('resolveHostname', function () {
     expect(result).toBe('/api/0/broadcasts/');
   });
 
-  it('removes sentryUrl from dev-ui mode requests when feature is off', function () {
+  it('removes sentryUrl from dev-ui mode requests when feature is off', () => {
     window.__SENTRY_DEV_UI = true;
     // Org does not have the required feature.
     OrganizationStore.onUpdate(OrganizationFixture());
@@ -218,13 +218,13 @@ describe('resolveHostname', function () {
     expect(result).toBe(`/region/de${regionPath}`);
   });
 
-  it('preserves host parameters', function () {
+  it('preserves host parameters', () => {
     const result = resolveHostname(regionPath, 'https://de.sentry.io');
     expect(result).toBe('https://de.sentry.io/api/0/organizations/slug/issues/');
   });
 });
 
-describe('isSimilarOrigin', function () {
+describe('isSimilarOrigin', () => {
   test.each([
     // Same domain
     ['https://sentry.io', 'https://sentry.io', true],

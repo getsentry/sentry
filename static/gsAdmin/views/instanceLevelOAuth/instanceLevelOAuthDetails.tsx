@@ -10,6 +10,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import useRouter from 'sentry/utils/useRouter';
@@ -64,7 +65,7 @@ function InstanceLevelOAuthDetails() {
       });
     } catch (err) {
       const message = 'Unable to load client data';
-      handleXhrErrorResponse(message, err);
+      handleXhrErrorResponse(message, err as RequestError);
       addErrorMessage(message);
       setErrorMessage(message);
     } finally {

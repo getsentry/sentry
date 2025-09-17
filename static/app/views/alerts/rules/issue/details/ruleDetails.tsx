@@ -209,7 +209,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       );
 
       addSuccessMessage(t('Successfully re-enabled'));
-    } catch (err) {
+    } catch (err: any) {
       addErrorMessage(
         typeof err.responseJSON?.detail === 'string'
           ? err.responseJSON.detail
@@ -425,7 +425,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   onSnooze={onSnooze}
                   ruleId={rule.id}
                   projectSlug={projectSlug}
-                  ruleActionCategory={ruleActionCategory}
                   hasAccess={hasAccess}
                   type="issue"
                   disabled={rule.status === 'disabled'}

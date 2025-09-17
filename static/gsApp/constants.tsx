@@ -60,6 +60,8 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
       hasSpikeProtection: false,
       reservedVolumeTooltip: null,
       tallyType: 'usage',
+      hasPerCategory: false,
+      paygPriceMultiplier: 1,
     };
   }
 );
@@ -80,6 +82,8 @@ export const BILLED_DATA_CATEGORY_INFO = {
     reservedVolumeTooltip: t(
       'Errors are sent every time an SDK catches a bug. You can send them manually too, if you want.'
     ),
+    hasPerCategory: true,
+    paygPriceMultiplier: 10_000,
   },
   [DataCategoryExact.TRANSACTION]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.TRANSACTION],
@@ -92,6 +96,8 @@ export const BILLED_DATA_CATEGORY_INFO = {
     reservedVolumeTooltip: t(
       'Transactions are sent when your service receives a request and sends a response.'
     ),
+    hasPerCategory: true,
+    paygPriceMultiplier: 10_000,
   },
   [DataCategoryExact.ATTACHMENT]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT],
@@ -103,6 +109,8 @@ export const BILLED_DATA_CATEGORY_INFO = {
     reservedVolumeTooltip: t(
       'Attachments are files attached to errors, such as minidumps.'
     ),
+    hasPerCategory: true,
+    paygPriceMultiplier: 10,
   },
   [DataCategoryExact.REPLAY]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.REPLAY],
@@ -113,6 +121,8 @@ export const BILLED_DATA_CATEGORY_INFO = {
     reservedVolumeTooltip: t(
       'Session Replays are video-like reproductions of your users’ sessions navigating your app or website.'
     ),
+    hasPerCategory: true,
+    paygPriceMultiplier: 1000,
   },
   [DataCategoryExact.SPAN]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN],
@@ -124,6 +134,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     reservedVolumeTooltip: t(
       'Tracing is enabled by spans. A span represents a single operation of work within a trace.'
     ),
+    paygPriceMultiplier: 100_000,
   },
   [DataCategoryExact.SPAN_INDEXED]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED],
@@ -131,6 +142,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     maxAdminGift: 1_000_000_000,
     freeEventsMultiple: 100_000,
     feature: 'spans-usage-tracking',
+    paygPriceMultiplier: 100_000,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT],
@@ -138,6 +150,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 1,
     feature: 'monitor-seat-billing',
     tallyType: 'seat',
+    hasPerCategory: true,
   },
   [DataCategoryExact.UPTIME]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.UPTIME],
@@ -145,18 +158,23 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 1,
     feature: 'uptime-billing',
     tallyType: 'seat',
+    hasPerCategory: true,
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION],
     canProductTrial: true,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
+    hasPerCategory: true,
+    paygPriceMultiplier: 10,
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION_UI],
     canProductTrial: true,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1, // in hours
+    hasPerCategory: true,
+    paygPriceMultiplier: 10,
   },
   // Seer categories have product trials through ReservedBudgetCategoryType.SEER, not as individual categories
   [DataCategoryExact.SEER_AUTOFIX]: {
@@ -178,5 +196,16 @@ export const BILLED_DATA_CATEGORY_INFO = {
     reservedVolumeTooltip: t(
       'Log bytes represent the amount of log data ingested and stored.'
     ),
+  },
+  [DataCategoryExact.PREVENT_USER]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_USER],
+    feature: 'prevent-billing',
+    maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
+    tallyType: 'seat',
+  },
+  [DataCategoryExact.PREVENT_REVIEW]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_REVIEW],
+    feature: 'prevent-billing',
+    maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

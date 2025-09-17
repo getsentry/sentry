@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties, HTMLAttributes} from 'react';
+import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,9 +6,10 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Flex} from 'sentry/components/core/layout/flex';
 import Panel from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
+import {defined} from 'sentry/utils';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+  ref?: RefObject<HTMLDivElement | null>;
 }
 
 interface RowProps extends HTMLAttributes<HTMLDivElement> {
@@ -23,17 +24,23 @@ export function SimpleTable({children, ...props}: TableProps) {
   );
 }
 
-function Header({children}: {children: React.ReactNode}) {
-  return <StyledPanelHeader role="row">{children}</StyledPanelHeader>;
+function Header({children, ...props}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <StyledPanelHeader {...props} role="row">
+      {children}
+    </StyledPanelHeader>
+  );
 }
 
 function HeaderCell({
   children,
   sort,
   handleSortClick,
+  divider = defined(children) ? true : false,
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   children?: React.ReactNode;
+  divider?: boolean;
   handleSortClick?: () => void;
   sort?: 'asc' | 'desc';
 }) {
@@ -48,7 +55,7 @@ function HeaderCell({
       role="columnheader"
       as={canSort ? 'button' : 'div'}
     >
-      {children && <HeaderDivider />}
+      {divider && <HeaderDivider />}
       {canSort && <InteractionStateLayer />}
       <HeadingText>{children}</HeadingText>
       {isSorted && (

@@ -20,10 +20,10 @@ import type {
   Props as ReactSelectProps,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {
-  components as selectComponents,
   createFilter,
   mergeStyles,
   ReactSelect,
+  components as selectComponents,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';

@@ -5,7 +5,6 @@ from django.urls import reverse
 
 from sentry.models.relay import RelayUsage
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class OrganizationRelayHistoryTest(APITestCase):
@@ -59,7 +58,6 @@ class OrganizationRelayHistoryTest(APITestCase):
         for relay_data in self._history_fixture():
             RelayUsage.objects.create(**relay_data)
 
-    @with_feature("organizations:relay")
     def _set_org_public_keys(self, public_keys):
         self.login_as(user=self.user)
 
@@ -73,7 +71,6 @@ class OrganizationRelayHistoryTest(APITestCase):
         resp = self.client.put(url, data=data)
         assert resp.status_code == 200
 
-    @with_feature("organizations:relay")
     def test_no_valid_public_keys(self) -> None:
         """
         An organization with no valid public keys should return an
@@ -84,13 +81,11 @@ class OrganizationRelayHistoryTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert response.data == []
 
-    @with_feature({"organizations:relay": False})
     def test_endpoint_checks_feature_present(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.organization.slug)
-        assert resp.status_code == 404
+        assert resp.status_code == 200
 
-    @with_feature("organizations:relay")
     def test_only_records_for_known_public_keys_are_returned(self) -> None:
         """
         Only the relay history for relays belonging to the origanization are

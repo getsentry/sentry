@@ -13,8 +13,8 @@ import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCrea
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
-  type GroupSearchView,
   GroupSearchViewCreatedBy,
+  type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -22,6 +22,20 @@ interface StarFixabilityViewButtonProps {
   isCompleted: boolean;
   project: Project;
 }
+
+const TARGET_VIEW_PROPERTIES = {
+  name: 'Easy Fixes 🤖',
+  query: 'is:unresolved issue.seer_actionability:[high,super_high]',
+  querySort: IssueSortOptions.DATE,
+  projects: [],
+  environments: [],
+  timeFilters: {
+    start: null,
+    end: null,
+    period: '7d',
+    utc: null,
+  },
+};
 
 function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButtonProps) {
   const organization = useOrganization();
@@ -69,31 +83,11 @@ function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButt
 
   const allViews = useMemo(() => [...othersViews, ...myViews], [othersViews, myViews]);
 
-  // Define the properties of the view we want to create/find
-  const targetViewProperties = useMemo(
-    () => ({
-      name: 'Easy Fixes 🤖',
-      query: 'is:unresolved issue.seer_actionability:[high,super_high]',
-      querySort: IssueSortOptions.DATE,
-      projects: organization.features.includes('global-views')
-        ? []
-        : [Number(project.id)],
-      environments: [],
-      timeFilters: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: null,
-      },
-    }),
-    [organization.features, project.id]
-  );
-
   // Check if an existing view matches our criteria
   const existingMatchingView = useMemo(() => {
     return allViews.find((view: GroupSearchView) => {
       // Must have exact name match
-      if (view.name !== targetViewProperties.name) {
+      if (view.name !== TARGET_VIEW_PROPERTIES.name) {
         return false;
       }
 
@@ -117,7 +111,7 @@ function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButt
 
       return true;
     });
-  }, [allViews, targetViewProperties, project.id]);
+  }, [allViews, project.id]);
 
   const handleStarFixabilityView = () => {
     if (existingMatchingView) {
@@ -129,22 +123,8 @@ function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButt
       });
     } else {
       // Create a new view
-      let projects: number[] = [];
-      if (!organization.features.includes('global-views')) {
-        projects = [Number(project.id)];
-      }
       createIssueView({
-        name: 'Easy Fixes 🤖',
-        query: 'is:unresolved issue.seer_actionability:[high,super_high]',
-        querySort: IssueSortOptions.DATE,
-        projects,
-        environments: [],
-        timeFilters: {
-          start: null,
-          end: null,
-          period: '7d',
-          utc: null,
-        },
+        ...TARGET_VIEW_PROPERTIES,
         starred: true,
       });
     }

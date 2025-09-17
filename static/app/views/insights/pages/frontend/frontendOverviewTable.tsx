@@ -1,4 +1,4 @@
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -22,16 +22,18 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings';
+import {getSpanOpFromQuery} from 'sentry/views/insights/pages/frontend/utils/pageSpanOp';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-type Row = Pick<
+export type Row = Pick<
   SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
   | 'project'
   | 'tpm()'
   | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p75_if(span.duration,is_transaction,equals,true)'
   | 'p95_if(span.duration,is_transaction,equals,true)'
   | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
@@ -45,6 +47,7 @@ type Column = GridColumnHeader<
   | 'project'
   | 'tpm()'
   | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p75_if(span.duration,is_transaction,equals,true)'
   | 'p95_if(span.duration,is_transaction,equals,true)'
   | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
@@ -71,6 +74,11 @@ const COLUMN_ORDER: Column[] = [
   {
     key: `p50_if(span.duration,is_transaction,equals,true)`,
     name: t('p50()'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `p75_if(span.duration,is_transaction,equals,true)`,
+    name: t('p75()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -108,6 +116,7 @@ const SORTABLE_FIELDS = [
   'project',
   'tpm()',
   'p50_if(span.duration,is_transaction,equals,true)',
+  'p75_if(span.duration,is_transaction,equals,true)',
   'p95_if(span.duration,is_transaction,equals,true)',
   'failure_rate_if(is_transaction,equals,true)',
   'count_unique(user)',
@@ -218,7 +227,8 @@ function renderBodyCell(
   organization: Organization,
   theme: Theme
 ) {
-  const spanOp = decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]);
+  const spanOp = getSpanOpFromQuery(decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]));
+
   if (!meta?.fields) {
     return row[column.key];
   }
@@ -228,7 +238,7 @@ function renderBodyCell(
       <TransactionCell
         project={row.project}
         transaction={row.transaction}
-        transactionMethod={spanOp}
+        transactionMethod={spanOp === 'all' ? undefined : spanOp}
       />
     );
   }

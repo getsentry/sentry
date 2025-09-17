@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs, {InstallationMode} from './flutter';
 
-describe('flutter onboarding docs', function () {
-  it('renders manual installation docs correctly', async function () {
+describe('flutter onboarding docs', () => {
+  it('renders manual installation docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -30,7 +30,7 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders wizard docs correctly', async function () {
+  it('renders wizard docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -59,7 +59,7 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -76,6 +76,9 @@ describe('flutter onboarding docs', function () {
       await screen.findByText(textWithMarkupMatcher(/options.tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
+      await screen.findByText(textWithMarkupMatcher(/options\.tracesSampleRate = 1\.0/))
+    ).toBeInTheDocument();
+    expect(
       await screen.findByText(
         textWithMarkupMatcher(
           /You'll be able to monitor the performance of your app using the SDK./
@@ -84,7 +87,7 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders profiling onboarding docs correctly', async function () {
+  it('renders profiling onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -104,13 +107,16 @@ describe('flutter onboarding docs', function () {
       await screen.findByText(textWithMarkupMatcher(/options.profilesSampleRate/))
     ).toBeInTheDocument();
     expect(
+      await screen.findByText(textWithMarkupMatcher(/options\.profilesSampleRate = 1\.0/))
+    ).toBeInTheDocument();
+    expect(
       await screen.findByText(
         textWithMarkupMatcher(/Flutter Profiling alpha is available/)
       )
     ).toBeInTheDocument();
   });
 
-  it('renders replay onboarding docs correctly', async function () {
+  it('renders replay onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -128,14 +134,18 @@ describe('flutter onboarding docs', function () {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options.replay.sessionSampleRate/))
+      await screen.findByText(
+        textWithMarkupMatcher(/options\.replay\.sessionSampleRate = 0\.1/)
+      )
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options.replay.onErrorSampleRate/))
+      await screen.findByText(
+        textWithMarkupMatcher(/options\.replay\.onErrorSampleRate = 1\.0/)
+      )
     ).toBeInTheDocument();
   });
 
-  it('renders logs configuration for manual installation when logs are selected', async function () {
+  it('renders logs configuration for manual installation when logs are selected', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -153,11 +163,16 @@ describe('flutter onboarding docs', function () {
       await screen.findByText(textWithMarkupMatcher(/options\.enableLogs = true/))
     ).toBeInTheDocument();
 
+    // Should include a log call in the verify snippet
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
+    ).toBeInTheDocument();
+
     // Should include logging next step
     expect(await screen.findByText('Structured Logs')).toBeInTheDocument();
   });
 
-  it('renders logs configuration for auto installation when logs are selected', async function () {
+  it('renders logs configuration for auto installation when logs are selected', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {

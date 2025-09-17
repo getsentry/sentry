@@ -7,7 +7,6 @@ export function ReplayRecordFixture(
 ): HydratedReplayRecord {
   return {
     activity: 0,
-    clicks: [],
     browser: {
       name: 'Other',
       version: '',

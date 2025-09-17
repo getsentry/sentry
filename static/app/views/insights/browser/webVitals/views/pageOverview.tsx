@@ -18,16 +18,16 @@ import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/compone
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pageSamplePerformanceTable';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import WebVitalMetersWithIssues from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {WebVitalMetersPlaceholder} from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -150,7 +150,7 @@ function PageOverview() {
         module={ModuleName.VITAL}
         hideDefaultTabs
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
+      <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main>
             <TopMenuContainer>
@@ -164,7 +164,7 @@ function PageOverview() {
             </Flex>
             <WebVitalMetersContainer>
               {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
-              <WebVitalMeters
+              <WebVitalMetersWithIssues
                 projectData={pageData}
                 projectScore={projectScore}
                 onClick={webVital => {
@@ -193,10 +193,11 @@ function PageOverview() {
               projectScoreIsLoading={isPending}
               browserTypes={browserTypes}
               subregions={subregions}
+              projectData={pageData}
             />
           </Layout.Side>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }

@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -94,7 +93,6 @@ function TeamSelect({
         <DropdownAddTeam
           disabled={disabled}
           isLoadingTeams={isLoadingTeams}
-          isAddingTeamToProject
           canCreateTeam={canCreateTeam}
           onSearch={onSearch}
           onSelect={onAddTeam}
@@ -106,7 +104,7 @@ function TeamSelect({
         />
       </PanelHeader>
 
-      <PanelBody>{isLoadingTeams ? <LoadingIndicator /> : renderBody()}</PanelBody>
+      <PanelBody>{renderBody()}</PanelBody>
     </Panel>
   );
 }

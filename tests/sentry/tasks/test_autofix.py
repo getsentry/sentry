@@ -17,13 +17,18 @@ class TestCheckAutofixStatus(TestCase):
         # Mock the get_autofix_state function to return a state that's been processing for too long
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": 789,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.now() - timedelta(minutes=10),  # Naive datetime
             status=AutofixStatus.PROCESSING,
         )
 
         # Call the task
-        check_autofix_status(123)
+        check_autofix_status(123, 789)
 
         # Check that the logger.error was called
         mock_logger.assert_called_once_with(
@@ -38,13 +43,18 @@ class TestCheckAutofixStatus(TestCase):
         # Mock the get_autofix_state function to return a state that's still within the time limit
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": 789,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.now() - timedelta(minutes=3),  # Naive datetime
             status=AutofixStatus.PROCESSING,
         )
 
         # Call the task
-        check_autofix_status(123)
+        check_autofix_status(123, 789)
 
         # Check that the logger.error was not called
         mock_logger.assert_not_called()
@@ -57,13 +67,18 @@ class TestCheckAutofixStatus(TestCase):
         # Mock the get_autofix_state function to return a completed state
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": 789,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.now() - timedelta(minutes=10),  # Naive datetime
             status=AutofixStatus.COMPLETED,
         )
 
         # Call the task
-        check_autofix_status(123)
+        check_autofix_status(123, 789)
 
         # Check that the logger.error was not called
         mock_logger.assert_not_called()
@@ -77,7 +92,7 @@ class TestCheckAutofixStatus(TestCase):
         mock_get_autofix_state.return_value = None
 
         # Call the task
-        check_autofix_status(123)
+        check_autofix_status(123, 789)
 
         # Check that the logger.error was not called
         mock_logger.assert_not_called()

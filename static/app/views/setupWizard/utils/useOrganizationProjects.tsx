@@ -1,5 +1,5 @@
 import type {Project} from 'sentry/types/project';
-import {type ApiQueryKey, fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
+import {fetchDataQuery, useQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationProjects({

@@ -10,17 +10,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import Confirm from 'sentry/components/confirm';
-import ModalStore from 'sentry/stores/modalStore';
 
-describe('Confirm', function () {
+describe('Confirm', () => {
   beforeEach(() => {
     jest.useRealTimers();
   });
-  afterEach(() => {
-    ModalStore.reset();
-  });
 
-  it('renders', function () {
+  it('renders', () => {
     const mock = jest.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock}>
@@ -29,7 +25,7 @@ describe('Confirm', function () {
     );
   });
 
-  it('renders custom confirm button & callbacks work', async function () {
+  it('renders custom confirm button & callbacks work', async () => {
     const mock = jest.fn();
     render(
       <Confirm
@@ -54,7 +50,7 @@ describe('Confirm', function () {
     await userEvent.click(confirmBtn);
     expect(mock).toHaveBeenCalled();
   });
-  it('renders custom cancel button & callbacks work', async function () {
+  it('renders custom cancel button & callbacks work', async () => {
     const mock = jest.fn();
     render(
       <Confirm
@@ -79,7 +75,7 @@ describe('Confirm', function () {
     await userEvent.click(cancelBtn);
     expect(mock).toHaveBeenCalled();
   });
-  it('clicking action button opens Modal', async function () {
+  it('clicking action button opens Modal', async () => {
     const mock = jest.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock}>
@@ -93,7 +89,7 @@ describe('Confirm', function () {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('clicks Confirm in modal and calls `onConfirm` callback', async function () {
+  it('clicks Confirm in modal and calls `onConfirm` callback', async () => {
     const mock = jest.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock}>
@@ -114,7 +110,7 @@ describe('Confirm', function () {
     expect(mock.mock.calls).toHaveLength(1);
   });
 
-  it('can stop propagation on the event', function () {
+  it('can stop propagation on the event', () => {
     const mock = jest.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>
@@ -132,8 +128,8 @@ describe('Confirm', function () {
     expect(clickEvent.stopPropagation).toHaveBeenCalled();
   });
 
-  describe('async onConfirm', function () {
-    it('should not close the modal until the promise is resolved', async function () {
+  describe('async onConfirm', () => {
+    it('should not close the modal until the promise is resolved', async () => {
       jest.useFakeTimers();
       const onConfirmAsync = jest.fn().mockImplementation(
         () =>
@@ -170,7 +166,7 @@ describe('Confirm', function () {
       });
     });
 
-    it('displays an error message if the promise is rejected', async function () {
+    it('displays an error message if the promise is rejected', async () => {
       jest.useFakeTimers();
       const onConfirmAsync = jest.fn().mockImplementation(
         () =>

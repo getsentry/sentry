@@ -107,6 +107,14 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget'
     ),
+  overviewTransactionThroughputChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget'
+    ),
+  overviewTransactionDurationChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget'
+    ),
   databaseSummaryDurationChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget'
@@ -167,6 +175,10 @@ const CHART_MAP = {
     ),
   overviewSlowAssetsWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget'),
+  overviewTimeConsumingRequestsWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget'
+    ),
   mcpTrafficWidget: () =>
     import('sentry/views/insights/common/components/widgets/mcpTrafficWidget'),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;

@@ -72,20 +72,32 @@ class SessionMRI(Enum):
     ERRORED_PREAGGREGATED = "e:sessions/error.preaggr@none"
     ERRORED_SET = "e:sessions/error.unique@none"
     ERRORED_ALL = "e:sessions/all_errored@none"
+    HANDLED = "e:sessions/handled.unique@none"  # all sessions excluding handled and crashed
+    UNHANDLED = "e:sessions/unhandled@none"  # unhandled, does not include crashed
     CRASHED_AND_ABNORMAL = "e:sessions/crashed_abnormal@none"
     CRASHED = "e:sessions/crashed@none"
     CRASH_FREE = "e:sessions/crash_free@none"
     ABNORMAL = "e:sessions/abnormal@none"
+    HANDLED_RATE = "e:sessions/handled_rate@ratio"  # all sessions excluding handled and crashed
+    UNHANDLED_RATE = "e:sessions/unhandled_rate@ratio"  # unhandled, does not include crashed
     CRASH_RATE = "e:sessions/crash_rate@ratio"
-    CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"
+    CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"  # includes handled and unhandled
     ALL_USER = "e:sessions/user.all@none"
     HEALTHY_USER = "e:sessions/user.healthy@none"
     ERRORED_USER = "e:sessions/user.errored@none"
     ERRORED_USER_ALL = "e:sessions/user.all_errored@none"
+    HANDLED_USER = "e:sessions/user.handled@none"  # all sessions excluding handled and crashed
+    UNHANDLED_USER = "e:sessions/user.unhandled@none"  # unhandled, does not include crashed
     CRASHED_AND_ABNORMAL_USER = "e:sessions/user.crashed_abnormal@none"
     CRASHED_USER = "e:sessions/user.crashed@none"
     CRASH_FREE_USER = "e:sessions/user.crash_free@none"
     ABNORMAL_USER = "e:sessions/user.abnormal@none"
+    HANDLED_USER_RATE = (
+        "e:sessions/user.handled_rate@ratio"  # all sessions excluding handled and crashed
+    )
+    UNHANDLED_USER_RATE = (
+        "e:sessions/user.unhandled_rate@ratio"  # unhandled, does not include crashed
+    )
     CRASH_USER_RATE = "e:sessions/user.crash_rate@ratio"
     CRASH_FREE_USER_RATE = "e:sessions/user.crash_free_rate@ratio"
     ANR_USER = "e:sessions/user.anr@none"

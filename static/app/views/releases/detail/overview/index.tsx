@@ -528,7 +528,7 @@ function ReleaseOverview() {
           <ProjectReleaseDetails
             release={release}
             releaseMeta={releaseMeta}
-            projectSlug={project.slug}
+            project={project}
           />
           {commitCount > 0 && (
             <CommitAuthorBreakdown

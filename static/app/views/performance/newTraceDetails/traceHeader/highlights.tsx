@@ -8,6 +8,7 @@ import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/compon
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconGlobe} from 'sentry/icons';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {IconWindow} from 'sentry/icons/iconWindow';
 import {t} from 'sentry/locale';
@@ -229,6 +230,21 @@ function AttributesHighlights({
       },
     },
     {
+      key: 'uptime-check-region',
+      getSummary: () => {
+        const region = findSpanAttributeValue(attributes, 'region');
+
+        if (!region) {
+          return null;
+        }
+
+        return {
+          icon: <IconGlobe size="sm" color="subText" />,
+          description: t('Check from %s', region),
+        };
+      },
+    },
+    {
       key: 'environment',
       getSummary: () => {
         const environment = findSpanAttributeValue(attributes, 'environment');
@@ -276,6 +292,8 @@ const HighlightsDescription = styled('div')`
 `;
 
 const HighlightsIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
   flex: none;
   line-height: 1;
 `;

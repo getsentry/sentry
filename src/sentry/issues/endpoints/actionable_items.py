@@ -2,7 +2,6 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -15,6 +14,7 @@ from sentry.api.helpers.actionable_items_helper import (
 )
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
+from sentry.services import eventstore
 
 
 @region_silo_endpoint

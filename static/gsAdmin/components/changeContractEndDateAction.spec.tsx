@@ -7,16 +7,16 @@ import {
 
 import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
 
-describe('ChangeContractEndDateAction', function () {
+describe('ChangeContractEndDateAction', () => {
   const onAction = jest.fn();
 
-  it('renders empty', function () {
+  it('renders empty', () => {
     render(
       <ChangeContractEndDateAction contractPeriodEnd="2020-01-04" onAction={onAction} />
     );
   });
 
-  it('renders default end date value', async function () {
+  it('renders default end date value', async () => {
     render(
       <ChangeContractEndDateAction contractPeriodEnd="2020-01-04" onAction={onAction} />
     );

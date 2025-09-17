@@ -3,8 +3,8 @@ import type {Node} from '@react-types/shared';
 
 import {DeletableToken} from 'sentry/components/searchQueryBuilder/tokens/deletableToken';
 import {
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {IconParenthesis} from 'sentry/icons/iconParenthesis';

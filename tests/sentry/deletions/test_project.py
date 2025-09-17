@@ -1,4 +1,6 @@
-from sentry import eventstore
+from unittest import mock
+
+from sentry.constants import DataCategory
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
@@ -29,13 +31,14 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -221,23 +224,11 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         )
         assert len(events) == 0
 
-    def test_delete_with_uptime_monitors(self) -> None:
+    @mock.patch("sentry.quotas.backend.remove_seat")
+    def test_delete_with_uptime_monitors(self, mock_remove_seat: mock.MagicMock) -> None:
         project = self.create_project(name="test")
-
-        # Create uptime subscription
-        uptime_subscription = UptimeSubscription.objects.create(
-            url="https://example.com",
-            url_domain="example",
-            url_domain_suffix="com",
-            interval_seconds=60,
-            timeout_ms=5000,
-            method="GET",
-        )
-
-        # Create project uptime subscription
-        project_uptime_subscription = ProjectUptimeSubscription.objects.create(
-            project=project, uptime_subscription=uptime_subscription, name="Test Monitor"
-        )
+        detector = self.create_uptime_detector(project=project)
+        uptime_subscription = get_uptime_subscription(detector)
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
 
@@ -245,9 +236,9 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
-        assert not ProjectUptimeSubscription.objects.filter(
-            id=project_uptime_subscription.id
-        ).exists()
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not UptimeSubscription.objects.filter(id=uptime_subscription.id).exists()
+        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
 
 
 class DeleteWorkflowEngineModelsTest(DeleteProjectTest):

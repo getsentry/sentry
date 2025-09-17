@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import tomllib
 from collections.abc import Sequence
-
-import packaging.requirements
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -17,25 +16,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     for filename in args.filenames:
-        with open(filename) as reqs_file:
-            for lineno, line in enumerate(reqs_file, start=1):
-                line = line.strip()
-                if not line or line.startswith(("--", "#")):
+        with open(filename, "rb") as f:
+            lockfile = tomllib.load(f)
+            for package in lockfile["package"]:
+                if package["name"] == "sentry":
                     continue
 
-                invalid_requirement = False
-                try:
-                    req = packaging.requirements.Requirement(line)
-                except packaging.requirements.InvalidRequirement:
-                    invalid_requirement = True
-                else:
-                    invalid_requirement = bool(req.url)
-
-                if invalid_requirement:
+                # non-specifier requirements won't have registry as a source
+                if (
+                    package["source"].get("registry", "")
+                    != "https://pypi.devinfra.sentry.io/simple"
+                ):
                     raise SystemExit(
-                        f"You cannot use dependencies that are not on PyPI directly.\n"
-                        f"See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references\n\n"
-                        f"{reqs_file.name}:{lineno}: {line}"
+                        f"""
+The specifier for package {package['name']} in {filename} isn't allowed:
+
+You cannot use dependencies that are not on internal pypi.
+
+You also cannot use non-specifier requirements.
+See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references"""
                     )
 
     return 0

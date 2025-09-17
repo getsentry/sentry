@@ -76,7 +76,6 @@ class _UserOptions(TypedDict):
     prefersNextjsInsightsOverview: bool
     prefersStackedNavigation: bool | None
     prefersChonkUI: bool
-    prefersAgentsInsightsModule: bool
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -196,7 +195,7 @@ class UserSerializer(Serializer):
             d = cast(UserSerializerResponseSelf, d)
             options = {
                 o.key: o.value
-                for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
+                for o in UserOption.objects.filter(user_id=obj.id, project_id__isnull=True)
                 if o.value is not None
             }
 
@@ -223,7 +222,6 @@ class UserSerializer(Serializer):
                 ),
                 "prefersStackedNavigation": options.get("prefers_stacked_navigation"),
                 "prefersChonkUI": options.get("prefers_chonk_ui", False),
-                "prefersAgentsInsightsModule": options.get("prefers_agents_insights_module", True),
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}

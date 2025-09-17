@@ -152,7 +152,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 
-            if "agent_monitoring" in referrer:
+            if "agent-monitoring" in referrer:
                 try:
                     analytics.record(
                         AgentMonitoringQuery(
@@ -247,6 +247,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         raw_groupby=raw_groupby,
                         orderby=self.get_orderby(request),
                         limit=top_events,
+                        include_other=include_other,
                         referrer=referrer,
                         config=SearchResolverConfig(
                             auto_fields=False,

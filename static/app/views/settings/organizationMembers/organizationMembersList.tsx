@@ -27,10 +27,10 @@ import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -46,15 +46,6 @@ import OrganizationMemberRow from './organizationMemberRow';
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',
   defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
-});
-
-const InviteMembersButtonHook = HookOrDefault({
-  hookName: 'member-invite-button:customization',
-  defaultComponent: ({children, organization, onTriggerModal}) => {
-    const isSsoRequired = organization.requiresSso;
-    const disabled = isSsoRequired || !organization.features.includes('invite-members');
-    return children({disabled, isSsoRequired, onTriggerModal});
-  },
 });
 
 const getMembersQueryKey = ({
@@ -293,9 +284,12 @@ function OrganizationMembersList() {
     ? members.filter(({email}) => email === currentUser.email)
     : members;
 
+  const isSsoRequired = organization.requiresSso;
+  const disabled = isSsoRequired || !organization.features.includes('invite-members');
   const action = (
-    <InviteMembersButtonHook
-      organization={organization}
+    <InviteMembersButton
+      disabled={disabled}
+      isSsoRequired={isSsoRequired}
       onTriggerModal={() => {
         openInviteMembersModal({
           onClose: () => {
@@ -305,15 +299,7 @@ function OrganizationMembersList() {
           source: 'members_settings',
         });
       }}
-    >
-      {({disabled, isSsoRequired, onTriggerModal}) => (
-        <InviteMembersButton
-          disabled={disabled}
-          isSsoRequired={isSsoRequired}
-          onTriggerModal={onTriggerModal}
-        />
-      )}
-    </InviteMembersButtonHook>
+    />
   );
 
   return (

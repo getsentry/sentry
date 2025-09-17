@@ -1,20 +1,17 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue.priority_updated")
 class IssuePriorityUpdatedEvent(analytics.Event):
-    type = "issue.priority_updated"
-
-    attributes = (
-        analytics.Attribute("group_id"),
-        analytics.Attribute("new_priority"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("issue_category", required=False),
-        analytics.Attribute("issue_type", required=False),
-        analytics.Attribute("previous_priority", required=False),
-        analytics.Attribute("reason", required=False),
-    )
+    group_id: int
+    new_priority: str
+    project_id: int | None
+    organization_id: int
+    user_id: int | None = None
+    issue_category: str | None = None
+    issue_type: str | None = None
+    previous_priority: str | None = None
+    reason: str | None = None
 
 
 analytics.register(IssuePriorityUpdatedEvent)

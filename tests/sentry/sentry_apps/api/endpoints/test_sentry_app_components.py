@@ -2,10 +2,10 @@ from collections.abc import Sequence
 from unittest.mock import MagicMock, patch
 
 import responses
+from rest_framework.exceptions import ParseError
 
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
-from sentry.coreapi import APIError
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-def get_sentry_app_avatars(sentry_app: SentryApp):
+def get_sentry_app_avatars(sentry_app: SentryApp) -> list[dict[str, str | bool | int]]:
     return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 
@@ -370,7 +370,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
     def test_component_prep_errors_dont_bring_down_everything(
         self, run: MagicMock, capture_exception: MagicMock
     ) -> None:
-        run.side_effect = [APIError(), SentryAppSentryError(message="kewl")]
+        run.side_effect = [ParseError(), SentryAppSentryError(message="kewl")]
         capture_exception.return_value = 1
 
         response = self.get_success_response(

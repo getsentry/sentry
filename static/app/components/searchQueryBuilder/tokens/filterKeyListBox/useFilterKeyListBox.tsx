@@ -171,7 +171,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     setDisplayAskSeer,
     enableAISearch,
     gaveSeerConsent,
-    currentInputValue,
+    currentInputValueRef,
   } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
@@ -394,7 +394,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
         });
         setDisplayAskSeer(true);
 
-        if (currentInputValue?.trim()) {
+        if (currentInputValueRef.current?.trim()) {
           setAutoSubmitSeer(true);
         } else {
           setAutoSubmitSeer(false);
@@ -413,7 +413,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       }
     },
     [
-      currentInputValue,
+      currentInputValueRef,
       organization,
       seerAcknowledgeMutate,
       setAutoSubmitSeer,

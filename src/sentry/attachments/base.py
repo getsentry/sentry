@@ -1,4 +1,4 @@
-import zlib
+from collections.abc import Generator
 
 import sentry_sdk
 import zstandard
@@ -25,8 +25,9 @@ class CachedAttachment:
         name=None,
         content_type=None,
         type=None,
-        data=UNINITIALIZED_DATA,
         chunks=None,
+        data=UNINITIALIZED_DATA,
+        stored_id: str | None = None,
         cache=None,
         rate_limited=None,
         size=None,
@@ -48,8 +49,9 @@ class CachedAttachment:
         else:
             self.size = 0
 
-        self._data = data
         self.chunks = chunks
+        self._data = data
+        self.stored_id = stored_id
         self._cache = cache
         self._has_initial_data = data is not UNINITIALIZED_DATA
 
@@ -60,7 +62,11 @@ class CachedAttachment:
         )
 
     @property
-    def data(self):
+    def data(self) -> bytes:
+        if self.stored_id:
+            # TODO: fetch the contents based on `stored_id`
+            raise NotImplementedError()
+
         if self._data is UNINITIALIZED_DATA and self._cache is not None:
             self._data = self._cache.get_data(self)
 
@@ -68,15 +74,19 @@ class CachedAttachment:
         return self._data
 
     def delete(self):
+        if self.stored_id:
+            # TODO: delete the stored file
+            raise NotImplementedError()
+
         for key in self.chunk_keys:
             self._cache.inner.delete(key)
 
     @property
-    def chunk_keys(self):
+    def chunk_keys(self) -> Generator[str]:
         assert self.key is not None
         assert self.id is not None
 
-        if self._has_initial_data:
+        if self.stored_id or self._has_initial_data:
             return
 
         if self.chunks is None:
@@ -88,16 +98,17 @@ class CachedAttachment:
                 key=self.key, id=self.id, chunk_index=chunk_index
             )
 
-    def meta(self):
+    def meta(self) -> dict:
         return prune_empty_keys(
             {
                 "id": self.id,
                 "name": self.name,
+                "rate_limited": self.rate_limited,
                 "content_type": self.content_type,
                 "type": self.type,
-                "chunks": self.chunks,
                 "size": self.size or None,  # None for backwards compatibility
-                "rate_limited": self.rate_limited,
+                "chunks": self.chunks,
+                "stored_id": self.stored_id,
             }
         )
 
@@ -106,15 +117,15 @@ class BaseAttachmentCache:
     def __init__(self, inner):
         self.inner = inner
 
-    def set(self, key, attachments, timeout=None):
+    def set(self, key: str, attachments: list[CachedAttachment], timeout=None):
         for id, attachment in enumerate(attachments):
-            if attachment.chunks is not None:
+            if attachment.chunks is not None or attachment.stored_id is not None:
                 continue
+
             # TODO(markus): We need to get away from sequential IDs, they
             # are risking collision when using Relay.
             if attachment.id is None:
                 attachment.id = id
-
             if attachment.key is None:
                 attachment.key = key
 
@@ -128,21 +139,20 @@ class BaseAttachmentCache:
             )
 
         meta = []
-
         for attachment in attachments:
             attachment._cache = self
             meta.append(attachment.meta())
 
         self.inner.set(ATTACHMENT_META_KEY.format(key=key), meta, timeout, raw=False)
 
-    def set_chunk(self, key, id, chunk_index, chunk_data, timeout=None):
+    def set_chunk(self, key: str, id: int, chunk_index: int, chunk_data: bytes, timeout=None):
         key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
-        compressed = compress_chunk(chunk_data)
+        compressed = zstandard.compress(chunk_data)
         self.inner.set(key, compressed, timeout, raw=True)
 
-    def set_unchunked_data(self, key, id, data, timeout=None, metrics_tags=None):
+    def set_unchunked_data(self, key: str, id: int, data: bytes, timeout=None, metrics_tags=None):
         key = ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id)
-        compressed = compress_chunk(data)
+        compressed = zstandard.compress(data)
         metrics.distribution("attachments.blob-size.raw", len(data), tags=metrics_tags, unit="byte")
         metrics.distribution(
             "attachments.blob-size.compressed", len(compressed), tags=metrics_tags, unit="byte"
@@ -150,10 +160,10 @@ class BaseAttachmentCache:
         metrics.incr("attachments.received", tags=metrics_tags, skip_internal=False)
         self.inner.set(key, compressed, timeout, raw=True)
 
-    def get_from_chunks(self, key, **attachment):
+    def get_from_chunks(self, key: str, **attachment) -> CachedAttachment:
         return CachedAttachment(key=key, cache=self, **attachment)
 
-    def get(self, key):
+    def get(self, key: str) -> Generator[CachedAttachment]:
         result = self.inner.get(ATTACHMENT_META_KEY.format(key=key), raw=False)
 
         for id, attachment in enumerate(result or ()):
@@ -161,28 +171,21 @@ class BaseAttachmentCache:
             attachment.setdefault("key", key)
             yield CachedAttachment(cache=self, **attachment)
 
-    def get_data(self, attachment) -> bytes:
+    def get_data(self, attachment: CachedAttachment) -> bytes:
         data = bytearray()
 
         for key in attachment.chunk_keys:
             raw_data = self.inner.get(key, raw=True)
             if raw_data is None:
                 raise MissingAttachmentChunks()
-            if raw_data.startswith(b"\x28\xb5\x2f\xfd"):
-                decompressed = zstandard.decompress(raw_data)
-            else:
-                decompressed = zlib.decompress(raw_data)
+            decompressed = zstandard.decompress(raw_data)
             data.extend(decompressed)
 
         return bytes(data)
 
     @sentry_sdk.tracing.trace
-    def delete(self, key):
+    def delete(self, key: str):
         for attachment in self.get(key):
             attachment.delete()
 
         self.inner.delete(ATTACHMENT_META_KEY.format(key=key))
-
-
-def compress_chunk(chunk_data: bytes) -> bytes:
-    return zstandard.compress(chunk_data)

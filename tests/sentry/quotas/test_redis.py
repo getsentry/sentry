@@ -1,4 +1,5 @@
 import time
+from collections.abc import Generator
 from functools import cached_property
 from unittest import mock
 
@@ -241,21 +242,21 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].reason_code == "project_abuse_limit"
 
     @pytest.fixture(autouse=True)
-    def _patch_get_project_quota(self):
+    def _patch_get_project_quota(self) -> Generator[None]:
         with mock.patch.object(
             RedisQuota, "get_project_quota", return_value=(0, 60)
         ) as self.get_project_quota:
             yield
 
     @pytest.fixture(autouse=True)
-    def _patch_get_organization_quota(self):
+    def _patch_get_organization_quota(self) -> Generator[None]:
         with mock.patch.object(
             RedisQuota, "get_organization_quota", return_value=(0, 60)
         ) as self.get_organization_quota:
             yield
 
     @pytest.fixture(autouse=True)
-    def _patch_get_monitor_quota(self):
+    def _patch_get_monitor_quota(self) -> Generator[None]:
         with mock.patch.object(
             RedisQuota, "get_monitor_quota", return_value=(0, 60)
         ) as self.get_monitor_quota:

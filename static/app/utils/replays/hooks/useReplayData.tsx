@@ -11,8 +11,9 @@ import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useFeedbackEvents from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
+import type {RawReplayError} from 'sentry/utils/replays/types';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
   /**
@@ -41,7 +42,7 @@ type Options = {
 interface Result {
   attachmentError: undefined | RequestError[];
   attachments: unknown[];
-  errors: ReplayError[];
+  errors: RawReplayError[];
   fetchError: undefined | RequestError;
   isError: boolean;
   isPending: boolean;
@@ -200,7 +201,7 @@ function useReplayData({
     pages: errorPages,
     status: fetchErrorsStatus,
     getLastResponseHeader: lastErrorsResponseHeader,
-  } = useFetchParallelPages<{data: ReplayError[]}>({
+  } = useFetchParallelPages<{data: RawReplayError[]}>({
     enabled: enableErrors,
     hits: replayRecord?.count_errors ?? 0,
     getQueryKey: getErrorsQueryKey,
@@ -214,7 +215,7 @@ function useReplayData({
     (!replayRecord?.count_errors || Boolean(links.next?.results)) &&
     fetchErrorsStatus === 'success';
   const {pages: extraErrorPages, status: fetchExtraErrorsStatus} =
-    useFetchSequentialPages<{data: ReplayError[]}>({
+    useFetchSequentialPages<{data: RawReplayError[]}>({
       enabled: enableExtraErrors,
       initialCursor: links.next?.cursor,
       getQueryKey: getErrorsQueryKey,
@@ -222,7 +223,7 @@ function useReplayData({
     });
 
   const {pages: platformErrorPages, status: fetchPlatformErrorsStatus} =
-    useFetchSequentialPages<{data: ReplayError[]}>({
+    useFetchSequentialPages<{data: RawReplayError[]}>({
       enabled: true,
       getQueryKey: getPlatformErrorsQueryKey,
       perPage: errorsPerPage,

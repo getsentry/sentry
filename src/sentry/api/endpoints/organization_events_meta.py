@@ -21,8 +21,8 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
-from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import spans_indexed, spans_metrics
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
@@ -128,8 +128,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            # events-meta is still used by events v1 which doesn't require global views
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
@@ -217,7 +216,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
 
-def get_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[str] | None):
+def get_span_samples(
+    request: Request, snuba_params: SnubaParams, orderby: list[str] | None
+) -> EventsResponse:
     is_frontend = is_frontend_request(request)
     buckets = request.GET.get("intervals", 3)
     lower_bound = request.GET.get("lowerBound", 0)
@@ -297,7 +298,9 @@ def get_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[
     )
 
 
-def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[str] | None):
+def get_eap_span_samples(
+    request: Request, snuba_params: SnubaParams, orderby: list[str] | None
+) -> EAPResponse:
     lower_bound = request.GET.get("lowerBound", 0)
     first_bound = request.GET.get("firstBound")
     second_bound = request.GET.get("secondBound")

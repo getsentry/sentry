@@ -13,12 +13,11 @@ import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedD
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
-import type {Platform} from 'sentry/data/platformPickerCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,16 +32,11 @@ const ProductUnavailableCTAHook = HookOrDefault({
 });
 
 type Props = {
-  currentPlatformKey: PlatformKey;
   platform: PlatformIntegration | undefined;
   project: Project;
 };
 
-export function ProjectInstallPlatform({
-  project,
-  currentPlatformKey,
-  platform: currentPlatform,
-}: Props) {
+export function ProjectInstallPlatform({project, platform}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -53,13 +47,6 @@ export function ProjectInstallPlatform({
     () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]
   );
-
-  const platform: Platform = {
-    key: currentPlatformKey,
-    id: currentPlatform?.id,
-    name: currentPlatform?.name,
-    link: currentPlatform?.link,
-  };
 
   const redirectWithProjectSelection = useCallback(
     (to: LocationDescriptorObject) => {
@@ -83,20 +70,15 @@ export function ProjectInstallPlatform({
     [navigate, organization.slug, project?.id]
   );
 
-  if (!platform.id && platform.key !== 'other') {
+  if (!platform) {
     return <NotFound />;
   }
 
-  // because we fall back to 'other' this will always be defined
-  if (!currentPlatform) {
-    return null;
-  }
-
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
-  const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
+  const showPerformancePrompt = performancePlatforms.includes(platform.id);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
-    (platformProductAvailability[platform.key] ?? []).length > 0;
+    (platformProductAvailability[platform.id] ?? []).length > 0;
 
   return (
     <Fragment>
@@ -104,17 +86,16 @@ export function ProjectInstallPlatform({
         <ProductUnavailableCTAHook organization={organization} />
       )}
       <PlatformDocHeader projectSlug={project.slug} platform={platform} />
-      {platform.key === 'other' ? (
+      {platform.id === 'other' ? (
         <OtherPlatformsInfo
           projectSlug={project.slug}
           platform={platform.name ?? 'other'}
         />
       ) : (
         <SdkDocumentation
-          platform={currentPlatform}
+          platform={platform}
           organization={organization}
-          projectSlug={project.slug}
-          projectId={project.id}
+          project={project}
           activeProductSelection={products}
         />
       )}

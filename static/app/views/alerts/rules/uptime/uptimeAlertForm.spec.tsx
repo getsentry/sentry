@@ -12,11 +12,11 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
-describe('Uptime Alert Form', function () {
+describe('Uptime Alert Form', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({environments: ['prod', 'dev']});
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationStore.onUpdate(organization);
     ProjectsStore.loadInitialData([project]);
 
@@ -34,7 +34,7 @@ describe('Uptime Alert Form', function () {
     return screen.getByRole('textbox', {name});
   }
 
-  it('can create a new rule', async function () {
+  it('can create a new rule', async () => {
     render(<UptimeAlertForm organization={organization} project={project} />, {
       organization,
     });
@@ -91,7 +91,7 @@ describe('Uptime Alert Form', function () {
     );
   });
 
-  it('renders existing rule', async function () {
+  it('renders existing rule', async () => {
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
       environment: 'prod',
@@ -128,7 +128,7 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('slider', {name: 'Timeout'})).toHaveValue('7500');
   });
 
-  it('handles simple edits', async function () {
+  it('handles simple edits', async () => {
     // XXX(epurkhiser): This test covers the case where the formModel waws not
     // triggering the observer that updates the apiEndpoint url based on the
     // selected project for existing rules. The other tests all pass as the
@@ -166,7 +166,7 @@ describe('Uptime Alert Form', function () {
     );
   });
 
-  it('can edit an existing rule', async function () {
+  it('can edit an existing rule', async () => {
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -238,9 +238,9 @@ describe('Uptime Alert Form', function () {
         }),
       })
     );
-  });
+  }, 20_000);
 
-  it('does not show body for GET and HEAD', async function () {
+  it('does not show body for GET and HEAD', async () => {
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -269,7 +269,7 @@ describe('Uptime Alert Form', function () {
     expect(input('Body')).toBeInTheDocument();
   });
 
-  it('updates environments for different projects', async function () {
+  it('updates environments for different projects', async () => {
     OrganizationStore.onUpdate(organization);
 
     const project1 = ProjectFixture({
@@ -308,7 +308,7 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('menuitemradio', {name: 'prod-2'})).toBeInTheDocument();
   });
 
-  it('can create a new environment', async function () {
+  it('can create a new environment', async () => {
     OrganizationStore.onUpdate(organization);
 
     render(<UptimeAlertForm organization={organization} project={project} />, {
@@ -343,7 +343,7 @@ describe('Uptime Alert Form', function () {
     );
   });
 
-  it('sets a default name from the url', async function () {
+  it('sets a default name from the url', async () => {
     render(<UptimeAlertForm organization={organization} project={project} />, {
       organization,
     });

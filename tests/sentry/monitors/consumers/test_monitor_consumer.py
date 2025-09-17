@@ -30,6 +30,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -572,6 +573,7 @@ class MonitorConsumerTest(TestCase):
             monitor_environment.next_checkin_latest
             == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
+        assert get_detector_for_monitor(monitor_environment.monitor) is not None
 
     def test_monitor_create_owner(self) -> None:
         self.send_checkin(

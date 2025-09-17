@@ -8,9 +8,9 @@ export function getWizardInstallSnippet({
   params: DocsParams;
   platform: 'ios' | 'android' | 'flutter' | 'reactNative';
 }) {
-  const {isSelfHosted, organization, projectSlug} = params;
+  const {isSelfHosted, organization, project} = params;
   const urlParam = isSelfHosted ? '' : '--saas';
-  const platformWithFlags = `${platform} ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+  const platformWithFlags = `${platform} ${urlParam} --org ${organization.slug} --project ${project.slug}`;
 
   // Get version from registry if available, or use fallback
   const version = getPackageVersion(params, 'sentry.wizard', '4.0.1');

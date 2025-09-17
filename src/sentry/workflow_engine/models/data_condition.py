@@ -15,6 +15,7 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
+from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class DataCondition(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    __repr__ = sane_repr("type", "condition", "condition_group")
+    __repr__ = sane_repr("type", "comparison", "condition_result", "condition_group_id")
 
     # The comparison is the value that the condition is compared to for the evaluation, this must be a primitive value
     comparison = models.JSONField()
@@ -181,6 +182,7 @@ class DataCondition(DefaultFieldsModel):
 
         return result
 
+    @scopedstats.timer()
     def _evaluate_condition(self, condition_type: Condition, value: T) -> DataConditionResult:
         try:
             handler = condition_handler_registry.get(condition_type)

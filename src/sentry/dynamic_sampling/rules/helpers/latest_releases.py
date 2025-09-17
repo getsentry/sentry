@@ -219,8 +219,8 @@ class ProjectBoostedReleases:
         lrb_release = None
         active_releases = 0
         keys_to_delete = []
-        for boosted_release_key, timestamp in boosted_releases.items():
-            timestamp = float(timestamp)
+        for boosted_release_key, ts in boosted_releases.items():
+            timestamp = float(ts)
 
             # For efficiency reasons we don't parse the release and extend it with information, therefore we have to
             # check timestamps in the following way.

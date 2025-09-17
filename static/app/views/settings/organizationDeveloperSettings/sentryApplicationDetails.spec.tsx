@@ -18,7 +18,7 @@ import SentryApplicationDetails from 'sentry/views/settings/organizationDevelope
 const router = RouterFixture();
 const location = LocationFixture();
 
-describe('Sentry Application Details', function () {
+describe('Sentry Application Details', () => {
   let sentryApp: ReturnType<typeof SentryAppFixture>;
   let token: ReturnType<typeof SentryAppTokenFixture>;
   let createAppRequest: jest.Mock;
@@ -62,7 +62,7 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
-    it('shows empty scopes and no credentials', function () {
+    it('shows empty scopes and no credentials', () => {
       renderComponent();
 
       expect(screen.getByText('Permissions')).toBeInTheDocument();
@@ -73,14 +73,14 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('checkbox', {name: 'comment'})).not.toBeChecked();
     });
 
-    it('does not show logo upload fields', function () {
+    it('does not show logo upload fields', () => {
       renderComponent();
 
       expect(screen.queryByText('Logo')).not.toBeInTheDocument();
       expect(screen.queryByText('Small Icon')).not.toBeInTheDocument();
     });
 
-    it('saves', async function () {
+    it('saves', async () => {
       renderComponent();
 
       await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
@@ -154,7 +154,7 @@ describe('Sentry Application Details', function () {
       );
     }
 
-    it('does not show logo upload fields', function () {
+    it('does not show logo upload fields', () => {
       renderComponent();
 
       expect(screen.queryByText('Logo')).not.toBeInTheDocument();
@@ -174,7 +174,7 @@ describe('Sentry Application Details', function () {
     });
   });
 
-  describe('Renders public app', function () {
+  describe('Renders public app', () => {
     function renderComponent() {
       return render(
         <SentryApplicationDetails
@@ -203,7 +203,7 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('shows logo upload fields', async function () {
+    it('shows logo upload fields', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
@@ -222,7 +222,7 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
-    it('shows application data', async function () {
+    it('shows application data', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
@@ -230,7 +230,7 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 
-    it('renders clientId and clientSecret for public apps', async function () {
+    it('renders clientId and clientSecret for public apps', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
@@ -284,7 +284,7 @@ describe('Sentry Application Details', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('shows logo upload fields', async function () {
+    it('shows logo upload fields', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
@@ -292,14 +292,14 @@ describe('Sentry Application Details', function () {
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
-    it('has tokens', async function () {
+    it('has tokens', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByLabelText('Token preview')).toHaveTextContent('oken');
     });
 
-    it('shows just clientSecret', async function () {
+    it('shows just clientSecret', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
@@ -341,14 +341,14 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('shows masked tokens', async function () {
+    it('shows masked tokens', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByLabelText('Token preview')).toHaveTextContent(maskedValue);
     });
 
-    it('shows masked clientSecret', async function () {
+    it('shows masked clientSecret', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
@@ -391,7 +391,7 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('adding token to list', async function () {
+    it('adding token to list', async () => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         method: 'POST',
@@ -421,7 +421,7 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('removing token from list', async function () {
+    it('removing token from list', async () => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.id}/`,
         method: 'DELETE',
@@ -484,7 +484,7 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('updates app with correct data', async function () {
+    it('updates app with correct data', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
       await userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
@@ -592,7 +592,7 @@ describe('Sentry Application Details', function () {
       ).toBeInTheDocument();
     });
 
-    it('handles client secret rotation', async function () {
+    it('handles client secret rotation', async () => {
       sentryApp = SentryAppFixture();
       sentryApp.clientSecret = undefined;
 

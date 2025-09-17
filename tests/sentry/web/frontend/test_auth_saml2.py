@@ -74,7 +74,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         super().setUp()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # restore url-prefix config
         settings.SENTRY_OPTIONS.update({"system.url-prefix": self.url_prefix})
 

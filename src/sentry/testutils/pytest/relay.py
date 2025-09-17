@@ -19,12 +19,10 @@ _log = logging.getLogger(__name__)
 
 
 # This helps the Relay CI to specify the generated Docker build before it is published
-RELAY_TEST_IMAGE = environ.get(
-    "RELAY_TEST_IMAGE", "us-central1-docker.pkg.dev/sentryio/relay/relay:nightly"
-)
+RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "ghcr.io/getsentry/relay:nightly")
 
 
-def _relay_server_container_name():
+def _relay_server_container_name() -> str:
     return "sentry_test_relay_server"
 
 
@@ -148,7 +146,7 @@ def relay_server(relay_server_setup, settings):
             if i == 7:
                 _log.exception(str(ex))
                 raise ValueError(
-                    f"relay did not start in time {url}:\n{container.logs().decode()}"
+                    f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
                 ) from ex
             time.sleep(0.1 * 2**i)
     else:

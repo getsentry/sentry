@@ -132,7 +132,7 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
 
     def test_platform_java_do_not_follow_java_package_naming_convention_does_not_raise_exception(
         self,
-    ):
+    ) -> None:
         frame = {
             "abs_path": "gsp_arcus_drops_proofReadingmodecInspectionProofRead_gsp.groovy",
             "module": "gsp_arcus_drops_proofReadingmodecInspectionProofRead_gsp$_run_closure2",
@@ -454,7 +454,7 @@ class FlutterFilenameMungingTestCase(TestCase):
 class CocoaWaterFallTestCase(TestCase):
     def test_crashing_event_with_exception_interface_but_no_frame_should_waterfall_to_thread_frames(
         self,
-    ):
+    ) -> None:
         event = self.store_event(
             data={
                 "platform": "cocoa",

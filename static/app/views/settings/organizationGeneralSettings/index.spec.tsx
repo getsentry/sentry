@@ -23,12 +23,12 @@ import OrganizationGeneralSettings from 'sentry/views/settings/organizationGener
 
 jest.mock('sentry/utils/analytics');
 
-describe('OrganizationGeneralSettings', function () {
+describe('OrganizationGeneralSettings', () => {
   const ENDPOINT = '/organizations/org-slug/';
   const {organization, router} = initializeOrg();
   let configState: Config;
 
-  beforeEach(function () {
+  beforeEach(() => {
     configState = ConfigStore.getState();
     OrganizationsStore.addOrReplace(organization);
     MockApiClient.addMockResponse({
@@ -42,13 +42,13 @@ describe('OrganizationGeneralSettings', function () {
     });
   });
 
-  afterEach(function () {
-    act(function () {
+  afterEach(() => {
+    act(() => {
       ConfigStore.loadInitialData(configState);
     });
   });
 
-  it('can enable "early adopter"', async function () {
+  it('can enable "early adopter"', async () => {
     render(<OrganizationGeneralSettings />, {
       deprecatedRouterMocks: true,
     });
@@ -69,7 +69,7 @@ describe('OrganizationGeneralSettings', function () {
     });
   });
 
-  it('can enable "codecov access"', async function () {
+  it('can enable "codecov access"', async () => {
     const organizationWithCodecovFeature = OrganizationFixture({
       features: ['codecov-integration'],
       codecovAccess: false,
@@ -99,7 +99,7 @@ describe('OrganizationGeneralSettings', function () {
     expect(trackAnalytics).toHaveBeenCalled();
   });
 
-  it('changes org slug and redirects to new slug', async function () {
+  it('changes org slug and redirects to new slug', async () => {
     render(<OrganizationGeneralSettings />, {
       router,
       deprecatedRouterMocks: true,
@@ -130,7 +130,7 @@ describe('OrganizationGeneralSettings', function () {
     });
   });
 
-  it('changes org slug and redirects to new customer-domain', async function () {
+  it('changes org slug and redirects to new customer-domain', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     const org = OrganizationFixture();
@@ -167,7 +167,7 @@ describe('OrganizationGeneralSettings', function () {
     );
   });
 
-  it('disables the entire form if user does not have write access', function () {
+  it('disables the entire form if user does not have write access', () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
     render(<OrganizationGeneralSettings />, {
@@ -192,7 +192,7 @@ describe('OrganizationGeneralSettings', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not have remove organization button without org:admin permission', function () {
+  it('does not have remove organization button without org:admin permission', () => {
     render(<OrganizationGeneralSettings />, {
       organization: OrganizationFixture({
         access: ['org:write'],
@@ -206,7 +206,7 @@ describe('OrganizationGeneralSettings', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('can remove organization when org admin', async function () {
+  it('can remove organization when org admin', async () => {
     act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
     render(<OrganizationGeneralSettings />, {

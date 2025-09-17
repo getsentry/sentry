@@ -10,7 +10,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 @no_silo_test
 class OrganizationOnboardingTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -20,7 +20,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def start_onboarding(self):
+    def start_onboarding(self) -> None:
         self.browser.get("/onboarding/%s/" % self.org.slug)
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
         self.browser.click('[aria-label="Start"]')

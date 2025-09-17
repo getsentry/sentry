@@ -4,10 +4,10 @@ import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionTarget, ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {
-  type DataCondition,
-  type DataConditionGroup,
   DataConditionGroupLogicType,
   DataConditionType,
+  type DataCondition,
+  type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {MatchType} from 'sentry/views/automations/components/actionFilters/constants';
 
@@ -33,7 +33,7 @@ export function AutomationFixture(params: Partial<Automation> = {}): Automation 
   };
 }
 
-function ActionFilterFixture(
+export function ActionFilterFixture(
   params: Partial<DataConditionGroup> = {}
 ): DataConditionGroup {
   return {
@@ -66,6 +66,7 @@ export function ActionFixture(params: Partial<Action> = {}): Action {
       targetType: ActionTarget.SPECIFIC,
     },
     data: {},
+    status: 'active',
     ...params,
   };
 }

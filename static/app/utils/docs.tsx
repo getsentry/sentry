@@ -43,10 +43,7 @@ function validDocPlatform(platform: any): platform is DocPlatform {
   return platforms.includes(platform);
 }
 
-export function getDocsPlatform(
-  platform: string,
-  performanceOnly: boolean
-): DocPlatform | null {
+function getDocsPlatform(platform: string, performanceOnly: boolean): DocPlatform | null {
   // react-native is the only platform that has a dash, and supports performance so we can skip that check
   if (platform === 'react-native') {
     return 'react-native';

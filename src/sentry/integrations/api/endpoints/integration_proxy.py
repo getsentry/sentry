@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
+from enum import StrEnum
 from typing import Any
 from urllib.parse import urljoin
 
+import sentry_sdk
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
 from rest_framework.request import Request as DRFRequest
@@ -18,6 +21,8 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
+from sentry.metrics.base import Tags
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -33,6 +38,29 @@ from sentry.silo.util import (
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+METRIC_PREFIX = "hybrid_cloud.integration_proxy"
+
+
+class IntegrationProxySuccessMetricType(StrEnum):
+    INITIALIZE = "initialize"
+    COMPLETE_RESPONSE_CODE = "complete.response_code"
+
+
+class IntegrationProxyFailureMetricType(StrEnum):
+    INVALID_SENDER_HEADERS = "invalid_sender_headers"
+    INVALID_SENDER_SIGNATURE = "invalid_sender_signature"
+    INVALID_ORG_INTEGRATION = "invalid_org_integration"
+    INVALID_INTEGRATION = "invalid_integration"
+    INVALID_CLIENT = "invalid_client"
+    INVALID_MODE = "invalid_mode"
+    INVALID_SENDER = "invalid_sender"
+    INVALID_REQUEST = "invalid_request"
+    INVALID_IDENTITY = "invalid_identity"
+    HOST_UNREACHABLE_ERROR = "host_unreachable_error"
+    HOST_TIMEOUT_ERROR = "host_timeout_error"
+    UNKNOWN_ERROR = "unknown_error"
+    FAILED_VALIDATION = "failed_validation"
 
 
 @control_silo_endpoint
@@ -63,6 +91,36 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     def client(self, client):
         self._client = client
 
+    def _add_metric(
+        self,
+        metric_name: str,
+        sample_rate: float | None = None,
+        tags: Tags | None = None,
+    ):
+        if sample_rate is None:
+            sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+
+        metrics.incr(
+            f"{METRIC_PREFIX}.{metric_name}",
+            sample_rate=sample_rate,
+            tags=tags,
+        )
+
+    def _add_failure_metric(
+        self,
+        failure_type: IntegrationProxyFailureMetricType,
+        additional_tags: dict[str, str] | None = None,
+    ):
+        if additional_tags is None:
+            additional_tags = {}
+        tags = {"failure_type": failure_type, **additional_tags}
+
+        self._add_metric(
+            metric_name="proxy_failure",
+            sample_rate=1.0,
+            tags=tags,
+        )
+
     def _validate_sender(self, request: HttpRequest) -> bool:
         """
         Returns True if the sender is deemed sufficiently trustworthy.
@@ -72,6 +130,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
         if signature is None or identifier is None or base_url is None:
             logger.info("integration_proxy.invalid_sender_headers", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_SENDER_HEADERS)
             return False
         is_valid = verify_subnet_signature(
             base_url=base_url,
@@ -82,6 +141,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         if not is_valid:
             logger.info("integration_proxy.invalid_sender_signature", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_SENDER_SIGNATURE)
 
         return is_valid
 
@@ -109,7 +169,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         if self.org_integration is None:
             logger.info("integration_proxy.invalid_org_integration", extra=self.log_extra)
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_org_integration")
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION)
             return False
         self.log_extra["integration_id"] = self.org_integration.integration_id
 
@@ -118,7 +178,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self.integration or self.integration.status is not ObjectStatus.ACTIVE:
             logger.info("integration_proxy.invalid_integration", extra=self.log_extra)
             if self.integration and self.integration.status is not ObjectStatus.ACTIVE:
-                metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_integration")
+                self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_INTEGRATION)
             return False
 
         # Get the integration client
@@ -138,6 +198,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["client_type"] = client_class.__name__
         if not issubclass(client_class, IntegrationProxyClient):
             logger.info("integration_proxy.invalid_client", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_CLIENT)
             return False
 
         return True
@@ -150,19 +211,19 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not is_correct_silo:
             self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
             logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_mode", sample_rate=1.0)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_MODE)
             return False
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
             logger.info("integration_proxy.failure.invalid_sender", extra=self.log_extra)
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_sender", sample_rate=1.0)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_SENDER)
             return False
 
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
             logger.info("integration_proxy.failure.invalid_request", extra=self.log_extra)
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request", sample_rate=1.0)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_REQUEST)
             return False
         return True
 
@@ -190,34 +251,58 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             headers=clean_headers,
         )
 
+    @sentry_sdk.trace(op="integration_proxy.http_method_not_allowed")
     def http_method_not_allowed(self, request):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
-        # Removes leading slashes as it can result in incorrect urls being generated
-        self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
-        self.log_extra["method"] = request.method
-        self.log_extra["path"] = self.proxy_path
-        self.log_extra["host"] = request.headers.get("Host")
+        with IntegrationProxyEvent(
+            interaction_type=IntegrationProxyEventType.SHOULD_PROXY
+        ).capture() as lifecycle:
+            # Removes leading slashes as it can result in incorrect urls being generated
+            self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
+            self.log_extra["method"] = request.method
+            self.log_extra["path"] = self.proxy_path
+            self.log_extra["host"] = request.headers.get("Host")
 
-        if not self._should_operate(request):
-            return HttpResponseBadRequest()
+            if not self._should_operate(request):
+                lifecycle.record_failure(
+                    failure_reason=IntegrationProxyFailureMetricType.FAILED_VALIDATION
+                )
+                return HttpResponseBadRequest()
 
-        metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
+            self._add_metric(
+                metric_name=IntegrationProxySuccessMetricType.INITIALIZE, sample_rate=1.0
+            )
 
-        base_url = request.headers.get(PROXY_BASE_URL_HEADER)
-        base_url = base_url.rstrip("/")
+            base_url = request.headers.get(PROXY_BASE_URL_HEADER)
+            base_url = base_url.rstrip("/")
 
-        full_url = urljoin(f"{base_url}/", self.proxy_path)
-        self.log_extra["full_url"] = full_url
-        headers = clean_outbound_headers(request.headers)
+            full_url = urljoin(f"{base_url}/", self.proxy_path)
+            self.log_extra["full_url"] = full_url
+            headers = clean_outbound_headers(request.headers)
 
-        response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
+        with IntegrationProxyEvent(
+            interaction_type=IntegrationProxyEventType.PROXY_REQUEST
+        ).capture() as lifecycle:
+            if self.org_integration is not None:
+                lifecycle.add_extras(
+                    {
+                        "integration_id": self.org_integration.integration_id,
+                        "organization_id": self.org_integration.organization_id,
+                    }
+                )
+            if self.integration is not None:
+                lifecycle.add_extras({"provider": self.integration.provider})
 
-        metrics.incr(
-            "hybrid_cloud.integration_proxy.complete.response_code",
-            tags={"status": response.status_code},
+            response = self._call_third_party_api(
+                request=request, full_url=full_url, headers=headers
+            )
+
+        self._add_metric(
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             sample_rate=1.0,
+            tags={"status": response.status_code},
         )
         return response
 
@@ -230,14 +315,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     ) -> DRFResponse:
         if isinstance(exc, IdentityNotValid):
             logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_IDENTITY)
             return self.respond(status=400)
         elif isinstance(exc, ApiHostError):
             logger.info(
                 "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
             )
+            self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR)
             return self.respond(status=exc.code)
         elif isinstance(exc, ApiTimeoutError):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
             return self.respond(status=exc.code)
 
+        self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)

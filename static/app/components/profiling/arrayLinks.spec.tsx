@@ -2,13 +2,13 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 
-describe('ArrayLinks', function () {
-  it('renders single item', function () {
+describe('ArrayLinks', () => {
+  it('renders single item', () => {
     render(<ArrayLinks items={[{target: '/foo', value: 'foo'}]} />);
     expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
-  it('renders two items', async function () {
+  it('renders two items', async () => {
     render(
       <ArrayLinks
         items={[

@@ -4,15 +4,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import App from 'sentry/views/app';
 
-describe('Sudo Modal', function () {
+describe('Sudo Modal', () => {
   const setHasPasswordAuth = (hasPasswordAuth: boolean) =>
     ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth});
 
-  beforeEach(function () {
+  beforeEach(() => {
     window.__initialData = {
       ...window.__initialData,
       links: {
@@ -60,11 +59,10 @@ describe('Sudo Modal', function () {
       url: '/authenticators/',
       body: [],
     });
-    ModalStore.reset();
     OrganizationStore.reset();
   });
 
-  it('can delete an org with sudo flow', async function () {
+  it('can delete an org with sudo flow', async () => {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(true);
 
@@ -138,7 +136,7 @@ describe('Sudo Modal', function () {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('shows button to redirect if user does not have password auth', async function () {
+  it('shows button to redirect if user does not have password auth', async () => {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(false);
 

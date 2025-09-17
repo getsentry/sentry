@@ -8,9 +8,9 @@ import {
   getExceptionGroupWidth,
 } from 'sentry/utils/eventExceptionGroup';
 
-describe('eventExceptionGroup', function () {
-  describe('buildExceptionGroupTree', function () {
-    it('builds the exception group tree', function () {
+describe('eventExceptionGroup', () => {
+  describe('buildExceptionGroupTree', () => {
+    it('builds the exception group tree', () => {
       const exception = EventEntryExceptionGroupFixture();
 
       expect(buildExceptionGroupTree(exception)).toEqual([
@@ -44,13 +44,13 @@ describe('eventExceptionGroup', function () {
     });
   });
 
-  describe('getExceptionGroupHeight', function () {
-    it('gets the height of the exception group', function () {
+  describe('getExceptionGroupHeight', () => {
+    it('gets the height of the exception group', () => {
       const exception = EventEntryExceptionGroupFixture();
       expect(getExceptionGroupHeight(exception)).toBe(3);
     });
 
-    it('returns 0 with no values', function () {
+    it('returns 0 with no values', () => {
       expect(
         getExceptionGroupHeight({
           type: EntryType.EXCEPTION,
@@ -63,7 +63,7 @@ describe('eventExceptionGroup', function () {
       ).toBe(0);
     });
 
-    it('returns 1 with single parent', function () {
+    it('returns 1 with single parent', () => {
       expect(
         getExceptionGroupHeight({
           type: EntryType.EXCEPTION,
@@ -85,7 +85,7 @@ describe('eventExceptionGroup', function () {
       ).toBe(1);
     });
 
-    it('returns 2 with a parent and a child', function () {
+    it('returns 2 with a parent and a child', () => {
       expect(
         getExceptionGroupHeight({
           type: EntryType.EXCEPTION,
@@ -116,7 +116,7 @@ describe('eventExceptionGroup', function () {
       ).toBe(2);
     });
 
-    it('returns 2 with a parent and 2 children', function () {
+    it('returns 2 with a parent and 2 children', () => {
       expect(
         getExceptionGroupHeight({
           type: EntryType.EXCEPTION,
@@ -157,8 +157,8 @@ describe('eventExceptionGroup', function () {
     });
   });
 
-  describe('getExceptionGroupWidth', function () {
-    it('returns 0 with no values', function () {
+  describe('getExceptionGroupWidth', () => {
+    it('returns 0 with no values', () => {
       expect(
         getExceptionGroupWidth({
           type: EntryType.EXCEPTION,
@@ -171,7 +171,7 @@ describe('eventExceptionGroup', function () {
       ).toBe(0);
     });
 
-    it('returns 1 with a single parent', function () {
+    it('returns 1 with a single parent', () => {
       expect(
         getExceptionGroupWidth({
           type: EntryType.EXCEPTION,
@@ -193,7 +193,7 @@ describe('eventExceptionGroup', function () {
       ).toBe(1);
     });
 
-    it('returns 1 with a parent and a child', function () {
+    it('returns 1 with a parent and a child', () => {
       expect(
         getExceptionGroupWidth({
           type: EntryType.EXCEPTION,
@@ -224,7 +224,7 @@ describe('eventExceptionGroup', function () {
       ).toBe(1);
     });
 
-    it('returns 2 with a parent and 2 children', function () {
+    it('returns 2 with a parent and 2 children', () => {
       expect(
         getExceptionGroupWidth({
           type: EntryType.EXCEPTION,
@@ -264,7 +264,7 @@ describe('eventExceptionGroup', function () {
       ).toBe(2);
     });
 
-    it('returns 3 with a parent 3 grandchildren', function () {
+    it('returns 3 with a parent 3 grandchildren', () => {
       expect(
         getExceptionGroupWidth({
           type: EntryType.EXCEPTION,

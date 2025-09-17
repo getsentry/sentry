@@ -13,7 +13,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {DashboardsMEPConsumer} from './widgetCard/dashboardsMEPContext';
-import {type Widget, WidgetType} from './types';
+import {WidgetType, type Widget} from './types';
 
 type SearchFilterKey = {key?: {value: string}};
 

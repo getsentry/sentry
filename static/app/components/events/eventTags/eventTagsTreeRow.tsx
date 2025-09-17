@@ -192,7 +192,7 @@ function EventTagsTreeRowDropdown({
     },
     {
       key: 'view-feedback',
-      label: t('Search feedbacks with this tag value'),
+      label: t('Search feedback with this tag value'),
       hidden: !isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/feedback/`,

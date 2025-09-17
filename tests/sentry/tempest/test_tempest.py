@@ -125,11 +125,11 @@ class TempestTasksTest(TestCase):
         with self.assertLogs("sentry.tempest.tasks", level="INFO") as cm:
             poll_tempest_crashes(self.credentials.id)
 
-        self.credentials.refresh_from_db()
-        # ID should remain unchanged when JSON parsing fails
-        assert self.credentials.latest_fetched_item_id == "42"
         mock_fetch.assert_called_once()
         assert "Fetching the crashes failed." in cm.output[0]
+        self.credentials.refresh_from_db()
+        # ID should be reset when JSON parsing fails since we don't want to retry the faulty crash
+        assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_error(self, mock_fetch: MagicMock) -> None:
@@ -146,11 +146,13 @@ class TempestTasksTest(TestCase):
         mock_fetch.assert_called_once()
         assert "Fetching the crashes failed." in cm.output[0]
 
+    @patch("sentry.tempest.tasks.has_tempest_access")
     @patch("sentry.tempest.tasks.fetch_latest_item_id")
     @patch("sentry.tempest.tasks.poll_tempest_crashes")
     def test_poll_tempest_no_latest_id(
-        self, mock_poll_crashes: MagicMock, mock_fetch_latest: MagicMock
+        self, mock_poll_crashes: MagicMock, mock_fetch_latest: MagicMock, mock_has_access: MagicMock
     ) -> None:
+        mock_has_access.return_value = True
         # Ensure latest_fetched_item_id is None
         self.credentials.latest_fetched_item_id = None
         self.credentials.save()
@@ -164,11 +166,13 @@ class TempestTasksTest(TestCase):
         )
         mock_poll_crashes.apply_async.assert_not_called()
 
+    @patch("sentry.tempest.tasks.has_tempest_access")
     @patch("sentry.tempest.tasks.fetch_latest_item_id")
     @patch("sentry.tempest.tasks.poll_tempest_crashes")
     def test_poll_tempest_with_latest_id(
-        self, mock_poll_crashes: MagicMock, mock_fetch_latest: MagicMock
+        self, mock_poll_crashes: MagicMock, mock_fetch_latest: MagicMock, mock_has_access: MagicMock
     ) -> None:
+        mock_has_access.return_value = True
         # Set an existing ID
         self.credentials.latest_fetched_item_id = "42"
         self.credentials.save()
@@ -238,3 +242,36 @@ class TempestTasksTest(TestCase):
         # Second call -> should reuse existing ProjectKey and thus not invalidate config
         poll_tempest_crashes(self.credentials.id)
         mock_invalidate.assert_not_called()
+
+    @patch("sentry.tempest.tasks.has_tempest_access")
+    @patch("sentry.tempest.tasks.fetch_latest_item_id")
+    @patch("sentry.tempest.tasks.poll_tempest_crashes")
+    def test_poll_tempest_skips_credentials_without_access(
+        self, mock_poll_crashes: MagicMock, mock_fetch_latest: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        """Test that poll_tempest skips credentials when organization doesn't have tempest access"""
+        org_with_access = self.create_organization()
+        project_with_access = self.create_project(organization=org_with_access)
+        credentials_with_access = self.create_tempest_credentials(project_with_access)
+        credentials_with_access.latest_fetched_item_id = "42"
+        credentials_with_access.save()
+
+        org_without_access = self.create_organization()
+        project_without_access = self.create_project(organization=org_without_access)
+        credentials_without_access = self.create_tempest_credentials(project_without_access)
+        credentials_without_access.latest_fetched_item_id = "42"
+        credentials_without_access.save()
+
+        def mock_access_check(organization):
+            return organization.id == org_with_access.id
+
+        mock_has_access.side_effect = mock_access_check
+
+        poll_tempest()
+
+        assert mock_has_access.call_count == 3
+        mock_poll_crashes.apply_async.assert_called_once_with(
+            kwargs={"credentials_id": credentials_with_access.id},
+            headers={"sentry-propagate-traces": False},
+        )
+        mock_fetch_latest.apply_async.assert_not_called()

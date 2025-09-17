@@ -93,7 +93,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.suspended_registry.restore()
         self._run_tasks.__exit__(None, None, None)
@@ -503,11 +503,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [
                 call(
                     "incidents.alert_rules.hit_rate_limit",
-                    tags={
-                        "last_incident_id": original_incident.id,
-                        "project_id": self.sub.project.id,
-                        "trigger_id": trigger.id,
-                    },
                 ),
             ],
             any_order=True,

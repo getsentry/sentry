@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
@@ -14,7 +14,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {useReplayBulkDeleteAuditLogQueryKey} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
@@ -22,13 +22,14 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import type {QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
+import {useQueryClient, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import useDeleteReplays, {
   type ReplayBulkDeletePayload,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
@@ -40,17 +41,29 @@ interface Props {
 }
 
 export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
+  const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
-  const {project: projectIds} = useLocationQuery({
+  const {project: selectedProjectIds} = useLocationQuery({
     fields: {
       project: decodeList,
     },
   });
+  const {projects} = useProjects();
+  const hasOnlyOneProject = projects.length === 1;
 
+  // if 1 project is selected, use it
+  // if no project is selected but only 1 project exists, use that
   const project = useProjectFromId({
-    project_id: projectIds.length === 1 ? projectIds[0] : undefined,
+    project_id:
+      selectedProjectIds.length === 1
+        ? selectedProjectIds[0]
+        : hasOnlyOneProject
+          ? projects[0]?.id
+          : undefined,
   });
   const hasOneProjectSelected = Boolean(project);
+
+  const oneProjectEligible = hasOneProjectSelected || hasOnlyOneProject;
 
   const {bulkDelete, hasAccess, queryOptionsToPayload} = useDeleteReplays({
     projectSlug: project?.slug ?? '',
@@ -59,22 +72,25 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
 
   const settingsPath = `/settings/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
 
-  const {refetch: refetchAuditLog} = useReplayBulkDeleteAuditLog({
+  const queryKey = useReplayBulkDeleteAuditLogQueryKey({
     projectSlug: project?.slug ?? '',
     query: {referrer: analyticsArea},
   });
+  const refetchAuditLog = useCallback(() => {
+    queryClient.invalidateQueries({queryKey});
+  }, [queryClient, queryKey]);
 
   return (
     <Tooltip
-      disabled={hasOneProjectSelected}
+      disabled={oneProjectEligible}
       title={t('Select a single project from the dropdown to delete replays')}
     >
       <Tooltip
-        disabled={!hasOneProjectSelected || hasAccess}
+        disabled={!oneProjectEligible || hasAccess}
         title={t('You must have project:write or project:admin access to delete replays')}
       >
         <Button
-          disabled={!hasOneProjectSelected || !hasAccess}
+          disabled={!oneProjectEligible || !hasAccess}
           icon={<IconDelete />}
           onClick={() =>
             openConfirmModal({

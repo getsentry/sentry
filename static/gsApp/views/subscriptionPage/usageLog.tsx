@@ -7,6 +7,7 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Container} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -25,6 +26,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
+import {hasNewBillingUI} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 import SubscriptionHeader from './subscriptionHeader';
@@ -157,9 +159,10 @@ function UsageLog({location, subscription}: Props) {
       value: type,
     })) ?? [];
   const selectedEventName = decodeScalar(location.query.event);
+  const isNewBillingUI = hasNewBillingUI(organization);
 
   return (
-    <Fragment>
+    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <UsageLogContainer>
         <CompactSelect
@@ -211,7 +214,7 @@ function UsageLog({location, subscription}: Props) {
         )}
       </UsageLogContainer>
       <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
-    </Fragment>
+    </Container>
   );
 }
 

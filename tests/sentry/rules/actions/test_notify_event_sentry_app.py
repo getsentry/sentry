@@ -24,7 +24,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
     ]
 
     @pytest.fixture(autouse=True)
-    def create_schema(self):
+    def create_schema(self) -> None:
         self.schema = {"elements": [self.create_alert_rule_action_schema()]}
 
     def test_applies_correctly_for_sentry_apps(self) -> None:

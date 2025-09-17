@@ -66,6 +66,7 @@ import {
   getSupportedAndOmittedTags,
 } from 'sentry/views/alerts/wizard/options';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {SESSIONS_FILTER_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   TraceItemAttributeProvider,
@@ -137,16 +138,29 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.project.id === this.props.project.id) {
-      return;
+    if (prevProps.dataset !== this.props.dataset || prevProps.tags !== this.props.tags) {
+      const filterKeys = this.getFilterKeys();
+      this.setState({filterKeys});
     }
 
-    this.fetchData();
+    if (prevProps.project.id !== this.props.project.id) {
+      this.fetchData();
+    }
   }
 
   getFilterKeys = () => {
     const {organization, dataset, tags} = this.props;
     const {measurements} = this.state;
+
+    if (dataset === Dataset.METRICS) {
+      return Object.values(SESSIONS_FILTER_TAGS)
+        .filter(key => key !== 'project') // Already have the project selector
+        .reduce<TagCollection>((acc, key) => {
+          acc[key] = {key, name: key};
+          return acc;
+        }, {});
+    }
+
     const measurementsWithKind = Object.keys(measurements).reduce(
       (measurement_tags, key) => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -561,7 +575,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Alert.Container>
             <Alert type="warning">
               {tctCode(
-                'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
+                'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+                {
+                  FAQLink: (
+                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                  ),
+                }
               )}
             </Alert>
           </Alert.Container>

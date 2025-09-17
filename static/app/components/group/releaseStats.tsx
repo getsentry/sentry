@@ -15,7 +15,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {CurrentRelease, Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
@@ -112,7 +111,9 @@ function GroupReleaseStats({
                   {t('Last Seen')}
                 </GuideAnchor>
                 <QuestionTooltip
-                  title={t('When the most recent event in this issue was captured.')}
+                  title={t(
+                    'When the most recent event or session activity in this issue was captured.'
+                  )}
                   size="xs"
                 />
               </SidebarSection.Title>
@@ -121,10 +122,7 @@ function GroupReleaseStats({
                   organization={organization}
                   projectId={projectId}
                   projectSlug={projectSlug}
-                  date={getDynamicText({
-                    value: group.lastSeen,
-                    fixed: '2016-01-13T03:08:25Z',
-                  })}
+                  date={group.lastSeen}
                   dateGlobal={allEnvironments.lastSeen}
                   environment={shortEnvironmentLabel}
                   release={lastRelease}
@@ -135,7 +133,9 @@ function GroupReleaseStats({
               <SidebarSection.Title>
                 {t('First Seen')}
                 <QuestionTooltip
-                  title={t('When the first event in this issue was captured.')}
+                  title={t(
+                    'When the first event or session activity in this issue was captured.'
+                  )}
                   size="xs"
                 />
               </SidebarSection.Title>
@@ -144,10 +144,7 @@ function GroupReleaseStats({
                   organization={organization}
                   projectId={projectId}
                   projectSlug={projectSlug}
-                  date={getDynamicText({
-                    value: group.firstSeen,
-                    fixed: '2015-08-13T03:08:25Z',
-                  })}
+                  date={group.firstSeen}
                   dateGlobal={allEnvironments.firstSeen}
                   environment={shortEnvironmentLabel}
                   release={firstRelease}

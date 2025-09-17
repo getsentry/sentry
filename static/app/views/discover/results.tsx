@@ -721,9 +721,12 @@ export class Results extends Component<Props, State> {
             }
           >
             {tctCode(
-              'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead.',
+              'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
               {
                 traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
+                FAQLink: (
+                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                ),
               }
             )}
           </Alert>
@@ -1030,9 +1033,7 @@ export default function ResultsContainer(
         organization.features.includes('discover-query') &&
         !!(props.savedQuery || props.location.query.id)
       }
-      skipLoadLastUsed={
-        organization.features.includes('global-views') && !!props.savedQuery
-      }
+      skipLoadLastUsed={!!props.savedQuery}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams

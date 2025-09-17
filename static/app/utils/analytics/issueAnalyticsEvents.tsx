@@ -19,7 +19,6 @@ enum SourceMapProcessingIssueType {
 
 type IssueStream = {
   group_id: string;
-  tab: string;
   was_shown_suggestion: boolean;
 };
 
@@ -148,7 +147,6 @@ export type IssueEventParameters = {
     should_be_escalating: boolean;
     reason?: string;
   };
-  'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.event_dropdown_option_selected': EventDropdownParams;
   'issue_details.event_navigation_selected': {
     content: string;
@@ -581,7 +579,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.copy_event_id_clicked': 'Issue Details: Copy Event ID Clicked',
-  'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',

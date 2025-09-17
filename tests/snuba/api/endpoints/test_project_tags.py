@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import before_now
 class ProjectTagsTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-project-tags"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

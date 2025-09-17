@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -136,7 +136,7 @@ function OTelOverviewContentWrapper(props: ChildProps) {
     location,
     transactionThreshold,
     transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
+    referrer: 'api.insights.transaction-summary',
     options: {
       refetchOnWindowFocus: false,
     },
@@ -150,7 +150,7 @@ function OTelOverviewContentWrapper(props: ChildProps) {
     location,
     transactionThreshold,
     transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
+    referrer: 'api.insights.transaction-summary',
   });
 
   useEffect(() => {
@@ -241,7 +241,7 @@ function OverviewContentWrapper(props: ChildProps) {
     location,
     transactionThreshold,
     transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
+    referrer: 'api.insights.transaction-summary',
     queryExtras,
     options: {
       refetchOnWindowFocus: false,
@@ -256,7 +256,7 @@ function OverviewContentWrapper(props: ChildProps) {
     location,
     transactionThreshold,
     transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
+    referrer: 'api.insights.transaction-summary',
   });
 
   useEffect(() => {

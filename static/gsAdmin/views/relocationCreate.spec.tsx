@@ -7,8 +7,8 @@ import RelocationCreate from 'admin/views/relocationCreate';
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('Relocation Create', function () {
-  beforeEach(function () {
+describe('Relocation Create', () => {
+  beforeEach(() => {
     ConfigStore.set('regions', [
       {
         name: 'test',
@@ -17,7 +17,7 @@ describe('Relocation Create', function () {
     ]);
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<RelocationCreate />);
     expect(await screen.findByRole('heading', {name: 'Relocation'})).toBeInTheDocument();
     expect(screen.getByText('Region')).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe('Relocation Create', function () {
     expect(screen.getByText('List of Organization Slugs')).toBeInTheDocument();
   });
 
-  it('accepts a file upload', async function () {
+  it('accepts a file upload', async () => {
     render(<RelocationCreate />);
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     const input = screen.getByLabelText('file-upload');
@@ -34,7 +34,7 @@ describe('Relocation Create', function () {
     expect(screen.getByText('hello.tar ✓')).toBeInTheDocument();
   });
 
-  it('rejects png file upload', async function () {
+  it('rejects png file upload', async () => {
     render(<RelocationCreate />);
     const relocationFile = new File(['hello'], 'hello.png', {type: 'file'});
     const input = screen.getByLabelText('file-upload');
@@ -43,7 +43,7 @@ describe('Relocation Create', function () {
     expect(addErrorMessage).toHaveBeenCalledWith('That is not a supported file type.');
   });
 
-  it('rejects large file upload', async function () {
+  it('rejects large file upload', async () => {
     render(<RelocationCreate />);
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     Object.defineProperty(relocationFile, 'size', {value: 200e6 + 1});
@@ -54,7 +54,7 @@ describe('Relocation Create', function () {
     );
   });
 
-  it('throws error if owner is missing when form is submitted', async function () {
+  it('throws error if owner is missing when form is submitted', async () => {
     render(<RelocationCreate />);
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     const fileInput = screen.getByLabelText('file-upload');
@@ -67,7 +67,7 @@ describe('Relocation Create', function () {
     );
   });
 
-  it('throws error if org slugs are missing when form is submitted', async function () {
+  it('throws error if org slugs are missing when form is submitted', async () => {
     render(<RelocationCreate />);
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     const fileInput = screen.getByLabelText('file-upload');
@@ -80,7 +80,7 @@ describe('Relocation Create', function () {
     );
   });
 
-  it('throws error if file is missing when form is submitted', async function () {
+  it('throws error if file is missing when form is submitted', async () => {
     render(<RelocationCreate />);
     const ownerInput = screen.getByLabelText('owner-input');
     const orgsInput = screen.getByLabelText('orgs-input');
@@ -92,7 +92,7 @@ describe('Relocation Create', function () {
     );
   });
 
-  it('should submit form if data is correct', async function () {
+  it('should submit form if data is correct', async () => {
     const mockapi = MockApiClient.addMockResponse({
       url: `/relocations/`,
       method: 'POST',

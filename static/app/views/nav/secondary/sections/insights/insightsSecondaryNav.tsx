@@ -6,7 +6,7 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {AIInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {
   AGENTS_LANDING_SUB_PATH,
   getAISidebarLabel,
@@ -70,11 +70,11 @@ export function InsightsSecondaryNav() {
             {MOBILE_SIDEBAR_LABEL}
           </SecondaryNav.Item>
 
-          <AIInsightsFeature organization={organization}>
+          <AIInsightsFeature organization={organization} renderDisabled={() => null}>
             <SecondaryNav.Item
               to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
               analyticsItemName="insights_agents"
-              trailingItems={<FeatureBadge type="beta" />}
+              trailingItems={<FeatureBadge type="new" />}
             >
               {getAISidebarLabel(organization)}
             </SecondaryNav.Item>

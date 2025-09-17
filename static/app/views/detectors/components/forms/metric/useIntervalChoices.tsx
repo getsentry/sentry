@@ -1,29 +1,9 @@
 import {useMemo} from 'react';
 
 import getDuration from 'sentry/utils/duration/getDuration';
-import {TimeWindow} from 'sentry/views/alerts/rules/metric/types';
-import {
-  DetectorDataset,
-  type MetricDetectorFormData,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-
-const baseIntervals: TimeWindow[] = [
-  TimeWindow.ONE_MINUTE,
-  TimeWindow.FIVE_MINUTES,
-  TimeWindow.TEN_MINUTES,
-  TimeWindow.FIFTEEN_MINUTES,
-  TimeWindow.THIRTY_MINUTES,
-  TimeWindow.ONE_HOUR,
-  TimeWindow.TWO_HOURS,
-  TimeWindow.FOUR_HOURS,
-  TimeWindow.ONE_DAY,
-];
-
-const dynamicIntervalChoices: TimeWindow[] = [
-  TimeWindow.FIFTEEN_MINUTES,
-  TimeWindow.THIRTY_MINUTES,
-  TimeWindow.ONE_HOUR,
-];
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 interface UseIntervalChoicesParams {
   dataset: DetectorDataset;
@@ -36,32 +16,10 @@ export function useIntervalChoices({dataset, detectionType}: UseIntervalChoicesP
       return [];
     }
 
-    // Interval filtering rules:
-    // 1. Releases → No sub-hour intervals (crash-free alert behavior)
-    // 2. Dynamic detection → Only 15min, 30min, 1hour
-    // 3. Spans/Logs → No 1-minute intervals (EAP dataset behavior)
-    // 4. Everything else → All intervals allowed
-    const shouldExcludeSubHour = dataset === DetectorDataset.RELEASES;
-    const isDynamicDetection = detectionType === 'dynamic';
-    // EAP-derived datasets (spans, logs) exclude 1-minute intervals
-    const isEAPDerivedDataset =
-      dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS;
-
-    const filteredIntervals = baseIntervals.filter(timeWindow => {
-      if (shouldExcludeSubHour) {
-        return timeWindow >= TimeWindow.ONE_HOUR;
-      }
-      if (isDynamicDetection) {
-        return dynamicIntervalChoices.includes(timeWindow);
-      }
-      if (isEAPDerivedDataset) {
-        return timeWindow !== TimeWindow.ONE_MINUTE;
-      }
-      return true;
-    });
-
-    return filteredIntervals.map(timeWindow => {
-      const seconds = timeWindow * 60;
+    const datasetConfig = getDatasetConfig(dataset);
+    const intervals = datasetConfig.getIntervals({detectionType});
+    return intervals.map(minutes => {
+      const seconds = minutes * 60;
       return [seconds, getDuration(seconds)];
     });
   }, [dataset, detectionType]);

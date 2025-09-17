@@ -2,8 +2,8 @@ import type {Query} from 'history';
 
 import type {EventTag} from 'sentry/types/event';
 import {
-  type FieldKey,
   ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
+  type FieldKey,
 } from 'sentry/utils/fields';
 import {appendTagCondition} from 'sentry/utils/queryString';
 

@@ -54,21 +54,21 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
     jest.clearAllMocks();
   });
 
-  it('renders with creator and everyone options', async function () {
+  it('renders with creator and everyone options', async () => {
     renderTestComponent();
 
-    await userEvent.click(await screen.findByText('Edit Access:'));
+    await userEvent.click(await screen.findByText('Editors:'));
     expect(screen.getByText('Creator')).toBeInTheDocument();
-    expect(screen.getByText('All users')).toBeInTheDocument();
+    expect(screen.getByText('Select All')).toBeInTheDocument();
   });
 
-  it('renders All badge when dashboards has no perms defined', async function () {
+  it('renders All badge when dashboards has no perms defined', async () => {
     renderTestComponent();
-    await userEvent.click(await screen.findByText('Edit Access:'));
+    await userEvent.click(await screen.findByText('Editors:'));
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders All badge when perms is set to everyone', async function () {
+  it('renders All badge when perms is set to everyone', async () => {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1'}),
@@ -76,11 +76,11 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
       permissions: {isEditableByEveryone: true}, // set to true
     });
     renderTestComponent(mockDashboard);
-    await screen.findByText('Edit Access:');
+    await screen.findByText('Editors:');
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders All badge when All users is selected', async function () {
+  it('renders All badge when Select All is selected', async () => {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1'}),
@@ -88,17 +88,17 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
       permissions: {isEditableByEveryone: false}, // set to false
     });
     renderTestComponent(mockDashboard);
-    await userEvent.click(await screen.findByText('Edit Access:'));
+    await userEvent.click(await screen.findByText('Editors:'));
 
     expect(screen.queryByText('All')).not.toBeInTheDocument();
 
     // Select everyone
-    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+    expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
       'aria-selected',
       'false'
     );
-    await userEvent.click(screen.getByRole('option', {name: 'All users'}));
-    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('option', {name: 'Select All'}));
+    expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -106,7 +106,7 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders User badge when creator-only is selected', async function () {
+  it('renders User badge when creator-only is selected', async () => {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1', name: 'Lorem Ipsum'}),
@@ -114,7 +114,7 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
       permissions: {isEditableByEveryone: false}, // set to false
     });
     renderTestComponent(mockDashboard);
-    await screen.findByText('Edit Access:');
+    await screen.findByText('Editors:');
     expect(screen.getByText('LI')).toBeInTheDocument(); // dashboard owner's initials
     expect(screen.queryByText('All')).not.toBeInTheDocument();
   });
@@ -138,10 +138,10 @@ const teamData = [
   },
 ];
 
-describe('When EditAccessSelector is rendered with Teams', function () {
+describe('When EditAccessSelector is rendered with Teams', () => {
   const teams = teamData.map(data => TeamFixture(data));
 
-  beforeEach(function () {
+  beforeEach(() => {
     TeamStore.loadInitialData(teams);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -176,9 +176,9 @@ describe('When EditAccessSelector is rendered with Teams', function () {
     jest.clearAllMocks();
   });
 
-  it('renders all teams', async function () {
+  it('renders all teams', async () => {
     renderTestComponent();
-    await userEvent.click(await screen.findByText('Edit Access:'));
+    await userEvent.click(await screen.findByText('Editors:'));
 
     expect(screen.getByText('Teams')).toBeInTheDocument();
     expect(screen.getByText('#team1')).toBeInTheDocument();
@@ -186,7 +186,7 @@ describe('When EditAccessSelector is rendered with Teams', function () {
     expect(screen.getByText('#team3')).toBeInTheDocument();
   });
 
-  it('selects all teams when all users is selected', async function () {
+  it('selects all teams when Select All is selected', async () => {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1'}),
@@ -194,7 +194,7 @@ describe('When EditAccessSelector is rendered with Teams', function () {
       permissions: {isEditableByEveryone: false}, // set to false
     });
     renderTestComponent(mockDashboard);
-    await userEvent.click(await screen.findByText('Edit Access:'));
+    await userEvent.click(await screen.findByText('Editors:'));
 
     expect(await screen.findByRole('option', {name: '#team1'})).toHaveAttribute(
       'aria-selected',
@@ -206,12 +206,12 @@ describe('When EditAccessSelector is rendered with Teams', function () {
     );
 
     // Select everyone
-    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+    expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
       'aria-selected',
       'false'
     );
-    await userEvent.click(screen.getByRole('option', {name: 'All users'}));
-    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('option', {name: 'Select All'}));
+    expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -225,7 +225,7 @@ describe('When EditAccessSelector is rendered with Teams', function () {
     );
   });
 
-  it('searches teams', async function () {
+  it('searches teams', async () => {
     const org = OrganizationFixture();
     OrganizationStore.onUpdate(org, {replace: true});
     MockApiClient.addMockResponse({
@@ -235,7 +235,7 @@ describe('When EditAccessSelector is rendered with Teams', function () {
     });
     renderTestComponent();
 
-    await userEvent.click(await screen.findByText('Edit Access:'));
+    await userEvent.click(await screen.findByText('Editors:'));
     await userEvent.type(screen.getByPlaceholderText('Search Teams'), 'team2');
 
     expect(screen.getByText('#team2')).toBeInTheDocument();

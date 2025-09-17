@@ -3,10 +3,11 @@ from datetime import timedelta
 
 import sentry_sdk
 
+from sentry.search.eap import constants
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.sampling import handle_downsample_meta
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -37,15 +38,17 @@ class OurLogs(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         debug: bool = False,
     ) -> EAPResponse:
-        precise_timestamp = "tags[sentry.timestamp_precise,number]"
-        if orderby == ["-timestamp"]:
-            orderby = ["-timestamp", f"-{precise_timestamp}"]
-            if precise_timestamp not in selected_columns:
-                selected_columns.append(precise_timestamp)
-        if orderby == ["timestamp"]:
-            orderby = ["timestamp", precise_timestamp]
-            if precise_timestamp not in selected_columns:
-                selected_columns.append(precise_timestamp)
+        """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
+        so we need to always order by it regardless of what is actually passed to the orderby"""
+        if (
+            orderby is not None
+            and len(orderby) == 1
+            and orderby[0].lstrip("-") == constants.TIMESTAMP_ALIAS
+        ):
+            desc = orderby[0][0] == "-"
+            orderby.append(("-" if desc else "") + constants.TIMESTAMP_PRECISE_ALIAS)
+            if constants.TIMESTAMP_PRECISE_ALIAS not in selected_columns:
+                selected_columns.append(constants.TIMESTAMP_PRECISE_ALIAS)
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(

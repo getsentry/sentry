@@ -11,7 +11,9 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 logger = logging.getLogger(__name__)
 
 
-def migrate_team_stars_to_user_stars(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor):
+def migrate_team_stars_to_user_stars(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
     TeamKeyTransaction = apps.get_model("sentry", "teamkeytransaction")
     InsightsStarredSegment = apps.get_model("insights", "insightsstarredsegment")
     OrganizationMemberTeam = apps.get_model("sentry", "Organizationmemberteam")

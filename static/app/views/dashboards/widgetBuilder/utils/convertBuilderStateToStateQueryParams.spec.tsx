@@ -3,8 +3,8 @@ import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hoo
 import {convertBuilderStateToStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToStateQueryParams';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-describe('convertBuilderStateToStateQueryParams', function () {
-  it('returns the query params with the provided widget queries state', function () {
+describe('convertBuilderStateToStateQueryParams', () => {
+  it('returns the query params with the provided widget queries state', () => {
     const mockState: WidgetBuilderState = {
       title: 'Test Widget',
       description: 'Test Description',
@@ -31,7 +31,7 @@ describe('convertBuilderStateToStateQueryParams', function () {
     });
   });
 
-  it('adds aliases to the query params', function () {
+  it('adds aliases to the query params', () => {
     const mockState: WidgetBuilderState = {
       fields: [
         {field: 'geo.country', alias: 'test', kind: FieldValueKind.FIELD},

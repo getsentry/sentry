@@ -1,9 +1,10 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Container} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,12 +24,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import {
-  GIGABYTE,
-  RESERVED_BUDGET_QUOTA,
-  UNLIMITED,
-  UNLIMITED_ONDEMAND,
-} from 'getsentry/constants';
+import {RESERVED_BUDGET_QUOTA, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
 import type {
   BillingHistory,
   BillingMetricHistory,
@@ -37,9 +33,11 @@ import type {
 } from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {
+  convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
+  hasNewBillingUI,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
@@ -111,12 +109,14 @@ function UsageHistory({subscription}: Props) {
     }
   );
 
+  const isNewBillingUI = hasNewBillingUI(organization);
+
   if (isPending) {
     return (
-      <Fragment>
+      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </Container>
     );
   }
 
@@ -132,7 +132,7 @@ function UsageHistory({subscription}: Props) {
   }
 
   return (
-    <Fragment>
+    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <Panel>
         <PanelHeader>{t('Usage History')}</PanelHeader>
@@ -143,7 +143,7 @@ function UsageHistory({subscription}: Props) {
         </PanelBody>
       </Panel>
       {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
-    </Fragment>
+    </Container>
   );
 }
 
@@ -339,9 +339,10 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                       {metricHistory.reserved === RESERVED_BUDGET_QUOTA
                         ? 'N/A'
                         : usagePercentage(
-                            metricHistory.category === DataCategory.ATTACHMENTS
-                              ? metricHistory.usage / GIGABYTE
-                              : metricHistory.usage,
+                            convertUsageToReservedUnit(
+                              metricHistory.usage,
+                              metricHistory.category
+                            ),
                             metricHistory.prepaid
                           )}
                     </td>

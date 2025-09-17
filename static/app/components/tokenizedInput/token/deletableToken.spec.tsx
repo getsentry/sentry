@@ -81,8 +81,8 @@ function Component() {
   return <Grid items={items} onDelete={onDelete} />;
 }
 
-describe('DeletableToken', function () {
-  it('can delete tokens with clicks', async function () {
+describe('DeletableToken', () => {
+  it('can delete tokens with clicks', async () => {
     render(<Component />);
 
     expect(screen.getByText('1')).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('DeletableToken', function () {
     expect(screen.queryByText('2')).not.toBeInTheDocument();
   });
 
-  it('can delete tokens with backspace / delete', async function () {
+  it('can delete tokens with backspace / delete', async () => {
     render(<Component />);
 
     expect(screen.getByText('1')).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe('DeletableToken', function () {
     expect(screen.queryByText('2')).not.toBeInTheDocument();
   });
 
-  it('shifts focus to child when clicked', async function () {
+  it('shifts focus to child when clicked', async () => {
     render(<Component />);
 
     expect(screen.getByRole('gridcell', {name: 'Delete 1'})).not.toHaveFocus();

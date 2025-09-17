@@ -1,6 +1,5 @@
 import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
-import type {TimeAxisLabelFormatterOption} from 'echarts/types/src/coord/axisCommonTypes';
 import merge from 'lodash/merge';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
@@ -53,7 +52,7 @@ function XAxis({
       return truncationFormatter(value as string, props.truncate);
     }
 
-    return undefined;
+    return '';
   };
 
   const defaults: XAXisComponentOption = {
@@ -83,7 +82,7 @@ function XAxis({
       showMaxLabel: false,
       showMinLabel: false,
 
-      formatter: AxisLabelFormatter as TimeAxisLabelFormatterOption,
+      formatter: AxisLabelFormatter,
     },
     axisPointer: {
       show: true,

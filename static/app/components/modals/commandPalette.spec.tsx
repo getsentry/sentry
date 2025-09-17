@@ -18,8 +18,8 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 jest.mock('sentry/actionCreators/navigation');
 
-describe('Command Palette Modal', function () {
-  it('can open command palette modal and search', async function () {
+describe('Command Palette Modal', () => {
+  it('can open command palette modal and search', async () => {
     OrganizationsStore.load(OrganizationsFixture());
     setSearchMap([]);
 

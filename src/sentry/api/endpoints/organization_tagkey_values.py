@@ -48,8 +48,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             sentry_sdk.set_tag("dataset", Dataset.Events.value)
 
         try:
-            # still used by events v1 which doesn't require global views
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             paginator: SequencePaginator[TagValue] = SequencePaginator([])
         else:

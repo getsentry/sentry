@@ -1,19 +1,16 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
+import {Flex} from 'sentry/components/core/layout';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -21,13 +18,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
+import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import {CredentialRow} from './CredentialRow';
 import EmptyState from './EmptyState';
-import {RequestSdkAccessButton} from './RequestSdkAccessButton';
 
 interface Props {
   organization: Organization;
@@ -36,17 +36,20 @@ interface Props {
 
 export default function PlayStationSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const {
     data: tempestCredentials,
     isLoading,
     invalidateCredentialsCache,
   } = useFetchTempestCredentials(organization, project);
 
-  const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
-    unknown,
-    RequestError,
-    {id: number}
-  >({
+  const {
+    mutate: handleRemoveCredential,
+    isPending: isRemoving,
+    variables: removingCredential,
+  } = useMutation<unknown, RequestError, {id: number}>({
     mutationFn: ({id}) =>
       fetchMutation({
         method: 'DELETE',
@@ -84,7 +87,9 @@ export default function PlayStationSettings({organization, project}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialErrors]);
 
-  const isEmpty = !tempestCredentials?.length;
+  const isSetupInstructionsOpen = location.query.setupInstructions === 'true';
+  const hasCredentials = (tempestCredentials ?? []).length > 0;
+  const showEmptyState = isSetupInstructionsOpen || !hasCredentials;
 
   return (
     <Fragment>
@@ -103,93 +108,75 @@ export default function PlayStationSettings({organization, project}: Props) {
         </Alert.Container>
       )}
 
-      <Form
-        apiMethod="PUT"
-        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-        initialData={{
-          tempestFetchScreenshots: project?.tempestFetchScreenshots,
-          tempestFetchDumps: project?.tempestFetchDumps,
-        }}
-        saveOnBlur
-        hideFooter
-      >
-        <JsonForm
-          forms={[
-            {
-              title: t('General Settings'),
-              fields: [
-                {
-                  name: 'tempestFetchScreenshots',
-                  type: 'boolean',
-                  label: t('Attach Screenshots'),
-                  help: t('Attach screenshots to issues.'),
-                },
-                {
-                  name: 'tempestFetchDumps',
-                  type: 'boolean',
-                  label: t('Attach Dumps'),
-                  help: t('Attach dumps to issues.'),
-                },
-              ],
-            },
-          ]}
-        />
-      </Form>
+      <ConfigForm organization={organization} project={project} />
 
-      {!isLoading && isEmpty ? (
-        <Panel>
-          <EmptyState />
-        </Panel>
+      {isLoading ? (
+        <LoadingIndicator />
       ) : (
-        <PanelTable
-          headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
-          isLoading={isLoading}
-          isEmpty={isEmpty}
-        >
-          {tempestCredentials?.map(credential => (
-            <CredentialRow
-              key={credential.id}
-              credential={credential}
-              isRemoving={isRemoving}
-              removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-            />
-          ))}
-        </PanelTable>
+        <Flex direction="column" gap="md" align="end">
+          <ButtonBar>
+            {hasCredentials && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      setupInstructions: !isSetupInstructionsOpen,
+                    },
+                  });
+                }}
+              >
+                {isSetupInstructionsOpen
+                  ? t('Close Setup Instructions')
+                  : t('Open Setup Instructions')}
+              </Button>
+            )}
+            <AddCredentialsButton project={project} origin="project-settings" />
+          </ButtonBar>
+          {showEmptyState ? (
+            <FullWidthPanel>
+              <EmptyState
+                project={project}
+                isRemoving={isRemoving}
+                hasWriteAccess={hasWriteAccess}
+                tempestCredentials={tempestCredentials}
+                onRemoveCredential={handleRemoveCredential}
+                removingCredentialId={removingCredential?.id}
+              />
+            </FullWidthPanel>
+          ) : (
+            <StyledPanelTable
+              headers={[
+                t('Client ID'),
+                t('Status'),
+                t('Created At'),
+                t('Created By'),
+                '',
+              ]}
+              isLoading={isLoading}
+            >
+              {tempestCredentials?.map(credential => (
+                <CredentialRow
+                  key={credential.id}
+                  credential={credential}
+                  isRemoving={isRemoving && removingCredential?.id === credential.id}
+                  removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+                />
+              ))}
+            </StyledPanelTable>
+          )}
+        </Flex>
       )}
     </Fragment>
   );
 }
 
-export const getPlayStationHeaderAction = (
-  hasWriteAccess: boolean,
-  organization: Organization,
-  project: Project
-) => (
-  <Fragment>
-    <ButtonBar gap="lg">
-      <FeedbackWidgetButton />
-      <RequestSdkAccessButton organization={organization} project={project} />
-      <Tooltip
-        title={t('You must be an organization admin to add new credentials.')}
-        disabled={hasWriteAccess}
-      >
-        <Button
-          priority="primary"
-          size="sm"
-          data-test-id="create-new-credentials"
-          disabled={!hasWriteAccess}
-          icon={<IconAdd isCircled />}
-          onClick={() => {
-            openAddTempestCredentialsModal({organization, project});
-            trackAnalytics('tempest.credentials.add_modal_opened', {
-              organization,
-              project_slug: project.slug,
-            });
-          }}
-        >
-          {t('Add Credentials')}
-        </Button>
-      </Tooltip>
-    </ButtonBar>
-  </Fragment>
-);
+const StyledPanelTable = styled(PanelTable)`
+  width: 100%;
+`;
+
+const FullWidthPanel = styled(Panel)`
+  width: 100%;
+`;

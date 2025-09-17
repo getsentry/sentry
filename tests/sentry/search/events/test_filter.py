@@ -1181,7 +1181,7 @@ def test_snql_boolean_search(description, query, expected_where, expected_having
         ),
     ],
 )
-def test_snql_malformed_boolean_search(description, query, expected_message) -> None:
+def test_snql_malformed_boolean_search(description: str, query: str, expected_message: str) -> None:
     dataset = Dataset.Discover
     params: ParamsType = {}
     query_filter = UnresolvedQuery(

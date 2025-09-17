@@ -4,9 +4,9 @@ import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
+  StepType,
   type Docs,
   type OnboardingConfig,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
@@ -48,10 +48,11 @@ const onboarding: OnboardingConfig = {
               onClick={() => {
                 openPrivateGamingSdkAccessModal({
                   organization: params.organization,
-                  projectSlug: params.projectSlug,
-                  projectId: params.projectId,
+                  projectSlug: params.project.slug,
+                  projectId: params.project.id,
                   sdkName: 'Nintendo Switch',
                   gamingPlatform: 'nintendo-switch',
+                  origin: params.newOrg ? 'onboarding' : 'project-creation',
                 });
               }}
             >

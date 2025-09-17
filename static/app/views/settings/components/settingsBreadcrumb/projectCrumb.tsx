@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
@@ -13,15 +14,14 @@ import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/set
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
-import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
 function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
-  const {projects} = useProjects();
+  const {projects, onSearch} = useProjects();
   const organization = useOrganization();
   const params = useParams();
-  const handleSelect = (item: {value: string}) => {
+  const handleSelect = (projectSlug: string) => {
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
     // Since these models are project specific, we need to traverse up a route when switching projects
     //
@@ -37,7 +37,7 @@ function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
     }
 
     navigate(
-      recreateRoute(returnTo, {routes, params: {...params, projectId: item.value}})
+      recreateRoute(returnTo, {routes, params: {...params, projectId: projectSlug}})
     );
   };
 
@@ -63,20 +63,13 @@ function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
           )}
         </ProjectName>
       }
-      onSelect={handleSelect}
-      items={projects.map((project, index) => ({
-        index,
+      value={activeProject?.slug ?? ''}
+      onCrumbSelect={handleSelect}
+      onSearch={onSearch}
+      options={projects.map(project => ({
         value: project.slug,
-        label: (
-          <MenuItem>
-            <IdBadge
-              project={project}
-              avatarProps={{consistentWidth: true}}
-              avatarSize={18}
-              disableLink
-            />
-          </MenuItem>
-        ),
+        leadingItems: <ProjectAvatar project={project} size={20} />,
+        label: project.slug,
       }))}
       {...props}
     />

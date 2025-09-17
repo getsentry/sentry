@@ -7,8 +7,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link, type LinkProps} from 'sentry/components/core/link';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,6 +19,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Collapsible} from 'sentry/views/nav/collapsible';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
@@ -49,9 +50,11 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 
 export function SecondaryNav({children, className}: SecondaryNavProps) {
   return (
-    <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
-      {children}
-    </Wrapper>
+    <ErrorBoundary mini>
+      <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
+        {children}
+      </Wrapper>
+    </ErrorBoundary>
   );
 }
 

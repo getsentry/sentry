@@ -1,11 +1,11 @@
 import {
-  type MouseEventHandler,
-  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  type MouseEventHandler,
+  type ReactNode,
 } from 'react';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
@@ -13,7 +13,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
-import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
+import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import Feature from 'sentry/components/acl/feature';
@@ -423,6 +423,7 @@ export function SearchQueryBuilderCombobox<
       listBoxRef,
       inputRef,
       popoverRef,
+      shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
           state.open();
@@ -497,7 +498,16 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        wrapperRef.current?.contains(el) ||
+        // We don't want to close the menu when clicking on an anchor element that is
+        // located inside of a tooltip, as the tooltip is technically outside of the
+        // combobox. This is required to enable the Ask Seer tooltip link to work.
+        //
+        // Source: static/app/components/searchQueryBuilder/askSeer/askSeerOption.tsx:71
+        el instanceof HTMLAnchorElement
+      ) {
         return false;
       }
 

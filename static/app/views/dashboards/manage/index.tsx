@@ -37,6 +37,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
 import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
 import {
@@ -49,7 +50,6 @@ import OwnedDashboardsTable, {
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import RouteError from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
@@ -135,7 +135,6 @@ function ManageDashboards() {
   const location = useLocation();
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
-  const prefersStackedNav = usePrefersStackedNav();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -539,8 +538,8 @@ function ManageDashboards() {
           ) : (
             <Layout.Page>
               <NoProjectMessage organization={organization}>
-                <Layout.Header unified={prefersStackedNav}>
-                  <Layout.HeaderContent unified={prefersStackedNav}>
+                <Layout.Header unified>
+                  <Layout.HeaderContent unified>
                     <Layout.Title>
                       {t('All Dashboards')}
                       <PageHeadingQuestionTooltip
@@ -562,18 +561,33 @@ function ManageDashboards() {
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />
-                      <Button
-                        data-test-id="dashboard-create"
-                        onClick={event => {
-                          event.preventDefault();
-                          onCreate();
-                        }}
-                        size="sm"
-                        priority="primary"
-                        icon={<IconAdd />}
-                      >
-                        {t('Create Dashboard')}
-                      </Button>
+                      <DashboardCreateLimitWrapper>
+                        {({
+                          hasReachedDashboardLimit,
+                          isLoading: isLoadingDashboardsLimit,
+                          limitMessage,
+                        }) => (
+                          <Button
+                            data-test-id="dashboard-create"
+                            onClick={event => {
+                              event.preventDefault();
+                              onCreate();
+                            }}
+                            size="sm"
+                            priority="primary"
+                            icon={<IconAdd />}
+                            disabled={
+                              hasReachedDashboardLimit || isLoadingDashboardsLimit
+                            }
+                            title={limitMessage}
+                            tooltipProps={{
+                              isHoverable: true,
+                            }}
+                          >
+                            {t('Create Dashboard')}
+                          </Button>
+                        )}
+                      </DashboardCreateLimitWrapper>
                       <Feature features="dashboards-import">
                         <Button
                           onClick={() => {

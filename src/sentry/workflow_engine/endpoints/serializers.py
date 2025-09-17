@@ -11,14 +11,16 @@ from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
+from sentry.types.actor import Actor
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models import (
     Action,
@@ -44,6 +46,7 @@ class ActionSerializerResponse(TypedDict):
     integrationId: str | None
     data: dict
     config: dict
+    status: str
 
 
 @register(Action)
@@ -55,6 +58,7 @@ class ActionSerializer(Serializer):
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
             "data": obj.data,
             "config": convert_dict_key_case(obj.config, snake_to_camel_case),
+            "status": obj.get_status_display(),
         }
 
 
@@ -361,6 +365,21 @@ class DetectorSerializer(Serializer):
         for option in project_options_list:
             configs[option.project_id][option.key] = option.value
 
+        open_issues_counts = dict(
+            DetectorGroup.objects.filter(detector__in=item_list)
+            .filter(group__status=GroupStatus.UNRESOLVED)
+            .values("detector_id")
+            .annotate(open_issues_count=Count("group"))
+            .values_list("detector_id", "open_issues_count")
+        )
+
+        # Serialize owners
+        owners = [item.owner for item in item_list if item.owner]
+        owners_serialized = serialize(
+            Actor.resolve_many(owners, filter_none=False), user, ActorSerializer()
+        )
+        owner_lookup = {owner: serialized for owner, serialized in zip(owners, owners_serialized)}
+
         for item in item_list:
             attrs[item]["data_sources"] = ds_map.get(item.id)
             attrs[item]["condition_group"] = condition_group_map.get(
@@ -375,13 +394,12 @@ class DetectorSerializer(Serializer):
                 },
             )
             attrs[item]["latest_group"] = latest_groups_map.get(item.id)
+            attrs[item]["open_issues_count"] = open_issues_counts.get(item.id, 0)
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
                 attrs[item]["config"] = item.config
-            actor = item.owner
-            if actor:
-                attrs[item]["owner"] = actor.identifier
+            attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
 
         return attrs
 
@@ -404,6 +422,7 @@ class DetectorSerializer(Serializer):
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
             "ruleId": alert_rule_mapping.get("rule_id"),
             "latestGroup": attrs.get("latest_group"),
+            "openIssues": attrs.get("open_issues_count", 0),
         }
 
 

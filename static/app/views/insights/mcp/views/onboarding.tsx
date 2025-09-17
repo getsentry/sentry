@@ -43,7 +43,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 
 function useOnboardingProject() {
@@ -53,19 +53,19 @@ function useOnboardingProject() {
     pageFilters.selection.projects,
     projects
   );
-  const agentMonitoringProjects = selectedProject.filter(p =>
+  const mcpMonitoringProjects = selectedProject.filter(p =>
     agentMonitoringPlatforms.has(p.platform as PlatformKey)
   );
 
-  if (agentMonitoringProjects.length > 0) {
-    return agentMonitoringProjects[0];
+  if (mcpMonitoringProjects.length > 0) {
+    return mcpMonitoringProjects[0];
   }
   return selectedProject[0];
 }
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
-  const [refetchKey, setRefetchKey] = useState(0);
+  const [shouldRefetch, setShouldRefetch] = useState(true);
 
   const request = useSpans(
     {
@@ -74,7 +74,7 @@ function useAiSpanWaiter(project: Project) {
       limit: 1,
       enabled: !!project,
       useQueryOptions: {
-        additonalQueryKey: [`refetch-${refetchKey}`],
+        refetchInterval: shouldRefetch ? 5000 : undefined,
       },
       pageFilters: {
         ...selection,
@@ -92,17 +92,11 @@ function useAiSpanWaiter(project: Project) {
 
   const hasEvents = Boolean(request.data?.length);
 
-  // Create a custom key that changes every 5 seconds to trigger refetch
-  // TODO(aknaus): remove this and add refetchInterval to useEAPSpans
   useEffect(() => {
-    if (hasEvents) return () => {};
-
-    const interval = setInterval(() => {
-      setRefetchKey(prev => prev + 1);
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [hasEvents]);
+    if (hasEvents && shouldRefetch) {
+      setShouldRefetch(false);
+    }
+  }, [hasEvents, shouldRefetch]);
 
   return request;
 }
@@ -304,8 +298,7 @@ export function Onboarding() {
     dsn,
     organization,
     platformKey: project.platform || 'other',
-    projectId: project.id,
-    projectSlug: project.slug,
+    project,
     isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,

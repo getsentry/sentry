@@ -30,8 +30,8 @@ function ArithmeticBuilderWrapper({expression}: {expression: string}) {
   );
 }
 
-describe('ArithmeticBuilder', function () {
-  it('navigates between tokens with arrow keys', async function () {
+describe('ArithmeticBuilder', () => {
+  it('navigates between tokens with arrow keys', async () => {
     const expression = '( sum(span.duration) + count(span.self_time) )';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
@@ -89,8 +89,63 @@ describe('ArithmeticBuilder', function () {
     await waitFor(() => expect(screen.queryAllByRole('row')).toHaveLength(1));
   }, 20_000);
 
-  it('can delete tokens with backspace', async function () {
-    const expression = '( sum(span.duration) + count(span.self_time) )';
+  it('navigates between tokens with arrow keys with multi param functions', async () => {
+    const expression = 'count_if(span.op,equals,db)';
+    render(<ArithmeticBuilderWrapper expression={expression} />);
+
+    expect(screen.queryAllByRole('row')).toHaveLength(3);
+
+    // the combobox inside the free text tokens will get the focus
+    const freeTextTokens = screen.queryAllByRole('combobox', {name: 'Add a term'});
+    expect(freeTextTokens).toHaveLength(2);
+
+    // the combobox inside the function tokens will get the focus
+    const functionTokens = screen.queryAllByRole('combobox', {
+      name: 'Select an attribute',
+    });
+    expect(functionTokens).toHaveLength(1);
+
+    const tokens = [freeTextTokens[0]!, functionTokens[0]!, freeTextTokens[1]!];
+
+    const secondArgToken = screen.queryAllByRole('combobox', {
+      name: 'Select an option',
+    });
+    const thirdArgToken = screen.queryAllByRole('textbox', {
+      name: 'Add a value',
+    });
+    const argTokens = [functionTokens[0]!, secondArgToken[0]!, thirdArgToken[0]!];
+
+    const focus = (i: number) => expect(tokens[i]).toHaveFocus();
+    const argFocus = (i: number) => expect(argTokens[i]).toHaveFocus();
+    await userEvent.click(tokens[2]!);
+
+    await waitFor(() => focus(2));
+
+    await userEvent.keyboard('{ArrowLeft}');
+    await waitFor(() => focus(1));
+
+    await userEvent.keyboard('{ArrowLeft}');
+    await waitFor(() => focus(0));
+
+    // Shifts focus to argument tokens
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() => argFocus(0));
+
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() => argFocus(1));
+
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() => argFocus(2));
+
+    // Back to free text
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() => focus(2));
+
+    await waitFor(() => expect(screen.queryAllByRole('row')).toHaveLength(1));
+  }, 20_000);
+
+  it('can delete tokens with backspace', async () => {
+    const expression = '( sum(span.duration) + count_if(span.op,equals,db))';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
     expect(screen.queryAllByRole('row')).toHaveLength(11);
@@ -147,8 +202,8 @@ describe('ArithmeticBuilder', function () {
     expect(screen.getAllByRole('row')).toHaveLength(1);
   });
 
-  it('can delete tokens with delete', async function () {
-    const expression = '( sum(span.duration) + count(span.self_time) )';
+  it('can delete tokens with delete', async () => {
+    const expression = '( sum(span.duration) + count_if(span.op,equals,db) )';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
     const rows = screen.getAllByRole('row');
@@ -172,7 +227,7 @@ describe('ArithmeticBuilder', function () {
       firstFreeText,
       () => screen.queryByRole('gridcell', {name: 'Delete +'}),
       firstFreeText,
-      () => screen.queryByPlaceholderText('span.self_time'),
+      () => screen.queryByPlaceholderText('span.op'),
       firstFreeText,
       () => screen.queryByRole('gridcell', {name: 'Delete right'}),
       firstFreeText,

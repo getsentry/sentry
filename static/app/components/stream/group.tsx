@@ -59,11 +59,18 @@ import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
-  getTabs,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+const COLUMNS: GroupListColumn[] = [
+  'graph',
+  'event',
+  'users',
+  'priority',
+  'assignee',
+  'lastTriggered',
+];
 
 type Props = {
   id: string;
@@ -180,6 +187,82 @@ function GroupFirstSeen({group}: {group: Group}) {
   );
 }
 
+type LoadingSteamGroupProps = Pick<
+  Props,
+  'displayReprocessingLayout' | 'withChart' | 'withColumns' | 'showLastTriggered'
+>;
+
+export function LoadingStreamGroup({
+  displayReprocessingLayout,
+  withChart = true,
+  withColumns = COLUMNS,
+  showLastTriggered = false,
+}: LoadingSteamGroupProps) {
+  return (
+    <Wrapper data-test-id="group" useTintRow={false} reviewed={false}>
+      <GroupSummary canSelect={false}>
+        <Placeholder height="58px" />
+      </GroupSummary>
+      {withColumns.includes('lastSeen') && (
+        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+          <Placeholder height="18px" width="70px" />
+        </LastSeenWrapper>
+      )}
+      {withColumns.includes('firstSeen') && (
+        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+          <Placeholder height="18px" width="30px" />
+        </FirstSeenWrapper>
+      )}
+      {withChart && !displayReprocessingLayout && (
+        <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+          <Placeholder height="36px" />
+        </ChartWrapper>
+      )}
+      {displayReprocessingLayout ? (
+        <Fragment>
+          <StartedColumn>
+            <Placeholder height="17px" />
+          </StartedColumn>
+          <EventsReprocessedColumn>
+            <Placeholder height="17px" />
+          </EventsReprocessedColumn>
+          <ProgressColumn>
+            <Placeholder height="17px" />
+          </ProgressColumn>
+        </Fragment>
+      ) : (
+        <Fragment>
+          {showLastTriggered && (
+            <LastTriggeredWrapper>
+              <Placeholder height="18px" />
+            </LastTriggeredWrapper>
+          )}
+          {withColumns.includes('event') && (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+              <Placeholder height="18px" width="40px" />
+            </NarrowEventsOrUsersCountsWrapper>
+          )}
+          {withColumns.includes('users') && (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+              <Placeholder height="18px" width="40px" />
+            </NarrowEventsOrUsersCountsWrapper>
+          )}
+          {withColumns.includes('assignee') && (
+            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+              <Placeholder height="24px" />
+            </AssigneeWrapper>
+          )}
+          {withColumns.includes('priority') && (
+            <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+              <Placeholder height="24px" />
+            </PriorityWrapper>
+          )}
+        </Fragment>
+      )}
+    </Wrapper>
+  );
+}
+
 function StreamGroup({
   id,
   customStatsPeriod,
@@ -192,7 +275,7 @@ function StreamGroup({
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
   withChart = true,
-  withColumns = ['graph', 'event', 'users', 'priority', 'assignee', 'lastTriggered'],
+  withColumns = COLUMNS,
   useFilteredStats = false,
   useTintRow = true,
   showLastTriggered = false,
@@ -220,15 +303,13 @@ function StreamGroup({
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
   const sharedAnalytics = useMemo(() => {
-    const tab = getTabs().find(([tabQuery]) => tabQuery === query)?.[1];
     const owners = group?.owners ?? [];
     return {
       organization,
       group_id: group?.id ?? '',
-      tab: tab?.analyticsName || 'other',
       was_shown_suggestion: owners.length > 0,
     };
-  }, [organization, group, query]);
+  }, [organization, group]);
 
   const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
     AssignableEntity | null,
@@ -433,7 +514,7 @@ function StreamGroup({
     withChart && group?.filtered && statsPeriod && useFilteredStats
   );
 
-  const groupCount = defined(primaryCount) ? (
+  const groupCount = (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
         disabled={!useFilteredStats}
@@ -472,11 +553,9 @@ function StreamGroup({
         </CountsWrapper>
       </Tooltip>
     </GuideAnchor>
-  ) : (
-    <Placeholder height="18px" width="40px" />
   );
 
-  const groupUsersCount = defined(primaryUserCount) ? (
+  const groupUsersCount = (
     <Tooltip
       isHoverable
       disabled={!usePageFilters}
@@ -513,8 +592,6 @@ function StreamGroup({
         )}
       </CountsWrapper>
     </Tooltip>
-  ) : (
-    <Placeholder height="18px" width="40px" />
   );
 
   const lastTriggered = defined(lastTriggeredDate) ? (
@@ -572,16 +649,18 @@ function StreamGroup({
       useTintRow={useTintRow ?? true}
     >
       <InteractionStateLayer />
-      {canSelect && (
-        <GroupCheckbox
-          group={group}
-          displayReprocessingLayout={displayReprocessingLayout}
-        />
-      )}
-      <GroupSummary canSelect={canSelect}>
-        <EventOrGroupHeader data={group} query={query} source={referrer} />
-        <EventOrGroupExtraDetails data={group} showLifetime={false} />
-      </GroupSummary>
+      <Fragment>
+        {canSelect && (
+          <GroupCheckbox
+            group={group}
+            displayReprocessingLayout={displayReprocessingLayout}
+          />
+        )}
+        <GroupSummary canSelect={canSelect}>
+          <EventOrGroupHeader data={group} query={query} source={referrer} />
+          <EventOrGroupExtraDetails data={group} showLifetime={false} />
+        </GroupSummary>
+      </Fragment>
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
       {withColumns.includes('lastSeen') && (
@@ -596,21 +675,22 @@ function StreamGroup({
         </FirstSeenWrapper>
       )}
 
-      {withChart && !displayReprocessingLayout ? (
+      {withChart && !displayReprocessingLayout && (
         <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
-          {issueTypeConfig.stats.enabled ? (
+          {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
               hideZeros
-              loading={!defined(groupStats)}
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
               showMarkLine
             />
+          ) : issueTypeConfig.stats.enabled ? (
+            <Placeholder height="36px" />
           ) : null}
         </ChartWrapper>
-      ) : null}
+      )}
       {displayReprocessingLayout ? (
         renderReprocessingColumns()
       ) : (
@@ -618,23 +698,31 @@ function StreamGroup({
           {showLastTriggered && (
             <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
           )}
-          {withColumns.includes('event') ? (
+          {withColumns.includes('event') && (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              {issueTypeConfig.stats.enabled ? groupCount : null}
+              {issueTypeConfig.stats.enabled && defined(primaryCount) ? (
+                groupCount
+              ) : issueTypeConfig.stats.enabled ? (
+                <Placeholder height="18px" width="40px" />
+              ) : null}
             </NarrowEventsOrUsersCountsWrapper>
-          ) : null}
-          {withColumns.includes('users') ? (
+          )}
+          {withColumns.includes('users') && (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              {issueTypeConfig.stats.enabled ? groupUsersCount : null}
+              {issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
+                groupUsersCount
+              ) : issueTypeConfig.stats.enabled ? (
+                <Placeholder height="18px" width="40px" />
+              ) : null}
             </NarrowEventsOrUsersCountsWrapper>
-          ) : null}
-          {withColumns.includes('priority') ? (
+          )}
+          {withColumns.includes('priority') && (
             <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />
               ) : null}
             </PriorityWrapper>
-          ) : null}
+          )}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
               <AssigneeSelector

@@ -6,6 +6,7 @@ import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import type {EventData} from './eventView';
@@ -25,7 +26,7 @@ export function generateEventSlug(eventData: EventData): string {
 /**
  * Create a URL to an event details view.
  */
-export function eventDetailsRoute({
+function eventDetailsRoute({
   eventSlug,
   organization,
 }: {
@@ -56,6 +57,7 @@ export function generateLinkToEventInTraceView({
   demo,
   source,
   view,
+  tab,
 }: {
   location: Location;
   organization: Organization;
@@ -66,6 +68,7 @@ export function generateLinkToEventInTraceView({
   eventView?: EventView;
   source?: TraceViewSources;
   spanId?: string;
+  tab?: TraceLayoutTabKeys;
   // targetId represents the span id of the transaction. It will replace eventId once all links
   // to trace view are updated to use spand ids of transactions instead of event ids.
   targetId?: string;
@@ -95,6 +98,7 @@ export function generateLinkToEventInTraceView({
     location,
     source,
     view,
+    tab,
   });
 }
 

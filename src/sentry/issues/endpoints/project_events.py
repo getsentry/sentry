@@ -5,7 +5,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -19,6 +18,8 @@ from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParam
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.services import eventstore
 from sentry.snuba.events import Columns
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -31,13 +32,15 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=60, window=60, concurrent_limit=1),
-            RateLimitCategory.USER: RateLimit(limit=60, window=60, concurrent_limit=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=60, window=60, concurrent_limit=2),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=60, window=60, concurrent_limit=1),
+                RateLimitCategory.USER: RateLimit(limit=60, window=60, concurrent_limit=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=60, window=60, concurrent_limit=2),
+            }
         }
-    }
+    )
 
     @extend_schema(
         operation_id="List a Project's Error Events",

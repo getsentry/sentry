@@ -136,7 +136,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
       limit: 10,
       enabled: isSpansOnly,
     },
-    'api.performance.transactions.statistical-detector-root-cause-analysis'
+    'api.insights.transactions.statistical-detector-root-cause-analysis'
   );
 
   const tableData = useMemo(() => {

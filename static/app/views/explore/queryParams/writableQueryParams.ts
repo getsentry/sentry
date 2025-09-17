@@ -1,4 +1,15 @@
-import type {Nullable} from 'sentry/types/utils';
-import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
+import type {Sort} from 'sentry/utils/discover/fields';
+import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import type {Mode} from 'sentry/views/explore/queryParams/mode';
 
-export type WritableQueryParams = Partial<Nullable<ReadableQueryParamsOptions>>;
+export interface WritableQueryParams {
+  aggregateCursor?: string | null;
+  aggregateFields?: readonly WritableAggregateField[] | null;
+  aggregateSortBys?: readonly Sort[] | null;
+  cursor?: string | null;
+  extrapolate?: boolean;
+  fields?: string[] | null;
+  mode?: Mode | null;
+  query?: string | null;
+  sortBys?: Sort[] | null;
+}

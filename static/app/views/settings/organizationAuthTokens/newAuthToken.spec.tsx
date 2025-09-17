@@ -9,10 +9,10 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import type {OrgAuthToken} from 'sentry/types/user';
 import OrganizationAuthTokensNewAuthToken from 'sentry/views/settings/organizationAuthTokens/newAuthToken';
 
-describe('OrganizationAuthTokensNewAuthToken', function () {
+describe('OrganizationAuthTokensNewAuthToken', () => {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';
 
-  it('can create token', async function () {
+  it('can create token', async () => {
     render(<OrganizationAuthTokensNewAuthToken />);
     renderGlobalModal();
 
@@ -46,7 +46,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
     );
   });
 
-  it('handles API errors when creating token', async function () {
+  it('handles API errors when creating token', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
 
     render(<OrganizationAuthTokensNewAuthToken />);
@@ -79,7 +79,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
     );
   });
 
-  it('handles missing_system_url_prefix API error when creating token', async function () {
+  it('handles missing_system_url_prefix API error when creating token', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
 
     render(<OrganizationAuthTokensNewAuthToken />);

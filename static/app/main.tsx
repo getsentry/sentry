@@ -4,9 +4,10 @@ import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
+import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
-import {USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
+import {SENTRY_RELEASE_VERSION, USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
 import {routes} from 'sentry/routes';
 import {SentryTrackingProvider} from 'sentry/tracking';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
@@ -24,16 +25,18 @@ function Main() {
 
   return (
     <AppQueryClientProvider>
-      <ThemeAndStyleProvider>
-        <OnboardingContextProvider>
-          <SentryTrackingProvider>
-            <RouterProvider router={router} />
-          </SentryTrackingProvider>
-        </OnboardingContextProvider>
-        {USE_REACT_QUERY_DEVTOOL && (
-          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
-        )}
-      </ThemeAndStyleProvider>
+      <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
+        <ThemeAndStyleProvider>
+          <OnboardingContextProvider>
+            <SentryTrackingProvider>
+              <RouterProvider router={router} />
+            </SentryTrackingProvider>
+          </OnboardingContextProvider>
+          {USE_REACT_QUERY_DEVTOOL && (
+            <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+          )}
+        </ThemeAndStyleProvider>
+      </FrontendVersionProvider>
     </AppQueryClientProvider>
   );
 }

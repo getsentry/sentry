@@ -39,8 +39,8 @@ pnpm run dev-ui
 # Run JavaScript tests
 pnpm test
 
-# Run specific test file
-CI=true pnpm test components/avatar.spec.tsx
+# Run specific test file(s)
+CI=true pnpm test components/avatar.spec.tsx [...other files]
 ```
 
 ### Code Quality
@@ -48,6 +48,9 @@ CI=true pnpm test components/avatar.spec.tsx
 ```bash
 # JavaScript/TypeScript linting
 pnpm run lint:js
+
+# Linting for specific file(s)
+pnpm run lint:js components/avatar.tsx [...other files]
 
 # Fix linting issues
 pnpm run fix
@@ -67,10 +70,11 @@ pnpm run fix
 
 ### React Component Pattern
 
-```typescript
+```tsx
 // static/app/components/myComponent.tsx
 import {useState} from 'react';
 import styled from '@emotion/styled';
+
 import {space} from 'sentry/styles/space';
 
 interface MyComponentProps {
@@ -154,23 +158,24 @@ const data = await api.requestPromise('/organizations/');
 
 ### Frontend
 
-```typescript
+```tsx
+import {Client, Client} from 'sentry/api';
+
 // WRONG: Class component
-class MyComponent extends React.Component  // NO!
+class MyComponent extends React.Component {} // NO!
 
 // RIGHT: Function component
 function MyComponent() {}
 
 // WRONG: Direct API call
-fetch('/api/0/organizations/')  // NO!
+fetch('/api/0/organizations/'); // NO!
 
 // RIGHT: Use API client
-import {Client} from 'sentry/api';
 const api = new Client();
 api.requestPromise('/organizations/');
 
 // WRONG: Inline styles
-<div style={{padding: 16}}>  // NO!
+<div style={{padding: 16}} />; // NO!
 
 // RIGHT: Emotion styled
 const Container = styled('div')`
