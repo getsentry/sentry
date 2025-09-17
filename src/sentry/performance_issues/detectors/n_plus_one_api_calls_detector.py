@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -138,7 +139,15 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # Once most users update their SDKs to use the latest standard, we
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
-        parsed_url = urlparse(str(url))
+        try:
+            parsed_url = urlparse(str(url))
+        except ValueError:
+            event_has_meta = "_meta" in self._event
+            logging.exception(
+                "N+1 API Calls Detector: URL parsing failed",
+                extra={"event_has_meta": event_has_meta},
+            )
+            return False
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
