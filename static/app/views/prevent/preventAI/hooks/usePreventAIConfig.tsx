@@ -1,6 +1,8 @@
 // TODO: Hook up to real API
 // import {useApiQuery} from 'sentry/utils/queryClient';
 // import useOrganization from 'sentry/utils/useOrganization';
+import {useCallback, useState} from 'react';
+
 import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 
 export interface PreventAIConfigResult {
@@ -10,6 +12,8 @@ export interface PreventAIConfigResult {
   refetch: () => void;
 }
 
+const STORAGE_KEY = 'prevent-ai-config';
+
 export function usePreventAIConfig(): PreventAIConfigResult {
   // TODO: Hook up to real API
   // const organization = useOrganization();
@@ -18,24 +22,54 @@ export function usePreventAIConfig(): PreventAIConfigResult {
   //   {staleTime: Infinity}
   // );
 
-  return {
-    data: {
+  // Load from localStorage
+  const loadConfig = useCallback((): PreventAIConfig => {
+    // Default config
+    const defaultConfig: PreventAIConfig = {
       features: {
         vanilla_pr_review: {
-          enabled: true,
+          enabled: false,
         },
         test_generation: {
-          enabled: true,
+          enabled: false,
         },
         bug_prediction: {
-          enabled: true,
-          triggers: ['on_ready_for_review', 'on_new_commit'],
+          enabled: false,
+          triggers: [],
         },
       },
-    },
+    };
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Merge with defaults to ensure all fields exist
+        return {
+          features: {
+            ...defaultConfig.features,
+            ...parsed.features,
+          },
+        };
+      }
+    } catch (err) {
+      // Silently handle localStorage errors
+    }
+    return defaultConfig;
+  }, []);
+
+  const [config, setConfig] = useState<PreventAIConfig>(loadConfig);
+
+  const refetch = useCallback(() => {
+    const newConfig = loadConfig();
+    setConfig(newConfig);
+  }, [loadConfig]);
+
+  return {
+    data: config,
     isLoading: false,
     isError: false,
-    refetch: () => {},
+    refetch,
   };
 }
 

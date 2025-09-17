@@ -51,6 +51,8 @@ export default function PreventAIPageWrapper() {
           <ManageReposPanel
             collapsed={!isSettingsPanelOpen}
             onClose={handleCloseSettings}
+            orgName={organization.name}
+            repoName={'TODO'}
           />
         </PreventQueryParamsProvider>
       </Layout.Body>
