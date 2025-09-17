@@ -21,7 +21,7 @@ export function MSTeamsDetails({
   return tct('Send a [logo] Microsoft Teams notification to [team] team, to [channel]', {
     logo: ActionMetadata[ActionType.MSTEAMS]?.icon,
     team: integrationName,
-    channel: String(action.config.targetIdentifier),
+    channel: action.config.targetDisplay || action.config.targetIdentifier,
   });
 }
 
