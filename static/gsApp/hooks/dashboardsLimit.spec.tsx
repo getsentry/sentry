@@ -15,10 +15,6 @@ import {useDashboardsLimit} from './dashboardsLimit';
 
 const mockOrganization = OrganizationFixture();
 
-const mockOrganizationWithoutFeature = OrganizationFixture({
-  features: [],
-});
-
 describe('useDashboardsLimit', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
