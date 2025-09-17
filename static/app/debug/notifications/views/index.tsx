@@ -54,9 +54,9 @@ export default function DebugNotificationsIndex() {
                     <Tag type="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Flex gap="xl" justify="between" wrap="wrap" position="relative">
-                  <Flex direction="column" gap="2xl" position="relative">
-                    <EmailPreview />
+                <Flex justify="between" wrap="wrap" position="relative" gap="2xl">
+                  <Flex direction="column" gap="2xl" position="relative" flex="1">
+                    <EmailPreview registration={selectedRegistration} />
                     <SlackPreview />
                     <DiscordPreview />
                     <TeamsPreview />
@@ -102,6 +102,6 @@ const SidebarContainer = styled('nav')`
 const ExampleContainer = styled('div')`
   position: sticky;
   top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
-  max-width: 450px;
+  max-width: 375px;
   align-self: flex-start;
 `;
