@@ -561,8 +561,6 @@ export enum MemoryInfoContextKey {
   PAUSE_DURATIONS = 'pause_durations',
 }
 
-// MemoryInfo Context
-// TODO(Priscila): Add this context to the docs
 export interface MemoryInfoContext {
   type: 'Memory Info' | 'memory_info';
   [MemoryInfoContextKey.FINALIZATION_PENDING_COUNT]: number;
