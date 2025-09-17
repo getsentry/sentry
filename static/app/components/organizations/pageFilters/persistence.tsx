@@ -105,17 +105,21 @@ export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
   const localStorageKey = makeLocalStorageKey(
     storageNamespace.length > 0 ? `${storageNamespace}:${orgSlug}` : orgSlug
   );
+  const globalSelectionKey = makeLocalStorageKey(orgSlug);
 
   const value = localStorage.getItem(localStorageKey);
+  const globalSelectionValue = localStorage.getItem(globalSelectionKey);
 
-  if (!value) {
+  if (!value || !globalSelectionValue) {
     return null;
   }
 
   let decoded: StoredObject;
+  let decodedGlobalSelection: StoredObject;
 
   try {
     decoded = JSON.parse(value);
+    decodedGlobalSelection = JSON.parse(globalSelectionValue);
   } catch (err) {
     // use default if invalid
     Sentry.captureException(err);
@@ -124,16 +128,22 @@ export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
     return null;
   }
 
-  const {projects, environments, start, end, period, utc, pinnedFilters} = decoded;
+  const {projects, environments, pinnedFilters} = decoded;
+  const {
+    start: globalStart,
+    end: globalEnd,
+    period: globalPeriod,
+    utc: globalUtc,
+  } = decodedGlobalSelection;
 
   const state = getStateFromQuery(
     {
       project: projects.map(String),
       environment: environments,
-      start,
-      end,
-      period,
-      utc,
+      start: globalStart,
+      end: globalEnd,
+      period: globalPeriod,
+      utc: globalUtc,
     },
     {allowAbsoluteDatetime: true}
   );
