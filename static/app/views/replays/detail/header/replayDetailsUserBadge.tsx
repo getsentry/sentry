@@ -24,24 +24,22 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
     <UserBadge
       avatarSize={24}
       displayName={
-        <Flex align="center">
-          <DisplayHeader>
-            <Layout.Title>
-              {replayRecord.user.display_name || t('Anonymous User')}
-            </Layout.Title>
-            {replayRecord.started_at ? (
-              <TimeContainer>
-                <IconCalendar color="gray300" size="xs" />
-                <TimeSince
-                  date={replayRecord.started_at}
-                  isTooltipHoverable
-                  unitStyle="regular"
-                />
-                {replay?.getIsLive() ? <Live /> : null}
-              </TimeContainer>
-            ) : null}
-          </DisplayHeader>
-        </Flex>
+        <DisplayHeader>
+          <Layout.Title>
+            {replayRecord.user.display_name || t('Anonymous User')}
+          </Layout.Title>
+          {replayRecord.started_at ? (
+            <TimeContainer>
+              <IconCalendar color="gray300" size="xs" />
+              <TimeSince
+                date={replayRecord.started_at}
+                isTooltipHoverable
+                unitStyle="regular"
+              />
+              {replay?.getIsLive() ? <Live /> : null}
+            </TimeContainer>
+          ) : null}
+        </DisplayHeader>
       }
       user={{
         name: replayRecord.user.display_name || '',
@@ -87,27 +85,25 @@ const DisplayHeader = styled('div')`
 
 function Live() {
   return (
-    <LiveContainer align="center">
+    <Flex align="center">
       <span>{t('LIVE')}</span>
       <LiveIndicator />
-    </LiveContainer>
+    </Flex>
   );
 }
-
-const LiveContainer = styled(Flex)`
-  line-height: 1;
-  margin-top: 2px;
-`;
 
 const LiveIndicator = styled(motion.div)`
   margin-left: 6px;
   --pulsingIndicatorRing: ${p => p.theme.success};
   ${pulsingIndicatorStyles};
+  height: 8px;
+  width: 8px;
+
   &:before {
-    height: 40px;
-    width: 40px;
-    top: -16px;
-    left: -16px;
+    height: 25px;
+    width: 25px;
+    top: -8.5px;
+    left: -8.5px;
   }
   background-color: ${p => p.theme.success};
 `;
