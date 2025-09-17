@@ -66,6 +66,7 @@ export function useGroupTags(
   return useApiQuery<GroupTag[]>(
     makeGroupTagsQueryKey({
       orgSlug: organization.slug,
+      limit: 3,
       ...parameters,
     }),
     {
