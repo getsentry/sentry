@@ -29,7 +29,7 @@ import {
 import Form from './form';
 import handleError, {ErrorType} from './handleError';
 import Modal from './modal';
-import {fetchSourceGroupData, saveToSourceGroupData} from './utils';
+import {useSourceGroupData} from './utils';
 
 type FormProps = React.ComponentProps<typeof Form>;
 type Values = FormProps['values'];
@@ -43,7 +43,12 @@ type Props = ModalRenderProps & {
   onGetNewRules: (values: Values) => Rule[];
   onSubmitSuccess: (data: {relayPiiConfig: string}) => void;
   orgSlug: Organization['slug'];
+  saveToSourceGroupData: (
+    eventId: EventId,
+    sourceSuggestions?: SourceSuggestions
+  ) => void;
   savedRules: Rule[];
+  sourceGroupData: {eventId: string; sourceSuggestions: SourceSuggestions};
   title: string;
   initialState?: Partial<Values>;
   projectId?: Project['id'];
@@ -75,12 +80,12 @@ class ModalManager extends Component<Props, State> {
       this.loadSourceSuggestions();
     }
     if (prevState.eventId.status !== this.state.eventId.status) {
-      saveToSourceGroupData(this.state.eventId, this.state.sourceSuggestions);
+      this.props.saveToSourceGroupData(this.state.eventId, this.state.sourceSuggestions);
     }
   }
 
   getDefaultState(): Readonly<State> {
-    const {eventId, sourceSuggestions} = fetchSourceGroupData();
+    const {eventId, sourceSuggestions} = this.props.sourceGroupData;
     const values = this.getInitialValues();
     // Create a temporary rule-like object for dataset determination
     const tempRule = {...values, id: 0} as Rule;
@@ -346,4 +351,18 @@ class ModalManager extends Component<Props, State> {
   }
 }
 
-export default ModalManager;
+function ModalManagerWithStorage(
+  props: Omit<Props, 'sourceGroupData' | 'saveToSourceGroupData'>
+) {
+  const {sourceGroupData, saveToSourceGroupData} = useSourceGroupData();
+
+  return (
+    <ModalManager
+      {...props}
+      sourceGroupData={sourceGroupData}
+      saveToSourceGroupData={saveToSourceGroupData}
+    />
+  );
+}
+
+export default ModalManagerWithStorage;
