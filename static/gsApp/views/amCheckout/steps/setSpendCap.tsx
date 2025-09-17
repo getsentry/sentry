@@ -1,9 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
 
+import {Flex} from 'sentry/components/core/layout';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import type {OnDemandBudgets} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {SelectableProduct, StepProps} from 'getsentry/views/amCheckout/types';
 import {
@@ -20,6 +22,7 @@ function SetSpendCap({
   onUpdate,
   organization,
   subscription,
+  checkoutTier,
 }: StepProps) {
   const [isOpen, setIsOpen] = useState(true);
   const additionalProducts = useMemo(() => {
@@ -64,28 +67,40 @@ function SetSpendCap({
   );
 
   return (
-    <SpendCapSettings
-      header={
-        <StepHeader
-          title={capitalize(activePlan.budgetTerm)}
-          isActive
-          stepNumber={stepNumber}
-          isCompleted={false}
-          onEdit={onEdit}
-          isOpen={isOpen}
-          onToggleStep={setIsOpen}
-          isNewCheckout
-        />
-      }
-      activePlan={activePlan}
-      onDemandBudgets={
-        formData.onDemandBudget ?? parseOnDemandBudgetsFromSubscription(subscription)
-      }
-      onUpdate={({onDemandBudgets}) => handleBudgetChange({onDemandBudgets})}
-      currentReserved={formData.reserved}
-      additionalProducts={additionalProducts}
-      isOpen={isOpen}
-    />
+    <Flex direction="column" gap="2xl">
+      <SpendCapSettings
+        header={
+          <StepHeader
+            title={capitalize(activePlan.budgetTerm)}
+            isActive
+            stepNumber={stepNumber}
+            isCompleted={false}
+            onEdit={onEdit}
+            isOpen={isOpen}
+            onToggleStep={setIsOpen}
+            isNewCheckout
+          />
+        }
+        activePlan={activePlan}
+        onDemandBudgets={
+          formData.onDemandBudget ?? parseOnDemandBudgetsFromSubscription(subscription)
+        }
+        onUpdate={({onDemandBudgets}) => handleBudgetChange({onDemandBudgets})}
+        currentReserved={formData.reserved}
+        additionalProducts={additionalProducts}
+        isOpen={isOpen}
+        footer={
+          <ReserveAdditionalVolume
+            activePlan={activePlan}
+            formData={formData}
+            onUpdate={onUpdate}
+            organization={organization}
+            subscription={subscription}
+            checkoutTier={checkoutTier}
+          />
+        }
+      />
+    </Flex>
   );
 }
 

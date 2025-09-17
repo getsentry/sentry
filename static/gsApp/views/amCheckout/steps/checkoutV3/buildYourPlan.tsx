@@ -9,7 +9,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
-import {ANNUAL} from 'getsentry/constants';
 import type {BillingConfig, Plan, PlanTier, Subscription} from 'getsentry/types';
 import {
   getPlanIcon,
@@ -18,9 +17,7 @@ import {
   isNewPayingCustomer,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import BillingCycleSelectCard from 'getsentry/views/amCheckout/billingCycleSelectCard';
 import PlanFeatures from 'getsentry/views/amCheckout/planFeatures';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
 import {getHighlightedFeatures} from 'getsentry/views/amCheckout/steps/planSelect';
 import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
@@ -47,11 +44,6 @@ interface PlanSubstepProps extends BaseSubstepProps {
 
 interface AdditionalProductsSubstepProps extends BaseSubstepProps {}
 
-interface BillingCycleSubstepProps extends BaseSubstepProps {
-  billingConfig: BillingConfig;
-  subscription: Subscription;
-}
-
 function PlanSubstep({
   billingConfig,
   activePlan,
@@ -59,7 +51,6 @@ function PlanSubstep({
   subscription,
   organization,
   referrer,
-  checkoutTier,
   onUpdate,
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
@@ -149,14 +140,6 @@ function PlanSubstep({
         })}
       </OptionGrid>
       <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
-      <ReserveAdditionalVolume
-        activePlan={activePlan}
-        formData={formData}
-        onUpdate={onUpdate}
-        organization={organization}
-        subscription={subscription}
-        checkoutTier={checkoutTier}
-      />
     </Substep>
   );
 }
@@ -177,69 +160,6 @@ function AdditionalProductsSubstep({
           isNewCheckout
         />
       </Grid>
-    </Substep>
-  );
-}
-
-function BillingCycleSubstep({
-  formData,
-  onUpdate,
-  subscription,
-  billingConfig,
-}: BillingCycleSubstepProps) {
-  const intervalOptions = useMemo(() => {
-    const basePlan = formData.plan.replace('_auf', '');
-    const plans = billingConfig.planList.filter(({id}) => id.indexOf(basePlan) === 0);
-
-    if (plans.length === 0) {
-      throw new Error('Cannot get billing interval options');
-    }
-
-    return plans;
-  }, [billingConfig, formData.plan]);
-
-  let previousPlanPrice = 0;
-  return (
-    <Substep>
-      <SubstepHeader>
-        <SubstepTitle>{t('Billing cycle')}</SubstepTitle>
-        <SubstepDescription>
-          {t('Additional usage is billed separately, at the start of the next cycle')}
-        </SubstepDescription>
-      </SubstepHeader>
-      <OptionGrid columns={intervalOptions.length}>
-        {intervalOptions.map(plan => {
-          const isSelected = plan.id === formData.plan;
-          const isAnnual = plan.contractInterval === ANNUAL;
-          const priceAfterDiscount = utils.getReservedPriceCents({
-            plan,
-            reserved: formData.reserved,
-            selectedProducts: formData.selectedProducts,
-          });
-          const formattedPriceAfterDiscount = utils.formatPrice({
-            cents: priceAfterDiscount,
-          });
-
-          const priceBeforeDiscount = isAnnual ? previousPlanPrice * 12 : 0;
-          const formattedPriceBeforeDiscount = previousPlanPrice
-            ? utils.formatPrice({cents: priceBeforeDiscount})
-            : '';
-          previousPlanPrice = priceAfterDiscount;
-
-          return (
-            <BillingCycleSelectCard
-              key={plan.id}
-              plan={plan}
-              isSelected={isSelected}
-              onUpdate={onUpdate}
-              subscription={subscription}
-              formattedPriceAfterDiscount={formattedPriceAfterDiscount}
-              formattedPriceBeforeDiscount={formattedPriceBeforeDiscount}
-              priceAfterDiscount={priceAfterDiscount}
-            />
-          );
-        })}
-      </OptionGrid>
     </Substep>
   );
 }
@@ -287,13 +207,6 @@ function BuildYourPlan({
             formData={formData}
             onUpdate={onUpdate}
           />
-          <BillingCycleSubstep
-            activePlan={activePlan}
-            formData={formData}
-            onUpdate={onUpdate}
-            subscription={subscription}
-            billingConfig={billingConfig}
-          />
         </Fragment>
       )}
     </BuildYourPlanContainer>
@@ -317,17 +230,6 @@ const SubstepTitle = styled('h2')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${p => p.theme.space['2xl']};
   margin-bottom: 0;
-`;
-
-const SubstepDescription = styled('p')`
-  margin: 0;
-  color: ${p => p.theme.subText};
-`;
-
-const SubstepHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const OptionGrid = styled('div')<{columns: number}>`
