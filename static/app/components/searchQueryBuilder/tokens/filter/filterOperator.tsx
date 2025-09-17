@@ -9,7 +9,7 @@ import {
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
@@ -240,17 +240,18 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   const [autoFocus, setAutoFocus] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
 
+  const initialOpSetting = useRef(false);
+
   useLayoutEffect(() => {
     if (focusOverride?.itemKey === item.key && focusOverride.part === 'op') {
       setAutoFocus(true);
+      initialOpSetting.current = true;
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
   }, [dispatch, focusOverride, item.key, onOpenChange]);
 
   useLayoutEffect(() => {
-    console.log('autoFocus', autoFocus);
-    console.log('ref.current', ref.current);
-    if (autoFocus && ref.current) {
+    if (autoFocus && ref.current && initialOpSetting.current) {
       ref.current.click();
     }
   }, [autoFocus]);
@@ -265,11 +266,11 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
       trigger={triggerProps => {
         return (
           <OpButton
-            ref={ref}
             disabled={disabled}
             aria-label={t('Edit operator for filter: %s', token.key.text)}
             onlyOperator={onlyOperator}
             {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
+            ref={mergeRefs(triggerProps.ref, ref) as React.Ref<HTMLButtonElement>}
           >
             <InteractionStateLayer />
             {label}
@@ -295,7 +296,14 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
+          focusOverride: initialOpSetting.current
+            ? {
+                itemKey: `${item.key}`,
+                part: 'value',
+              }
+            : undefined,
         });
+        initialOpSetting.current = false;
         resetState();
       }}
       offset={MENU_OFFSET}
