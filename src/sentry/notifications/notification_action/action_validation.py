@@ -6,6 +6,8 @@ from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifySe
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
+from sentry.integrations.pagerduty.actions.form import PagerDutyNotifyServiceForm
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.notifications.notification_action.registry import action_validator_registry
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
@@ -26,7 +28,7 @@ class SlackActionValidatorHandler(BaseActionValidatorHandler):
     provider = Action.Type.SLACK
     notify_action_form = SlackNotifyServiceForm
 
-    def generate_action_form_payload(self) -> dict[str, Any]:
+    def generate_action_form_data(self) -> dict[str, Any]:
         integration_id = _get_integration_id(self.validated_data, self.provider)
 
         return {
@@ -51,7 +53,7 @@ class MSTeamsActionValidatorHandler(BaseActionValidatorHandler):
     provider = Action.Type.MSTEAMS
     notify_action_form = MsTeamsNotifyServiceForm
 
-    def generate_action_form_payload(self) -> dict[str, Any]:
+    def generate_action_form_data(self) -> dict[str, Any]:
         integration_id = _get_integration_id(self.validated_data, self.provider)
 
         return {
@@ -74,7 +76,7 @@ class DiscordActionValidatorHandler(BaseActionValidatorHandler):
     provider = Action.Type.DISCORD
     notify_action_form = DiscordNotifyServiceForm
 
-    def generate_action_form_payload(self) -> dict[str, Any]:
+    def generate_action_form_data(self) -> dict[str, Any]:
         integration_id = _get_integration_id(self.validated_data, self.provider)
 
         return {
@@ -95,7 +97,7 @@ class DiscordActionValidatorHandler(BaseActionValidatorHandler):
 class TicketingActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = IntegrationNotifyServiceForm
 
-    def generate_action_form_payload(self) -> dict[str, Any]:
+    def generate_action_form_data(self) -> dict[str, Any]:
         integration_id = _get_integration_id(self.validated_data, self.provider)
 
         return {
@@ -131,3 +133,38 @@ class GithubActionValidatorHandler(TicketingActionValidatorHandler):
 @action_validator_registry.register(Action.Type.GITHUB_ENTERPRISE)
 class GithubEnterpriseActionValidatorHandler(TicketingActionValidatorHandler):
     provider = Action.Type.GITHUB_ENTERPRISE
+
+
+@action_validator_registry.register(Action.Type.PAGERDUTY)
+class PagerdutyActionValidatorHandler(BaseActionValidatorHandler):
+    provider = Action.Type.PAGERDUTY
+    notify_action_form = PagerDutyNotifyServiceForm
+
+    def _get_services(self) -> list[tuple[int, str]]:
+        organization_integrations = integration_service.get_organization_integrations(
+            providers=[Action.Type.PAGERDUTY], organization_id=self.organization.id
+        )
+        return [
+            (v["id"], v["service_name"])
+            for oi in organization_integrations
+            for v in oi.config.get("pagerduty_services", [])
+        ]
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        payload = super().generate_action_form_payload()
+
+        return {
+            **payload,
+            "services": self._get_services(),
+        }
+
+    def generate_action_form_data(self) -> dict[str, Any]:
+        integration_id = _get_integration_id(self.validated_data, self.provider)
+
+        return {
+            "account": integration_id,
+            "service": self.validated_data["config"]["target_identifier"],
+        }
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        return self.validated_data

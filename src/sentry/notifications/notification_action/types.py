@@ -515,13 +515,18 @@ class BaseActionValidatorHandler(ABC):
         self.validated_data = validated_data
         self.organization = organization
 
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        return {
+            "data": self.generate_action_form_data(),
+            "integrations": _get_integrations(self.organization, self.provider),
+        }
+
     def clean_data(self) -> dict[str, Any]:
         if self.notify_action_form is None:
             return self.validated_data
 
         notify_action_form = self.notify_action_form(
-            data=self.generate_action_form_payload(),
-            integrations=_get_integrations(self.organization, self.provider),
+            **self.generate_action_form_payload(),
         )
 
         if notify_action_form.is_valid():
@@ -530,7 +535,7 @@ class BaseActionValidatorHandler(ABC):
         raise ValidationError(notify_action_form.errors)
 
     @abstractmethod
-    def generate_action_form_payload(self) -> dict[str, Any]:
+    def generate_action_form_data(self) -> dict[str, Any]:
         # translate validated data from BaseActionValidator to notify action form data
         pass
 

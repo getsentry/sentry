@@ -88,7 +88,7 @@ class MockActionHandler(ActionHandler):
 class MockActionValidatorTranslator(BaseActionValidatorHandler):
     notify_action_form = None
 
-    def generate_action_form_payload(self) -> dict[str, Any]:
+    def generate_action_form_data(self) -> dict[str, Any]:
         if not (integration_id := self.validated_data.get("integration_id")):
             raise ValidationError("Integration ID is required for mock action")
 
