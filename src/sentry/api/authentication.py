@@ -275,10 +275,18 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class SessionNoAuthTokenAuthentication(SessionAuthentication):
+    """
+    Authentication that only allows session-based authentication.
+    Rejects any token-based authentication (Bearer, Basic, etc.).
+    """
+
     def authenticate(self, request: Request):
+        # Check if there's any authorization header - if so, reject it
         auth = get_authorization_header(request)
         if auth:
             return None
+
+        # Use session authentication
         return super().authenticate(request)
 
 
