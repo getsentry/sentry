@@ -1,8 +1,10 @@
-from typing import Any, TypedDict
 from collections.abc import Mapping
 from datetime import datetime, timedelta
+from typing import Any, TypedDict
+
+from sentry.api.serializers import Serializer, register
 from sentry.models.groupopenperiod import GroupOpenPeriod, get_last_checked_for_open_period
-from sentry.api.serializers import Serializer, register, serialize
+
 
 class GroupOpenPeriodResponse(TypedDict):
     id: str
