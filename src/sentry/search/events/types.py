@@ -100,6 +100,7 @@ class SnubaParams:
     organization: Organization | None = None
     sampling_mode: SAMPLING_MODES | None = None
     debug: bool = False
+    case_insensitive: bool = False
 
     def __post_init__(self) -> None:
         if self.start:
