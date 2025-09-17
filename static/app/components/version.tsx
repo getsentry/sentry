@@ -153,14 +153,6 @@ function Version({
   );
 }
 
-// TODO(matej): try to wrap version with this when truncate prop is true (in separate PR)
-// const VersionWrapper = styled('div')`
-//   ${p => p.theme.overflowEllipsis};
-//   max-width: 100%;
-//   width: auto;
-//   display: inline-block;
-// `;
-
 const truncateStyles = css`
   max-width: 100%;
   display: block;
