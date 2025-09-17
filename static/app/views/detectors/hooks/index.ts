@@ -123,17 +123,22 @@ const makeDetectorDetailsQueryKey = ({
   orgSlug: string;
 }): ApiQueryKey => [`/organizations/${orgSlug}/detectors/${detectorId}/`];
 
-export function useDetectorQuery<T extends Detector = Detector>(detectorId: string) {
+export function useDetectorQuery<T extends Detector = Detector>(
+  detectorId: string,
+  queryOptions: Partial<UseApiQueryOptions<T>> = {}
+) {
   const org = useOrganization();
 
   return useApiQuery<T>(makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId}), {
     staleTime: 0,
     retry: false,
+    ...queryOptions,
   });
 }
 
 export function useDetectorQueriesByIds<T extends Detector = Detector>(
-  detectorId: string[]
+  detectorId: string[],
+  queryOptions: Partial<UseApiQueryOptions<T>> = {}
 ) {
   const org = useOrganization();
 
@@ -144,6 +149,7 @@ export function useDetectorQueriesByIds<T extends Detector = Detector>(
     {
       staleTime: 0,
       retry: false,
+      ...queryOptions,
     }
   );
 }
