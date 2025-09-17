@@ -91,7 +91,7 @@ type IssuesTotals = {
   unhandled: number;
 } | null;
 
-function ReleaseComparisonChart({
+export default function ReleaseComparisonChart({
   release,
   project,
   releaseSessions,
@@ -140,6 +140,7 @@ function ReleaseComparisonChart({
         ReleaseComparisonChartType.ABNORMAL_SESSIONS,
         ReleaseComparisonChartType.ERRORED_SESSIONS,
         ReleaseComparisonChartType.CRASHED_SESSIONS,
+        ReleaseComparisonChartType.UNHANDLED_SESSIONS,
       ].includes(chartInUrl)
     ) {
       setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
@@ -151,6 +152,7 @@ function ReleaseComparisonChart({
         ReleaseComparisonChartType.ABNORMAL_USERS,
         ReleaseComparisonChartType.ERRORED_USERS,
         ReleaseComparisonChartType.CRASHED_USERS,
+        ReleaseComparisonChartType.UNHANDLED_USERS,
       ].includes(chartInUrl)
     ) {
       setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_USERS)));
@@ -1185,5 +1187,3 @@ const ShowMoreButton = styled('div')`
   align-items: center;
   justify-content: flex-end;
 `;
-
-export default ReleaseComparisonChart;

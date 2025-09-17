@@ -214,11 +214,11 @@ export function initSessionsChart(theme: Theme) {
       },
     },
     [SessionStatus.UNHANDLED]: {
-      seriesName: sessionTerm.errored,
+      seriesName: sessionTerm.unhandled,
       data: [],
-      color: colors[12],
+      color: colors[13],
       areaStyle: {
-        color: colors[12],
+        color: colors[13],
         opacity: 1,
       },
       lineStyle: {
