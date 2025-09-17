@@ -55,13 +55,14 @@ def send_email(source: str, target: str) -> None:
         NotificationTargetResourceType,
     )
 
-    target = GenericNotificationTarget(
+    email_target = GenericNotificationTarget(
         provider_key=NotificationProviderKey.EMAIL,
         resource_type=NotificationTargetResourceType.EMAIL,
         resource_id=target,
     )
     template_cls = template_registry.get(source)
-    NotificationService(data=template_cls.example_data).notify(targets=[target])
+    NotificationService(data=template_cls.example_data).notify(targets=[email_target])
+    click.echo(f"Example '{source}' email sent to {target}.")
 
 
 @send.command("slack")
