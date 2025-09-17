@@ -92,10 +92,61 @@ def celery_run_batch_query(
 
 class RangeQuerySetWrapper[V]:
     """
-    Iterates through a queryset by chunking results by ``step`` and using GREATER THAN
-    and LESS THAN queries on the primary key.
+    Efficiently iterates through a Django QuerySet by chunking results using
+    GREATER THAN and LESS THAN queries on a specified ordering column.
 
-    Very efficient, but ORDER BY statements will not work.
+    This wrapper is designed for processing large datasets in memory-efficient batches,
+    making it ideal for bulk operations like data migrations, cleanup tasks, or
+    batch processing.
+
+    Key Features:
+    - Memory efficient: processes data in configurable batch sizes
+    - Cursor-based pagination: avoids OFFSET/LIMIT performance issues on large datasets
+    - Handles both ascending and descending iteration
+    - Supports custom ordering columns (must be unique)
+    - Built-in callback system for batch processing
+    - Automatic duplicate handling for edge cases
+
+    Important Limitations:
+    - Cannot be used with querysets that already have ORDER BY clauses
+    - Ordering column must be unique to prevent infinite loops
+    - Results are not guaranteed to be in the original queryset order
+
+    Args:
+        queryset: The Django QuerySet to iterate over
+        step: Batch size for each iteration (default: 1000). Negative values iterate in descending order
+        limit: Maximum number of items to process (default: None for unlimited)
+        min_id: Starting value for iteration (useful for resuming interrupted operations)
+        order_by: Column name to use for ordering (default: "pk", must be unique)
+        callbacks: List of functions to call with each batch of results
+        result_value_getter: Custom function to extract ordering value from results (needed for values_list queries)
+        override_unique_safety_check: Skip uniqueness validation (use with caution)
+
+    Examples:
+        # Basic usage
+        for user in RangeQuerySetWrapper(User.objects.all(), step=500):
+            process_user(user)
+
+        # With limit and custom ordering
+        wrapper = RangeQuerySetWrapper(
+            Event.objects.filter(project=project),
+            step=100,
+            limit=1000,
+            order_by="timestamp"
+        )
+
+        # With callbacks for batch processing
+        def log_progress(batch):
+            logger.info(f"Processed batch of {len(batch)} items")
+
+        wrapper = RangeQuerySetWrapper(
+            queryset,
+            step=1000,
+            callbacks=[log_progress]
+        )
+
+    Raises:
+        InvalidQuerySetError: If queryset has existing ordering or ordering column is not unique
     """
 
     def __init__[M: Model](
@@ -110,7 +161,20 @@ class RangeQuerySetWrapper[V]:
         result_value_getter: Callable[[V], int] | None = None,
         override_unique_safety_check: bool = False,
     ):
-        # Support for slicing
+        limit = self._validate_and_prepare_queryset(queryset, limit)
+        self._configure_iteration_parameters(step, limit)
+        self._set_instance_variables(queryset, min_id, order_by, callbacks, result_value_getter)
+        self._validate_ordering_column(queryset, order_by, override_unique_safety_check)
+
+    def _validate_and_prepare_queryset(
+        self, queryset: QuerySet[Model, V], limit: int | None
+    ) -> int | None:
+        """
+        Validates the queryset and handles Django's built-in slicing support.
+
+        This method ensures the queryset doesn't have conflicting ORDER BY clauses
+        and extracts any slice limits that may have been applied.
+        """
         if queryset.query.low_mark == 0 and not (
             queryset.query.order_by or queryset.query.extra_order_by
         ):
@@ -118,130 +182,305 @@ class RangeQuerySetWrapper[V]:
                 limit = queryset.query.high_mark
             queryset.query.clear_limits()
         else:
-            raise InvalidQuerySetError
+            raise InvalidQuerySetError(
+                "RangeQuerySetWrapper cannot be used with querysets that have "
+                "existing ordering or non-zero offset. Remove any .order_by() "
+                "calls and use the order_by parameter instead."
+            )
+        return limit
 
+    def _configure_iteration_parameters(self, step: int, limit: int | None) -> None:
+        """Configure step size, limit, and iteration direction."""
         self.limit = limit
+        self.is_descending = step < 0
+
         if limit:
             self.step = min(limit, abs(step))
-            self.desc = step < 0
         else:
             self.step = abs(step)
-            self.desc = step < 0
+
+    def _set_instance_variables(
+        self,
+        queryset: QuerySet[Model, V],
+        min_id: int | None,
+        order_by: str,
+        callbacks: Sequence[Callable[[list[V]], None]],
+        result_value_getter: Callable[[V], int] | None,
+    ) -> None:
+        """Set the main instance variables."""
         self.queryset = queryset
         self.min_value = min_id
         self.order_by = order_by
         self.callbacks = callbacks
         self.result_value_getter = result_value_getter
 
-        order_by_col = queryset.model._meta.get_field(order_by if order_by != "pk" else "id")
-        if not override_unique_safety_check and (
-            not isinstance(order_by_col, Field) or not order_by_col.unique
-        ):
-            # TODO: Ideally we could fix this bug and support ordering by a non unique col
+    def _validate_ordering_column(
+        self,
+        queryset: QuerySet[Model, V],
+        order_by: str,
+        override_unique_safety_check: bool
+    ) -> None:
+        """
+        Validates that the ordering column is unique to prevent infinite loops.
+
+        Non-unique columns can cause the iterator to get stuck when multiple
+        records have the same ordering value.
+        """
+        field_name = order_by if order_by != "pk" else "id"
+        try:
+            order_by_field = queryset.model._meta.get_field(field_name)
+        except Exception as e:
             raise InvalidQuerySetError(
-                "Order by column must be unique, otherwise this wrapper can get "
-                "stuck in an infinite loop. If you're sure your data is unique, "
-                "you can disable this by passing "
-                "`override_unique_safety_check=True`"
+                f"Invalid order_by field '{order_by}': {e}"
+            ) from e
+
+        if not override_unique_safety_check and (
+            not isinstance(order_by_field, Field) or not order_by_field.unique
+        ):
+            raise InvalidQuerySetError(
+                f"Order by column '{order_by}' must be unique to prevent infinite loops. "
+                f"Non-unique columns can cause the iterator to get stuck when multiple "
+                f"records have the same ordering value. If you're certain your data is "
+                f"unique for this column, you can disable this check by passing "
+                f"'override_unique_safety_check=True'"
             )
 
     def __iter__(self) -> Iterator[V]:
-        if self.min_value is not None:
-            cur_value = self.min_value
-        else:
-            cur_value = None
+        """
+        Iterate through the queryset in batches using cursor-based pagination.
 
-        num = 0
-        limit = self.limit
-
-        queryset = self.queryset
-        if self.desc:
-            queryset = queryset.order_by("-%s" % self.order_by)
-        else:
-            queryset = queryset.order_by(self.order_by)
-
-        # we implement basic cursor pagination for columns that are not unique
+        This method implements efficient cursor pagination by filtering on the
+        ordering column value from the last processed record, avoiding expensive
+        OFFSET operations on large datasets.
+        """
+        current_order_value = self.min_value
+        processed_count = 0
         last_object_pk: int | None = None
-        has_results = True
-        while has_results:
-            if limit and num >= limit:
+
+        ordered_queryset = self._get_ordered_queryset()
+
+        while True:
+            if self._should_stop_iteration(processed_count):
                 break
 
-            start = num
+            batch_start_count = processed_count
+            batch_queryset = self._build_batch_queryset(ordered_queryset, current_order_value)
+            batch_results = list(batch_queryset[0 : self.step])
 
-            if cur_value is None:
-                results_qs = queryset
-            elif self.desc:
-                results_qs = queryset.filter(**{"%s__lte" % self.order_by: cur_value})
-            else:
-                results_qs = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
+            if not batch_results:
+                break
 
-            results = list(results_qs[0 : self.step])
+            self._execute_callbacks(batch_results)
 
-            for cb in self.callbacks:
-                cb(results)
-
-            for result in results:
-                pk = (
-                    self.result_value_getter(result)
-                    if self.result_value_getter
-                    else getattr(result, "pk")
-                )
-                if last_object_pk is not None and pk == last_object_pk:
+            for result in batch_results:
+                if self._should_skip_duplicate(result, last_object_pk):
                     continue
 
-                # Need to bind value before yielding, because the caller
-                # may mutate the value and we're left with a bad value.
-                # This is commonly the case if iterating over and
-                # deleting, because a Model.delete() mutates the `id`
-                # to `None` causing the loop to exit early.
-                num += 1
-                last_object_pk = pk
-                cur_value = (
-                    self.result_value_getter(result)
-                    if self.result_value_getter
-                    else getattr(result, self.order_by)
-                )
+                processed_count += 1
+                last_object_pk = self._get_result_pk(result)
+                current_order_value = self._get_result_order_value(result)
 
                 yield result
 
-            if cur_value is None:
+            # If we processed no new items in this batch, we're done
+            if processed_count <= batch_start_count:
                 break
 
-            has_results = num > start
+    def _get_ordered_queryset(self) -> QuerySet[Model, V]:
+        """Apply the appropriate ordering to the queryset."""
+        order_field = f"-{self.order_by}" if self.is_descending else self.order_by
+        return self.queryset.order_by(order_field)
+
+    def _should_stop_iteration(self, processed_count: int) -> bool:
+        """Check if we should stop iterating based on the limit."""
+        return self.limit is not None and processed_count >= self.limit
+
+    def _build_batch_queryset(
+        self,
+        ordered_queryset: QuerySet[Model, V],
+        current_order_value: int | None
+    ) -> QuerySet[Model, V]:
+        """
+        Build the queryset for the current batch using cursor pagination.
+
+        Filters the queryset to only include records with ordering values
+        greater/less than the current cursor position.
+        """
+        if current_order_value is None:
+            return ordered_queryset
+
+        if self.is_descending:
+            filter_condition = {f"{self.order_by}__lte": current_order_value}
+        else:
+            filter_condition = {f"{self.order_by}__gte": current_order_value}
+
+        return ordered_queryset.filter(**filter_condition)
+
+    def _execute_callbacks(self, batch_results: list[V]) -> None:
+        """Execute all registered callbacks with the current batch."""
+        for callback in self.callbacks:
+            callback(batch_results)
+
+    def _should_skip_duplicate(self, result: V, last_object_pk: int | None) -> bool:
+        """
+        Check if we should skip this result due to it being a duplicate.
+
+        This handles edge cases where multiple records have the same ordering
+        value and we need to avoid processing the same record twice.
+        """
+        if last_object_pk is None:
+            return False
+        current_pk = self._get_result_pk(result)
+        return current_pk == last_object_pk
+
+    def _get_result_pk(self, result: V) -> int:
+        """Extract the primary key value from a result object."""
+        if self.result_value_getter:
+            return self.result_value_getter(result)
+        return getattr(result, "pk")
+
+    def _get_result_order_value(self, result: V) -> int:
+        """
+        Extract the ordering column value from a result object.
+
+        This value is used as the cursor for the next batch iteration.
+        We bind this value immediately to avoid issues with mutable objects.
+        """
+        if self.result_value_getter:
+            return self.result_value_getter(result)
+        return getattr(result, self.order_by)
 
 
 class RangeQuerySetWrapperWithProgressBar[V](RangeQuerySetWrapper[V]):
+    """
+    RangeQuerySetWrapper with a visual progress bar for long-running operations.
+
+    This wrapper displays a console progress bar showing the iteration progress,
+    which is helpful for monitoring long-running batch operations or migrations.
+
+    The progress bar shows:
+    - Current progress as a visual bar
+    - Percentage complete
+    - Estimated time remaining
+    - Processing rate (items/second)
+
+    Note: Calls queryset.count() to get the total, which can be expensive on
+    large tables. For very large tables, consider using
+    RangeQuerySetWrapperWithProgressBarApprox instead.
+
+    Example:
+        # Process all users with progress bar
+        wrapper = RangeQuerySetWrapperWithProgressBar(User.objects.all(), step=1000)
+        for user in wrapper:
+            migrate_user_data(user)
+    """
+
     def get_total_count(self) -> int:
+        """
+        Get the total count of items to be processed.
+
+        Uses Django's queryset.count() which executes a COUNT(*) query.
+        This can be slow on large tables with complex filters.
+
+        Returns:
+            Total number of items in the queryset
+        """
         return self.queryset.count()
 
     def __iter__(self) -> Iterator[V]:
+        """
+        Iterate with a progress bar showing completion status.
+
+        The progress bar will display the model name and current progress.
+        """
         total_count = self.get_total_count()
         iterator = super().__iter__()
-        verbose_name = self.queryset.model._meta.verbose_name_plural or self.queryset.model.__name__
-        return iter(WithProgressBar(iterator, total_count, verbose_name.title()))
+        model_name = (
+            self.queryset.model._meta.verbose_name_plural
+            or self.queryset.model.__name__
+        )
+        return iter(WithProgressBar(iterator, total_count, model_name.title()))
 
 
 class RangeQuerySetWrapperWithProgressBarApprox[V](RangeQuerySetWrapperWithProgressBar[V]):
     """
-    Works the same as `RangeQuerySetWrapperWithProgressBar`, but approximates the number of rows
-    in the table. This is intended for use on very large tables where we end up timing out
-    attempting to get an accurate count.
+    RangeQuerySetWrapper with progress bar using approximate row count.
 
-    Note: This is only intended for queries that are iterating over an entire table. Will not
-    produce a useful total count on filtered queries.
+    Similar to RangeQuerySetWrapperWithProgressBar, but uses PostgreSQL's
+    statistics to estimate the total row count instead of executing an
+    expensive COUNT(*) query.
+
+    This is ideal for:
+    - Very large tables (millions+ rows) where COUNT(*) times out
+    - Unfiltered queries that process entire tables
+    - Operations where approximate progress is acceptable
+
+    Important Limitations:
+    - Only works with PostgreSQL databases
+    - Only accurate for queries processing entire tables (no filters)
+    - Estimates may be inaccurate if the table has been heavily modified
+    - Progress percentage may exceed 100% or be inaccurate
+
+    The approximation is based on PostgreSQL's pg_class.reltuples statistic,
+    which is updated by VACUUM and ANALYZE operations.
+
+    Example:
+        # Process entire large table with approximate progress
+        wrapper = RangeQuerySetWrapperWithProgressBarApprox(
+            Event.objects.all(),  # No filters for accuracy
+            step=5000
+        )
+        for event in wrapper:
+            archive_event(event)
+
+    Warning:
+        Do not use with filtered querysets as the row count estimate
+        will be inaccurate and misleading.
     """
 
     def get_total_count(self) -> int:
+        """
+        Get an approximate count using PostgreSQL table statistics.
+
+        Uses pg_class.reltuples which contains the approximate number of
+        live rows in the table, as estimated by the most recent VACUUM or ANALYZE.
+
+        Returns:
+            Estimated number of rows in the table (not the filtered queryset)
+
+        Note:
+            This returns the total table row count, not the count of rows
+            matching any filters in the queryset. Only use this for queries
+            that process entire tables without filters.
+        """
         cursor = connections[self.queryset.db].cursor()
         cursor.execute(
             "SELECT CAST(GREATEST(reltuples, 0) AS BIGINT) AS estimate FROM pg_class WHERE relname = %s",
             (self.queryset.model._meta.db_table,),
         )
-        return cursor.fetchone()[0]
+        result = cursor.fetchone()
+        return result[0] if result else 0
 
 
 class WithProgressBar[V]:
+    """
+    Wrapper that adds a console progress bar to any iterable.
+
+    Uses Click's progress bar functionality to display progress for long-running
+    iterations. The progress bar shows completion percentage, items processed,
+    processing rate, and estimated time remaining.
+
+    Args:
+        iterator: The iterable to wrap with a progress bar
+        count: Total number of items (if None, shows a spinner instead of percentage)
+        caption: Label to display with the progress bar (default: "Progress")
+
+    Example:
+        items = [1, 2, 3, 4, 5]
+        for item in WithProgressBar(items, len(items), "Processing"):
+            process_item(item)
+    """
+
     def __init__(
         self, iterator: Iterable[V], count: int | None = None, caption: str | None = None
     ) -> None:
@@ -250,6 +489,7 @@ class WithProgressBar[V]:
         self.caption = caption or "Progress"
 
     def __iter__(self) -> Iterator[V]:
+        """Iterate through the wrapped iterable with a progress bar."""
         with click.progressbar(self.iterator, length=self.count, label=self.caption) as it:
             yield from it
 
