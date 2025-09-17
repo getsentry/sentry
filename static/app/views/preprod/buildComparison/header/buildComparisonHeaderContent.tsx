@@ -6,7 +6,8 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
-import {IconJson} from 'sentry/icons';
+import {IconCode, IconDownload, IconJson} from 'sentry/icons';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -71,6 +72,18 @@ export function BuildComparisonHeaderContent(props: BuildComparisonHeaderContent
           </InfoIcon>
           <Text>{buildDetails.app_info.app_id}</Text>
         </Flex>
+        {buildDetails.size_info?.download_size_bytes && (
+          <Flex gap="sm" align="center">
+            <IconDownload size="sm" color="gray300" />
+            <Text>{formatBytesBase10(buildDetails.size_info.download_size_bytes)}</Text>
+          </Flex>
+        )}
+        {buildDetails.size_info?.install_size_bytes && (
+          <Flex gap="sm" align="center">
+            <IconCode size="sm" color="gray300" />
+            <Text>{formatBytesBase10(buildDetails.size_info.install_size_bytes)}</Text>
+          </Flex>
+        )}
       </Flex>
     </Flex>
   );
@@ -80,7 +93,7 @@ const AppIcon = styled('div')`
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  background: #ff6600;
+  background: ${p => p.theme.purple400};
   display: flex;
   align-items: center;
   justify-content: center;

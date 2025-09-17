@@ -11,6 +11,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildComparisonHeaderContent';
+import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
 import {SizeComparisonMainContent} from 'sentry/views/preprod/buildComparison/main/sizeComparisonMainContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
@@ -73,8 +74,12 @@ export default function BuildComparison() {
   if (baseArtifactId) {
     // Base artifact provided in URL, show comparison state
     mainContent = <SizeComparisonMainContent />;
+  } else {
+    // No base artifact provided in URL, show selection state
+    mainContent = (
+      <SizeCompareSelectionContent headBuildDetails={headBuildDetailsQuery.data} />
+    );
   }
-  // TODO: Support just head selected with list to show comparable builds
 
   return (
     <SentryDocumentTitle title={t('Build comparison')}>

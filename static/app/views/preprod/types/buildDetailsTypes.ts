@@ -39,7 +39,7 @@ export interface BuildDetailsSizeInfo {
   install_size_bytes: number;
 }
 
-enum BuildDetailsState {
+export enum BuildDetailsState {
   UPLOADING = 0,
   UPLOADED = 1,
   PROCESSED = 3,
