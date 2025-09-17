@@ -41,7 +41,7 @@ import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrat
 import PluginDeprecationAlert from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
 
 // TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
-const TEMPORARY_PERMITTED_PLUGINS = new Set(['heroku', 'amazon-sqs']);
+const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
 
 function makePluginQueryKey({
   orgSlug,
