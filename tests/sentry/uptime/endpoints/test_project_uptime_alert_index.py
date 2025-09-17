@@ -5,7 +5,11 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import get_uptime_subscription
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import (
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
+    UptimeMonitorMode,
+)
 from sentry.workflow_engine.models import Detector
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -36,6 +40,8 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert detector.owner_user_id == self.user.id
         assert detector.owner_team_id is None
         assert detector.config["mode"] == UptimeMonitorMode.MANUAL
+        assert detector.config["recovery_threshold"] == DEFAULT_RECOVERY_THRESHOLD
+        assert detector.config["downtime_threshold"] == DEFAULT_DOWNTIME_THRESHOLD
         assert uptime_subscription.url == "http://sentry.io"
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == 1500
@@ -58,6 +64,23 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         detector = Detector.objects.get(id=resp.data["id"])
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.trace_sampling is True
+
+    def test_custom_thresholds(self) -> None:
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            environment="uptime-prod",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            recovery_threshold=2,
+            downtime_threshold=5,
+        )
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.config["recovery_threshold"] == 2
+        assert detector.config["downtime_threshold"] == 5
 
     def test_no_environment(self) -> None:
         resp = self.get_success_response(
