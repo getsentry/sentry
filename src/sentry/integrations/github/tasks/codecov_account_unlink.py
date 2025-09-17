@@ -3,8 +3,6 @@ import logging
 from sentry.codecov.client import CodecovApiClient, ConfigurationError, GitProvider
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
-from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -13,11 +11,11 @@ from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-account_link_endpoint = "sentry/internal/account/link/"
+account_unlink_endpoint = "sentry/internal/account/unlink/"
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.codecov_account_link",
+    name="sentry.integrations.github.tasks.codecov_account_unlink",
     queue="integrations.control",
     max_retries=3,
     silo_mode=SiloMode.CONTROL,
@@ -28,34 +26,26 @@ account_link_endpoint = "sentry/internal/account/link/"
     ),
 )
 @retry(exclude=(ConfigurationError,))
-def codecov_account_link(
+def codecov_account_unlink(
     integration_id: int,
-    organization_id: int,
+    organization_ids: list[int],
 ) -> None:
     """
-    Links a GitHub integration to Codecov.
+    Unlinks a GitHub integration from Codecov.
 
     :param integration_id: The GitHub integration ID
-    :param organization_id: The Sentry organization ID
+    :param organization_ids: The Sentry organization IDs
     """
 
     integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
+        integration_id=integration_id, status=ObjectStatus.DISABLED
     )
     if not integration:
         logger.warning(
-            "codecov.account_link.missing_integration", extra={"integration_id": integration_id}
+            "codecov.account_unlink.missing_integration", extra={"integration_id": integration_id}
         )
         return
 
-    rpc_org = organization_service.get(id=organization_id)
-    if rpc_org is None:
-        logger.warning(
-            "codecov.account_link.missing_organization", extra={"organization_id": organization_id}
-        )
-        return
-
-    # From GitHubIntegrationProvider, src/sentry/integrations/github/integration.py:693
     github_org_name = integration.name
 
     try:
@@ -63,49 +53,29 @@ def codecov_account_link(
             git_provider_org=github_org_name, git_provider=GitProvider.GitHub
         )
 
-        service_id = integration.metadata.get("account_id")
-        if not service_id:
-            logger.warning(
-                "codecov.account_link.missing_service_id",
-                extra={
-                    "integration_id": integration_id,
-                    "github_org": github_org_name,
-                },
-            )
-            return
-
         request_data = {
-            "sentry_org_id": str(organization_id),
-            "sentry_org_name": rpc_org.name,
-            "organizations": [
-                {
-                    "installation_id": integration.external_id,
-                    "service_id": str(service_id),
-                    "slug": github_org_name,
-                    "provider": IntegrationProviderSlug.GITHUB.value,
-                }
-            ],
+            "sentry_org_ids": [str(organization_id) for organization_id in organization_ids],
         }
 
         response = codecov_client.post(
-            endpoint=account_link_endpoint,
+            endpoint=account_unlink_endpoint,
             json=request_data,
         )
 
         response.raise_for_status()
 
         logger.info(
-            "codecov.account_link.success",
+            "codecov.account_unlink.success",
             extra={
                 "github_org": github_org_name,
                 "integration_id": integration_id,
-                "sentry_organization_id": organization_id,
+                "sentry_organization_ids": organization_ids,
             },
         )
 
     except ConfigurationError:
         logger.exception(
-            "codecov.account_link.configuration_error",
+            "codecov.account_unlink.configuration_error",
             extra={
                 "github_org": github_org_name,
                 "integration_id": integration_id,
@@ -115,7 +85,7 @@ def codecov_account_link(
 
     except Exception as e:
         logger.exception(
-            "codecov.account_link.unexpected_error",
+            "codecov.account_unlink.unexpected_error",
             extra={
                 "github_org": github_org_name,
                 "integration_id": integration_id,
