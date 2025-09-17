@@ -1,11 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import useOrganization from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -15,15 +17,35 @@ import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export function DeadRageClicksWidget() {
+  const organization = useOrganization();
+  const hasReplays = organization.features.includes('session-replay-ui');
   const {isLoading, error, data} = useDeadRageSelectors({
     per_page: 6,
     sort: '-count_dead_clicks',
     cursor: undefined,
     // Setting this to true just strips rage clicks from the data
     isWidgetData: false,
+    enabled: hasReplays,
   });
 
   const isEmpty = !isLoading && data.length === 0;
+
+  if (!hasReplays) {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
+        Visualization={
+          <FeatureWrapper>
+            <FeatureDisabled
+              features="organizations:session-replay-ui"
+              featureName={t('Replays')}
+              hideHelpToggle
+            />
+          </FeatureWrapper>
+        }
+      />
+    );
+  }
 
   const visualization = (
     <WidgetVisualizationStates
@@ -113,4 +135,8 @@ const ClickCount = styled(TextOverflow)`
   grid-template-columns: auto auto;
   gap: ${space(0.75)};
   align-items: center;
+`;
+
+const FeatureWrapper = styled('div')`
+  padding-top: ${p => p.theme.space.md};
 `;

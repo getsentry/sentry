@@ -12,8 +12,7 @@ mock_graphql_response_success: dict[str, Any] = {
         "owner": {
             "repository": {
                 "uploadToken": "token123",
-                "activated": True,
-                "active": True,
+                "testAnalyticsEnabled": True,
             }
         }
     }
@@ -96,8 +95,7 @@ class RepositoryEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["uploadToken"] == "token123"
-        assert response.data["activated"] is True
-        assert response.data["active"] is True
+        assert response.data["testAnalyticsEnabled"] is True
 
         serializer_fields = set(RepositorySerializer().fields.keys())
         response_keys = set(response.data.keys())
