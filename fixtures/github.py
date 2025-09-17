@@ -606,6 +606,7 @@ INSTALLATION_DELETE_EVENT_EXAMPLE = """{
   "action": "deleted",
   "installation": {
     "id": 2,
+    "app_id": 123,
     "account": {
       "login": "octocat",
       "id": 1,
