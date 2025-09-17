@@ -3,14 +3,12 @@ from django.db.models import Value
 
 from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import get_unique_active_actions
-from sentry.workflow_engine.typings.notification_action import (
-    FallthroughChoiceType,
-    SentryAppIdentifier,
-)
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @region_silo_test
