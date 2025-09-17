@@ -168,7 +168,6 @@ declare namespace Profiling {
   interface SampledProfile extends RawProfileBase {
     weights: number[];
     samples: number[][];
-    samples_profiles?: number[][];
     samples_examples?: number[][];
     sample_durations_ns?: number[];
     type: 'sampled';
@@ -324,8 +323,7 @@ declare namespace Profiling {
     >;
     shared: {
       frames: ReadonlyArray<Omit<Profiling.Frame, 'key'>>;
-      frame_infos?: ReadonlyArray<Profiling.FrameInfo, 'key'>;
-      profile_ids?: ReadonlyArray<string>[];
+      frame_infos?: ReadonlyArray<Profiling.FrameInfo>;
       profiles?: ReadonlyArray<ProfileReference>;
     };
     activeProfileIndex?: number;
