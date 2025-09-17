@@ -215,6 +215,9 @@ def delete_group_hashes(
     group_ids: Sequence[int],
     seer_deletion: bool = False,
 ) -> None:
+    if not group_ids:
+        return
+
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
 
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
