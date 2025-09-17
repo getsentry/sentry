@@ -10,6 +10,7 @@ from sentry import analytics, features
 from sentry.analytics.events.cron_monitor_broken_status_recovery import (
     CronMonitorBrokenStatusRecovery,
 )
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.organization import Organization
 from sentry.monitors.logic.incident_occurrence import (
     dispatch_incident_occurrence,
@@ -90,7 +91,8 @@ def try_incident_threshold(
         starting_checkin = previous_checkins[0]
 
         optional_defaults = {}
-        organization = Organization.objects.get(id=monitor_env.monitor.organization_id)
+        with in_test_hide_transaction_boundary():
+            organization = Organization.objects.get(id=monitor_env.monitor.organization_id)
         if features.has("organizations:crons-consistent-fingerprint", organization):
             optional_defaults["grouphash"] = monitor_env.build_occurrence_fingerprint()
 

@@ -547,6 +547,7 @@ class MarkFailedTestCase(TestCase):
             assert incidents.count() == 2
 
             second_incident = incidents.last()
+            assert second_incident
             assert second_incident.id != first_incident.id
             assert second_incident.grouphash == expected_fingerprint
             assert second_incident.grouphash == first_incident.grouphash
