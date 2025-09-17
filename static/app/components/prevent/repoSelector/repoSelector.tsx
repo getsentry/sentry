@@ -12,13 +12,13 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useInfiniteRepositories} from 'sentry/components/prevent/repoSelector/useInfiniteRepositories';
 import {IconInfo, IconSync} from 'sentry/icons';
+import {IconRepository} from 'sentry/icons/iconRepository';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {IconRepository} from './iconRepository';
 import {useSyncRepos} from './useSyncRepos';
 
 function SyncRepoButton({searchValue}: {searchValue?: string}) {

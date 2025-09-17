@@ -26,5 +26,3 @@ export function IconBranch({...props}: IconBranchProps) {
     </SvgIcon>
   );
 }
-
-IconBranch.displayName = 'IconBranch';
