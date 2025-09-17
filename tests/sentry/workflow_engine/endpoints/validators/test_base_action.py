@@ -117,7 +117,6 @@ class TestBaseActionValidator(TestCase):
 
         def make_validator() -> BaseActionValidator:
             return BaseActionValidator(
-                context={"organization": organization},
                 data={
                     **self.valid_data,
                     "type": Action.Type.SLACK,
