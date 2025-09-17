@@ -1,4 +1,4 @@
-import {css, keyframes} from '@emotion/react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
