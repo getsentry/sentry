@@ -754,9 +754,9 @@ class Project(Model):
         # There are projects being blocked from deletion because they have GroupHash objects
         # that are preventing the project from being deleted.
         try:
-            from sentry.deletions.defaults.group import delete_group_hashes
+            from sentry.deletions.defaults.group import delete_project_group_hashes
 
-            delete_group_hashes(project_id=self.id, group_ids=[])
+            delete_project_group_hashes(project_id=self.id)
         except Exception:
             logger.warning("Failed to delete group hashes for project %s", self.id)
 

@@ -210,14 +210,22 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
+def delete_project_group_hashes(project_id: int) -> None:
+    groups = Group.objects.filter(project_id=project_id)
+    error_groups, issue_platform_groups = separate_by_group_category(groups)
+
+    error_group_ids = [group.id for group in error_groups]
+    delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
+
+    issue_platform_group_ids = [group.id for group in issue_platform_groups]
+    delete_group_hashes(project_id, issue_platform_group_ids)
+
+
 def delete_group_hashes(
     project_id: int,
     group_ids: Sequence[int],
     seer_deletion: bool = False,
 ) -> None:
-    if not group_ids:
-        return
-
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
 
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
@@ -230,9 +238,7 @@ def delete_group_hashes(
     iterations = 0
 
     while iterations < max_iterations:
-        qs = GroupHash.objects.filter(project_id=project_id)
-        if group_ids:
-            qs = qs.filter(group_id__in=group_ids)
+        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids)
         hashes_chunk = list(qs.values_list("id", "hash")[:hashes_batch_size])
         if not hashes_chunk:
             break
