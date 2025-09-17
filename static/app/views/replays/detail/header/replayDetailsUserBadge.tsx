@@ -85,7 +85,7 @@ const DisplayHeader = styled('div')`
 function Live() {
   return (
     <Flex align="center">
-      <span>{t('LIVE')}</span>
+      <LiveText>{t('LIVE')}</LiveText>
       <LiveIndicator />
     </Flex>
   );
@@ -103,6 +103,10 @@ const pulse = keyframes`
   }
 `;
 
+const LiveText = styled('span')`
+  color: ${p => p.theme.success};
+`;
+
 const LiveIndicator = styled('div')`
   background: ${p => p.theme.success};
   height: 8px;
@@ -114,7 +118,7 @@ const LiveIndicator = styled('div')`
   &:before {
     content: '';
     animation: ${pulse} 3s ease-out infinite;
-    border: 4px solid ${p => p.theme.success};
+    border: 6px solid ${p => p.theme.success};
     position: absolute;
     border-radius: 50%;
     height: 20px;
