@@ -792,11 +792,6 @@ BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-# though it would cause timeouts/recursions in some cases
-CELERY_ALWAYS_EAGER = False
-
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
