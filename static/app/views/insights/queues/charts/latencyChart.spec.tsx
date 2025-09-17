@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -23,22 +24,19 @@ describe('latencyChart', () => {
 
   beforeEach(() => {
     eventsStatsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        data: [[1739378162, [{count: 1}]]],
-        meta: {
-          fields: {
-            'avg(span.duration)': 'duration',
-            'avg(messaging.message.receive.latency)': 'duration',
-            'epm()': 'rate',
-          },
-          units: {
-            'avg(span.duration)': 'millisecond',
-            'avg(messaging.message.receive.latency)': 'millisecond',
-            'epm()': '1/second',
-          },
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'avg(messaging.message.receive.latency)',
+            values: [{value: 1, timestamp: 1739378162000}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'avg(span.duration)',
+            values: [{value: 1, timestamp: 1739378162000}],
+          }),
+        ],
       },
     });
   });
@@ -53,10 +51,10 @@ describe('latencyChart', () => {
     );
     screen.getByText('Average Duration');
     expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
-          yAxis: ['avg(span.duration)', 'avg(messaging.message.receive.latency)'],
+          yAxis: ['avg(messaging.message.receive.latency)', 'avg(span.duration)'],
           query: 'span.op:queue.process messaging.destination.name:events',
         }),
       })

@@ -1,3 +1,4 @@
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,7 +11,6 @@ import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/c
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -33,14 +33,13 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
     isPending: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-      transformAliasToInputFormat: true,
+      pageFilters: props.pageFilters,
     },
-    referrer,
-    props.pageFilters
+    referrer
   );
 
   const responseRateField = 'tags[http.response.status_code,number]';
@@ -101,11 +100,7 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
       {...props}
       id="httpDomainSummaryResponseCodesChartWidget"
       title={DataTitles.unsuccessfulHTTPCodes}
-      series={[
-        responseCodeData[`http_response_rate(3)`],
-        responseCodeData[`http_response_rate(4)`],
-        responseCodeData[`http_response_rate(5)`],
-      ]}
+      timeSeries={responseCodeData?.timeSeries}
       extraActions={extraActions}
       aliases={FIELD_ALIASES}
       isLoading={isResponseCodeDataLoading}
