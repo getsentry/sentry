@@ -93,4 +93,33 @@ describe('WebVitalMetersWithIssues', () => {
     );
     expect(screen.getAllByLabelText('View Performance Issues')).toHaveLength(5);
   });
+
+  it('renders web vital meters with transaction', async () => {
+    render(
+      <WebVitalMetersWithIssues
+        projectData={projectData}
+        projectScore={projectScore}
+        transaction="test-transaction"
+      />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
+    expect(screen.getByText('First Contentful Paint')).toBeInTheDocument();
+    expect(screen.getByText('Cumulative Layout Shift')).toBeInTheDocument();
+    expect(screen.getByText('Time To First Byte')).toBeInTheDocument();
+    expect(screen.getByText('Interaction to Next Paint')).toBeInTheDocument();
+
+    expect(issuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            'is:unresolved issue.type:[web_vitals,performance_render_blocking_asset_span,performance_uncompressed_assets,performance_http_overhead,performance_consecutive_http,performance_n_plus_one_api_calls,performance_large_http_payload,performance_p95_endpoint_regression] transaction:test-transaction !web_vital:[fcp,inp,cls,ttfb]',
+        }),
+      })
+    );
+  });
 });
