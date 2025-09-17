@@ -16,6 +16,7 @@ class Platform(StrEnum):
 
 
 class BuildDetailsAppInfo(BaseModel):
+    created_at: str | None = None
     app_id: str | None
     name: str | None
     version: str | None
@@ -25,8 +26,7 @@ class BuildDetailsAppInfo(BaseModel):
     artifact_type: PreprodArtifact.ArtifactType | None = None
     platform: Platform | None = None
     is_installable: bool
-    # build_configuration: Optional[str] = None  # Uncomment when available
-    # icon: Optional[str] = None  # Uncomment when available
+    build_configuration: str | None = None
 
 
 class BuildDetailsVcsInfo(BaseModel):
@@ -97,6 +97,9 @@ def transform_preprod_artifact_to_build_details(
             platform_from_artifact_type(artifact.artifact_type) if artifact.artifact_type else None
         ),
         is_installable=is_installable_artifact(artifact),
+        build_configuration=(
+            artifact.build_configuration.name if artifact.build_configuration else None
+        ),
     )
 
     vcs_info = BuildDetailsVcsInfo(
