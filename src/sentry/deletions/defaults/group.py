@@ -10,10 +10,13 @@ from sentry import models
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
+from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.utils import options
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -209,6 +212,45 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
+
+
+def delete_group_hashes(
+    project_id: int,
+    group_ids: Sequence[int],
+    seer_deletion: bool = False,
+) -> None:
+    hashes_batch_size = options.get("deletions.group-hashes-batch-size")
+    total_hashes = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).count()
+
+    # Early return if there are no hashes to delete
+    if total_hashes == 0:
+        return
+
+    # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
+    hashes_batch_size = max(1, hashes_batch_size)
+
+    # We multiply by 1.1 to account for the fact that we may have deleted some hashes
+    # since we started the query. Ensure we always process at least one batch if there are hashes.
+    max_iterations = max(1, int(total_hashes * 1.1))
+    for _ in range(0, max_iterations, hashes_batch_size):
+        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
+            "id", "hash"
+        )[:hashes_batch_size]
+        hashes_chunk = list(qs)
+        if not hashes_chunk:
+            break
+        try:
+            if seer_deletion:
+                # Tell seer to delete grouping records for these groups
+                # It's low priority to delete the hashes from seer, so we don't want
+                # any network errors to block the deletion of the groups
+                hash_values = [gh[1] for gh in hashes_chunk]
+                may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
+        except Exception:
+            logger.warning("Error scheduling task to delete hashes from seer")
+        finally:
+            hash_ids = [gh[0] for gh in hashes_chunk]
+            GroupHash.objects.filter(id__in=hash_ids).delete()
 
 
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:

@@ -10,16 +10,14 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, options
+from sentry import audit_log
 from sentry.api.base import audit_logger
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
-from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -95,45 +93,6 @@ def delete_group_list(
                 "transaction_id": str(transaction_id),
             }
         )
-
-
-def delete_group_hashes(
-    project_id: int,
-    group_ids: Sequence[int],
-    seer_deletion: bool = False,
-) -> None:
-    hashes_batch_size = options.get("deletions.group-hashes-batch-size")
-    total_hashes = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).count()
-
-    # Early return if there are no hashes to delete
-    if total_hashes == 0:
-        return
-
-    # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
-    hashes_batch_size = max(1, hashes_batch_size)
-
-    # We multiply by 1.1 to account for the fact that we may have deleted some hashes
-    # since we started the query. Ensure we always process at least one batch if there are hashes.
-    max_iterations = max(1, int(total_hashes * 1.1))
-    for _ in range(0, max_iterations, hashes_batch_size):
-        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
-            "id", "hash"
-        )[:hashes_batch_size]
-        hashes_chunk = list(qs)
-        if not hashes_chunk:
-            break
-        try:
-            if seer_deletion:
-                # Tell seer to delete grouping records for these groups
-                # It's low priority to delete the hashes from seer, so we don't want
-                # any network errors to block the deletion of the groups
-                hash_values = [gh[1] for gh in hashes_chunk]
-                may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
-        except Exception:
-            delete_logger.warning("Error scheduling task to delete hashes from seer")
-        finally:
-            hash_ids = [gh[0] for gh in hashes_chunk]
-            GroupHash.objects.filter(id__in=hash_ids).delete()
 
 
 def create_audit_entries(
