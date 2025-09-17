@@ -13,9 +13,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 import {useDashboardsLimit} from './dashboardsLimit';
 
-const mockOrganization = OrganizationFixture({
-  features: ['dashboards-plan-limits'],
-});
+const mockOrganization = OrganizationFixture();
 
 const mockOrganizationWithoutFeature = OrganizationFixture({
   features: [],
@@ -25,19 +23,6 @@ describe('useDashboardsLimit', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     SubscriptionStore.init();
-  });
-
-  it('returns no limits when feature flag is disabled', () => {
-    const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
-      organization: mockOrganizationWithoutFeature,
-    });
-
-    expect(result.current).toEqual({
-      hasReachedDashboardLimit: false,
-      dashboardsLimit: 0,
-      isLoading: false,
-      limitMessage: null,
-    });
   });
 
   it('handles unlimited dashboards plan without making dashboards request', async () => {
