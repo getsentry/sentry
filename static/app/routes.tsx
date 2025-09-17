@@ -1552,14 +1552,12 @@ function buildRoutes(): RouteObject[] {
             {
               path: ':projectId/:detectorId/details/',
               component: make(() => import('sentry/views/alerts/rules/uptime/details')),
-              deprecatedRouteProps: true,
             },
             {
               path: 'existing-or-create/',
               component: make(
                 () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1891,27 +1889,6 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/performance/transactionSummary/transactionProfiles')
       ),
-    },
-    {
-      path: 'spans/',
-      children: [
-        {
-          index: true,
-          component: make(
-            () => import('sentry/views/performance/transactionSummary/transactionSpans')
-          ),
-        },
-        {
-          path: ':spanSlug/',
-          component: make(
-            () =>
-              import(
-                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
-              )
-          ),
-          deprecatedRouteProps: true,
-        },
-      ],
     },
   ];
 

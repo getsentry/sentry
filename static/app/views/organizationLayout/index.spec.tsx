@@ -11,14 +11,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 
-jest.mock(
-  'sentry/components/sidebar',
-  () =>
-    function () {
-      return <div />;
-    }
-);
-
 describe('OrganizationLayout', () => {
   beforeEach(() => {
     OrganizationStore.reset();

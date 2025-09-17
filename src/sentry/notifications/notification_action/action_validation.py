@@ -2,27 +2,23 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 
-from sentry.constants import ObjectStatus
+from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
+from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
+from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
-from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.notifications.notification_action.registry import action_validator_registry
+from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.workflow_engine.models.action import Action
 
 from .types import BaseActionValidatorHandler
 
 
-def _get_integration(validated_data: dict[str, Any], provider: str) -> RpcIntegration:
+# TODO: move this to the base or refactor to use for integration actions only
+def _get_integration_id(validated_data: dict[str, Any], provider: str) -> str:
     if not (integration_id := validated_data.get("integration_id")):
         raise ValidationError(f"Integration ID is required for {provider} action")
-
-    integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
-    )
-    if not integration:
-        raise ValidationError(f"{provider} integration with id {integration_id} not found")
-    return integration
+    return integration_id
 
 
 @action_validator_registry.register(Action.Type.SLACK)
@@ -31,10 +27,10 @@ class SlackActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = SlackNotifyServiceForm
 
     def generate_action_form_payload(self) -> dict[str, Any]:
-        integration = _get_integration(self.validated_data, self.provider)
+        integration_id = _get_integration_id(self.validated_data, self.provider)
 
         return {
-            "workspace": integration.id,
+            "workspace": integration_id,
             "channel": self.validated_data["config"]["target_display"],
             "channel_id": self.validated_data["config"].get("target_identifier"),
             "tags": self.validated_data["data"].get("tags"),
@@ -56,10 +52,10 @@ class MSTeamsActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = MsTeamsNotifyServiceForm
 
     def generate_action_form_payload(self) -> dict[str, Any]:
-        integration = _get_integration(self.validated_data, self.provider)
+        integration_id = _get_integration_id(self.validated_data, self.provider)
 
         return {
-            "team": integration.id,
+            "team": integration_id,
             "channel": self.validated_data["config"]["target_display"],
         }
 
@@ -71,3 +67,67 @@ class MSTeamsActionValidatorHandler(BaseActionValidatorHandler):
             }
         )
         return self.validated_data
+
+
+@action_validator_registry.register(Action.Type.DISCORD)
+class DiscordActionValidatorHandler(BaseActionValidatorHandler):
+    provider = Action.Type.DISCORD
+    notify_action_form = DiscordNotifyServiceForm
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        integration_id = _get_integration_id(self.validated_data, self.provider)
+
+        return {
+            "server": integration_id,
+            "channel_id": self.validated_data["config"]["target_identifier"],
+            "tags": self.validated_data["data"].get("tags"),
+        }
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        self.validated_data["config"].update(
+            {
+                "target_identifier": cleaned_data["channel_id"],
+            }
+        )
+        return self.validated_data
+
+
+class TicketingActionValidatorHandler(BaseActionValidatorHandler):
+    notify_action_form = IntegrationNotifyServiceForm
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        integration_id = _get_integration_id(self.validated_data, self.provider)
+
+        return {
+            "integration": integration_id,
+        }
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        return self.validated_data
+
+
+@action_validator_registry.register(Action.Type.JIRA)
+class JiraActionValidatorHandler(TicketingActionValidatorHandler):
+    provider = Action.Type.JIRA
+    notify_action_form = JiraNotifyServiceForm
+
+
+@action_validator_registry.register(Action.Type.JIRA_SERVER)
+class JiraServerActionValidatorHandler(TicketingActionValidatorHandler):
+    provider = Action.Type.JIRA_SERVER
+    notify_action_form = JiraServerNotifyServiceForm
+
+
+@action_validator_registry.register(Action.Type.AZURE_DEVOPS)
+class AzureDevOpsActionValidatorHandler(TicketingActionValidatorHandler):
+    provider = Action.Type.AZURE_DEVOPS
+
+
+@action_validator_registry.register(Action.Type.GITHUB)
+class GithubActionValidatorHandler(TicketingActionValidatorHandler):
+    provider = Action.Type.GITHUB
+
+
+@action_validator_registry.register(Action.Type.GITHUB_ENTERPRISE)
+class GithubEnterpriseActionValidatorHandler(TicketingActionValidatorHandler):
+    provider = Action.Type.GITHUB_ENTERPRISE
