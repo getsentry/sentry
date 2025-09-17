@@ -22,27 +22,21 @@ CounterStrategy = Literal["primary", "secondary", "both"]
 
 class DualWriteMetricsBackend(MetricsBackend):
     """
-    This backend will send eligible metrics to one or two backends.
+    This backend will send metrics to one or two backends, depending on options.
 
     The backends are configured using the `primary_backend{_args}` and `secondary_backend{_args}`
     kwargs.
 
-    Metrics that are matching the `allowed_prefixes` will be routed according to the following
-    rules:
+    Metrics are routed based on two allow-lists:
 
-    - "Distribution-like" metrics, such as `timing` and `distribution`, will be
-      sent to both configured backends.
-    - All other metrics (`incr`, `gauge`, `event`), which I call "counter-like"
-      will be routed according to the `counter_strategy` option:
-      - This can be `primary` to always send to the primary backend, effectively ignoring `allowed_prefixes`.
-      - Or it can be `both`, or `secondary`, in which case allow-listed metrics will
-        be send to both or the secondary backend only, accordingly.
+    - `secondary_prefixes`: If the metric matches any of these prefixes,
+      it is routed *only* to *only* the secondary backend.
+      (for backwards compatibility reasons, the `allow_prefixes` list acts as a fallback)
+    - `distribution_prefixes`: If the metric matches any of these prefixes,
+      any `distribution` or `timing` metric is routed to *both* backends,
+      all other metrics are routed *only* to the primary backend.
+    - If the metric is not matched by any prefix, it is routed to *only* the primary backend.
 
-      The default is `secondary`, so that allowlisted metrics are *only* routed to the secondary
-      backend, to avoid double-counting.
-      This is not an issue with "distribution-like" metrics, as the currently configured `primary`
-      is synthesizing multiple metrics out of a single distribution metric,
-      which do not conflict with the distribution metric itself.
     """
 
     def __init__(self, **kwargs: Any):
@@ -54,17 +48,24 @@ class DualWriteMetricsBackend(MetricsBackend):
             kwargs.pop("secondary_backend", None), kwargs.pop("secondary_backend_args", {})
         )
 
-        self._allow_prefixes = tuple(kwargs.pop("allow_prefixes", []))
-        self._counter_strategy = kwargs.pop("counter_strategy", "secondary")
+        self._distribution_prefixes = tuple(kwargs.pop("distribution_prefixes", []))
+        self._secondary_prefixes = tuple(
+            kwargs.pop("secondary_prefixes", []) or kwargs.pop("allow_prefixes", [])
+        )
 
-    def _is_allowed(self, key: str) -> bool:
-        return key.startswith(self._allow_prefixes)
+    def _distribution_choice(self, key: str) -> tuple[bool, bool]:
+        if key.startswith(self._secondary_prefixes):
+            return False, True
+        if key.startswith(self._distribution_prefixes):
+            return True, True
 
-    def _counter_choice(self, key: str) -> tuple[bool, bool]:
-        is_allowed = self._is_allowed(key)
-        use_primary = not is_allowed or self._counter_strategy != "secondary"
-        use_secondary = is_allowed and self._counter_strategy != "primary"
-        return use_primary, use_secondary
+        return True, False
+
+    def _other_choice(self, key: str) -> tuple[bool, bool]:
+        if key.startswith(self._secondary_prefixes):
+            return False, True
+
+        return True, False
 
     def incr(
         self,
@@ -76,7 +77,7 @@ class DualWriteMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
-        use_primary, use_secondary = self._counter_choice(key)
+        use_primary, use_secondary = self._other_choice(key)
         if use_primary:
             self._primary_backend.incr(
                 key, instance, tags, amount, sample_rate, unit, stacklevel + 1
@@ -95,8 +96,10 @@ class DualWriteMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
-        self._primary_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
-        if self._is_allowed(key):
+        use_primary, use_secondary = self._distribution_choice(key)
+        if use_primary:
+            self._primary_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
+        if use_secondary:
             self._secondary_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
 
     def gauge(
@@ -109,7 +112,7 @@ class DualWriteMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
-        use_primary, use_secondary = self._counter_choice(key)
+        use_primary, use_secondary = self._other_choice(key)
         if use_primary:
             self._primary_backend.gauge(
                 key, value, instance, tags, sample_rate, unit, stacklevel + 1
@@ -129,10 +132,12 @@ class DualWriteMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
-        self._primary_backend.distribution(
-            key, value, instance, tags, sample_rate, unit, stacklevel + 1
-        )
-        if self._is_allowed(key):
+        use_primary, use_secondary = self._distribution_choice(key)
+        if use_primary:
+            self._primary_backend.distribution(
+                key, value, instance, tags, sample_rate, unit, stacklevel + 1
+            )
+        if use_secondary:
             self._secondary_backend.distribution(
                 key, value, instance, tags, sample_rate, unit, stacklevel + 1
             )
@@ -149,7 +154,7 @@ class DualWriteMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         stacklevel: int = 0,
     ) -> None:
-        use_primary, use_secondary = self._counter_choice(title)
+        use_primary, use_secondary = self._other_choice(title)
         if use_primary:
             self._primary_backend.event(
                 title,
