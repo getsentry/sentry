@@ -128,7 +128,7 @@ const Label = styled('span')`
 </Text>;
 ```
 
-- Do not use or style h1, h2, h3, h4, h5, h6 intrinsic elements. Prefer using <Heading as="..."> component instead
+- Do not use or style h1, h2, h3, h4, h5, h6 intrinsic elements. Prefer using <Heading as="h1...h6">title</Heading> component instead
 
 ```tsx
 import {Heading} from 'sentry/components/core/text';
@@ -153,7 +153,7 @@ function Component(){
 }
 ```
 
-- Do not use or style intrinsic elements like. Prefer using <Text as="p | span | div" component instead
+- Do not use or style intrinsic elements like. Prefer using <Text as="p | span | div">text...</Text> component instead
 
 ```tsx
 import {Text} from 'sentry/components/core/text';
