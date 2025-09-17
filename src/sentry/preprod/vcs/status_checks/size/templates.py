@@ -224,7 +224,7 @@ def _format_success_summary(
                 else None
             )
 
-            if base_metrics:
+            if base_artifact and base_metrics:
                 download_change = _calculate_size_change(
                     size_metrics.max_download_size, base_metrics.max_download_size
                 )
