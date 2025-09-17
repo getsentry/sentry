@@ -9,8 +9,8 @@
  */
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
-import color from 'color';
 import {spring, type Transition} from 'framer-motion';
+import modifyColor from 'color';
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
@@ -547,11 +547,11 @@ const generateThemeAliases = (colors: Colors) => ({
    */
   searchTokenBackground: {
     valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(1.0).string(),
+    validActive: modifyColor(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    invalidActive: modifyColor(colors.red100).opaquer(0.8).string(),
     warning: colors.yellow100,
-    warningActive: color(colors.yellow100).opaquer(0.8).string(),
+    warningActive: modifyColor(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -559,11 +559,11 @@ const generateThemeAliases = (colors: Colors) => ({
    */
   searchTokenBorder: {
     valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(1).string(),
+    validActive: modifyColor(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(1).string(),
+    invalidActive: modifyColor(colors.red200).opaquer(1).string(),
     warning: colors.yellow200,
-    warningActive: color(colors.yellow200).opaquer(1).string(),
+    warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
   },
 });
 

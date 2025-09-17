@@ -5,7 +5,7 @@ import styled, {
   type FilteringStyledOptions,
   type StyledOptions,
 } from '@emotion/styled';
-import color from 'color';
+import modifyColor from 'color';
 
 import type {ColorMapping, FormTheme, Theme as SentryTheme} from './theme';
 import commonTheme, {
@@ -924,11 +924,11 @@ const generateAliases = (
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
     valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(1.0).string(),
+    validActive: modifyColor(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    invalidActive: modifyColor(colors.red100).opaquer(0.8).string(),
     warning: colors.yellow100,
-    warningActive: color(colors.yellow100).opaquer(0.8).string(),
+    warningActive: modifyColor(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -937,11 +937,11 @@ const generateAliases = (
    */
   searchTokenBorder: {
     valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(1).string(),
+    validActive: modifyColor(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(1).string(),
+    invalidActive: modifyColor(colors.red200).opaquer(1).string(),
     warning: colors.yellow200,
-    warningActive: color(colors.yellow200).opaquer(1).string(),
+    warningActive: modifyColor(colors.yellow200).opaquer(1).string(),
   },
 });
 
@@ -1134,7 +1134,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   level: generateLevelTheme(chonkLightColorMapping),
 
   chart: {
-    neutral: color(lightColors.gray400).lighten(0.8).toString(),
+    neutral: modifyColor(lightColors.gray400).lighten(0.8).toString(),
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1202,7 +1202,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   level: generateLevelTheme(chonkDarkColorMapping),
 
   chart: {
-    neutral: color(darkColors.gray400).darken(0.35).toString(),
+    neutral: modifyColor(darkColors.gray400).darken(0.35).toString(),
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
