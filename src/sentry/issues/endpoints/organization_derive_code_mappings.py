@@ -98,8 +98,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            project = Project.objects.get(id=request.data.get("projectId"))
-        except Project.DoesNotExist:
+            project = Project.objects.get(id=request.data["projectId"])
+        except (Project.DoesNotExist, KeyError):
             return self.respond(
                 {"text": "Could not find project"}, status=status.HTTP_404_NOT_FOUND
             )
