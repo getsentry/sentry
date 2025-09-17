@@ -36,45 +36,35 @@ Checkboxes are form controls that allow users to select one or more options from
 Checkboxes can be in different states: unchecked (default), checked, and indeterminate. They also support disabled states.
 
 <Storybook.Demo>
-  <Label>
-    Default <Checkbox />
-  </Label>
-  <Label>
-    Checked <Checkbox checked />
-  </Label>
-  <Label>
-    Indeterminate <Checkbox checked="indeterminate" />
-  </Label>
-  <Label>
-    Disabled <Checkbox disabled />
-  </Label>
-  <Label>
-    Disabled Checked <Checkbox disabled checked />
-  </Label>
-  <Label>
-    Indeterminate Disabled <Checkbox checked="indeterminate" disabled />
-  </Label>
+  <div style={{display: 'flex', flexDirection: 'column', gap: space(2)}}>
+    <Label>
+      Default <Checkbox />
+    </Label>
+    <Label>
+      Checked <Checkbox checked />
+    </Label>
+    <Label>
+      Indeterminate <Checkbox checked="indeterminate" />
+    </Label>
+    <Label>
+      Disabled <Checkbox disabled />
+    </Label>
+    <Label>
+      Disabled Checked <Checkbox disabled checked />
+    </Label>
+    <Label>
+      Indeterminate Disabled <Checkbox checked="indeterminate" disabled />
+    </Label>
+  </div>
 </Storybook.Demo>
 
 ```jsx
-<Label>
-  Default <Checkbox />
-</Label>
-<Label>
-  Checked <Checkbox checked />
-</Label>
-<Label>
-  Indeterminate <Checkbox checked="indeterminate" />
-</Label>
-<Label>
-  Disabled <Checkbox disabled />
-</Label>
-<Label>
-  Disabled Checked <Checkbox disabled checked />
-</Label>
-<Label>
-  Indeterminate Disabled <Checkbox checked="indeterminate" disabled />
-</Label>
+<Checkbox />
+<Checkbox checked />
+<Checkbox checked="indeterminate" />
+<Checkbox disabled />
+<Checkbox disabled checked />
+<Checkbox checked="indeterminate" disabled />
 ```
 
 ## Indeterminate State
@@ -108,20 +98,10 @@ The indeterminate state is useful for parent checkboxes in hierarchical lists wh
 </Storybook.Demo>
 
 ```jsx
-<Label>
-  <Checkbox checked="indeterminate" /> Select all items
-</Label>
-<div style={{marginLeft: space(3)}}>
-  <Label>
-    <Checkbox checked /> Item 1
-  </Label>
-  <Label>
-    <Checkbox /> Item 2
-  </Label>
-  <Label>
-    <Checkbox checked /> Item 3
-  </Label>
-</div>
+<Checkbox checked="indeterminate" />
+<Checkbox checked />
+<Checkbox />
+<Checkbox checked />
 ```
 
 ## Sizes
@@ -129,41 +109,24 @@ The indeterminate state is useful for parent checkboxes in hierarchical lists wh
 Checkboxes are available in different sizes: `md`, `sm` (default), and `xs`.
 
 <Storybook.Demo>
-  <Label>
-    Medium <Checkbox size="md" checked />
-  </Label>
-  <Label>
-    Small (default) <Checkbox size="sm" checked />
-  </Label>
-  <Label>
-    Extra small <Checkbox size="xs" checked />
-  </Label>
+  <div style={{display: 'flex', flexDirection: 'column', gap: space(2)}}>
+    <Label>
+      Medium <Checkbox size="md" checked />
+    </Label>
+    <Label>
+      Small (default) <Checkbox size="sm" checked />
+    </Label>
+    <Label>
+      Extra small <Checkbox size="xs" checked />
+    </Label>
+  </div>
 </Storybook.Demo>
 
 ```jsx
-<Label>
-  Medium <Checkbox size="md" checked />
-</Label>
-<Label>
-  Small (default) <Checkbox size="sm" checked />
-</Label>
-<Label>
-  Extra small <Checkbox size="xs" checked />
-</Label>
+<Checkbox size="md" checked />
+<Checkbox size="sm" checked />
+<Checkbox size="xs" checked />
 ```
-
-## Usage Guidelines
-
-**Use checkboxes when:**
-
-- Users can select multiple options from a list
-- You need to represent a binary on/off state
-- Users need to opt-in to something (like newsletter subscriptions)
-
-**Don't use checkboxes when:**
-
-- Users can only select one option (use radio buttons instead)
-- You need an immediate action (use a toggle switch instead)
 
 ## Accessibility
 
@@ -181,5 +144,3 @@ export const Label = styled('label')`
   margin-bottom: 0;
   cursor: pointer;
 `;
-
-;
