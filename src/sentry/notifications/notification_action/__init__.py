@@ -25,12 +25,20 @@ __all__ = [
     "WebhookActionHandler",
     "SentryAppActionHandler",
     "SendTestNotification",
+    "SlackActionValidatorHandler",
+    "MSTeamsActionValidatorHandler",
+    "DiscordActionValidatorHandler",
 ]
 
 from .action_handler_registry import (
     PluginActionHandler,
     SentryAppActionHandler,
     WebhookActionHandler,
+)
+from .action_validation import (
+    DiscordActionValidatorHandler,
+    MSTeamsActionValidatorHandler,
+    SlackActionValidatorHandler,
 )
 from .group_type_notification_registry import IssueAlertRegistryHandler, MetricAlertRegistryHandler
 from .grouptype import SendTestNotification

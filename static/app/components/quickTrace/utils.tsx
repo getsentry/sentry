@@ -55,9 +55,7 @@ export function generateTraceTarget(
     fields: ['title', 'event.type', 'project', 'trace.span', 'timestamp'],
     orderby: '-timestamp',
     query: `trace:${traceId}`,
-    projects: organization.features.includes('global-views')
-      ? [ALL_ACCESS_PROJECTS]
-      : [Number(event.projectID)],
+    projects: [ALL_ACCESS_PROJECTS],
     version: 2,
     ...dateSelection,
   });

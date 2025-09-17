@@ -75,7 +75,14 @@ end
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+    },
+  ],
 });
 
 const getInstallSnippet = (params: Params) =>

@@ -27,6 +27,10 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.contexts.workflow_event_context import (
+    WorkflowEventContext,
+    WorkflowEventContextData,
+)
 from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
     DelayedWorkflowItem,
@@ -370,6 +374,11 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
+        WorkflowEventContext.set(
+            WorkflowEventContextData(
+                detector=self.detector,
+            )
+        )
         evaluate_workflow_triggers({self.workflow}, self.event_data, self.event_start_time)
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_workflows.workflow_triggered",

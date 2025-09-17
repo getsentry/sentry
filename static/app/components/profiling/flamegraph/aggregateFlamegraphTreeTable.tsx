@@ -74,13 +74,17 @@ function makeSortFunction(
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          return b.node.node.aggregate_duration_ns - a.node.node.aggregate_duration_ns;
+          const avgA = a.node.frame.averageCallDuration || 0;
+          const avgB = b.node.frame.averageCallDuration || 0;
+          return avgB - avgA;
         }
       : (
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          return a.node.node.aggregate_duration_ns - b.node.node.aggregate_duration_ns;
+          const avgA = a.node.frame.averageCallDuration || 0;
+          const avgB = b.node.frame.averageCallDuration || 0;
+          return avgA - avgB;
         };
   }
 
@@ -248,6 +252,15 @@ export function AggregateFlamegraphTreeTable({
                   nanoseconds={r.item.node.node.aggregate_duration_ns}
                   abbreviation
                 />
+              }
+              showAvg
+              avgWeight={
+                defined(r.item.node.frame.averageCallDuration) ? (
+                  <PerformanceDuration
+                    nanoseconds={r.item.node.frame.averageCallDuration}
+                    abbreviation
+                  />
+                ) : undefined
               }
               selfWeight={r.item.node.node.totalWeight.toFixed(0)}
               relativeSelfWeight={relativeWeight(
@@ -424,9 +437,9 @@ export function AggregateFlamegraphTreeTable({
             <CallTreeTableHeaderButton onClick={onSortByDuration}>
               <InteractionStateLayer />
               <span>
-                {t('Duration')}{' '}
+                {t('Average Duration')}{' '}
                 <QuestionTooltip
-                  title={t('Aggregated duration of this frame across different samples.')}
+                  title={t('Average duration of this frame across different samples.')}
                   size="sm"
                   position="top"
                 />

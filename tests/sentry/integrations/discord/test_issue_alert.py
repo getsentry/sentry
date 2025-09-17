@@ -72,7 +72,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def assert_lifecycle_metrics(self, mock_record_event):
+    def assert_lifecycle_metrics(self, mock_record_event: mock.MagicMock) -> None:
         notification_uuid = str(uuid4())
         self.rule.after(self.event, notification_uuid=notification_uuid)
 
@@ -82,7 +82,9 @@ class DiscordIssueAlertTest(RuleTestCase):
         "sentry.integrations.discord.client.DiscordClient.send_message", side_effect=Exception
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def assert_lifecycle_metrics_failure(self, mock_record_event, mock_send_message):
+    def assert_lifecycle_metrics_failure(
+        self, mock_record_event: mock.MagicMock, mock_send_message: mock.MagicMock
+    ) -> None:
         self.rule.after(self.event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
@@ -91,7 +93,9 @@ class DiscordIssueAlertTest(RuleTestCase):
         side_effect=ApiRateLimitedError(text="Rate limited"),
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def assert_lifecycle_metrics_halt_for_rate_limit(self, mock_record_event, mock_send_message):
+    def assert_lifecycle_metrics_halt_for_rate_limit(
+        self, mock_record_event: mock.MagicMock, mock_send_message: mock.MagicMock
+    ) -> None:
         self.rule.after(self.event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
@@ -101,8 +105,8 @@ class DiscordIssueAlertTest(RuleTestCase):
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def assert_lifecycle_metrics_halt_for_missing_access(
-        self, mock_record_event, mock_send_message
-    ):
+        self, mock_record_event: mock.MagicMock, mock_send_message: mock.MagicMock
+    ) -> None:
         self.rule.after(self.event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
@@ -112,8 +116,8 @@ class DiscordIssueAlertTest(RuleTestCase):
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def assert_lifecycle_metrics_failure_for_other_api_error(
-        self, mock_record_event, mock_send_message
-    ):
+        self, mock_record_event: mock.MagicMock, mock_send_message: mock.MagicMock
+    ) -> None:
         self.rule.after(self.event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 

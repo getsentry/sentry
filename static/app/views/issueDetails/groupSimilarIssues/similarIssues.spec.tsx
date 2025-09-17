@@ -60,6 +60,14 @@ describe('Issues Similar View', () => {
       url: `/issues/${group.id}/related-issues/`,
       body: {data: [], type: 'same_root_cause'},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/latest/`,
+      body: {platform: 'python'},
+    });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
   });
@@ -207,6 +215,14 @@ describe('Issues Similar Embeddings View', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/related-issues/`,
       body: {data: [], type: 'same_root_cause'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/latest/`,
+      body: {platform: 'python'},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
