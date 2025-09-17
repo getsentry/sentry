@@ -2,11 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import ShortId from 'sentry/components/shortId';
 import {
   StatusIndicator,
@@ -16,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -24,6 +28,13 @@ import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
 
 import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from './monitorForm';
+
+/**
+ * How many seconds can a check-in have been stuck in Relay before being
+ * considered to have "high latency", at which point we'll show an indicator on
+ * the check-in row.
+ */
+const HIGH_LATENCY_CUTOFF = 60;
 
 interface CheckInRowProps {
   cellKey: CheckInCellKey;
@@ -95,6 +106,7 @@ function getCompletionStatus({status, duration}: CheckIn) {
 export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const organization = useOrganization();
   const {
+    id,
     status,
     dateAdded,
     dateUpdated,
@@ -123,9 +135,23 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
     <TimestampContainer>
       <ExpectedDateTime date={expectedTime} timeZone seconds />
       <OffScheduleIndicator checkIn={checkIn} />
+      <ProcessingLatencyIndicator checkIn={checkIn} />
     </TimestampContainer>
   ) : (
     emptyCell
+  );
+
+  const checkInIdColumn = (
+    <Flex gap="md">
+      <ShortId shortId={getShortEventId(id)} />
+      <CopyToClipboardButton
+        size="zero"
+        borderless
+        text={id.replaceAll('-', '')}
+        title={t('Copy full check-in identifier')}
+        aria-label={t('Copy Check-In ID')}
+      />
+    </Flex>
   );
 
   // Missed rows are mostly empty
@@ -135,6 +161,8 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
         return statusColumn;
       case 'environment':
         return environmentColumn;
+      case 'checkInId':
+        return checkInIdColumn;
       case 'expectedAt':
         return expectedAtColumn;
       default:
@@ -187,20 +215,20 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const groupsColumn =
     groups && groups.length > 0 ? (
       <IssuesContainer>
-        {groups.map(({id, shortId}) => (
+        {groups.map(({id: groupId, shortId}) => (
           <QuickContextHovercard
             dataRow={{
-              ['issue.id']: id,
+              ['issue.id']: groupId,
               issue: shortId,
             }}
             contextType={ContextType.ISSUE}
             organization={organization}
-            key={id}
+            key={groupId}
           >
             <StyledShortId
               shortId={shortId}
               avatar={<ProjectBadge project={project} hideName avatarSize={12} />}
-              to={`/organizations/${organization.slug}/issues/${id}/`}
+              to={`/organizations/${organization.slug}/issues/${groupId}/`}
             />
           </QuickContextHovercard>
         ))}
@@ -218,6 +246,8 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
       return completedColumn;
     case 'duration':
       return durationColumn;
+    case 'checkInId':
+      return checkInIdColumn;
     case 'issues':
       return groupsColumn;
     case 'environment':
@@ -300,30 +330,59 @@ interface TimeoutLateByProps {
 }
 
 /**
- * Renders a tag indicating how late the completing check-in was when a
- * check-in timed out but still has a duration (indicating we have a closing
- * check-in)
+ * Computes the timeout check-ins lateBySeconds, this is how much longer the
+ * check-in ran past it's max runtime. Also returns the maxRuntimeSeconds. This
+ * is computed from the monitor config at the time of the check-inAlso returns
+ * the maxRuntimeSeconds. This is computed from the monitor config at the time
+ * of the check-in
  */
-function CompletedLateIndicator({checkIn}: TimeoutLateByProps) {
-  const {duration, monitorConfig} = checkIn;
+function computeTimeoutMetrics({status, duration, monitorConfig}: CheckIn) {
+  // metrics are only valid for check-ins that timed out
+  if (status !== CheckInStatus.TIMEOUT) {
+    return null;
+  }
 
+  // metrics are only valid for timed out check-ins with a duraiton
   if (duration === null) {
     return null;
   }
 
   const maxRuntimeSeconds = (monitorConfig.max_runtime ?? DEFAULT_MAX_RUNTIME) * 60;
-  const lateBySecond = duration / 1000 - maxRuntimeSeconds;
+  const lateBySeconds = duration / 1000 - maxRuntimeSeconds;
 
-  // In cases where a check-in was processed late due to being stuck in relay
-  // we may compute a negative lateBySecond. In those cases do not render the
-  // indicator.
-  //
-  // This happens because the check-in is marked as timedout, later we receive
-  // a completing check-in that updates the duration. Typically this would
-  // imply the check-in ran too long. But if the duration is less than the
-  // max-runtine, it implies the check-in was produced to kafka much later than
-  // it should have, and the job actually ran like normal
-  if (lateBySecond < 0) {
+  return {maxRuntimeSeconds, lateBySeconds};
+}
+
+/**
+ * In cases where a check-in was processed late due to being stuck in relay we
+ * may compute a negative lateBySeconds.
+ *
+ * This happens because the check-in is marked as timed out, later we receive a
+ * completing check-in that updates the duration. Typically this would imply
+ * the check-in ran too long. But if the duration is less than the max-runtine,
+ * it implies the check-in was produced to kafka much later than it should
+ * have, and the job actually ran like normal
+ */
+function isAbnormalLate(lateBySeconds: number) {
+  return lateBySeconds < 0;
+}
+
+/**
+ * Renders a tag indicating how late the completing check-in was when a
+ * check-in timed out but still has a duration (indicating we have a closing
+ * check-in)
+ */
+function CompletedLateIndicator({checkIn}: TimeoutLateByProps) {
+  const metrics = computeTimeoutMetrics(checkIn);
+
+  if (metrics === null) {
+    return null;
+  }
+
+  const {maxRuntimeSeconds, lateBySeconds} = metrics;
+
+  // See comment on isAbnormalLate for this case
+  if (isAbnormalLate(lateBySeconds)) {
     return null;
   }
 
@@ -335,7 +394,7 @@ function CompletedLateIndicator({checkIn}: TimeoutLateByProps) {
 
   const lateBy = (
     <strong>
-      <Duration seconds={lateBySecond} />
+      <Duration seconds={lateBySeconds} />
     </strong>
   );
 
@@ -347,7 +406,7 @@ function CompletedLateIndicator({checkIn}: TimeoutLateByProps) {
   return (
     <Tooltip skipWrapper title={title}>
       <Tag type="error">
-        {t('%s late', <Duration abbreviation seconds={lateBySecond} />)}
+        {t('%s late', <Duration abbreviation seconds={lateBySeconds} />)}
       </Tag>
     </Tooltip>
   );
@@ -382,6 +441,50 @@ function NotSentIndicator() {
       <Tag type="warning">{t('Not Sent')}</Tag>
     </Tooltip>
   );
+}
+
+interface ProcessingLatencyProps {
+  checkIn: CheckIn;
+}
+
+/**
+ * Renders a slow processing indicator to inform the user that we took a long
+ * time to process this check-in.
+ */
+function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
+  const {dateClock, dateAdded, status} = checkIn;
+
+  // Check-ins that have a high latency, the time between the dateAdded (the
+  // time the opening check-in was received by relay) and the dateClock (the
+  // reference time at the point the check-in was placed in kafka), indicates
+  // that the check-in spent a long time in relay.
+  //
+  // Right now there's little we can do to correct for this, so as a best
+  // effort to help the user understand that there was a problem.
+  const processingLatency = moment(dateClock).diff(dateAdded, 'seconds');
+  const hasProcessingLatency =
+    status !== CheckInStatus.MISSED && processingLatency >= HIGH_LATENCY_CUTOFF;
+
+  // Timned out check-ins that have abnormal "lateBySeconds" metrics indicate
+  // the completing check-in was stuck in relay.
+  const timeoutMetrics = computeTimeoutMetrics(checkIn);
+  const abnormalLateCheckIn =
+    timeoutMetrics && isAbnormalLate(timeoutMetrics.lateBySeconds);
+
+  if (!hasProcessingLatency && !abnormalLateCheckIn) {
+    return null;
+  }
+
+  // Different tooltips for different scenarios
+  const tooltipMessage = hasProcessingLatency
+    ? t(
+        'This check-in was processed late due to abnormal system latency in Sentry. The status of this check-in may be inaccurate.'
+      )
+    : t(
+        'This check-in was incorrectly marked as timed-out. The check-in was processed late due to abnormal system latency in Sentry.'
+      );
+
+  return <QuestionTooltip icon="info" size="sm" title={tooltipMessage} />;
 }
 
 const Status = styled('div')`
