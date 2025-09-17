@@ -38,24 +38,24 @@ Checkboxes can be in different states: unchecked (default), checked, and indeter
 
 <Storybook.Demo>
   <Stack gap="md">
-    <Label>
+    <label>
       Default <Checkbox />
-    </Label>
-    <Label>
+    </label>
+    <label>
       Checked <Checkbox checked />
-    </Label>
-    <Label>
+    </label>
+    <label>
       Indeterminate <Checkbox checked="indeterminate" />
-    </Label>
-    <Label>
+    </label>
+    <label>
       Disabled <Checkbox disabled />
-    </Label>
-    <Label>
+    </label>
+    <label>
       Disabled Checked <Checkbox disabled checked />
-    </Label>
-    <Label>
+    </label>
+    <label>
       Indeterminate Disabled <Checkbox checked="indeterminate" disabled />
-    </Label>
+    </label>
   </Stack>
 </Storybook.Demo>
 
@@ -74,19 +74,19 @@ The indeterminate state is useful for parent checkboxes in hierarchical lists wh
 
 <Storybook.Demo>
   <Stack gap="sm">
-    <Label>
+    <label>
       <Checkbox checked="indeterminate" /> Select all items
-    </Label>
-    <Stack gap="sm" style={{marginLeft: space(3)}}>
-      <Label>
+    </label>
+    <Stack gap="sm" paddingLeft="lg">
+      <label>
         <Checkbox checked /> Item 1
-      </Label>
-      <Label>
+      </label>
+      <label>
         <Checkbox /> Item 2
-      </Label>
-      <Label>
+      </label>
+      <label>
         <Checkbox checked /> Item 3
-      </Label>
+      </label>
     </Stack>
   </Stack>
 </Storybook.Demo>
@@ -104,15 +104,15 @@ Checkboxes are available in different sizes: `md`, `sm` (default), and `xs`.
 
 <Storybook.Demo>
   <Stack gap="md">
-    <Label>
+    <label>
       Medium <Checkbox size="md" checked />
-    </Label>
-    <Label>
+    </label>
+    <label>
       Small (default) <Checkbox size="sm" checked />
-    </Label>
-    <Label>
+    </label>
+    <label>
       Extra small <Checkbox size="xs" checked />
-    </Label>
+    </label>
   </Stack>
 </Storybook.Demo>
 
@@ -127,14 +127,3 @@ Checkboxes are available in different sizes: `md`, `sm` (default), and `xs`.
 To meet WCAG 2.2 AA compliance, `<Checkbox>` automatically meets the [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), and [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum) success criteria.
 
 Developers should ensure their implementations follow the [WAI-ARIA Checkbox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/) and provide appropriate labels for screen readers.
-
-> [!WARNING]
-> Always pair checkboxes with labels. Use the `<label>` element or `aria-label` attribute to ensure screen readers can identify the purpose of each checkbox.
-
-export const Label = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  margin-bottom: 0;
-  cursor: pointer;
-`;
