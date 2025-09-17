@@ -324,8 +324,7 @@ declare namespace Profiling {
     >;
     shared: {
       frames: ReadonlyArray<Omit<Profiling.Frame, 'key'>>;
-      frame_infos?: ReadonlyArray<Profiling.FrameInfo, 'key'>;
-      profile_ids?: ReadonlyArray<string>[];
+      frame_infos?: ReadonlyArray<Profiling.FrameInfo>;
       profiles?: ReadonlyArray<ProfileReference>;
     };
     activeProfileIndex?: number;

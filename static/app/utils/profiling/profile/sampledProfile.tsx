@@ -44,7 +44,7 @@ type Sample = {
 
 function stacksWithWeights(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Profiling.ProfileReference[][] = [],
+  profiles: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
 ): Sample[] {
   return profile.samples.map((stack, index) => {
@@ -52,28 +52,28 @@ function stacksWithWeights(
       stack: frameFilter ? stack.filter(frameFilter) : stack,
       weight: profile.weights[index],
       aggregate_sample_duration: profile.sample_durations_ns?.[index] ?? 0,
-      references: profileIds[index] || [],
+      references: profiles[index] || [],
     };
   });
 }
 
 function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Profiling.ProfileReference[][] = [],
+  profiles: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
 ): Sample[] {
-  return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
+  return stacksWithWeights(profile, profiles, frameFilter).sort(sortStacks);
 }
 
 function mergeProfileExamples(
-  profileIds: Readonly<Profiling.SampledProfile['samples_profiles']>,
+  profiles: Readonly<Profiling.SampledProfile['samples_profiles']>,
   profileReferences: Readonly<Profiling.SampledProfile['samples_examples']>
 ): number[][] {
   const merged: number[][] = [];
 
-  const l = Math.max(profileIds?.length ?? 0, profileReferences?.length ?? 0);
+  const l = Math.max(profiles?.length ?? 0, profileReferences?.length ?? 0);
   for (let i = 0; i < l; i++) {
-    merged[i] = (profileIds?.[i] ?? []).concat(profileReferences?.[i] ?? []);
+    merged[i] = (profiles?.[i] ?? []).concat(profileReferences?.[i] ?? []);
   }
 
   return merged;
@@ -87,9 +87,7 @@ export class SampledProfile extends Profile {
     options: {
       type: 'flamechart' | 'flamegraph';
       frameFilter?: (frame: Frame) => boolean;
-      profileIds?:
-        | Profiling.Schema['shared']['profile_ids']
-        | Profiling.Schema['shared']['profiles'];
+      profiles?: Profiling.Schema['shared']['profiles'];
     }
   ): Profile {
     assertValidProfilingUnit(sampledProfile.unit);
@@ -113,14 +111,14 @@ export class SampledProfile extends Profile {
     if (
       options.type === 'flamegraph' &&
       (sampledProfile.samples_profiles || sampledProfile.samples_examples) &&
-      options.profileIds
+      options.profiles
     ) {
       resolvedProfileIds = resolveFlamegraphSamplesProfileIds(
         mergeProfileExamples(
           sampledProfile.samples_profiles,
           sampledProfile.samples_examples
         ),
-        options.profileIds as Profiling.ProfileReference[]
+        options.profiles.slice()
       );
     }
 
