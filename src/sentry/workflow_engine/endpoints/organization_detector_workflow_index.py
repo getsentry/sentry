@@ -20,7 +20,9 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.serializers import DetectorWorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.detector_workflow_serializer import (
+    DetectorWorkflowSerializer,
+)
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     DetectorWorkflowValidator,
     can_edit_detector,

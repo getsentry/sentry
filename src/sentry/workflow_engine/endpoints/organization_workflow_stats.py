@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowEndpoint,
 )
-from sentry.workflow_engine.endpoints.serializers import (
+from sentry.workflow_engine.endpoints.serializers.timeseries_value_serializer import (
     TimeSeriesValueSerializer,
     fetch_workflow_hourly_stats,
 )

@@ -15,7 +15,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.workflow_engine.endpoints.serializers import (
+from sentry.workflow_engine.endpoints.serializers.data_condition_handler_serializer import (
     DataConditionHandlerResponse,
     DataConditionHandlerSerializer,
 )
