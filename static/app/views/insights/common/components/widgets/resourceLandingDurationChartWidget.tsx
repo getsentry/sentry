@@ -22,13 +22,16 @@ export default function ResourceLandingDurationChartWidget(
     pageFilters: props.pageFilters,
   });
 
+  const timeSeries = data?.timeSeries || [];
+  const durationSeries = timeSeries.find(ts => ts.yAxis === `avg(${SPAN_SELF_TIME})`);
+
   return (
     <InsightsLineChartWidget
       {...props}
       queryInfo={{search, referrer, yAxis: [`avg(${SPAN_SELF_TIME})`]}}
       id="resourceLandingDurationChartWidget"
       title={getDurationChartTitle('resource')}
-      series={[data[`avg(${SPAN_SELF_TIME})`]]}
+      timeSeries={durationSeries ? [durationSeries] : []}
       isLoading={isPending}
       error={error}
     />
