@@ -24,7 +24,7 @@ import type {
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
 
-export function SizeComparisonMainContent() {
+export function SizeCompareMainContent() {
   const organization = useOrganization();
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
