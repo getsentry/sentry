@@ -8,22 +8,22 @@ import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/de
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
 import {DebugNotificationsSidebar} from 'sentry/debug/notifications/components/debugNotificationsSidebar';
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
+import {useRouteSource} from 'sentry/debug/notifications/hooks/useRouteSource';
 import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview';
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
 import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
-import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 const HEADER_HEIGHT = 52;
 
 export default function DebugNotificationsIndex() {
-  const location = useLocation();
+  const {routeSource} = useRouteSource();
   const {data: registry = {}} = useRegistry();
   const registrations = Object.values(registry).flat();
   const selectedRegistration = registrations.find(
-    registration => location.query.source === registration.source
+    registration => routeSource === registration.source
   );
   return (
     <RouteAnalyticsContextProvider>
