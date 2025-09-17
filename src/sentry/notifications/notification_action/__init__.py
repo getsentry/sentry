@@ -28,6 +28,11 @@ __all__ = [
     "SlackActionValidatorHandler",
     "MSTeamsActionValidatorHandler",
     "DiscordActionValidatorHandler",
+    "JiraActionValidatorHandler",
+    "JiraServerActionValidatorHandler",
+    "AzureDevOpsActionValidatorHandler",
+    "GithubActionValidatorHandler",
+    "GithubEnterpriseActionValidatorHandler",
 ]
 
 from .action_handler_registry import (
@@ -36,7 +41,12 @@ from .action_handler_registry import (
     WebhookActionHandler,
 )
 from .action_validation import (
+    AzureDevOpsActionValidatorHandler,
     DiscordActionValidatorHandler,
+    GithubActionValidatorHandler,
+    GithubEnterpriseActionValidatorHandler,
+    JiraActionValidatorHandler,
+    JiraServerActionValidatorHandler,
     MSTeamsActionValidatorHandler,
     SlackActionValidatorHandler,
 )
