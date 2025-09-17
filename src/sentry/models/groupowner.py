@@ -5,12 +5,11 @@ from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum, StrEnum
-from typing import Any, ClassVar, TypedDict
+from typing import ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
 from django.db.models import BigIntegerField, F
-from django.db.models import JSONField as DjangoJSONField
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast
 from django.utils import timezone
@@ -18,7 +17,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.group import Group
 from sentry.utils.cache import cache
@@ -119,7 +118,7 @@ class GroupOwner(Model):
             (GroupOwnerType.CODEOWNERS, "Codeowners"),
         )
     )
-    context: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    context = LegacyTextJSONField(null=True)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -136,7 +135,7 @@ class GroupOwner(Model):
                 Cast(
                     KeyTextTransform(
                         "commitId",
-                        Cast(F("context"), DjangoJSONField()),
+                        Cast(F("context"), models.JSONField()),
                     ),
                     BigIntegerField(),
                 ),
