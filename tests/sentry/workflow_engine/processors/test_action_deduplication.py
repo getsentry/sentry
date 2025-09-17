@@ -7,7 +7,10 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import get_unique_active_actions
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
+from sentry.workflow_engine.typings.notification_action import (
+    FallthroughChoiceType,
+    SentryAppIdentifier,
+)
 
 
 @region_silo_test
@@ -349,7 +352,7 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": "user-123@example.com",
             },
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
@@ -359,9 +362,7 @@ class TestActionDeduplication(TestCase):
                 "target_type": ActionTarget.SPECIFIC,
                 "target_identifier": "user-123@example.com",
             },
-            data={
-                "fallthroughType": "none",
-            },
+            data={},
         )
 
         actions_queryset = Action.objects.filter(
@@ -384,7 +385,7 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": "user-123@example.com",
             },
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
@@ -395,7 +396,7 @@ class TestActionDeduplication(TestCase):
                 "target_identifier": "user-123@example.com",
             },
             data={
-                "fallthroughType": "team",
+                "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
 
