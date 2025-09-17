@@ -10,6 +10,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 export type SeerExplorerResponse = {
@@ -78,6 +79,7 @@ export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
+  const captureAsciiSnapshot = useAsciiSnapshot();
 
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
@@ -104,6 +106,9 @@ export const useSeerExplorer = () => {
         return;
       }
 
+      // Capture a coarse ASCII screenshot of the user's screen for extra context
+      const screenshot = captureAsciiSnapshot?.();
+
       setWaitingForResponse(true);
 
       // Calculate insert index first
@@ -123,6 +128,7 @@ export const useSeerExplorer = () => {
               query,
               insert_index: calculatedInsertIndex,
               message_timestamp: timestamp,
+              on_page_context: screenshot,
             },
           }
         )) as SeerExplorerChatResponse;
@@ -145,7 +151,15 @@ export const useSeerExplorer = () => {
         );
       }
     },
-    [queryClient, api, orgSlug, currentRunId, apiData, deletedFromIndex]
+    [
+      queryClient,
+      api,
+      orgSlug,
+      currentRunId,
+      apiData,
+      deletedFromIndex,
+      captureAsciiSnapshot,
+    ]
   );
 
   const startNewSession = useCallback(() => {
