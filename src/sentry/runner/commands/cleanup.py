@@ -154,6 +154,10 @@ def cleanup(
     this can be done with the `--project` or `--organization` flags respectively,
     which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
     """
+    import logging
+
+    logger = logging.getLogger("sentry.cleanup")
+
     if concurrency < 1:
         click.echo("Error: Minimum concurrency is 1", err=True)
         raise click.Abort()
@@ -354,9 +358,6 @@ def cleanup(
         # Exclude models that were legitimately filtered out (silo/router restrictions)
         models_never_attempted = model_list - models_attempted - models_legitimately_filtered
         if models_never_attempted:
-            import logging
-
-            logger = logging.getLogger("sentry.cleanup")
             logger.error(
                 "Models specified with --model were never attempted for deletion, must configure cleanup for this model",
                 extra={
