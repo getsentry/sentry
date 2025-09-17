@@ -215,10 +215,7 @@ class RangeQuerySetWrapper[V]:
         self.result_value_getter = result_value_getter
 
     def _validate_ordering_column(
-        self,
-        queryset: QuerySet[Model, V],
-        order_by: str,
-        override_unique_safety_check: bool
+        self, queryset: QuerySet[Model, V], order_by: str, override_unique_safety_check: bool
     ) -> None:
         """
         Validates that the ordering column is unique to prevent infinite loops.
@@ -230,9 +227,7 @@ class RangeQuerySetWrapper[V]:
         try:
             order_by_field = queryset.model._meta.get_field(field_name)
         except Exception as e:
-            raise InvalidQuerySetError(
-                f"Invalid order_by field '{order_by}': {e}"
-            ) from e
+            raise InvalidQuerySetError(f"Invalid order_by field '{order_by}': {e}") from e
 
         if not override_unique_safety_check and (
             not isinstance(order_by_field, Field) or not order_by_field.unique
@@ -296,9 +291,7 @@ class RangeQuerySetWrapper[V]:
         return self.limit is not None and processed_count >= self.limit
 
     def _build_batch_queryset(
-        self,
-        ordered_queryset: QuerySet[Model, V],
-        current_order_value: int | None
+        self, ordered_queryset: QuerySet[Model, V], current_order_value: int | None
     ) -> QuerySet[Model, V]:
         """
         Build the queryset for the current batch using cursor pagination.
@@ -395,10 +388,7 @@ class RangeQuerySetWrapperWithProgressBar[V](RangeQuerySetWrapper[V]):
         """
         total_count = self.get_total_count()
         iterator = super().__iter__()
-        model_name = (
-            self.queryset.model._meta.verbose_name_plural
-            or self.queryset.model.__name__
-        )
+        model_name = self.queryset.model._meta.verbose_name_plural or self.queryset.model.__name__
         return iter(WithProgressBar(iterator, total_count, model_name.title()))
 
 
