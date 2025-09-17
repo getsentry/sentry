@@ -160,6 +160,7 @@ export function PageOverviewSidebar({
 
   const runSeerAnalysis = useRunSeerAnalysis({
     projectScore,
+    projectData: projectData?.[0],
     transaction,
     webVitalTraceSamples,
   });

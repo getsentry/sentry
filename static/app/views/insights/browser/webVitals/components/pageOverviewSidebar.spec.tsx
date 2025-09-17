@@ -228,6 +228,15 @@ describe('PageOverviewSidebar', () => {
         <PageOverviewSidebar
           transaction={TRANSACTION_NAME}
           projectScore={{lcpScore: 80}}
+          projectData={[
+            {
+              'p75(measurements.lcp)': 1000,
+              'p75(measurements.cls)': 0.1,
+              'p75(measurements.fcp)': 1800,
+              'p75(measurements.ttfb)': 600,
+              'p75(measurements.inp)': 200,
+            },
+          ]}
         />,
         {organization}
       );
@@ -242,6 +251,7 @@ describe('PageOverviewSidebar', () => {
             issueType: 'web_vitals',
             vital: 'lcp',
             score: 80,
+            value: 1000,
             transaction: TRANSACTION_NAME,
           }),
         })
