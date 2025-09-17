@@ -334,7 +334,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 35)
     @patch("sentry.data_export.tasks.MAX_FILE_SIZE", 55)
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_export_file_too_large(self, emailer) -> None:
+    def test_discover_export_file_too_large(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -623,7 +623,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
 
     @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 200)
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_large_batch(self, emailer) -> None:
+    def test_discover_large_batch(self, emailer: MagicMock) -> None:
         """
         Each row in this export requires exactly 13 bytes, with batch_size=3 and
         MAX_BATCH_SIZE=200, this means that each batch can export 6 batch fragments,

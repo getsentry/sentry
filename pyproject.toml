@@ -722,7 +722,7 @@ module = [
     "tests.sentry.auth_v2.endpoints.*",
     "tests.sentry.celery.*",
     "tests.sentry.charts.*",
-    "tests.sentry.data_export.processors.*",
+    "tests.sentry.data_export.*",
     "tests.sentry.data_secrecy.*",
     "tests.sentry.debug.utils.*",
     "tests.sentry.deletions.tasks.test_groups",
