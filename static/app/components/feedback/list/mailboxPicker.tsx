@@ -9,6 +9,8 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Mailbox = ReturnType<typeof decodeMailbox>;
@@ -22,8 +24,9 @@ export default function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
   const theme = useTheme();
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
 
+  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
   const hasSpamFeature = organization.features.includes('user-feedback-spam-ingest');
   const hasAiFeatures = areAiFeaturesAllowed && setupAcknowledgement.orgHasAcknowledged;
 
@@ -36,7 +39,7 @@ export default function MailboxPicker({onChange, value}: Props) {
       // only show an AI info tooltip if the org has auto spam detection available,
       // but not the correct AI flags or seer acknowledgement.
       tooltip:
-        hasSpamFeature && !hasAiFeatures
+        hasSpamFeature && !hasAiFeatures && !isSelfHosted
           ? tct(
               'Generative AI Features and Seer access are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on, then view the [linkSeer:Seer settings page] for more information.',
               {
