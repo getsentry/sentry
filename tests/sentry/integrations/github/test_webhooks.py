@@ -28,6 +28,7 @@ from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -238,31 +239,17 @@ class InstallationDeleteEventWebhookTest(APITestCase):
     @patch(
         "sentry.integrations.github.tasks.codecov_account_unlink.codecov_account_unlink.apply_async"
     )
-    @patch("sentry.options.get")
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @override_options(
+        {
+            "github-app.id": "123",
+            "github-app.webhook-secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "hybrid_cloud.authentication.disabled_organization_shards": [],
+            "hybrid_cloud.authentication.disabled_user_shards": [],
+        }
+    )
     def test_installation_deleted_triggers_codecov_unlink_when_app_ids_match(
-        self, get_jwt: MagicMock, mock_options_get: MagicMock, mock_codecov_unlink: MagicMock
-    ) -> None:
-        def options_side_effect(key, default=None):
-            if key == "github-app.id":
-                return "123"
-            elif key == "github-app.webhook-secret":
-                return self.secret
-            elif key in [
-                "hybrid_cloud.authentication.disabled_organization_shards",
-                "hybrid_cloud.authentication.disabled_user_shards",
-            ]:
-                return []
-            return default
-
-        mock_options_get.side_effect = options_side_effect
-
-        self._run_test_installation_deleted_triggers_codecov_unlink_when_app_ids_match(
-            mock_codecov_unlink
-        )
-
-    def _run_test_installation_deleted_triggers_codecov_unlink_when_app_ids_match(
-        self, mock_codecov_unlink: MagicMock
+        self, get_jwt: MagicMock, mock_codecov_unlink: MagicMock
     ) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = self.create_integration(
@@ -296,31 +283,17 @@ class InstallationDeleteEventWebhookTest(APITestCase):
     @patch(
         "sentry.integrations.github.tasks.codecov_account_unlink.codecov_account_unlink.apply_async"
     )
-    @patch("sentry.options.get")
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @override_options(
+        {
+            "github-app.id": "different_app_id",
+            "github-app.webhook-secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "hybrid_cloud.authentication.disabled_organization_shards": [],
+            "hybrid_cloud.authentication.disabled_user_shards": [],
+        }
+    )
     def test_installation_deleted_skips_codecov_unlink_when_app_ids_dont_match(
-        self, get_jwt: MagicMock, mock_options_get: MagicMock, mock_codecov_unlink: MagicMock
-    ) -> None:
-        def options_side_effect(key, default=None):
-            if key == "github-app.id":
-                return "different_app_id"
-            elif key == "github-app.webhook-secret":
-                return self.secret
-            elif key in [
-                "hybrid_cloud.authentication.disabled_organization_shards",
-                "hybrid_cloud.authentication.disabled_user_shards",
-            ]:
-                return []
-            return default
-
-        mock_options_get.side_effect = options_side_effect
-
-        self._run_test_installation_deleted_skips_codecov_unlink_when_app_ids_dont_match(
-            mock_codecov_unlink
-        )
-
-    def _run_test_installation_deleted_skips_codecov_unlink_when_app_ids_dont_match(
-        self, mock_codecov_unlink: MagicMock
+        self, get_jwt: MagicMock, mock_codecov_unlink: MagicMock
     ) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = self.create_integration(
