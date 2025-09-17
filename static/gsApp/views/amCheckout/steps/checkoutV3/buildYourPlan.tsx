@@ -20,7 +20,6 @@ import {
 } from 'getsentry/utils/billing';
 import BillingCycleSelectCard from 'getsentry/views/amCheckout/billingCycleSelectCard';
 import PlanFeatures from 'getsentry/views/amCheckout/planFeatures';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
 import {getHighlightedFeatures} from 'getsentry/views/amCheckout/steps/planSelect';
 import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
@@ -59,7 +58,6 @@ function PlanSubstep({
   subscription,
   organization,
   referrer,
-  checkoutTier,
   onUpdate,
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
@@ -149,14 +147,6 @@ function PlanSubstep({
         })}
       </OptionGrid>
       <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
-      <ReserveAdditionalVolume
-        activePlan={activePlan}
-        formData={formData}
-        onUpdate={onUpdate}
-        organization={organization}
-        subscription={subscription}
-        checkoutTier={checkoutTier}
-      />
     </Substep>
   );
 }

@@ -47,6 +47,7 @@ interface SpendCapSettingsProps {
   header: React.ReactNode;
   onDemandBudgets: OnDemandBudgets;
   onUpdate: ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => void;
+  footer?: React.ReactNode;
   isOpen?: boolean;
 }
 
@@ -593,6 +594,7 @@ function SpendCapSettings({
   currentReserved,
   isOpen,
   additionalProducts,
+  footer,
 }: SpendCapSettingsProps) {
   return (
     <Flex direction="column">
@@ -616,6 +618,7 @@ function SpendCapSettings({
             currentReserved={currentReserved}
             additionalProducts={additionalProducts}
           />
+          {footer}
         </Grid>
       )}
     </Flex>
