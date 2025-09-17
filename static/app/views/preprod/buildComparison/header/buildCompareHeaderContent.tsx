@@ -15,12 +15,12 @@ import {
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
 
-interface BuildComparisonHeaderContentProps {
+interface BuildCompareHeaderContentProps {
   buildDetails: BuildDetailsApiResponse;
   projectId: string;
 }
 
-export function BuildComparisonHeaderContent(props: BuildComparisonHeaderContentProps) {
+export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, projectId} = props;
   const organization = useOrganization();
   const theme = useTheme();

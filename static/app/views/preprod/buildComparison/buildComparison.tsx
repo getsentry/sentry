@@ -10,9 +10,9 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {BuildComparisonHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildComparisonHeaderContent';
+import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildCompareHeaderContent';
+import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareMainContent';
 import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
-import {SizeComparisonMainContent} from 'sentry/views/preprod/buildComparison/main/sizeComparisonMainContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export default function BuildComparison() {
@@ -73,7 +73,7 @@ export default function BuildComparison() {
   let mainContent = null;
   if (baseArtifactId) {
     // Base artifact provided in URL, show comparison state
-    mainContent = <SizeComparisonMainContent />;
+    mainContent = <SizeCompareMainContent />;
   } else {
     // No base artifact provided in URL, show selection state
     mainContent = (
@@ -85,7 +85,7 @@ export default function BuildComparison() {
     <SentryDocumentTitle title={t('Build comparison')}>
       <Layout.Page>
         <Layout.Header>
-          <BuildComparisonHeaderContent
+          <BuildCompareHeaderContent
             buildDetails={headBuildDetailsQuery.data}
             projectId={projectId}
           />

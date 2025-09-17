@@ -9,7 +9,6 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconBranch} from 'sentry/components/prevent/branchSelector/iconBranch';
 import TimeSince from 'sentry/components/timeSince';
 import {
   IconCalendar,
@@ -21,6 +20,7 @@ import {
   IconLock,
   IconTelescope,
 } from 'sentry/icons';
+import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
