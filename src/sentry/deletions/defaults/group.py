@@ -16,6 +16,7 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -211,8 +212,8 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
 
 def delete_project_group_hashes(project_id: int) -> None:
-    groups = Group.objects.filter(project_id=project_id)
-    error_groups, issue_platform_groups = separate_by_group_category(groups)
+    groups = RangeQuerySetWrapper(Group.objects.filter(project_id=project_id), step=1000)
+    error_groups, issue_platform_groups = separate_by_group_category(list(groups))
 
     error_group_ids = [group.id for group in error_groups]
     delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
