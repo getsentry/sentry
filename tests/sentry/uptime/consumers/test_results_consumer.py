@@ -45,6 +45,7 @@ from sentry.uptime.detectors.result_handler import (
 from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure, build_detector_fingerprint_component
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.subscriptions.subscriptions import UptimeMonitorNoSeatAvailable
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
@@ -742,6 +743,94 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
         )
         assert self.subscription.url == self.subscription.url
+
+    def test_onboarding_graduation_no_seat_available(self) -> None:
+        """
+        Test that when an onboarding monitor tries to graduate to active status
+        but no seat is available, the detector is deleted.
+        """
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+        ]
+        self.detector.update(
+            config={
+                **self.detector.config,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
+            },
+            date_added=datetime.now(timezone.utc)
+            - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
+        )
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=2),
+        )
+
+        redis = _get_cluster()
+        key = build_onboarding_failure_key(self.detector)
+        assert redis.get(key) is None
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
+            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
+            mock.patch("sentry.uptime.detectors.result_handler.logger") as onboarding_logger,
+            mock.patch(
+                "sentry.uptime.detectors.result_handler.update_uptime_detector",
+                side_effect=UptimeMonitorNoSeatAvailable("No seat available"),
+            ),
+            self.tasks(),
+            self.feature(features),
+        ):
+            self.send_result(result)
+
+            consumer_metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "status": CHECKSTATUS_SUCCESS,
+                            "mode": "auto_detected_onboarding",
+                            "uptime_region": "us-west",
+                            "host_provider": "TEST",
+                        },
+                        sample_rate=1.0,
+                    ),
+                ]
+            )
+
+            onboarding_metrics.incr.assert_called_once_with(
+                "uptime.result_processor.autodetection.graduated_onboarding_no_seat",
+                tags={
+                    "status": CHECKSTATUS_SUCCESS,
+                    "uptime_region": "us-west",
+                    "host_provider": "TEST",
+                },
+                sample_rate=1.0,
+            )
+
+            onboarding_logger.info.assert_called_once_with(
+                "uptime_onboarding_graduated_no_seat",
+                extra={
+                    "project_id": self.detector.project_id,
+                    "url": self.subscription.url,
+                    **result,
+                },
+            )
+
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+
+        with pytest.raises(UptimeSubscription.DoesNotExist):
+            self.subscription.refresh_from_db()
+
+        assert not redis.exists(key)
+
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.get(grouphash__hash=hashed_fingerprint)
 
     def test_parallel(self) -> None:
         """
