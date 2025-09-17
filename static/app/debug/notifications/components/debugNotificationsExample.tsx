@@ -21,7 +21,7 @@ export function DebugNotificationsExample({
   registration: NotificationTemplateRegistration;
 }) {
   const [displayFormat, setDisplayFormat] = useLocalStorageState(
-    'debug-notifications-example-displayed-raw',
+    'debug-notifications-example-display-format',
     ExampleDataFormat.FORMATTED
   );
   return (
@@ -146,7 +146,7 @@ const PlaceholderChart = styled('div')`
 
 const InlineButton = styled(Button)`
   display: inline-block;
-  margin: ${p => `0 ${p.theme.space.md} ${p.theme.space.md} 0`};
+  margin: ${p => `0 ${p.theme.space.xs} 0 0`};
 `;
 
 const ExampleGrid = styled(Grid)`
