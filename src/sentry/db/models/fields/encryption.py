@@ -26,7 +26,7 @@ KNOWN_MARKERS = {MARKER_PLAINTEXT, MARKER_FERNET, MARKER_TINK_KEYSETS}
 class _EncryptionHandler(TypedDict):
     marker: str
     encrypt: Callable[[Any], str]
-    decrypt: Callable[[bytes], bytes]
+    decrypt: Callable[[str], bytes]
 
 
 type _EncryptionMethod = Literal["plaintext"] | Literal["fernet"] | Literal["keysets"]
@@ -157,9 +157,18 @@ class EncryptedField(Field):
         value_bytes = self._get_value_in_bytes(value)
         return self._format_encrypted_value(value_bytes, MARKER_PLAINTEXT)
 
-    def _decrypt_plaintext(self, value: bytes) -> bytes:
-        """Decrypt plain text."""
-        return value
+    def _decrypt_plaintext(self, value: str) -> bytes:
+        """Decrypt plain text. Extracts data from the formatted value.
+
+        Expected format: enc:plaintext:base64data
+        """
+        # Decode base64
+        try:
+            data = base64.b64decode(value)
+            return data
+        except Exception as e:
+            logger.warning("Failed to decode base64 data: %s", e)
+            raise ValueError("Invalid base64 encoding") from e
 
     def _encrypt_fernet(self, value: Any) -> str:
         """Encrypt using Fernet symmetric encryption.
@@ -184,8 +193,27 @@ class EncryptedField(Field):
             sentry_sdk.capture_exception(e)
             raise
 
-    def _decrypt_fernet(self, value: bytes, key_id: str) -> bytes:
-        """Decrypt using Fernet with the specified key_id."""
+    def _decrypt_fernet(self, value: str) -> bytes:
+        """Decrypt using Fernet. Extracts key_id from the formatted value.
+
+        Expected format: enc:fernet:key_id:base64data
+        """
+        # Parse key_id and data
+        parts = value.split(":", 1)
+        if len(parts) != 2:
+            logger.warning("Invalid Fernet format, expected key_id:data")
+            raise ValueError("Invalid Fernet format, expected key_id:data")
+
+        key_id, encoded_data = parts[0], parts[1]
+
+        # Decode base64
+        try:
+            encrypted_data = base64.b64decode(encoded_data)
+        except Exception as e:
+            logger.warning("Failed to decode base64 data: %s", e)
+            raise ValueError("Invalid base64 encoding") from e
+
+        # Get the decryption key
         key = self._get_fernet_key(key_id)
         if not key:
             logger.warning("No decryption key found for key_id '%s'", key_id)
@@ -193,7 +221,7 @@ class EncryptedField(Field):
 
         try:
             f = Fernet(key)
-            decrypted = f.decrypt(value)
+            decrypted = f.decrypt(encrypted_data)
             return decrypted
         except InvalidToken:  # noqa
             # Decryption failed—this may occur if the value is actually plain text that happens to match
@@ -206,16 +234,19 @@ class EncryptedField(Field):
         """Encrypt using Google Tink keysets (future implementation)."""
         raise NotImplementedError("Keysets encryption not yet implemented")
 
-    def _decrypt_keysets(self, value: bytes) -> bytes:
-        """Decrypt using Google Tink keysets (future implementation)."""
+    def _decrypt_keysets(self, value: str) -> bytes:
+        """Decrypt using Google Tink keysets (future implementation).
+
+        Expected format: enc:tink:base64data
+        """
         raise NotImplementedError("Keysets decryption not yet implemented")
 
     def _decrypt_with_fallback(self, value: str) -> bytes | str:
         """
-        Attempt to decrypt with multiple methods.
-        This handles cases where the encryption method was changed.
+        Attempt to decrypt with the appropriate method based on the marker.
+        Returns the original value if decryption fails.
         """
-        # First check if it starts with a known marker
+        # Check if it starts with a known marker
         marker = None
         for known_marker in KNOWN_MARKERS:
             if value.startswith(known_marker + ":"):
@@ -225,50 +256,26 @@ class EncryptedField(Field):
                 break
 
         if not marker:
+            # No known marker found, return as-is
             return value
 
-        # Now handle based on marker type
-        if marker == MARKER_FERNET:
-            # Fernet format: enc:fernet:key_id:base64data
-            parts = remaining.split(":", 1)
+        # Find the appropriate handler by marker
+        for method_name, handler in self._encryption_handlers.items():
+            if handler["marker"] == marker:
+                try:
+                    # Pass the full formatted value to the decrypt method
+                    return handler["decrypt"](remaining)
+                except InvalidToken:
+                    # Data might be plain text that happens to accidentally match the encrypted format
+                    # Treating this as plain text is the best fallback.
+                    return value
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+                    logger.exception("Failed to decrypt with %s", method_name)
+                    return value
 
-            if len(parts) != 2:
-                # Invalid format, return as-is
-                logger.warning("Invalid Fernet format, expected key_id:data")
-                return value
-
-            key_id, encoded_data = parts[0], parts[1]
-            try:
-                encrypted_data = base64.b64decode(encoded_data)
-                return self._decrypt_fernet(encrypted_data, key_id)
-            except InvalidToken:
-                # Data might be plain text that happens to accidentally match the Fernet format
-                # Treating this as plain text is the best fallback.
-                return value
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-                logger.exception("Failed to decrypt with Fernet using key_id '%s'", key_id)
-                return value
-
-        else:
-            # Handle other markers (plaintext, tink, etc.)
-            encoded_data = remaining
-            try:
-                encrypted_data = base64.b64decode(encoded_data)
-            except Exception:
-                # If base64 decode fails, treat as plain text
-                return value
-
-            # Find handler by marker
-            for method_name, handler in self._encryption_handlers.items():
-                if handler["marker"] == marker:
-                    try:
-                        return handler["decrypt"](encrypted_data)
-                    except Exception as e:
-                        sentry_sdk.capture_exception(e)
-                        logger.exception("Failed to decrypt with %s", method_name)
-                        return value
-
+        # No handler found for this marker (shouldn't happen with known markers)
+        logger.warning("No handler found for marker '%s'", marker)
         return value
 
     def _get_fernet_key_for_encryption(self) -> tuple[str, bytes]:
