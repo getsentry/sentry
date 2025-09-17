@@ -15,8 +15,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
-import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -85,31 +83,6 @@ function DrawerContent() {
   }, []);
 
   return <SidebarContent />;
-}
-
-/**
- * @deprecated Use useProfilingOnboardingDrawer instead.
- */
-export function LegacyProfilingOnboardingSidebar(props: CommonSidebarProps) {
-  if (props.currentPanel !== OnboardingDrawerKey.PROFILING_ONBOARDING) {
-    return null;
-  }
-
-  return <ProfilingOnboarding {...props} />;
-}
-
-function ProfilingOnboarding(props: CommonSidebarProps) {
-  return (
-    <TaskSidebar
-      orientation={props.orientation}
-      collapsed={props.collapsed}
-      hidePanel={() => {
-        props.hidePanel();
-      }}
-    >
-      <SidebarContent />
-    </TaskSidebar>
-  );
 }
 
 function SidebarContent() {

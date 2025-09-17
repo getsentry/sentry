@@ -11,7 +11,6 @@ import {
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,6 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
 

@@ -17,8 +17,6 @@ import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptio
 import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
-import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
   replayBackendPlatforms,
@@ -68,28 +66,6 @@ function DrawerContent() {
   }, []);
 
   return <SidebarContent />;
-}
-
-function LegacyReplaysOnboardingSidebar(props: CommonSidebarProps) {
-  const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const organization = useOrganization();
-
-  const isActive = currentPanel === OnboardingDrawerKey.REPLAYS_ONBOARDING;
-  const hasProjectAccess = organization.access.includes('project:read');
-
-  if (!isActive || !hasProjectAccess) {
-    return null;
-  }
-
-  return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
-      <SidebarContent />
-    </TaskSidebarPanel>
-  );
 }
 
 function SidebarContent() {
@@ -433,11 +409,6 @@ const Header = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-const TaskSidebarPanel = styled(SidebarPanel)`
-  width: 600px;
-  max-width: 100%;
-`;
-
 const TopRightBackgroundImage = styled('img')`
   position: absolute;
   top: 0;
@@ -493,5 +464,3 @@ const PlatformSelect = styled('div')`
 const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
 `;
-
-export default LegacyReplaysOnboardingSidebar;

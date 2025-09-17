@@ -16,8 +16,6 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
@@ -58,31 +56,6 @@ export function useFeatureFlagOnboardingDrawer() {
       OnboardingDrawerStore.close();
     }
   }, [isActive, hasProjectAccess, openDrawer]);
-}
-
-/**
- * @deprecated Use useFeatureFlagOnboardingDrawer instead.
- */
-function LegacyFeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
-  const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const organization = useOrganization();
-
-  const isActive = currentPanel === OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING;
-  const hasProjectAccess = organization.access.includes('project:read');
-
-  if (!isActive || !hasProjectAccess) {
-    return null;
-  }
-
-  return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
-      <SidebarContent />
-    </TaskSidebarPanel>
-  );
 }
 
 function SidebarContent() {
@@ -380,11 +353,6 @@ const StyledDefaultContent = styled('div')`
   margin: ${space(1)} 0;
 `;
 
-const TaskSidebarPanel = styled(SidebarPanel)`
-  width: 600px;
-  max-width: 100%;
-`;
-
 const TopRightBackgroundImage = styled('img')`
   position: absolute;
   top: 0;
@@ -434,5 +402,3 @@ const SdkSelect = styled('div')`
   align-items: center;
   flex-wrap: wrap;
 `;
-
-export default LegacyFeatureFlagOnboardingSidebar;
