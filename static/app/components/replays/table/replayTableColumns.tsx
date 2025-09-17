@@ -439,9 +439,6 @@ export const ReplaySelectColumn: ReplayTableColumn = {
     replays,
   }) => {
     const organization = useOrganization();
-    if (!organization.features.includes('replay-list-select')) {
-      return null;
-    }
     return (
       <CheckboxHeaderContainer>
         <Checkbox
@@ -477,8 +474,7 @@ export const ReplaySelectColumn: ReplayTableColumn = {
     return (
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
         <CheckboxCellContainer>
-          {organization.features.includes('replay-list-select') ? (
-            <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
+          <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
               <Checkbox
                 id={`replay-table-select-${replay.id}`}
                 disabled={isSelected(replay.id) === 'all-selected'}
@@ -488,7 +484,6 @@ export const ReplaySelectColumn: ReplayTableColumn = {
                 }}
               />
             </CheckboxClickTarget>
-          ) : null}
 
           <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
             <UnreadIndicator data-has-viewed={replay.has_viewed} />
