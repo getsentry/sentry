@@ -310,30 +310,29 @@ def get_environment_filtered_releases(
     first_group_release = group_releases.order_by("first_seen").first()
     last_group_release = group_releases.order_by("-last_seen").first()
 
+    release_ids = set()
+    if first_group_release:
+        release_ids.add(first_group_release.release_id)
+    if last_group_release:
+        release_ids.add(last_group_release.release_id)
+
+    if not release_ids:
+        return None, None
+
+    releases = {r.id: r for r in Release.objects.filter(id__in=release_ids)}
+
     first_release = None
     last_release = None
 
-    if first_group_release:
-        try:
-            release = Release.objects.get(id=first_group_release.release_id)
-            (first_release,) = serialize_releases(
-                request,
-                group,
-                [release.version],
-            )
-        except Release.DoesNotExist:
-            pass
+    if first_group_release and first_group_release.release_id in releases:
+        (first_release,) = serialize_releases(
+            request, group, [releases[first_group_release.release_id].version]
+        )
 
-    if last_group_release:
-        try:
-            release = Release.objects.get(id=last_group_release.release_id)
-            (last_release,) = serialize_releases(
-                request,
-                group,
-                [release.version],
-            )
-        except Release.DoesNotExist:
-            pass
+    if last_group_release and last_group_release.release_id in releases:
+        (last_release,) = serialize_releases(
+            request, group, [releases[last_group_release.release_id].version]
+        )
 
     return first_release, last_release
 
