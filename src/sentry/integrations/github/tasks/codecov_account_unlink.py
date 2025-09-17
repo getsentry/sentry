@@ -11,6 +11,8 @@ from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
+account_unlink_endpoint = "sentry/internal/account/unlink/"
+
 
 @instrumented_task(
     name="sentry.integrations.github.tasks.codecov_account_unlink",
@@ -56,7 +58,7 @@ def codecov_account_unlink(
         }
 
         response = codecov_client.post(
-            endpoint="sentry/internal/account/unlink/",
+            endpoint=account_unlink_endpoint,
             json=request_data,
         )
 

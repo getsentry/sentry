@@ -3,7 +3,11 @@ from unittest.mock import MagicMock, patch
 from sentry.codecov.client import ConfigurationError
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-from sentry.integrations.github.tasks.codecov_account_unlink import codecov_account_unlink
+from sentry.integrations.github.tasks.codecov_account_unlink import (
+    account_unlink_endpoint,
+    codecov_account_unlink,
+)
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -16,7 +20,7 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
-            provider="github",
+            provider=IntegrationProviderSlug.GITHUB.value,
             name="test-org",
             external_id="123456",
             metadata={"account_id": "789"},
@@ -37,14 +41,14 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
         )
 
         mock_codecov_client_class.assert_called_once_with(
-            git_provider_org="test-org", git_provider="github"
+            git_provider_org="test-org", git_provider=IntegrationProviderSlug.GITHUB.value
         )
 
         expected_request_data = {
             "sentry_org_ids": [str(self.organization.id)],
         }
         mock_client.post.assert_called_once_with(
-            endpoint="sentry/internal/account/unlink/",
+            endpoint=account_unlink_endpoint,
             json=expected_request_data,
         )
         mock_response.raise_for_status.assert_called_once()
