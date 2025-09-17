@@ -157,11 +157,13 @@ class RangeQuerySetWrapperTest(TestCase):
             callback_calls.append(f"batch_count_{len(batch)}")
 
         qs = User.objects.all()
-        results = list(self.range_wrapper(
-            qs,
-            step=3,  # Should create 3 batches: 3, 3, 2 items
-            callbacks=[batch_callback, count_callback]
-        ))
+        results = list(
+            self.range_wrapper(
+                qs,
+                step=3,  # Should create 3 batches: 3, 3, 2 items
+                callbacks=[batch_callback, count_callback],
+            )
+        )
 
         assert len(results) == 8
         # Each callback should be called for each batch
@@ -304,12 +306,9 @@ class RangeQuerySetWrapperTest(TestCase):
             callback_results.extend([item[0] for item in batch])
 
         qs = User.objects.all().values_list("id")
-        results = list(self.range_wrapper(
-            qs,
-            result_value_getter=lambda r: r[0],
-            callbacks=[callback],
-            step=1
-        ))
+        results = list(
+            self.range_wrapper(qs, result_value_getter=lambda r: r[0], callbacks=[callback], step=1)
+        )
 
         # Both results and callback should have the same IDs
         result_ids = [r[0] for r in results]
