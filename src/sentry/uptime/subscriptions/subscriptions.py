@@ -478,11 +478,11 @@ def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription
     Determines if an uptime subscription is no longer used by any detectors and removes it if so
     """
     # If the uptime subscription is no longer used, we also remove it.
-    has_active_detectors = Detector.objects.filter(
+    has_active_detector = Detector.objects.filter(
         data_sources__source_id=str(uptime_subscription.id),
         status=ObjectStatus.ACTIVE,
     ).exists()
-    if not has_active_detectors:
+    if not has_active_detector:
         delete_uptime_subscription(uptime_subscription)
 
 
