@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
+from sentry.notifications.platform.email.provider import EmailRenderer
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.slack.provider import SlackRenderer
 from sentry.notifications.platform.types import (
@@ -64,8 +65,17 @@ def serialize_slack_preview[T: NotificationData](
     for block in message.get("blocks", []):
         serialized_blocks.append(block.to_dict())
 
+    return {"blocks": serialized_blocks}
+
+
+def serialize_email_preview(template: NotificationTemplate[NotificationData]) -> dict[str, Any]:
+    data = template.example_data
+    rendered_template = template.render_example()
+    email = EmailRenderer.render(data=data, rendered_template=rendered_template)
     return {
-        "blocks": serialized_blocks,
+        "subject": email.subject,
+        "text_content": email.body,
+        "html_content": email.alternatives[0][0],
     }
 
 
@@ -78,6 +88,7 @@ def serialize_template[T: NotificationData](
         "example": serialize_rendered_example(rendered_template=template.render_example()),
         "previews": {
             NotificationProviderKey.SLACK: serialize_slack_preview(template=template),
+            NotificationProviderKey.EMAIL: serialize_email_preview(template=template),
         },
     }
     return response
