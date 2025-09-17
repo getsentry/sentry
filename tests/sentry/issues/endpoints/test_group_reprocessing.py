@@ -18,7 +18,9 @@ class GroupReprocessingEndpointTest(APITestCase):
     def _url(self, group_id: int) -> str:
         return f"/api/0/issues/{group_id}/reprocessing/"
 
-    def _create_reprocess_activity(self, old_group: Group, new_group: Group, event_count: int = 10):
+    def _create_reprocess_activity(
+        self, old_group: Group, new_group: Group, event_count: int = 10
+    ) -> Activity:
         return Activity.objects.create(
             project=self.project,
             group_id=old_group.id,
