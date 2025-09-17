@@ -76,7 +76,9 @@ class GroupOwnerManager(BaseManager["GroupOwner"]):
         Note: lookup_kwargs is modified if the GroupOwner is created, do not reuse it for other purposes!
         """
         try:
-            group_owner = GroupOwner.objects.get(**lookup_kwargs)
+            group_owner = GroupOwner.objects.annotate(
+                context__asjsonb=Cast("context", models.JSONField())
+            ).get(**lookup_kwargs)
 
             for k, v in defaults.items():
                 setattr(group_owner, k, v)
@@ -86,7 +88,7 @@ class GroupOwnerManager(BaseManager["GroupOwner"]):
             group_owner.context = existing_context
 
             group_owner.save()
-            created = False
+            return group_owner, False
         except GroupOwner.DoesNotExist:
             # modify lookup_kwargs so they can be used to create the GroupOwner
             keys_to_delete = [k for k in lookup_kwargs.keys() if "__" in k]
@@ -96,10 +98,7 @@ class GroupOwnerManager(BaseManager["GroupOwner"]):
             lookup_kwargs.update(defaults)
             lookup_kwargs["context"] = context_defaults
 
-            group_owner = GroupOwner.objects.create(**lookup_kwargs)
-            created = True
-
-        return group_owner, created
+            return GroupOwner.objects.create(**lookup_kwargs), True
 
 
 @region_silo_model
