@@ -74,13 +74,13 @@ def test_fernet_encryption_with_key(multi_fernet_keys_value):
             assert isinstance(encrypted, str)
             assert encrypted is not None
 
-            # Should have the new format: marker:key_id:data
+            # Should have the new format: enc:fernet:key_id:data
             parts = encrypted.split(":")
-            assert len(parts) == 3
-            marker, key_id, encoded_data = parts
+            assert len(parts) == 4
+            enc, method, key_id, encoded_data = parts
 
-            # Should start with fernet marker
-            assert marker == MARKER_FERNET
+            # Should start with enc:fernet marker
+            assert f"{enc}:{method}" == MARKER_FERNET
 
             # Should use the first key (key_primary)
             assert key_id == "key_primary"
@@ -124,22 +124,22 @@ def test_fernet_key_rotation(multi_fernet_keys_value):
             assert decrypted_manual == b"second key data"
 
 
-def test_fernet_plaintext_format_compatibility(fernet_keys_value):
-    """Test that plain text format (without key_id) works."""
+def test_fernet_format_without_key_id_rejected(fernet_keys_value):
+    """Test that Fernet format without key_id is rejected."""
     with override_options({"database.encryption.method": "fernet"}):
         with override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value):
             field = EncryptedField()
 
-            # Create plain text format manually (marker:data without key_id)
+            # Create invalid format without key_id
             key = list(fernet_keys_value.values())[0]
             fernet_instance = Fernet(key.encode())
-            encrypted_data = fernet_instance.encrypt(b"plain text data")
+            encrypted_data = fernet_instance.encrypt(b"test data")
             encoded_data = base64.b64encode(encrypted_data).decode("ascii")
-            plaintext_format = f"{MARKER_FERNET}:{encoded_data}"
+            invalid_format = f"{MARKER_FERNET}:{encoded_data}"
 
-            # Should be able to decrypt plain text format
-            decrypted = field.to_python(plaintext_format)
-            assert decrypted == b"plain text data"
+            # Should return the original value as it's invalid format
+            result = field.to_python(invalid_format)
+            assert result == invalid_format
 
 
 def test_encryption_method_switching(fernet_keys_value):
@@ -204,9 +204,9 @@ def test_fernet_key_dict_format():
 
             # Should have new format with key_id
             parts = encrypted.split(":")
-            assert len(parts) == 3
-            marker, key_id, encoded_data = parts
-            assert marker == MARKER_FERNET
+            assert len(parts) == 4
+            enc, method, key_id, _encoded_data = parts
+            assert f"{enc}:{method}" == MARKER_FERNET
             assert key_id == "key1"  # First key in dict
 
             # Should be able to decrypt
@@ -296,7 +296,7 @@ def test_fernet_non_utf_8_chars(fernet_keys_value):
 
         # Should have new format with key_id
         parts = encrypted_text.split(":")
-        assert len(parts) == 3
+        assert len(parts) == 4
 
         decrypted_text = text_field.to_python(encrypted_text)
         # The field now preserves the original data type
@@ -324,10 +324,10 @@ def test_fernet_marker_handling(fernet_keys_value):
             encrypted = field.get_prep_value(test_value)
             assert encrypted is not None
 
-            # Verify it has the new format: marker:key_id:data
+            # Verify it has the new format: enc:fernet:key_id:data
             parts = encrypted.split(":")
-            assert len(parts) == 3
-            assert parts[0] == MARKER_FERNET
+            assert len(parts) == 4
+            assert f"{parts[0]}:{parts[1]}" == MARKER_FERNET
 
             # Test that decryption works with marker and key_id
             decrypted = field.to_python(encrypted)

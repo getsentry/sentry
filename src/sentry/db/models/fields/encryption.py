@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 # Encryption method markers
-MARKER_PLAINTEXT = "00"
-MARKER_FERNET = "01"
-MARKER_TINK_KEYSETS = "02"  # Future implementation
+MARKER_PLAINTEXT = "enc:plaintext"
+MARKER_FERNET = "enc:fernet"
+MARKER_TINK_KEYSETS = "enc:tink"  # Future implementation
 
 KNOWN_MARKERS = {MARKER_PLAINTEXT, MARKER_FERNET, MARKER_TINK_KEYSETS}
 
@@ -48,8 +48,12 @@ class EncryptedField(Field):
 
     Uses base64 encoding for storing encrypted binary data as text.
 
-    For Fernet encryption, the format is: {marker}:{key_id}:{encrypted_data}
-    This allows for easier key rotation by storing which key was used for encryption.
+    Formats:
+    - Plaintext: enc:plaintext:{base64_data}
+    - Fernet: enc:fernet:{key_id}:{base64_encrypted_data}
+    - Tink: enc:tink:{base64_data} (future)
+
+    The Fernet format always includes a key_id to support key rotation.
     """
 
     def __init__(self, *args, **kwargs):
@@ -127,9 +131,18 @@ class EncryptedField(Field):
         return super().to_python(value)
 
     def _is_encrypted_format(self, value: str) -> bool:
-        """Check if the value is in encrypted format (marker:base64data or marker:key_id:base64data)."""
-        parts = value.split(":")
-        return len(parts) >= 2 and len(parts[0]) == 2 and parts[0] in KNOWN_MARKERS
+        """Check if the value is in encrypted format.
+
+        Expected formats:
+        - enc:plaintext:base64data
+        - enc:fernet:key_id:base64data
+        - enc:tink:base64data
+        """
+        # Check if value starts with any known marker
+        for marker in KNOWN_MARKERS:
+            if value.startswith(marker + ":"):
+                return True
+        return False
 
     def _get_value_in_bytes(self, value: Any) -> bytes:
         if isinstance(value, str):
@@ -151,7 +164,8 @@ class EncryptedField(Field):
     def _encrypt_fernet(self, value: Any) -> str:
         """Encrypt using Fernet symmetric encryption.
 
-        Returns formatted string with key_id for key rotation support.
+        Always returns formatted string: enc:fernet:key_id:base64data
+        The key_id is required to support key rotation.
         """
         key_id, key = self._get_fernet_key_for_encryption()
         if not key:
@@ -170,15 +184,12 @@ class EncryptedField(Field):
             sentry_sdk.capture_exception(e)
             raise
 
-    def _decrypt_fernet(self, value: bytes, key_id: str | None = None) -> bytes:
-        """Decrypt using Fernet."""
+    def _decrypt_fernet(self, value: bytes, key_id: str) -> bytes:
+        """Decrypt using Fernet with the specified key_id."""
         key = self._get_fernet_key(key_id)
         if not key:
-            if key_id:
-                logger.warning("No decryption key found for key_id '%s'", key_id)
-            else:
-                logger.warning("No decryption key found")
-            raise ValueError("Cannot decrypt without key")
+            logger.warning("No decryption key found for key_id '%s'", key_id)
+            raise ValueError(f"Cannot decrypt without key for key_id '{key_id}'")
 
         try:
             f = Fernet(key)
@@ -204,15 +215,29 @@ class EncryptedField(Field):
         Attempt to decrypt with multiple methods.
         This handles cases where the encryption method was changed.
         """
-        parts = value.split(":")
-        if len(parts) < 2:
+        # First check if it starts with a known marker
+        marker = None
+        for known_marker in KNOWN_MARKERS:
+            if value.startswith(known_marker + ":"):
+                marker = known_marker
+                # Remove the marker and colon
+                remaining = value[len(marker) + 1 :]
+                break
+
+        if not marker:
             return value
 
-        marker = parts[0]
+        # Now handle based on marker type
+        if marker == MARKER_FERNET:
+            # Fernet format: enc:fernet:key_id:base64data
+            parts = remaining.split(":", 1)
 
-        # Handle Fernet format with key_id: marker:key_id:data
-        if marker == MARKER_FERNET and len(parts) == 3:
-            key_id, encoded_data = parts[1], parts[2]
+            if len(parts) != 2:
+                # Invalid format, return as-is
+                logger.warning("Invalid Fernet format, expected key_id:data")
+                return value
+
+            key_id, encoded_data = parts[0], parts[1]
             try:
                 encrypted_data = base64.b64decode(encoded_data)
                 return self._decrypt_fernet(encrypted_data, key_id)
@@ -223,10 +248,11 @@ class EncryptedField(Field):
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 logger.exception("Failed to decrypt with Fernet using key_id '%s'", key_id)
+                return value
 
-        # Handle plain text format: marker:data
-        elif len(parts) == 2:
-            encoded_data = parts[1]
+        else:
+            # Handle other markers (plaintext, tink, etc.)
+            encoded_data = remaining
             try:
                 encrypted_data = base64.b64decode(encoded_data)
             except Exception:
@@ -241,7 +267,7 @@ class EncryptedField(Field):
                     except Exception as e:
                         sentry_sdk.capture_exception(e)
                         logger.exception("Failed to decrypt with %s", method_name)
-                        continue
+                        return value
 
         return value
 
@@ -279,8 +305,8 @@ class EncryptedField(Field):
             logger.exception("Invalid Fernet key for key_id '%s'", key_id)
             raise ValueError(f"Invalid Fernet key for key_id '{key_id}'")
 
-    def _get_fernet_key(self, key_id: str | None = None) -> bytes | None:
-        """Get the Fernet key from Django settings."""
+    def _get_fernet_key(self, key_id: str) -> bytes | None:
+        """Get the Fernet key for the specified key_id from Django settings."""
         keys = getattr(settings, "DATABASE_ENCRYPTION_FERNET_KEYS", None)
         if keys is None:
             return None
@@ -289,17 +315,11 @@ class EncryptedField(Field):
             logger.error("DATABASE_ENCRYPTION_FERNET_KEYS must be a dict, got %s", type(keys))
             return None
 
-        if key_id is None:
-            # Return first/default key if no key_id specified
-            if not keys:
-                return None
-            key = next(iter(keys.values()))
-        else:
-            # Return specific key by key_id
-            if key_id not in keys:
-                logger.warning("Fernet key with id '%s' not found, cannot decrypt data", key_id)
-                return None
-            key = keys[key_id]
+        # Return specific key by key_id
+        if key_id not in keys:
+            logger.warning("Fernet key with id '%s' not found, cannot decrypt data", key_id)
+            return None
+        key = keys[key_id]
 
         if isinstance(key, str):
             # If key is a string, encode it
