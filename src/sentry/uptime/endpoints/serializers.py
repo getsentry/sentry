@@ -62,6 +62,8 @@ class UptimeDetectorSerializerResponse(UptimeSubscriptionSerializerResponse):
     uptimeStatus: int
     mode: int
     owner: ActorSerializerResponse
+    recoveryThreshold: int
+    downtimeThreshold: int
 
 
 class UptimeDetectorSerializer(Serializer):
@@ -132,6 +134,8 @@ class UptimeDetectorSerializer(Serializer):
             "uptimeStatus": uptime_status,
             "mode": obj.config.get("mode", 1),  # Default to MANUAL mode
             "owner": attrs["owner"],
+            "recoveryThreshold": obj.config["recovery_threshold"],
+            "downtimeThreshold": obj.config["downtime_threshold"],
             **serialized_subscription,
         }
 
