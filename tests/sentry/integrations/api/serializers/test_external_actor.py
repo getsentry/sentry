@@ -8,7 +8,6 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_name
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class ExternalActorSerializerTest(TestCase):
@@ -147,7 +146,6 @@ class ExternalActorSerializerTest(TestCase):
         )
         assert serializer.is_valid() is True
 
-    @with_feature("organizations:use-case-insensitive-codeowners")
     def test_create_case_insensitive_team(self) -> None:
         sentry_team = self.create_team(organization=self.organization, members=[self.user])
 
