@@ -148,7 +148,7 @@ const Grid = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
   grid-template-areas:
-    'live timeline timelineSize'
+    '. timeline timelineSize'
     'currentTime scrubber duration';
   grid-column-gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
