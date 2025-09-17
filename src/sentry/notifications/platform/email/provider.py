@@ -52,7 +52,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
             context=email_context,
         )
         # Required by RFC 2822 (https://www.rfc-editor.org/rfc/rfc2822.html)
-        headers = {"Message-Id": make_msgid(get_from_email_domain())}
+        headers = {"Message-Id": make_msgid(domain=get_from_email_domain())}
         email = EmailMultiAlternatives(
             subject=rendered_template.subject,
             body=txt_body,
