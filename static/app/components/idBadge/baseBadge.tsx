@@ -121,11 +121,11 @@ const DisplayNameAndDescription = styled('div')`
   display: flex;
   flex-direction: column;
   line-height: 1.2;
-  overflow: hidden;
+  overflow: visible;
 `;
 
 const DisplayName = styled('span')`
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
   line-height: 1.2;
 `;
