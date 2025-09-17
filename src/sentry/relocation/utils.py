@@ -573,7 +573,7 @@ def start_relocation_task(
 
 def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "") -> None:
     """
-    Helper function that conveniently fails a relocation celery task in such a way that the failure
+    Helper function that conveniently fails a relocation task in such a way that the failure
     reason is recorded for the user and no further retries occur. It should be used like:
 
     >>> relocation = Relocation.objects.get(...)

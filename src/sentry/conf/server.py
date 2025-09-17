@@ -21,7 +21,6 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.bgtask import BgTaskConfig
-from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.region_config import RegionConfig
@@ -31,7 +30,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils.celery import make_split_task_queues
 
 
 def gettext_noop(s: str) -> str:
@@ -902,38 +900,6 @@ CELERY_IMPORTS = (
     "sentry.workflow_engine.tasks.actions",
 )
 
-# Enable split queue routing
-CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
-
-# Mapping from task names to split queues. This can be used when the
-# task does not have to specify the queue and can rely on Celery to
-# do the routing.
-# Each route has a task name as key and a tuple containing a list of queues
-# and a default one as destination. The default one is used when the
-# rollout option is not active.
-CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
-    "sentry.tasks.store.save_event_transaction": {
-        "default_queue": "events.save_event_transaction",
-        "queues_config": {
-            "total": 3,
-            "in_use": 3,
-        },
-    },
-    "sentry.profiles.task.process_profile": {
-        "default_queue": "profiles.process",
-        "queues_config": {
-            "total": 3,
-            "in_use": 3,
-        },
-    },
-}
-CELERY_SPLIT_TASK_QUEUES_REGION = make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION)
-
-# Mapping from queue name to split queues to be used by SplitQueueRouter.
-# This is meant to be used in those case where we have to specify the
-# queue name when issuing a task. Example: post process.
-CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {}
-
 default_exchange = Exchange("default", type="direct")
 control_exchange = default_exchange
 
@@ -1424,19 +1390,16 @@ if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
     CELERY_QUEUES = CELERY_QUEUES_CONTROL
-    CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {}
 
 elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_SPLIT_TASK_QUEUES_REGION
-    CELERY_SPLIT_QUEUE_TASK_ROUTES = CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION
+    CELERY_QUEUES = CELERY_QUEUES_REGION
 
 else:
     CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + CELERY_SPLIT_TASK_QUEUES_REGION
-    CELERY_SPLIT_QUEUE_TASK_ROUTES = CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL
 
 for queue in CELERY_QUEUES:
     queue.durable = False

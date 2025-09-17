@@ -17,7 +17,6 @@ from typing import Any
 from uuid import uuid4
 
 import sentry_sdk
-from celery import Task
 from django.apps import apps
 from django.db import connections, router
 from django.db.models import Max, Min
@@ -32,6 +31,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
+from sentry.taskworker.task import Task
 from sentry.utils import json, metrics, redis
 
 
