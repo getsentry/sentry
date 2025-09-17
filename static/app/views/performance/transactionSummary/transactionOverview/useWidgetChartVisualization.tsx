@@ -108,7 +108,7 @@ function useDurationBreakdownVisualization({
         'p75(span.duration)',
         'p50(span.duration)',
       ],
-      query: new MutableSearch(`transaction:${transactionName}`),
+      query: newQuery,
       enabled,
     },
     REFERRER
