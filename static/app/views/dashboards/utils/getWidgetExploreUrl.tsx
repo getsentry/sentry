@@ -462,7 +462,7 @@ export function getWidgetTableRowExploreUrlFunction(
       );
     }
 
-    const query = new MutableSearch('');
+    const query = new MutableSearch(widget.queries[0]?.conditions ?? '');
     fields.map(field => {
       const value = dataRow[field];
       if (!defined(value)) {
