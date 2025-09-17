@@ -42,6 +42,7 @@ class SeerExplorerChatSerializer(serializers.Serializer):
 
 
 def _call_seer_explorer_chat(
+    *,
     organization: Organization,
     run_id: int | None,
     query: str,
@@ -194,6 +195,11 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         on_page_context = validated_data.get("on_page_context")
 
         response_data = _call_seer_explorer_chat(
-            organization, run_id, query, insert_index, message_timestamp, on_page_context
+            organization=organization,
+            run_id=run_id,
+            query=query,
+            insert_index=insert_index,
+            message_timestamp=message_timestamp,
+            on_page_context=on_page_context,
         )
         return Response(response_data)
