@@ -39,17 +39,9 @@ function StripeWrapper({
       options={{
         currency: 'usd',
         loader: 'always',
-        fonts: [
-          {
-            family: 'Rubik',
-            cssSrc:
-              'https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap',
-          },
-        ],
         appearance: {
           theme: prefersDarkMode ? 'night' : 'stripe',
           variables: {
-            fontFamily: theme.text.family,
             borderRadius: theme.borderRadius,
             colorBackground: theme.background,
             colorText: theme.textColor,
