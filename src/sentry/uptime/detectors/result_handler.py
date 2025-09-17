@@ -13,7 +13,11 @@ from sentry import audit_log
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import set_failed_url
 from sentry.uptime.models import UptimeSubscription, get_audit_log_data
-from sentry.uptime.subscriptions.subscriptions import delete_uptime_detector, update_uptime_detector
+from sentry.uptime.subscriptions.subscriptions import (
+    UptimeMonitorNoSeatAvailable,
+    delete_uptime_detector,
+    update_uptime_detector,
+)
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
@@ -83,12 +87,33 @@ def handle_onboarding_result(
         if scheduled_check_time - ONBOARDING_MONITOR_PERIOD > detector.date_added:
             # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
             # to active.
-            update_uptime_detector(
-                detector,
-                interval_seconds=int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
-                mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-                ensure_assignment=True,
-            )
+            try:
+                update_uptime_detector(
+                    detector,
+                    interval_seconds=int(
+                        AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
+                    ),
+                    mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+                    ensure_assignment=True,
+                )
+            except UptimeMonitorNoSeatAvailable:
+                # If we're out of seats, we should just delete this detector so that we don't keep attempting
+                # to process it
+                delete_uptime_detector(detector)
+                metrics.incr(
+                    "uptime.result_processor.autodetection.graduated_onboarding_no_seat",
+                    tags={**metric_tags},
+                    sample_rate=1.0,
+                )
+                logger.info(
+                    "uptime_onboarding_graduated_no_seat",
+                    extra={
+                        "project_id": detector.project_id,
+                        "url": uptime_subscription.url,
+                        **result,
+                    },
+                )
+                return
             create_system_audit_entry(
                 organization=detector.project.organization,
                 target_object=detector.id,
