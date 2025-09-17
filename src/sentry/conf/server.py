@@ -1209,7 +1209,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 10, "queue": "buffers.process_pending_batch"},
     },
     "flush-delayed-workflows": {
-        "task": "sentry.tasks.process_buffer.schedule_delayed_workflows",
+        "task": "sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 10, "queue": "workflow_engine.process_workflows"},
@@ -1641,7 +1641,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-delayed-workflows": {
-        "task": "workflow_engine:sentry.tasks.process_buffer.schedule_delayed_workflows",
+        "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "sync-options": {

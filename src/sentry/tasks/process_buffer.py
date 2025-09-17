@@ -4,7 +4,6 @@ from typing import Any
 import sentry_sdk
 from django.apps import apps
 
-from sentry import options
 from sentry.db.models.base import Model
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker import namespaces
@@ -74,26 +73,10 @@ def process_pending_batch() -> None:
     ),
 )
 def schedule_delayed_workflows() -> None:
-    """
-    Schedule delayed workflow buffers in a batch.
-    """
-    from sentry.rules.processing.buffer_processing import process_buffer_for_type
-    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
-
-    lock = get_process_lock("schedule_delayed_workflows")
-
-    try:
-        with lock.acquire():
-            # Only process delayed_workflow type
-            use_new_scheduling = options.get("workflow_engine.use_new_scheduling_task")
-            if not use_new_scheduling:
-                logger.info(
-                    "Configured to use process_pending_batch for delayed_workflow; exiting."
-                )
-                return
-            process_buffer_for_type("delayed_workflow", DelayedWorkflow)
-    except UnableToAcquireLock as error:
-        logger.warning("schedule_delayed_workflows.fail", extra={"error": error})
+    # NOTE: This task was moved to the workflow_engine.tasks.workflows module, and this
+    # definition only remains to avoid noise as we transition.
+    # This should be safe to delete shortly after it is merged.
+    pass
 
 
 @instrumented_task(

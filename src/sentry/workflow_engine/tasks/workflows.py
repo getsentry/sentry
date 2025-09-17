@@ -6,7 +6,9 @@ from typing import Any
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
 
+from sentry import options
 from sentry.eventstream.base import GroupState
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
@@ -14,6 +16,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.tasks.utils import (
@@ -149,3 +152,35 @@ def process_workflows_event(
         )
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)
+
+
+@instrumented_task(
+    name="sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
+    queue="workflow_engine.process_workflows",
+    taskworker_config=config.TaskworkerConfig(
+        namespace=namespaces.workflow_engine_tasks,
+        processing_deadline_duration=40,
+    ),
+)
+def schedule_delayed_workflows(**kwargs: Any) -> None:
+    """
+    Schedule delayed workflow buffers in a batch.
+    """
+    from sentry.rules.processing.buffer_processing import process_buffer_for_type
+    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+
+    lock_name = "schedule_delayed_workflows"
+    lock = locks.get(f"workflow_engine:{lock_name}", duration=60, name=lock_name)
+
+    try:
+        with lock.acquire():
+            # Only process delayed_workflow type
+            use_new_scheduling = options.get("workflow_engine.use_new_scheduling_task")
+            if not use_new_scheduling:
+                logger.info(
+                    "Configured to use process_pending_batch for delayed_workflow; exiting."
+                )
+                return
+            process_buffer_for_type("delayed_workflow", DelayedWorkflow)
+    except UnableToAcquireLock as error:
+        logger.warning("schedule_delayed_workflows.fail", extra={"error": error})
