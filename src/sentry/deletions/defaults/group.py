@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry import models
+from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
@@ -16,7 +16,6 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
-from sentry.utils import options
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -179,9 +178,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
         error_group_ids = [group.id for group in error_groups]
         issue_platform_group_ids = [group.id for group in issue_platform_groups]
-
-        # Prevent circular import
-        from sentry.api.helpers.group_index.delete import delete_group_hashes
 
         delete_group_hashes(instance_list[0].project_id, error_group_ids, seer_deletion=True)
         delete_group_hashes(instance_list[0].project_id, issue_platform_group_ids)
