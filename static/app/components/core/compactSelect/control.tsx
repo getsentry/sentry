@@ -200,7 +200,9 @@ export interface ControlProps
    * won't work correctly.
    */
   trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'> & {
+      ref?: React.Ref<HTMLElement>;
+    },
     isOpen: boolean
   ) => React.ReactNode;
   /**
