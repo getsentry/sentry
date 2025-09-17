@@ -4,6 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Grid} from 'sentry/components/core/layout';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -82,7 +83,7 @@ function PlanSubstep({
     ) {
       // TODO(checkout v3): Replace with custom badge
       const copy = t('Current');
-      return <Tag type="info">{copy}</Tag>;
+      return <Tag type="default">{copy}</Tag>;
     }
 
     if (
@@ -93,7 +94,7 @@ function PlanSubstep({
       const lastTrialEnd = moment(subscription.lastTrialEnd).utc().fromNow();
       const trialExpired: boolean = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
-        <Tag type="info">
+        <Tag type="warning">
           {subscription.isTrial && !trialExpired
             ? tct('Trial expires [lastTrialEnd]', {lastTrialEnd})
             : t('You trialed this plan')}
@@ -105,7 +106,6 @@ function PlanSubstep({
 
   return (
     <Substep>
-      <SubstepTitle>{t('Choose one')}</SubstepTitle>
       <OptionGrid columns={planOptions.length}>
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
@@ -169,12 +169,14 @@ function AdditionalProductsSubstep({
   return (
     <Substep>
       <SubstepTitle>{t('Select additional products')}</SubstepTitle>
-      <ProductSelect
-        activePlan={activePlan}
-        formData={formData}
-        onUpdate={onUpdate}
-        isNewCheckout
-      />
+      <Grid columns={{sm: '1fr', md: '1fr 1fr'}} gap="xl">
+        <ProductSelect
+          activePlan={activePlan}
+          formData={formData}
+          onUpdate={onUpdate}
+          isNewCheckout
+        />
+      </Grid>
     </Substep>
   );
 }
@@ -307,10 +309,12 @@ const Substep = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const SubstepTitle = styled('h2')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: ${p => p.theme.space['2xl']};
   margin-bottom: 0;
 `;
