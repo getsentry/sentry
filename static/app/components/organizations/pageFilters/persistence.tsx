@@ -105,46 +105,23 @@ export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
   const globalSelectionValue = decodePageFilter(orgSlug);
   const storageNamespaceValue = decodePageFilter(`${storageNamespace}:${orgSlug}`);
 
-  const hasStorageNamespace = storageNamespaceValue && storageNamespace.length > 0;
+  const {projects, environments, pinnedFilters} = {
+    ...globalSelectionValue,
+    ...storageNamespaceValue,
+  };
+  const state = getStateFromQuery(
+    {
+      project: projects?.map(String),
+      environment: environments,
+      start: globalSelectionValue?.start,
+      end: globalSelectionValue?.end,
+      period: globalSelectionValue?.period,
+      utc: globalSelectionValue?.utc,
+    },
+    {allowAbsoluteDatetime: true}
+  );
 
-  if (!globalSelectionValue && hasStorageNamespace) {
-    const state = getStateFromQuery(
-      {
-        project: storageNamespaceValue.projects.map(String),
-        environment: storageNamespaceValue.environments,
-      },
-      {allowAbsoluteDatetime: true}
-    );
-    return {state, pinnedFilters: new Set(storageNamespaceValue.pinnedFilters)};
-  }
-  if (globalSelectionValue) {
-    // storageNamespace only applies to project/environment selection
-    const projects = hasStorageNamespace
-      ? storageNamespaceValue.projects
-      : globalSelectionValue.projects;
-    const environments = hasStorageNamespace
-      ? storageNamespaceValue.environments
-      : globalSelectionValue.environments;
-    const pinnedFilters = hasStorageNamespace
-      ? storageNamespaceValue.pinnedFilters
-      : globalSelectionValue.pinnedFilters;
-
-    const {start, end, period, utc} = globalSelectionValue;
-
-    const state = getStateFromQuery(
-      {
-        project: projects.map(String),
-        environment: environments,
-        start,
-        end,
-        period,
-        utc,
-      },
-      {allowAbsoluteDatetime: true}
-    );
-    return {state, pinnedFilters: new Set(pinnedFilters)};
-  }
-  return null;
+  return {state, pinnedFilters: new Set(pinnedFilters)};
 }
 
 function decodePageFilter(key: string): StoredObject | null {
