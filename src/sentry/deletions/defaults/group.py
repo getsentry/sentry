@@ -238,8 +238,10 @@ def delete_group_hashes(
     iterations = 0
 
     while iterations < max_iterations:
-        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids)
-        hashes_chunk = list(qs.values_list("id", "hash")[:hashes_batch_size])
+        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
+            "id", "hash"
+        )[:hashes_batch_size]
+        hashes_chunk = list(qs)
         if not hashes_chunk:
             break
         try:
