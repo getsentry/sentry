@@ -125,8 +125,9 @@ const DisplayNameAndDescription = styled('div')`
 `;
 
 const DisplayName = styled('span')`
+  overflow: visible;
+  text-overflow: ellipsis;
   line-height: 1.2;
-  ${p => p.theme.overflowEllipsis};
 `;
 
 const Description = styled('div')`

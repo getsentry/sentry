@@ -56,6 +56,7 @@ const Name = styled('span')<{hideEmail: boolean}>`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${p => p.theme.overflowEllipsis};
+  overflow: visible;
 `;
 
 const Email = styled('div')`
