@@ -1,8 +1,8 @@
-import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
+import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 import {UptimeSummaryFixture} from 'sentry-fixture/uptimeSummary';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -23,12 +23,12 @@ describe('Uptime Overview', () => {
     OrganizationStore.init();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
+      url: '/organizations/org-slug/uptime/',
       body: [
-        UptimeDetectorFixture({
+        UptimeRuleFixture({
           id: '123',
           name: 'Test Monitor',
-          projectId: project.id,
+          projectSlug: project.slug,
           owner: undefined,
         }),
       ],

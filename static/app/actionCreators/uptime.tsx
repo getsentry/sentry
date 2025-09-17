@@ -8,23 +8,20 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 export async function updateUptimeRule(
   api: Client,
   org: Organization,
-  project: Project,
-  detector: UptimeDetector,
+  uptimeRule: UptimeRule,
   data: Partial<UptimeRule>
 ): Promise<UptimeRule | null> {
   addLoadingMessage();
 
   try {
     const resp = await api.requestPromise(
-      `/projects/${org.slug}/${project.slug}/uptime/${detector.id}/`,
+      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.id}/`,
       {
         method: 'PUT',
         data,

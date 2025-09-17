@@ -11,18 +11,18 @@ import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTi
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
-import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
 import {OverviewRow} from './overviewRow';
 
 interface Props {
-  uptimeDetectors: UptimeDetector[];
+  uptimeRules: UptimeRule[];
 }
 
-export function OverviewTimeline({uptimeDetectors}: Props) {
+export function OverviewTimeline({uptimeRules}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
@@ -31,7 +31,7 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
   const dateNavigation = useDateNavigation();
 
   const {data: summaries} = useUptimeMonitorSummaries({
-    detectorIds: uptimeDetectors.map(detector => detector.id),
+    detectorIds: uptimeRules.map(rule => rule.id),
     timeWindowConfig,
   });
 
@@ -67,12 +67,12 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
         cursorOverlayAnchorOffset={10}
       />
       <UptimeAlertRow>
-        {uptimeDetectors.map(detector => (
+        {uptimeRules.map(uptimeRule => (
           <OverviewRow
-            key={detector.id}
+            key={uptimeRule.id}
             timeWindowConfig={timeWindowConfig}
-            uptimeDetector={detector}
-            summary={summaries?.[detector.id] ?? null}
+            uptimeRule={uptimeRule}
+            summary={summaries?.[uptimeRule.id] ?? null}
           />
         ))}
       </UptimeAlertRow>

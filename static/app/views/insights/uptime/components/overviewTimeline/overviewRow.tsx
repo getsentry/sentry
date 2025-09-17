@@ -17,13 +17,12 @@ import {IconClock, IconStats, IconTimer, IconUser} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeRule, UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {
@@ -35,45 +34,49 @@ import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptim
 
 interface Props {
   timeWindowConfig: TimeWindowConfig;
-  uptimeDetector: UptimeDetector;
+  uptimeRule: UptimeRule;
   /**
-   * Whether only one uptime detector is being rendered in a larger view with
-   * this component. turns off things like zebra striping, hover effect, and
-   * showing detector name.
+   * Whether only one uptime rule is being rendered in a larger view with this
+   * component. turns off things like zebra striping, hover effect, and showing
+   * rule name.
    */
-  single?: boolean;
+  singleRuleView?: boolean;
   summary?: UptimeSummary | null;
 }
 
-export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}: Props) {
+export function OverviewRow({
+  summary,
+  uptimeRule,
+  timeWindowConfig,
+  singleRuleView,
+}: Props) {
   const organization = useOrganization();
-  const project = useProjectFromId({
-    project_id: uptimeDetector.projectId,
+  const project = useProjectFromSlug({
+    organization,
+    projectSlug: uptimeRule.projectSlug,
   });
 
   const location = useLocation();
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    detectorIds: [uptimeDetector.id],
+    detectorIds: [uptimeRule.id],
     timeWindowConfig,
   });
 
   const detailsPath = makeAlertsPathname({
-    path: `/rules/uptime/${project?.slug}/${uptimeDetector.id}/details/`,
+    path: `/rules/uptime/${uptimeRule.projectSlug}/${uptimeRule.id}/details/`,
     organization,
   });
 
-  const subscription = uptimeDetector.dataSources[0].queryObj;
-
-  const ruleDetails = single ? null : (
+  const ruleDetails = singleRuleView ? null : (
     <DetailsLink to={{pathname: detailsPath, query}}>
-      <Name>{uptimeDetector.name}</Name>
+      <Name>{uptimeRule.name}</Name>
       <Details>
         <DetailsLine>
           {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
-          {uptimeDetector.owner ? (
-            <ActorBadge actor={uptimeDetector.owner} avatarSize={12} />
+          {uptimeRule.owner ? (
+            <ActorBadge actor={uptimeRule.owner} avatarSize={12} />
           ) : (
             <Flex gap="xs" align="center">
               <IconUser size="xs" />
@@ -84,7 +87,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
         <DetailsLine>
           <Flex gap="xs" align="center">
             <IconTimer />
-            {t('Checked every %s', getDuration(subscription.intervalSeconds))}
+            {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
           </Flex>
           {summary === undefined ? null : summary === null ? (
             <Fragment>
@@ -112,16 +115,16 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
             </Fragment>
           )}
         </DetailsLine>
-        <div>{!uptimeDetector.enabled && <Tag>{t('Disabled')}</Tag>}</div>
+        <div>{uptimeRule.status === 'disabled' && <Tag>{t('Disabled')}</Tag>}</div>
       </Details>
     </DetailsLink>
   );
 
   return (
     <TimelineRow
-      key={uptimeDetector.id}
-      singleRuleView={single}
-      as={single ? 'div' : 'li'}
+      key={uptimeRule.id}
+      singleRuleView={singleRuleView}
+      as={singleRuleView ? 'div' : 'li'}
     >
       {ruleDetails}
       <TimelineContainer>
@@ -129,7 +132,7 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
           <CheckInPlaceholder />
         ) : (
           <CheckInTimeline
-            bucketedData={uptimeStats?.[uptimeDetector.id] ?? []}
+            bucketedData={uptimeStats?.[uptimeRule.id] ?? []}
             statusLabel={statusToText}
             statusStyle={tickStyle}
             statusPrecedent={checkStatusPrecedent}
