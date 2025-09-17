@@ -3,7 +3,6 @@ import logging
 from sentry.codecov.client import CodecovApiClient, ConfigurationError, GitProvider
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -27,13 +26,13 @@ logger = logging.getLogger(__name__)
 @retry(exclude=(ConfigurationError,))
 def codecov_account_unlink(
     integration_id: int,
-    organization_id: int,
+    organization_ids: list[int],
 ) -> None:
     """
     Unlinks a GitHub integration from Codecov.
 
     :param integration_id: The GitHub integration ID
-    :param organization_id: The Sentry organization ID
+    :param organization_ids: The Sentry organization IDs
     """
 
     integration = integration_service.get_integration(
@@ -45,14 +44,6 @@ def codecov_account_unlink(
         )
         return
 
-    rpc_org = organization_service.get(id=organization_id)
-    if rpc_org is None:
-        logger.warning(
-            "codecov.account_unlink.missing_organization",
-            extra={"organization_id": organization_id},
-        )
-        return
-
     # From GitHubIntegrationProvider, src/sentry/integrations/github/integration.py:693
     github_org_name = integration.name
 
@@ -61,19 +52,8 @@ def codecov_account_unlink(
             git_provider_org=github_org_name, git_provider=GitProvider.GitHub
         )
 
-        service_id = integration.metadata.get("account_id")
-        if not service_id:
-            logger.warning(
-                "codecov.account_unlink.missing_service_id",
-                extra={
-                    "integration_id": integration_id,
-                    "github_org": github_org_name,
-                },
-            )
-            return
-
         request_data = {
-            "sentry_org_id": str(organization_id),
+            "sentry_org_ids": [str(organization_id) for organization_id in organization_ids],
         }
 
         response = codecov_client.post(
@@ -88,7 +68,7 @@ def codecov_account_unlink(
             extra={
                 "github_org": github_org_name,
                 "integration_id": integration_id,
-                "sentry_organization_id": organization_id,
+                "sentry_organization_ids": organization_ids,
             },
         )
 

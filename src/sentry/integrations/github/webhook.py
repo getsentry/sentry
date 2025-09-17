@@ -302,13 +302,12 @@ class InstallationEventWebhook(GitHubWebhook):
             and SENTRY_GITHUB_APP_ID
             and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
         ):
-            for organization_id in org_ids:
-                codecov_account_unlink.apply_async(
-                    kwargs={
-                        "integration_id": integration.id,
-                        "organization_id": organization_id,
-                    }
-                )
+            codecov_account_unlink.apply_async(
+                kwargs={
+                    "integration_id": integration.id,
+                    "organization_ids": list(org_ids),
+                }
+            )
 
 
 class PushEventWebhook(GitHubWebhook):

@@ -185,8 +185,8 @@ class InstallationDeleteEventWebhookTest(APITestCase):
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
                 content_type="application/json",
                 HTTP_X_GITHUB_EVENT="installation",
-                HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
-                HTTP_X_HUB_SIGNATURE_256="sha256=d06accfcb90d170d866ee0d7dfad84c8d759a2485b3aa64a787d689589435706",
+                HTTP_X_HUB_SIGNATURE="sha1=6a660af7f5c9e5dbc98e83abdff07adf40fafdf4",
+                HTTP_X_HUB_SIGNATURE_256="sha256=037b8cddfa1697fecf60e1390138e11e117a04096a02a8c52c09ab808ce6555c",
                 HTTP_X_GITHUB_DELIVERY=str(uuid4()),
             )
             assert response.status_code == 204
@@ -224,8 +224,8 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             data=INSTALLATION_DELETE_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation",
-            HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
-            HTTP_X_HUB_SIGNATURE_256="sha256=d06accfcb90d170d866ee0d7dfad84c8d759a2485b3aa64a787d689589435706",
+            HTTP_X_HUB_SIGNATURE="sha1=6a660af7f5c9e5dbc98e83abdff07adf40fafdf4",
+            HTTP_X_HUB_SIGNATURE_256="sha256=037b8cddfa1697fecf60e1390138e11e117a04096a02a8c52c09ab808ce6555c",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 204
@@ -243,8 +243,27 @@ class InstallationDeleteEventWebhookTest(APITestCase):
     def test_installation_deleted_triggers_codecov_unlink_when_app_ids_match(
         self, get_jwt: MagicMock, mock_options_get: MagicMock, mock_codecov_unlink: MagicMock
     ) -> None:
-        mock_options_get.return_value = "123"
+        def options_side_effect(key, default=None):
+            if key == "github-app.id":
+                return "123"
+            elif key == "github-app.webhook-secret":
+                return self.secret
+            elif key in [
+                "hybrid_cloud.authentication.disabled_organization_shards",
+                "hybrid_cloud.authentication.disabled_user_shards",
+            ]:
+                return []
+            return default
 
+        mock_options_get.side_effect = options_side_effect
+
+        self._run_test_installation_deleted_triggers_codecov_unlink_when_app_ids_match(
+            mock_codecov_unlink
+        )
+
+    def _run_test_installation_deleted_triggers_codecov_unlink_when_app_ids_match(
+        self, mock_codecov_unlink: MagicMock
+    ) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = self.create_integration(
             name="octocat",
@@ -261,8 +280,8 @@ class InstallationDeleteEventWebhookTest(APITestCase):
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
                 content_type="application/json",
                 HTTP_X_GITHUB_EVENT="installation",
-                HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
-                HTTP_X_HUB_SIGNATURE_256="sha256=d06accfcb90d170d866ee0d7dfad84c8d759a2485b3aa64a787d689589435706",
+                HTTP_X_HUB_SIGNATURE="sha1=6a660af7f5c9e5dbc98e83abdff07adf40fafdf4",
+                HTTP_X_HUB_SIGNATURE_256="sha256=037b8cddfa1697fecf60e1390138e11e117a04096a02a8c52c09ab808ce6555c",
                 HTTP_X_GITHUB_DELIVERY=str(uuid4()),
             )
             assert response.status_code == 204
@@ -270,7 +289,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         mock_codecov_unlink.assert_called_once_with(
             kwargs={
                 "integration_id": integration.id,
-                "organization_id": self.organization.id,
+                "organization_ids": [self.organization.id],
             }
         )
 
@@ -282,8 +301,27 @@ class InstallationDeleteEventWebhookTest(APITestCase):
     def test_installation_deleted_skips_codecov_unlink_when_app_ids_dont_match(
         self, get_jwt: MagicMock, mock_options_get: MagicMock, mock_codecov_unlink: MagicMock
     ) -> None:
-        mock_options_get.return_value = "different_app_id"
+        def options_side_effect(key, default=None):
+            if key == "github-app.id":
+                return "different_app_id"
+            elif key == "github-app.webhook-secret":
+                return self.secret
+            elif key in [
+                "hybrid_cloud.authentication.disabled_organization_shards",
+                "hybrid_cloud.authentication.disabled_user_shards",
+            ]:
+                return []
+            return default
 
+        mock_options_get.side_effect = options_side_effect
+
+        self._run_test_installation_deleted_skips_codecov_unlink_when_app_ids_dont_match(
+            mock_codecov_unlink
+        )
+
+    def _run_test_installation_deleted_skips_codecov_unlink_when_app_ids_dont_match(
+        self, mock_codecov_unlink: MagicMock
+    ) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = self.create_integration(
             name="octocat",
@@ -300,8 +338,8 @@ class InstallationDeleteEventWebhookTest(APITestCase):
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
                 content_type="application/json",
                 HTTP_X_GITHUB_EVENT="installation",
-                HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
-                HTTP_X_HUB_SIGNATURE_256="sha256=d06accfcb90d170d866ee0d7dfad84c8d759a2485b3aa64a787d689589435706",
+                HTTP_X_HUB_SIGNATURE="sha1=6a660af7f5c9e5dbc98e83abdff07adf40fafdf4",
+                HTTP_X_HUB_SIGNATURE_256="sha256=037b8cddfa1697fecf60e1390138e11e117a04096a02a8c52c09ab808ce6555c",
                 HTTP_X_GITHUB_DELIVERY=str(uuid4()),
             )
             assert response.status_code == 204
