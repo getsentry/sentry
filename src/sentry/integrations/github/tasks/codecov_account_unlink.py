@@ -56,7 +56,7 @@ def codecov_account_unlink(
         }
 
         response = codecov_client.post(
-            endpoint="/internal/account/unlink/",
+            endpoint="sentry/internal/account/unlink/",
             json=request_data,
         )
 

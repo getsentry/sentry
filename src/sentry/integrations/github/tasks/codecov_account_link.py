@@ -86,7 +86,7 @@ def codecov_account_link(
         }
 
         response = codecov_client.post(
-            endpoint="/internal/account/link/",
+            endpoint="sentry/internal/account/link/",
             json=request_data,
         )
 

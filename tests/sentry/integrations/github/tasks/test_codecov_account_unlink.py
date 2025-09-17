@@ -44,7 +44,7 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
             "sentry_org_ids": [str(self.organization.id)],
         }
         mock_client.post.assert_called_once_with(
-            endpoint="/internal/account/unlink/",
+            endpoint="sentry/internal/account/unlink/",
             json=expected_request_data,
         )
         mock_response.raise_for_status.assert_called_once()

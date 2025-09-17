@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.codecov.client import ConfigurationError
+from sentry.codecov.client import ConfigurationError, GitProvider
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
@@ -36,7 +36,7 @@ class CodecovAccountLinkTestCase(IntegrationTestCase):
         )
 
         mock_codecov_client_class.assert_called_once_with(
-            git_provider_org="test-org", git_provider="github"
+            git_provider_org="test-org", git_provider=GitProvider.GitHub
         )
 
         expected_request_data = {
@@ -52,7 +52,7 @@ class CodecovAccountLinkTestCase(IntegrationTestCase):
             ],
         }
         mock_client.post.assert_called_once_with(
-            endpoint="/internal/account/link/",
+            endpoint="sentry/internal/account/link/",
             json=expected_request_data,
         )
         mock_response.raise_for_status.assert_called_once()
