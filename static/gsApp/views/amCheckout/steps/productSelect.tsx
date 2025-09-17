@@ -139,6 +139,7 @@ function ProductSelect({
               dataTestId={`product-option-${productInfo.apiName}`}
               onClick={toggleProductOption}
               isSelected={!!isSelected}
+              ariaRole="checkbox"
             >
               <Flex direction="column" gap="md" padding="xl" width="100%">
                 <Flex align="start" justify="between" gap="md">

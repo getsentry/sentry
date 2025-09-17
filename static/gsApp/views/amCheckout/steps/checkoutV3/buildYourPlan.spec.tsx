@@ -57,7 +57,7 @@ describe('BuildYourPlan', () => {
   });
 
   function assertAllSubsteps(isNewCheckout: boolean) {
-    const substepTitles = ['Choose one', 'Select additional products', 'Billing cycle'];
+    const substepTitles = ['Select additional products', 'Billing cycle'];
 
     if (isNewCheckout) {
       substepTitles.forEach(title => {
@@ -146,15 +146,15 @@ describe('BuildYourPlan', () => {
     it('can select plan', async () => {
       renderCheckout(true);
 
-      const teamPlan = await screen.findByTestId('plan-option-am3_team');
-      const businessPlan = screen.getByTestId('plan-option-am3_business');
+      const teamPlan = await screen.findByRole('radio', {name: 'Team'});
+      const businessPlan = screen.getByRole('radio', {name: 'Business'});
 
-      expect(within(teamPlan).getByRole('radio')).not.toBeChecked();
-      expect(within(businessPlan).getByRole('radio')).toBeChecked();
+      expect(teamPlan).not.toBeChecked();
+      expect(businessPlan).toBeChecked();
 
       await userEvent.click(teamPlan);
-      expect(within(teamPlan).getByRole('radio')).toBeChecked();
-      expect(within(businessPlan).getByRole('radio')).not.toBeChecked();
+      expect(teamPlan).toBeChecked();
+      expect(businessPlan).not.toBeChecked();
     });
   });
 
@@ -242,15 +242,15 @@ describe('BuildYourPlan', () => {
     it('can select billing cycle', async () => {
       renderCheckout(true);
 
-      const monthly = await screen.findByTestId('billing-cycle-option-monthly');
-      const annual = screen.getByTestId('billing-cycle-option-annual');
+      const monthly = await screen.findByRole('radio', {name: 'Monthly billing cycle'});
+      const annual = screen.getByRole('radio', {name: 'Yearly billing cycle'});
 
-      expect(within(monthly).getByRole('radio')).toBeChecked();
-      expect(within(annual).getByRole('radio')).not.toBeChecked();
+      expect(monthly).toBeChecked();
+      expect(annual).not.toBeChecked();
 
       await userEvent.click(annual);
-      expect(within(monthly).getByRole('radio')).not.toBeChecked();
-      expect(within(annual).getByRole('radio')).toBeChecked();
+      expect(monthly).not.toBeChecked();
+      expect(annual).toBeChecked();
     });
   });
 });

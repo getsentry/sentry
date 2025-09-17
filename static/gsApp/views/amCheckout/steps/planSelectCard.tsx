@@ -66,6 +66,7 @@ function PlanSelectCard({
       ariaLabel={planName}
       isSelected={isSelected}
       onClick={onPlanSelect}
+      ariaRole="radio"
     >
       <Flex align="start" justify="between" gap="md" padding="xl">
         <Container paddingTop="sm">

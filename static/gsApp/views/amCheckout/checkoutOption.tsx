@@ -7,8 +7,10 @@ function CheckoutOption({
   onClick,
   dataTestId,
   ariaLabel,
+  ariaRole,
 }: {
   ariaLabel: string;
+  ariaRole: 'radio' | 'checkbox';
   children: React.ReactNode;
   dataTestId: string;
   isSelected: boolean;
@@ -16,6 +18,8 @@ function CheckoutOption({
 }) {
   return (
     <Option
+      role={ariaRole}
+      aria-checked={isSelected}
       isSelected={isSelected}
       onClick={onClick}
       data-test-id={dataTestId}

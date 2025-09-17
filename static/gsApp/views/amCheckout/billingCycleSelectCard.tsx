@@ -79,6 +79,7 @@ function BillingCycleSelectCard({
       isSelected={isSelected}
       onClick={onCycleSelect}
       ariaLabel={t('%s billing cycle', intervalName)}
+      ariaRole="radio"
     >
       <Flex align="start" justify="between" gap="md" padding="xl">
         <Container paddingTop="2xs">

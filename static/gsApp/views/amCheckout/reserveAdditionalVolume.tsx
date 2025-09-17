@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -8,7 +7,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Separator} from 'sentry/components/core/separator';
 import {Text} from 'sentry/components/core/text';
 import {IconAdd, IconSubtract} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
 import {PlanTier} from 'getsentry/types';
@@ -43,11 +42,6 @@ function ReserveAdditionalVolume({
       return acc + (bucket?.price ?? 0);
     }, 0);
   }, [formData.reserved, activePlan]);
-
-  // TODO(checkout v3): correct math
-  const savings = useMemo(() => {
-    return reservedVolumeTotal * 1.2 - reservedVolumeTotal;
-  }, [reservedVolumeTotal]);
 
   const isLegacy =
     !checkoutTier ||
