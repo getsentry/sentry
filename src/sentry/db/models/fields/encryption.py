@@ -189,7 +189,6 @@ class EncryptedField(Field):
             encrypted_data = f.encrypt(value_bytes)
             return self._format_encrypted_value(encrypted_data, MARKER_FERNET, key_id)
         except Exception as e:
-            # TODO: decide what to do with this error
             sentry_sdk.capture_exception(e)
             raise
 
