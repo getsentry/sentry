@@ -18,7 +18,6 @@ from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
     is_instance_redis_cluster,
-    validate_dynamic_cluster,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,8 +41,7 @@ class RedisHashSortedSetBuffer:
     Standalone Redis buffer helper for hash and sorted set operations.
 
     This class provides Redis hash and sorted set operations for batch work scheduling,
-    used by both workflow engine and rules processing. It supports Redis cluster,
-    Redis standalone, and RB clusters, separate from the main Buffer service.
+    used by workflow engine.
     """
 
     key_expire = 60 * 60  # 1 hour
@@ -53,10 +51,6 @@ class RedisHashSortedSetBuffer:
         self.is_redis_cluster, self.cluster, _ = get_dynamic_cluster_from_options(
             cfg_key_name, config or {}
         )
-
-    def validate(self) -> None:
-        """Validate the Redis cluster configuration."""
-        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
     def _get_redis_connection(
         self, key: str | None, transaction: bool = True
