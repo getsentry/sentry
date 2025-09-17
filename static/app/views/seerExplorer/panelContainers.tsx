@@ -70,7 +70,7 @@ function PanelContainers({
                 exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
                 transition={{duration: 0.1, ease: 'easeOut'}}
               >
-                <PanelContent>{children}</PanelContent>
+                <PanelContent data-seer-explorer-root="">{children}</PanelContent>
               </PanelContainer>
             </Fragment>
           )}

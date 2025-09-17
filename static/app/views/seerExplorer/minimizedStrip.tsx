@@ -212,6 +212,7 @@ function MinimizedStrip({
       transition={{duration: 0.2, ease: 'easeInOut'}}
       onClick={handleStripClick}
       isInputMode={isInputMode}
+      data-seer-explorer-root=""
     >
       {isInputMode ? (
         <InputRow>
