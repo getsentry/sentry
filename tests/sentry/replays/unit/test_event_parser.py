@@ -1766,7 +1766,7 @@ def test_parse_events_disabled(options_get: mock.MagicMock) -> None:
     assert len(parsed.click_events) == 1
 
 
-def test_set_if():
+def test_set_if() -> None:
     assert set_if(["a", "b"], {"a": 1}, str) == {"a": "1"}
     assert set_if(["a", "b"], {"b": 2}, str) == {"b": "2"}
     assert set_if(["a", "b"], {}, str) == {}
