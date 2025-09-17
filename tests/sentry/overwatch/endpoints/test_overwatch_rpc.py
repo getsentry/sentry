@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 from unittest.mock import patch
@@ -24,21 +25,31 @@ class TestOverwatchRpcEndpoint(APITestCase):
     """Test the Overwatch RPC API endpoint."""
 
     def _create_signed_request(
-        self, payload_dict: dict, secret: str = "test-secret"
+        self, payload_dict: dict, secret: str = "test-secret", secret_is_b64: bool = False
     ) -> tuple[bytes, str]:
         """Helper to create signed request payload and auth header."""
         payload = json.dumps(payload_dict).encode("utf-8")
-        signature = hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+
+        # If the secret is base64 encoded, decode it first for signing
+        if secret_is_b64:
+            secret_bytes = base64.b64decode(secret)
+        else:
+            secret_bytes = secret.encode("utf-8")
+
+        signature = hmac.new(secret_bytes, payload, hashlib.sha256).hexdigest()
         auth_header = f"rpcauth rpcAuth:{signature}"
         return payload, auth_header
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        "test-secret",
+        base64.b64encode(b"test-secret").decode(),
     )
     def test_successful_request(self):
         """Test successful request with valid authentication and arguments."""
-        payload, auth_header = self._create_signed_request({"args": {"org_name": "test-org"}})
+        b64_secret = base64.b64encode(b"test-secret").decode()
+        payload, auth_header = self._create_signed_request(
+            {"args": {"org_name": "test-org"}}, b64_secret, True
+        )
 
         url = reverse("sentry-api-0-overwatch-rpc-service", args=["get_config_for_org"])
         response = self.client.post(
@@ -53,11 +64,12 @@ class TestOverwatchRpcEndpoint(APITestCase):
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        "test-secret",
+        base64.b64encode(b"test-secret").decode(),
     )
     def test_invalid_method_returns_404(self):
         """Test that calling an invalid method returns 404."""
-        payload, auth_header = self._create_signed_request({"args": {}})
+        b64_secret = base64.b64encode(b"test-secret").decode()
+        payload, auth_header = self._create_signed_request({"args": {}}, b64_secret, True)
 
         url = reverse("sentry-api-0-overwatch-rpc-service", args=["invalid_method"])
         response = self.client.post(
@@ -71,11 +83,12 @@ class TestOverwatchRpcEndpoint(APITestCase):
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        "test-secret",
+        base64.b64encode(b"test-secret").decode(),
     )
     def test_missing_args_returns_400(self):
         """Test that missing 'args' key returns 400 ParseError."""
-        payload, auth_header = self._create_signed_request({})
+        b64_secret = base64.b64encode(b"test-secret").decode()
+        payload, auth_header = self._create_signed_request({}, b64_secret, True)
 
         url = reverse("sentry-api-0-overwatch-rpc-service", args=["get_config_for_org"])
         response = self.client.post(
@@ -90,11 +103,12 @@ class TestOverwatchRpcEndpoint(APITestCase):
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        "test-secret",
+        base64.b64encode(b"test-secret").decode(),
     )
     def test_empty_args_returns_400(self):
         """Test that empty 'args' dict returns 400 ParseError."""
-        payload, auth_header = self._create_signed_request({"args": {}})
+        b64_secret = base64.b64encode(b"test-secret").decode()
+        payload, auth_header = self._create_signed_request({"args": {}}, b64_secret, True)
 
         url = reverse("sentry-api-0-overwatch-rpc-service", args=["get_config_for_org"])
         response = self.client.post(
@@ -122,7 +136,7 @@ class TestOverwatchRpcEndpoint(APITestCase):
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        "test-secret",
+        base64.b64encode(b"test-secret").decode(),
     )
     def test_invalid_signature_returns_401(self):
         """Test that request with invalid signature returns 401."""
