@@ -210,7 +210,7 @@ class TestSyncAssigneeInbound(TestCase):
         updated_assignee = self.group.get_assignee()
         assert updated_assignee is None
 
-        mock_record_failure.assert_called_once_with(mock.ANY, create_issue=True)
+        mock_record_failure.assert_called_once_with(mock.ANY, create_issue=False)
 
         exception_param = mock_record_failure.call_args_list[0].args[0]
 

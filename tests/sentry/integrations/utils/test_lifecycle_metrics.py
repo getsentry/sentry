@@ -143,8 +143,6 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         mock_logger: mock.MagicMock,
         mock_sentry_sdk: mock.MagicMock,
     ) -> None:
-        mock_sentry_sdk.capture_exception.return_value = "test-event-id"
-
         metric_obj = self.TestLifecycleMetric()
         with pytest.raises(ExampleException):
             with metric_obj.capture() as lifecycle:
@@ -152,7 +150,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 raise ExampleException()
 
         self._check_metrics_call_args(mock_metrics, "failure")
-        mock_sentry_sdk.capture_exception.assert_called_once()
+        mock_sentry_sdk.capture_exception.assert_not_called()
         mock_logger.warning.assert_called_once_with(
             "integrations.slo.failure",
             extra={
@@ -161,7 +159,6 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
                 "exception_summary": repr(ExampleException()),
-                "slo_event_id": "test-event-id",
             },
         )
 
