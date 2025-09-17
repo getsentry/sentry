@@ -36,7 +36,7 @@ enum SessionMetric {
 }
 
 export const DERIVED_STATUS_METRICS_PATTERN =
-  /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
+  /count_(abnormal|errored|crashed|unhandled|healthy)\((user|session)\)/;
 
 export enum DerivedStatusFields {
   HEALTHY_SESSIONS = 'count_healthy(session)',
