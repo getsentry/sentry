@@ -17,7 +17,9 @@ class DataForwarder(DefaultFieldsModel):
     is_enabled = models.BooleanField(default=True)
 
     enroll_new_projects = models.BooleanField(default=False)
-    enrolled_projects = models.JSONField(default=list)
+    enrolled_projects = models.ManyToManyField(
+        "sentry.Project", through="sentry.DataForwarderProject", related_name="data_forwarders"
+    )
 
     provider = models.CharField(
         max_length=64,

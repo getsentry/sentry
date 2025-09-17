@@ -7,25 +7,26 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 
 
 @region_silo_model
-class ProjectDataForwarder(DefaultFieldsModel):
+class DataForwarderProject(DefaultFieldsModel):
     """
     Links DataForwarder to specific projects with optional project-specific overrides.
     """
 
     __relocation_scope__ = RelocationScope.Organization
 
+    is_enabled = models.BooleanField(default=True)
     data_forwarder = FlexibleForeignKey(
         "sentry.DataForwarder",
         on_delete=models.CASCADE,
         related_name="projects",
     )
-    project_id = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     overrides = models.JSONField(default=dict)
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_projectdataforwarder"
-        unique_together = (("data_forwarder", "project_id"),)
+        db_table = "sentry_dataforwarderproject"
+        unique_together = (("data_forwarder", "project"),)
 
     def get_config(self) -> dict:
         """
