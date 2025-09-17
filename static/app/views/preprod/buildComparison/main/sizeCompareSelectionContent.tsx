@@ -12,6 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconBranch} from 'sentry/components/prevent/branchSelector/iconBranch';
 import {
   IconClose,
+  IconCode,
   IconCommit,
   IconDownload,
   IconFocus,
@@ -287,7 +288,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
           )}
           {installSize && (
             <Flex align="center" gap="xs">
-              <IconDownload size="xs" color="gray300" />
+              <IconCode size="xs" color="gray300" />
               <Text>{formatBytesBase10(installSize)}</Text>
             </Flex>
           )}
