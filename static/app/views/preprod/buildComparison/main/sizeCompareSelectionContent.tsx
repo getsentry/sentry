@@ -66,7 +66,6 @@ export function SizeCompareSelectionContent({
     per_page: 25,
     state: BuildDetailsState.PROCESSED,
     app_id: headBuildDetails.app_info?.app_id,
-    build_version: headBuildDetails.app_info?.version,
     // TODO: Add build_configuration when field in API response
   };
 
