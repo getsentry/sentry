@@ -9,6 +9,7 @@ import sentry_sdk
 from django.db.models import Model
 
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.taskworker.config import TaskworkerConfig  # noqa (used in getsentry)
 from sentry.taskworker.retry import RetryError, retry_task
 from sentry.taskworker.state import current_task
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
