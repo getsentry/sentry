@@ -10,13 +10,12 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconInfo} from 'sentry/icons';
+import {IconIntegratedOrg} from 'sentry/icons/iconIntegratedOrg';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {IconIntegratedOrg} from './iconIntegratedOrg';
 
 const DEFAULT_ORG_LABEL = 'Select Integrated Org';
 

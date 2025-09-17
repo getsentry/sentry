@@ -10,7 +10,7 @@ export function IconRepository({...props}: IconRepositoryProps) {
   return (
     <SvgIcon
       {...props}
-      data-test-id="icon-branch"
+      data-test-id="icon-repository"
       width="16"
       height="16"
       viewBox="0 0 16 16"
@@ -26,5 +26,3 @@ export function IconRepository({...props}: IconRepositoryProps) {
     </SvgIcon>
   );
 }
-
-IconRepository.displayName = 'IconRepository';

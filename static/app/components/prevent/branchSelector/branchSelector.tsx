@@ -9,10 +9,9 @@ import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSelector/useInfiniteRepositoryBranches';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {IconBranch} from './iconBranch';
 
 const ALL_BRANCHES = 'All Branches';
 
