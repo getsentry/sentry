@@ -64,6 +64,9 @@ class BaseActionValidator(CamelSnakeSerializer):
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         from sentry.notifications.notification_action.registry import action_validator_registry
 
+        if not (organization := self.context.get("organization")):
+            raise serializers.ValidationError("Organization is required in the context")
+
         attrs = super().validate(attrs)
 
         is_integration = Action.Type(attrs["type"]).is_integration()
@@ -77,9 +80,6 @@ class BaseActionValidator(CamelSnakeSerializer):
             raise serializers.ValidationError(
                 f"Integration ID is required for action type {attrs["type"]}"
             )
-
-        if not (organization := self.context.get("organization")):
-            raise serializers.ValidationError("Organization is required in the context")
 
         try:
             handler = action_validator_registry.get(attrs["type"])
