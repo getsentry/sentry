@@ -2,6 +2,7 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
@@ -85,7 +86,7 @@ const DisplayHeader = styled('div')`
 function Live() {
   return (
     <Flex align="center">
-      <LiveText>{t('LIVE')}</LiveText>
+      <Text variant="success">{t('LIVE')}</Text>
       <LiveIndicator />
     </Flex>
   );
@@ -103,12 +104,8 @@ const pulse = keyframes`
   }
 `;
 
-const LiveText = styled('span')`
-  color: ${p => p.theme.success};
-`;
-
 const LiveIndicator = styled('div')`
-  background: ${p => p.theme.success};
+  background: ${p => p.theme.successText};
   height: 8px;
   width: 8px;
   position: relative;
@@ -118,7 +115,7 @@ const LiveIndicator = styled('div')`
   &:before {
     content: '';
     animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.success};
+    border: 6px solid ${p => p.theme.successText};
     position: absolute;
     border-radius: 50%;
     height: 20px;
