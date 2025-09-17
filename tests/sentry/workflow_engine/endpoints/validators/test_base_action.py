@@ -130,6 +130,26 @@ class TestBaseActionValidator(TestCase):
         with self.feature("organizations:integrations-alert-rule"):
             assert validator2.is_valid()
 
+    def test_validate_data__missing_integration_id(
+        self, mock_action_handler_get: mock.MagicMock, mock_action_validator_get: mock.MagicMock
+    ) -> None:
+        validator = BaseActionValidator(
+            data={
+                "type": Action.Type.SLACK,
+                "config": {"foo": "bar"},
+                "data": {"baz": "bar"},
+            },
+        )
+        result = validator.is_valid()
+        assert result is False
+        assert validator.errors == {
+            "nonFieldErrors": [
+                ErrorDetail(
+                    string="Integration ID is required for action type slack", code="invalid"
+                )
+            ]
+        }
+
     def test_validate_data__extra_integration_id(
         self, mock_action_handler_get: mock.MagicMock, mock_action_validator_get: mock.MagicMock
     ) -> None:
