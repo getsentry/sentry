@@ -1,6 +1,5 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tn} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {
   Automation,
@@ -137,7 +136,11 @@ export function useAvailableActionsQuery() {
   });
 }
 
-export function useCreateAutomation() {
+export function useCreateAutomation({
+  onError,
+}: {
+  onError?: (error: RequestError) => void;
+}) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -153,8 +156,9 @@ export function useCreateAutomation() {
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
     },
-    onError: _ => {
-      AlertStore.addAlert({type: 'error', message: t('Unable to create automation')});
+    onError: error => {
+      onError?.(error);
+      addErrorMessage(t('Unable to create automation'));
     },
   });
 }
@@ -214,14 +218,18 @@ export function useDeleteAutomationsMutation() {
   });
 }
 
-export function useUpdateAutomation() {
+export function useUpdateAutomation({
+  onError,
+}: {
+  onError?: (error: RequestError) => void;
+}) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   return useMutation<
     Automation,
-    void,
+    RequestError,
     Partial<NewAutomation> & {id: Automation['id']; name: NewAutomation['name']}
   >({
     mutationFn: data =>
@@ -241,8 +249,9 @@ export function useUpdateAutomation() {
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
     },
-    onError: _ => {
-      AlertStore.addAlert({type: 'error', message: t('Unable to update automation')});
+    onError: error => {
+      onError?.(error);
+      addErrorMessage(t('Unable to update automation'));
     },
   });
 }

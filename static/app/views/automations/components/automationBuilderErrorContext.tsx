@@ -1,7 +1,10 @@
 import {createContext, useContext} from 'react';
 
+import type RequestError from 'sentry/utils/requestError/requestError';
+
 export const AutomationBuilderErrorContext = createContext<{
-  errors: Record<string, string>;
+  errors: Record<string, any>;
+  mutationErrors: RequestError['responseJSON'];
   removeError: (errorId: string) => void;
   setErrors: (errors: Record<string, string>) => void;
 } | null>(null);
