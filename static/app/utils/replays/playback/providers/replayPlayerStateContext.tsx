@@ -178,19 +178,20 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       const offsetMs = clamp(userAction.offsetMs, 0, replayer.getMetaData().totalTime);
       // TOOD: going back to the start of the replay needs to re-build & re-render the first frame I think.
 
-      const skipInactive = replayer.config.skipInactive;
-      // If the replayer is set to skip inactive, we should turn it off before
-      // manually scrubbing, so when the player resumes playing it's not stuck
-      // fast-forwarding even through sections with activity
-      replayer.setConfig({skipInactive});
+      // Stop any active fast-forwarding when jumping
+      if (
+        replayer.config.skipInactive &&
+        replayer.speedService.state.matches('skipping')
+      ) {
+        replayer.resetFastForward();
+      }
 
       if (replayer.service.state.value === 'playing') {
         replayer.play(offsetMs);
       } else {
         replayer.pause(offsetMs);
+        replayer.refreshSkipState();
       }
-
-      replayer.setConfig({skipInactive});
 
       return;
     }
