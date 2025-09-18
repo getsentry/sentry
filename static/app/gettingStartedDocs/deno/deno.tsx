@@ -1,6 +1,5 @@
 import type {
   Docs,
-  DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -10,23 +9,47 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getInstallConfig = () => [
-  {
-    code: [
-      {
-        label: 'npm registry',
-        value: 'npm',
-        language: 'javascript',
-        code: `import * as Sentry from "npm:@sentry/deno";`,
-      },
-    ],
-  },
-];
-
-const getConfigureSnippet = (params: Params) =>
-  `
+const onboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            "Sentry captures data by using an SDK within your application's runtime."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'npm registry',
+              language: 'javascript',
+              code: `import * as Sentry from "npm:@sentry/deno";`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              language: 'javascript',
+              label: 'JavaScript',
+              code: `
 Sentry.init({
   dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
@@ -35,35 +58,9 @@ Sentry.init({
   tracesSampleRate: 1.0,`
       : ''
   }
-});
-`;
-
-const getVerifySnippet = () => `
-setTimeout(() => {
-  throw new Error();
-});
-`;
-
-const onboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: t(
-        "Sentry captures data by using an SDK within your application's runtime."
-      ),
-      configurations: getInstallConfig(),
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
-        {
-          language: 'javascript',
-          code: getConfigureSnippet(params),
+});`,
+            },
+          ],
         },
       ],
     },
@@ -71,13 +68,24 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          code: getVerifySnippet(),
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `setTimeout(() => {
+                throw new Error();
+              });`,
+            },
+          ],
         },
       ],
     },
