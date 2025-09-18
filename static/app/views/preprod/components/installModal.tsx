@@ -103,58 +103,55 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
         </Flex>
 
         {installDetails.install_url && (
-          <Stack align="center" gap="md">
-            {installDetails.download_count !== undefined &&
-              installDetails.download_count > 0 && (
-                <Text size="sm" variant="muted">
-                  {tn('%s download', '%s downloads', installDetails.download_count)}
-                </Text>
-              )}
-
-            <Container background="secondary" padding="lg" radius="md" border="primary">
-              <StyledQRCode
-                aria-label={t('Install QR Code')}
-                value={
-                  installDetails.platform === 'ios'
-                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
-                    : installDetails.install_url
-                }
-                size={120}
-              />
-            </Container>
-
-            {details}
-
-            <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
-              <Text align="center" size="lg">
-                {t(
-                  'Scan the QR code with your device and follow the installation prompts'
+          <Fragment>
+            <Stack align="center" gap="md">
+              {installDetails.download_count !== undefined &&
+                installDetails.download_count > 0 && (
+                  <Text size="sm" variant="muted">
+                    {tn('%s download', '%s downloads', installDetails.download_count)}
+                  </Text>
                 )}
+              <Container background="secondary" padding="lg" radius="md" border="primary">
+                <StyledQRCode
+                  aria-label={t('Install QR Code')}
+                  value={
+                    installDetails.platform === 'ios'
+                      ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
+                      : installDetails.install_url
+                  }
+                  size={120}
+                />
+              </Container>
+              {details}
+              <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
+                <Text align="center" size="lg">
+                  {t(
+                    'Scan the QR code with your device and follow the installation prompts'
+                  )}
+                </Text>
+              </Flex>
+            </Stack>
+            <Divider width="100%" justify="center">
+              <Container>
+                <Text size="sm" variant="muted">
+                  {t('OR')}
+                </Text>
+              </Container>
+            </Divider>
+            <Stack align="center" gap="lg">
+              <Button
+                onClick={() => window.open(installDetails.install_url, '_blank')}
+                priority="primary"
+                size="md"
+              >
+                {t('Download')}
+              </Button>
+              <Text align="center" size="md" variant="muted">
+                {t('The install link will expire in 12 hours')}
               </Text>
-            </Flex>
-          </Stack>
+            </Stack>
+          </Fragment>
         )}
-
-        <Divider width="100%" justify="center">
-          <Container>
-            <Text size="sm" variant="muted">
-              {t('OR')}
-            </Text>
-          </Container>
-        </Divider>
-
-        <Stack align="center" gap="lg">
-          <Button
-            onClick={() => window.open(installDetails.install_url, '_blank')}
-            priority="primary"
-            size="md"
-          >
-            {t('Download')}
-          </Button>
-          <Text align="center" size="md" variant="muted">
-            {t('The install link will expire in 12 hours')}
-          </Text>
-        </Stack>
       </Flex>
     </Fragment>
   );
