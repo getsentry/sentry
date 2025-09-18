@@ -11,7 +11,6 @@ from slack_sdk.models.blocks import (
     SectionBlock,
 )
 
-from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -78,6 +77,8 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:
+        from sentry.integrations.slack.sdk_client import SlackSdkClient
+
         if not isinstance(target, cls.target_class):
             raise NotificationProviderError(
                 f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
