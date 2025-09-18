@@ -16,7 +16,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
 from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -120,6 +120,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (OrganizationEventPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Get all available coding agent integrations for the organization."""
@@ -258,6 +259,22 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         return autofix_state
 
+    def _extract_repos_from_root_cause(self, autofix_state: AutofixState) -> list[str]:
+        """Extract repository names from autofix state root cause."""
+        root_cause_step = next(
+            (step for step in autofix_state.steps if step["key"] == "root_cause_analysis"), None
+        )
+
+        if not root_cause_step or not root_cause_step["causes"]:
+            return []
+
+        cause = root_cause_step["causes"][0]
+
+        if "relevant_repos" not in cause:
+            return []
+
+        return list(set(cause["relevant_repos"])) or []
+
     def _extract_repos_from_solution(self, autofix_state: AutofixState) -> list[str]:
         """Extract repository names from autofix state solution."""
         repos = set()
@@ -287,25 +304,29 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         trigger_source: AutofixTriggerSource,
     ) -> list[dict]:
         """Launch coding agents for all repositories in the solution."""
-        solution_repos = set(self._extract_repos_from_solution(autofix_state))
-        autofix_state_repos = {
-            f"{repo.owner}/{repo.name}" for repo in autofix_state.request["repos"]
-        }
 
-        # Repos that were in the solution but not in the autofix state
-        solution_repos_not_found = solution_repos - autofix_state_repos
+        repos = set(
+            self._extract_repos_from_root_cause(autofix_state)
+            if trigger_source == AutofixTriggerSource.ROOT_CAUSE
+            else self._extract_repos_from_solution(autofix_state)
+        )
+
+        autofix_state_repos = {f"{repo.owner}/{repo.name}" for repo in autofix_state.request.repos}
+
+        # Repos that were in the repos but not in the autofix state
+        repos_not_found = repos - autofix_state_repos
         logger.warning(
-            "coding_agent.post.solution_repos_not_found",
+            "coding_agent.post.repos_not_found",
             extra={
                 "organization_id": organization.id,
                 "run_id": run_id,
-                "solution_repos_not_found": solution_repos_not_found,
+                "repos_not_found": repos_not_found,
             },
         )
 
-        validated_solution_repos = solution_repos - solution_repos_not_found
+        validated_repos = repos - repos_not_found
 
-        repos_to_launch = validated_solution_repos or autofix_state_repos
+        repos_to_launch = validated_repos or autofix_state_repos
 
         if not repos_to_launch:
             raise NotFound("No repos to run agents")
@@ -321,7 +342,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             repo = next(
                 (
                     repo
-                    for repo in autofix_state.request["repos"]
+                    for repo in autofix_state.request.repos
                     if f"{repo.owner}/{repo.name}" == repo_name
                 ),
                 None,
@@ -341,7 +362,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             launch_request = CodingAgentLaunchRequest(
                 prompt=prompt,
                 repository=repo,
-                branch_name=sanitize_branch_name(autofix_state.request["issue"]["title"]),
+                branch_name=sanitize_branch_name(autofix_state.request.issue["title"]),
             )
 
             try:

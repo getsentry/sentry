@@ -40,6 +40,14 @@ describe('SimilarIssuesDrawer', () => {
       url: `/issues/${group.id}/related-issues/`,
       body: {data: [], type: 'same_root_cause'},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/latest/`,
+      body: {},
+    });
   });
 
   it('renders the content as expected', async () => {

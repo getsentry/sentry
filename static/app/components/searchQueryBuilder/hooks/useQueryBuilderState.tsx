@@ -24,6 +24,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryBuilderState = {
   /**
@@ -172,26 +173,45 @@ function deleteQueryTokens(
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: TermOperator,
+  hasWildcardOperators: boolean
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
-  const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.negated = isNotEqual;
+  newToken.negated =
+    newOperator === TermOperator.NOT_EQUAL ||
+    newOperator === TermOperator.DOES_NOT_CONTAIN ||
+    newOperator === TermOperator.DOES_NOT_START_WITH ||
+    newOperator === TermOperator.DOES_NOT_END_WITH;
 
-  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_CONTAIN) {
+    newToken.operator = TermOperator.CONTAINS;
+  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_START_WITH) {
+    newToken.operator = TermOperator.STARTS_WITH;
+  } else if (hasWildcardOperators && newOperator === TermOperator.DOES_NOT_END_WITH) {
+    newToken.operator = TermOperator.ENDS_WITH;
+  } else {
+    newToken.operator =
+      newOperator === TermOperator.NOT_EQUAL ? TermOperator.DEFAULT : newOperator;
+  }
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
 
 function modifyFilterOperator(
   state: QueryBuilderState,
-  action: UpdateFilterOpAction
+  action: UpdateFilterOpAction,
+  hasWildcardOperators: boolean
 ): QueryBuilderState {
-  const newQuery = modifyFilterOperatorQuery(state.query, action.token, action.op);
+  const newQuery = modifyFilterOperatorQuery(
+    state.query,
+    action.token,
+    action.op,
+    hasWildcardOperators
+  );
 
   if (newQuery === state.query) {
     return state;
@@ -551,6 +571,11 @@ export function useQueryBuilderState({
   initialQuery: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
 }) {
+  const organization = useOrganization();
+  const hasWildcardOperators = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
   const initialState: QueryBuilderState = {
     query: initialQuery,
     committedQuery: initialQuery,
@@ -628,7 +653,7 @@ export function useQueryBuilderState({
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
-          return modifyFilterOperator(state, action);
+          return modifyFilterOperator(state, action, hasWildcardOperators);
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
@@ -644,7 +669,7 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [disabled, displayAskSeerFeedback, getFieldDefinition]
+    [disabled, displayAskSeerFeedback, getFieldDefinition, hasWildcardOperators]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);

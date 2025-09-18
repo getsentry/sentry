@@ -5,8 +5,6 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import {FrontendVersionProvider, useFrontendVersion} from './frontendVersionContext';
 
-// Mock constants to control test environment, the FrontendVersionProvider ony
-// does anything in production SAAS.
 jest.mock('sentry/constants', () => ({
   __esModule: true,
   DEPLOY_PREVIEW_CONFIG: undefined,

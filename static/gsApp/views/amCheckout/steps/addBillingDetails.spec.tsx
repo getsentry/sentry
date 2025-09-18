@@ -23,7 +23,6 @@ describe('Billing Details Step', () => {
   });
 
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
   const billingDetails = BillingDetailsFixture({addressType: null});
   const stepNumber = 6;
@@ -101,7 +100,7 @@ describe('Billing Details Step', () => {
         api={api}
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 

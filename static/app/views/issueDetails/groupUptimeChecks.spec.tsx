@@ -1,10 +1,10 @@
+import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
-import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -48,8 +48,8 @@ describe('GroupUptimeChecks', () => {
       body: event,
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/uptime/123/`,
-      body: UptimeRuleFixture(),
+      url: `/organizations/${organization.slug}/detectors/123/`,
+      body: UptimeDetectorFixture({id: '123'}),
     });
     PageFiltersStore.onInitializeUrlState(
       {
@@ -139,11 +139,6 @@ describe('GroupUptimeChecks', () => {
 
     const traceId = getShortEventId(uptimeCheck.traceId);
 
-    // TraceID is a not link until we know there are spans
-    expect(screen.getByText(traceId)).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: traceId})).not.toBeInTheDocument();
-
-    // Once the span count has loaded it will be a link
     expect(await screen.findByText('10 spans')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: traceId})).toBeInTheDocument();
   });

@@ -156,7 +156,7 @@ describe('ProjectDetail > ProjectIssues', () => {
     await userEvent.click(link);
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/discover/results/`,
+      pathname: `/organizations/${organization.slug}/explore/discover/results/`,
       query: {
         display: 'top5',
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],

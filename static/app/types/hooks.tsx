@@ -6,7 +6,6 @@ import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type {SentryRouteObject} from 'sentry/components/route';
-import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {WidgetType} from 'sentry/views/dashboards/types';
@@ -56,7 +55,7 @@ export type HookName = keyof Hooks;
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
   'routes:root': RouteObjectHook;
-  'routes:settings': RouteObjectHook;
+  'routes:subscription-settings': RouteObjectHook;
 };
 
 /**
@@ -98,6 +97,10 @@ type ProfilingBetaAlertBannerProps = {
 
 type ContinuousProfilingBetaAlertBannerProps = {
   organization: Organization;
+};
+
+type ContinuousProfilingBillingRequirementBannerProps = {
+  project: Project;
 };
 
 type CronsBillingBannerProps = {
@@ -177,6 +180,7 @@ type ComponentHooks = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
   'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
+  'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
@@ -228,7 +232,6 @@ type CustomizationHooks = {
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
-  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
@@ -266,10 +269,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:profiling-page': FeatureDisabledHook;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
-  'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
-  'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
-  'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
@@ -497,17 +497,10 @@ type SidebarItemLabelHook = () => React.ComponentType<{
   id?: string;
 }>;
 
-type SidebarProps = Pick<
-  React.ComponentProps<typeof SidebarItem>,
-  'orientation' | 'collapsed' | 'hasPanel'
->;
-
 /**
  * Returns an additional list of sidebar items.
  */
-type SidebarTryBusinessHook = (
-  opts: SidebarProps & {organization: Organization}
-) => React.ReactNode;
+type SidebarTryBusinessHook = (opts: {organization: Organization}) => React.ReactNode;
 
 /**
  * Provides augmentation of the help modal footer
@@ -617,24 +610,6 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
   onTriggerModal: () => void;
   organization: Organization;
 }>;
-
-/**
- * Sidebar navigation item customization allows passing render props to disable
- * the link, wrap it in an upsell modal, and give it some additional content
- * (e.g., a Business Icon) to render.
- *
- * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
- * too, since this is a more generic version.
- */
-type SidebarNavigationItemHook = () => React.ComponentType<{
-  children: (opts: {
-    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
-    additionalContent: React.ReactElement | null;
-    disabled: boolean;
-  }) => React.ReactElement;
-  id: string;
-}>;
-
 /**
  * Invite Modal customization allows for a render-prop component to add
  * additional react elements into the modal, and add invite-send middleware.

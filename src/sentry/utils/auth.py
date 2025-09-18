@@ -4,7 +4,7 @@ import logging
 from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
@@ -27,6 +27,9 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
 
 logger = logging.getLogger("sentry.auth")
 
@@ -123,17 +126,18 @@ def get_login_url(reset: bool = False) -> str:
     if _LOGIN_URL is None or reset:
         # if LOGIN_URL resolves force login_required to it instead of our own
         # XXX: this must be done as late as possible to avoid idempotent requirements
+        value: str | _StrPromise | None
         try:
             resolve(settings.LOGIN_URL)
         except Exception:
-            _LOGIN_URL = settings.SENTRY_LOGIN_URL
+            value = settings.SENTRY_LOGIN_URL
         else:
-            _LOGIN_URL = settings.LOGIN_URL
+            value = settings.LOGIN_URL
 
-        if _LOGIN_URL is None:
-            _LOGIN_URL = reverse("sentry-login")
+        if value is None:
+            value = reverse("sentry-login")
         # ensure type is coerced to string (to avoid lazy proxies)
-        _LOGIN_URL = str(_LOGIN_URL)
+        _LOGIN_URL = str(value)
     return _LOGIN_URL
 
 

@@ -1,13 +1,12 @@
 import type React from 'react';
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
+import {Text} from 'sentry/components/core/text';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -24,10 +23,12 @@ import {
   isByteCategory,
 } from 'getsentry/utils/dataCategory';
 import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
-import {displayPrice, displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {
+  displayPrice,
+  displayPriceWithCents,
+  getBucket,
+} from 'getsentry/views/amCheckout/utils';
 import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
-
-const SUGGESTED_SPENDING_CAPS = [300_00, 500_00, 1_000_00, 10_000_00];
 
 type PartialSpendCapUpdate = Partial<Record<DataCategory, number>> & {
   sharedMaxBudget?: number;
@@ -45,13 +46,8 @@ interface SpendCapSettingsProps {
   currentReserved: Partial<Record<DataCategory, number>>;
   header: React.ReactNode;
   onDemandBudgets: OnDemandBudgets;
-  onUpdate: ({
-    onDemandBudgets,
-    fromButton,
-  }: {
-    onDemandBudgets: OnDemandBudgets;
-    fromButton?: boolean;
-  }) => void;
+  onUpdate: ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => void;
+  footer?: React.ReactNode;
   isOpen?: boolean;
 }
 
@@ -72,13 +68,7 @@ interface SpendCapInputProps extends Pick<SpendCapSettingsProps, 'activePlan'> {
   budgetMode: OnDemandBudgetMode;
   category: DataCategory | null;
   currentSpendingCap: number;
-  onUpdate: ({
-    newData,
-    fromButton,
-  }: {
-    newData: PartialSpendCapUpdate;
-    fromButton?: boolean;
-  }) => void;
+  onUpdate: ({newData}: {newData: PartialSpendCapUpdate}) => void;
   reserved: number | null;
 }
 
@@ -108,17 +98,34 @@ function formatPaygPricePerUnit({
     useUnitScaling: true,
   });
   if (isByteCategory(category)) {
-    return tct('[formattedPrice] per [units][addComma]', {
+    return tct('[formattedPrice] / [units][addComma]', {
       formattedPrice,
       units: multiplierIsOne ? 'GB' : formattedUnits,
       addComma: addComma ? ', ' : '',
     });
   }
-  return tct('[formattedPrice] per [units][addComma]', {
+  return tct('[formattedPrice] / [units][addComma]', {
     formattedPrice,
     units: `${multiplierIsOne ? '' : `${formattedUnits} `} ${multiplierIsOne ? singularName : pluralName}`,
     addComma: addComma ? ', ' : '',
   });
+}
+
+function getPaygPpe({
+  activePlan,
+  category,
+  reserved,
+}: {
+  activePlan: Plan;
+  category: DataCategory;
+  reserved: number;
+}) {
+  const bucket = getBucket({
+    buckets: activePlan.planCategories[category],
+    events: reserved === RESERVED_BUDGET_QUOTA ? reserved : reserved + 1, // +1 to get the next bucket, if any
+    shouldMinimize: false,
+  });
+  return bucket.onDemandPrice ?? 0;
 }
 
 function SpendCapInput({
@@ -129,9 +136,6 @@ function SpendCapInput({
   category,
   reserved,
 }: SpendCapInputProps) {
-  const [selectedButton, setSelectedButton] = useState<string | null>(
-    `button-${currentSpendingCap}`
-  );
   // category and reserved should never be null for per category but this makes TS happy
   const isPerCategory =
     budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
@@ -158,50 +162,54 @@ function SpendCapInput({
   };
 
   return (
-    <Flex align="center" justify="start" gap="md">
-      <ButtonBar merged gap="0">
-        {SUGGESTED_SPENDING_CAPS.map(cap => {
-          const isSelected = selectedButton === `button-${cap}`;
-          const formattedCap = displayPrice({cents: cap});
-          return (
-            <StyledButton
-              key={cap}
-              onClick={() => {
-                setSelectedButton(`button-${cap}`);
-                onUpdate({
-                  newData: {[inputName]: cap},
-                  fromButton: true,
-                });
-              }}
-              aria-checked={isSelected}
-              isSelected={isSelected}
-              aria-label={t('%s suggested %s spending cap', formattedCap, displayName)}
-            >
-              {formattedCap}
-            </StyledButton>
-          );
-        })}
-      </ButtonBar>
-      <Currency>
-        <StyledInput
-          aria-label={t('Custom %s spending cap', displayName)}
-          name={`spending-cap-${inputName}`}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          placeholder="300"
-          value={coerceValue(currentSpendingCap)}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            const parsedBudget = parseInputValue(e);
-            onUpdate({
-              newData: {[inputName]: parsedBudget},
-              fromButton: false,
-            });
-            setSelectedButton(`button-${parsedBudget}`);
-          }}
-        />
-      </Currency>
-    </Flex>
+    <Currency>
+      <StyledInput
+        aria-label={t('Custom %s spending cap', displayName)}
+        name={`spending-cap-${inputName}`}
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="300"
+        value={coerceValue(currentSpendingCap)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const parsedBudget = parseInputValue(e);
+          onUpdate({
+            newData: {[inputName]: parsedBudget},
+          });
+        }}
+      />
+    </Currency>
+  );
+}
+
+function SharedSpendCapPriceTableRow({
+  productName,
+  formattedReserved,
+  formattedPaygPpe,
+  isHeader,
+}: {
+  formattedPaygPpe: React.ReactNode;
+  formattedReserved: React.ReactNode;
+  productName: React.ReactNode;
+  isHeader?: boolean;
+}) {
+  return (
+    <Grid
+      columns="repeat(3, 1fr)"
+      gap="md 0"
+      background={isHeader ? 'secondary' : 'primary'}
+      padding="md lg"
+    >
+      <Text size="sm" bold>
+        {productName}
+      </Text>
+      <Text size="sm" bold={isHeader}>
+        {formattedReserved}
+      </Text>
+      <Text size="sm" bold={isHeader}>
+        {formattedPaygPpe}
+      </Text>
+    </Grid>
   );
 }
 
@@ -217,46 +225,53 @@ function SharedSpendCapPriceTable({
     category => !additionalProductCategories.includes(category)
   );
   return (
-    <PriceTable columns="repeat(3, 1fr)" gap="md 0">
-      <strong>{t('Applies to')}</strong>
-      <strong>{t('Included volume')}</strong>
-      <strong>{t('Additional cost')}</strong>
+    <PriceTable>
+      <SharedSpendCapPriceTableRow
+        isHeader
+        productName={t('Feature')}
+        formattedReserved={t('Volume included')}
+        formattedPaygPpe={t('Additional cost')}
+      />
       {baseCategories.map(category => {
         const reserved = currentReserved[category] ?? 0;
-        const paygPpe =
-          activePlan.planCategories[category]?.find(bucket => bucket.events === reserved)
-            ?.onDemandPrice ?? 0;
+        const paygPpe = getPaygPpe({
+          activePlan,
+          category,
+          reserved,
+        });
+
         const pluralName = getPlanCategoryName({
           plan: activePlan,
           category,
           capitalize: false,
+          title: true,
         });
         const singularName = getSingularCategoryName({
           plan: activePlan,
           category,
           capitalize: false,
         });
+
+        const formattedReserved =
+          reserved === 0
+            ? '-'
+            : `${formatReservedWithUnits(reserved, category, {
+                isAbbreviated: false,
+                useUnitScaling: true,
+              })} ${reserved === 0 ? '' : reserved === 1 ? singularName : pluralName}`;
+
         return (
-          <Fragment key={category}>
-            <span>{toTitleCase(pluralName, {allowInnerUpperCase: true})}</span>
-            <span>
-              {reserved === 0
-                ? '-'
-                : formatReservedWithUnits(reserved, category, {
-                    isAbbreviated: false,
-                    useUnitScaling: true,
-                  })}{' '}
-              {reserved === 0 ? '' : reserved === 1 ? singularName : pluralName}
-            </span>
-            <span>
-              {formatPaygPricePerUnit({
-                paygPpe,
-                category,
-                pluralName,
-                singularName,
-              })}
-            </span>
-          </Fragment>
+          <SharedSpendCapPriceTableRow
+            key={category}
+            productName={pluralName}
+            formattedReserved={formattedReserved}
+            formattedPaygPpe={formatPaygPricePerUnit({
+              paygPpe,
+              category,
+              pluralName,
+              singularName,
+            })}
+          />
         );
       })}
       {Object.values(activePlan.availableReservedBudgetTypes).map(productInfo => {
@@ -273,48 +288,51 @@ function SharedSpendCapPriceTable({
           : (productInfo.defaultBudget ?? 0);
         const reservedType = checkoutState.reservedType ?? 'budget';
 
+        const formattedReserved =
+          reserved === 0
+            ? '-'
+            : reservedType === 'budget'
+              ? tct('[reservedBudget] credit', {
+                  reservedBudget: displayPrice({cents: reserved}),
+                })
+              : reserved;
+        const formattedPaygPpe = checkoutState
+          ? productInfo.dataCategories.map((category, index) => {
+              // TODO(checkout v3): this will need to be updated for non-budget products
+              const paygPpe = getPaygPpe({
+                activePlan,
+                category,
+                reserved: RESERVED_BUDGET_QUOTA,
+              });
+              const pluralName = getPlanCategoryName({
+                plan: activePlan,
+                category,
+                capitalize: false,
+              });
+              const singularName = getSingularCategoryName({
+                plan: activePlan,
+                category,
+                capitalize: false,
+              });
+              return formatPaygPricePerUnit({
+                paygPpe,
+                category,
+                pluralName,
+                singularName,
+                addComma: index !== productInfo.dataCategories.length - 1,
+              });
+            })
+          : '-';
+
         return (
-          <Fragment key={productInfo.apiName}>
-            <span>
-              {toTitleCase(productInfo.productCheckoutName, {allowInnerUpperCase: true})}
-            </span>
-            <span>
-              {reserved === 0
-                ? '-'
-                : reservedType === 'budget'
-                  ? tct('[reservedBudget] credit', {
-                      reservedBudget: displayPrice({cents: reserved}),
-                    })
-                  : reserved}
-            </span>
-            <span>
-              {checkoutState
-                ? productInfo.dataCategories.map((category, index) => {
-                    const paygPpe =
-                      activePlan.planCategories[category]?.find(
-                        bucket => bucket.events === RESERVED_BUDGET_QUOTA
-                      )?.onDemandPrice ?? 0;
-                    const pluralName = getPlanCategoryName({
-                      plan: activePlan,
-                      category,
-                      capitalize: false,
-                    });
-                    const singularName = getSingularCategoryName({
-                      plan: activePlan,
-                      category,
-                      capitalize: false,
-                    });
-                    return formatPaygPricePerUnit({
-                      paygPpe,
-                      category,
-                      pluralName,
-                      singularName,
-                      addComma: index !== productInfo.dataCategories.length - 1,
-                    });
-                  })
-                : '-'}
-            </span>
-          </Fragment>
+          <SharedSpendCapPriceTableRow
+            key={productInfo.apiName}
+            productName={toTitleCase(productInfo.productCheckoutName, {
+              allowInnerUpperCase: true,
+            })}
+            formattedReserved={formattedReserved}
+            formattedPaygPpe={formattedPaygPpe}
+          />
         );
       })}
     </PriceTable>
@@ -328,13 +346,7 @@ function InnerSpendCapSettings({
   currentReserved,
   additionalProducts,
 }: InnerSpendCapSettingsProps) {
-  const handleUpdate = ({
-    newData,
-    fromButton,
-  }: {
-    newData: PartialSpendCapUpdate;
-    fromButton?: boolean;
-  }) => {
+  const handleUpdate = ({newData}: {newData: PartialSpendCapUpdate}) => {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       onUpdate({
         onDemandBudgets: {
@@ -344,7 +356,6 @@ function InnerSpendCapSettings({
             ...newData,
           },
         },
-        fromButton,
       });
     } else {
       onUpdate({
@@ -352,12 +363,10 @@ function InnerSpendCapSettings({
           ...onDemandBudgets,
           ...newData,
         },
-        fromButton,
       });
     }
   };
 
-  const budgetTerm = activePlan.budgetTerm;
   const formattedBudgetMode = onDemandBudgets.budgetMode.replace('_', '-');
 
   const getPerCategoryWarning = (productName: string) => {
@@ -384,10 +393,11 @@ function InnerSpendCapSettings({
       <div>
         {baseCategories.map(category => {
           const reserved = currentReserved[category] ?? 0;
-          const paygPpe =
-            activePlan.planCategories[category]?.find(
-              bucket => bucket.events === reserved
-            )?.onDemandPrice ?? 0;
+          const paygPpe = getPaygPpe({
+            activePlan,
+            category,
+            reserved,
+          });
           const pluralName = getPlanCategoryName({
             plan: activePlan,
             category,
@@ -517,15 +527,6 @@ function InnerSpendCapSettings({
           )}
         </Subtext>
       </div>
-      <ExampleContainer>
-        <strong>{t('Example:')}</strong>
-        <p>
-          {tct(
-            "With a $300 cap, if you use $150 in [budgetTerm] beyond your included volumes, you'll be charged exactly $150. Your service continues normally until you hit the $300 limit.",
-            {budgetTerm}
-          )}
-        </p>
-      </ExampleContainer>
       {inputs}
       <StartingRate
         alignSelf={
@@ -593,6 +594,7 @@ function SpendCapSettings({
   currentReserved,
   isOpen,
   additionalProducts,
+  footer,
 }: SpendCapSettingsProps) {
   return (
     <Flex direction="column">
@@ -616,6 +618,7 @@ function SpendCapSettings({
             currentReserved={currentReserved}
             additionalProducts={additionalProducts}
           />
+          {footer}
         </Grid>
       )}
     </Flex>
@@ -656,29 +659,12 @@ const BudgetMode = styled('div')<{isSelected: boolean}>`
 const InnerContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
+  border-bottom: ${p => (p.theme.isChonk ? '3px' : '1px')} solid ${p => p.theme.border};
   padding: ${p => p.theme.space.xl};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
   background: ${p => p.theme.background};
-`;
-
-const ExampleContainer = styled('div')`
-  background: ${p => p.theme.blue100};
-  color: ${p => p.theme.activeText};
-  padding: ${p => p.theme.space.xl};
-
-  > p {
-    margin: 0;
-  }
-`;
-
-// TODO(isabella): fix text color
-const StyledButton = styled(Button)<{isSelected: boolean}>`
-  color: ${p => (p.isSelected ? p.theme.activeText : p.theme.gray500)};
-  &:hover {
-    color: ${p => p.theme.activeText};
-  }
 `;
 
 const StyledInput = styled(Input)`
@@ -699,9 +685,13 @@ const CategoryRow = styled('div')`
 `;
 
 const PriceTable = styled(Grid)`
-  & > * {
-    border-bottom: 1px solid ${p => p.theme.border};
-    padding-bottom: ${p => p.theme.space.md};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  overflow: hidden;
+
+  > * + * {
+    border-top: 1px solid ${p => p.theme.border};
   }
 `;
 

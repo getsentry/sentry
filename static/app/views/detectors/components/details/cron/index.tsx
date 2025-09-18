@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import sortBy from 'lodash/sortBy';
 
 import {Alert} from 'sentry/components/core/alert';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import TimeSince from 'sentry/components/timeSince';
@@ -16,6 +17,7 @@ import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/deta
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
@@ -46,6 +48,21 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const monitorEnv = getLatestCronMonitorEnv(detector);
   const hasCheckedIn = hasLastCheckIn(dataSource.queryObj.environments);
 
+  function getIntervalSecondsFromEnv(env?: MonitorEnvironment): number | undefined {
+    if (!env?.lastCheckIn || !env?.nextCheckIn) {
+      return 60;
+    }
+    const last = new Date(env.lastCheckIn).getTime();
+    const next = new Date(env.nextCheckIn).getTime();
+    if (!Number.isFinite(last) || !Number.isFinite(next) || next <= last) {
+      return 60;
+    }
+    const seconds = Math.floor((next - last) / 1000);
+    return Math.max(60, seconds);
+  }
+
+  const intervalSeconds = getIntervalSecondsFromEnv(monitorEnv);
+
   return (
     <DetailLayout>
       <DetectorDetailsHeader detector={detector} project={project} />
@@ -54,8 +71,13 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
           {hasCheckedIn ? (
             <Fragment>
               <DatePageFilter />
-              {/* TODO: Add check-in chart */}
-              <DetectorDetailsOngoingIssues detectorId={detector.id} />
+              <DetailsTimeline monitor={dataSource.queryObj} />
+              <ErrorBoundary mini>
+                <DetectorDetailsOngoingIssues
+                  detector={detector}
+                  intervalSeconds={intervalSeconds}
+                />
+              </ErrorBoundary>
               <Section title={t('Recent Check-Ins')}>
                 <div>
                   <MonitorCheckIns

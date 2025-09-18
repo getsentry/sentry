@@ -49,7 +49,9 @@ AGGREGATION_OPERATOR_MAP = {
 SearchType = (
     SizeUnit
     | DurationUnit
-    | Literal["duration", "integer", "number", "percentage", "string", "boolean", "rate"]
+    | Literal[
+        "duration", "integer", "number", "percentage", "string", "boolean", "rate", "currency"
+    ]
 )
 
 SIZE_TYPE: set[SearchType] = set(SIZE_UNITS.keys())
@@ -98,6 +100,7 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "percentage": DOUBLE,
     "string": STRING,
     "boolean": BOOLEAN,
+    "currency": DOUBLE,
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py

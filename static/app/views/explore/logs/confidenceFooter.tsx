@@ -81,7 +81,7 @@ function ConfidenceMessage({
 
     if (isTopN) {
       return tct(
-        'Top [topEvents] groups extrapolated based on [tooltip:[sampleCountComponent] logs]',
+        'Top [topEvents] groups extrapolated from [tooltip:[sampleCountComponent] logs]',
         {
           topEvents,
           tooltip: lowAccuracyFullSampleCount,
@@ -90,23 +90,20 @@ function ConfidenceMessage({
       );
     }
 
-    return tct('Extrapolated based on [tooltip:[sampleCountComponent] logs]', {
+    return tct('Extrapolated from [tooltip:[sampleCountComponent] logs]', {
       tooltip: lowAccuracyFullSampleCount,
       sampleCountComponent,
     });
   }
 
   if (isTopN) {
-    return tct(
-      'Top [topEvents] groups extrapolated based on [sampleCountComponent] logs',
-      {
-        topEvents,
-        sampleCountComponent,
-      }
-    );
+    return tct('Top [topEvents] groups extrapolated from [sampleCountComponent] logs', {
+      topEvents,
+      sampleCountComponent,
+    });
   }
 
-  return tct('Extrapolated based on [sampleCountComponent] logs', {
+  return tct('Extrapolated from [sampleCountComponent] logs', {
     sampleCountComponent,
   });
 }

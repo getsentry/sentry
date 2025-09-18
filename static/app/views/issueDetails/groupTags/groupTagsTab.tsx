@@ -55,6 +55,7 @@ export function GroupTagsTab() {
   const {data, isPending, isError, refetch} = useGroupTags({
     groupId: group?.id,
     environment: environments,
+    limit: 10,
   });
 
   if (isPending || isGroupPending) {

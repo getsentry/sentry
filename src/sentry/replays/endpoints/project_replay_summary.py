@@ -207,10 +207,17 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             )
             processed_response = process_raw_response(
                 snuba_response,
-                fields=request.query_params.getlist("field"),
+                fields=[],  # Defaults to all fields.
             )
-            error_ids = processed_response[0].get("error_ids", []) if processed_response else []
-            trace_ids = processed_response[0].get("trace_ids", []) if processed_response else []
+
+            if not processed_response:
+                return self.respond(
+                    {"detail": "Replay not found."},
+                    status=404,
+                )
+
+            error_ids = processed_response[0].get("error_ids", [])
+            trace_ids = processed_response[0].get("trace_ids", [])
 
             # Fetch same-trace errors.
             trace_connected_errors = fetch_trace_connected_errors(
@@ -223,16 +230,16 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             trace_connected_error_ids = {x["id"] for x in trace_connected_errors}
 
             # Fetch directly linked errors, if they weren't returned by the trace query.
-            replay_errors = fetch_error_details(
+            direct_errors = fetch_error_details(
                 project_id=project.id,
                 error_ids=[x for x in error_ids if x not in trace_connected_error_ids],
             )
 
-            error_events = replay_errors + trace_connected_errors
+            error_events = direct_errors + trace_connected_errors
 
             metrics.distribution(
                 "replays.endpoints.project_replay_summary.direct_errors",
-                value=len(replay_errors),
+                value=len(direct_errors),
             )
             metrics.distribution(
                 "replays.endpoints.project_replay_summary.trace_connected_errors",

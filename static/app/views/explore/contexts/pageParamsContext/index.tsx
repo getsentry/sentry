@@ -254,11 +254,6 @@ export function useExploreFields(): string[] {
   return pageParams.fields;
 }
 
-export function useExploreGroupBys(): string[] {
-  const pageParams = useExplorePageParams();
-  return pageParams.groupBys;
-}
-
 export function useExploreQuery(): string {
   const pageParams = useExplorePageParams();
   return pageParams.query;
@@ -284,22 +279,6 @@ export function useExploreTitle(): string | undefined {
 export function useExploreId(): string | undefined {
   const pageParams = useExplorePageParams();
   return pageParams.id;
-}
-
-interface UseExploreVisualizesOptions {
-  validate: boolean;
-}
-
-export function useExploreVisualizes(options?: UseExploreVisualizesOptions): Visualize[] {
-  const {validate = false} = options || {};
-  const pageParams = useExplorePageParams();
-
-  return useMemo(() => {
-    if (validate) {
-      return pageParams.visualizes.filter(visualize => visualize.isValid());
-    }
-    return pageParams.visualizes;
-  }, [pageParams.visualizes, validate]);
 }
 
 export function newExploreTarget(

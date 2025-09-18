@@ -2,7 +2,7 @@ import {DetailedEventsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupingStore from 'sentry/stores/groupingStore';
 import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
@@ -16,6 +16,7 @@ describe('Issues -> Merged View', () => {
         latestEvent: events[0],
         state: 'unlocked',
         id: '2c4887696f708c476a81ce4e834c4b02',
+        mergedBySeer: true,
       },
       {
         latestEvent: events[1],
@@ -34,7 +35,7 @@ describe('Issues -> Merged View', () => {
     });
   });
 
-  it('renders initially with loading component', async () => {
+  it('renders merged groups', async () => {
     const {organization, project, router} = initializeOrg({
       router: {
         params: {groupId: 'groupId'},
@@ -42,41 +43,14 @@ describe('Issues -> Merged View', () => {
     });
 
     render(
-      <GroupMergedView
-        organization={organization}
-        project={project}
-        groupId={group.id}
-        location={router.location}
-      />,
+      <GroupMergedView project={project} groupId={group.id} location={router.location} />,
       {
         organization,
       }
     );
 
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    await act(tick);
-  });
-
-  it('renders with mocked data', async () => {
-    const {organization, project, router} = initializeOrg({
-      router: {
-        params: {groupId: 'groupId'},
-      },
-    });
-
-    render(
-      <GroupMergedView
-        organization={organization}
-        project={project}
-        groupId={group.id}
-        location={router.location}
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(await screen.findByText(mockData.merged[0]!.id)).toBeInTheDocument();
+    // Wait for the component to load
+    await screen.findByText('Fingerprints included in this issue');
 
     const title = await screen.findByText('Fingerprints included in this issue');
     expect(title.parentElement).toHaveTextContent(

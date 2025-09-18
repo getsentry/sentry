@@ -427,7 +427,7 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
             kwargs={"organization_id_or_slug": self.organization.slug, "view_id": self.view_id},
         )
 
-    @with_feature({"organizations:issue-views": True, "organizations:global-views": True})
+    @with_feature({"organizations:issue-views": True})
     def test_put_view_success(self) -> None:
         data = {
             "name": "Updated View Name",
@@ -453,7 +453,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert updated_view.time_filters == {"period": "14d"}
 
     @with_feature({"organizations:issue-views": True})
-    @with_feature({"organizations:global-views": True})
     def test_put_update_projects(self) -> None:
         second_project = self.create_project(organization=self.organization)
 
@@ -477,7 +476,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         }
 
     @with_feature({"organizations:issue-views": True})
-    @with_feature({"organizations:global-views": True})
     def test_put_all_projects(self) -> None:
         data = {
             "name": "All Projects View",
@@ -575,23 +573,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
         response = self.client.put(self.url, data=data)
         assert response.status_code == 400
-
-    @with_feature({"organizations:issue-views": True})
-    def test_put_multi_project_without_global_views(self) -> None:
-        second_project = self.create_project(organization=self.organization)
-
-        data = {
-            "name": "Multi Project View",
-            "query": "is:unresolved",
-            "querySort": "date",
-            "projects": [self.project.id, second_project.id],
-            "environments": [],
-            "timeFilters": {"period": "14d"},
-        }
-
-        response = self.client.put(self.url, data=data)
-        assert response.status_code == 400
-        assert "projects" in response.data
 
     def test_put_without_feature_flag(self) -> None:
         data = {

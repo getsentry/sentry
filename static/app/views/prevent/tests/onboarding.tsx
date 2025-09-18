@@ -7,12 +7,16 @@ import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-tes
 import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
 
 import {Container, Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {t, tct} from 'sentry/locale';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
 import {
@@ -35,6 +39,7 @@ enum SetupOption {
 export default function TestsOnboardingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const opt = searchParams.get('opt');
+  const organization = useOrganization();
 
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
@@ -48,8 +53,23 @@ export default function TestsOnboardingPage() {
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>(UploadPermission.OIDC);
 
-  // currently only used for testing
-  if (searchParams.get('preOnb') !== null) {
+  const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/`,
+      {query: {includeConfig: 0, provider_key: 'github'}},
+    ],
+    {staleTime: 0}
+  );
+
+  if (isPending) {
+    return (
+      <LayoutGap>
+        <LoadingIndicator />
+      </LayoutGap>
+    );
+  }
+
+  if (!integrations.length) {
     return (
       <LayoutGap>
         <TestPreOnboardingPage />
@@ -108,7 +128,7 @@ export default function TestsOnboardingPage() {
       <OnboardingContainer>
         <OnboardingContent>
           <IntroContainer>
-            <Flex justify="between">
+            <Flex justify="between" gap="2xl">
               <div>
                 <GetStartedHeader>
                   {t('Get Started with Test Analytics')}
@@ -119,7 +139,7 @@ export default function TestsOnboardingPage() {
                   )}
                 </TAValueText>
               </div>
-              <img
+              <PreviewImg
                 src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
                 alt={t('Test Analytics example')}
               />
@@ -138,13 +158,14 @@ export default function TestsOnboardingPage() {
           <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
             {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
             <div>
-              {tct('To learn more about Test Analytics, please visit [ourDocs].', {
-                ourDocs: (
-                  <Link to="https://docs.sentry.io/product/test-analytics/">
-                    our docs
-                  </Link>
-                ),
-              })}
+              {tct(
+                'To learn more about Test Analytics, please visit [ourDocs:our docs].',
+                {
+                  ourDocs: (
+                    <ExternalLink href="https://docs.sentry.io/product/test-analytics/" />
+                  ),
+                }
+              )}
             </div>
           </Flex>
         </OnboardingContent>
@@ -162,6 +183,7 @@ const OnboardingContainer = styled(Container)`
   padding: ${p => p.theme.space['3xl']};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  max-width: 1200px;
 `;
 
 const OnboardingContent = styled('div')`
@@ -171,6 +193,10 @@ const OnboardingContent = styled('div')`
 const IntroContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   padding-bottom: ${p => p.theme.space['2xl']};
+`;
+
+const PreviewImg = styled('img')`
+  align-self: center;
 `;
 
 const GetStartedHeader = styled('h2')`

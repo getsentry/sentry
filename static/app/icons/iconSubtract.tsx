@@ -11,7 +11,7 @@ interface Props extends SVGIconProps {
   isCircled?: boolean;
 }
 
-function IconSubtract({isCircled = false, ...props}: Props) {
+export function IconSubtract({isCircled = false, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon
@@ -32,7 +32,3 @@ function IconSubtract({isCircled = false, ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconSubtract.displayName = 'IconSubtract';
-
-export {IconSubtract};

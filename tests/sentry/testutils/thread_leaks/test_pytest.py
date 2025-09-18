@@ -163,3 +163,31 @@ class TestSentryCapture:
         assert "thread_leak_allowlist" in event["contexts"]
         assert event["contexts"]["thread_leak_allowlist"]["issue"] == 12345
         assert event["contexts"]["thread_leak_allowlist"]["reason"] == "Known thread leak"
+
+    def test_filters_out_django_dev_server_threads(self) -> None:
+        """Test that filter_django_dev_server_threads removes Django dev server threads."""
+        stop = Event()
+
+        from sentry.testutils.thread_leaks import pytest as thread_leaks_pytest
+
+        # a mock function that has the qualname of our django dev server thread
+        def fake_django_process_request_thread() -> None:
+            pass
+
+        fake_django_process_request_thread.__module__ = "django.core.servers.basehttp"
+        fake_django_process_request_thread.__qualname__ = (
+            "ThreadedWSGIServer.process_request_thread"
+        )
+
+        # Thread that should be filtered out (Django dev server)
+        django_thread = Thread(target=fake_django_process_request_thread, daemon=True)
+        # Thread that should NOT be filtered out
+        normal_thread = Thread(target=stop.wait, daemon=True)
+
+        threads = {django_thread, normal_thread}
+        filtered = thread_leaks_pytest.filter_django_dev_server_threads(threads)
+
+        # Only the normal thread should remain
+        assert normal_thread in filtered
+        assert django_thread not in filtered
+        assert len(filtered) == 1

@@ -84,12 +84,6 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     def get_replay_filter_params(self, request, organization):
         filter_params = self.get_filter_params(request, organization)
 
-        has_global_views = features.has(
-            "organizations:global-views", organization, actor=request.user
-        )
-        if not has_global_views and len(filter_params.get("project_id", [])) > 1:
-            raise ParseError(detail="You cannot view events from multiple projects.")
-
         return filter_params
 
     @handled_snuba_exceptions

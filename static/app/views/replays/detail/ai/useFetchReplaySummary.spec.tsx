@@ -1,12 +1,9 @@
-import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import useProjectFromId from 'sentry/utils/useProjectFromId';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {
   ReplaySummaryStatus,
   ReplaySummaryTemp,
@@ -43,18 +40,6 @@ describe('useFetchReplaySummary', () => {
     mockUseProjectFromId.mockReturnValue(mockProject);
   });
 
-  const createWrapper = () => {
-    const queryClient = makeTestQueryClient();
-
-    return function ({children}: {children: React.ReactNode}) {
-      return (
-        <QueryClientProvider client={queryClient}>
-          <OrganizationContext value={mockOrganization}>{children}</OrganizationContext>
-        </QueryClientProvider>
-      );
-    };
-  };
-
   describe('basic functionality', () => {
     it('should fetch summary data successfully', async () => {
       const mockSummaryData = {
@@ -70,14 +55,13 @@ describe('useFetchReplaySummary', () => {
         body: mockSummaryData,
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
         expect(result.current.summaryData).toEqual(mockSummaryData);
       });
-      expect(result.current.isPolling).toBe(false);
       expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
       expect(mockRequest).toHaveBeenCalledTimes(1);
@@ -90,14 +74,13 @@ describe('useFetchReplaySummary', () => {
         body: {detail: 'Internal server error'},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
-      expect(result.current.isPolling).toBe(false);
       expect(result.current.isPending).toBe(false);
     });
   });
@@ -112,16 +95,15 @@ describe('useFetchReplaySummary', () => {
         },
       });
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () => useFetchReplaySummary(mockReplay, {enabled: false, staleTime: 0}),
         {
-          wrapper: createWrapper(),
+          organization: mockOrganization,
         }
       );
 
       // The hook should not make API calls when disabled
       expect(result.current.summaryData).toBeUndefined();
-      expect(result.current.isPolling).toBe(false);
       expect(result.current.isError).toBe(false);
       expect(mockRequest).not.toHaveBeenCalled();
     });
@@ -135,22 +117,21 @@ describe('useFetchReplaySummary', () => {
         },
       });
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () => useFetchReplaySummary(mockReplay, {enabled: true, staleTime: 0}),
         {
-          wrapper: createWrapper(),
+          organization: mockOrganization,
         }
       );
 
       await waitFor(() => {
         expect(result.current.summaryData).toBeDefined();
       });
-      expect(result.current.isPolling).toBe(false);
       expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
     });
 
-    it('should poll when summary data is undefined and startSummaryRequest is pending', async () => {
+    it('should be pending when summary data is undefined and startSummaryRequest is pending', async () => {
       // Mock the initial query to return undefined data
       const initialQuery = MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
@@ -169,8 +150,8 @@ describe('useFetchReplaySummary', () => {
         body: startSummaryRequestPromise,
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       // Start the summary mutation
@@ -182,7 +163,7 @@ describe('useFetchReplaySummary', () => {
       });
 
       expect(result.current.summaryData).toBeUndefined();
-      expect(result.current.isPolling).toBe(true);
+      expect(result.current.isPending).toBe(true);
       expect(initialQuery).toHaveBeenCalledTimes(1);
       expect(startSummaryRequest).toHaveBeenCalledTimes(1);
 
@@ -191,25 +172,24 @@ describe('useFetchReplaySummary', () => {
     });
   });
 
-  describe('polling behavior', () => {
-    it('should poll when status is PROCESSING', async () => {
+  describe('pending behavior', () => {
+    it('should be pending when status is PROCESSING', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         body: {status: ReplaySummaryStatus.PROCESSING, data: undefined},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
-        expect(result.current.isPolling).toBe(true);
+        expect(result.current.isPending).toBe(true);
       });
-      expect(result.current.isPending).toBe(true);
       expect(result.current.isError).toBe(false);
     });
 
-    it('should stop polling when status is COMPLETED', async () => {
+    it('should not be pending when status is COMPLETED', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         body: {
@@ -218,31 +198,29 @@ describe('useFetchReplaySummary', () => {
         },
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
-        expect(result.current.isPolling).toBe(false);
+        expect(result.current.isPending).toBe(false);
       });
-      expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
     });
 
-    it('should stop polling when status is ERROR', async () => {
+    it('should not be pending when status is ERROR', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         body: {status: ReplaySummaryStatus.ERROR, data: undefined},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
+      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+        organization: mockOrganization,
       });
 
       await waitFor(() => {
-        expect(result.current.isPolling).toBe(false);
+        expect(result.current.isPending).toBe(false);
       });
-      expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(true);
     });
   });
@@ -263,14 +241,16 @@ describe('useFetchReplaySummary', () => {
         method: 'POST',
       });
 
-      const {result, rerender} = renderHook(() => useFetchReplaySummary(mockReplay), {
-        wrapper: createWrapper(),
-      });
+      const {result, rerender} = renderHookWithProviders(
+        () => useFetchReplaySummary(mockReplay),
+        {
+          organization: mockOrganization,
+        }
+      );
 
       await waitFor(() => {
-        expect(result.current.isPolling).toBe(false);
+        expect(result.current.isPending).toBe(false);
       });
-      expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
       expect(mockPostRequest).toHaveBeenCalledTimes(0);
 

@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry import buffer
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -18,8 +17,8 @@ from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature, with_feature
-from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils.cache import cache_key_for_event
+from sentry.workflow_engine import buffer
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_source import process_data_source
@@ -28,6 +27,7 @@ from sentry.workflow_engine.tasks.delayed_workflows import (
     DelayedWorkflow,
     process_delayed_workflows,
 )
+from sentry.workflow_engine.tasks.workflows import schedule_delayed_workflows
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -53,6 +53,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
         )
         self.detector.workflow_condition_group = detector_conditions
         self.detector.save()
+        _, _, self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
 
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
         self.event = self.store_event(data={}, project_id=self.project.id)
@@ -101,8 +102,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         """
         This test ensures that a data_source can create the correct event in Issue Platform
         """
-        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
-
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
@@ -117,8 +116,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__different_type(self) -> None:
-        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
-
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
@@ -131,7 +128,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__no_detectors(self) -> None:
-        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
         self.detector.delete()
 
         with mock.patch(
@@ -202,7 +198,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 
 
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
-@mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
         (
@@ -408,7 +403,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_1, is_new=True)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys, 0, timezone.now().timestamp()
         )
         assert not project_ids
@@ -418,7 +413,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_2, is_new=True)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys, 0, timezone.now().timestamp()
         )
         assert not project_ids
@@ -432,7 +427,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_5)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=timezone.now().timestamp(),
@@ -475,7 +470,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_3)
             assert not mock_trigger.called
 
-            project_ids = buffer.backend.bulk_get_sorted_set(
+            project_ids = buffer.get_backend().bulk_get_sorted_set(
                 self.buffer_keys,
                 min=0,
                 max=timezone.now().timestamp(),
@@ -490,7 +485,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_4)
             assert not mock_trigger.called
 
-            project_ids = buffer.backend.bulk_get_sorted_set(
+            project_ids = buffer.get_backend().bulk_get_sorted_set(
                 self.buffer_keys,
                 min=0,
                 max=timezone.now().timestamp(),
@@ -498,3 +493,61 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
             process_delayed_workflows(list(project_ids.keys())[0])
             mock_trigger.assert_called_once()
+
+    def test_schedule_delayed_workflows_integration(self, mock_trigger: MagicMock) -> None:
+        self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            condition_result=True,
+            comparison={
+                "interval": "1h",
+                "value": 2,
+            },
+        )
+
+        assert (
+            buffer.get_backend().bulk_get_sorted_set(
+                self.buffer_keys,
+                min=0,
+                max=timezone.now().timestamp(),
+            )
+            == {}
+        )
+
+        # Create an event that should be buffered for delayed processing
+        event = self.create_error_event()
+        self.post_process_error(event)
+
+        project_ids = buffer.get_backend().bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=timezone.now().timestamp(),
+        )
+        assert project_ids, "Expected data to be buffered for delayed processing"
+
+        with patch(
+            "sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async"
+        ) as mock_apply_async:
+            with self.options(
+                {
+                    "workflow_engine.use_new_scheduling_task": True,
+                    "delayed_workflow.rollout": True,
+                }
+            ):
+                # Call schedule_delayed_workflows - this runs the real buffer processing
+                schedule_delayed_workflows()
+
+            # Verify that process_delayed_workflows.apply_async was called
+            mock_apply_async.assert_called()
+            call_kwargs = mock_apply_async.call_args[1]["kwargs"]
+            assert "project_id" in call_kwargs
+            assert call_kwargs["project_id"] == self.project.id
+
+        assert (
+            buffer.get_backend().bulk_get_sorted_set(
+                self.buffer_keys,
+                min=0,
+                max=timezone.now().timestamp(),
+            )
+            == {}
+        )

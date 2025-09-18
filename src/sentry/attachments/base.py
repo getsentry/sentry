@@ -27,6 +27,7 @@ class CachedAttachment:
         type=None,
         chunks=None,
         data=UNINITIALIZED_DATA,
+        stored_id: str | None = None,
         cache=None,
         rate_limited=None,
         size=None,
@@ -50,6 +51,7 @@ class CachedAttachment:
 
         self.chunks = chunks
         self._data = data
+        self.stored_id = stored_id
         self._cache = cache
         self._has_initial_data = data is not UNINITIALIZED_DATA
 
@@ -61,6 +63,10 @@ class CachedAttachment:
 
     @property
     def data(self) -> bytes:
+        if self.stored_id:
+            # TODO: fetch the contents based on `stored_id`
+            raise NotImplementedError()
+
         if self._data is UNINITIALIZED_DATA and self._cache is not None:
             self._data = self._cache.get_data(self)
 
@@ -68,6 +74,10 @@ class CachedAttachment:
         return self._data
 
     def delete(self):
+        if self.stored_id:
+            # TODO: delete the stored file
+            raise NotImplementedError()
+
         for key in self.chunk_keys:
             self._cache.inner.delete(key)
 
@@ -76,7 +86,7 @@ class CachedAttachment:
         assert self.key is not None
         assert self.id is not None
 
-        if self._has_initial_data:
+        if self.stored_id or self._has_initial_data:
             return
 
         if self.chunks is None:
@@ -98,6 +108,7 @@ class CachedAttachment:
                 "type": self.type,
                 "size": self.size or None,  # None for backwards compatibility
                 "chunks": self.chunks,
+                "stored_id": self.stored_id,
             }
         )
 
@@ -108,7 +119,7 @@ class BaseAttachmentCache:
 
     def set(self, key: str, attachments: list[CachedAttachment], timeout=None):
         for id, attachment in enumerate(attachments):
-            if attachment.chunks is not None:
+            if attachment.chunks is not None or attachment.stored_id is not None:
                 continue
 
             # TODO(markus): We need to get away from sequential IDs, they

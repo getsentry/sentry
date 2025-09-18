@@ -56,7 +56,8 @@ const config: KnipConfig = {
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
     // TEMPORARY!
-    '!static/app/utils/timeSeries/useFetchEventsTimeSeries.tsx',
+    '!static/app/components/core/disclosure/index.tsx',
+    '!static/app/components/core/disclosure/disclosure.tsx',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
@@ -76,6 +77,10 @@ const config: KnipConfig = {
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
     'terser', // Still used in a loader
+
+    // TEMPORARY!
+    '@react-stately/disclosure',
+    '@react-aria/disclosure',
   ],
   rules: {
     binaries: 'off',

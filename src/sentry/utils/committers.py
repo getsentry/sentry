@@ -96,31 +96,64 @@ def _get_commit_file_changes(
     # build a single query to get all of the commit file that might match the first n frames
     path_query = reduce(operator.or_, (Q(filename__iendswith=path) for path in filenames))
 
-    commit_file_change_matches = CommitFileChange.objects.filter(path_query, commit__in=commits)
+    commit_file_change_matches = CommitFileChange.objects.filter(
+        path_query, commit_id__in=[c.id for c in commits]
+    )
 
     return list(commit_file_change_matches)
 
 
-def _match_commits_path(
-    commit_file_changes: Sequence[CommitFileChange], path: str
-) -> Sequence[tuple[Commit, int]]:
-    # find commits that match the run time path the best.
-    matching_commits: MutableMapping[int, tuple[Commit, int]] = {}
-    best_score = 1
-    for file_change in commit_file_changes:
-        score = score_path_match_length(file_change.filename, path)
-        if score > best_score:
-            # reset matches for better match.
-            best_score = score
-            matching_commits = {}
-        if score == best_score:
-            # skip 1-score matches when file change is longer than 1 token
-            if score == 1 and len(list(tokenize_path(file_change.filename))) > 1:
-                continue
-            #  we want a list of unique commits that tie for longest match
-            matching_commits[file_change.commit.id] = (file_change.commit, score)
+def _match_commits_paths(
+    commit_file_changes: Sequence[CommitFileChange], path_set: set[str]
+) -> Mapping[str, Sequence[tuple[Commit, int]]]:
+    """
+    Match commits to multiple paths at once, batching the commit fetch.
+    Returns a mapping of path -> list of (commit, score) tuples.
+    """
+    path_matches: MutableMapping[str, MutableMapping[int, int]] = {}
 
-    return list(matching_commits.values())
+    for path in path_set:
+        matching_commit_ids: MutableMapping[int, int] = {}
+        best_score = 1
+
+        for file_change in commit_file_changes:
+            score = score_path_match_length(file_change.filename, path)
+            if score > best_score:
+                # reset matches for better match.
+                best_score = score
+                matching_commit_ids = {}
+            if score == best_score:
+                # skip 1-score matches when file change is longer than 1 token
+                if score == 1 and len(list(tokenize_path(file_change.filename))) > 1:
+                    continue
+                #  we want a list of unique commits that tie for longest match
+                matching_commit_ids[file_change.commit_id] = score
+
+        if matching_commit_ids:
+            path_matches[path] = matching_commit_ids
+
+    all_commit_ids: set[int] = set()
+    for commit_ids in path_matches.values():
+        all_commit_ids.update(commit_ids.keys())
+
+    commits_by_id: Mapping[int, Commit] = {}
+    if all_commit_ids:
+        commits_by_id = {
+            c.id: c for c in Commit.objects.filter(id__in=all_commit_ids).select_related("author")
+        }
+
+    result: MutableMapping[str, Sequence[tuple[Commit, int]]] = {}
+    for path in path_set:
+        if path in path_matches:
+            result[path] = [
+                (commits_by_id[commit_id], score)
+                for commit_id, score in path_matches[path].items()
+                if commit_id in commits_by_id
+            ]
+        else:
+            result[path] = []
+
+    return result
 
 
 class AuthorCommits(TypedDict):
@@ -129,6 +162,7 @@ class AuthorCommits(TypedDict):
 
 
 class AuthorCommitsSerialized(TypedDict):
+    group_owner_id: int
     author: Author | None
     commits: Sequence[MutableMapping[str, Any]]
 
@@ -172,7 +206,7 @@ def _get_serialized_committers_from_group_owners(
         return []
 
     try:
-        commit = Commit.objects.get(id=owner.context.get("commitId"))
+        commit = Commit.objects.get(id=owner.context["commitId"])
     except Commit.DoesNotExist:
         return []
     commit_author = commit.author
@@ -197,6 +231,7 @@ def _get_serialized_committers_from_group_owners(
 
     return [
         {
+            "group_owner_id": owner.id,
             "author": author,
             "commits": [
                 serialize(
@@ -335,9 +370,9 @@ def get_event_file_committers(
         _get_commit_file_changes(commits, path_set) if path_set else []
     )
 
-    commit_path_matches: Mapping[str, Sequence[tuple[Commit, int]]] = {
-        path: _match_commits_path(file_changes, path) for path in path_set
-    }
+    commit_path_matches: Mapping[str, Sequence[tuple[Commit, int]]] = (
+        _match_commits_paths(file_changes, path_set) if file_changes else {}
+    )
 
     annotated_frames: Sequence[AnnotatedFrame] = [
         {

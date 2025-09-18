@@ -16,6 +16,10 @@ import {
   getStandardTimePeriodsForInterval,
   MetricDetectorTimePeriod,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+import {
+  translateAggregateTag,
+  translateAggregateTagBack,
+} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
 
 import type {DetectorDatasetConfig} from './base';
 import {parseEventTypesFromQuery} from './eventTypes';
@@ -59,6 +63,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
         query,
         statsPeriod: timePeriod,
         dataset: DetectorTransactionsConfig.getDiscoverDataset(),
+        aggregate: translateAggregateTag(options.aggregate),
         ...(isOnDemand && {extra: {useOnDemandMetrics: 'true'}}),
       });
     },
@@ -85,8 +90,12 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     transformComparisonSeriesData: data => {
       return [transformEventsStatsComparisonSeries(data)];
     },
-    fromApiAggregate: aggregate => aggregate,
-    toApiAggregate: aggregate => aggregate,
+    fromApiAggregate: aggregate => {
+      return translateAggregateTag(aggregate);
+    },
+    toApiAggregate: aggregate => {
+      return translateAggregateTagBack(aggregate);
+    },
     supportedDetectionTypes: ['static', 'percent', 'dynamic'],
     // TODO: This will need to fall back to the discover dataset if metrics enhanced is not available?
     getDiscoverDataset: () => DiscoverDatasets.METRICS_ENHANCED,

@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import logging
+import sys
+
+from sentry.utils import json
+
+logger = logging.getLogger(__name__)
+
+#################
+# Configuration #
+#################
+ORG_SLUG = "sentry"
+REPO_NAME = "EmergeTools/hackernews"
+PR_NUMBER = "100"
+
+
+def main():
+    """Test the OrganizationPullRequestDetailsEndpoint implementation directly."""
+    try:
+        from rest_framework.test import APIRequestFactory
+
+        from sentry.models.organization import Organization
+        from sentry.preprod.api.endpoints.organization_pullrequest_details import (
+            OrganizationPullRequestDetailsEndpoint,
+        )
+
+        logger.info("🔍 Testing OrganizationPullRequestDetailsEndpoint:")
+        logger.info("   Organization: %s", ORG_SLUG)
+        logger.info("   Repository: %s", REPO_NAME)
+        logger.info("   PR Number: %s", PR_NUMBER)
+        logger.info("")
+
+        # Get organization
+        logger.info("📋 Getting organization...")
+        try:
+            organization = Organization.objects.get(slug=ORG_SLUG)
+            logger.info("✅ Found organization: %s (id: %s)", organization.name, organization.id)
+        except Organization.DoesNotExist:
+            logger.exception("❌ Organization '%s' not found", ORG_SLUG)
+            logger.info("Available organizations:")
+            for org in Organization.objects.all()[:10]:
+                logger.info("  - %s", org.slug)
+            sys.exit(1)
+
+        # Create a mock request object
+        logger.info("🔧 Creating mock request...")
+        factory = APIRequestFactory()
+        request = factory.get("/")  # Create a basic GET request
+
+        # Initialize the endpoint
+        logger.info("🚀 Initializing endpoint...")
+        endpoint = OrganizationPullRequestDetailsEndpoint()
+
+        # Call the endpoint's get method directly
+        logger.info("📞 Calling endpoint.get()...")
+        response = endpoint.get(
+            request=request, organization=organization, repo_name=REPO_NAME, pr_number=PR_NUMBER
+        )
+
+        logger.info("✅ Endpoint call completed!")
+        logger.info("Response status: %d", response.status_code)
+
+        # Pretty print the response
+        logger.info("\n" + "=" * 80)
+        logger.info("📊 ENDPOINT RESPONSE")
+        logger.info("=" * 80)
+
+        if response.status_code == 200:
+            logger.info("✅ SUCCESS!")
+        else:
+            logger.info("❌ FAILED!")
+
+        logger.info(json.dumps(response.data, indent=2, default=str))
+
+        # Show what to change for testing
+        logger.info("\n💡 To test other PRs, edit this script and change:")
+        logger.info('   ORG_SLUG = "%s"', ORG_SLUG)
+        logger.info('   REPO_NAME = "%s"', REPO_NAME)
+        logger.info('   PR_NUMBER = "%s"  # 👈 Change this', PR_NUMBER)
+
+    except Exception as e:
+        logger.exception("❌ Unexpected error: %s", e)
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

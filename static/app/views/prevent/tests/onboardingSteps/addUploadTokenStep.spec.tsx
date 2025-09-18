@@ -121,8 +121,7 @@ describe('AddUploadTokenStep', () => {
     );
 
     const link = await screen.findByRole('link', {name: 'repository secret'});
-    // this href is after "#" was normalized by the Link component
-    expect(link).toHaveAttribute('href', '/mock-pathname/');
+    expect(link).toHaveAttribute('href', '#');
   });
 
   it('handles valid GitHub naming characters in organization and repository names', async () => {
@@ -186,7 +185,8 @@ describe('AddUploadTokenStep', () => {
     });
     await userEvent.click(generateButton);
 
-    expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
+    expect(screen.getByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Regenerate'})).toBeInTheDocument();
   });
 
   it('renders repository admin text correctly', async () => {

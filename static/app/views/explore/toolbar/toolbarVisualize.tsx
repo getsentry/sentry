@@ -1,7 +1,10 @@
+import type {MouseEventHandler, ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import {IconHide} from 'sentry/icons/iconHide';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
@@ -14,22 +17,28 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {VisualizeEquation} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
   MAX_VISUALIZES,
   updateVisualizeAggregate,
-  Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+  Visualize,
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
-  visualizes: Visualize[];
+  visualizes: readonly Visualize[];
 }
 
 export function ToolbarVisualize({
@@ -38,15 +47,16 @@ export function ToolbarVisualize({
   visualizes,
 }: ToolbarVisualizeProps) {
   const addChart = useCallback(() => {
-    const newVisualizes = [...visualizes, new Visualize(DEFAULT_VISUALIZATION)].map(
-      visualize => visualize.toJSON()
-    );
+    const newVisualizes = [
+      ...visualizes,
+      new VisualizeFunction(DEFAULT_VISUALIZATION),
+    ].map(visualize => visualize.serialize());
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
   const addEquation = useCallback(() => {
-    const newVisualizes = [...visualizes, new Visualize(EQUATION_PREFIX)].map(visualize =>
-      visualize.toJSON()
+    const newVisualizes = [...visualizes, new VisualizeEquation(EQUATION_PREFIX)].map(
+      visualize => visualize.serialize()
     );
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
@@ -55,9 +65,22 @@ export function ToolbarVisualize({
     (group: number, newVisualize: Visualize) => {
       const newVisualizes = visualizes.map((visualize, i) => {
         if (i === group) {
-          return newVisualize.toJSON();
+          return newVisualize.serialize();
         }
-        return visualize.toJSON();
+        return visualize.serialize();
+      });
+      setVisualizes(newVisualizes);
+    },
+    [setVisualizes, visualizes]
+  );
+
+  const toggleVisibility = useCallback(
+    (group: number) => {
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i === group) {
+          visualize = visualize.replace({visible: !visualize.visible});
+        }
+        return visualize.serialize();
       });
       setVisualizes(newVisualizes);
     },
@@ -68,25 +91,34 @@ export function ToolbarVisualize({
     (group: number) => {
       const newVisualizes = visualizes
         .toSpliced(group, 1)
-        .map(visualize => visualize.toJSON());
+        .map(visualize => visualize.serialize());
       setVisualizes(newVisualizes);
     },
     [setVisualizes, visualizes]
   );
 
-  const canDelete = visualizes.filter(visualize => !visualize.isEquation).length > 1;
+  const canDelete = visualizes.filter(isVisualizeFunction).length > 1;
 
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarVisualizeHeader />
       {visualizes.map((visualize, group) => {
-        if (visualize.isEquation) {
+        const label = (
+          <VisualizeLabel
+            index={group}
+            visualize={visualize}
+            onClick={() => toggleVisibility(group)}
+          />
+        );
+
+        if (isVisualizeEquation(visualize)) {
           return (
-            <VisualizeEquation
+            <VisualizeEquationInput
               key={group}
               onDelete={() => onDelete(group)}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
+              label={label}
             />
           );
         }
@@ -98,6 +130,7 @@ export function ToolbarVisualize({
             onDelete={() => onDelete(group)}
             onReplace={newVisualize => replaceOverlay(group, newVisualize)}
             visualize={visualize}
+            label={label}
           />
         );
       })}
@@ -119,6 +152,7 @@ export function ToolbarVisualize({
 
 interface VisualizeDropdownProps {
   canDelete: boolean;
+  label: ReactNode;
   onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
@@ -129,6 +163,7 @@ function VisualizeDropdown({
   onDelete,
   onReplace,
   visualize,
+  label,
 }: VisualizeDropdownProps) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
@@ -193,6 +228,36 @@ function VisualizeDropdown({
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
       parsedFunction={parsedFunction}
+      label={label}
     />
   );
 }
+
+interface VisualizeLabelProps {
+  index: number;
+  onClick: MouseEventHandler<HTMLDivElement>;
+  visualize: Visualize;
+}
+
+function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+  const label = visualize.visible ? (
+    String.fromCharCode('A'.charCodeAt(0) + index)
+  ) : (
+    <IconHide />
+  );
+
+  return <Label onClick={onClick}>{label}</Label>;
+}
+
+const Label = styled('div')`
+  cursor: pointer;
+  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.purple100};
+  color: ${p => p.theme.purple300};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  width: 24px;
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;

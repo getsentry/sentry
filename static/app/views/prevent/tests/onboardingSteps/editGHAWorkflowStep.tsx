@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
-import {InlineCodeSnippet} from 'sentry/views/prevent/styles';
 import {GHAWorkflowExpandable} from 'sentry/views/prevent/tests/onboardingSteps/GHAWorkflowExpandable';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
@@ -35,7 +35,11 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
               {tct(
                 'Add [permissions] block at the top level in your CI YAML file to run Sentry Prevent',
                 {
-                  permissions: <InlineCodeSnippet>permissions</InlineCodeSnippet>,
+                  permissions: (
+                    <Text size="xl" variant="promotion">
+                      permissions
+                    </Text>
+                  ),
                 }
               )}
             </SubHeader>
@@ -44,12 +48,10 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
             </CodeSnippet>
             <Paragraph>
               {tct(
-                'Set this permission at the workflow or job level. For better security, define it at the job level as it limits access to only the job that needs the OIDC token. Learn more about [permissionsSettings].',
+                'Set this permission at the workflow or job level. For better security, define it at the job level as it limits access to only the job that needs the OIDC token. Learn more about [link:permissions settings].',
                 {
-                  permissionsSettings: (
-                    <Link to="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers#adding-permissions-settings">
-                      {t('permissions settings')}
-                    </Link>
+                  link: (
+                    <ExternalLink href="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers#adding-permissions-settings" />
                   ),
                 }
               )}
@@ -57,7 +59,11 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
           </TopParagraph>
           <SubHeader>
             {tct('Add the script [actionName] to your CI YAML file', {
-              actionName: <InlineCodeSnippet>getsentry/prevent-action</InlineCodeSnippet>,
+              actionName: (
+                <Text size="xl" variant="promotion">
+                  getsentry/prevent-action
+                </Text>
+              ),
             })}
           </SubHeader>
           <Paragraph>
@@ -81,7 +87,7 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
 const SubHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-bottom: 0;
   line-height: 31px;
 `;

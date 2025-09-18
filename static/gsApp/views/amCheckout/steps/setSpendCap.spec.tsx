@@ -60,6 +60,7 @@ describe('SetSpendCap', () => {
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
         isNewCheckout
+        navigate={jest.fn()}
       />
     );
 
@@ -75,11 +76,6 @@ describe('SetSpendCap', () => {
     expect(
       screen.queryByRole('textbox', {name: 'Custom errors spending cap'})
     ).not.toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole('button', {name: '$500 suggested shared spending cap'})
-    );
-    expect(paygInput).toHaveValue('500');
   });
 
   it('renders for checkout v3 on pre-AM3 tier', async () => {
@@ -102,6 +98,7 @@ describe('SetSpendCap', () => {
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
         isNewCheckout
+        navigate={jest.fn()}
       />
     );
 
@@ -129,9 +126,5 @@ describe('SetSpendCap', () => {
       name: 'Custom errors spending cap',
     });
     expect(errorsPaygInput).toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('button', {name: '$300 suggested errors spending cap'})
-    );
-    expect(errorsPaygInput).toHaveValue('300');
   });
 });

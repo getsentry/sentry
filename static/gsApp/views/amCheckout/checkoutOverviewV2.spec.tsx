@@ -14,7 +14,6 @@ describe('CheckoutOverviewV2', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
-  const params = {};
 
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
@@ -50,7 +49,7 @@ describe('CheckoutOverviewV2', () => {
         api={api}
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
-        params={params}
+        navigate={jest.fn()}
       />
     );
 

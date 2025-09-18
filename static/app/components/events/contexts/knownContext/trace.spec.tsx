@@ -80,7 +80,7 @@ describe('TraceContext', () => {
         value: TRACE_ID,
         action: {
           link: expect.objectContaining({
-            pathname: `/organizations/org-slug/traces/trace/${TRACE_ID}/`,
+            pathname: `/organizations/org-slug/explore/traces/trace/${TRACE_ID}/`,
           }),
         },
       },

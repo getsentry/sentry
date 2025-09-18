@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   isCircled?: boolean;
 }
 
-function IconCheckmark({isCircled = false, ...props}: Props) {
+export function IconCheckmark({isCircled = false, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon
@@ -29,7 +29,3 @@ function IconCheckmark({isCircled = false, ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconCheckmark.displayName = 'IconCheckmark';
-
-export {IconCheckmark};

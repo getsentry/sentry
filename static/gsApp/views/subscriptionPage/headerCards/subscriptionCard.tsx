@@ -7,14 +7,21 @@ import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {t} from 'sentry/locale';
+import {IconEdit, IconGrid} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {ANNUAL} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
-import {isDeveloperPlan, isEnterprise, isTeamPlan} from 'getsentry/utils/billing';
+import {
+  hasNewBillingUI,
+  isDeveloperPlan,
+  isEnterprise,
+  isTeamPlan,
+} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
+import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 import {shouldSeeSpendVisibility} from 'getsentry/views/subscriptionPage/utils';
 
 interface SubscriptionCardProps {
@@ -80,6 +87,31 @@ export function SubscriptionCard({subscription, organization}: SubscriptionCardP
     : t('Renews on: %s', renewalFormattedDate);
 
   const hasBillingPerms = organization.access?.includes('org:billing');
+
+  const hasNewCheckout = hasNewBillingUI(organization);
+
+  if (hasNewCheckout) {
+    // TODO(checkout v3): update this with the real layout, this is just a placeholder for knip
+    return (
+      <SubscriptionHeaderCard
+        title={t('Current plan')}
+        icon={<IconGrid />}
+        subtitle={tct('[startDate] - [endDate]', {
+          startDate: moment(subscription.contractPeriodStart).format('MMM D, YYYY'),
+          endDate: moment(subscription.contractPeriodEnd).format('MMM D, YYYY'),
+        })}
+        sections={[
+          <strong key="plan">{t('%s Plan', subscription.planDetails?.name)}</strong>,
+        ]}
+        button={{
+          ariaLabel: t('Edit plan'),
+          label: t('Edit plan'),
+          linkTo: `/settings/${organization.slug}/billing/checkout/?referrer=edit_plan`,
+          icon: <IconEdit />,
+        }}
+      />
+    );
+  }
 
   return (
     <SubscriptionCardBody data-test-id="subscription-card">

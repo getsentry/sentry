@@ -506,14 +506,26 @@ class ObjectStatus:
 
     DISABLED = 1
 
+    _CHOICES = (
+        (ACTIVE, "active"),
+        (DISABLED, "disabled"),
+        (PENDING_DELETION, "pending_deletion"),
+        (DELETION_IN_PROGRESS, "deletion_in_progress"),
+    )
+
+    _STR_TO_STATUS = {v: k for k, v in _CHOICES}
+
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
-        return (
-            (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-        )
+        return cls._CHOICES
+
+    @classmethod
+    def as_str_to_status_choices(cls) -> Sequence[tuple[str, int]]:
+        return tuple((v, k) for k, v in cls._CHOICES)
+
+    @classmethod
+    def from_str(cls, status_str: str) -> int:
+        return cls._STR_TO_STATUS[status_str]
 
 
 class SentryAppStatus:

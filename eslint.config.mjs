@@ -354,16 +354,22 @@ export default typescript.config([
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
         },
+        // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
+        {
+          selector:
+            "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
+          message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
-      'no-throw-literal': 'error',
+      'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
-      'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
+      'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
         'error',
         'always',
@@ -488,7 +494,9 @@ export default typescript.config([
           '@typescript-eslint/no-base-to-string': 'error',
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
       : {},
@@ -571,25 +579,7 @@ export default typescript.config([
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          vars: 'all',
-          args: 'all',
-          // TODO(scttcper): We could enable this to enforce catch (error)
-          // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
-          caughtErrors: 'none',
-
-          // Ignore vars that start with an underscore
-          // e.g. if you want to omit a property using object spread:
-          //
-          //   const {name: _name, ...props} = this.props;
-          //
-          varsIgnorePattern: '^_',
-          argsIgnorePattern: '^_',
-          destructuredArrayIgnorePattern: '^_',
-        },
-      ],
+      '@typescript-eslint/no-unused-vars': 'off', // disabled in favor of "noUnusedLocals": true in tsconfig
     },
   },
   {

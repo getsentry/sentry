@@ -9,7 +9,11 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils.channel import strip_channel_name, validate_slack_entity_id
+from sentry.integrations.slack.utils.channel import (
+    get_channel_id,
+    strip_channel_name,
+    validate_slack_entity_id,
+)
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.utils.forms import set_field_choices
@@ -26,7 +30,6 @@ class SlackNotifyServiceForm(forms.Form):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # NOTE: Workspace maps directly to the integration ID
         self._workspace_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
-        self.channel_transformer = kwargs.pop("channel_transformer")
 
         super().__init__(*args, **kwargs)
 
@@ -106,7 +109,7 @@ class SlackNotifyServiceForm(forms.Form):
         # are assuming that they passed in the correct channel_id for the channel
         if not channel_id:
             try:
-                channel_data = self.channel_transformer(integration, channel)
+                channel_data = get_channel_id(integration, channel)
                 channel_prefix, channel_id, timed_out = asdict(channel_data).values()
             except DuplicateDisplayNameError:
                 domain = integration.metadata["domain_name"]

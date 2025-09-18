@@ -28,6 +28,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
+from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -64,7 +65,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
@@ -77,6 +78,7 @@ from sentry.web.helpers import render_to_response
 from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
+from .utils import parse_github_blob_url
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -258,13 +260,15 @@ class GitHubIntegration(
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        branch, _, _ = url.partition("/")
+        if not repo.url:
+            return ""
+        branch, _ = parse_github_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        _, _, source_path = url.partition("/")
+        if not repo.url:
+            return ""
+        _, source_path = parse_github_blob_url(repo.url, url)
         return source_path
 
     def get_repositories(
@@ -377,8 +381,8 @@ class GitHubIntegration(
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
-## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+## Issues attributed to commits in this pull request
+This pull request was merged and Sentry observed the following issues:
 
 {issue_list}
 
@@ -468,6 +472,20 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
+def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
+    if e.json:
+        message = e.json.get("message", "")
+        if RATE_LIMITED_MESSAGE in message:
+            return []
+        elif "403 Forbidden" in message:
+            return []
+    elif e.code == 404 or e.code == 403:
+        return []
+    elif isinstance(e, ApiInvalidRequestError):
+        return []
+    return None
+
+
 class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
     integration: GitHubIntegration
     organization_option_key = "sentry:github_open_pr_bot"
@@ -479,8 +497,9 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         try:
             pr_files = client.get_pullrequest_files(repo=repo.name, pull_number=pr.key)
         except ApiError as e:
-            if (e.json and RATE_LIMITED_MESSAGE in e.json.get("message", "")) or e.code == 404:
-                return []
+            api_error_resp = process_api_error(e)
+            if api_error_resp is not None:
+                return api_error_resp
             else:
                 raise
 
@@ -616,6 +635,45 @@ class GitHubIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
+
+        # Check if this is the Codecov GitHub app to trigger account linking
+        github_app_id = extra.get("app_id")
+        SENTRY_GITHUB_APP_ID = options.get("github-app.id")
+
+        if not github_app_id or not SENTRY_GITHUB_APP_ID:
+            logger.warning(
+                "codecov.account_link.configuration_error",
+                extra={
+                    "integration_id": integration.id,
+                    "organization_id": organization.id,
+                    "has_github_app_id": bool(github_app_id),
+                    "has_sentry_github_app_id": bool(SENTRY_GITHUB_APP_ID),
+                },
+            )
+
+        if (
+            github_app_id
+            and SENTRY_GITHUB_APP_ID
+            and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
+        ):
+            org_integration = OrganizationIntegration.objects.filter(
+                integration=integration, organization_id=organization.id
+            ).first()
+
+            # Double check org integration exists before linking accounts
+            if org_integration:
+                codecov_account_link.apply_async(
+                    kwargs={
+                        "integration_id": integration.id,
+                        "organization_id": organization.id,
+                    }
+                )
+            else:
+                logger.warning(
+                    "codecov.account_link.org_integration_missing",
+                    extra={"integration_id": integration.id, "organization_id": organization.id},
+                )
+
         repos = repository_service.get_repositories(
             organization_id=organization.id,
             providers=[IntegrationProviderSlug.GITHUB.value, "integrations:github"],
@@ -676,6 +734,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "account_type": installation["account"]["type"],
                 "account_id": installation["account"]["id"],
             },
+            "post_install_data": {"app_id": installation["app_id"]},
         }
 
         if state.get("sender"):
