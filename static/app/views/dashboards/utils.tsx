@@ -55,11 +55,11 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-export type ValidationError = {
+type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
 
-export type FlatValidationError = {
+type FlatValidationError = {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
