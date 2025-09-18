@@ -156,7 +156,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             except ApiUnauthorized as e:
                 lifecycle.record_halt(e)
                 return None
-            except ApiForbiddenError as e:
+            except (ApiForbiddenError, IntegrationConfigurationError) as e:
                 lifecycle.record_halt(e)
                 # Need to re-raise since 403 errors will be returned to user via get_link
                 raise
