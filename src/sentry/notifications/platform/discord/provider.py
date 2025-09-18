@@ -12,7 +12,6 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTargetResourceType,
 )
-from sentry.notifications.platform.utiils import validate_integration_for_target
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
 if TYPE_CHECKING:
@@ -95,18 +94,6 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
-
-    @classmethod
-    def validate_target(cls, *, target: NotificationTarget) -> None:
-        super().validate_target(target=target)
-
-        assert isinstance(
-            target, cls.target_class
-        ), "Target for DiscordNotificationProvider must be a IntegrationNotificationTarget"
-
-        # 1. Validate the integration exists
-        # 2. Validate the organization integration exists
-        validate_integration_for_target(target=target)
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
