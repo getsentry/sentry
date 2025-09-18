@@ -132,9 +132,10 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: (
-        <p>
-          {tct(
+      content: [
+        {
+          type: 'text',
+          text: tct(
             'We recommend installing the SDK with Swift Package Manager (SPM), but we also support [alternateMethods: alternate installation methods]. To integrate Sentry into your Xcode project using SPM, open your App in Xcode and open [addPackage: File > Add Packages]. Then add the SDK by entering the Git repo url in the top right search field:',
             {
               alternateMethods: (
@@ -142,28 +143,36 @@ const onboarding: OnboardingConfig = {
               ),
               addPackage: <strong />,
             }
-          )}
-        </p>
-      ),
-      configurations: [
-        {
-          language: 'url',
-          code: `https://github.com/getsentry/sentry-cocoa.git`,
+          ),
         },
         {
-          description: (
-            <p>
-              {tct(
-                'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
-                {
-                  packageSwift: <code />,
-                }
-              )}
-            </p>
+          type: 'code',
+          tabs: [
+            {
+              label: 'Git URL',
+              language: 'url',
+              code: `https://github.com/getsentry/sentry-cocoa.git`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
+            {
+              packageSwift: <code />,
+            }
           ),
-          language: 'swift',
-          partialLoading: params.sourcePackageRegistries.isLoading,
-          code: getInstallSnippet(params),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Swift',
+              language: 'swift',
+              code: getInstallSnippet(params),
+            },
+          ],
         },
       ],
     },
@@ -171,9 +180,10 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: (
-        <p>
-          {tct(
+      content: [
+        {
+          type: 'text',
+          text: tct(
             'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your [appDelegate:] method:',
             {
               appDelegate: (
@@ -182,29 +192,38 @@ const onboarding: OnboardingConfig = {
                 </code>
               ),
             }
-          )}
-        </p>
-      ),
-      configurations: [
-        {
-          language: 'swift',
-          code: getConfigurationSnippet(params),
+          ),
         },
         {
-          description: (
-            <p>
-              {tct(
-                "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
-                {
-                  initializer: (
-                    <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
-                  ),
-                }
-              )}
-            </p>
+          type: 'code',
+          tabs: [
+            {
+              label: 'Swift',
+              language: 'swift',
+              code: getConfigurationSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
+            {
+              initializer: (
+                <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
+              ),
+            }
           ),
-          language: 'swift',
-          code: getConfigurationSnippetSwiftUi(params),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'SwiftUI',
+              language: 'swift',
+              code: getConfigurationSnippetSwiftUi(params),
+            },
+          ],
         },
       ],
     },
@@ -212,20 +231,25 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: (
-        <p>
-          {tct(
+      content: [
+        {
+          type: 'text',
+          text: tct(
             'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can add it to your main [viewController: ViewController].',
             {
               viewController: <code />,
             }
-          )}
-        </p>
-      ),
-      configurations: [
+          ),
+        },
         {
-          language: 'swift',
-          code: getVerifySnippet(),
+          type: 'code',
+          tabs: [
+            {
+              label: 'Swift',
+              language: 'swift',
+              code: getVerifySnippet(),
+            },
+          ],
         },
       ],
     },
@@ -259,13 +283,16 @@ export const appleFeedbackOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Swift',
-              value: 'swift',
               language: 'swift',
               code: `import Sentry
 
@@ -279,7 +306,6 @@ SentrySDK.capture(userFeedback: userFeedback)`,
             },
             {
               label: 'Objective-C',
-              value: 'c',
               language: 'c',
               code: `@import Sentry;
 
@@ -294,14 +320,17 @@ userFeedback.name = @"John Doe";
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'To capture user feedback regarding a crash, use the [code:SentryOptions.onCrashedLastRun] callback. This callback gets called shortly after the initialization of the SDK when the last program execution terminated with a crash. It is not guaranteed that this is called on the main thread.',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Swift',
-              value: 'swift',
               language: 'swift',
               code: `import Sentry
 
@@ -315,7 +344,6 @@ SentrySDK.start { options in
             },
             {
               label: 'Objective-C',
-              value: 'c',
               language: 'c',
               code: `@import Sentry;
 
