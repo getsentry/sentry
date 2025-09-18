@@ -30,7 +30,6 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {prettifyTagKey} from 'sentry/utils/fields';
 
@@ -349,7 +348,7 @@ const FilterValueGridCell = styled(BaseGridCell)`
 `;
 
 const ValueButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -364,7 +363,7 @@ const ValueButton = styled(UnstyledButton)`
 `;
 
 const ValueEditing = styled('div')`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -378,7 +377,7 @@ const ValueEditing = styled('div')`
 `;
 
 const DeleteButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.75)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
   color: ${p => p.theme.subText};
   border-left: 1px solid transparent;
@@ -393,7 +392,7 @@ const FilterValueList = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   max-width: 400px;
 `;
 
