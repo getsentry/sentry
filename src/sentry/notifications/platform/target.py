@@ -93,5 +93,7 @@ def prepare_integration_target(target: IntegrationNotificationTarget) -> None:
         integration_id=target.integration_id,
         organization_id=target.organization_id,
     )
-    object.__setattr__(target, "integration", integration)
-    object.__setattr__(target, "organization_integration", organization_integration)
+    if integration is not None:
+        object.__setattr__(target, "integration", integration)
+    if organization_integration is not None:
+        object.__setattr__(target, "organization_integration", organization_integration)
