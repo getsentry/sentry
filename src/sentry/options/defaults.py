@@ -343,7 +343,7 @@ register(
 # Deletions
 register(
     "deletions.group-hashes-batch-size",
-    default=10000,
+    default=5000,  # Reduced from 10000 to prevent query cancellation issues
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

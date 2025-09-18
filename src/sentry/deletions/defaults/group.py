@@ -227,10 +227,17 @@ def delete_group_hashes(
     group_ids: Sequence[int],
     seer_deletion: bool = False,
 ) -> None:
+    from django.db import transaction
+    
     hashes_batch_size = options.get("deletions.group-hashes-batch-size")
 
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
     hashes_batch_size = max(1, hashes_batch_size)
+    
+    # For large batch sizes that could cause query cancellation issues,
+    # use a smaller chunk size when deleting to avoid large IN clauses
+    # that can timeout the seer_matched_grouphash_id UPDATE query
+    deletion_chunk_size = min(hashes_batch_size, 1000)
 
     # Set a reasonable upper bound on iterations to prevent infinite loops.
     # This replaces the expensive COUNT(*) query that was causing database timeouts.
@@ -245,6 +252,7 @@ def delete_group_hashes(
         hashes_chunk = list(qs)
         if not hashes_chunk:
             break
+        
         try:
             if seer_deletion:
                 # Tell seer to delete grouping records for these groups
@@ -254,9 +262,26 @@ def delete_group_hashes(
                 may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
         except Exception:
             logger.warning("Error scheduling task to delete hashes from seer")
-        finally:
-            hash_ids = [gh[0] for gh in hashes_chunk]
-            GroupHash.objects.filter(id__in=hash_ids).delete()
+        
+        # Delete hashes in smaller chunks to avoid large IN clauses
+        # that can cause query cancellation on the seer_matched_grouphash_id update
+        hash_ids = [gh[0] for gh in hashes_chunk]
+        for i in range(0, len(hash_ids), deletion_chunk_size):
+            chunk_ids = hash_ids[i:i + deletion_chunk_size]
+            try:
+                with transaction.atomic():
+                    GroupHash.objects.filter(id__in=chunk_ids).delete()
+            except Exception as e:
+                logger.warning(
+                    "Error deleting group hash chunk",
+                    extra={
+                        "project_id": project_id,
+                        "chunk_size": len(chunk_ids),
+                        "error": str(e)
+                    }
+                )
+                # Continue with next chunk rather than failing entirely
+                continue
 
         iterations += 1
 
