@@ -218,24 +218,6 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   };
 }
 
-const generateMotion = () => ({
-  duration: {
-    xs: '60ms',
-    sm: '110ms',
-    md: '160ms',
-    lg: '240ms',
-    xl: '320ms',
-    '2xl': '480ms',
-    '3xl': '640ms',
-  },
-  easing: {
-    enter: 'cubic-bezier(0.24, 1, 0.32, 1)',
-    exit: 'cubic-bezier(0.64, 0, 0.8, 0)',
-    default: 'cubic-bezier(0.72, 0, 0.16, 1)',
-    snap: 'cubic-bezier(0.8, -0.4, 0.5, 1)',
-  },
-});
-
 const generateTokens = (colors: Colors) => ({
   content: {
     primary: colors.gray400, // theme.textColor
@@ -267,6 +249,41 @@ const generateTokens = (colors: Colors) => ({
     danger: colors.red200, // theme.errorFocus
     warning: colors.yellow200, // theme.warningFocus
     success: colors.green200, // theme.successFocus
+  },
+});
+
+const generateMotion = () => ({
+  duration: {
+    xs: '80ms',
+    sm: '120ms',
+    md: '160ms',
+    lg: '240ms',
+    xl: '320ms',
+    '2xl': '480ms',
+    '3xl': '640ms',
+  },
+  ease: {
+    enter: 'cubic-bezier(0.24, 1, 0.32, 1)',
+    exit: 'cubic-bezier(0.64, 0, 0.8, 0)',
+    default: 'cubic-bezier(0.72, 0, 0.16, 1)',
+    snap: 'cubic-bezier(0.8, -0.4, 0.5, 1)',
+  },
+  js: {
+    duration: {
+      xs: 0.08,
+      sm: 0.12,
+      md: 0.16,
+      lg: 0.24,
+      xl: 0.32,
+      '2xl': 0.48,
+      '3xl': 0.64,
+    },
+    ease: {
+      enter: [0.24, 1, 0.32, 1],
+      exit: [0.64, 0, 0.8, 0],
+      default: [0.72, 0, 0.16, 1],
+      snap: [0.8, -0.4, 0.5, 1],
+    },
   },
 });
 
