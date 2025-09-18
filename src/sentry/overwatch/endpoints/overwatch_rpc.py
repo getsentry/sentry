@@ -7,14 +7,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.exceptions import (
-    AuthenticationFailed,
-    NotFound,
-    ParseError,
-    PermissionDenied,
-    ValidationError,
-)
+from rest_framework.exceptions import AuthenticationFailed, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -22,78 +15,51 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
-from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.silo.base import SiloMode
-from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
 
 
-def compare_signature(url: str, body: bytes, signature: str) -> bool:
-    """
-    Compare request data + signature signed by the shared secret.
+def _signature_input_from_request(request: Request) -> bytes:
+    """Build message to sign as: path + query + body.
 
-    TODO: Update to support multiple keys for key rotation like other RPC services
-    when OVERWATCH_RPC_SHARED_SECRET is changed back to list[str].
+    The exact concatenation is the raw result of request.get_full_path() encoded as UTF-8,
+    immediately followed by the raw request.body bytes (or empty bytes if none).
+    This makes signing consistent across HTTP methods.
+    """
+    path_and_query = request.get_full_path().encode("utf-8")
+    body_bytes = request.body or b""
+    return path_and_query + body_bytes
+
+
+def compare_signature(request: Request, signature: str) -> bool:
+    """Validate HMAC signature using OVERWATCH_RPC_SHARED_SECRET.
+
+    - Header format: `Authorization: rpcauth rpcAuth:<hex>`
+    - Input: path+query concatenated with raw body bytes
+    - Secret is base64-encoded in settings.OVERWATCH_RPC_SHARED_SECRET
     """
     if not settings.OVERWATCH_RPC_SHARED_SECRET:
-        raise RpcAuthenticationSetupException(
-            "Cannot validate RPC request signatures without OVERWATCH_RPC_SHARED_SECRET"
-        )
+        raise AuthenticationFailed("Missing OVERWATCH shared secret")
 
     if not signature.startswith("rpcAuth:"):
-        logger.error("Overwatch RPC signature validation failed: invalid signature prefix")
-        return False
-
-    if not body:
-        logger.error("Overwatch RPC signature validation failed: no body")
+        logger.error("Overwatch signature validation failed: invalid signature prefix")
         return False
 
     try:
         _, signature_data = signature.split(":", 2)
-
-        signature_input = body
-
-        # TODO: When OVERWATCH_RPC_SHARED_SECRET becomes list[str], iterate over keys
-        # Decode the base64 encoded shared secret
-        decoded_sig = base64.b64decode(settings.OVERWATCH_RPC_SHARED_SECRET)
-        computed = hmac.new(decoded_sig, signature_input, hashlib.sha256).hexdigest()
-        is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
-        if is_valid:
-            return True
+        secret_bytes = base64.b64decode(settings.OVERWATCH_RPC_SHARED_SECRET)
+        message = _signature_input_from_request(request)
+        computed = hmac.new(secret_bytes, message, hashlib.sha256).hexdigest()
+        return hmac.compare_digest(computed.encode(), signature_data.encode())
     except Exception:
-        logger.exception("Overwatch RPC signature validation failed")
+        logger.exception("Overwatch signature validation failed")
         return False
-
-    logger.error("Overwatch RPC signature validation failed")
-    return False
-
-
-def get_config_for_org(*, org_name: str) -> dict[str, Any]:
-    """
-    Get configuration for an organization stored on Sentry's side.
-
-    TODO: This is a stub implementation that returns an empty dict.
-    The actual config storage and retrieval logic will be implemented once config storage is implemented.
-
-    Args:
-        org_name: The name/slug of the organization
-
-    Returns:
-        dict: Organization configuration (empty dict for now - not yet implemented)
-    """
-    logger.info("Getting config for organization '%s' (stub implementation)", org_name)
-
-    return {}
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class OverwatchRpcSignatureAuthentication(StandardAuthentication):
-    """
-    Authentication for Overwatch RPC requests.
-    Requests are sent with an HMAC signed by a shared private key.
-    """
+    """Authentication for Overwatch-style HMAC signed requests."""
 
     token_name = b"rpcauth"
 
@@ -103,7 +69,7 @@ class OverwatchRpcSignatureAuthentication(StandardAuthentication):
         return auth[0].lower() == self.token_name
 
     def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
-        if not compare_signature(request.path_info, request.body, token):
+        if not compare_signature(request, token):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag("overwatch_rpc_auth", True)
@@ -112,99 +78,29 @@ class OverwatchRpcSignatureAuthentication(StandardAuthentication):
 
 
 @region_silo_endpoint
-class OverwatchRpcServiceEndpoint(Endpoint):
+class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
     """
-    RPC endpoint for Overwatch microservice to call. Authenticated with a shared secret.
-    Overwatch will leverage this endpoint to recieve Sentry organization information.
+    Returns the resolved config for a single repo under a GitHub org.
+
+    GET /prevent/pr-review/configs/resolved?ghOrg={org}&repo={repo}
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CODECOV
     authentication_classes = (OverwatchRpcSignatureAuthentication,)
     permission_classes = ()
     enforce_rate_limit = False
 
-    def _is_authorized(self, request: Request) -> bool:
-        if request.auth and isinstance(
+    def get(self, request: Request) -> Response:
+        if not request.auth or not isinstance(
             request.successful_authenticator, OverwatchRpcSignatureAuthentication
         ):
-            return True
-        return False
-
-    def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
-        """
-        Dispatch the request to the appropriate local method.
-
-        Args:
-            method_name: The name of the method to call
-            arguments: The arguments to pass to the method
-
-        Returns:
-            The result of the method call
-
-        Raises:
-            RpcResolutionException: If the method is not found
-        """
-        if method_name not in overwatch_method_registry:
-            raise RpcResolutionException(f"Unknown method {method_name}")
-
-        method = overwatch_method_registry[method_name]
-        return method(**arguments)
-
-    def post(self, request: Request, method_name: str) -> Response:
-        """
-        Handle POST requests to call Overwatch RPC methods.
-
-        Args:
-            request: The Django request object
-            method_name: The name of the method to call
-
-        Returns:
-            Response: The response from the method call
-        """
-        if not self._is_authorized(request):
             raise PermissionDenied
-
-        try:
-            arguments: dict[str, Any] = request.data["args"]
-        except KeyError as e:
-            raise ParseError("Missing 'args' in request data") from e
-        if not isinstance(arguments, dict):
-            raise ParseError("'args' must be a dictionary")
-
-        try:
-            result = self._dispatch_to_local_method(method_name, arguments)
-        except RpcResolutionException as e:
-            logger.exception("RPC resolution error for method '%s'", method_name)
-            raise NotFound from e
-        except ObjectDoesNotExist as e:
-            logger.exception("Object not found for method '%s'", method_name)
-            raise NotFound from e
-        except TypeError as e:
-            # Handle missing or invalid arguments for method calls
-            error_msg = str(e)
-            if "missing" in error_msg and "required" in error_msg:
-                raise ParseError(f"Missing required arguments for {method_name}") from e
-            elif "unexpected keyword argument" in error_msg:
-                raise ParseError(f"Invalid arguments for {method_name}") from e
-            raise
-        except SerializableFunctionValueException as e:
-            sentry_sdk.capture_exception()
-            raise ParseError from e
-        except Exception as e:
-            if in_test_environment():
-                raise
-            if settings.DEBUG:
-                raise Exception(f"Problem processing overwatch rpc endpoint {method_name}") from e
-            logger.exception("Unexpected error in overwatch RPC method '%s'", method_name)
-            raise ValidationError(f"Internal error processing {method_name}") from e
-
-        return Response(data=result)
-
-
-# Registry of available methods that can be called via the RPC endpoint
-overwatch_method_registry: dict[str, Any] = {
-    "get_config_for_org": get_config_for_org,
-}
+        gh_org = request.GET.get("ghOrg")
+        repo = request.GET.get("repo")
+        if not gh_org or not repo:
+            raise ParseError("Missing required query parameters: ghOrg, repo")
+        # Stub: return empty dict for now
+        return Response(data={})

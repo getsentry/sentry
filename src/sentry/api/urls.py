@@ -419,7 +419,7 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
     UserNotificationSettingsProvidersEndpoint,
 )
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
-from sentry.overwatch.endpoints.overwatch_rpc import OverwatchRpcServiceEndpoint
+from sentry.overwatch.endpoints.overwatch_rpc import PreventPrReviewResolvedConfigsEndpoint
 from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
@@ -3403,10 +3403,11 @@ INTERNAL_URLS = [
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
     ),
+    # Prevent AI (Overwatch) endpoints
     re_path(
-        r"^overwatch-rpc/(?P<method_name>\w+)/$",
-        OverwatchRpcServiceEndpoint.as_view(),
-        name="sentry-api-0-overwatch-rpc-service",
+        r"^prevent/pr-review/configs/resolved$",
+        PreventPrReviewResolvedConfigsEndpoint.as_view(),
+        name="sentry-api-0-prevent-pr-review-configs-resolved",
     ),
     re_path(
         r"^check-am2-compatibility/$",
