@@ -16,8 +16,8 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonAiocontextvarsConfig,
-  getPythonInstallConfig,
+  getPythonAiocontextvarsCodeBlocks,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -56,15 +56,8 @@ const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        ...[
-          ...getPythonInstallConfig({packageName: 'sentry-sdk[sanic]'}),
-          ...getPythonAiocontextvarsConfig(),
-        ]
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[sanic]'}),
+        ...getPythonAiocontextvarsCodeBlocks(),
       ],
     },
   ],

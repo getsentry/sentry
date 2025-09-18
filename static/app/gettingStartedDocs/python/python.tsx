@@ -14,10 +14,11 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -217,12 +218,7 @@ const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        ...getPythonInstallConfig()
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock(),
       ],
     },
   ],
@@ -241,15 +237,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        ...(params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous'
-          ? [
-              {
-                type: 'custom' as const,
-                content: <AlternativeConfiguration />,
-              },
-            ]
-          : []),
+        alternativeProfilingConfiguration(params),
       ],
     },
   ],
@@ -268,43 +256,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: 'division_by_zero = 1 / 0',
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                type: 'text' as const,
-                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                type: 'text' as const,
-                text: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
+        getVerifyLogsContent(params),
       ],
     },
   ],
@@ -448,14 +400,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
                 ? t('Install the Sentry SDK.')
                 : t('Install the Sentry SDK with an extra.'),
           },
-          ...getPythonInstallConfig({
-            packageName,
-          })
-            .filter(config => config.code)
-            .map(config => ({
-              type: 'code' as const,
-              tabs: config.code!,
-            })),
+          getPythonInstallCodeBlock({packageName}),
         ],
       },
       {
@@ -518,12 +463,7 @@ export const agentMonitoringOnboarding: OnboardingConfig = {
             type: 'text',
             text: t('Install our Python SDK:'),
           },
-          ...getPythonInstallConfig({packageName})
-            .filter(config => config.code)
-            .map(config => ({
-              type: 'code' as const,
-              tabs: config.code!,
-            })),
+          getPythonInstallCodeBlock({packageName}),
         ],
       },
     ];

@@ -13,8 +13,8 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -115,12 +115,7 @@ const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        ...getPythonInstallConfig()
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock(),
       ],
     },
   ],
@@ -139,15 +134,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        ...(params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous'
-          ? [
-              {
-                type: 'custom' as const,
-                content: <AlternativeConfiguration />,
-              },
-            ]
-          : []),
+        alternativeProfilingConfiguration(params),
       ],
     },
   ],
@@ -167,25 +154,19 @@ const onboarding: OnboardingConfig = {
           code: getVerifySnippet(),
         },
         {
-          type: 'custom',
-          content: (
-            <Fragment>
-              <p>
-                {tct(
-                  'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
-                  {
-                    link: <ExternalLink href="http://localhost:8000/" />,
-                  }
-                )}
-              </p>
-              <p>
-                {t(
-                  'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-                )}
-              </p>
-              <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-            </Fragment>
-          ),
+          type: 'text',
+          text: [
+            tct(
+              'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
+              {
+                link: <ExternalLink href="http://localhost:8000/" />,
+              }
+            ),
+            t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
         },
       ],
     },

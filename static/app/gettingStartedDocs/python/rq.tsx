@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
@@ -13,8 +11,8 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -113,12 +111,7 @@ const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[rq]'})
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[rq]'}),
       ],
     },
   ],
@@ -127,26 +120,21 @@ const onboarding: OnboardingConfig = {
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'custom',
-          content: (
-            <Fragment>
-              <p>
-                {tct(
-                  'If you have the [codeRq:rq] package in your dependencies, the RQ integration will be enabled automatically when you initialize the Sentry SDK.',
-                  {
-                    codeRq: <code />,
-                  }
-                )}
-              </p>
-              <p>
-                {tct(
-                  'Create a file called [code:mysettings.py] with the following content:',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </p>
-            </Fragment>
+          type: 'text',
+          text: tct(
+            'If you have the [codeRq:rq] package in your dependencies, the RQ integration will be enabled automatically when you initialize the Sentry SDK.',
+            {
+              codeRq: <code />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Create a file called [code:mysettings.py] with the following content:',
+            {
+              code: <code />,
+            }
           ),
         },
         {
@@ -175,20 +163,7 @@ const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        ...(params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous'
-          ? [
-              {
-                type: 'custom' as const,
-                content: (
-                  <Fragment>
-                    <br />
-                    <AlternativeConfiguration />
-                  </Fragment>
-                ),
-              },
-            ]
-          : []),
+        alternativeProfilingConfiguration(params),
       ],
     },
   ],
@@ -206,8 +181,8 @@ const onboarding: OnboardingConfig = {
           ),
         },
         {
-          type: 'custom',
-          content: <h5>{t('Job definition')}</h5>,
+          type: 'subheader',
+          text: t('Job definition'),
         },
         {
           type: 'code',
@@ -220,8 +195,8 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          type: 'custom',
-          content: <h5>{t('Settings for worker')}</h5>,
+          type: 'subheader',
+          text: t('Settings for worker'),
         },
         {
           type: 'code',
@@ -234,8 +209,8 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          type: 'custom',
-          content: <h5>{t('Main Python Script')}</h5>,
+          type: 'subheader',
+          text: t('Main Python Script'),
         },
         {
           type: 'code',
@@ -248,28 +223,22 @@ const onboarding: OnboardingConfig = {
           ],
         },
         {
-          type: 'custom',
-          content: (
-            <div>
-              <p>
-                {tct(
-                  'When you run [code:python main.py] a transaction named [code:testing_sentry] in the Performance section of Sentry will be created.',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </p>
-              <p>
-                {tct(
-                  'If you run the RQ worker with [code:rq worker -c mysettings] a transaction for the execution of [code:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </p>
-              <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-            </div>
-          ),
+          type: 'text',
+          text: [
+            tct(
+              'When you run [code:python main.py] a transaction named [code:testing_sentry] in the Performance section of Sentry will be created.',
+              {
+                code: <code />,
+              }
+            ),
+            tct(
+              'If you run the RQ worker with [code:rq worker -c mysettings] a transaction for the execution of [code:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
+              {
+                code: <code />,
+              }
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
         },
       ],
     },

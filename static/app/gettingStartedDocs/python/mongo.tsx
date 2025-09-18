@@ -11,7 +11,7 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonInstallConfig,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -66,12 +66,7 @@ const onboarding: OnboardingConfig = {
             }
           ),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[pymongo]'})
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[pymongo]'}),
       ],
     },
   ],

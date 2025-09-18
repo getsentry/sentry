@@ -16,10 +16,11 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -77,12 +78,7 @@ const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[django]'})
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[django]'}),
       ],
     },
   ],
@@ -106,10 +102,7 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
-        {
-          type: 'custom',
-          content: <AlternativeConfiguration />,
-        },
+        alternativeProfilingConfiguration(params),
       ],
     },
   ],
@@ -143,63 +136,20 @@ urlpatterns = [
             },
           ],
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                type: 'text' as const,
-                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                type: 'text' as const,
-                text: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
+        getVerifyLogsContent(params),
         {
-          type: 'custom' as const,
-          content: (
-            <div>
-              <p>
-                {tct(
-                  'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
-                  {
-                    link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
-                  }
-                )}
-              </p>
-              <br />
-              <p>
-                {t(
-                  'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
-                )}
-              </p>
-            </div>
-          ),
+          type: 'text',
+          text: [
+            tct(
+              'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
+              {
+                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
+              }
+            ),
+            t(
+              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
+            ),
+          ],
         },
       ],
     },

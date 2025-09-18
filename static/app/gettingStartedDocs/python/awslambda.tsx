@@ -1,7 +1,3 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
@@ -15,11 +11,11 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -87,12 +83,7 @@ const installStep = (): OnboardingStep => ({
         code: <code />,
       }),
     },
-    ...getPythonInstallConfig()
-      .filter(config => config.code)
-      .map(config => ({
-        type: 'code' as const,
-        tabs: config.code!,
-      })),
+    getPythonInstallCodeBlock(),
   ],
 });
 
@@ -108,20 +99,7 @@ const configureStep = (params: Params): OnboardingStep => ({
       language: 'python',
       code: getSdkSetupSnippet(params),
     },
-    ...(params.isProfilingSelected &&
-    params.profilingOptions?.defaultProfilingMode === 'continuous'
-      ? [
-          {
-            type: 'custom' as const,
-            content: (
-              <Fragment>
-                <AlternativeConfiguration />
-                <br />
-              </Fragment>
-            ),
-          },
-        ]
-      : []),
+    alternativeProfilingConfiguration(params),
     {
       type: 'text',
       text: tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
@@ -179,18 +157,15 @@ const onboarding: OnboardingConfig = {
           ),
         },
         {
-          type: 'custom',
-          content: (
-            <StyledAlert type="info">
-              {tct(
-                'If you are using another web framework inside of AWS Lambda, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
-                  ),
-                }
-              )}
-            </StyledAlert>
+          type: 'alert',
+          alertType: 'info',
+          text: tct(
+            'If you are using another web framework inside of AWS Lambda, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
+              ),
+            }
           ),
         },
       ],
@@ -206,43 +181,7 @@ const onboarding: OnboardingConfig = {
             'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
           ),
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                type: 'text' as const,
-                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                type: 'text' as const,
-                text: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
+        getVerifyLogsContent(params),
       ],
     },
   ],
@@ -291,7 +230,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
-`;

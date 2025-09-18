@@ -1,11 +1,6 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import {ExternalLink} from 'sentry/components/core/link';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
   StepType,
-  type Configuration,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -15,12 +10,12 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -82,12 +77,7 @@ const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[celery]'})
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[celery]'}),
       ],
     },
   ],
@@ -96,71 +86,64 @@ const onboarding: OnboardingConfig = {
       type: StepType.CONFIGURE,
       content: [
         {
-          type: 'custom',
-          content: (
-            <div>
-              <p>
-                {tct(
-                  'If you have the [code:celery] package in your dependencies, the Celery integration will be enabled automatically when you initialize the Sentry SDK.',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </p>
-              <p>
-                {tct(
-                  'Make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your tasks are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </p>
-            </div>
-          ),
+          type: 'text',
+          text: [
+            tct(
+              'If you have the [code:celery] package in your dependencies, the Celery integration will be enabled automatically when you initialize the Sentry SDK.',
+              {
+                code: <code />,
+              }
+            ),
+            tct(
+              'Make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your tasks are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
+              {
+                code: <code />,
+              }
+            ),
+          ],
         },
         {
           type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        alternativeProfilingConfiguration(params),
         {
-          type: 'custom',
-          content: (
-            <Fragment>
-              {params.isProfilingSelected &&
-                params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-                  <Fragment>
-                    <AlternativeConfiguration />
-                    <br />
-                  </Fragment>
-                )}
-              <h5>{t('Standalone Setup')}</h5>
-              {t("If you're using Celery standalone, there are two ways to set this up:")}
-              <ul>
-                <li>
-                  {tct(
-                    "Initializing the SDK in the configuration file loaded with Celery's [code:--config] parameter",
-                    {
-                      code: <code />,
-                    }
-                  )}
-                </li>
-                <li>
-                  {tct(
-                    'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals:',
-                    {
-                      celerydInit: (
-                        <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#celeryd-init" />
-                      ),
-                      workerInit: (
-                        <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#worker-init" />
-                      ),
-                    }
-                  )}
-                </li>
-              </ul>
-              <SpacedOnboardingCodeSnippet dark language="python">
-                {`import sentry_sdk
+          type: 'subheader',
+          text: t('Standalone Setup'),
+        },
+        {
+          type: 'text',
+          text: t(
+            "If you're using Celery standalone, there are two ways to set this up:"
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            tct(
+              "Initializing the SDK in the configuration file loaded with Celery's [code:--config] parameter",
+              {
+                code: <code />,
+              }
+            ),
+            tct(
+              'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals:',
+              {
+                celerydInit: (
+                  <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#celeryd-init" />
+                ),
+                workerInit: (
+                  <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#worker-init" />
+                ),
+              }
+            ),
+          ],
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `import sentry_sdk
 from celery import Celery, signals
 
 app = Celery("myapp")
@@ -168,23 +151,24 @@ app = Celery("myapp")
 #@signals.worker_init.connect
 @signals.celeryd_init.connect
 def init_sentry(**_kwargs):
-    sentry_sdk.init(...)  # same as above`}
-              </SpacedOnboardingCodeSnippet>
-              <h5>{t('Setup With Django')}</h5>
-              <p>
-                {tct(
-                  "If you're using Celery with Django in a conventional setup, have already initialized the SDK in [settingsLink:your settings.py], and have Celery using the same settings with [celeryDocsLinks:config_from_object], you don't need to initialize the SDK separately for Celery.",
-                  {
-                    settingsLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/python/guides/django/#configure" />
-                    ),
-                    celeryDocsLinks: (
-                      <ExternalLink href="https://docs.celeryq.dev/en/stable/django/first-steps-with-django.html" />
-                    ),
-                  }
-                )}
-              </p>
-            </Fragment>
+    sentry_sdk.init(...)  # same as above`,
+        },
+        {
+          type: 'subheader',
+          text: t('Setup With Django'),
+        },
+        {
+          type: 'text',
+          text: tct(
+            "If you're using Celery with Django in a conventional setup, have already initialized the SDK in [settingsLink:your settings.py], and have Celery using the same settings with [celeryDocsLinks:config_from_object], you don't need to initialize the SDK separately for Celery.",
+            {
+              settingsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/guides/django/#configure" />
+              ),
+              celeryDocsLinks: (
+                <ExternalLink href="https://docs.celeryq.dev/en/stable/django/first-steps-with-django.html" />
+              ),
+            }
           ),
         },
       ],
@@ -216,43 +200,7 @@ def hello():
 hello.delay()
 `,
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                type: 'text' as const,
-                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                type: 'text' as const,
-                text: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
+        getVerifyLogsContent(params),
       ],
     },
   ],
@@ -271,9 +219,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const SpacedOnboardingCodeSnippet = styled(OnboardingCodeSnippet)`
-  pre {
-    margin-bottom: ${space(2)};
-  }
-`;

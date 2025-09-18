@@ -16,8 +16,8 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -85,12 +85,7 @@ const onboarding: OnboardingConfig = {
             }
           ),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[starlette]'})
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[starlette]'}),
       ],
     },
   ],
@@ -115,10 +110,7 @@ ${getSdkSetupSnippet(params)}
 app = Starlette(routes=[...])
 `,
         },
-        {
-          type: 'custom',
-          content: <AlternativeConfiguration />,
-        },
+        alternativeProfilingConfiguration(params),
       ],
     },
   ],
@@ -147,25 +139,19 @@ app = Starlette(routes=[
 `,
         },
         {
-          type: 'custom',
-          content: (
-            <div>
-              <p>
-                {tct(
-                  'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
-                  {
-                    link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
-                  }
-                )}
-              </p>
-              <p>
-                {t(
-                  'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-                )}
-              </p>
-              <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-            </div>
-          ),
+          type: 'text',
+          text: [
+            tct(
+              'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
+              {
+                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
+              }
+            ),
+            t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
         },
       ],
     },

@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
@@ -18,10 +16,11 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -83,12 +82,7 @@ const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[flask]'})
-          .filter(config => config.code)
-          .map(config => ({
-            type: 'code' as const,
-            tabs: config.code!,
-          })),
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[flask]'}),
       ],
     },
   ],
@@ -112,15 +106,7 @@ const onboarding: OnboardingConfig = {
 app = Flask(__name__)
 `,
         },
-        ...(params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous'
-          ? [
-              {
-                type: 'custom' as const,
-                content: <AlternativeConfiguration />,
-              },
-            ]
-          : []),
+        alternativeProfilingConfiguration(params),
         {
           type: 'text',
           text: tct(
@@ -153,63 +139,21 @@ def hello_world():
     return "<p>Hello, World!</p>"
 `,
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                type: 'text' as const,
-                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                type: 'text' as const,
-                text: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-              },
-              {
-                type: 'code' as const,
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
+        getVerifyLogsContent(params),
         {
-          type: 'custom' as const,
-          content: (
-            <span>
-              <p>
-                {tct(
-                  'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
-                  {
-                    link: <ExternalLink href="http://localhost:5000/" />,
-                  }
-                )}
-              </p>
-              <p>
-                {t(
-                  'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-                )}
-              </p>
-              <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-            </span>
-          ),
+          type: 'text',
+          text: [
+            tct(
+              'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
+              {
+                link: <ExternalLink href="http://localhost:5000/" />,
+              }
+            ),
+            t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
         },
       ],
     },
