@@ -19,10 +19,10 @@ const durations = {
   '3xl': 0.64,
 };
 const easings: Record<'enter' | 'exit' | 'default' | 'snap', BezierDefinition> = {
-  enter: [0.24, 1, 0.32, 1],
-  exit: [0.64, 0, 0.8, 0],
   default: [0.72, 0, 0.16, 1],
   snap: [0.8, -0.4, 0.5, 1],
+  enter: [0.24, 1, 0.32, 1],
+  exit: [0.64, 0, 0.8, 0],
 };
 const animations = ['x', 'y', 'scale', 'rotate'] as const;
 
