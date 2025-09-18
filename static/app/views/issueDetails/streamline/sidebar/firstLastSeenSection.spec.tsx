@@ -4,24 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-jest.mock('sentry/views/issueDetails/utils', () => ({
-  useEnvironmentsFromUrl: jest.fn(),
-}));
-jest.mock('sentry/views/issueDetails/groupSidebar', () => ({
-  useFetchAllEnvsGroupData: jest.fn(),
-}));
-
-const mockUseEnvironmentsFromUrl = useEnvironmentsFromUrl as jest.MockedFunction<
-  typeof useEnvironmentsFromUrl
->;
-const mockUseFetchAllEnvsGroupData = useFetchAllEnvsGroupData as jest.MockedFunction<
-  typeof useFetchAllEnvsGroupData
->;
 
 describe('FirstLastSeenSection', () => {
   const organization = OrganizationFixture();
@@ -40,23 +25,6 @@ describe('FirstLastSeenSection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseEnvironmentsFromUrl.mockReturnValue([]);
-    mockUseFetchAllEnvsGroupData.mockReturnValue({
-      data: GroupFixture({
-        firstSeen: '2024-01-06T10:00:00Z',
-        lastSeen: '2024-01-14T12:00:00Z',
-      }),
-      isError: false,
-      error: null,
-      isPending: false,
-      isLoading: false,
-      isSuccess: true,
-      isFetching: false,
-      isRefetching: false,
-      isStale: false,
-      refetch: jest.fn(),
-    } as any);
-
     MockApiClient.clearMockResponses();
 
     mockFirstLastRelease = MockApiClient.addMockResponse({
@@ -68,10 +36,28 @@ describe('FirstLastSeenSection', () => {
         lastRelease,
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: GroupFixture({
+        id: group.id,
+        firstSeen: '2024-01-06T10:00:00Z',
+        lastSeen: '2024-01-14T12:00:00Z',
+      }),
+    });
   });
 
   it('renders first and last seen information with release data', async () => {
-    render(<FirstLastSeenSection group={group} />, {organization});
+    render(<FirstLastSeenSection group={group} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {},
+        },
+      },
+    });
 
     await waitFor(() => {
       expect(mockFirstLastRelease).toHaveBeenCalled();
@@ -88,21 +74,23 @@ describe('FirstLastSeenSection', () => {
     expect(screen.getByText('Last seen')).toBeInTheDocument();
 
     expect(
-      await screen.findByText((_content, element) => {
-        return element?.textContent === 'in release 1.0.0';
-      })
+      screen.getByText(textWithMarkupMatcher('in release 1.0.0'))
     ).toBeInTheDocument();
     expect(
-      screen.getByText((_content, element) => {
-        return element?.textContent === 'in release 1.1.0';
-      })
+      screen.getByText(textWithMarkupMatcher('in release 1.1.0'))
     ).toBeInTheDocument();
   });
 
   it('calls API with environment parameters when environments are selected', async () => {
-    mockUseEnvironmentsFromUrl.mockReturnValue(['production', 'staging']);
-
-    render(<FirstLastSeenSection group={group} />, {organization});
+    render(<FirstLastSeenSection group={group} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {environment: ['production', 'staging']},
+        },
+      },
+    });
 
     await waitFor(() => {
       expect(mockFirstLastRelease).toHaveBeenCalled();
@@ -121,7 +109,6 @@ describe('FirstLastSeenSection', () => {
   it('shows environment-specific release information', async () => {
     const productionRelease = ReleaseFixture({version: '1.0.0'});
 
-    mockUseEnvironmentsFromUrl.mockReturnValue(['production']);
     mockFirstLastRelease = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
@@ -132,11 +119,19 @@ describe('FirstLastSeenSection', () => {
       },
     });
 
-    render(<FirstLastSeenSection group={group} />, {organization});
-
-    const releaseTexts = await screen.findAllByText((_content, element) => {
-      return element?.textContent === 'in release 1.0.0';
+    render(<FirstLastSeenSection group={group} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {environment: ['production']},
+        },
+      },
     });
+
+    const releaseTexts = await screen.findAllByText(
+      textWithMarkupMatcher('in release 1.0.0')
+    );
     expect(releaseTexts).toHaveLength(2);
   });
 
@@ -151,7 +146,15 @@ describe('FirstLastSeenSection', () => {
       },
     });
 
-    render(<FirstLastSeenSection group={group} />, {organization});
+    render(<FirstLastSeenSection group={group} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {},
+        },
+      },
+    });
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();
