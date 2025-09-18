@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
   EAPSpanSearchQueryBuilder,
@@ -28,6 +27,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {McpInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -209,7 +209,7 @@ function McpOverviewPage() {
                 <ToolRibbon>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector />
-                    <EnvironmentPageFilter />
+                    <InsightsEnvironmentSelector />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
