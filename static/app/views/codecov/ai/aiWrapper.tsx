@@ -6,7 +6,7 @@ import CodecovQueryParamsProvider from 'sentry/components/codecov/container/code
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
-import {Slider} from 'sentry/components/core/slider';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Switch} from 'sentry/components/core/switch';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
@@ -38,14 +38,31 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
   const [errorPredMentionOnly, setErrorPredMentionOnly] = useState(false);
 
   // Sensitivity settings
-  const [prReviewSensitivity, setPrReviewSensitivity] = useState(2); // 0=low, 1=medium, 2=high, 3=critical
-  const [testGenSensitivity, setTestGenSensitivity] = useState(2);
+  const [prReviewSensitivity, setPrReviewSensitivity] = useState(1); // 0=low, 1=medium, 2=high, 3=critical
+  const [testGenSensitivity, setTestGenSensitivity] = useState(1);
 
-  const sensitivityLevels = ['low', 'medium', 'high', 'critical'];
-  const formatSensitivityLabel = (value: number | '') => {
-    const index = typeof value === 'number' ? value : 0;
-    return sensitivityLevels[index] || 'medium';
-  };
+  const sensitivityOptions = [
+    {
+      value: 0,
+      label: 'Low',
+      details: 'Post all potential issues for maximum breadth.',
+    },
+    {
+      value: 1,
+      label: 'Medium',
+      details: 'Post likely issues for a balance of thoroughness and noise',
+    },
+    {
+      value: 2,
+      label: 'High',
+      details: 'Post only major issues to highlight most impactful findings.',
+    },
+    {
+      value: 3,
+      label: 'Critical',
+      details: 'Post only critical, high-confidence issues.',
+    },
+  ];
 
   return (
     <SlideOverPanel collapsed={!isOpen} slidePosition="right" ariaLabel="Settings Panel">
@@ -93,18 +110,17 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
           <NestedFieldGroup>
             <FieldGroup
               label="Sensitivity"
-              help="Set the sensitivity level for PR review analysis"
+              help="Set the sensitivity level for PR review analysis."
               inline
               flexibleControlStateSize
             >
-              <Slider
-                min={0}
-                max={3}
-                step={1}
+              <CompactSelect
                 value={prReviewSensitivity}
-                onChange={value => setPrReviewSensitivity(value)}
-                formatLabel={formatSensitivityLabel}
+                options={sensitivityOptions}
+                onChange={option => setPrReviewSensitivity(option.value)}
                 aria-label="PR Review Sensitivity"
+                menuWidth="350px"
+                maxMenuWidth="500px"
               />
             </FieldGroup>
           </NestedFieldGroup>
@@ -129,18 +145,17 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
           <NestedFieldGroup>
             <FieldGroup
               label="Sensitivity"
-              help="Set the sensitivity level for test generation analysis"
+              help="Set the sensitivity level for test generation analysis."
               inline
               flexibleControlStateSize
             >
-              <Slider
-                min={0}
-                max={3}
-                step={1}
+              <CompactSelect
                 value={testGenSensitivity}
-                onChange={value => setTestGenSensitivity(value)}
-                formatLabel={formatSensitivityLabel}
+                options={sensitivityOptions}
+                onChange={option => setTestGenSensitivity(option.value)}
                 aria-label="Test Generation Sensitivity"
+                menuWidth="350px"
+                maxMenuWidth="500px"
               />
             </FieldGroup>
           </NestedFieldGroup>
@@ -178,7 +193,7 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
             </FieldGroup>
             <FieldGroup
               label="Run When Mentioned"
-              help="Run when @sentry review is commented on a PR"
+              help="Run when @sentry review is commented on a PR."
               inline
               flexibleControlStateSize
             >
