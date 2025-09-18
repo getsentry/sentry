@@ -1,0 +1,76 @@
+---
+title: Motion
+layout: document
+description: Guidelines for using animation in Sentry's user interface.
+---
+
+Motion in the UI, when used thoughtfully, can bring interfaces to life and guide users through tasks. Effective animations provide feedback, reduce user frustration, and give a sense of direct manipulation of on-screen elements. They also make our product feel snappy and modern by conveying responsiveness. The following guidelines outline our motion design principles, best practices for using animation in common scenarios, and accessibility considerations.
+
+# Principles
+
+## Purposeful
+
+Use animation only when it serves a clear purpose. Every motion should communicate something useful (e.g. feedback, a state change) and not exist just for decoration. If an animation doesn’t help the user achieve a goal or learn something, reconsider using it.
+
+## Responsive
+
+Keep animations fast and efficient so the interface feels snappy. Most UI animations should complete in under 600ms. Very short durations (around 100ms) are perceived as instantaneous—use these for simple micro-interactions so users never feel slowed down. Strike a balance: slow enough to be noticed and understood, but never so slow that the user is waiting on the animation.
+
+## Natural
+
+Animations should feel intuitive and natural, often by mimicking real-world behavior. Objects on screen should accelerate and decelerate smoothly (nothing jerky or purely linear) to follow a sense of light-weight physical physics. Incorporate techniques like easing (speeding up then slowing down) and arcs in movement paths to emulate how things move in life. The goal is for animations to be so fitting that they almost go unnoticed.
+
+## Accessible
+
+Design animations to include everyone. No essential information should ever be conveyed by motion alone. Ensure there are accompanying cues (like text or icons). Always consider users who experience motion sensitivity or other disabilities—we should provide a way to reduce or disable motion and avoid effects that can cause discomfort (details in the Accessibility section below).
+
+# Usage
+
+## Productive Motion
+
+Motion is a useful tool for emulating _tactility_, which can enhance interactions within components. _Productive_ motion is used as a result of direct user interaction, such as pressing a button. These should typically leverage faster durations (`xs`, `sm`, or `md`) to create subtle micro interactions that bring the interface to life. Wherever possible, refer to satisfying physical motion as inspiration.
+
+## Expressive Motion
+
+Motion is a useful tool for communication, and true to Sentry’s tone, we make room for some tongue-in-cheek playfulness in our product. _Expressive_ motion draws attention and adds character, which is appropriate for tasks like onboarding, toasts, and other interruptions. These typically use longer durations (`lg`, `xl`, or `2xl`) and provide a bit of levity when appropriate. See our [Voice and Tone](/stories/principles/voice-and-tone) guide for more information on **humor**.
+
+## When not to use animations
+
+Overuse of animation can lead to user frustration over sluggish interactions. Before applying motion, consider the amount of friction an interaction calls for. Emil Kowalski's [You don't need animations](https://emilkowal.ski/ui/you-dont-need-animations) provides a great framework for deciding when animation might be appropriate. **Frequent interactions**, such as keyboard interactions and repetitive daily workflows, should avoid animation all together. Likewise, when the **speed** of an interaction is critical, motion should be applied carefully to maintain the perceived performance of Sentry.
+
+# Accessibility
+
+## Respect motion preferences
+
+Motion requires careful consideration for users with perceptual sensitivities or cognitive challenges, who may have indicated to their operating system that they prefer reduced motion. By default, avoid expressive motion and only use it as an enhancement if the user has not indicated a preference for reduced motion. _Reduced motion_ still allows for meaningful motion, so if motion provides useful interaction feedback, consider providing a subdued alternative.
+
+## Be mindful of focus
+
+On an otherwise static page, any motion will draw user attention. For this reason, motion should be employed strategically, respecting the existing information hierarchy of a page. Motion in multiple places disrupts user focus, so avoid competing expressive motion at all costs.
+
+# Token Reference
+
+## Duration
+
+The duration of an animation is proportional to its impact on the visual hierarchy of the page. Subtle changes like hover states or interactions should use quick durations, small changes like surface expansions or overlay entrances should use moderate durations, and significant changes like a slideout entrance or onboarding should use longer durations.
+
+| **Name** | **Description**                                                                   | **Value** |
+| -------- | --------------------------------------------------------------------------------- | --------- |
+| `xs`     | Interactions like button press and toggle switch                                  | `60ms`    |
+| `sm`     | Interactions like fade or color, exits                                            | `110ms`   |
+| `md`     | Interactions, small surface expansion, short distance movements, emphasized exits | `160ms`   |
+| `lg`     | Surface expansion, entrances, expressive motion                                   | `240ms`   |
+| `xl`     | Large surface expansions, important system notifications                          | `320ms`   |
+| `2xl`    | Expressive movement, emphasized entrances                                         | `480ms`   |
+| `3xl`    | Full page surface transition, background dimming                                  | `640ms`   |
+
+## Easing
+
+The easing curve of an animation drastically changes our perception of it. These easing tokens have been chosen to provide a snappy, natural motion to interactions.
+
+| **Name**  | **Expressive**                                                                                                                                                     | **Fallback**                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
+| `enter`   | linear(0, 0.671 15.6%, 0.88 24.2%, 1.015 33.6%, 1.073 42%, 1.09 51.6%, 1)                                                                                          | cubic-bezier(0.24, 1, 0.32, 1)  |
+| `exit`    | linear(0, -0.09 48.4%, -0.073 58%, -0.015 66.4%, 0.12 75.8%, 0.329 84.4%, 1)                                                                                       | cubic-bezier(0.64, 0, 0.8, 0)   |
+| `default` | linear(0, -0.089 25.6%, -0.062 33.8%, 0.14 43%, 0.796 55.4%, 1.029 63.6%, 1.091 73.2%, 1)                                                                          | cubic-bezier(0.72, 0, 0.16, 1)  |
+| `snap`    | linear(0, 0.033 1.3%, 0.135 2.8%, 0.919 10.9%, 1.061 13.6%, 1.103 15%, 1.127 16.5%, 1.134 18%, 1.126 19.7%, 1.014 28.5%, 0.993 31.3%, 0.983 34.3%, 1.002 51.9%, 1) | cubic-bezier(0.8, -0.4, 0.5, 1) |
