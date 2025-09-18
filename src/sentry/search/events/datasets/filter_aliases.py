@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 
+import sentry_sdk
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -20,6 +20,7 @@ from sentry.search.events.filter import (
 )
 from sentry.search.events.types import WhereType
 from sentry.search.utils import DEVICE_CLASS, parse_release, validate_snuba_array_parameter
+from sentry.utils.glob import glob_match
 from sentry.utils.strings import oxfordize_list
 
 
@@ -70,7 +71,11 @@ def release_filter_converter(
 
 
 def matches_slug_pattern(slug_pattern: str, slug: str) -> bool:
-    return bool(re.match(slug_pattern, slug))
+    try:
+        return glob_match(slug, slug_pattern, allow_newline=False)
+    except Exception as err:
+        sentry_sdk.capture_exception(err)
+        return slug == slug_pattern
 
 
 def matches_slug_patterns(slug_patterns: list[str], slug: str) -> bool:
@@ -83,7 +88,8 @@ def project_slug_converter(
     """Convert project slugs to ids and create a filter based on those.
     This is cause we only store project ids in clickhouse.
     """
-    value = search_filter.value.value
+    # Raw value without regex conversion
+    value = search_filter.value.raw_value
 
     if Op(search_filter.operator) == Op.EQ and value == "":
         raise InvalidSearchQuery(
