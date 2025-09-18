@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -269,10 +269,8 @@ function ReleaseWidgetQueries({
     selection.projects,
   ]);
 
-  const fetchReleasesForCustomSorting = useMemo(() => {
-    return widget.queries[0] && requiresCustomReleaseSorting(widget.queries[0]);
-  }, [widget.queries]);
-
+  const fetchReleasesForCustomSorting =
+    widget.queries[0] && requiresCustomReleaseSorting(widget.queries[0]);
   useEffect(() => {
     if (fetchReleasesForCustomSorting) {
       fetchReleases();
