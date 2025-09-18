@@ -22,11 +22,6 @@ class EmailActionHandler(ActionHandler):
         },
         "required": ["target_type"],
         "additionalProperties": False,
-        "if": {"properties": {"target_type": {"enum": [ActionTarget.USER, ActionTarget.TEAM]}}},
-        "then": {
-            "properties": {"target_identifier": {"type": "string"}},
-            "required": ["target_type", "target_identifier"],
-        },
     }
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
