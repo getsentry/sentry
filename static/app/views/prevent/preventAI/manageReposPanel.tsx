@@ -64,7 +64,7 @@ function ManageReposPanel({
       <PanelWrapper>
         <PanelHeader>
           <PanelHeaderAllText>
-            <PanelHeaderTitle>Prevent AI Settings</PanelHeaderTitle>
+            <PanelHeaderTitle>{t('Prevent AI Settings')}</PanelHeaderTitle>
             <PanelHeaderDescription>
               {tct(
                 'These settings apply to the selected [repoLink] repository. To switch, use the repository selector in the page header.',

@@ -64,6 +64,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
               onClick={() => setIsPanelOpen(true)}
               disabled={!isOrgSelected || !isRepoSelected}
               tabIndex={!isOrgSelected || !isRepoSelected ? -1 : 0}
+              data-test-id="manage-repos-settings-button"
             />
           </Tooltip>
         </SettingsButtonContainer>
@@ -72,14 +73,19 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
       <ManageReposMainContent>
         <ManageReposLeft>
           <ManageReposLeftTitleBlock>
-            <ManageReposLeftTitle as="h1">
+            <ManageReposLeftTitle as="h1" data-test-id="manage-repos-title">
               {t('Manage Repositories')}
             </ManageReposLeftTitle>
             <Text>
               {tct(
                 `To install more repositories or uninstall the app, go to your [link:Seer by Sentry app] on GitHub.`,
                 {
-                  link: <ExternalLink href="https://github.com/apps/seer-by-sentry" />,
+                  link: (
+                    <ExternalLink
+                      href="https://github.com/apps/seer-by-sentry"
+                      data-test-id="manage-repos-external-link"
+                    />
+                  ),
                 }
               )}
             </Text>
@@ -90,6 +96,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         <StyledImg
           src={theme.type === 'dark' ? preventPrCommentsDark : preventPrCommentsLight}
           alt="Prevent PR Comments"
+          data-test-id="manage-repos-illustration-image"
         />
       </ManageReposMainContent>
 

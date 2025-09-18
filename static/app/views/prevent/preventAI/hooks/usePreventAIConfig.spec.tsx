@@ -14,14 +14,13 @@ describe('usePreventAIConfig', () => {
     const {result} = renderHook(() => usePreventAIConfig(orgName, repoName));
     expect(result.current.data).toEqual({
       features: {
-        vanilla_pr_review: {enabled: false},
+        vanilla: {enabled: false},
         test_generation: {enabled: false},
         bug_prediction: {
           enabled: false,
           triggers: {
             on_command_phrase: false,
             on_ready_for_review: false,
-            on_new_commit: false,
           },
         },
       },
