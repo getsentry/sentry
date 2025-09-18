@@ -33,7 +33,7 @@ export function OrganizationSampling() {
 
   const formState = useFormState({
     initialValues: {
-      targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toString(),
+      targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
     },
   });
 
