@@ -446,10 +446,10 @@ const HeaderActions = styled(props => (
   <Flex direction="row" justify="between" gap="2xl" {...props} />
 ))``;
 
-const PlatformLabel = styled(props => <Flex gap="sm" align="center" {...props} />)``;
+const PlatformLabel = styled(props => <Flex gap="md" align="center" {...props} />)``;
 
 const PlatformSelect = styled(props => (
-  <Flex gap="sm" align="center" wrap="wrap" {...props} />
+  <Flex gap="md" align="center" wrap="wrap" {...props} />
 ))``;
 
 const StyledRadioGroup = styled(RadioGroup)`
