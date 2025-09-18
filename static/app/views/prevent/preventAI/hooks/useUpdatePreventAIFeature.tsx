@@ -15,7 +15,7 @@ interface UpdateFeatureResult {
   triggers: Record<string, boolean>;
 }
 
-function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
+export function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,5 +109,3 @@ function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
     error,
   };
 }
-
-export default useUpdatePreventAIFeature;

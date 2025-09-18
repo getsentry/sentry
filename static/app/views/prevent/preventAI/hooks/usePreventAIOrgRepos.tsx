@@ -1,10 +1,10 @@
 import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
 
-export interface PreventAIOrgReposResponse {
+interface PreventAIOrgReposResponse {
   orgRepos: PreventAIOrg[];
 }
 
-export interface PreventAIOrgsReposResult {
+interface PreventAIOrgsReposResult {
   data: PreventAIOrgReposResponse | undefined;
   isError: boolean;
   isLoading: boolean;

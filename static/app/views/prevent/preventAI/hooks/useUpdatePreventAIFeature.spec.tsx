@@ -1,6 +1,6 @@
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import useUpdatePreventAIFeature from './useUpdatePreventAIFeature';
+import {useUpdatePreventAIFeature} from './useUpdatePreventAIFeature';
 
 describe('useUpdatePreventAIFeature', () => {
   const orgName = 'org-1';

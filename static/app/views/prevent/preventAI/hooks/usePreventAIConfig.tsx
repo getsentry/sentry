@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 
 import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 
-export interface PreventAIConfigResult {
+interface PreventAIConfigResult {
   data: PreventAIConfig | undefined;
   isError: boolean;
   isLoading: boolean;
@@ -76,5 +76,3 @@ export function usePreventAIConfig(
     refetch,
   };
 }
-
-export default usePreventAIConfig;
