@@ -8,7 +8,7 @@ import yaml
 from flagpole import Feature
 from flagpole.conditions import EqualsCondition, Segment
 from flagpole.evaluation_context import EvaluationContext
-from tools.flagpole_eval import evaluate_flag, get_arguments, read_feature
+from flagpole.flagpole_eval import evaluate_flag, get_arguments, read_feature
 
 
 class TestGetArguments:
