@@ -379,7 +379,7 @@ def devserver(
                 raise click.ClickException(
                     f"""
     Devserver is configured to start some kafka consumers, but Kafka
-    don't seem to be running.
+    doesn't seem to be running.
 
     The following consumers were intended to be started: {kafka_consumers}
 
