@@ -185,11 +185,7 @@ export function PrimaryNavigationItems() {
           <PrimaryNavigationWhatsNew />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
-          <Hook
-            name="sidebar:try-business"
-            organization={organization}
-            orientation="left"
-          />
+          <Hook name="sidebar:try-business" organization={organization} />
         </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <Hook name="sidebar:billing-status" organization={organization} />

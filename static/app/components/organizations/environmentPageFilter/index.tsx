@@ -21,7 +21,7 @@ import {
   type EnvironmentPageFilterTriggerProps,
 } from './trigger';
 
-interface EnvironmentPageFilterProps
+export interface EnvironmentPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<string>,
@@ -64,6 +64,7 @@ export function EnvironmentPageFilter({
   resetParamsOnChange,
   footerMessage,
   triggerProps = {},
+  storageNamespace,
   ...selectProps
 }: EnvironmentPageFilterProps) {
   const router = useRouter();
@@ -136,9 +137,17 @@ export function EnvironmentPageFilter({
       updateEnvironments(newValue, router, {
         save: true,
         resetParams: resetParamsOnChange,
+        storageNamespace,
       });
     },
-    [envPageFilterValue, resetParamsOnChange, router, organization, onChange]
+    [
+      envPageFilterValue,
+      resetParamsOnChange,
+      router,
+      organization,
+      onChange,
+      storageNamespace,
+    ]
   );
 
   const onToggle = useCallback(

@@ -20,7 +20,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.sentry_apps.services.app import app_service
-from sentry.workflow_engine.endpoints.serializers import (
+from sentry.workflow_engine.endpoints.serializers.action_handler_serializer import (
     ActionHandlerSerializer,
     ActionHandlerSerializerResponse,
 )
