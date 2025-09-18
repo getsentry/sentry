@@ -58,10 +58,13 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     );
   }
 
-  if (!installDetails) {
+  if (!installDetails || !installDetails.install_url) {
+    const message = installDetails
+      ? t('No install download link available')
+      : t('No install details available');
     return (
       <Flex direction="column" align="center" gap="md" padding="3xl">
-        <Text>{t('No install details available')}</Text>
+        <Text>{message}</Text>
         <Button onClick={closeModal}>{t('Close')}</Button>
       </Flex>
     );
@@ -102,56 +105,54 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
           </Container>
         </Flex>
 
-        {installDetails.install_url && (
-          <Fragment>
-            <Stack align="center" gap="md">
-              {installDetails.download_count !== undefined &&
-                installDetails.download_count > 0 && (
-                  <Text size="sm" variant="muted">
-                    {tn('%s download', '%s downloads', installDetails.download_count)}
-                  </Text>
-                )}
-              <Container background="secondary" padding="lg" radius="md" border="primary">
-                <StyledQRCode
-                  aria-label={t('Install QR Code')}
-                  value={
-                    installDetails.platform === 'ios'
-                      ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
-                      : installDetails.install_url
-                  }
-                  size={120}
-                />
-              </Container>
-              {details}
-              <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
-                <Text align="center" size="lg">
-                  {t(
-                    'Scan the QR code with your device and follow the installation prompts'
-                  )}
-                </Text>
-              </Flex>
-            </Stack>
-            <Divider width="100%" justify="center">
-              <Container>
+        <Fragment>
+          <Stack align="center" gap="md">
+            {installDetails.download_count !== undefined &&
+              installDetails.download_count > 0 && (
                 <Text size="sm" variant="muted">
-                  {t('OR')}
+                  {tn('%s download', '%s downloads', installDetails.download_count)}
                 </Text>
-              </Container>
-            </Divider>
-            <Stack align="center" gap="lg">
-              <Button
-                onClick={() => window.open(installDetails.install_url, '_blank')}
-                priority="primary"
-                size="md"
-              >
-                {t('Download')}
-              </Button>
-              <Text align="center" size="md" variant="muted">
-                {t('The install link will expire in 12 hours')}
+              )}
+            <Container background="secondary" padding="lg" radius="md" border="primary">
+              <StyledQRCode
+                aria-label={t('Install QR Code')}
+                value={
+                  installDetails.platform === 'ios'
+                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
+                    : installDetails.install_url
+                }
+                size={120}
+              />
+            </Container>
+            {details}
+            <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
+              <Text align="center" size="lg">
+                {t(
+                  'Scan the QR code with your device and follow the installation prompts'
+                )}
               </Text>
-            </Stack>
-          </Fragment>
-        )}
+            </Flex>
+          </Stack>
+          <Divider width="100%" justify="center">
+            <Container>
+              <Text size="sm" variant="muted">
+                {t('OR')}
+              </Text>
+            </Container>
+          </Divider>
+          <Stack align="center" gap="lg">
+            <Button
+              onClick={() => window.open(installDetails.install_url, '_blank')}
+              priority="primary"
+              size="md"
+            >
+              {t('Download')}
+            </Button>
+            <Text align="center" size="md" variant="muted">
+              {t('The install link will expire in 12 hours')}
+            </Text>
+          </Stack>
+        </Fragment>
       </Flex>
     </Fragment>
   );
@@ -169,7 +170,7 @@ export const CodeSignatureInfo = styled('div')`
   border: 1px solid ${p => p.theme.border};
 `;
 
-export const Divider = styled(Flex)`
+const Divider = styled(Flex)`
   position: relative;
 
   &:before {
