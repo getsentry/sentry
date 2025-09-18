@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
-from sentry.notifications.platform.provider import NotificationProvider
+from sentry.integrations.msteams.client import MsTeamsClient
+from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
@@ -96,4 +97,10 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: MSTeamsRenderable) -> None:
-        pass
+        if not isinstance(target, cls.target_class):
+            raise NotificationProviderError(
+                f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
+            )
+
+        client = MsTeamsClient(target.integration)
+        client.send_card(target.resource_id, renderable)

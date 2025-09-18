@@ -1,3 +1,7 @@
+from unittest.mock import Mock, patch
+
+import pytest
+
 from sentry.integrations.msteams.card_builder.block import (
     ADAPTIVE_CARD_SCHEMA_URL,
     CURRENT_CARD_VERSION,
@@ -5,8 +9,17 @@ from sentry.integrations.msteams.card_builder.block import (
     TextSize,
     TextWeight,
 )
-from sentry.notifications.platform.msteams.provider import MSTeamsNotificationProvider
-from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.msteams.provider import (
+    MSTeamsNotificationProvider,
+    MSTeamsRenderable,
+)
+from sentry.notifications.platform.provider import NotificationProviderError
+from sentry.notifications.platform.target import (
+    GenericNotificationTarget,
+    IntegrationNotificationTarget,
+)
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
@@ -219,3 +232,113 @@ class MSTeamsNotificationProviderTest(TestCase):
     def test_is_available(self) -> None:
         assert MSTeamsNotificationProvider.is_available() is False
         assert MSTeamsNotificationProvider.is_available(organization=self.organization) is False
+
+
+class MSTeamsNotificationProviderSendTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider=IntegrationProviderSlug.MSTEAMS,
+            organization=self.organization,
+            user=self.user,
+            name="test-msteams",
+            metadata={"service_url": "https://test.msteams.com", "team_id": "test-team-id"},
+        )
+
+    def _create_target(
+        self, resource_id: str = "19:test-channel@thread.skype"
+    ) -> IntegrationNotificationTarget:
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.MSTEAMS,
+            resource_id=resource_id,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        # Manually set the integration fields (prepare_targets is a stub)
+        rpc_integration = integration_service.get_integration(integration_id=target.integration_id)
+        rpc_org_integration = integration_service.get_organization_integration(
+            integration_id=target.integration_id,
+            organization_id=target.organization_id,
+        )
+
+        object.__setattr__(target, "integration", rpc_integration)
+        object.__setattr__(target, "organization_integration", rpc_org_integration)
+
+        return target
+
+    def _create_renderable(self) -> MSTeamsRenderable:
+        """Create a sample MSTeamsRenderable for testing"""
+        from sentry.integrations.msteams.card_builder.block import (
+            ADAPTIVE_CARD_SCHEMA_URL,
+            CURRENT_CARD_VERSION,
+            create_text_block,
+        )
+
+        return {
+            "type": "AdaptiveCard",
+            "body": [
+                create_text_block(text="Test Notification"),
+                create_text_block(text="This is a test message"),
+            ],
+            "version": CURRENT_CARD_VERSION,
+            "$schema": ADAPTIVE_CARD_SCHEMA_URL,
+        }
+
+    @patch("sentry.notifications.platform.msteams.provider.MsTeamsClient")
+    def test_send_success(self, mock_msteams_client: Mock) -> None:
+        """Test successful message sending"""
+        mock_client_instance = mock_msteams_client.return_value
+        mock_client_instance.send_card.return_value = {"id": "1234567890"}
+
+        target = self._create_target()
+        renderable = self._create_renderable()
+
+        MSTeamsNotificationProvider.send(target=target, renderable=renderable)
+
+        mock_client_instance.send_card.assert_called_once_with(
+            "19:test-channel@thread.skype", renderable
+        )
+
+    def test_send_invalid_target_class(self) -> None:
+        """Test send fails with invalid target class"""
+        target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.MSTEAMS,
+            resource_id="test@example.com",
+            resource_type=NotificationTargetResourceType.EMAIL,
+        )
+        renderable = self._create_renderable()
+
+        with pytest.raises(NotificationProviderError, match="Target .* is not a valid dataclass"):
+            MSTeamsNotificationProvider.send(target=target, renderable=renderable)
+
+    @patch("sentry.notifications.platform.msteams.provider.MsTeamsClient")
+    def test_send_to_direct_message(self, mock_msteams_client: Mock) -> None:
+        """Test sending message to direct message (user)"""
+        mock_client_instance = mock_msteams_client.return_value
+        mock_client_instance.send_card.return_value = {"id": "1234567890"}
+
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.MSTEAMS,
+            resource_id="29:test-user-id",  # User conversation ID format
+            resource_type=NotificationTargetResourceType.DIRECT_MESSAGE,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        # Manually set the integration fields (prepare_targets is a stub)
+        rpc_integration = integration_service.get_integration(integration_id=target.integration_id)
+        rpc_org_integration = integration_service.get_organization_integration(
+            integration_id=target.integration_id,
+            organization_id=target.organization_id,
+        )
+
+        object.__setattr__(target, "integration", rpc_integration)
+        object.__setattr__(target, "organization_integration", rpc_org_integration)
+
+        renderable = self._create_renderable()
+
+        MSTeamsNotificationProvider.send(target=target, renderable=renderable)
+
+        mock_client_instance.send_card.assert_called_once_with("29:test-user-id", renderable)
