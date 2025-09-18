@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {keepPreviousData} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
+import {Container} from 'sentry/components/core/layout';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -21,6 +22,7 @@ import {openEditBillingDetails, openEditCreditCard} from 'getsentry/actionCreato
 import withSubscription from 'getsentry/components/withSubscription';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {BillingDetails as BillingDetailsType, Subscription} from 'getsentry/types';
+import {hasNewBillingUI} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
@@ -88,8 +90,10 @@ function BillingDetails({organization, subscription, location}: Props) {
     return <LoadingIndicator />;
   }
 
+  const isNewBillingUI = hasNewBillingUI(organization);
+
   return (
-    <Fragment>
+    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <RecurringCredits displayType="discount" planDetails={subscription.planDetails} />
       <Panel className="ref-credit-card-details">
@@ -131,7 +135,7 @@ function BillingDetails({organization, subscription, location}: Props) {
       </Panel>
 
       <BillingDetailsPanel organization={organization} subscription={subscription} />
-    </Fragment>
+    </Container>
   );
 }
 

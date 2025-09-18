@@ -524,7 +524,10 @@ class GroupManager(BaseManager["Group"]):
                 )
 
             # TODO (aci cleanup): remove this once we've deprecated the incident model
-            if group.type == MetricIssue.type_id:
+            if group.type == MetricIssue.type_id and status in (
+                GroupStatus.RESOLVED,
+                GroupStatus.UNRESOLVED,
+            ):
                 if detector_id is None:
                     logger.error(
                         "Call to update metric issue status missing detector ID",
@@ -948,20 +951,25 @@ class Group(Model):
         commit = Commit.objects.filter(id=commit_id)
         return commit.first()
 
-    def get_first_release(self) -> str | None:
+    def get_first_release(self, environment_names: list[str] | None = None) -> str | None:
         from sentry.models.release import Release
 
-        if self.first_release is None:
-            return Release.objects.get_group_release_version(self.project_id, self.id)
+        if self.first_release and not environment_names:
+            return self.first_release.version
 
-        return self.first_release.version
+        return Release.objects.get_group_release_version(
+            self.project_id, self.id, environment_names
+        )
 
-    def get_last_release(self, use_cache: bool = True) -> str | None:
+    def get_last_release(
+        self, environment_names: list[str] | None = None, use_cache: bool = True
+    ) -> str | None:
         from sentry.models.release import Release
 
         return Release.objects.get_group_release_version(
             project_id=self.project_id,
             group_id=self.id,
+            environment_names=environment_names,
             first=False,
             use_cache=use_cache,
         )

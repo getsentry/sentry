@@ -1,13 +1,16 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -15,6 +18,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
+import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
   InvoiceItemType,
@@ -28,6 +32,8 @@ import {
   getPlanIcon,
   getProductIcon,
   hasPartnerMigrationFeature,
+  isBizPlanFamily,
+  isDeveloperPlan,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
@@ -95,7 +101,7 @@ interface BaseSummaryProps {
   formData: CheckoutFormData;
 }
 
-interface PlanSummaryProps extends BaseSummaryProps {}
+interface ItemsSummaryProps extends BaseSummaryProps {}
 
 interface SubtotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
@@ -116,15 +122,20 @@ interface TotalSummaryProps extends BaseSummaryProps {
   subscription: Subscription;
 }
 
-function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
+function ItemFlex({children}: {children: React.ReactNode}) {
+  return (
+    <StyledFlex justify="between" align="start" gap="3xl">
+      {children}
+    </StyledFlex>
+  );
+}
+
+function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
-      Object.values(activePlan.availableReservedBudgetTypes).reduce((acc, type) => {
-        acc.push(...type.dataCategories);
-        return acc;
-      }, [] as DataCategory[]),
-    [activePlan.availableReservedBudgetTypes]
+      Object.values(activePlan.addOnCategories).flatMap(addOn => addOn.dataCategories),
+    [activePlan.addOnCategories]
   );
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
 
@@ -134,20 +145,22 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
         <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
         <Flex direction="column" gap="xs">
           <ItemFlex>
-            <strong>{tct('[name] Plan', {name: activePlan.name})}</strong>
-            <div>
+            <Text bold>{tct('[name] Plan', {name: activePlan.name})}</Text>
+            <Text>
               {utils.displayPrice({cents: activePlan.totalPrice})}
               {`/${shortInterval}`}
-            </div>
+            </Text>
           </ItemFlex>
           {activePlan.categories
             .filter(
               category =>
                 !additionalProductCategories.includes(category) &&
-                (formData.reserved[category] ?? 0) > 0
+                // only show PAYG-only categories for plans that can use PAYG for them
+                ((formData.reserved[category] ?? 0) > 0 || !isDeveloperPlan(activePlan))
             )
             .map(category => {
               const reserved = formData.reserved[category] ?? 0;
+              const isPaygOnly = reserved === 0;
               const eventBucket =
                 activePlan.planCategories[category] &&
                 activePlan.planCategories[category].length <= 1
@@ -165,7 +178,7 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
               return (
                 <ItemFlex key={category}>
                   <div>
-                    {formattedReserved}{' '}
+                    <Text>{isPaygOnly ? '' : `${formattedReserved} `}</Text>
                     {reserved === 1 && category !== DataCategory.ATTACHMENTS
                       ? getSingularCategoryName({
                           plan: activePlan,
@@ -175,13 +188,21 @@ function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
                       : getPlanCategoryName({
                           plan: activePlan,
                           category,
-                          capitalize: false,
+                          capitalize: isPaygOnly,
                         })}
                   </div>
-                  {price > 0 && (
+                  {price > 0 ? (
                     <div>
                       {formattedPrice}/{shortInterval}
                     </div>
+                  ) : (
+                    isPaygOnly && (
+                      <Tag>
+                        {tct('Available with [budgetTerm]', {
+                          budgetTerm: activePlan.budgetTerm,
+                        })}
+                      </Tag>
+                    )
                   )}
                 </ItemFlex>
               );
@@ -255,6 +276,12 @@ function SubtotalSummary({
       selectedProducts: formData.selectedProducts,
     });
   }, [activePlan, formData.reserved, formData.selectedProducts]);
+  const isDefaultPaygAmount = useMemo(() => {
+    const defaultAmount = isBizPlanFamily(activePlan)
+      ? PAYG_BUSINESS_DEFAULT
+      : PAYG_TEAM_DEFAULT;
+    return formData.onDemandMaxSpend === defaultAmount;
+  }, [activePlan, formData.onDemandMaxSpend]);
 
   return (
     <SummarySection>
@@ -267,13 +294,33 @@ function SubtotalSummary({
                   budgetTerm: capitalize(activePlan.budgetTerm),
                 })}
               </div>
-              <div>
-                $0-
-                {utils.displayPrice({
-                  cents: formData.onDemandMaxSpend,
-                })}
-                /mo
-              </div>
+              <Flex direction="column" gap="sm" align="end">
+                <Text>
+                  $0-
+                  {utils.displayPrice({
+                    cents: formData.onDemandMaxSpend,
+                  })}
+                  /mo
+                </Text>
+                <AnimatePresence>
+                  {isDefaultPaygAmount && (
+                    <motion.div
+                      initial={{opacity: 0, y: -10}}
+                      animate={{opacity: 1, y: 0}}
+                      exit={{opacity: 0, y: -10}}
+                      transition={{
+                        type: 'spring',
+                        duration: 0.4,
+                        bounce: 0.1,
+                      }}
+                    >
+                      <Tag icon={<IconSentry size="xs" />} type="info">
+                        <Text size="xs">{t('Default Amount')}</Text>
+                      </Tag>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Flex>
             </ItemFlex>
           </Item>
         )}
@@ -293,13 +340,13 @@ function SubtotalSummary({
                       budgetTerm: activePlan.budgetTerm,
                     })}
                   </div>
-                  <div>
+                  <Text>
                     $0-
                     {utils.displayPrice({
                       cents: budget,
                     })}
                     /mo
-                  </div>
+                  </Text>
                 </ItemFlex>
               </Item>
             );
@@ -673,29 +720,34 @@ function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <PlanSummaryHeader isOpen={summaryIsOpen} shouldShadow={changesIsOpen}>
-        <Title>{t('Plan Summary')}</Title>
-        <Flex gap="xs" align="center">
-          <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
-          <Button
-            aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
-            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-            borderless
-            icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
-          />
-        </Flex>
-      </PlanSummaryHeader>
-      {summaryIsOpen && (
-        <div data-test-id="plan-summary">
-          <ItemsSummary activePlan={activePlan} formData={formData} />
-          <SubtotalSummary
-            activePlan={activePlan}
-            formData={formData}
-            previewDataLoading={previewState.isLoading}
-            renewalDate={previewState.renewalDate}
-          />
-        </div>
-      )}
+      <PlanSummary>
+        <PlanSummaryHeader isOpen={summaryIsOpen}>
+          <Heading as="h2" textWrap="nowrap">
+            {t('Plan Summary')}
+          </Heading>
+          <Flex gap="xs" align="center">
+            <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+            <Button
+              aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
+              onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+              borderless
+              size="xs"
+              icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
+            />
+          </Flex>
+        </PlanSummaryHeader>
+        {summaryIsOpen && (
+          <PlanSummaryContents data-test-id="plan-summary">
+            <ItemsSummary activePlan={activePlan} formData={formData} />
+            <SubtotalSummary
+              activePlan={activePlan}
+              formData={formData}
+              previewDataLoading={previewState.isLoading}
+              renewalDate={previewState.renewalDate}
+            />
+          </PlanSummaryContents>
+        )}
+      </PlanSummary>
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
@@ -720,39 +772,48 @@ export default Cart;
 const CartContainer = styled(Panel)`
   display: flex;
   flex-direction: column;
+  border-bottom: ${p => (p.theme.isChonk ? '3px' : '1px')} solid ${p => p.theme.border};
+  padding-bottom: ${p => p.theme.space.xl};
+
+  > *:first-child {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const SummarySection = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
+  padding: 0 ${p => p.theme.space.xl};
 
   & > *:not(:last-child) {
     margin-bottom: ${p => p.theme.space.xl};
   }
-
-  border-bottom: 1px solid ${p => p.theme.border};
 
   &:not(:first-child) {
     padding-top: ${p => p.theme.space['2xl']};
   }
 `;
 
-const Title = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-  text-wrap: nowrap;
+const PlanSummary = styled('div')`
+  &:not(:first-child) {
+    border-top: 1px solid ${p => p.theme.border};
+  }
 `;
 
-const PlanSummaryHeader = styled('div')<{isOpen: boolean; shouldShadow: boolean}>`
+const PlanSummaryHeader = styled('div')<{isOpen: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${p => p.theme.space.xl};
-  border-bottom: ${p => (p.isOpen ? 'none' : `1px solid ${p.theme.border}`)};
-  box-shadow: ${p => (p.shouldShadow ? '0 -5px 5px #00000010' : 'none')};
   gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+`;
+
+const PlanSummaryContents = styled('div')`
+  > *:last-child {
+    margin-top: ${p => p.theme.space.lg};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
+    border-top: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const OrgSlug = styled('div')`
@@ -774,16 +835,22 @@ const ItemWithIcon = styled(Item)`
   gap: ${p => p.theme.space.xs};
 `;
 
-const ItemFlex = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space['3xl']};
+const StyledFlex = styled(Flex)`
+  line-height: 100%;
+
+  > * {
+    margin-bottom: ${p => p.theme.space.xs};
+  }
+
+  &:not(:first-child) {
+    color: ${p => p.theme.subText};
+  }
 `;
 
 const IconContainer = styled('div')`
   display: flex;
   align-items: center;
+  margin-top: 1px;
 `;
 
 const RenewalDate = styled('div')`
@@ -797,12 +864,12 @@ const DueToday = styled('div')`
 `;
 
 const DueTodayPrice = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const DueTodayAmount = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.fontSize['2xl']};
 `;
 
 const DueTodayAmountBeforeDiscount = styled(DueTodayAmount)`
@@ -828,7 +895,6 @@ const ButtonContainer = styled('div')`
 `;
 
 const Subtext = styled('div')`
-  margin-top: ${p => p.theme.space['2xl']};
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   text-align: center;
