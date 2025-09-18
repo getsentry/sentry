@@ -52,7 +52,9 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
     return response
 
 
-def serialize_email_preview(template: NotificationTemplate[NotificationData]) -> dict[str, Any]:
+def serialize_email_preview[T: NotificationData](
+    template: NotificationTemplate[T],
+) -> dict[str, Any]:
     data = template.example_data
     rendered_template = template.render_example()
     email = EmailRenderer.render(data=data, rendered_template=rendered_template)
