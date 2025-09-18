@@ -71,7 +71,7 @@ export const UserIcon = styled(IconUser)`
 
 export const IconContainer = styled((props: {children: React.ReactNode}) => {
   return (
-    <Flex align="center" gap="md">
+    <Flex gap="md">
       {props.children}
     </Flex>
   );
