@@ -5,6 +5,7 @@ import argparse
 import dataclasses
 import sys
 from pathlib import Path
+from typing import Any, Tuple, cast
 
 import yaml
 
@@ -30,7 +31,7 @@ def main() -> None:
     print("")
 
     try:
-        feature = read_feature(args.get("flag_name"), args.get("flagpole_file"))
+        feature = read_feature(args.get("flag_name", ""), args.get("flagpole_file", ""))
     except Exception as e:
         print("Unable to load feature")
         print(e)
@@ -40,7 +41,7 @@ def main() -> None:
     print(feature.to_yaml_str())
 
     try:
-        eval_context = EvaluationContext(args.get("context"))
+        eval_context = EvaluationContext(cast(dict[str, Any], args.get("context", {})))
         (result, rollout, segment) = evaluate_flag(feature, eval_context)
     except Exception as e:
         print("Unable to eval. Check your context value")
@@ -103,7 +104,7 @@ def read_feature(flag_name: str, flagpole_file: str) -> Feature:
         content = f.read()
         parsed_yaml = yaml.safe_load(content)
         options = parsed_yaml.get("options")
-        dfn = options.get(flag_name)
+        dfn = cast(dict[str, Any], options.get(flag_name))
 
         feature = Feature.from_feature_dictionary(flag_name, dfn)
         return feature
@@ -111,7 +112,7 @@ def read_feature(flag_name: str, flagpole_file: str) -> Feature:
 
 def evaluate_flag(
     feature: Feature, context: EvaluationContext
-) -> (bool, int | None, Segment | None):
+) -> tuple[bool, int | None, Segment | None]:
     real_result = feature.match(context)
 
     for segment in feature.segments:

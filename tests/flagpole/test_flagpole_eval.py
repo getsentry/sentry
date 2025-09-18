@@ -179,9 +179,11 @@ class TestEvaluateFlag:
 
     def test_evaluate_flag_disabled_feature(self):
         """Test evaluate_flag with disabled feature."""
-        segment = Segment(name="test-segment", rollout=100, conditions=[])
         feature = Feature(
-            name="disabled-feature", owner="test-team", enabled=False, segments=[segment]
+            name="disabled-feature",
+            owner="test-team",
+            enabled=False,
+            segments=[Segment(name="test-segment", rollout=100, conditions=[])],
         )
         context = EvaluationContext({"user_id": 123})
 
@@ -194,35 +196,54 @@ class TestEvaluateFlag:
     def test_evaluate_flag_single_segment_matching_100_rollout(self):
         """Test evaluate_flag with single segment that matches and has 100% rollout."""
         # Create a mock segment that always matches
-        segment = Segment(name="always-match-segment", rollout=100, conditions=[])
-        feature = Feature(name="test-feature", owner="test-team", enabled=True, segments=[segment])
+        feature = Feature(
+            name="test-feature",
+            owner="test-team",
+            enabled=True,
+            segments=[Segment(name="always-match-segment", rollout=100, conditions=[])],
+        )
         context = EvaluationContext({"user_id": 123})
 
         result, rollout, segment = evaluate_flag(feature, context)
 
         assert result is True
         assert rollout == 100
+        assert segment
         assert segment.name == "always-match-segment"
 
     def test_evaluate_flag_single_segment_matching_0_rollout(self):
         """Test evaluate_flag with single segment that matches but has 0% rollout."""
         # Create a mock segment that always matches but has 0% rollout
-        segment = Segment(name="zero-rollout-segment", rollout=0, conditions=[])
-        feature = Feature(name="test-feature", owner="test-team", enabled=True, segments=[segment])
+        feature = Feature(
+            name="test-feature",
+            owner="test-team",
+            enabled=True,
+            segments=[Segment(name="zero-rollout-segment", rollout=0, conditions=[])],
+        )
         context = EvaluationContext({"user_id": 123})
 
         result, rollout, segment = evaluate_flag(feature, context)
 
         assert result is False
         assert rollout == 0
+        assert segment
         assert segment.name == "zero-rollout-segment"
 
     def test_evaluate_flag_single_segment_no_match_100_rollout(self):
         """Test evaluate_flag with single segment that doesn't match but has 100% rollout."""
         # Create a mock segment that never matches
-        email_condition = EqualsCondition("user_email", "test@example.com", "equals")
-        segment = Segment(name="never-match-segment", rollout=100, conditions=[email_condition])
-        feature = Feature(name="test-feature", owner="test-team", enabled=True, segments=[segment])
+        feature = Feature(
+            name="test-feature",
+            owner="test-team",
+            enabled=True,
+            segments=[
+                Segment(
+                    name="never-match-segment",
+                    rollout=100,
+                    conditions=[EqualsCondition("user_email", "test@example.com", "equals")],
+                )
+            ],
+        )
         context = EvaluationContext({"user_id": 123})
 
         result, rollout, segment = evaluate_flag(feature, context)
@@ -234,9 +255,18 @@ class TestEvaluateFlag:
     def test_evaluate_flag_single_segment_no_match_0_rollout(self):
         """Test evaluate_flag with single segment that doesn't match and has 0% rollout."""
         # Create a mock segment that never matches
-        email_condition = EqualsCondition("user_email", "test@example.com", "equals")
-        segment = Segment(name="never-match-segment", rollout=0, conditions=[email_condition])
-        feature = Feature(name="test-feature", owner="test-team", enabled=True, segments=[segment])
+        feature = Feature(
+            name="test-feature",
+            owner="test-team",
+            enabled=True,
+            segments=[
+                Segment(
+                    name="never-match-segment",
+                    rollout=0,
+                    conditions=[EqualsCondition("user_email", "test@example.com", "equals")],
+                )
+            ],
+        )
         context = EvaluationContext({"user_id": 123})
 
         result, rollout, segment = evaluate_flag(feature, context)
@@ -248,13 +278,22 @@ class TestEvaluateFlag:
     def test_evaluate_flag_multiple_segments_matching_later(self):
         """Test evaluate_flag with multiple segments where a later segment matches."""
         # Create segments where first doesn't match, second matches
-        email_condition = EqualsCondition("user_email", "test@example.com", "equals")
-        segment1 = Segment(name="first-segment", rollout=100, conditions=[email_condition])
-        user_condition = EqualsCondition("user_id", 123, "equals")
-        segment2 = Segment(name="second-segment", rollout=50, conditions=[user_condition])
-
         feature = Feature(
-            name="test-feature", owner="test-team", enabled=True, segments=[segment1, segment2]
+            name="test-feature",
+            owner="test-team",
+            enabled=True,
+            segments=[
+                Segment(
+                    name="first-segment",
+                    rollout=100,
+                    conditions=[EqualsCondition("user_email", "test@example.com", "equals")],
+                ),
+                Segment(
+                    name="second-segment",
+                    rollout=50,
+                    conditions=[EqualsCondition("user_id", 123, "equals")],
+                ),
+            ],
         )
         context = EvaluationContext({"user_id": 123})
 
@@ -262,16 +301,27 @@ class TestEvaluateFlag:
 
         assert result is True
         assert rollout == 50
+        assert segment
         assert segment.name == "second-segment"
 
     def test_evaluate_flag_multiple_segments_none_match(self):
         """Test evaluate_flag with multiple segments where none match."""
-        email_condition = EqualsCondition("user_email", "test@example.com", "equals")
-        segment1 = Segment(name="first-segment", rollout=100, conditions=[email_condition])
-        segment2 = Segment(name="second-segment", rollout=50, conditions=[email_condition])
-
         feature = Feature(
-            name="test-feature", owner="test-team", enabled=True, segments=[segment1, segment2]
+            name="test-feature",
+            owner="test-team",
+            enabled=True,
+            segments=[
+                Segment(
+                    name="first-segment",
+                    rollout=100,
+                    conditions=[EqualsCondition("user_email", "test@example.com", "equals")],
+                ),
+                Segment(
+                    name="second-segment",
+                    rollout=50,
+                    conditions=[EqualsCondition("user_email", "test@example.com", "equals")],
+                ),
+            ],
         )
         context = EvaluationContext({"user_id": 123})
 
@@ -283,8 +333,12 @@ class TestEvaluateFlag:
 
     def test_evaluate_flag_partial_rollout(self):
         """Test evaluate_flag with partial rollout percentage."""
-        segment = Segment(name="partial-rollout-segment", rollout=75, conditions=[])
-        feature = Feature(name="test-feature", owner="test-team", enabled=True, segments=[segment])
+        feature = Feature(
+            name="test-feature",
+            owner="test-team",
+            enabled=True,
+            segments=[Segment(name="partial-rollout-segment", rollout=75, conditions=[])],
+        )
         context = EvaluationContext({"user_id": 123})
 
         result, rollout, segment = evaluate_flag(feature, context)
@@ -293,4 +347,5 @@ class TestEvaluateFlag:
         # We just verify the rollout percentage is passed through correctly
         assert result is True
         assert rollout == 75
+        assert segment
         assert segment.name == "partial-rollout-segment"
