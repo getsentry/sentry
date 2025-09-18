@@ -3,7 +3,6 @@ import {
   GranularityLadder,
   ONE_HOUR,
   SIX_HOURS,
-  SIXTY_DAYS,
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
