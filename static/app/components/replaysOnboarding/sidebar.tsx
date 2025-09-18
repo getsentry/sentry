@@ -7,6 +7,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout/flex';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
@@ -441,25 +442,15 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const HeaderActions = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(3)};
-`;
+const HeaderActions = styled(props => (
+  <Flex direction="row" justify="between" gap="2xl" {...props} />
+))``;
 
-const PlatformLabel = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
+const PlatformLabel = styled(props => <Flex gap="sm" align="center" {...props} />)``;
 
-const PlatformSelect = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
-`;
+const PlatformSelect = styled(props => (
+  <Flex gap="sm" align="center" wrap="wrap" {...props} />
+))``;
 
 const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
