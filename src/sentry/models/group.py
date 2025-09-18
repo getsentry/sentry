@@ -524,7 +524,10 @@ class GroupManager(BaseManager["Group"]):
                 )
 
             # TODO (aci cleanup): remove this once we've deprecated the incident model
-            if group.type == MetricIssue.type_id:
+            if group.type == MetricIssue.type_id and status in (
+                GroupStatus.RESOLVED,
+                GroupStatus.UNRESOLVED,
+            ):
                 if detector_id is None:
                     logger.error(
                         "Call to update metric issue status missing detector ID",
