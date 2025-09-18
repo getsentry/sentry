@@ -286,7 +286,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 repo=repo, pr=pull_request
             )
         except ApiInvalidRequestError as e:
-            if not e.text and integration.provider_key == IntegrationProviderSlug.GITLAB.value:
+            if not e.text and integration_name == IntegrationProviderSlug.GITLAB.value:
                 lifecycle.record_halt(e)
             raise
 
