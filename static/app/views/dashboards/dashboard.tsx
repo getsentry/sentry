@@ -126,11 +126,8 @@ function Dashboard({
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
 
-  const debouncedHandleResize = useCallback(
-    () =>
-      debounce(() => {
-        setWindowWidth(window.innerWidth);
-      }, 250),
+  const debouncedHandleResize = useMemo(
+    () => debounce(() => setWindowWidth(window.innerWidth), 250),
     []
   );
 
@@ -256,70 +253,61 @@ function Dashboard({
     [organization, dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList]
   );
 
-  const handleDuplicateWidget = useCallback(
-    (widget: Widget) => () => {
-      trackAnalytics('dashboards_views.widget.duplicate', {
-        organization,
-        widget_type: widget.displayType,
-      });
+  const handleDuplicateWidget = (widget: Widget) => () => {
+    trackAnalytics('dashboards_views.widget.duplicate', {
+      organization,
+      widget_type: widget.displayType,
+    });
 
-      const widgetCopy = cloneDeep(
-        assignTempId({...widget, id: undefined, tempId: undefined})
-      );
+    const widgetCopy = cloneDeep(
+      assignTempId({...widget, id: undefined, tempId: undefined})
+    );
 
-      let nextList = [...dashboard.widgets, widgetCopy];
-      nextList = generateWidgetsAfterCompaction(nextList);
+    let nextList = [...dashboard.widgets, widgetCopy];
+    nextList = generateWidgetsAfterCompaction(nextList);
 
-      onUpdate(nextList);
-      if (!isEditingDashboard) {
-        handleUpdateWidgetList(nextList);
-      }
-    },
-    [organization, dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList]
-  );
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
 
-  const handleEditWidget = useCallback(
-    (index: number) => () => {
-      const widget = dashboard.widgets[index]!;
+  const handleEditWidget = (index: number) => () => {
+    const widget = dashboard.widgets[index]!;
 
-      trackAnalytics('dashboards_views.widget.edit', {
-        organization,
-        widget_type: widget.displayType,
-      });
+    trackAnalytics('dashboards_views.widget.edit', {
+      organization,
+      widget_type: widget.displayType,
+    });
 
-      if (widget.widgetType === WidgetType.METRICS) {
-        return;
-      }
-
-      onEditWidget?.(widget);
+    if (widget.widgetType === WidgetType.METRICS) {
       return;
-    },
-    [organization, dashboard, onEditWidget]
-  );
+    }
 
-  const handleChangeSplitDataset = useCallback(
-    (widget: Widget, index: number) => {
-      const widgetCopy = cloneDeep({
-        ...widget,
-        id: undefined,
-      });
+    onEditWidget?.(widget);
+    return;
+  };
 
-      const nextList = [...dashboard.widgets];
-      const nextWidgetData = {
-        ...widgetCopy,
-        widgetType: WidgetType.TRANSACTIONS,
-        datasetSource: DatasetSource.USER,
-        id: widget.id,
-      };
-      nextList[index] = nextWidgetData;
+  const handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
 
-      onUpdate(nextList);
-      if (!isEditingDashboard) {
-        handleUpdateWidgetList(nextList);
-      }
-    },
-    [dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList]
-  );
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
+
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
 
   const renderWidget = (widget: Widget, index: number) => {
     const widgetProps = {
