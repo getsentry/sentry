@@ -58,17 +58,17 @@ export default function TestsOnboardingPage() {
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>(UploadPermission.OIDC);
 
-  const {data: repoData} = useRepo({
+  const {data: repoData, isSuccess} = useRepo({
     organizationSlug: organization.slug,
     integratedOrgId,
     repository,
   });
 
   useEffect(() => {
-    if (repoData?.testAnalyticsEnabled) {
+    if (repoData?.testAnalyticsEnabled && isSuccess) {
       navigate('/prevent/tests');
     }
-  }, [repoData?.testAnalyticsEnabled, navigate]);
+  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess]);
 
   const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
     [
