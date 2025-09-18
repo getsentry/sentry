@@ -15,8 +15,10 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useInfiniteTestResults} from 'sentry/views/prevent/tests/queries/useGetTestResults';
-import type {UseInfiniteTestResultsResult} from 'sentry/views/prevent/tests/queries/useGetTestResults';
+import {
+  useInfiniteTestResults,
+  type UseInfiniteTestResultsResult,
+} from 'sentry/views/prevent/tests/queries/useGetTestResults';
 import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {DEFAULT_SORT} from 'sentry/views/prevent/tests/settings';
 import {Summaries} from 'sentry/views/prevent/tests/summaries/summaries';
