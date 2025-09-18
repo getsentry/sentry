@@ -124,6 +124,10 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
 
             # Support a limited subset of providers
             provider = data.get("provider")
+            # sentry-cli version 2.53.0 returns 'github.com' as the
+            # provider. Normalize this to 'github'
+            if provider == "github.com":
+                provider = IntegrationProviderSlug.GITHUB
             if provider is not None and provider not in SUPPORTED_VCS_PROVIDERS:
                 return Response({"error": "Unsupported provider"}, status=400)
 
@@ -154,7 +158,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 release_notes=data.get("release_notes"),
                 head_sha=data.get("head_sha"),
                 base_sha=data.get("base_sha"),
-                provider=data.get("provider"),
+                provider=provider,
                 head_repo_name=data.get("head_repo_name"),
                 base_repo_name=data.get("base_repo_name"),
                 head_ref=data.get("head_ref"),
