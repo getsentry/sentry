@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from sentry.integrations.discord.client import DiscordClient
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -96,4 +97,5 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
-        pass
+        client = DiscordClient()
+        client.send_message(target.resource_id, renderable)
