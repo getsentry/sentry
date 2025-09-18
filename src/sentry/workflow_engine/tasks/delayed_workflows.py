@@ -949,7 +949,7 @@ class DelayedWorkflow(DelayedProcessingBase):
         return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
 
     @property
-    def processing_task(self) -> Task:
+    def processing_task(self) -> Task[Any, Any]:
         return process_delayed_workflows
 
     @staticmethod
