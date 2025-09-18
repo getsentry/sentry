@@ -326,7 +326,10 @@ class RedisHashSortedSetBuffer:
         This is useful for safe cleanup where you only want to remove items that haven't been
         updated since a certain time.
         """
-        if not members_and_scores or not keys:
+        if not keys:
+            raise ValueError("Keys list cannot be empty")
+
+        if not members_and_scores:
             return {key: [] for key in keys}
 
         cluster = self.cluster
