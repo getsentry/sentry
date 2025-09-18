@@ -75,46 +75,64 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:falcon] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[falcon]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:falcon] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[falcon]'}).filter(config => config.code).map(config => ({
+          type: 'code' as const,
+          tabs: config.code!,
+        })),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'If you have the [codeFalcon:falcon] package in your dependencies, the Falcon integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+      content: [
         {
-          codeFalcon: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'If you have the [codeFalcon:falcon] package in your dependencies, the Falcon integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+            {
+              codeFalcon: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
 api = falcon.API()
       `,
         },
+        {
+          type: 'custom',
+          content: <AlternativeConfiguration />,
+        },
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'To verify that everything is working, trigger an error on purpose:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To verify that everything is working, trigger an error on purpose:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
-
           code: `
 ${getSdkSetupSnippet(params)}
 class HelloWorldResource:
@@ -132,9 +150,13 @@ app.add_route('/', HelloWorldResource())
         ...(params.isLogsSelected
           ? [
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   'You can send logs to Sentry using the Sentry logging APIs:'
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import sentry_sdk
 
@@ -144,9 +166,13 @@ sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
               },
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import logging
 
@@ -160,25 +186,28 @@ logger.error('Something went wrong')`,
               },
             ]
           : []),
+        {
+          type: 'custom' as const,
+          content: (
+            <div>
+              <p>
+                {tct(
+                  'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
+                  {
+                    link: <ExternalLink href="http://localhost:8000/" />,
+                  }
+                )}
+              </p>
+              <p>
+                {t(
+                  'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+                )}
+              </p>
+              <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+            </div>
+          ),
+        },
       ],
-      additionalInfo: (
-        <div>
-          <p>
-            {tct(
-              'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
-              {
-                link: <ExternalLink href="http://localhost:8000/" />,
-              }
-            )}
-          </p>
-          <p>
-            {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </div>
-      ),
     },
   ],
   nextSteps: (params: Params) => {

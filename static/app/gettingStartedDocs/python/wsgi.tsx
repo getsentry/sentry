@@ -108,60 +108,84 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
+        },
+        ...getPythonInstallConfig().filter(config => config.code).map(config => ({
+          type: 'code' as const,
+          tabs: config.code!,
+        })),
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'Then you can use this generic WSGI middleware. It captures errors and attaches a basic amount of information for incoming requests.'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'Then you can use this generic WSGI middleware. It captures errors and attaches a basic amount of information for incoming requests.'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        ...(params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? [
+              {
+                type: 'custom' as const,
+                content: <AlternativeConfiguration />,
+              },
+            ]
+          : []),
       ],
-      additionalInfo: params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <AlternativeConfiguration />
-        ),
     },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getVerifySnippet(),
         },
+        {
+          type: 'custom',
+          content: (
+            <Fragment>
+              <p>
+                {tct(
+                  'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
+                  {
+                    link: <ExternalLink href="http://localhost:8000/" />,
+                  }
+                )}
+              </p>
+              <p>
+                {t(
+                  'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+                )}
+              </p>
+              <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+            </Fragment>
+          ),
+        },
       ],
-      additionalInfo: (
-        <Fragment>
-          <p>
-            {tct(
-              'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
-              {
-                link: <ExternalLink href="http://localhost:8000/" />,
-              }
-            )}
-          </p>
-          <p>
-            {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </Fragment>
-      ),
     },
   ],
   nextSteps: (params: Params) => {

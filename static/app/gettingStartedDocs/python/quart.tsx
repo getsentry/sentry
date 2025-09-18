@@ -77,43 +77,61 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:quart] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[quart]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:quart] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[quart]'}).filter(config => config.code).map(config => ({
+          type: 'code' as const,
+          tabs: config.code!,
+        })),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
 app = Quart(__name__)
 `,
         },
+        {
+          type: 'custom',
+          content: <AlternativeConfiguration />,
+        },
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
-
           code: `
 ${getSdkSetupSnippet(params)}
 app = Quart(__name__)
@@ -129,9 +147,13 @@ app.run()
         ...(params.isLogsSelected
           ? [
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   'You can send logs to Sentry using the Sentry logging APIs:'
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import sentry_sdk
 
@@ -141,9 +163,13 @@ sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
               },
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import logging
 
@@ -157,25 +183,28 @@ logger.error('Something went wrong')`,
               },
             ]
           : []),
+        {
+          type: 'custom' as const,
+          content: (
+            <span>
+              <p>
+                {tct(
+                  'When you point your browser to [link:http://localhost:5000/] a trace will be created.',
+                  {
+                    link: <ExternalLink href="http://localhost:5000/" />,
+                  }
+                )}
+              </p>
+              <p>
+                {t(
+                  'Additionally, an error event will be sent to Sentry and will be connected to the trace.'
+                )}
+              </p>
+              <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+            </span>
+          ),
+        },
       ],
-      additionalInfo: (
-        <span>
-          <p>
-            {tct(
-              'When you point your browser to [link:http://localhost:5000/] a trace will be created.',
-              {
-                link: <ExternalLink href="http://localhost:5000/" />,
-              }
-            )}
-          </p>
-          <p>
-            {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the trace.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </span>
-      ),
     },
   ],
   nextSteps: (params: Params) => {
