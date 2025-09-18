@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from collections.abc import Mapping
-from typing import Any, TypeAlias
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, TypeAlias, TypeVar
 
+import rb
 from redis.client import Pipeline
 
 ClusterPipeline: TypeAlias = Any
@@ -27,6 +28,16 @@ logger = logging.getLogger(__name__)
 def _decode_redis_value(value: Any) -> str:
     """Helper to decode Redis values that might be bytes or strings."""
     return value.decode("utf-8") if isinstance(value, bytes) else str(value)
+
+
+T = TypeVar("T")
+
+
+def _by_pairs(seq: list[T]) -> Iterable[tuple[T, T]]:
+    if len(seq) % 2 != 0:
+        raise ValueError("List has an odd number of elements")
+    it = iter(seq)
+    return zip(it, it)
 
 
 # For write operations, we set expiry.
@@ -52,11 +63,17 @@ class RedisHashSortedSetBuffer:
 
     key_expire = 60 * 60  # 1 hour
 
-    def __init__(self, cfg_key_name: str = "", config: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        cfg_key_name: str = "",
+        config: dict[str, Any] | None = None,
+        now_fn: Callable[[], float] = time.time,
+    ):
         """Initialize with Redis cluster configuration."""
         self.is_redis_cluster, self.cluster, _ = get_dynamic_cluster_from_options(
             cfg_key_name, config or {}
         )
+        self.now_fn = now_fn
 
     def _get_redis_connection(
         self, key: str | None, transaction: bool = True
@@ -160,7 +177,7 @@ class RedisHashSortedSetBuffer:
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         """Add one or more values to a Redis sorted set with current timestamp as score."""
-        now = time.time()
+        now = self.now_fn()
         if isinstance(value, list):
             value_dict = {v: now for v in value}
         else:
@@ -263,21 +280,18 @@ class RedisHashSortedSetBuffer:
         return list(slot_groups.values())
 
     def _parse_slot_result(
-        self, slot_result: list[Any], slot_keys: list[str], results_dict: dict[str, list[int]]
-    ) -> None:
-        """Parse flat array result from Lua script and update results dict."""
+        self, slot_result: list[Any], slot_keys: list[str]
+    ) -> dict[str, list[int]]:
+        """Parse flat array result from Lua script and return results dict."""
         # Parse flat array result: [key1, member1, key1, member2, key2, member3, ...]
         slot_results_dict = defaultdict(list)
-        for i in range(0, len(slot_result), 2):
-            if i + 1 < len(slot_result):
-                key = _decode_redis_value(slot_result[i])
-                member = slot_result[i + 1]
-                member_int = int(_decode_redis_value(member))
-                slot_results_dict[key].append(member_int)
+        for key_raw, member_raw in _by_pairs(slot_result):
+            key = _decode_redis_value(key_raw)
+            member_int = int(_decode_redis_value(member_raw))
+            slot_results_dict[key].append(member_int)
 
         # Ensure all slot keys have entries in results
-        for key in slot_keys:
-            results_dict[key] = slot_results_dict.get(key, [])
+        return {key: slot_results_dict.get(key, []) for key in slot_keys}
 
     def _ensure_script_loaded_on_cluster(self) -> None:
         """
@@ -330,74 +344,73 @@ class RedisHashSortedSetBuffer:
         # Ensure script is loaded before any execution
         self._ensure_script_loaded_on_cluster()
 
-        # Execute script once per slot group - pipeline if multiple groups
-        converted_results: dict[str, list[int]] = {}
+        # Pipeline all slot group executions
+        pipe = self._get_redis_connection(None, transaction=False)
+        for slot_keys in slot_groups:
+            pipe.execute_command(
+                "EVALSHA",
+                self._conditional_zrem_script.sha,
+                len(slot_keys),
+                *slot_keys,
+                *script_args,
+            )
+        results = pipe.execute()
 
-        if len(slot_groups) > 1:
-            # Multiple slot groups - use pipelining with execute_command
-            pipe = self._get_redis_connection(None, transaction=False)
-            for slot_keys in slot_groups:
-                pipe.execute_command(
-                    "EVALSHA",
-                    self._conditional_zrem_script.sha,
-                    len(slot_keys),
-                    *slot_keys,
-                    *script_args,
-                )
-            results = pipe.execute()
+        # Process pipelined results
+        if len(results) != len(slot_groups):
+            raise RuntimeError(
+                f"Pipeline mismatch: expected {len(slot_groups)} results, got {len(results)}"
+            )
 
-            # Process pipelined results
-            if len(results) != len(slot_groups):
-                raise RuntimeError(
-                    f"Pipeline mismatch: expected {len(slot_groups)} results, got {len(results)}"
-                )
-
-            for i, slot_keys in enumerate(slot_groups):
-                slot_result = results[i]
-                self._parse_slot_result(slot_result, slot_keys, converted_results)
-        else:
-            # Single slot group - use direct execution
-            for slot_keys in slot_groups:
-                slot_result = self._conditional_zrem_script(
-                    keys=slot_keys, args=script_args, client=self.cluster
-                )
-                self._parse_slot_result(slot_result, slot_keys, converted_results)
+        # Parse results and aggregate into final result
+        converted_results = {
+            key: members
+            for slot_result, slot_keys in zip(results, slot_groups)
+            for key, members in self._parse_slot_result(slot_result, slot_keys).items()
+        }
 
         return converted_results
+
+    def _group_keys_by_host_rb(self, cluster: rb.Cluster, keys: list[str]) -> dict[str, list[str]]:
+        """Group keys by their rb.Cluster host for efficient batching."""
+        host_groups = defaultdict(list)
+        router = cluster.get_router()
+
+        for key in keys:
+            host = router.get_host_for_key(key)
+            host_groups[host].append(key)
+
+        return dict(host_groups)
 
     def _conditional_delete_rb_fallback(
         self, keys: list[str], members_and_scores: list[tuple[int, float]]
     ) -> dict[str, list[int]]:
         """
         Fallback implementation for rb.Cluster using atomic Lua script execution.
-        Each key gets its own Lua script execution to ensure atomicity.
+        Groups keys by host for efficient batching.
         """
-        converted_results = {}
+        cluster = self.cluster
+        assert is_instance_rb_cluster(cluster, self.is_redis_cluster), "Method requires rb.Cluster"
 
         # Flatten the list for Lua script ARGV: [member1, max_score1, member2, max_score2, ...]
         script_args = []
         for member, score in members_and_scores:
             script_args.extend([str(member), str(score)])
 
-        for key in keys:
-            # For rb.Cluster, get the specific client for this key and execute the Lua script
-            # We know this is rb.Cluster since is_redis_cluster=False in this code path
-            client = self.cluster.get_local_client_for_key(key)  # type: ignore[union-attr]
+        # Group keys by host for efficient batching
+        host_groups = self._group_keys_by_host_rb(cluster, keys)
+
+        # Execute script once per host group
+        converted_results = {}
+        for host, host_keys in host_groups.items():
+            # Get client for this specific host
+            client = cluster.get_local_client_for_key(host_keys[0])
 
             # Use the script as a callable - it handles NoScriptError fallback automatically
-            result = self._conditional_zrem_script(keys=[key], args=script_args, client=client)
+            result = self._conditional_zrem_script(keys=host_keys, args=script_args, client=client)
 
-            # Parse flat array result: [key1, member1, key1, member2, ...]
-            # Convert to list of removed members for this key
-            key_members = []
-            for i in range(0, len(result), 2):
-                if i + 1 < len(result):
-                    result_key = _decode_redis_value(result[i])
-                    if result_key == key:  # Safety check
-                        member = result[i + 1]
-                        member_int = int(_decode_redis_value(member))
-                        key_members.append(member_int)
-
-            converted_results[key] = key_members
+            # Parse and merge results from this host
+            host_parsed = self._parse_slot_result(result, host_keys)
+            converted_results.update(host_parsed)
 
         return converted_results
