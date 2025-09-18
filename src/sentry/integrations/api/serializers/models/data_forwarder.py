@@ -19,7 +19,9 @@ class DataForwarderSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> dict[DataForwarder, dict[str, Any]]:
-        project_configs = DataForwarderProject.objects.filter(data_forwarder__in=item_list)
+        project_configs = DataForwarderProject.objects.filter(
+            data_forwarder__in=item_list
+        ).select_related("project", "data_forwarder")
         project_config_attrs = defaultdict(set)
         for project_config in project_configs:
             project_config_attrs[project_config.data_forwarder].add(project_config)
