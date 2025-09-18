@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import get_first_last_release
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
@@ -34,8 +35,8 @@ class GroupFirstLastReleaseEndpoint(GroupEndpoint):
         This data used to be returned by default in group_details.py, but now that we
         can collapse it, we're providing this endpoint to fetch the data separately.
         """
-
-        environment_names = list(set(request.GET.getlist("environment", default=[])))
+        environments = get_environments(request, group.project.organization)
+        environment_names = [env.name for env in environments]
 
         first_release, last_release = get_first_last_release(
             request, group, environment_names=environment_names

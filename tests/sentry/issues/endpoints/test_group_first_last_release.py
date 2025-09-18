@@ -91,7 +91,5 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/first-last-release/?environment=nonexistent"
         response = self.client.get(url)
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
-        assert response.data["firstRelease"] is None
-        assert response.data["lastRelease"] is None
+        assert response.status_code == 404, response.content
+        assert response.data["detail"] == "The requested resource does not exist"
