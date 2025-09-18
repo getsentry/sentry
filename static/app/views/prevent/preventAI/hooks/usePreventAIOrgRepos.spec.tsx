@@ -1,21 +1,11 @@
-import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-export interface PreventAIOrgReposResponse {
-  orgRepos: PreventAIOrg[];
-}
+import {usePreventAIOrgRepos} from './usePreventAIOrgRepos';
 
-export interface PreventAIOrgsReposResult {
-  data: PreventAIOrgReposResponse | undefined;
-  isError: boolean;
-  isLoading: boolean;
-  refetch: () => void;
-}
-
-export function usePreventAIOrgRepos(): PreventAIOrgsReposResult {
-  // TODO: Hook up to real API - GET `/organizations/${organization.slug}/prevent-ai/${provider}/org-repos`
-
-  return {
-    data: {
+describe('usePreventAIOrgRepos', () => {
+  it('returns the mock orgRepos data', () => {
+    const {result} = renderHook(() => usePreventAIOrgRepos());
+    expect(result.current.data).toEqual({
       orgRepos: [
         {
           id: '1',
@@ -50,9 +40,8 @@ export function usePreventAIOrgRepos(): PreventAIOrgsReposResult {
           ],
         },
       ],
-    },
-    isLoading: false,
-    isError: false,
-    refetch: () => {},
-  };
-}
+    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isError).toBe(false);
+  });
+});
