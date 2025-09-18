@@ -66,16 +66,21 @@ export function SizeCompareSelectedBuilds({
             <Text size="sm" variant="accent" bold>
               {t('Comparison:')}
             </Text>
-            {/* TODO */}
-            <Text size="sm" variant="accent" bold>
-              {basePrNumber && `#${basePrNumber} `}
-              {baseSha && (
-                <Flex align="center" gap="xs">
-                  <IconCommit size="xs" color="purple400" />
-                  {baseSha}
-                </Flex>
+            <Flex align="center" gap="md">
+              {basePrNumber && (
+                <Text size="sm" variant="accent" bold>
+                  {`#${basePrNumber} `}
+                </Text>
               )}
-            </Text>
+              {baseSha && (
+                <Text size="sm" variant="accent" bold>
+                  <Flex align="center" gap="xs">
+                    <IconCommit size="xs" />
+                    {baseSha}
+                  </Flex>
+                </Text>
+              )}
+            </Flex>
             <BaseBuildBranch>
               <Text size="sm" variant="muted">
                 {baseBranchName}
