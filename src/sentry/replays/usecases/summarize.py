@@ -83,7 +83,7 @@ def fetch_trace_connected_errors(
     end: datetime | None,
     limit: int,
 ) -> list[EventDict]:
-    """Fetch error details given trace IDs and return a list of EventDict objects."""
+    """Fetch same-trace events from both errors and issuePlatform datasets."""
     if not trace_ids:
         return []
 
@@ -145,7 +145,7 @@ def fetch_trace_connected_errors(
         issue_query_results = {"data": []}
 
     # Process results and convert to EventDict objects
-    error_events = []
+    events = []
 
     # Process error query results
     for event in error_query_results["data"]:
@@ -155,7 +155,7 @@ def fetch_trace_connected_errors(
         message = event.get("message", "")
 
         if timestamp:
-            error_events.append(
+            events.append(
                 EventDict(
                     category="error",
                     id=event.get("id"),
@@ -183,7 +183,7 @@ def fetch_trace_connected_errors(
         # We avoid creating duplicate feedback logs
         # by filtering for unique feedback IDs during log generation.
         if timestamp:
-            error_events.append(
+            events.append(
                 EventDict(
                     category=category,
                     id=event.get("event_id"),
@@ -193,7 +193,7 @@ def fetch_trace_connected_errors(
                 )
             )
 
-    return error_events
+    return events
 
 
 @sentry_sdk.trace

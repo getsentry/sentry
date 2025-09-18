@@ -80,6 +80,10 @@ describe('DetectorDetails', () => {
       url: '/organizations/org-slug/open-periods/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: GroupFixture(),
+    });
   });
 
   describe('metric detectors', () => {

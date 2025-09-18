@@ -1,9 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AddressElement, Elements} from '@stripe/react-stripe-js';
+import {AddressElement} from '@stripe/react-stripe-js';
 
-import {debossedBackground} from 'sentry/components/core/chonk';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
@@ -13,12 +11,11 @@ import FormModel from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 import LegacyBillingDetailsForm from 'getsentry/components/legacyBillingDetailsForm';
-import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
+import StripeWrapper from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
 import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import {countryCodes} from 'getsentry/utils/ISO3166codes';
@@ -130,10 +127,6 @@ function BillingDetailsForm({
   wrapper = DefaultWrapper,
   fieldProps,
 }: Props) {
-  const theme = useTheme();
-  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
-  const stripe = useStripeInstance();
-
   const transformData = (data: Record<string, any>) => {
     // Clear tax number if not applicable to country code.
     // This is done on save instead of on change to retain the field value
@@ -266,43 +259,7 @@ function BillingDetailsForm({
                 fieldProps={fieldProps}
               />
             )}
-            <Elements
-              stripe={stripe}
-              options={{
-                fonts: [
-                  {
-                    family: 'Rubik',
-                    cssSrc:
-                      'https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap',
-                  },
-                ],
-                appearance: {
-                  theme: prefersDarkMode ? 'night' : 'stripe',
-                  variables: {
-                    fontFamily: theme.text.family,
-                    borderRadius: theme.borderRadius,
-                    colorBackground: theme.background,
-                    colorText: theme.textColor,
-                    colorDanger: theme.danger,
-                    colorSuccess: theme.success,
-                    colorWarning: theme.warning,
-                    iconColor: theme.textColor,
-                  },
-                  rules: {
-                    '.Input': {
-                      fontSize: theme.fontSize.md,
-                      boxShadow: `0px 2px 0px 0px ${theme.tokens.border.primary} inset`,
-                      backgroundColor: debossedBackground(theme as any).backgroundColor,
-                      padding: `${theme.space.lg} ${theme.space.xl}`,
-                    },
-                    '.Label': {
-                      fontSize: theme.fontSize.sm,
-                      color: theme.subText,
-                    },
-                  },
-                },
-              }}
-            >
+            <StripeWrapper>
               <AddressElement
                 options={{
                   mode: 'billing',
@@ -333,7 +290,7 @@ function BillingDetailsForm({
                 }}
                 onChange={handleStripeFormChange}
               />
-            </Elements>
+            </StripeWrapper>
             {!!(state.showTaxNumber && taxFieldInfo) && (
               // TODO: use Stripe's TaxIdElement when it's generally available
               <CustomBillingDetailsFormField

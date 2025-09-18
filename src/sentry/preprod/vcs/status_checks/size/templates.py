@@ -5,7 +5,7 @@ from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
-from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
 
@@ -147,11 +147,12 @@ def _format_processing_summary(
                 f"| {app_id_link} | {version_string} | {_('Processing...')} | - | {_('Processing...')} | - | {_('N/A')} |"
             )
 
+    install_label = _("Uncompressed") if artifact.is_android() else _("Install")
     return _(
-        "| Name | Version | Download | Change | Install | Change | Approval |\n"
+        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
         "|------|---------|----------|--------|---------|--------|----------|\n"
         "{table_rows}"
-    ).format(table_rows="\n".join(table_rows))
+    ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
 
 def _format_failure_summary(artifacts: list[PreprodArtifact]) -> str:
@@ -204,7 +205,6 @@ def _format_success_summary(
             app_id = artifact.app_id or "--"
 
         artifact_url = get_preprod_artifact_url(artifact)
-        app_id_link = f"[`{app_id}`]({artifact_url})"
 
         if (
             size_metrics
@@ -224,13 +224,14 @@ def _format_success_summary(
                 else None
             )
 
-            if base_metrics:
+            if base_artifact and base_metrics:
                 download_change = _calculate_size_change(
                     size_metrics.max_download_size, base_metrics.max_download_size
                 )
                 install_change = _calculate_size_change(
                     size_metrics.max_install_size, base_metrics.max_install_size
                 )
+                artifact_url = get_preprod_artifact_comparison_url(artifact, base_artifact)
             else:
                 download_change = str(_("N/A"))
                 install_change = str(_("N/A"))
@@ -240,15 +241,17 @@ def _format_success_summary(
             download_change = "-"
             install_change = "-"
 
+        app_id_link = f"[`{app_id}`]({artifact_url})"
         table_rows.append(
             f"| {app_id_link} | {version_string} | {download_size} | {download_change} | {install_size} | {install_change} | {_('N/A')} |"
         )
 
+    install_label = _("Uncompressed") if artifact.is_android() else _("Install")
     return _(
-        "| Name | Version | Download | Change | Install | Change | Approval |\n"
+        "| Name | Version | Download | Change | {install_label} | Change | Approval |\n"
         "|------|---------|----------|--------|---------|--------|----------|\n"
         "{table_rows}"
-    ).format(table_rows="\n".join(table_rows))
+    ).format(table_rows="\n".join(table_rows), install_label=install_label)
 
 
 def _get_metric_type_display_name(
