@@ -16,8 +16,8 @@ jest.mock('sentry/components/pagination', () => {
 });
 
 const mockIntegrations = [
-  {name: 'some-org-name', id: '1'},
-  {name: 'test-org', id: '2'},
+  {name: 'some-org-name', id: '1', status: 'active'},
+  {name: 'test-org', id: '2', status: 'active'},
 ];
 
 const mockRepositoryTokensResponse = {

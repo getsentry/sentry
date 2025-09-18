@@ -36,6 +36,7 @@ describe('AddUploadTokenStep', () => {
       key: 'github',
       name: 'GitHub',
     },
+    status: 'active',
   };
 
   const renderComponent = (props = {}) => {
