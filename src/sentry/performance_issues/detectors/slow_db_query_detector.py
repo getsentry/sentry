@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from datetime import timedelta
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -48,11 +49,16 @@ class SlowDBQueryDetector(PerformanceDetector):
         if not self._is_span_eligible(span):
             return
 
+        if self.stored_problems.get(fingerprint):
+            logging.info(
+                "Multiple occurrences detected for fingerprint",
+                extra={"detector": self.settings_key},
+            )
+            return
+
         description = span["description"].strip()
 
-        if span_duration >= timedelta(
-            milliseconds=duration_threshold
-        ) and not self.stored_problems.get(fingerprint, False):
+        if span_duration >= timedelta(milliseconds=duration_threshold):
             spans_involved = [span_id]
 
             hash = span.get("hash", "")
