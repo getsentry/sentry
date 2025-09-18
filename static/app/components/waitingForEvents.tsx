@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
   org: Organization;
@@ -96,9 +97,10 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
             <LinkButton
               data-test-id="install-instructions"
               priority="primary"
-              to={`/${org.slug}/${project.slug}/getting-started/${
-                project.platform || ''
-              }`}
+              to={makeProjectsPathname({
+                path: `/${project.slug}/getting-started/`,
+                organization: org,
+              })}
             >
               {t('Installation Instructions')}
             </LinkButton>
