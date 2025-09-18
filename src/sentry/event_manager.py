@@ -560,7 +560,7 @@ class EventManager:
         job["event"].data.bind_ref(job["event"])
 
         _get_or_create_environment_many(jobs, projects)
-        _get_or_create_group_environment_many(jobs)
+        _get_or_create_group_environment_many(jobs, job["event"].datetime)
         _get_or_create_release_associated_models(jobs, projects)
         _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs)
@@ -910,19 +910,25 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
 
 
 @sentry_sdk.tracing.trace
-def _get_or_create_group_environment_many(jobs: Sequence[Job]) -> None:
+def _get_or_create_group_environment_many(jobs: Sequence[Job], event_datetime: datetime) -> None:
     for job in jobs:
-        _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
+        _get_or_create_group_environment(
+            job["environment"], job["release"], job["groups"], event_datetime
+        )
 
 
 def _get_or_create_group_environment(
-    environment: Environment, release: Release | None, groups: Sequence[GroupInfo]
+    environment: Environment,
+    release: Release | None,
+    groups: Sequence[GroupInfo],
+    event_datetime: datetime,
 ) -> None:
     for group_info in groups:
+
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
-            defaults={"first_release": release or None},
+            defaults={"first_release": release or None, "first_seen": event_datetime},
         )[1]
 
 
