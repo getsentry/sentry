@@ -30,11 +30,11 @@ class _BurstState:
     def __init__(self) -> None:
         self._active = False
         self._orig_signal_send = TaskworkerTask._signal_send
-        self.queue: list[tuple[TaskworkerTask, tuple[Any, ...], dict[str, Any]]] = []
+        self.queue: list[tuple[TaskworkerTask[Any, Any], tuple[Any, ...], dict[str, Any]]] = []
 
     def _signal_send(
         self,
-        task: TaskworkerTask,
+        task: TaskworkerTask[Any, Any],
         args: tuple[Any, ...] = (),
         kwargs: dict[str, Any] | None = None,
     ) -> None:

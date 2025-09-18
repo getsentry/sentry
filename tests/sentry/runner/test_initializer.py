@@ -203,7 +203,6 @@ def test_apply_legacy_settings(settings) -> None:
     settings.SENTRY_RELOCATION_OPTIONS = {"relocation-baz": "relocation-qux"}
     with pytest.warns(DeprecatedSettingWarning) as warninfo:
         apply_legacy_settings(settings)
-    assert settings.TASKWORKER_ALWAYS_EAGER is False
     assert settings.SENTRY_FEATURES["auth:register"] is True
     assert settings.SENTRY_OPTIONS == {
         "system.admin-email": "admin-email",

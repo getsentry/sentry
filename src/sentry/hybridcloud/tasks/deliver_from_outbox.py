@@ -72,7 +72,7 @@ CONCURRENCY = 5
 
 def schedule_batch(
     silo_mode: SiloMode,
-    drain_task: Task,
+    drain_task: Task[Any, Any],
     concurrency: int | None = None,
     process_outbox_backfills: bool = True,
 ) -> None:

@@ -87,7 +87,9 @@ def run_scheduled_deletions() -> None:
     )
 
 
-def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_task: Task) -> None:
+def _run_scheduled_deletions(
+    model_class: type[BaseScheduledDeletion], process_task: Task[Any, Any]
+) -> None:
     queryset = model_class.objects.filter(in_progress=False, date_scheduled__lte=timezone.now())
     for item in queryset:
         with transaction.atomic(router.db_for_write(model_class)):
@@ -159,7 +161,7 @@ def _run_deletion(
     deletion_id: int,
     first_pass: bool,
     model_class: type[BaseScheduledDeletion],
-    process_task: Task,
+    process_task: Task[Any, Any],
 ) -> None:
     from sentry import deletions
 
