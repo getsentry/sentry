@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry import models, options
+from sentry import models
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
+GROUP_HASH_CHUNK_SIZE = 10000
+GROUP_HASH_ITERATIONS = 10000
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -212,13 +214,17 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
 
 def delete_project_group_hashes(project_id: int) -> None:
-    groups = RangeQuerySetWrapper(Group.objects.filter(project_id=project_id), step=1000)
-    error_groups, issue_platform_groups = separate_by_group_category(list(groups))
+    groups = []
+    for group in RangeQuerySetWrapper(
+        Group.objects.filter(project_id=project_id), step=GROUP_CHUNK_SIZE
+    ):
+        groups.append(group)
 
+    error_groups, issue_platform_groups = separate_by_group_category(groups)
     error_group_ids = [group.id for group in error_groups]
-    delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
-
     issue_platform_group_ids = [group.id for group in issue_platform_groups]
+
+    delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
     delete_group_hashes(project_id, issue_platform_group_ids)
 
 
@@ -227,21 +233,13 @@ def delete_group_hashes(
     group_ids: Sequence[int],
     seer_deletion: bool = False,
 ) -> None:
-    hashes_batch_size = options.get("deletions.group-hashes-batch-size")
-
-    # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
-    hashes_batch_size = max(1, hashes_batch_size)
-
     # Set a reasonable upper bound on iterations to prevent infinite loops.
-    # This replaces the expensive COUNT(*) query that was causing database timeouts.
     # The loop will naturally terminate when no more hashes are found.
-    max_iterations = 10000
     iterations = 0
-
-    while iterations < max_iterations:
+    while iterations < GROUP_HASH_ITERATIONS:
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
             "id", "hash"
-        )[:hashes_batch_size]
+        )[:GROUP_HASH_CHUNK_SIZE]
         hashes_chunk = list(qs)
         if not hashes_chunk:
             break
