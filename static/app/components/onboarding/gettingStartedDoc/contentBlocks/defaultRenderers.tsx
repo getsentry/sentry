@@ -82,7 +82,11 @@ function ConditionalBlock({
 }
 
 function CustomBlock(block: Extract<ContentBlock, {type: 'custom'}>) {
-  return <div css={baseBlockStyles}>{block.content}</div>;
+  return (
+    <div css={block.bottomMargin === false ? undefined : baseBlockStyles}>
+      {block.content}
+    </div>
+  );
 }
 
 function TextBlock(block: Extract<ContentBlock, {type: 'text'}>) {

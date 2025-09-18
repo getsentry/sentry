@@ -93,33 +93,62 @@ export function FeedbackOnboardingLayout({
   const hideFeedbackConfigToggle =
     hideFeedbackConfigTogglePlatforms.includes(platformKey);
 
+  const feedbackConfigToggle = (
+    <FeedbackConfigToggle
+      emailToggle={email}
+      nameToggle={name}
+      screenshotToggle={screenshot}
+      onEmailToggle={() => setEmail(!email)}
+      onNameToggle={() => setName(!name)}
+      onScreenshotToggle={() => setScreenshot(!screenshot)}
+    />
+  );
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>
-          {steps.map(step =>
-            step.type === StepType.CONFIGURE && configType === 'feedbackOnboardingNpm' ? (
-              <Step
-                key={step.title ?? step.type}
-                {...{
+          {steps
+            // TODO(aknaus): Move inserting the toggle into the docs definitions
+            // once the content blocks migration is done. This logic here is very brittle.
+            .map(step => {
+              if (
+                step.type !== StepType.CONFIGURE ||
+                configType !== 'feedbackOnboardingNpm' ||
+                hideFeedbackConfigToggle
+              ) {
+                return step;
+              }
+
+              if (step.content) {
+                // Insert the feedback config toggle before the code block
+                const codeIndex = step.content?.findIndex(b => b.type === 'code');
+                if (codeIndex === -1) {
+                  return step;
+                }
+                const newContent = [...step.content];
+                if (codeIndex !== undefined) {
+                  newContent.splice(codeIndex, 0, {
+                    type: 'custom',
+                    bottomMargin: false,
+                    content: feedbackConfigToggle,
+                  });
+                }
+                return {
                   ...step,
-                  codeHeader: !hideFeedbackConfigToggle && (
-                    <FeedbackConfigToggle
-                      emailToggle={email}
-                      nameToggle={name}
-                      screenshotToggle={screenshot}
-                      onEmailToggle={() => setEmail(!email)}
-                      onNameToggle={() => setName(!name)}
-                      onScreenshotToggle={() => setScreenshot(!screenshot)}
-                    />
-                  ),
-                }}
-              />
-            ) : (
+                  content: newContent,
+                };
+              }
+
+              return {
+                ...step,
+                codeHeader: feedbackConfigToggle,
+              };
+            })
+            .map(step => (
               <Step key={step.title ?? step.type} {...step} />
-            )
-          )}
+            ))}
         </Steps>
       </Wrapper>
     </AuthTokenGeneratorProvider>

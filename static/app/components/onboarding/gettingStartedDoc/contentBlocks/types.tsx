@@ -54,6 +54,7 @@ type TextBlock = BaseBlock<'text'> & {
  */
 type CustomBlock = BaseBlock<'custom'> & {
   content: React.ReactNode;
+  bottomMargin?: boolean;
 };
 
 export type ContentBlock =

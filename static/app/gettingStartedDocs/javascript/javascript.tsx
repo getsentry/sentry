@@ -5,7 +5,7 @@ import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/even
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   BasePlatformOptions,
   ContentBlock,
@@ -789,12 +789,16 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -803,8 +807,8 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
+        tracePropagationBlock,
       ],
-      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: getReplayVerifyStep(),
@@ -832,27 +836,28 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getFeedbackConfigureDescription({
-        linkConfig:
-          'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/',
-        linkButton:
-          'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#bring-your-own-button',
-      }),
-      configurations: [
+      content: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getSdkSetupSnippet(params),
-            },
-          ],
+          type: 'text',
+          text: getFeedbackConfigureDescription({
+            linkConfig:
+              'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/',
+            linkButton:
+              'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#bring-your-own-button',
+          }),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: getSdkSetupSnippet(params),
+        },
+        {
+          type: 'text',
+          text: crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal',
+          }),
         },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal',
-      }),
     },
   ],
   verify: () => [],
