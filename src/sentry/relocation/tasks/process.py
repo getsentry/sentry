@@ -1854,8 +1854,20 @@ def completed(uuid: str) -> None:
         relocation.save()
 
 
+@instrumented_task(
+    name="sentry.relocation.completed",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+    ),
+)
+def noop():
+    pass
+
+
 TASK_MAP: dict[OrderedTask, Task] = {
-    OrderedTask.NONE: Task(),
+    OrderedTask.NONE: noop,
     OrderedTask.UPLOADING_START: uploading_start,
     OrderedTask.UPLOADING_COMPLETE: uploading_complete,
     OrderedTask.PREPROCESSING_SCAN: preprocessing_scan,
