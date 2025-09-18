@@ -20,7 +20,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
-from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -296,61 +295,14 @@ def serialize_releases(request: Request, group: Group, versions: list[str]) -> l
     ]
 
 
-def get_environment_filtered_releases(
-    request: Request, group: Group, environment_names: list[str]
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    group_releases = GroupRelease.objects.filter(
-        group_id=group.id,
-        environment__in=environment_names,
-    )
-
-    if not group_releases.exists():
-        return None, None
-
-    first_group_release = group_releases.order_by("first_seen").first()
-    last_group_release = group_releases.order_by("-last_seen").first()
-
-    release_ids = set()
-    if first_group_release:
-        release_ids.add(first_group_release.release_id)
-    if last_group_release:
-        release_ids.add(last_group_release.release_id)
-
-    if not release_ids:
-        return None, None
-
-    releases = {r.id: r for r in Release.objects.filter(id__in=release_ids)}
-
-    first_release = None
-    last_release = None
-
-    if first_group_release and first_group_release.release_id in releases:
-        (first_release,) = serialize_releases(
-            request, group, [releases[first_group_release.release_id].version]
-        )
-
-    if last_group_release and last_group_release.release_id in releases:
-        (last_release,) = serialize_releases(
-            request, group, [releases[last_group_release.release_id].version]
-        )
-
-    return first_release, last_release
-
-
 def get_first_last_release(
     request: Request,
     group: Group,
     environment_names: list[str] | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    if environment_names:
-        first_release, last_release = get_environment_filtered_releases(
-            request, group, environment_names
-        )
-        return first_release, last_release
-
-    first_release_s = group.get_first_release()
+    first_release_s = group.get_first_release(environment_names=environment_names)
     if first_release_s is not None:
-        last_release_s = group.get_last_release()
+        last_release_s = group.get_last_release(environment_names=environment_names)
     else:
         last_release_s = None
 
