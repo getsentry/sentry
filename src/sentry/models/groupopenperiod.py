@@ -12,13 +12,12 @@ from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.types.activity import ActivityType
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 
 logger = logging.getLogger(__name__)
 
