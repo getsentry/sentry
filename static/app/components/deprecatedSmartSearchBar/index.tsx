@@ -2224,7 +2224,6 @@ class SmartSearchBarContainer extends Component<Props, ContainerState> {
 
 export default withApi(withSentryRouter(withOrganization(SmartSearchBarContainer)));
 
-export type {Props as SmartSearchBarProps};
 export {DeprecatedSmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
