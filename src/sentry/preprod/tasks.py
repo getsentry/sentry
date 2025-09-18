@@ -577,10 +577,13 @@ def detect_expired_preprod_artifacts():
         date_updated__lte=timeout_threshold,
     )
 
-    expired_artifact_ids = list(expired_artifacts.values_list("id", flat=True))
+    expired_artifacts_count = 0
+    updated_artifact_ids = []
 
     try:
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            expired_artifact_ids = list(expired_artifacts.values_list("id", flat=True))
+
             expired_artifacts_count = expired_artifacts.update(
                 state=PreprodArtifact.ArtifactState.FAILED,
                 error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_TIMEOUT,
@@ -594,17 +597,25 @@ def detect_expired_preprod_artifacts():
                         "expired_artifacts_count": expired_artifacts_count,
                     },
                 )
-
-                # Trigger status check updates for each expired artifact now that the state is FAILED
-                for artifact_id in expired_artifact_ids:
-                    create_preprod_status_check_task.apply_async(
-                        kwargs={"preprod_artifact_id": artifact_id}
-                    )
+                updated_artifact_ids = expired_artifact_ids
     except Exception:
         logger.exception(
             "preprod.tasks.detect_expired_preprod_artifacts.failed_to_batch_update_expired_artifacts",
         )
         expired_artifacts_count = 0
+        updated_artifact_ids = []
+
+    if updated_artifact_ids:
+        for artifact_id in updated_artifact_ids:
+            try:
+                create_preprod_status_check_task.apply_async(
+                    kwargs={"preprod_artifact_id": artifact_id}
+                )
+            except Exception:
+                logger.exception(
+                    "preprod.tasks.detect_expired_preprod_artifacts.failed_to_trigger_status_check",
+                    extra={"artifact_id": artifact_id},
+                )
 
     # Find expired PreprodArtifactSizeMetrics (those in PROCESSING state for more than 30 minutes)
     # Note: ignore size metrics in a pending state
