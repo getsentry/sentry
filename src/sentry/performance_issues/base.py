@@ -196,8 +196,9 @@ def get_url_from_span(span: Span) -> str:
         url = url_data
         query_data = data.get("http.query")
         if type(query_data) is str and len(query_data) > 0:
-            url += f"?{query_data}"
-
+            # Only append the query string if the URL doesn't already contain one
+            if "?" not in url:
+                url += f"?{query_data}"
         return url
 
     # Attempt to parse the full URL from the span description, in case

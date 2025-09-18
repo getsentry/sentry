@@ -179,6 +179,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         parent_span_id = last_span.get("parent_span_id")
         if self.stored_problems.get(fingerprint):
             logging.info("Multiple N+1 API Call Problems for Fingerprint")
+        parameters = self._get_parameters()
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
@@ -196,8 +197,8 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
                 "repeating_spans": self._get_path_prefix(self.spans[0]),
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
-                "parameters": self._get_parameters()["query_params"],
-                "path_parameters": self._get_parameters()["path_params"],
+                "parameters": parameters["query_params"],
+                "path_parameters": parameters["path_params"],
                 "common_url": problem_description,
             },
             evidence_display=[
@@ -224,10 +225,8 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
         for parameterized_url in parameterized_urls:
             query_params = parameterized_url["query_params"]
-
             for key, value in query_params.items():
                 query_dict[key] += value
-
         # Note: dict.fromkeys() is just to deduplicate values and Python dicts are ordered
         path_params_list: list[str] = list(
             dict.fromkeys(
