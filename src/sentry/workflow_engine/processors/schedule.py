@@ -123,11 +123,13 @@ def process_buffered_workflows() -> None:
             max=fetch_time,
         )
 
-        log_str = ", ".join(
-            f"{project_id}: {timestamps}"
-            for project_id, timestamps in all_project_ids_and_timestamps.items()
+        metrics.distribution(
+            "workflow_engine.schedule.projects", len(all_project_ids_and_timestamps)
         )
-        logger.info("delayed_workflow.project_id_list", extra={"project_ids": log_str})
+        logger.info(
+            "delayed_workflow.project_id_list",
+            extra={"project_ids": sorted(all_project_ids_and_timestamps.keys())},
+        )
 
         project_ids = list(all_project_ids_and_timestamps.keys())
         for project_id in project_ids:
