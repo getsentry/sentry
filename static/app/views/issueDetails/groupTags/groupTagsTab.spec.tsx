@@ -47,7 +47,7 @@ describe('GroupTagsTab', () => {
     expect(tagsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1/tags/',
       expect.objectContaining({
-        query: {environment: ['dev']},
+        query: {environment: ['dev'], limit: 10},
       })
     );
     // Check headers have been sorted alphabetically

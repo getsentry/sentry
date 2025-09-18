@@ -145,14 +145,6 @@ describe('OrganizationLayout', () => {
 
   describe('new navigation layout', () => {
     beforeEach(() => {
-      ConfigStore.set('user', {
-        ...ConfigStore.get('user'),
-        options: {
-          ...ConfigStore.get('user').options,
-          prefersStackedNavigation: true,
-        },
-      });
-
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/starred/',
         body: [],

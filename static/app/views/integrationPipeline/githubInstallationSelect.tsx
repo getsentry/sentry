@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -107,7 +108,7 @@ export function GithubInstallationSelect({
       value: installation.installation_id,
       textValue: installation.github_account,
       label: (
-        <OptionLabelWrapper>
+        <Flex align="center" gap="md">
           {installation.installation_id === '-1' ? (
             <IconAdd />
           ) : (
@@ -122,7 +123,7 @@ export function GithubInstallationSelect({
           {!doesntRequireUpgrade(installation.installation_id) && (
             <IconLightning size="xs" />
           )}
-        </OptionLabelWrapper>
+        </Flex>
       ),
     })
   );
@@ -217,12 +218,6 @@ const ButtonContainer = styled('div')`
 const StyledHeader = styled('h3')`
   margin-bottom: ${space(2)};
   width: 100%;
-`;
-
-const OptionLabelWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const StyledAvatar = styled(BaseAvatar)`

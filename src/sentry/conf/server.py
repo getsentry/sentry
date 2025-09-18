@@ -797,11 +797,6 @@ BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
-# Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
-# this works.
-CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
-
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -3918,19 +3913,15 @@ SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 
 # This is a view of which abstract processing service is backed by which infrastructure.
-# Right now, the infrastructure can be `redis` or `rabbitmq`.
+# Right now, the infrastructure can be `redis`.
 #
 # For `redis`, one has to provide the cluster id.
 # It has to match a cluster defined in `redis.redis_clusters`.
-#
-# For `rabbitmq`, one has to provide a list of server URLs.
-# The URL is in the format `http://{user}:{password}@{hostname}:{port}/`.
 #
 # The definition can also be empty, in which case nothing is checked and
 # the service is assumed to be healthy.
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
-    "celery": {"redis": "default"},
     "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-store-transactions": {},
