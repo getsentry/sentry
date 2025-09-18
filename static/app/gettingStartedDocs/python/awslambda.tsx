@@ -87,10 +87,12 @@ const installStep = (): OnboardingStep => ({
         code: <code />,
       }),
     },
-    ...getPythonInstallConfig().filter(config => config.code).map(config => ({
-      type: 'code' as const,
-      tabs: config.code!,
-    })),
+    ...getPythonInstallConfig()
+      .filter(config => config.code)
+      .map(config => ({
+        type: 'code' as const,
+        tabs: config.code!,
+      })),
   ],
 });
 
@@ -208,9 +210,7 @@ const onboarding: OnboardingConfig = {
           ? [
               {
                 type: 'text' as const,
-                text: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
+                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
               },
               {
                 type: 'code' as const,
