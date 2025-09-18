@@ -2637,7 +2637,7 @@ export const REPLAY_TAG_ALIASES = {
   [ReplayFieldKey.URLS]: ReplayFieldKey.URL,
 };
 
-const SMALL_INTEGER_VALUES = ['1', '10', '11', '100', '1000'];
+const SMALL_INTEGER_VALUES = ['1', '10', '100', '1000'];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
