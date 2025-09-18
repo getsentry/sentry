@@ -5,8 +5,8 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {IconIntegratedOrg} from 'sentry/components/prevent/integratedOrgSelector/iconIntegratedOrg';
-import {IconRepository} from 'sentry/components/prevent/repoSelector/iconRepository';
+import {IconIntegratedOrg} from 'sentry/icons/iconIntegratedOrg';
+import {IconRepository} from 'sentry/icons/iconRepository';
 import {t} from 'sentry/locale';
 import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
 
