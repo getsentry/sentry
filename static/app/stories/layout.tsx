@@ -17,7 +17,7 @@ export const SideBySide = styled(
       </Flex>
     );
   }
-);
+)``;
 
 export const Grid = styled('div')<{columns?: number}>`
   display: grid;
