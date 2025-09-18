@@ -75,45 +75,58 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:celery] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[celery]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:celery] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[celery]'}).filter(config => config.code).map(config => ({
+          type: 'code' as const,
+          tabs: config.code!,
+        })),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: (
-        <div>
-          <p>
-            {tct(
-              'If you have the [code:celery] package in your dependencies, the Celery integration will be enabled automatically when you initialize the Sentry SDK.',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              'Make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your tasks are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-        </div>
-      ),
-      configurations: [
+      content: [
         {
+          type: 'custom',
+          content: (
+            <div>
+              <p>
+                {tct(
+                  'If you have the [code:celery] package in your dependencies, the Celery integration will be enabled automatically when you initialize the Sentry SDK.',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </p>
+              <p>
+                {tct(
+                  'Make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your tasks are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </p>
+            </div>
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-      ],
-      additionalInfo: (
+        {
+          type: 'custom',
+          content: (
         <Fragment>
           {params.isProfilingSelected &&
             params.profilingOptions?.defaultProfilingMode === 'continuous' && (
@@ -173,14 +186,25 @@ def init_sentry(**_kwargs):
             )}
           </p>
         </Fragment>
-      ),
+          ),
+        },
+      ],
     },
   ],
-  verify: (params: Params) => {
-    const configurations: Configuration[] = [
-      {
-        language: 'python',
-        code: `from celery import Celery
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a task that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `from celery import Celery
 
 app = Celery("myapp")
 
@@ -192,27 +216,33 @@ def hello():
 # Enqueue the task (ensure a worker is running)
 hello.delay()
 `,
-      },
-    ];
-
-    if (params.isLogsSelected) {
-      configurations.push(
-        {
-          description: t('You can send logs to Sentry using the Sentry logging APIs:'),
-          language: 'python',
-          code: `import sentry_sdk
+        },
+        ...(params.isLogsSelected
+          ? [
+              {
+                type: 'text' as const,
+                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
+              },
+              {
+                type: 'code' as const,
+                language: 'python',
+                code: `import sentry_sdk
 
 # Send logs directly to Sentry
 sentry_sdk.logger.info('This is an info log message')
 sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
-        },
-        {
-          description: t(
-            "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-          ),
-          language: 'python',
-          code: `import logging
+              },
+              {
+                type: 'text' as const,
+                text: t(
+                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+                ),
+              },
+              {
+                type: 'code' as const,
+                language: 'python',
+                code: `import logging
 
 # Your existing logging setup
 logger = logging.getLogger(__name__)
@@ -221,20 +251,12 @@ logger = logging.getLogger(__name__)
 logger.info('This will be sent to Sentry')
 logger.warning('User login failed')
 logger.error('Something went wrong')`,
-        }
-      );
-    }
-
-    return [
-      {
-        type: StepType.VERIFY,
-        description: t(
-          'You can easily verify your Sentry installation by creating a task that triggers an error:'
-        ),
-        configurations,
-      },
-    ];
-  },
+              },
+            ]
+          : []),
+      ],
+    },
+  ],
 };
 
 const logsOnboarding = getPythonLogsOnboarding({
