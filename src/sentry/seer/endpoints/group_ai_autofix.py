@@ -15,6 +15,7 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.repository import Repository
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_autofix
 from sentry.seer.autofix.utils import get_autofix_state
 from sentry.seer.models import SeerPermissionError
@@ -35,18 +36,20 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=25, window=60),
-            RateLimitCategory.USER: RateLimit(limit=25, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
-        },
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=1024, window=60),
-            RateLimitCategory.USER: RateLimit(limit=1024, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=25, window=60),
+                RateLimitCategory.USER: RateLimit(limit=25, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
+            },
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=1024, window=60),
+                RateLimitCategory.USER: RateLimit(limit=1024, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
+            },
+        }
+    )
 
     def post(self, request: Request, group: Group) -> Response:
         data = orjson.loads(request.body)
