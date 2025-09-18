@@ -268,10 +268,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
         }
 
-        ul.crumbs li .table.key-value pre {
-          color: ${theme.subText};
-        }
-
         .exception {
           border-color: ${theme.innerBorder};
         }
