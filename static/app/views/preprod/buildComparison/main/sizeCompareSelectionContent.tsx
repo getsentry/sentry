@@ -114,15 +114,19 @@ export function SizeCompareSelectionContent({
         <Flex align="center" gap="sm">
           <IconLock size="xs" locked />
           <Text bold>{t('Your build:')}</Text>
-          <Text size="sm" variant="accent" bold>
-            {headPrNumber && `#${headPrNumber} `}
-            {headSha && (
-              <Flex align="center" gap="xs">
-                <IconCommit size="xs" />
-                {headSha}
-              </Flex>
-            )}
-          </Text>
+          <Flex align="center" gap="md">
+            <Text size="sm" variant="accent" bold>
+              {headPrNumber && `#${headPrNumber} `}
+            </Text>
+            <Text size="sm" variant="accent" bold>
+              {headSha && (
+                <Flex align="center" gap="xs">
+                  <IconCommit size="xs" />
+                  {headSha}
+                </Flex>
+              )}
+            </Text>
+          </Flex>
           <BuildBranch>
             <Text size="sm" variant="muted">
               {headBranchName}
