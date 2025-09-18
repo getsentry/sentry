@@ -10,7 +10,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -18,6 +18,7 @@ import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -38,7 +39,6 @@ import GenericWidgetQueries from './genericWidgetQueries';
 
 interface ReleaseWidgetQueriesProps {
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
@@ -50,12 +50,6 @@ interface ReleaseWidgetQueriesProps {
     timeseriesResults?: Series[];
   }) => void;
 }
-
-type State = {
-  loading: boolean;
-  errorMessage?: string;
-  releases?: Release[];
-};
 
 export function derivedMetricsToField(field: string): string {
   return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
@@ -209,7 +203,6 @@ function customDidUpdateComparator(
 function ReleaseWidgetQueries({
   widget,
   selection,
-  organization,
   dashboardFilters,
   cursor,
   limit,
@@ -220,6 +213,7 @@ function ReleaseWidgetQueries({
   const mounted = useRef(false);
   const allProjects = useProjects();
   const api = useApi();
+  const organization = useOrganization();
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | undefined>(
     undefined
   );
