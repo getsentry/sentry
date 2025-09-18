@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 
 class EffectiveGrantStatusCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization_id = 123
         self.cache_key = CACHE_KEY_PATTERN.format(organization_id=self.organization_id)
         self.current_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
@@ -20,14 +20,14 @@ class EffectiveGrantStatusCacheTest(TestCase):
         # Clear cache before each test
         cache.clear()
 
-    def test_get_with_cache_miss(self):
+    def test_get_with_cache_miss(self) -> None:
         result = EffectiveGrantStatusCache.get(self.organization_id)
 
         assert result.cache_status == GrantCacheStatus.CACHE_MISS
         assert result.access_end is None
         assert result.access_start is None
 
-    def test_get_with_negative_cache_object(self):
+    def test_get_with_negative_cache_object(self) -> None:
         # Store an EffectiveGrantStatus object with negative cache status
         cached_object = EffectiveGrantStatus(cache_status=GrantCacheStatus.NEGATIVE_CACHE)
         cache.set(self.cache_key, cached_object, timeout=300)
@@ -39,7 +39,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
         assert result.access_start is None
 
     @freeze_time("2025-01-01 12:00:00")
-    def test_get_with_valid_cached_object(self):
+    def test_get_with_valid_cached_object(self) -> None:
         # Store an EffectiveGrantStatus object with valid grant
         cached_object = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.VALID_WINDOW,
@@ -55,7 +55,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
         assert result.access_start == self.access_start
 
     @freeze_time("2025-01-01 12:00:00")
-    def test_get_with_expired_cached_object(self):
+    def test_get_with_expired_cached_object(self) -> None:
         expired_access_end = datetime(2025, 1, 1, 11, 0, 0, tzinfo=timezone.utc)
         # Store an EffectiveGrantStatus object with expired grant
         cached_object = EffectiveGrantStatus(
@@ -71,7 +71,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
         assert result.access_end is None
         assert result.access_start is None
 
-    def test_set_with_valid_grant_status(self):
+    def test_set_with_valid_grant_status(self) -> None:
         grant_status = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.VALID_WINDOW,
             access_end=self.access_end,
@@ -87,7 +87,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
                 self.cache_key, grant_status, timeout=expected_ttl
             )
 
-    def test_set_with_negative_cache_status(self):
+    def test_set_with_negative_cache_status(self) -> None:
         grant_status = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.NEGATIVE_CACHE,
         )
@@ -100,7 +100,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
             )
 
     @freeze_time("2025-01-01 12:00:00")
-    def test_set_integration_with_get(self):
+    def test_set_integration_with_get(self) -> None:
         grant_status = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.VALID_WINDOW,
             access_end=self.access_end,
@@ -117,7 +117,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
         assert result.access_end == self.access_end
         assert result.access_start == self.access_start
 
-    def test_set_negative_cache_integration_with_get(self):
+    def test_set_negative_cache_integration_with_get(self) -> None:
         grant_status = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.NEGATIVE_CACHE,
         )
@@ -132,7 +132,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
         assert result.access_end is None
         assert result.access_start is None
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         # First set something in cache
         grant_status = EffectiveGrantStatus(cache_status=GrantCacheStatus.NEGATIVE_CACHE)
         cache.set(self.cache_key, grant_status, timeout=300)
@@ -144,7 +144,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
         # Verify it's gone
         assert cache.get(self.cache_key) is None
 
-    def test_delete_with_nonexistent_entry(self):
+    def test_delete_with_nonexistent_entry(self) -> None:
         # Ensure cache is empty
         assert cache.get(self.cache_key) is None
 
@@ -154,7 +154,7 @@ class EffectiveGrantStatusCacheTest(TestCase):
         # Still should be empty
         assert cache.get(self.cache_key) is None
 
-    def test_cache_key_format(self):
+    def test_cache_key_format(self) -> None:
         organization_id = 456
         expected_key = f"data_access_grant:effective_grant_status:{organization_id}"
 
@@ -163,11 +163,11 @@ class EffectiveGrantStatusCacheTest(TestCase):
             EffectiveGrantStatusCache.get(organization_id)
             mock_cache_get.assert_called_once_with(expected_key)
 
-    def test_singleton_instance(self):
+    def test_singleton_instance(self) -> None:
         assert isinstance(effective_grant_status_cache, EffectiveGrantStatusCache)
 
     @freeze_time("2025-01-01 12:00:00")
-    def test_get_different_organization_ids(self):
+    def test_get_different_organization_ids(self) -> None:
         org_id_1 = 123
         org_id_2 = 456
 

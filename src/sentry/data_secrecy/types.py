@@ -24,7 +24,7 @@ class EffectiveGrantStatus:
     access_start: datetime | None = None
     access_end: datetime | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Holds the invariant that access_end and access_start are always set when cache_status is VALID_WINDOW
         if self.cache_status == GrantCacheStatus.VALID_WINDOW:
             if self.access_end is None or self.access_start is None:

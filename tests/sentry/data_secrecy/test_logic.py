@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from unittest import mock
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -22,7 +23,7 @@ from sentry.testutils.silo import all_silo_test, create_test_regions
 
 @all_silo_test(regions=create_test_regions("us"))
 class ShouldAllowSuperuserAccessTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization.flags.prevent_superuser_access = True
         self.rpc_org = RpcOrganization(id=self.organization.id)
@@ -37,18 +38,18 @@ class ShouldAllowSuperuserAccessTest(TestCase):
             user_id=self.user.id, organization=self.rpc_org, member=self.rpc_orgmember
         )
 
-    def test_self_hosted(self):
+    def test_self_hosted(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=True):
             assert should_allow_superuser_access(self.organization) is True
             assert should_allow_superuser_access(self.rpc_context) is True
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             # Feature flag is disabled by default in test setup
             assert should_allow_superuser_access(self.organization) is True
             assert should_allow_superuser_access(self.rpc_context) is True
 
-    def test_bit_flag_disabled(self):
+    def test_bit_flag_disabled(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy"):
                 self.organization.flags.prevent_superuser_access = False
@@ -56,7 +57,7 @@ class ShouldAllowSuperuserAccessTest(TestCase):
                 assert should_allow_superuser_access(self.organization) is True
                 assert should_allow_superuser_access(self.rpc_context) is True
 
-    def test_fully_enabled_data_secrecy(self):
+    def test_fully_enabled_data_secrecy(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy"):
                 # prevent_superuser_access is already True from setUp
@@ -66,7 +67,7 @@ class ShouldAllowSuperuserAccessTest(TestCase):
 
 @all_silo_test(regions=create_test_regions("us"))
 class ShouldAllowSuperuserAccessV2Test(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization.flags.prevent_superuser_access = True
         self.rpc_org = RpcOrganization(id=self.organization.id)
@@ -81,18 +82,18 @@ class ShouldAllowSuperuserAccessV2Test(TestCase):
             user_id=self.user.id, organization=self.rpc_org, member=self.rpc_orgmember
         )
 
-    def test_self_hosted(self):
+    def test_self_hosted(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=True):
             assert should_allow_superuser_access_v2(self.organization) is True
             assert should_allow_superuser_access_v2(self.rpc_context) is True
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             # Feature flag is disabled by default in test setup
             assert should_allow_superuser_access_v2(self.organization) is True
             assert should_allow_superuser_access_v2(self.rpc_context) is True
 
-    def test_bit_flag_disabled(self):
+    def test_bit_flag_disabled(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 self.organization.flags.prevent_superuser_access = False
@@ -101,7 +102,7 @@ class ShouldAllowSuperuserAccessV2Test(TestCase):
                 assert should_allow_superuser_access_v2(self.rpc_context) is True
 
     @patch("sentry.data_secrecy.logic.data_access_grant_exists")
-    def test_with_active_grant(self, mock_grant_exists):
+    def test_with_active_grant(self, mock_grant_exists: mock.MagicMock) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 mock_grant_exists.return_value = True
@@ -113,7 +114,7 @@ class ShouldAllowSuperuserAccessV2Test(TestCase):
                 mock_grant_exists.assert_called_with(self.organization.id)
 
     @patch("sentry.data_secrecy.logic.data_access_grant_exists")
-    def test_no_active_grant(self, mock_grant_exists):
+    def test_no_active_grant(self, mock_grant_exists: mock.MagicMock) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 mock_grant_exists.return_value = False
@@ -128,14 +129,14 @@ class ShouldAllowSuperuserAccessV2Test(TestCase):
 @all_silo_test(regions=create_test_regions("us"))
 @freeze_time("2025-01-01 12:00:00")
 class DataAccessGrantExistsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization_id = 123
         self.current_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.access_start = datetime(2025, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
         self.access_end = datetime(2025, 1, 1, 14, 0, 0, tzinfo=timezone.utc)
 
     @patch("sentry.data_secrecy.logic.effective_grant_status_cache")
-    def test_cache_hit_valid_grant(self, mock_cache):
+    def test_cache_hit_valid_grant(self, mock_cache: mock.MagicMock) -> None:
         mock_cache.get.return_value = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.VALID_WINDOW,
             access_end=self.access_end,
@@ -150,7 +151,7 @@ class DataAccessGrantExistsTest(TestCase):
         mock_cache.set.assert_not_called()
 
     @patch("sentry.data_secrecy.logic.effective_grant_status_cache")
-    def test_cache_hit_negative_cache(self, mock_cache):
+    def test_cache_hit_negative_cache(self, mock_cache: mock.MagicMock) -> None:
         mock_cache.get.return_value = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.NEGATIVE_CACHE,
         )
@@ -163,7 +164,7 @@ class DataAccessGrantExistsTest(TestCase):
         mock_cache.set.assert_not_called()
 
     @patch("sentry.data_secrecy.logic.effective_grant_status_cache")
-    def test_cache_expired_grant_deletes_cache(self, mock_cache):
+    def test_cache_expired_grant_deletes_cache(self, mock_cache: mock.MagicMock) -> None:
         # First return expired grant, then cache miss on recalculation
         mock_cache.get.side_effect = [
             EffectiveGrantStatus(
@@ -187,7 +188,9 @@ class DataAccessGrantExistsTest(TestCase):
 
     @patch("sentry.data_secrecy.logic.effective_grant_status_cache")
     @patch("sentry.data_secrecy.logic.data_access_grant_service")
-    def test_cache_miss_with_grant(self, mock_service, mock_cache):
+    def test_cache_miss_with_grant(
+        self, mock_service: mock.MagicMock, mock_cache: mock.MagicMock
+    ) -> None:
         mock_cache.get.return_value = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.CACHE_MISS,
         )
@@ -216,7 +219,9 @@ class DataAccessGrantExistsTest(TestCase):
 
     @patch("sentry.data_secrecy.logic.effective_grant_status_cache")
     @patch("sentry.data_secrecy.logic.data_access_grant_service")
-    def test_cache_miss_no_grant(self, mock_service, mock_cache):
+    def test_cache_miss_no_grant(
+        self, mock_service: mock.MagicMock, mock_cache: mock.MagicMock
+    ) -> None:
         mock_cache.get.return_value = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.CACHE_MISS,
         )
@@ -239,7 +244,9 @@ class DataAccessGrantExistsTest(TestCase):
 
     @patch("sentry.data_secrecy.logic.effective_grant_status_cache")
     @patch("sentry.data_secrecy.logic.data_access_grant_service")
-    def test_cache_miss_with_expired_rpc_grant(self, mock_service, mock_cache):
+    def test_cache_miss_with_expired_rpc_grant(
+        self, mock_service: mock.MagicMock, mock_cache: mock.MagicMock
+    ) -> None:
         mock_cache.get.return_value = EffectiveGrantStatus(
             cache_status=GrantCacheStatus.CACHE_MISS,
         )
@@ -269,7 +276,7 @@ class DataAccessGrantExistsTest(TestCase):
 @all_silo_test(regions=create_test_regions("us"))
 @freeze_time("2025-01-01 12:00:00")
 class DataSecrecyE2ETest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization.flags.prevent_superuser_access = True
 
@@ -288,7 +295,7 @@ class DataSecrecyE2ETest(TestCase):
         # Clear cache before each test
         cache.clear()
 
-    def test_superuser_access_granted_with_active_grant(self):
+    def test_superuser_access_granted_with_active_grant(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 # Create an active data access grant
@@ -310,7 +317,7 @@ class DataSecrecyE2ETest(TestCase):
                 assert grant.grant_start == datetime(2025, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
                 assert grant.grant_end == datetime(2025, 1, 1, 16, 0, 0, tzinfo=timezone.utc)
 
-    def test_superuser_access_denied_without_grant(self):
+    def test_superuser_access_denied_without_grant(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 # Ensure no grants exist for this organization
@@ -323,7 +330,7 @@ class DataSecrecyE2ETest(TestCase):
                 # Test that data_access_grant_exists returns False
                 assert data_access_grant_exists(self.organization.id) is False
 
-    def test_superuser_access_denied_with_expired_grant(self):
+    def test_superuser_access_denied_with_expired_grant(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 # Create an expired data access grant
@@ -346,7 +353,7 @@ class DataSecrecyE2ETest(TestCase):
                 assert expired_grant.organization_id == self.organization.id
                 assert expired_grant.grant_end < datetime.now(timezone.utc)  # Confirm it's expired
 
-    def test_cache_behavior_with_real_grant(self):
+    def test_cache_behavior_with_real_grant(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 # Create an active grant
@@ -369,7 +376,7 @@ class DataSecrecyE2ETest(TestCase):
                 assert should_allow_superuser_access_v2(self.organization) is True
                 assert should_allow_superuser_access_v2(self.organization) is True
 
-    def test_cache_behavior_without_grant(self):
+    def test_cache_behavior_without_grant(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 # No grant created - should result in negative cache
@@ -386,7 +393,7 @@ class DataSecrecyE2ETest(TestCase):
                 assert should_allow_superuser_access_v2(self.organization) is False
                 assert should_allow_superuser_access_v2(self.organization) is False
 
-    def test_transition_from_no_grant_to_active_grant(self):
+    def test_transition_from_no_grant_to_active_grant(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with self.feature("organizations:data-secrecy-v2"):
                 # Initially no grant exists
