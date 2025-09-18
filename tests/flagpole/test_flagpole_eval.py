@@ -14,7 +14,7 @@ from flagpole.flagpole_eval import evaluate_flag, get_arguments, read_feature
 class TestGetArguments:
     """Test get_arguments() function for parsing command line arguments and context."""
 
-    @mock.patch("tools.flagpole_eval.sys.argv", ["script.py", "--flag-name", "test-flag"])
+    @mock.patch("flagpole.flagpole_eval.sys.argv", ["script.py", "--flag-name", "test-flag"])
     def test_get_arguments_with_flag_name_only(self):
         """Test get_arguments returns correct dict with only flag name."""
         result = get_arguments()
@@ -24,7 +24,7 @@ class TestGetArguments:
         assert "flagpole_file" in result
 
     @mock.patch(
-        "tools.flagpole_eval.sys.argv",
+        "flagpole.flagpole_eval.sys.argv",
         ["script.py", "--flag-name", "test-flag", "--context", '{"user_id": 123}'],
     )
     def test_get_arguments_with_context_flag(self):
@@ -35,7 +35,7 @@ class TestGetArguments:
         assert result["context"] == {"user_id": 123}
 
     @mock.patch(
-        "tools.flagpole_eval.sys.argv",
+        "flagpole.flagpole_eval.sys.argv",
         ["script.py", "--flag-name", "test-flag", '{"org_id": 456, "user_id": 789}'],
     )
     def test_get_arguments_with_positional_context(self):
@@ -46,7 +46,7 @@ class TestGetArguments:
         assert result["context"] == {"org_id": 456, "user_id": 789}
 
     @mock.patch(
-        "tools.flagpole_eval.sys.argv",
+        "flagpole.flagpole_eval.sys.argv",
         [
             "script.py",
             "--flag-name",
@@ -63,7 +63,7 @@ class TestGetArguments:
         assert result["context"] == {"user_id": 123}
 
     @mock.patch(
-        "tools.flagpole_eval.sys.argv", ["script.py", "--flag-name", "test-flag", "invalid-json"]
+        "flagpole.flagpole_eval.sys.argv", ["script.py", "--flag-name", "test-flag", "invalid-json"]
     )
     def test_get_arguments_invalid_json_falls_back_to_empty(self):
         """Test that invalid JSON in positional context falls back to empty dict."""
@@ -72,7 +72,7 @@ class TestGetArguments:
         assert result["context"] == {}
 
     @mock.patch(
-        "tools.flagpole_eval.sys.argv",
+        "flagpole.flagpole_eval.sys.argv",
         ["script.py", "--flag-name", "test-flag", "--flagpole-file", "/custom/path.yaml"],
     )
     def test_get_arguments_custom_flagpole_file(self):
