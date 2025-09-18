@@ -3,6 +3,7 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -98,21 +99,20 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: (
-        <p>
-          {tct(
+      content: [
+        {
+          type: 'text',
+          text: tct(
             `Install the Sentry Capacitor SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry [siblingName:] SDK:`,
             {
               code: <code />,
               siblingName: getSiblingName(params.platformOptions.siblingOption),
             }
-          )}
-        </p>
-      ),
-      configurations: [
+          ),
+        },
         {
-          language: 'bash',
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'npm',
               value: 'npm',
@@ -132,16 +132,13 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
         {
-          additionalInfo: (
-            <p>
-              {tct(
-                `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
-                {
-                  code: <code />,
-                  siblingName: getSiblingName(params.platformOptions.siblingOption),
-                }
-              )}
-            </p>
+          type: 'text',
+          text: tct(
+            `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
+            {
+              code: <code />,
+              siblingName: getSiblingName(params.platformOptions.siblingOption),
+            }
           ),
         },
       ],
@@ -150,7 +147,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: getSetupConfiguration({params, showExtraStep: true}),
+      content: getContentBlocksSetupConfiguration({params, showExtraStep: true}),
     },
     getUploadSourceMapsStep({
       guideLink:
@@ -161,13 +158,22 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   verify: _ => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          code: `myUndefinedFunction();`,
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `myUndefinedFunction();`,
+            },
+          ],
         },
       ],
     },
@@ -283,6 +289,89 @@ const getStaticParts = (params: Params): string[] => {
   return staticParts;
 };
 
+function getContentBlocksSetupConfiguration({
+  params,
+  showExtraStep,
+  showDescription,
+}: {
+  params: Params;
+  showExtraStep: boolean;
+  showDescription?: boolean;
+}): ContentBlock[] {
+  const siblingOption = params.platformOptions.siblingOption;
+
+  const config = buildSdkConfig({
+    params,
+    staticParts: getStaticParts(params),
+    getIntegrations,
+    getDynamicParts,
+  });
+
+  const configuration: ContentBlock[] = [];
+
+  if (showDescription) {
+    configuration.push({
+      type: 'text',
+      text: tct(
+        `You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]`,
+        {
+          siblingName: getSiblingName(siblingOption),
+          code: <code />,
+        }
+      ),
+    });
+  }
+
+  configuration.push({
+    type: 'code',
+    language: 'javascript',
+    code: `${getSiblingImportsSetupConfiguration(siblingOption)}
+    import * as Sentry from '@sentry/capacitor';
+    import * as ${getSiblingImportName(siblingOption)} from '${getNpmPackage(
+      siblingOption
+    )}';
+    ${getVueConstSetup(siblingOption)}
+    Sentry.init({
+      ${config}
+},
+// Forward the init method from ${getNpmPackage(params.platformOptions.siblingOption)}
+${getSiblingImportName(siblingOption)}.init
+);`,
+  });
+
+  if (isAngular(siblingOption) && showExtraStep) {
+    configuration.push({
+      type: 'text',
+      text: t(
+        "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler."
+      ),
+    });
+    configuration.push({
+      type: 'code',
+      language: 'javascript',
+      code: `
+import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
+import { Router } from "@angular/router";
+import * as SentryAngular from "${getNpmPackage(siblingOption)}";
+
+@NgModule({
+// ...
+providers: [
+{
+  provide: ErrorHandler,
+  useValue: SentryAngular.createErrorHandler(),
+}${params.isPerformanceSelected ? performanceAngularErrorHandler : ' '}
+],
+// ...
+})
+export class AppModule {}`,
+    });
+  }
+
+  return configuration;
+}
+
+// TODO: Remove this function once content blocks support codeHeader
 function getSetupConfiguration({
   params,
   showExtraStep,
@@ -448,12 +537,20 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#crash-report-modal',
-      }),
-      additionalInfo: widgetCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#user-feedback-widget',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+        {
+          type: 'custom',
+          content: widgetCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#user-feedback-widget',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

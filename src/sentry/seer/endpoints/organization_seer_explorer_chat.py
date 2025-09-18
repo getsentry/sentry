@@ -34,14 +34,21 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional timestamp for the message.",
     )
+    on_page_context = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Optional context from the user's screen.",
+    )
 
 
 def _call_seer_explorer_chat(
+    *,
     organization: Organization,
     run_id: int | None,
     query: str,
     insert_index: int | None = None,
     message_timestamp: float | None = None,
+    on_page_context: str | None = None,
 ):
     """Call Seer explorer chat endpoint."""
     path = "/v1/automation/explorer/chat"
@@ -52,6 +59,7 @@ def _call_seer_explorer_chat(
             "query": query,
             "insert_index": insert_index,
             "message_timestamp": message_timestamp,
+            "on_page_context": on_page_context,
         },
         option=orjson.OPT_NON_STR_KEYS,
     )
@@ -184,8 +192,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         query = validated_data["query"]
         insert_index = validated_data.get("insert_index")
         message_timestamp = validated_data.get("message_timestamp")
+        on_page_context = validated_data.get("on_page_context")
 
         response_data = _call_seer_explorer_chat(
-            organization, run_id, query, insert_index, message_timestamp
+            organization=organization,
+            run_id=run_id,
+            query=query,
+            insert_index=insert_index,
+            message_timestamp=message_timestamp,
+            on_page_context=on_page_context,
         )
         return Response(response_data)

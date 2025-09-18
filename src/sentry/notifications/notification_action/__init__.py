@@ -33,6 +33,7 @@ __all__ = [
     "AzureDevOpsActionValidatorHandler",
     "GithubActionValidatorHandler",
     "GithubEnterpriseActionValidatorHandler",
+    "PagerdutyActionValidatorHandler",
 ]
 
 from .action_handler_registry import (
@@ -48,6 +49,7 @@ from .action_validation import (
     JiraActionValidatorHandler,
     JiraServerActionValidatorHandler,
     MSTeamsActionValidatorHandler,
+    PagerdutyActionValidatorHandler,
     SlackActionValidatorHandler,
 )
 from .group_type_notification_registry import IssueAlertRegistryHandler, MetricAlertRegistryHandler

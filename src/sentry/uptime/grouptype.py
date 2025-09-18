@@ -308,6 +308,16 @@ class UptimeDomainCheckFailure(GroupType):
                     "enum": [mode.value for mode in UptimeMonitorMode],
                 },
                 "environment": {"type": ["string", "null"]},
+                "recovery_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of consecutive successful checks required to mark monitor as recovered",
+                },
+                "downtime_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of consecutive failed checks required to mark monitor as down",
+                },
             },
             "additionalProperties": False,
         },
