@@ -2,7 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import PreventAIManageRepos from 'sentry/views/prevent/preventAI/manageRepos';
+import ManageReposPage from 'sentry/views/prevent/preventAI/manageRepos';
 import PreventAIOnboarding from 'sentry/views/prevent/preventAI/onboarding';
 
 import {usePreventAIOrgRepos} from './hooks/usePreventAIOrgRepos';
@@ -23,7 +23,7 @@ function PreventAIContent() {
     );
   }
   if (hasOrgs) {
-    return <PreventAIManageRepos installedOrgs={data.orgRepos} />;
+    return <ManageReposPage installedOrgs={data.orgRepos} />;
   }
   return <PreventAIOnboarding />;
 }

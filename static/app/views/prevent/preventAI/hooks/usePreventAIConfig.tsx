@@ -26,7 +26,7 @@ export function usePreventAIConfig(
   const loadConfig = useCallback((): PreventAIConfig => {
     const defaultConfig: PreventAIConfig = {
       features: {
-        vanilla_pr_review: {
+        vanilla: {
           enabled: false,
         },
         test_generation: {
@@ -37,7 +37,6 @@ export function usePreventAIConfig(
           triggers: {
             on_command_phrase: false,
             on_ready_for_review: false,
-            on_new_commit: false,
           },
         },
       },
