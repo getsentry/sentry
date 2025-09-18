@@ -270,7 +270,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
             aria-label={t('Edit operator for filter: %s', token.key.text)}
             onlyOperator={onlyOperator}
             {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
-            ref={mergeRefs(triggerProps.ref, ref) as React.Ref<HTMLButtonElement>}
+            ref={mergeRefs(triggerProps.ref, ref)}
           >
             <InteractionStateLayer />
             {label}
