@@ -1555,7 +1555,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_multi_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
-        def save_event(env) -> Event:
+        def save_event(env: str) -> Event:
             manager = EventManager(
                 make_event(
                     **{
@@ -1570,6 +1570,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             return manager.save(self.project.id)
 
         event = save_event("dev")
+        assert event.group_id is not None
 
         instance = GroupEnvironment.objects.get(
             group_id=event.group_id,
@@ -1581,6 +1582,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert instance.first_seen == event.datetime
 
         event = save_event("prod")
+        assert event.group_id is not None
 
         new_instance = GroupEnvironment.objects.get(
             group_id=event.group_id,
