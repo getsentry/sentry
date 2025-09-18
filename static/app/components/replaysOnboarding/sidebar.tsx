@@ -442,8 +442,8 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const HeaderActions = styled(props => (
-  <Flex direction="row" justify="between" gap="2xl">{props.children}</Flex>
+const HeaderActions = styled(({children}) => (
+  <Flex direction="row" justify="between" gap="2xl">{children}</Flex>
 ))``;
 
 const PlatformLabel = styled(props => <Flex gap="md" align="center" {...props} />)``;
