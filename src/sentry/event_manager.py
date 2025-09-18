@@ -912,17 +912,23 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
 @sentry_sdk.tracing.trace
 def _get_or_create_group_environment_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-        _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
+        _get_or_create_group_environment(
+            job["environment"], job["release"], job["groups"], job["event"].datetime
+        )
 
 
 def _get_or_create_group_environment(
-    environment: Environment, release: Release | None, groups: Sequence[GroupInfo]
+    environment: Environment,
+    release: Release | None,
+    groups: Sequence[GroupInfo],
+    event_datetime: datetime,
 ) -> None:
     for group_info in groups:
+
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
-            defaults={"first_release": release or None},
+            defaults={"first_release": release or None, "first_seen": event_datetime},
         )[1]
 
 

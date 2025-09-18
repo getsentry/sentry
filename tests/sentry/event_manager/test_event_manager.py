@@ -1554,6 +1554,47 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert None not in event.tags
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
+    def test_multi_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
+        def save_event(env: str) -> Event:
+            manager = EventManager(
+                make_event(
+                    **{
+                        "message": "foo",
+                        "event_id": uuid.uuid1().hex,
+                        "environment": env,
+                        "release": "1.0",
+                    }
+                )
+            )
+            manager.normalize()
+            return manager.save(self.project.id)
+
+        event = save_event("dev")
+        assert event.group_id is not None
+
+        instance = GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id, name="dev"
+            ).id,
+        )
+
+        assert instance.first_seen == event.datetime
+
+        event = save_event("prod")
+        assert event.group_id is not None
+
+        new_instance = GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id, name="prod"
+            ).id,
+        )
+
+        assert new_instance.id != instance.id
+        assert new_instance.first_seen == event.datetime
+
+    @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
         release_version = "1.0"
 
@@ -1582,6 +1623,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             ).id,
         )
 
+        assert instance.first_seen == event.datetime
         assert Release.objects.get(id=instance.first_release_id).version == release_version
 
         group_states1 = {
