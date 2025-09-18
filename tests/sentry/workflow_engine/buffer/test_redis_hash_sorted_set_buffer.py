@@ -14,34 +14,54 @@ from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 
 
+class MockTimeProvider:
+    """Controllable time provider for deterministic tests."""
+
+    def __init__(self, start_time: float = 1000.0):
+        self.current_time = start_time
+
+    def __call__(self) -> float:
+        return self.current_time
+
+    def advance(self, seconds: float) -> None:
+        """Advance time by specified seconds."""
+        self.current_time += seconds
+
+
 @pytest.mark.django_db
 class TestRedisHashSortedSetBuffer:
+    @pytest.fixture
+    def mock_time(self):
+        """Provide controllable time for deterministic tests."""
+        return MockTimeProvider()
+
     @pytest.fixture(params=["cluster", "standalone", "blaster"])
-    def buffer(self, set_sentry_option, request):
+    def buffer(self, set_sentry_option, request, mock_time):
         value = copy.deepcopy(options.get("redis.clusters"))
         value["default"]["is_redis_cluster"] = request.param in ["cluster", "standalone"]
         with set_sentry_option("redis.clusters", value):
             match request.param:
                 case "cluster":
                     with use_redis_cluster("cluster"):
-                        buf = RedisHashSortedSetBuffer("", {"cluster": "cluster"})
+                        buf = RedisHashSortedSetBuffer("", {"cluster": "cluster"}, now_fn=mock_time)
                         for _, info in buf.cluster.info("server").items():
                             assert info["redis_mode"] == "cluster"
                         buf.cluster.flushdb()
                         yield buf
                 case "standalone":
-                    buf = RedisHashSortedSetBuffer()
+                    buf = RedisHashSortedSetBuffer(now_fn=mock_time)
                     info = buf.cluster.info("server")
                     assert info["redis_mode"] == "standalone"
                     yield buf
                 case "blaster":
-                    buf = RedisHashSortedSetBuffer()
+                    buf = RedisHashSortedSetBuffer(now_fn=mock_time)
                     assert isinstance(buf.cluster, rb.Cluster)
                     yield buf
 
     @pytest.fixture(autouse=True)
-    def setup_buffer(self, buffer):
+    def setup_buffer(self, buffer, mock_time):
         self.buf: RedisHashSortedSetBuffer = buffer
+        self.mock_time: MockTimeProvider = mock_time
 
     def test_push_to_hash(self):
         filters: Mapping[str, BufferField] = {"project_id": 1}
@@ -120,7 +140,7 @@ class TestRedisHashSortedSetBuffer:
     def test_delete_key(self):
         self.buf.push_to_sorted_set("test_key", [111, 222, 333])
 
-        now = time.time()
+        now = self.mock_time.current_time
         self.buf.delete_key("test_key", 0, now - 1)  # Delete older values
 
         result = self.buf.get_sorted_set("test_key", 0, now + 10)
@@ -161,20 +181,25 @@ class TestRedisHashSortedSetBuffer:
     def test_conditional_delete_from_sorted_sets_removes_when_score_matches(self):
         """Test that members are removed when their score is <= provided score."""
 
-        # Add members with known timestamps
+        # Add members with controlled timestamps
         key = "test_conditional_key"
 
-        # Add members at different times
+        # Add members at first timestamp
         self.buf.push_to_sorted_set(key, [111, 222])
-        time.sleep(0.1)  # Small delay to ensure different timestamps
-        later_time = time.time()
+
+        # Advance time and capture the timestamp
+        self.mock_time.advance(10.0)  # Advance by 10 seconds
+        later_time = self.mock_time.current_time
+
+        # Add members at later timestamp
         self.buf.push_to_sorted_set(key, [333, 444])
 
         # Try to delete members with score up to later_time
         # This should remove 111 and 222 (added before later_time)
-        # but not 333 and 444 (added after later_time)
+        # but not 333 and 444 (added after later_time, use older timestamp for them)
+        early_time = later_time - 5.0  # Before the later additions
         result = self.buf.conditional_delete_from_sorted_sets(
-            [key], [(111, later_time), (222, later_time), (333, later_time), (444, later_time)]
+            [key], [(111, later_time), (222, later_time), (333, early_time), (444, early_time)]
         )
 
         # Should have removed 111 and 222
@@ -194,7 +219,7 @@ class TestRedisHashSortedSetBuffer:
         self.buf.push_to_sorted_set(key, 555)
 
         # Try to delete with an older timestamp (should not delete)
-        old_time = time.time() - 10  # 10 seconds ago
+        old_time = self.mock_time.current_time - 10  # 10 seconds ago
         result = self.buf.conditional_delete_from_sorted_sets([key], [(555, old_time)])
 
         # Should not have removed anything
@@ -214,8 +239,9 @@ class TestRedisHashSortedSetBuffer:
         for key in keys:
             self.buf.push_to_sorted_set(key, [100, 200, 300])
 
-        # Get current time after all adds
-        later = time.time()
+        # Advance time after all adds
+        self.mock_time.advance(5.0)
+        later = self.mock_time.current_time
 
         # Delete specific members from all keys
         result = self.buf.conditional_delete_from_sorted_sets(keys, [(100, later), (200, later)])
@@ -237,7 +263,10 @@ class TestRedisHashSortedSetBuffer:
 
         # Add only some members
         self.buf.push_to_sorted_set(key, [111])
-        later = time.time()
+
+        # Advance time after adding data
+        self.mock_time.advance(5.0)
+        later = self.mock_time.current_time
 
         # Try to delete both existing and non-existing members
         result = self.buf.conditional_delete_from_sorted_sets(
@@ -260,9 +289,9 @@ class TestRedisHashSortedSetBuffer:
         key = "rb_fallback_test"
         self.buf.push_to_sorted_set(key, [100, 200])
 
-        # Give some time for scores to be set, then get a timestamp that's after the data
-        time.sleep(0.1)
-        later = time.time() + 1  # Set later to be after the data was added
+        # Advance time to get a timestamp after the data was added
+        self.mock_time.advance(10.0)
+        later = self.mock_time.current_time
 
         # Test conditional delete using rb.Cluster fallback
         result = self.buf.conditional_delete_from_sorted_sets([key], [(100, later), (200, later)])
