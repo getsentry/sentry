@@ -14,7 +14,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -50,6 +49,7 @@ import {
 } from 'sentry/utils/measurements/measurements';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
+import {getHasTag} from 'sentry/utils/tag';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';

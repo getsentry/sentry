@@ -356,7 +356,7 @@ const ERROR_SUPPORTED_TAGS = [
 
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
-export function datasetSupportedTags(
+function datasetSupportedTags(
   dataset: Dataset,
   org: Organization
 ): TagCollection | undefined {

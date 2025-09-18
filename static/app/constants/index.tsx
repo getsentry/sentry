@@ -587,7 +587,6 @@ export const DATA_CATEGORY_INFO = {
 
 // Special Search characters
 export const NEGATION_OPERATOR = '!';
-export const SEARCH_WILDCARD = '*';
 
 // SmartSearchBar settings
 export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
