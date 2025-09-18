@@ -3,8 +3,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class OrganizationTeamsListTest(APITestCase):

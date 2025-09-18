@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
 import {ExternalLink} from 'sentry/components/core/link';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusiness, IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {IconSize} from 'sentry/utils/theme/theme';
 
 type Props = {
   color?: string;
@@ -11,12 +12,17 @@ type Props = {
    * To match power icon
    */
   iconSize?: string;
+  isNewCheckout?: boolean;
 };
 
-function MoreFeaturesLink({color, iconSize}: Props) {
+function MoreFeaturesLink({color, iconSize, isNewCheckout}: Props) {
   return (
     <MoreLink href="https://sentry.io/pricing" color={color}>
-      <IconBusiness legacySize={iconSize} />
+      {isNewCheckout ? (
+        <IconCheckmark size={(iconSize as IconSize) ?? 'sm'} />
+      ) : (
+        <IconBusiness legacySize={iconSize} />
+      )}
       {t('And more...')}
     </MoreLink>
   );

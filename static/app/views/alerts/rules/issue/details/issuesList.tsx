@@ -16,7 +16,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
@@ -115,15 +114,7 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
                 <Count value={issue.count} />
               </AlignRight>
               <div>
-                <StyledDateTime
-                  date={getDynamicText({
-                    value: lastTriggered,
-                    fixed: 'Mar 16, 2020 9:10:13 AM UTC',
-                  })}
-                  year
-                  seconds
-                  timeZone
-                />
+                <StyledDateTime date={lastTriggered} year seconds timeZone />
               </div>
             </Fragment>
           );

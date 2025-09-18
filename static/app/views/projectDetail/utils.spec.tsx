@@ -5,14 +5,14 @@ import {
   isPlatformForegroundANRCompatible,
 } from './utils';
 
-describe('ProjectDetail Utils', function () {
-  describe('isPlatformANRCompatible', function () {
-    it('returns true for compatible platforms', function () {
+describe('ProjectDetail Utils', () => {
+  describe('isPlatformANRCompatible', () => {
+    it('returns true for compatible platforms', () => {
       expect(isPlatformANRCompatible('javascript-electron')).toBe(true);
       expect(isPlatformANRCompatible('android')).toBe(true);
     });
 
-    it('returns true for apple projects when the feature flag is enabled', function () {
+    it('returns true for apple projects when the feature flag is enabled', () => {
       expect(
         isPlatformANRCompatible('apple', ['project-detail-apple-app-hang-rate'])
       ).toBe(true);
@@ -22,17 +22,17 @@ describe('ProjectDetail Utils', function () {
       ).toBe(true);
     });
 
-    it('returns false for apple projects different feature flag is enabled', function () {
+    it('returns false for apple projects different feature flag is enabled', () => {
       expect(isPlatformANRCompatible('apple', ['empty'])).toBe(false);
 
       expect(isPlatformANRCompatible('apple', undefined)).toBe(false);
     });
 
-    it('returns false for apple projects when feature flags are undefined', function () {
+    it('returns false for apple projects when feature flags are undefined', () => {
       expect(isPlatformANRCompatible('apple', undefined)).toBe(false);
     });
 
-    it('returns false for incompatible platforms', function () {
+    it('returns false for incompatible platforms', () => {
       expect(isPlatformANRCompatible('python')).toBe(false);
       expect(isPlatformANRCompatible('node')).toBe(false);
       expect(isPlatformANRCompatible(undefined)).toBe(false);
@@ -41,13 +41,13 @@ describe('ProjectDetail Utils', function () {
     });
   });
 
-  describe('isPlatformForegroundANRCompatible', function () {
-    it('returns true for compatible platforms', function () {
+  describe('isPlatformForegroundANRCompatible', () => {
+    it('returns true for compatible platforms', () => {
       expect(isPlatformForegroundANRCompatible('javascript-electron')).toBe(true);
       expect(isPlatformForegroundANRCompatible('android')).toBe(true);
     });
 
-    it('returns false for incompatible platforms', function () {
+    it('returns false for incompatible platforms', () => {
       expect(isPlatformForegroundANRCompatible('apple')).toBe(false);
       expect(isPlatformForegroundANRCompatible('apple-ios')).toBe(false);
       expect(isPlatformForegroundANRCompatible('apple-macos')).toBe(false);
@@ -56,13 +56,13 @@ describe('ProjectDetail Utils', function () {
     });
   });
 
-  describe('getANRRateText', function () {
-    it('returns "App Hang Rate" for apple platforms', function () {
+  describe('getANRRateText', () => {
+    it('returns "App Hang Rate" for apple platforms', () => {
       expect(getANRRateText('apple')).toBe('App Hang Rate');
       expect(getANRRateText('apple-ios')).toBe('App Hang Rate');
     });
 
-    it('returns "ANR Rate" for other platforms', function () {
+    it('returns "ANR Rate" for other platforms', () => {
       expect(getANRRateText('apple-macos')).toBe('ANR Rate');
       expect(getANRRateText('android')).toBe('ANR Rate');
       expect(getANRRateText('javascript-electron')).toBe('ANR Rate');

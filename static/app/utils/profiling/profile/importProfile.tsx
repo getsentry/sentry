@@ -35,9 +35,7 @@ interface ImportOptions {
   activeThreadId?: string | null;
   continuous?: boolean;
   frameFilter?: (frame: Frame) => boolean;
-  profileIds?:
-    | Profiling.Schema['shared']['profiles']
-    | Profiling.Schema['shared']['profile_ids'];
+  profiles?: Profiling.Schema['shared']['profiles'];
 }
 
 export interface ProfileGroup {
@@ -231,7 +229,14 @@ function importSchema(
       : input.metadata.platform === 'javascript'
         ? 'javascript'
         : 'mobile',
-    input.shared.frames
+    input.shared.frames.map((frame, i) => {
+      const frameInfo = input.shared.frame_infos?.[i];
+      return {
+        ...frame,
+        count: frameInfo?.count,
+        weight: frameInfo?.weight,
+      };
+    })
   );
 
   return {
@@ -245,7 +250,7 @@ function importSchema(
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, {
         ...options,
-        profileIds: input.shared.profile_ids ?? input.shared.profiles,
+        profiles: input.shared.profiles,
       })
     ),
   };
@@ -561,7 +566,7 @@ function importSingleProfile(
     | ReturnType<typeof createFrameIndex>
     | ReturnType<typeof createContinuousProfileFrameIndex>
     | ReturnType<typeof createSentrySampleProfileFrameIndex>,
-  {span, type, frameFilter, profileIds}: ImportOptions
+  {span, type, frameFilter, profiles}: ImportOptions
 ): Profile {
   if (isSentryContinuousProfile(profile)) {
     const minTimestamp = minTimestampInChunk(profile);
@@ -610,14 +615,14 @@ function importSingleProfile(
       return SampledProfile.FromProfile(profile, frameIndex, {
         type,
         frameFilter,
-        profileIds,
+        profiles,
       });
     }
 
     return wrapWithSpan(
       span,
       () =>
-        SampledProfile.FromProfile(profile, frameIndex, {type, frameFilter, profileIds}),
+        SampledProfile.FromProfile(profile, frameIndex, {type, frameFilter, profiles}),
       {
         op: 'profile.import',
         description: 'sampled',
@@ -658,7 +663,7 @@ function importSingleProfile(
 const tryParseInputString: JSONParser = input => {
   try {
     return [JSON.parse(input), null];
-  } catch (e) {
+  } catch (e: any) {
     return [null, e];
   }
 };

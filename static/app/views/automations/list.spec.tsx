@@ -1,4 +1,8 @@
-import {AutomationFixture} from 'sentry-fixture/automations';
+import {
+  ActionFilterFixture,
+  ActionFixture,
+  AutomationFixture,
+} from 'sentry-fixture/automations';
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -18,10 +22,10 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
-describe('AutomationsList', function () {
+describe('AutomationsList', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
@@ -38,7 +42,7 @@ describe('AutomationsList', function () {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
   });
 
-  it('displays all automation info correctly', async function () {
+  it('displays all automation info correctly', async () => {
     render(<AutomationsList />, {organization});
     await screen.findByText('Automation 1');
 
@@ -52,7 +56,7 @@ describe('AutomationsList', function () {
     expect(within(row).getByText('1 monitor')).toBeInTheDocument();
   });
 
-  it('displays connected detectors', async function () {
+  it('displays connected detectors', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
@@ -81,7 +85,7 @@ describe('AutomationsList', function () {
     expect(await screen.findByText('project-1')).toBeInTheDocument();
   });
 
-  it('can filter by project', async function () {
+  it('can filter by project', async () => {
     const mockAutomationsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({name: 'Automation 1'})],
@@ -101,7 +105,7 @@ describe('AutomationsList', function () {
     );
   });
 
-  it('can sort the table', async function () {
+  it('can sort the table', async () => {
     const mockAutomationsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({name: 'Automation 1'})],
@@ -150,8 +154,8 @@ describe('AutomationsList', function () {
     expect(router.location.query.sort).toBe('-name');
   });
 
-  describe('search', function () {
-    it('can filter by action', async function () {
+  describe('search', () => {
+    it('can filter by action', async () => {
       const mockAutomationActionSlack = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         body: [AutomationFixture({name: 'Slack Automation'})],
@@ -171,8 +175,8 @@ describe('AutomationsList', function () {
     });
   });
 
-  describe('bulk actions', function () {
-    beforeEach(function () {
+  describe('bulk actions', () => {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
@@ -208,7 +212,7 @@ describe('AutomationsList', function () {
       );
     });
 
-    it('can select automations', async function () {
+    it('can select automations', async () => {
       render(<AutomationsList />, {organization});
       await screen.findByText('Enabled Automation');
 
@@ -254,7 +258,7 @@ describe('AutomationsList', function () {
       expect(screen.getByRole('button', {name: 'Delete'})).toBeInTheDocument();
     });
 
-    it('can enable selected automations with confirmation', async function () {
+    it('can enable selected automations with confirmation', async () => {
       const updateRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         method: 'PUT',
@@ -296,7 +300,7 @@ describe('AutomationsList', function () {
       });
     });
 
-    it('can disable selected automations with confirmation', async function () {
+    it('can disable selected automations with confirmation', async () => {
       const updateRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         method: 'PUT',
@@ -335,7 +339,7 @@ describe('AutomationsList', function () {
       });
     });
 
-    it('can delete selected automations with confirmation', async function () {
+    it('can delete selected automations with confirmation', async () => {
       const deleteRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         method: 'DELETE',
@@ -372,7 +376,7 @@ describe('AutomationsList', function () {
       });
     });
 
-    it('shows option to select all query results when page is selected', async function () {
+    it('shows option to select all query results when page is selected', async () => {
       const deleteRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         method: 'DELETE',
@@ -449,6 +453,91 @@ describe('AutomationsList', function () {
           })
         );
       });
+    });
+  });
+
+  describe('warning indicators', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/1/',
+        body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        body: [
+          // Automation with no actions - should show danger
+          AutomationFixture({
+            id: '1',
+            name: 'No Actions Automation',
+            actionFilters: [ActionFilterFixture({actions: []})],
+          }),
+          // Automation with all disabled actions - should show danger
+          AutomationFixture({
+            id: '2',
+            name: 'All Disabled Actions',
+            actionFilters: [
+              ActionFilterFixture({
+                actions: [ActionFixture({status: 'disabled'})],
+              }),
+            ],
+          }),
+          // Automation with mixed action statuses - should show warning
+          AutomationFixture({
+            id: '3',
+            name: 'Mixed Actions Status',
+            actionFilters: [
+              ActionFilterFixture({
+                actions: [ActionFixture({status: 'disabled'}), ActionFixture()],
+              }),
+            ],
+          }),
+        ],
+      });
+    });
+
+    it('shows different warning messages for different action states', async () => {
+      render(<AutomationsList />, {organization});
+      await screen.findByText('No Actions Automation');
+      await screen.findByText('All Disabled Actions');
+      await screen.findByText('Mixed Actions Status');
+
+      const rows = screen.getAllByTestId('automation-list-row');
+      expect(rows).toHaveLength(3);
+
+      // Test first automation (no actions) - should show "Invalid" and danger tooltip
+      const noActionsRow = rows.find(row =>
+        within(row).queryByText('No Actions Automation')
+      )!;
+      expect(within(noActionsRow).getByText('Invalid')).toBeInTheDocument();
+      const noActionsIcon = within(noActionsRow).getByRole('img');
+      await userEvent.hover(noActionsIcon);
+      expect(
+        await screen.findByText('You must add an action for this automation to run.')
+      ).toBeInTheDocument();
+
+      // Test second automation (all disabled) - should show "Invalid" and danger tooltip
+      const allDisabledRow = rows.find(row =>
+        within(row).queryByText('All Disabled Actions')
+      )!;
+      expect(within(allDisabledRow).getByText('Invalid')).toBeInTheDocument();
+      const allDisabledIcon = within(allDisabledRow).getByRole('img');
+      await userEvent.hover(allDisabledIcon);
+      expect(
+        await screen.findByText(
+          'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+        )
+      ).toBeInTheDocument();
+
+      // Test third automation (mixed) - should NOT show "Invalid" but show warning tooltip
+      const mixedRow = rows.find(row => within(row).queryByText('Mixed Actions Status'))!;
+      expect(within(mixedRow).queryByText('Invalid')).not.toBeInTheDocument();
+      const mixedIcon = within(mixedRow).getByRole('img');
+      await userEvent.hover(mixedIcon);
+      expect(
+        await screen.findByText(
+          'One or more actions need to be reconfigured in order to run.'
+        )
+      ).toBeInTheDocument();
     });
   });
 });

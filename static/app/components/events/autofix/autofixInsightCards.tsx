@@ -711,7 +711,7 @@ const VerticalLine = styled('div')`
   transform: translateX(-50%);
   top: 0;
   bottom: 0;
-  width: 2px;
+  width: 1px;
   background-color: ${p => p.theme.subText};
   transition: background-color 0.2s ease;
   z-index: 0;
@@ -757,6 +757,10 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
   flex: 1;
   word-break: break-word;
   color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
+
+  code {
+    color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
+  }
 `;
 
 const ContextBody = styled('div')`

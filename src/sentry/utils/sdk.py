@@ -269,6 +269,13 @@ def before_send(event: Event, hint: Hint) -> Event | None:
 
 
 def before_send_log(log: Log, _: Hint) -> Log | None:
+    attributes = log.get("attributes")
+    if attributes is not None:
+        # This is a coming from arroyo and creating high cardinality of attribute names like
+        # `Partition(topic=Topic(name='...'), index=...)`
+        if attributes.get("sentry.message.template") == "New partitions assigned: %r":
+            return None
+
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None

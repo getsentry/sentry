@@ -475,11 +475,23 @@ urlpatterns += [
         react_page_view,
         name="sentry-admin-overview",
     ),
+    # Admin UI (for local dev)
+    re_path(
+        r"^_admin/",
+        react_page_view,
+        name="sentry-admin-ui",
+    ),
     # Story book
     re_path(
         r"^stories/",
         react_page_view,
         name="stories",
+    ),
+    # Notification Debugger
+    re_path(
+        r"^debug/notifications/",
+        react_page_view,
+        name="debug-notifications",
     ),
     # Rollback
     re_path(
@@ -965,6 +977,12 @@ urlpatterns += [
         react_page_view,
         name="feedback-details",
     ),
+    # Prevent (Codecov features)
+    re_path(
+        r"^prevent/",
+        react_page_view,
+        name="prevent",
+    ),
     # Data Export
     re_path(
         r"^data-export/",
@@ -1302,6 +1320,10 @@ urlpatterns += [
                 re_path(
                     r"^discord/",
                     include("sentry.integrations.discord.urls"),
+                ),
+                re_path(
+                    r"^cursor/",
+                    include("sentry.integrations.cursor.urls"),
                 ),
             ]
         ),

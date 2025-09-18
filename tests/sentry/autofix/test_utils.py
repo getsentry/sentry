@@ -14,6 +14,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_scanner_rate_limited,
 )
+from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
@@ -50,7 +51,12 @@ class TestGetAutofixStateFromPrId(TestCase):
         mock_response.json.return_value = {
             "state": {
                 "run_id": 123,
-                "request": {"project_id": 456, "issue": {"id": 789}},
+                "request": {
+                    "project_id": 456,
+                    "organization_id": 999,
+                    "issue": {"id": 789, "title": "Test Issue"},
+                    "repos": [],
+                },
                 "updated_at": "2023-07-18T12:00:00Z",
                 "status": "PROCESSING",
             }
@@ -62,7 +68,12 @@ class TestGetAutofixStateFromPrId(TestCase):
         # Assertions
         assert result is not None
         assert result.run_id == 123
-        assert result.request == {"project_id": 456, "issue": {"id": 789}}
+        assert result.request == {
+            "project_id": 456,
+            "organization_id": 999,
+            "issue": {"id": 789, "title": "Test Issue"},
+            "repos": [],
+        }
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.PROCESSING
 
@@ -109,19 +120,29 @@ class TestGetAutofixState(TestCase):
             "group_id": 123,
             "state": {
                 "run_id": 456,
-                "request": {"project_id": 789, "issue": {"id": 123}},
+                "request": {
+                    "project_id": 789,
+                    "organization_id": 999,
+                    "issue": {"id": 123, "title": "Test Issue"},
+                    "repos": [],
+                },
                 "updated_at": "2023-07-18T12:00:00Z",
                 "status": "PROCESSING",
             },
         }
 
         # Call the function
-        result = get_autofix_state(group_id=123)
+        result = get_autofix_state(group_id=123, organization_id=999)
 
         # Assertions
         assert isinstance(result, AutofixState)
         assert result.run_id == 456
-        assert result.request == {"project_id": 789, "issue": {"id": 123}}
+        assert result.request == {
+            "project_id": 789,
+            "organization_id": 999,
+            "issue": {"id": 123, "title": "Test Issue"},
+            "repos": [],
+        }
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.PROCESSING
 
@@ -140,19 +161,29 @@ class TestGetAutofixState(TestCase):
             "run_id": 456,
             "state": {
                 "run_id": 456,
-                "request": {"project_id": 789, "issue": {"id": 123}},
+                "request": {
+                    "project_id": 789,
+                    "organization_id": 999,
+                    "issue": {"id": 123, "title": "Test Issue"},
+                    "repos": [],
+                },
                 "updated_at": "2023-07-18T12:00:00Z",
                 "status": "COMPLETED",
             },
         }
 
         # Call the function
-        result = get_autofix_state(run_id=456)
+        result = get_autofix_state(run_id=456, organization_id=999)
 
         # Assertions
         assert isinstance(result, AutofixState)
         assert result.run_id == 456
-        assert result.request == {"project_id": 789, "issue": {"id": 123}}
+        assert result.request == {
+            "project_id": 789,
+            "organization_id": 999,
+            "issue": {"id": 123, "title": "Test Issue"},
+            "repos": [],
+        }
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.COMPLETED
 
@@ -170,7 +201,7 @@ class TestGetAutofixState(TestCase):
         mock_response.json.return_value = {}
 
         # Call the function
-        result = get_autofix_state(group_id=123)
+        result = get_autofix_state(group_id=123, organization_id=999)
 
         # Assertions
         assert result is None
@@ -183,10 +214,34 @@ class TestGetAutofixState(TestCase):
 
         # Call the function and expect an exception
         with pytest.raises(Exception) as context:
-            get_autofix_state(group_id=123)
+            get_autofix_state(group_id=123, organization_id=999)
 
         # Assertions
         assert "HTTP Error" in str(context.value)
+
+    @patch("requests.post")
+    def test_get_autofix_state_raises_on_org_id_mismatch(self, mock_post: MagicMock) -> None:
+        # Setup mock response where returned state has a different organization_id
+        mock_response = mock_post.return_value
+        mock_response.raise_for_status = lambda: None
+        mock_response.json.return_value = {
+            "group_id": 123,
+            "state": {
+                "run_id": 456,
+                "request": {
+                    "project_id": 789,
+                    "organization_id": 111,  # mismatched org id
+                    "issue": {"id": 123, "title": "Test Issue"},
+                    "repos": [],
+                },
+                "updated_at": "2023-07-18T12:00:00Z",
+                "status": "PROCESSING",
+            },
+        }
+
+        # Expect SeerPermissionError due to org id mismatch
+        with pytest.raises(SeerPermissionError):
+            get_autofix_state(group_id=123, organization_id=999)
 
 
 class TestAutomationRateLimiting(TestCase):

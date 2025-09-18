@@ -25,7 +25,7 @@ class OrganizationAccessRequest(Model):
 
     __repr__ = sane_repr("team_id", "member_id")
 
-    def send_request_email(self):
+    def send_request_email(self) -> None:
         from sentry.models.organizationmember import OrganizationMember
         from sentry.utils.email import MessageBuilder
 
@@ -78,7 +78,7 @@ class OrganizationAccessRequest(Model):
 
         msg.send_async([user.email for user in member_users])
 
-    def send_approved_email(self):
+    def send_approved_email(self) -> None:
         from sentry.utils.email import MessageBuilder
 
         if self.member.user_id is None:

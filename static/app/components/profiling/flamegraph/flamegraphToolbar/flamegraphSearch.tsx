@@ -225,7 +225,7 @@ function sortFrameResults(
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
   let sid = -1;
-  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.frames.size);
+  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.spans.size);
   for (const n of results.spans.values()) {
     spans[++sid] = n.span;
   }
@@ -410,10 +410,10 @@ function FlamegraphSearch({
 
   const handleKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
-      if (evt.key === 'ArrowDown') {
+      if (evt.key === 'ArrowDown' || (!evt.shiftKey && evt.key === 'Enter')) {
         evt.preventDefault();
         onNextSearchClick();
-      } else if (evt.key === 'ArrowUp') {
+      } else if (evt.key === 'ArrowUp' || (evt.shiftKey && evt.key === 'Enter')) {
         evt.preventDefault();
         onPreviousSearchClick();
       }

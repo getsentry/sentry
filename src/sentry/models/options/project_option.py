@@ -67,6 +67,7 @@ OPTION_KEYS = frozenset(
         "sentry:uptime_autodetection",
         "sentry:autofix_automation_tuning",
         "sentry:seer_scanner_automation",
+        "sentry:debug_files_role",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",

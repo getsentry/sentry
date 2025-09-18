@@ -6,24 +6,34 @@ import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useInfiniteRepositories} from 'sentry/components/prevent/repoSelector/useInfiniteRepositories';
 import {IconInfo, IconSync} from 'sentry/icons';
+import {IconRepository} from 'sentry/icons/iconRepository';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import {IconRepository} from './iconRepository';
+import {useSyncRepos} from './useSyncRepos';
 
-function SyncRepoButton() {
+function SyncRepoButton({searchValue}: {searchValue?: string}) {
+  const {triggerResync, isSyncing} = useSyncRepos({searchValue});
+
+  if (isSyncing) {
+    return <StyledLoadingIndicator size={12} />;
+  }
+
   return (
     <StyledButtonContainer>
       <StyledButton
         borderless
         aria-label={t('Sync Now')}
-        // TODO: Adjust when sync endpoint is ready
-        onClick={() => {}}
+        onClick={() => triggerResync()}
         size="xs"
         icon={<IconSync />}
       >
@@ -45,8 +55,11 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
         {tct(
           "Sentry only displays repos you've authorized. Manage [repoAccessLink] in your GitHub settings.",
           {
-            // TODO: adjust link when backend gives specific GH installation
-            repoAccessLink: <Link to={repoAccessLink}>repo access</Link>,
+            repoAccessLink: (
+              <ExternalLink openInNewTab href={repoAccessLink}>
+                repo access
+              </ExternalLink>
+            ),
           }
         )}
       </span>
@@ -57,8 +70,31 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 export function RepoSelector() {
   const {repository, integratedOrgId, preventPeriod, changeContextValue} =
     usePreventContext();
+  const [displayedRepos, setDisplayedRepos] = useState<string[]>([]);
+  const organization = useOrganization();
+
   const [searchValue, setSearchValue] = useState<string | undefined>();
-  const {data: repositories} = useInfiniteRepositories({term: searchValue});
+  const {
+    data: repositories,
+    isFetching,
+    isLoading,
+  } = useInfiniteRepositories({term: searchValue});
+
+  const {data: integrations = []} = useApiQuery<OrganizationIntegration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/`,
+      {query: {includeConfig: 0, provider_key: 'github'}},
+    ],
+    {staleTime: 0}
+  );
+
+  const currentOrgGHIntegration = integrations.find(
+    integration => integration.id === integratedOrgId
+  );
+  const currentOrgGHIntegrationExternalId = currentOrgGHIntegration?.externalId;
+  const currentOrgGHIntegrationRepoAccessLink = currentOrgGHIntegrationExternalId
+    ? `https://github.com/settings/installations/${currentOrgGHIntegrationExternalId}/permissions/update`
+    : 'https://github.com/settings/installations/';
 
   const disabled = !integratedOrgId;
 
@@ -77,16 +113,12 @@ export function RepoSelector() {
     () =>
       debounce((value: string) => {
         setSearchValue(value);
-      }, 500),
+      }, 300),
     [setSearchValue]
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    // TODO: When API is ready, replace placeholder w/ api response
-    const repoSet = new Set([
-      ...(repository ? [repository] : []),
-      ...(repositories.length > 0 ? repositories.map(item => item.name) : []),
-    ]);
+    const repoSet = new Set([...(repository ? [repository] : []), ...displayedRepos]);
 
     return [...repoSet].map((value): SelectOption<string> => {
       return {
@@ -97,7 +129,26 @@ export function RepoSelector() {
         textValue: value,
       };
     });
-  }, [repository, repositories]);
+  }, [displayedRepos, repository]);
+
+  function getEmptyMessage() {
+    if (isFetching) {
+      return t('Getting repositories...');
+    }
+
+    if (searchValue && !repositories?.length) {
+      return t('No repositories found. Please enter at least 3 characters to search.');
+    }
+
+    return t('No repositories found');
+  }
+
+  useEffect(() => {
+    // Only update displayedRepos if the hook returned something non-empty
+    if (!isFetching) {
+      setDisplayedRepos((repositories ?? []).map(item => item.name));
+    }
+  }, [isFetching, repositories]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
@@ -108,19 +159,20 @@ export function RepoSelector() {
 
   return (
     <CompactSelect
+      loading={isLoading}
       onSearch={handleOnSearch}
       searchable
+      disableSearchFilter
       searchPlaceholder={t('search by repository name')}
       options={options}
       value={repository ?? ''}
       onChange={handleChange}
+      onOpenChange={_ => setSearchValue(undefined)}
       menuWidth={'16rem'}
-      menuBody={<SyncRepoButton />}
-      menuFooter={<MenuFooter repoAccessLink="placeholder" />}
+      menuBody={<SyncRepoButton searchValue={searchValue} />}
+      menuFooter={<MenuFooter repoAccessLink={currentOrgGHIntegrationRepoAccessLink} />}
       disabled={disabled}
-      emptyMessage={
-        'No repositories found. Please enter at least 3 characters to search.'
-      }
+      emptyMessage={getEmptyMessage()}
       trigger={(triggerProps, isOpen) => {
         const defaultLabel = options.some(item => item.value === repository)
           ? repository
@@ -195,4 +247,10 @@ const OptionLabel = styled('span')`
 const IconContainer = styled('div')`
   flex: 1 0 14px;
   height: 14px;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  && {
+    margin: ${p => p.theme.space.lg};
+  }
 `;

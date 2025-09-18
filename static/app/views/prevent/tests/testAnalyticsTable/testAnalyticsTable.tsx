@@ -12,11 +12,14 @@ import {renderTableHeader} from 'sentry/views/prevent/tests/testAnalyticsTable/t
 
 type TestAnalyticsTableResponse = {
   averageDurationMs: number;
-  commitsFailed: number;
   flakeRate: number;
   isBrokenTest: boolean;
   lastRun: string;
   testName: string;
+  totalFailCount: number;
+  totalFlakyFailCount: number;
+  totalPassCount: number;
+  totalSkipCount: number;
 };
 
 export type Row = Pick<
@@ -24,12 +27,15 @@ export type Row = Pick<
   | 'testName'
   | 'averageDurationMs'
   | 'flakeRate'
-  | 'commitsFailed'
   | 'lastRun'
   | 'isBrokenTest'
+  | 'totalFailCount'
+  | 'totalFlakyFailCount'
+  | 'totalPassCount'
+  | 'totalSkipCount'
 >;
 export type Column = GridColumnHeader<
-  'testName' | 'averageDurationMs' | 'flakeRate' | 'commitsFailed' | 'lastRun'
+  'testName' | 'averageDurationMs' | 'flakeRate' | 'totalFailCount' | 'lastRun'
 >;
 
 export type ValidSort = Sort & {
@@ -40,28 +46,28 @@ const COLUMNS_ORDER: Column[] = [
   {key: 'testName', name: t('Test Name'), width: COL_WIDTH_UNDEFINED},
   {key: 'averageDurationMs', name: t('Avg. Duration'), width: COL_WIDTH_UNDEFINED},
   {key: 'flakeRate', name: t('Flake Rate'), width: COL_WIDTH_UNDEFINED},
-  {key: 'commitsFailed', name: t('Commits Failed'), width: COL_WIDTH_UNDEFINED},
+  {key: 'totalFailCount', name: t('Runs Failed'), width: COL_WIDTH_UNDEFINED},
   {key: 'lastRun', name: t('Last Run'), width: COL_WIDTH_UNDEFINED},
 ];
 
 export const RIGHT_ALIGNED_FIELDS = new Set([
   'averageDurationMs',
   'flakeRate',
-  'commitsFailed',
+  'totalFailCount',
 ]);
 
 export type SortableTAOptions =
   | 'testName'
   | 'averageDurationMs'
   | 'flakeRate'
-  | 'commitsFailed'
+  | 'totalFailCount'
   | 'lastRun';
 
 export const SORTABLE_FIELDS: SortableTAOptions[] = [
   'testName',
   'averageDurationMs',
   'flakeRate',
-  'commitsFailed',
+  'totalFailCount',
   'lastRun',
 ] as const;
 

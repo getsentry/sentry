@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
@@ -24,7 +26,13 @@ class IncidentPermission(OrganizationPermission):
 
 
 class IncidentEndpoint(OrganizationEndpoint):
-    def convert_args(self, request: Request, incident_identifier, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        incident_identifier: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
 

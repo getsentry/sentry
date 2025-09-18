@@ -10,7 +10,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
-describe('getIssueFieldRenderer', function () {
+describe('getIssueFieldRenderer', () => {
   let location: any,
     context: any,
     project: any,
@@ -19,7 +19,7 @@ describe('getIssueFieldRenderer', function () {
     data: any,
     user: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     context = initializeOrg({
       organization,
       router: {},
@@ -78,7 +78,7 @@ describe('getIssueFieldRenderer', function () {
   });
 
   describe('Issue fields', () => {
-    it('can render assignee', async function () {
+    it('can render assignee', async () => {
       MemberListStore.loadInitialData([
         UserFixture({
           name: 'Test User',
@@ -113,7 +113,7 @@ describe('getIssueFieldRenderer', function () {
       expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
     });
 
-    it('can render counts', async function () {
+    it('can render counts', async () => {
       const renderer = getIssueFieldRenderer('events', {});
 
       render(
@@ -132,7 +132,7 @@ describe('getIssueFieldRenderer', function () {
     });
   });
 
-  it('can render links', function () {
+  it('can render links', () => {
     const renderer = getIssueFieldRenderer('links', {});
 
     render(
@@ -145,7 +145,7 @@ describe('getIssueFieldRenderer', function () {
     expect(screen.getByText('ANNO-123')).toBeInTheDocument();
   });
 
-  it('can render multiple links', function () {
+  it('can render multiple links', () => {
     const renderer = getIssueFieldRenderer('links', {});
 
     render(

@@ -16,7 +16,7 @@ control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
 
 
-def mock_finalize_request(prepared_request: PreparedRequest):
+def mock_finalize_request(prepared_request: PreparedRequest) -> PreparedRequest:
     prepared_request.headers["Authorization"] = f"JWT {mock_jwt}"
     return prepared_request
 

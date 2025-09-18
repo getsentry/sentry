@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, Mock, call, patch
 import pytest
 
 from sentry import projectoptions
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceNPlusOneGroupType,
@@ -20,6 +19,7 @@ from sentry.performance_issues.performance_detection import (
     get_detection_settings,
 )
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -460,7 +460,11 @@ class PerformanceDetectionTest(TestCase):
             call(
                 "performance.performance_issue.uncompressed_assets",
                 1,
-                tags={"op_resource.script": True, "is_standalone_spans": False},
+                tags={
+                    "op_resource.script": True,
+                    "is_standalone_spans": False,
+                    "is_creation_allowed": True,
+                },
             )
             in incr_mock.mock_calls
         )

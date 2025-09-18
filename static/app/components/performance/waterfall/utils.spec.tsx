@@ -4,21 +4,21 @@ import {makeBarColors, pickBarColor} from 'sentry/components/performance/waterfa
 
 const theme = ThemeFixture();
 
-describe('pickBarColor()', function () {
-  it('returns blue when undefined', function () {
+describe('pickBarColor()', () => {
+  it('returns blue when undefined', () => {
     expect(pickBarColor(undefined, theme)).toEqual(makeBarColors(theme).default);
   });
 
-  it('returns the predefined color when available', function () {
+  it('returns the predefined color when available', () => {
     expect(pickBarColor('transaction', theme)).toEqual(makeBarColors(theme).transaction);
   });
 
-  it('returns blue when the string is too short', function () {
+  it('returns blue when the string is too short', () => {
     expect(pickBarColor('', theme)).toEqual(makeBarColors(theme).default);
     expect(pickBarColor('c', theme)).toEqual(makeBarColors(theme).default);
   });
 
-  it('returns a random color when no predefined option is available', function () {
+  it('returns a random color when no predefined option is available', () => {
     const colorsAsArray = Object.keys(theme.chart.colors).map(
       key => theme.chart.colors[17][key as keyof typeof theme.chart.colors]
     );

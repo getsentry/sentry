@@ -62,7 +62,7 @@ function ChangeDatesModal({
       });
 
       closeModal();
-    } catch (err) {
+    } catch (err: any) {
       onSubmitError({
         responseJSON: err.responseJSON,
       });

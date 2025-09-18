@@ -9,28 +9,32 @@ import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSelector/useInfiniteRepositoryBranches';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {IconBranch} from './iconBranch';
-
-export const ALL_BRANCHES = 'All Branches';
+const ALL_BRANCHES = 'All Branches';
 
 export function BranchSelector() {
   const {branch, integratedOrgId, repository, preventPeriod, changeContextValue} =
     usePreventContext();
+  const [displayedBranches, setDisplayedBranches] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState<string | undefined>();
-  const {data} = useInfiniteRepositoryBranches({term: searchValue});
+
+  const {data, isFetching, isLoading} = useInfiniteRepositoryBranches({
+    term: searchValue,
+  });
   const branches = data.branches;
-  const defaultBranch = data.defaultBranch;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
+      const newBranch =
+        selectedOption.value === ALL_BRANCHES ? null : selectedOption.value;
       changeContextValue({
         integratedOrgId,
         repository,
         preventPeriod,
-        branch: selectedOption.value,
+        branch: newBranch,
       });
     },
     [changeContextValue, integratedOrgId, repository, preventPeriod]
@@ -40,15 +44,19 @@ export function BranchSelector() {
     () =>
       debounce((value: string) => {
         setSearchValue(value);
-      }, 500),
+      }, 300),
     [setSearchValue]
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
+    if (isFetching) {
+      return [];
+    }
+
     const optionSet = new Set<string>([
-      ...[ALL_BRANCHES],
+      ALL_BRANCHES,
       ...(branch ? [branch] : []),
-      ...(branches.length > 0 ? branches.map(item => item.name) : []),
+      ...displayedBranches,
     ]);
 
     const makeOption = (value: string): SelectOption<string> => {
@@ -60,7 +68,14 @@ export function BranchSelector() {
     };
 
     return [...optionSet].map(makeOption);
-  }, [branch, branches]);
+  }, [branch, displayedBranches, isFetching]);
+
+  useEffect(() => {
+    // Only update displayedBranches if the hook returned something non-empty
+    if (!isFetching) {
+      setDisplayedBranches((branches ?? []).map(item => item.name));
+    }
+  }, [branches, isFetching]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
@@ -71,39 +86,59 @@ export function BranchSelector() {
 
   const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
-      if (!defaultBranch || !branch || branch === defaultBranch) {
+      if (!branch || branch === ALL_BRANCHES) {
         return null;
       }
 
       return (
         <ResetButton
           onClick={() => {
-            changeContextValue({branch: defaultBranch});
+            changeContextValue({
+              integratedOrgId,
+              repository,
+              preventPeriod,
+              branch: null,
+            });
             closeOverlay();
           }}
           size="zero"
           borderless
         >
-          {t('Reset to default')}
+          {t('Reset to all branches')}
         </ResetButton>
       );
     },
-    [branch, changeContextValue, defaultBranch]
+    [branch, integratedOrgId, preventPeriod, repository, changeContextValue]
   );
+
+  function getEmptyMessage() {
+    if (isFetching) {
+      return t('Getting branches...');
+    }
+
+    if (searchValue && !displayedBranches.length) {
+      return t('Sorry, no branches match your search query');
+    }
+
+    return t('No branches found');
+  }
 
   const disabled = !repository;
 
   return (
     <CompactSelect
+      loading={isLoading}
       searchable
       onSearch={handleOnSearch}
+      disableSearchFilter
       searchPlaceholder={t('search by branch name')}
       options={options}
-      value={branch ?? ''}
+      value={branch ?? ALL_BRANCHES}
       onChange={handleChange}
+      onOpenChange={_ => setSearchValue(undefined)}
       menuHeaderTrailingItems={branchResetButton}
       disabled={disabled}
-      emptyMessage={'No branches found'}
+      emptyMessage={getEmptyMessage()}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
         return (

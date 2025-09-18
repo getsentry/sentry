@@ -6,6 +6,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
@@ -19,6 +20,9 @@ const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</d
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
+jest.mock('sentry/views/dashboards/createLimitWrapper');
+
+const mockDashboardCreateLimitWrapper = jest.mocked(DashboardCreateLimitWrapper);
 
 describe('add to dashboard modal', () => {
   let eventsStatsMock!: jest.Mock;
@@ -77,6 +81,18 @@ describe('add to dashboard modal', () => {
   beforeEach(() => {
     initialData = initializeOrg();
 
+    // Default behaviour for dashboard create limit wrapper
+    mockDashboardCreateLimitWrapper.mockImplementation(({children}: {children: any}) =>
+      typeof children === 'function'
+        ? children({
+            hasReachedDashboardLimit: false,
+            dashboardsLimit: 0,
+            isLoading: false,
+            limitMessage: null,
+          })
+        : children
+    );
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [
@@ -111,7 +127,7 @@ describe('add to dashboard modal', () => {
     jest.clearAllMocks();
   });
 
-  it('renders with the widget title and description', async function () {
+  it('renders with the widget title and description', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -142,7 +158,7 @@ describe('add to dashboard modal', () => {
     expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeDisabled();
   });
 
-  it('enables the buttons when a dashboard is selected', async function () {
+  it('enables the buttons when a dashboard is selected', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -171,7 +187,7 @@ describe('add to dashboard modal', () => {
     expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeEnabled();
   });
 
-  it('includes a New Dashboard option in the selector with saved dashboards', async function () {
+  it('includes a New Dashboard option in the selector with saved dashboards', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -196,7 +212,7 @@ describe('add to dashboard modal', () => {
     expect(screen.getByText('Test Dashboard')).toBeInTheDocument();
   });
 
-  it('applies dashboard saved filters to visualization', async function () {
+  it('applies dashboard saved filters to visualization', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -249,7 +265,7 @@ describe('add to dashboard modal', () => {
     );
   });
 
-  it('calls the events stats endpoint with the query and selection values', async function () {
+  it('calls the events stats endpoint with the query and selection values', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -630,5 +646,56 @@ describe('add to dashboard modal', () => {
     await userEvent.click(screen.getByText('Select Dashboard'));
     expect(screen.getByText('Other Dashboard')).toBeInTheDocument();
     expect(screen.queryByText('Test Dashboard')).not.toBeInTheDocument();
+  });
+
+  it('disables "Create New Dashboard" option when dashboard limit is reached', async () => {
+    // Override the mock for this specific test
+    mockDashboardCreateLimitWrapper.mockImplementation(({children}: {children: any}) =>
+      typeof children === 'function'
+        ? children({
+            hasReachedDashboardLimit: true,
+            dashboardsLimit: 5,
+            isLoading: false,
+            limitMessage:
+              'You have reached the dashboard limit (5) for your plan. Upgrade to create more dashboards.',
+          })
+        : children
+    );
+
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        location={LocationFixture()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+
+    // Open the dropdown to see the options
+    await selectEvent.openMenu(screen.getByText('Select Dashboard'));
+
+    // Check that "Create New Dashboard" option exists but is disabled
+    const createNewOption = await screen.findByRole('menuitemradio', {
+      name: '+ Create New Dashboard',
+    });
+    expect(createNewOption).toBeInTheDocument();
+    expect(createNewOption).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(screen.getByText('+ Create New Dashboard'));
+    expect(
+      await screen.findByText(
+        'You have reached the dashboard limit (5) for your plan. Upgrade to create more dashboards.'
+      )
+    ).toBeInTheDocument();
   });
 });

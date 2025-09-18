@@ -20,6 +20,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiRetryError,
     ApiUnauthorized,
     IntegrationError,
@@ -29,7 +30,9 @@ from sentry.users.models.identity import Identity
 
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
@@ -108,8 +111,8 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.integration_name,
-            organization=self.organization,
-            org_integration=self.org_integration,
+            organization_id=self.organization.id,
+            integration_id=self.org_integration.integration_id,
         )
 
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
@@ -152,7 +155,10 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             except ApiUnauthorized as e:
                 lifecycle.record_halt(e)
                 return None
-
+            except ApiForbiddenError as e:
+                lifecycle.record_halt(e)
+                # Need to re-raise since 403 errors will be returned to user via get_link
+                raise
             except ApiError as e:
                 if e.code in (404, 400):
                     lifecycle.record_halt(e)
@@ -168,7 +174,6 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     lifecycle.record_halt(e)
                     return None
                 else:
-                    sentry_sdk.capture_exception()
                     raise
 
             return self.format_source_url(repo, filepath, branch)
@@ -218,7 +223,13 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     return encode_url(source_url)
 
             scope.set_tag("stacktrace_link.used_version", False)
-            source_url = self.check_file(repo, filepath, default)
+            try:
+                source_url = self.check_file(repo, filepath, default)
+            except ApiForbiddenError as e:
+                # Similar to the `check_file` implementation, we need to re-raise
+                # for 403 errors as these need to be propagated to the user.
+                lifecycle.record_halt(e)
+                raise
             return encode_url(source_url) if source_url else None
 
     def get_codeowner_file(

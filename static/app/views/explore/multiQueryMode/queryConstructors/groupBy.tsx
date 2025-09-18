@@ -19,13 +19,15 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function GroupBySection({query, index}: Props) {
-  const {tags} = useTraceItemTags();
+  const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
   const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
     groupBys: [],
-    tags,
+    numberTags,
+    stringTags,
     traceItemType: TraceItemDataset.SPANS,
     hideEmptyOption: true,
   });

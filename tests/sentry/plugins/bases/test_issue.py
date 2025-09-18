@@ -11,7 +11,7 @@ from social_auth.models import UserSocialAuth
 
 @control_silo_test
 class GetAuthForUserTest(TestCase):
-    def _get_mock_user(self):
+    def _get_mock_user(self) -> mock.Mock:
         user = mock.Mock(spec=User(id=1))
         user.is_authenticated = False
         return user

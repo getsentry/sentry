@@ -75,6 +75,7 @@ export default function ProjectCreationModal({
           ...selectedPlatform,
           key: selectedPlatform.id,
         },
+        origin: 'project-creation',
         onClose: () => {
           openProjectCreationModal({
             defaultCategory: selectedPlatform.category,

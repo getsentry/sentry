@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 from django.test import override_settings
 from pytest import fixture
 
@@ -47,7 +49,6 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["stacktraceOrder"] == int(StacktraceOrder.DEFAULT)
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
-        assert not resp.data["options"]["prefersStackedNavigation"]
         assert not resp.data["options"]["prefersChonkUI"]
 
     def test_superuser_simple(self) -> None:
@@ -120,7 +121,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
                 "prefersNextjsInsightsOverview": True,
-                "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
             },
         )
@@ -144,7 +144,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(
             user=self.user, key="prefers_issue_details_streamlined_ui"
         )
-        assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
         assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
         assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
 
@@ -364,7 +363,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
     @fixture(autouse=True)
-    def _activate_staff_mode(self):
+    def _activate_staff_mode(self) -> Generator[None]:
         with override_options({"staff.ga-rollout": True}):
             yield
 

@@ -48,7 +48,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
         self.feature_context.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Exit the feature flag context manager
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
@@ -81,7 +81,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 404
-        assert "not found" in response.json()["error"]
+        assert "The requested head preprod artifact does not exist" in response.json()["detail"]
 
     def test_get_build_details_feature_flag_disabled(self) -> None:
         with self.feature({"organizations:preprod-frontend-routes": False}):

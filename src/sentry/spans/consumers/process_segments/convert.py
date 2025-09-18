@@ -8,7 +8,7 @@ from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
-from sentry.spans.consumers.process_segments.enrichment import Span
+from sentry.spans.consumers.process_segments.types import CompatibleSpan
 
 I64_MAX = 2**63 - 1
 
@@ -31,7 +31,7 @@ FIELD_TO_ATTRIBUTE = {
 }
 
 
-def convert_span_to_item(span: Span) -> TraceItem:
+def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     attributes: MutableMapping[str, AnyValue] = {}  # TODO
 
     client_sample_rate = 1.0
@@ -43,28 +43,17 @@ def convert_span_to_item(span: Span) -> TraceItem:
                 attributes[k] = _anyvalue(v)
             except Exception:
                 sentry_sdk.capture_exception()
-
-    for k, v in (span.get("measurements") or {}).items():
-        if k is not None and v is not None:
-            if k == "client_sample_rate":
-                client_sample_rate = v["value"]
-            elif k == "server_sample_rate":
-                server_sample_rate = v["value"]
             else:
-                attributes[k] = AnyValue(double_value=float(v["value"]))
-
-    for k, v in (span.get("sentry_tags") or {}).items():
-        if v is not None:
-            if k == "description":
-                k = "sentry.normalized_description"
-            else:
-                k = f"sentry.{k}"
-
-            attributes[k] = AnyValue(string_value=str(v))
-
-    for k, v in (span.get("tags") or {}).items():
-        if v is not None:
-            attributes[k] = AnyValue(string_value=str(v))
+                if k == "sentry.client_sample_rate":
+                    try:
+                        client_sample_rate = float(v)
+                    except ValueError:
+                        pass
+                elif k == "sentry.server_sample_rate":
+                    try:
+                        server_sample_rate = float(v)
+                    except ValueError:
+                        pass
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
         v = span.get(field_name)
@@ -90,6 +79,7 @@ def convert_span_to_item(span: Span) -> TraceItem:
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
         retention_days=span["retention_days"],
+        downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),
     )
 

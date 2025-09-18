@@ -3,7 +3,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import type {Client} from 'sentry/api';
 import withApi from 'sentry/utils/withApi';
 
-describe('withApi', function () {
+describe('withApi', () => {
   let apiInstance: Client | undefined;
 
   type Props = {
@@ -18,7 +18,7 @@ describe('withApi', function () {
     return <div />;
   });
 
-  it('renders MyComponent with an api prop', function () {
+  it('renders MyComponent with an api prop', () => {
     const MyComponentWithApi = withApi(MyComponent);
     render(<MyComponentWithApi />);
 
@@ -27,7 +27,7 @@ describe('withApi', function () {
     );
   });
 
-  it('cancels pending API requests when component is unmounted', function () {
+  it('cancels pending API requests when component is unmounted', () => {
     const MyComponentWithApi = withApi(MyComponent);
     const wrapper = render(<MyComponentWithApi />);
 

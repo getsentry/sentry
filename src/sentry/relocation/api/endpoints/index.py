@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from sentry_sdk import capture_exception
 
 from sentry import analytics, options
+from sentry.analytics.events.relocation_created import RelocationCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -29,11 +30,11 @@ from sentry.relocation.tasks.process import uploading_start
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
-from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.users.models.user import MAX_USERNAME_LENGTH, User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import atomic_transaction
+from sentry.utils.slug import ORG_SLUG_PATTERN
 
 ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner."
 ERR_INVALID_ORG_SLUG = Template("Org slug is invalid: `$org_slug`.")
@@ -298,10 +299,11 @@ class RelocationIndexEndpoint(Endpoint):
         uploading_start.apply_async(args=[str(relocation.uuid), None, None])
         try:
             analytics.record(
-                "relocation.created",
-                creator_id=request.user.id,
-                owner_id=owner.id,
-                uuid=str(relocation.uuid),
+                RelocationCreatedEvent(
+                    creator_id=request.user.id,
+                    owner_id=owner.id,
+                    uuid=str(relocation.uuid),
+                )
             )
         except Exception as e:
             capture_exception(e)

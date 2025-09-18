@@ -50,7 +50,9 @@ class CompareTableResultDict(TypedDict):
     query: str | None
 
 
-def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPResponse):
+def compare_table_results(
+    metrics_query_result: EventsResponse, eap_result: EAPResponse
+) -> tuple[bool, list[str], CompareTableResult]:
     eap_data_row = eap_result["data"][0] if len(eap_result["data"]) > 0 else {}
     metrics_data_row = (
         metrics_query_result["data"][0] if len(metrics_query_result["data"]) > 0 else {}
@@ -231,7 +233,7 @@ def compare_tables_for_dashboard_widget_queries(
         logger.info("Metrics query failed: %s", e)
         has_metrics_error = True
 
-    eap_query_parts = translate_mep_to_eap(
+    eap_query_parts, dropped_fields = translate_mep_to_eap(
         QueryParts(
             query=query,
             selected_columns=selected_columns,

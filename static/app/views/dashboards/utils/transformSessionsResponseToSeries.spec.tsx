@@ -6,7 +6,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/utils/transformSessionsResponseToSeries';
 
-describe('transformSessionsResponseToSeries', function () {
+describe('transformSessionsResponseToSeries', () => {
   it('transforms sessions into series', () => {
     const widgetQuery = WidgetQueryFixture({
       aggregates: [],

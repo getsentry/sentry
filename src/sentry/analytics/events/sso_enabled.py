@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("sso.enabled")
 class SSOEnabledEvent(analytics.Event):
-    type = "sso.enabled"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("provider"),
-    )
+    user_id: int
+    organization_id: int
+    provider: str
 
 
 analytics.register(SSOEnabledEvent)

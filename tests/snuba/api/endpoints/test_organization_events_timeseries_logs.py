@@ -15,7 +15,7 @@ any_confidence = AnyConfidence()
 class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.start = self.day_ago = before_now(days=1).replace(
@@ -68,8 +68,8 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
-        assert len(response.data["timeseries"]) == 1
-        timeseries = response.data["timeseries"][0]
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 6
         assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == build_expected_timeseries(
@@ -81,6 +81,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
+            "dataScanned": "full",
             "valueType": "integer",
             "interval": 3_600_000,
         }
@@ -102,8 +103,8 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
-        assert len(response.data["timeseries"]) == 1
-        timeseries = response.data["timeseries"][0]
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 7
         assert timeseries["values"] == build_expected_timeseries(
             self.start,

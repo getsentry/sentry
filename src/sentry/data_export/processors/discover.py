@@ -1,10 +1,12 @@
 import logging
+from typing import Any, Protocol
 
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
@@ -16,12 +18,16 @@ from ..base import ExportError
 logger = logging.getLogger(__name__)
 
 
+class DataFn(Protocol):
+    def __call__(self, offset: int, limit: int) -> dict[str, Any]: ...
+
+
 class DiscoverProcessor:
     """
     Processor for exports of discover data based on a provided query
     """
 
-    def __init__(self, organization, discover_query):
+    def __init__(self, organization: Organization, discover_query: dict[str, Any]):
         self.projects = self.get_projects(organization.id, discover_query)
         self.environments = self.get_environments(organization.id, discover_query)
         self.start, self.end = get_date_range_from_params(discover_query)
@@ -47,18 +53,18 @@ class DiscoverProcessor:
             query=discover_query["query"],
             snuba_params=self.snuba_params,
             sort=discover_query.get("sort"),
-            dataset=discover_query.get("dataset"),
+            dataset_name=discover_query.get("dataset"),
         )
 
     @staticmethod
-    def get_projects(organization_id, query):
+    def get_projects(organization_id: int, query: dict[str, Any]) -> list[Project]:
         projects = list(Project.objects.filter(id__in=query.get("project")))
         if len(projects) == 0:
             raise ExportError("Requested project does not exist")
         return projects
 
     @staticmethod
-    def get_environments(organization_id, query):
+    def get_environments(organization_id: int, query: dict[str, Any]) -> list[Environment]:
         requested_environments = query.get("environment", [])
         if not isinstance(requested_environments, list):
             requested_environments = [requested_environments]
@@ -79,12 +85,19 @@ class DiscoverProcessor:
         return environments
 
     @staticmethod
-    def get_data_fn(fields, equations, query, snuba_params, sort, dataset):
-        dataset = get_dataset(dataset)
+    def get_data_fn(
+        fields: list[str],
+        equations: list[str],
+        query: str,
+        snuba_params: SnubaParams,
+        sort: str | None,
+        dataset_name: str | None,
+    ) -> DataFn:
+        dataset = get_dataset(dataset_name)
         if dataset is None:
             dataset = discover
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> dict[str, Any]:
             return dataset.query(
                 selected_columns=fields,
                 equations=equations,
@@ -101,19 +114,20 @@ class DiscoverProcessor:
 
         return data_fn
 
-    def handle_fields(self, result_list):
+    def handle_fields(self, result_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
         # Find issue short_id if present
         # (originally in `/api/bases/organization_events.py`)
         new_result_list = result_list[:]
 
         if "issue" in self.header_fields:
             issue_ids = {result["issue.id"] for result in new_result_list}
+            assert self.snuba_params.organization is not None
             issues = {
                 i.id: i.qualified_short_id
                 for i in Group.objects.filter(
                     id__in=issue_ids,
                     project__in=self.snuba_params.project_ids,
-                    project__organization_id=self.snuba_params.organization_id,
+                    project__organization_id=self.snuba_params.organization.id,
                 )
             }
             for result in new_result_list:

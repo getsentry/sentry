@@ -1,7 +1,6 @@
 import {useCallback, useLayoutEffect, useState} from 'react';
 import type {Location} from 'history';
 
-import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -12,7 +11,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   defaultLogFields,
   getLogFieldsFromLocation,
@@ -79,10 +77,6 @@ interface LogsPageParams {
    * E.g., message.parameters.0
    */
   readonly aggregateParam?: string;
-  /**
-   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc.
-   */
-  readonly baseSearch?: MutableSearch;
 
   /**
    * E.g., message.template
@@ -93,18 +87,7 @@ interface LogsPageParams {
    * The id of the query, if a saved query.
    */
   readonly id?: string;
-  /**
-   * If provided, add a 'trace:{trace id}' to all queries.
-   * Used in embedded views like error page and trace page.
-   * Can be an array of trace IDs on some pages (eg. replays)
-   */
-  readonly limitToTraceId?: string | string[];
 
-  /**
-   * If provided, ignores the project in the location and uses the provided project IDs.
-   * Useful for cross-project traces when project is in the location.
-   */
-  readonly projectIds?: number[];
   /**
    * The title of the query, if a saved query.
    */
@@ -114,7 +97,13 @@ interface LogsPageParams {
 type NullablePartial<T> = {
   [P in keyof T]?: T[P] | null;
 };
-type LogPageParamsUpdate = NullablePartial<LogsPageParams>;
+type NonUpdatableParams =
+  | 'aggregateCursor'
+  | 'aggregateFn'
+  | 'aggregateParam'
+  | 'cursor'
+  | 'groupBy';
+type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
 const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
@@ -129,16 +118,10 @@ interface LogsPageParamsProviderProps {
     refreshInterval?: number;
   };
   isTableFrozen?: boolean;
-  limitToProjectIds?: number[];
-  limitToSpanId?: string;
-  limitToTraceId?: string | string[];
 }
 
 export function LogsPageParamsProvider({
   children,
-  limitToTraceId,
-  limitToSpanId,
-  limitToProjectIds,
   isTableFrozen,
   analyticsPageSource,
   _testContext,
@@ -151,22 +134,6 @@ export function LogsPageParamsProvider({
   const [cursorForFrozenPages, setCursorForFrozenPages] = useState('');
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
-  let baseSearch: MutableSearch | undefined = undefined;
-
-  const traceIds = Array.isArray(limitToTraceId)
-    ? limitToTraceId
-    : limitToTraceId
-      ? [limitToTraceId]
-      : undefined;
-
-  if (traceIds?.length) {
-    baseSearch = baseSearch ?? new MutableSearch('');
-    const traceIdValue = `[${traceIds.join(',')}]`;
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
-    if (limitToSpanId) {
-      baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
-    }
-  }
 
   const title = getLogTitleFromLocation(location);
   const id = getLogIdFromLocation(location);
@@ -193,10 +160,6 @@ export function LogsPageParamsProvider({
     aggregate,
   ]);
   const mode = getModeFromLocation(location);
-  const pageFilters = usePageFilters();
-  const projectIds = isTableFrozen
-    ? (limitToProjectIds ?? [-1])
-    : pageFilters.selection.projects;
   // TODO we should handle environments in a similar way to projects - otherwise page filters might break embedded views
 
   const cursor = isTableFrozen
@@ -218,10 +181,7 @@ export function LogsPageParamsProvider({
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
-        baseSearch,
-        projectIds,
         analyticsPageSource,
-        limitToTraceId: traceIds,
         groupBy,
         aggregateFn,
         aggregateParam,
@@ -248,15 +208,10 @@ const decodeLogsQuery = (location: Location): string => {
   return decodeScalar(queryParameter, '').trim();
 };
 
-function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) {
+export function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) {
   const target: Location = {...location, query: {...location.query}};
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
-  updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
-  updateNullableLocation(target, LOGS_AGGREGATE_CURSOR_KEY, pageParams.aggregateCursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  updateNullableLocation(target, LOGS_GROUP_BY_KEY, pageParams.groupBy);
-  updateNullableLocation(target, LOGS_AGGREGATE_FN_KEY, pageParams.aggregateFn);
-  updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
   updateLocationWithMode(target, pageParams.mode); // Can be swapped with updateNullableLocation if we merge page params.
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
@@ -332,11 +287,6 @@ export function useLogsSearch(): MutableSearch {
   return search;
 }
 
-export function useLogsBaseSearch(): MutableSearch | undefined {
-  const {baseSearch} = useLogsPageParams();
-  return baseSearch;
-}
-
 export function useSetLogsSearch() {
   const setPageParams = useSetLogsPageParams();
   const {setSearchForFrozenPages, isTableFrozen} = useLogsPageParams();
@@ -352,29 +302,9 @@ export function useSetLogsSearch() {
   return setPageParamsCallback;
 }
 
-export function useLogsCursor() {
-  const {cursor} = useLogsPageParams();
-  return cursor;
-}
-
-export function useLogsLimitToTraceId() {
-  const {limitToTraceId} = useLogsPageParams();
-  return limitToTraceId;
-}
-
-export function useSetLogsCursor() {
-  const setPageParams = useSetLogsPageParams();
-  const {setCursorForFrozenPages, isTableFrozen} = useLogsPageParams();
-  return useCallback<CursorHandler>(
-    cursor => {
-      if (isTableFrozen) {
-        setCursorForFrozenPages(cursor ?? '');
-      } else {
-        setPageParams({cursor});
-      }
-    },
-    [isTableFrozen, setCursorForFrozenPages, setPageParams]
-  );
+export interface PersistedLogsPageParams {
+  fields: string[];
+  sortBys: Sort[];
 }
 
 export function usePersistedLogsPageParams() {
@@ -387,30 +317,13 @@ export function usePersistedLogsPageParams() {
     }
   });
 
-  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
-    fields: defaultLogFields() as string[],
-    sortBys: [logsTimestampDescendingSortBy],
-  });
-}
-
-export function useLogsAggregateSortBys() {
-  const {aggregateSortBys} = useLogsPageParams();
-  return aggregateSortBys;
-}
-
-export function useLogsAggregateCursor() {
-  const {aggregateCursor} = useLogsPageParams();
-  return aggregateCursor;
-}
-
-export function useLogsSortBys() {
-  const {sortBys} = useLogsPageParams();
-  return sortBys;
-}
-
-export function useLogsFields() {
-  const {fields} = useLogsPageParams();
-  return fields;
+  return useLocalStorageState<PersistedLogsPageParams>(
+    getLogsParamsStorageKey(LOGS_PARAMS_VERSION),
+    {
+      fields: defaultLogFields() as string[],
+      sortBys: [logsTimestampDescendingSortBy],
+    }
+  );
 }
 
 export function useLogsId() {
@@ -423,25 +336,6 @@ export function useLogsTitle() {
   return title;
 }
 
-export function useLogsProjectIds() {
-  const {projectIds} = useLogsPageParams();
-  return projectIds;
-}
-
-export function useSetLogsFields() {
-  const setPageParams = useSetLogsPageParams();
-
-  const [_, setPersistentParams] = usePersistedLogsPageParams();
-
-  return useCallback(
-    (fields: string[]) => {
-      setPageParams({fields});
-      setPersistentParams(prev => ({...prev, fields}));
-    },
-    [setPageParams, setPersistentParams]
-  );
-}
-
 export function useSetLogsSavedQueryInfo() {
   const setPageParams = useSetLogsPageParams();
   return useCallback(
@@ -449,41 +343,6 @@ export function useSetLogsSavedQueryInfo() {
       setPageParams({id, title});
     },
     [setPageParams]
-  );
-}
-
-interface ToggleableSortBy {
-  field: string;
-  defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.
-  kind?: 'asc' | 'desc';
-}
-
-export function useSetLogsSortBys() {
-  const setPageParams = useSetLogsPageParams();
-  const [_, setPersistentParams] = usePersistedLogsPageParams();
-  const currentPageSortBys = useLogsSortBys();
-
-  return useCallback(
-    (desiredSortBys: ToggleableSortBy[]) => {
-      const targetSortBys: Sort[] = desiredSortBys.map(desiredSortBy => {
-        const currentSortBy = currentPageSortBys.find(
-          s => s.field === desiredSortBy.field
-        );
-        const reverseDirection = currentSortBy?.kind === 'asc' ? 'desc' : 'asc';
-        return {
-          field: desiredSortBy.field,
-          kind:
-            desiredSortBy.kind ??
-            reverseDirection ??
-            desiredSortBy.defaultDirection ??
-            'desc',
-        };
-      });
-
-      setPersistentParams(prev => ({...prev, sortBys: targetSortBys}));
-      setPageParams({sortBys: targetSortBys});
-    },
-    [setPageParams, setPersistentParams, currentPageSortBys]
   );
 }
 
@@ -530,4 +389,26 @@ function getLogsParamsStorageKey(version: number) {
 
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
+}
+
+export function useLogsAddSearchFilter() {
+  const setLogsSearch = useSetLogsSearch();
+  const search = useLogsSearch();
+
+  return useCallback(
+    ({
+      key,
+      value,
+      negated,
+    }: {
+      key: string;
+      value: string | number | boolean;
+      negated?: boolean;
+    }) => {
+      const newSearch = search.copy();
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      setLogsSearch(newSearch);
+    },
+    [setLogsSearch, search]
+  );
 }

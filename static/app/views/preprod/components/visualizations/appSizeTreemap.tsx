@@ -5,7 +5,7 @@ import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {Heading} from 'sentry/components/core/text';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
+import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeTreemapProps {
@@ -16,15 +16,21 @@ interface AppSizeTreemapProps {
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
   const {root} = props;
-
-  // TODO: Use theme colors
+  const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
 
   function convertToEChartsData(element: TreemapElement): any {
     const categoryInfo =
-      APP_SIZE_CATEGORY_INFO[element.type] ?? APP_SIZE_CATEGORY_INFO[TreemapType.OTHER];
+      appSizeCategoryInfo[element.type] ?? appSizeCategoryInfo[TreemapType.OTHER];
     if (!categoryInfo) {
       throw new Error(`Category ${element.type} not found`);
     }
+
+    // Use headerColor for parent nodes, regular color for leaf nodes
+    const hasChildren = element.children && element.children.length > 0;
+    const borderColor =
+      hasChildren && categoryInfo.headerColor
+        ? categoryInfo.headerColor
+        : categoryInfo.color;
 
     const data: any = {
       name: element.name,
@@ -33,9 +39,10 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       category: element.type,
       itemStyle: {
         color: 'transparent',
-        borderColor: categoryInfo.color,
+        borderColor,
         borderWidth: 6,
         gapWidth: 2,
+        gapColor: 'transparent',
       },
       label: {
         fontSize: 12,
@@ -135,6 +142,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         {
           itemStyle: {
             gapWidth: 4,
+            borderColor: 'transparent',
             borderRadius: 6,
           },
           colorSaturation: [0.3, 0.5],
@@ -183,7 +191,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const tooltip: TooltipOption = {
     trigger: 'item',
     borderWidth: 0,
-    backgroundColor: theme.white,
+    backgroundColor: theme.background,
     hideDelay: 0,
     transitionDuration: 0,
     padding: 12,

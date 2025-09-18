@@ -1,6 +1,7 @@
 from django.urls import reverse
 
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
@@ -19,16 +20,30 @@ class EventCommittersTest(APITestCase):
 
         project = self.create_project()
 
-        release = self.create_release(project, self.user)
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
                 "timestamp": min_ago,
-                "release": release.version,
             },
             project_id=project.id,
             default_event_type=EventType.DEFAULT,
+        )
+
+        # Create a commit and GroupOwner to simulate SCM-based suspect commit detection
+        repo = self.create_repo(project=project, name="example/repo")
+        commit = self.create_commit(project=project, repo=repo)
+        assert event.group is not None
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=project,
+            organization_id=project.organization_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+            },
         )
 
         url = reverse(
@@ -44,10 +59,16 @@ class EventCommittersTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["committers"]) == 1
         assert response.data["committers"][0]["author"]["username"] == "admin@localhost"
-        assert len(response.data["committers"][0]["commits"]) == 1
-        assert (
-            response.data["committers"][0]["commits"][0]["message"] == "placeholder commit message"
+        commits = response.data["committers"][0]["commits"]
+        assert len(commits) == 1
+        assert commits[0]["message"] == commit.message
+        assert commits[0]["suspectCommitType"] == "via commit in release"
+
+        group_owner = GroupOwner.objects.get(
+            group=event.group, type=GroupOwnerType.SUSPECT_COMMIT.value
         )
+        assert "group_owner_id" in response.data["committers"][0]
+        assert response.data["committers"][0]["group_owner_id"] == group_owner.id
 
     def test_no_group(self) -> None:
         self.login_as(user=self.user)
@@ -74,7 +95,8 @@ class EventCommittersTest(APITestCase):
         assert response.status_code == 404, response.content
         assert response.data["detail"] == "Issue not found"
 
-    def test_no_release(self) -> None:
+    def test_no_committers(self) -> None:
+        """Test that events without GroupOwners return 404"""
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -95,51 +117,9 @@ class EventCommittersTest(APITestCase):
 
         response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
-        assert response.data["detail"] == "Release not found"
+        assert response.data["detail"] == "No committers found"
 
-    def test_null_stacktrace(self) -> None:
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        release = self.create_release(project, self.user)
-
-        min_ago = before_now(minutes=1).isoformat()
-        event = self.store_event(
-            data={
-                "fingerprint": ["group1"],
-                "environment": "production",
-                "type": "default",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "ValueError",
-                            "value": "My exception value",
-                            "module": "__builtins__",
-                            "stacktrace": None,
-                        }
-                    ]
-                },
-                "tags": [["environment", "production"], ["sentry:release", release.version]],
-                "release": release.version,
-                "timestamp": min_ago,
-            },
-            project_id=project.id,
-        )
-
-        url = reverse(
-            "sentry-api-0-event-file-committers",
-            kwargs={
-                "event_id": event.event_id,
-                "project_id_or_slug": event.project.slug,
-                "organization_id_or_slug": event.project.organization.slug,
-            },
-        )
-
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-
-    def test_with_commit_context(self) -> None:
+    def test_with_committers(self) -> None:
         self.login_as(user=self.user)
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -188,6 +168,12 @@ class EventCommittersTest(APITestCase):
         assert len(commits) == 1
         assert commits[0]["message"] == "placeholder commit message"
         assert commits[0]["suspectCommitType"] == "via SCM integration"
+
+        group_owner = GroupOwner.objects.get(
+            group=event.group, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert "group_owner_id" in response.data["committers"][0]
+        assert response.data["committers"][0]["group_owner_id"] == group_owner.id
 
     def test_with_commit_context_pull_request(self) -> None:
         self.login_as(user=self.user)
@@ -242,9 +228,66 @@ class EventCommittersTest(APITestCase):
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-
         commits = response.data["committers"][0]["commits"]
         assert len(commits) == 1
         assert "pullRequest" in commits[0]
         assert commits[0]["pullRequest"]["id"] == pull_request.key
         assert commits[0]["suspectCommitType"] == "via SCM integration"
+
+    def test_endpoint_with_no_user_groupowner(self) -> None:
+        """Test API endpoint returns commit author fallback for GroupOwner with user_id=None."""
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": min_ago},
+            project_id=project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+
+        # Create commit with external author and GroupOwner with user_id=None
+        repo = self.create_repo(project=project, name="example/repo")
+        commit_author = CommitAuthor.objects.create(
+            organization_id=project.organization_id,
+            name="External Dev",
+            email="external@example.com",
+        )
+        commit = self.create_commit(project=project, repo=repo, author=commit_author)
+        assert event.group is not None
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=project,
+            organization_id=project.organization_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=None,  # No Sentry user mapping
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+            },
+        )
+
+        url = reverse(
+            "sentry-api-0-event-file-committers",
+            kwargs={
+                "event_id": event.event_id,
+                "project_id_or_slug": event.project.slug,
+                "organization_id_or_slug": event.project.organization.slug,
+            },
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+        # Should return commit author fallback
+        author = response.data["committers"][0]["author"]
+        assert author["email"] == "external@example.com"
+        assert author["name"] == "External Dev"
+        assert "username" not in author  # No Sentry user fields
+        assert "id" not in author  # No Sentry user fields
+
+        group_owner = GroupOwner.objects.get(
+            group_id=event.group.id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        )
+        assert "group_owner_id" in response.data["committers"][0]
+        assert response.data["committers"][0]["group_owner_id"] == group_owner.id

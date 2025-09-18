@@ -11,7 +11,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 ):
     view = "sentry-api-0-organization-trace-item-attributes-ranked"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.features = {

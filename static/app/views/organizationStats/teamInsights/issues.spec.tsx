@@ -4,7 +4,6 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {TeamIssuesBreakdownFixture} from 'sentry-fixture/teamIssuesBreakdown';
 import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -56,7 +55,6 @@ describe('TeamStatsIssues', () => {
     projects: [],
     isMember: false,
   });
-  const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
     TeamStore.reset();
@@ -146,7 +144,7 @@ describe('TeamStatsIssues', () => {
 
     TeamStore.loadInitialData(teams, false, null);
 
-    return render(<TeamStatsIssues {...routerProps} />, {organization});
+    return render(<TeamStatsIssues />, {organization});
   }
 
   it('defaults to first team', async () => {
@@ -157,7 +155,15 @@ describe('TeamStatsIssues', () => {
   });
 
   it('allows team switching as non-owner', async () => {
-    createWrapper({isOrgOwner: false});
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/issues/old/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/unresolved-issue-age/`,
+      body: [],
+    });
+    const {router} = createWrapper({isOrgOwner: false});
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
@@ -165,9 +171,7 @@ describe('TeamStatsIssues', () => {
     // Teams user is not a member of are hidden
     expect(screen.queryByText('#internal')).not.toBeInTheDocument();
     await userEvent.click(screen.getByText('#frontend'));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {team: team1.id}})
-    );
+    expect(router.location).toEqual(expect.objectContaining({query: {team: team1.id}}));
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
@@ -175,7 +179,7 @@ describe('TeamStatsIssues', () => {
   });
 
   it('allows team switching as owner', async () => {
-    createWrapper();
+    const {router} = createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
@@ -183,9 +187,7 @@ describe('TeamStatsIssues', () => {
     // Org owners can see all teams including ones they are not members of
     expect(screen.getByText('#internal')).toBeInTheDocument();
     await userEvent.click(screen.getByText('#internal'));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {team: team3.id}})
-    );
+    expect(router.location).toEqual(expect.objectContaining({query: {team: team3.id}}));
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team3.id
@@ -193,14 +195,14 @@ describe('TeamStatsIssues', () => {
   });
 
   it('can filter by environment', async () => {
-    createWrapper();
+    const {router} = createWrapper();
 
     // For some reason the "Environment:" is rendered via css :before
     expect(screen.getByText('All')).toBeInTheDocument();
     await userEvent.type(screen.getByText('All'), '{mouseDown}');
     expect(screen.getByText(env1)).toBeInTheDocument();
     await userEvent.click(screen.getByText(env1));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({query: {environment: 'prod'}})
     );
   });

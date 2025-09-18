@@ -11,7 +11,7 @@ import type {Subscription} from 'getsentry/types';
 
 import addGiftBudgetAction from './addGiftBudgetAction';
 
-describe('GiftBudgetAction', function () {
+describe('GiftBudgetAction', () => {
   const organization = OrganizationFixture();
   const subscription = Am3DsEnterpriseSubscriptionFixture({
     organization,
@@ -37,7 +37,7 @@ describe('GiftBudgetAction', function () {
     renderGlobalModal();
   };
 
-  it('renders modal with budget information', function () {
+  it('renders modal with budget information', () => {
     openGiftBudgetModal();
 
     expect(screen.getByText('Add Gift Budget')).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('GiftBudgetAction', function () {
     expect(screen.getByText(/accepted spans, stored spans/i)).toBeInTheDocument();
   });
 
-  it('validates gift amount input', async function () {
+  it('validates gift amount input', async () => {
     openGiftBudgetModal();
 
     const giftInput = screen.getByRole('spinbutton', {name: 'Gift Amount ($)'});
@@ -69,7 +69,7 @@ describe('GiftBudgetAction', function () {
     expect(screen.getByText(/Total Gift: \$500/)).toBeInTheDocument();
   });
 
-  it('requires notes field', function () {
+  it('requires notes field', () => {
     openGiftBudgetModal();
 
     const createButton = screen.getByRole('button', {name: /confirm/i});
@@ -77,7 +77,7 @@ describe('GiftBudgetAction', function () {
     expect(createButton).toBeDisabled();
   });
 
-  it('submits form with correct data', async function () {
+  it('submits form with correct data', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -117,7 +117,7 @@ describe('GiftBudgetAction', function () {
     );
   });
 
-  it('handles multiple reserved budgets', function () {
+  it('handles multiple reserved budgets', () => {
     const multiBudgetSub: Subscription = {
       ...subscription,
       reservedBudgets: [

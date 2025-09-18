@@ -16,11 +16,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
-import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
   feedbackCrashApiPlatforms,
@@ -33,7 +31,9 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -45,8 +45,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export function useFeedbackOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.FEEDBACK_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {openDrawer} = useDrawer();
@@ -66,42 +66,19 @@ export function useFeedbackOnboardingDrawer() {
 function DrawerContent() {
   useEffect(() => {
     return () => {
-      SidebarPanelStore.hidePanel();
+      OnboardingDrawerStore.close();
     };
   }, []);
 
   return <SidebarContent />;
 }
 
-// Used by legacy navigation
-function LegacyFeedbackOnboardingSidebar(props: CommonSidebarProps) {
-  const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const organization = useOrganization();
-
-  const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
-  const hasProjectAccess = organization.access.includes('project:read');
-
-  if (!isActive || !hasProjectAccess) {
-    return null;
-  }
-
-  return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
-      <SidebarContent />
-    </TaskSidebarPanel>
-  );
-}
-
 function SidebarContent() {
   const organization = useOrganization();
 
   const {allProjects, currentProject, setCurrentProject} = useCurrentProjectState({
-    currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
-    targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+    currentPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
+    targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
     onboardingPlatforms: feedbackOnboardingPlatforms,
     allPlatforms: feedbackOnboardingPlatforms,
   });
@@ -325,7 +302,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
-                <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
+                <PlatformOptionDropdown
+                  platformOptions={pickPlatformOptions(newDocs?.platformOptions)}
+                />
               ),
             })}
           </PlatformSelect>
@@ -409,11 +388,6 @@ const Header = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-const TaskSidebarPanel = styled(SidebarPanel)`
-  width: 600px;
-  max-width: 100%;
-`;
-
 const TopRightBackgroundImage = styled('img')`
   position: absolute;
   top: 0;
@@ -469,5 +443,3 @@ const PlatformSelect = styled('div')`
 const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
 `;
-
-export default LegacyFeedbackOnboardingSidebar;

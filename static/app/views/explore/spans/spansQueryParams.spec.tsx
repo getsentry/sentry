@@ -18,6 +18,7 @@ function readableQueryParamOptions(
   options: Partial<ReadableQueryParamsOptions> = {}
 ): ReadableQueryParamsOptions {
   return {
+    extrapolate: true,
     mode: Mode.SAMPLES,
     query: '',
     cursor: '',
@@ -42,16 +43,32 @@ function readableQueryParamOptions(
   };
 }
 
-describe('getReadableQueryParamsFromLocation', function () {
+describe('getReadableQueryParamsFromLocation', () => {
   const {organization} = initializeOrg();
 
-  it('decodes defaults correctly', function () {
+  it('decodes defaults correctly', () => {
     const location = locationFixture({});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(new ReadableQueryParams(readableQueryParamOptions()));
   });
 
-  it('decodes samples mode correctly', function () {
+  it('decodes extrapolation on correctly', () => {
+    const location = locationFixture({extrapolate: '1'});
+    const queryParams = getReadableQueryParamsFromLocation(location, organization);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(readableQueryParamOptions({extrapolate: true}))
+    );
+  });
+
+  it('decodes extrapolation off correctly', () => {
+    const location = locationFixture({extrapolate: '0'});
+    const queryParams = getReadableQueryParamsFromLocation(location, organization);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(readableQueryParamOptions({extrapolate: false}))
+    );
+  });
+
+  it('decodes samples mode correctly', () => {
     const location = locationFixture({mode: 'samples'});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -59,7 +76,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes aggregate mode correctly', function () {
+  it('decodes aggregate mode correctly', () => {
     const location = locationFixture({mode: 'aggregate'});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -67,7 +84,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('defaults to samples mode for invalid mode values', function () {
+  it('defaults to samples mode for invalid mode values', () => {
     const location = locationFixture({mode: 'invalid'});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -75,7 +92,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes empty query correctly', function () {
+  it('decodes empty query correctly', () => {
     const location = locationFixture({query: ''});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -83,7 +100,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom query parameter correctly', function () {
+  it('decodes custom query parameter correctly', () => {
     const location = locationFixture({query: 'span.op:db'});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -91,7 +108,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes empty cursor correctly', function () {
+  it('decodes empty cursor correctly', () => {
     const location = locationFixture({cursor: ''});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -101,7 +118,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom cursor parameter correctly', function () {
+  it('decodes custom cursor parameter correctly', () => {
     const location = locationFixture({cursor: '0:0:1'});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -111,7 +128,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes empty fields correctly', function () {
+  it('decodes empty fields correctly', () => {
     const location = locationFixture({field: []});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -130,7 +147,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes empty fields correctly for otel', function () {
+  it('decodes empty fields correctly for otel', () => {
     const {organization: org} = initializeOrg({
       organization: {
         features: ['performance-otel-friendly-ui'],
@@ -148,7 +165,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom fields correctly', function () {
+  it('decodes custom fields correctly', () => {
     const location = locationFixture({
       field: ['id', 'span.op', 'span.duration', 'timestamp'],
     });
@@ -162,7 +179,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom sortBys correctly', function () {
+  it('decodes custom sortBys correctly', () => {
     const location = locationFixture({sort: ['-span.duration', 'timestamp']});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -177,7 +194,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('uses timestamp sort when fields include timestamp', function () {
+  it('uses timestamp sort when fields include timestamp', () => {
     const location = locationFixture({field: ['id', 'span.op', 'timestamp'], sort: []});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -190,7 +207,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('falls back to first field when fields do not include timestamp', function () {
+  it('falls back to first field when fields do not include timestamp', () => {
     const location = locationFixture({field: ['id', 'span.op'], sort: []});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -203,7 +220,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes empty sort correctly', function () {
+  it('decodes empty sort correctly', () => {
     const location = locationFixture({sort: []});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -215,7 +232,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom group bys correctly', function () {
+  it('decodes custom group bys correctly', () => {
     const location = locationFixture({groupBy: ['span.op', 'transaction']});
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams).toEqual(
@@ -231,7 +248,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom visualizes correctly', function () {
+  it('decodes custom visualizes correctly', () => {
     const location = locationFixture({
       visualize: JSON.stringify({yAxes: ['count(span.duration)', 'avg(span.self_time)']}),
     });
@@ -257,7 +274,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom visualizes with chart type correctly', function () {
+  it('decodes custom visualizes with chart type correctly', () => {
     const location = locationFixture({
       visualize: JSON.stringify({
         yAxes: ['count(span.duration)', 'avg(span.self_time)'],
@@ -278,7 +295,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom aggregate fields correctly', function () {
+  it('decodes custom aggregate fields correctly', () => {
     const location = locationFixture({
       aggregateField: [
         {yAxes: ['count(span.duration)'], chartType: ChartType.AREA},
@@ -301,7 +318,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom aggregatefields and inserts default group bys', function () {
+  it('decodes custom aggregatefields and inserts default group bys', () => {
     const location = locationFixture({
       aggregateField: [
         JSON.stringify({yAxes: ['count(span.duration)'], chartType: ChartType.LINE}),
@@ -320,7 +337,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom aggregatefields and inserts default visualizes', function () {
+  it('decodes custom aggregatefields and inserts default visualizes', () => {
     const location = locationFixture({
       aggregateField: [JSON.stringify({groupBy: 'span.op'})],
     });
@@ -342,7 +359,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes custom aggregate sort bys correctly', function () {
+  it('decodes custom aggregate sort bys correctly', () => {
     const location = locationFixture({
       aggregateField: [
         {groupBy: 'span.op'},
@@ -369,7 +386,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     );
   });
 
-  it('decodes invalid aggregate sorts and falls back to first visualize', function () {
+  it('decodes invalid aggregate sorts and falls back to first visualize', () => {
     const location = locationFixture({
       aggregateField: [{groupBy: ''}, {yAxes: ['p50(span.duration)']}].map(
         aggregateField => JSON.stringify(aggregateField)

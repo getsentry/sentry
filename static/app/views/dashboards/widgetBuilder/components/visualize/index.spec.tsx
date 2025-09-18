@@ -2,7 +2,13 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
@@ -1464,9 +1470,119 @@ describe('Visualize', () => {
         await screen.findByRole('button', {name: 'Aggregate Selection'})
       ).toHaveTextContent(/^count$/);
     });
+
+    it('adds equations', async () => {
+      const organizationWithFlag = OrganizationFixture();
+      organizationWithFlag.features.push('visibility-explore-equations');
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: organizationWithFlag,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                yAxis: ['count(span.duration)'],
+              },
+            }),
+          }),
+
+          deprecatedRouterMocks: true,
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg(');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
+      });
+      await userEvent.type(input, '{ArrowDown}{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('adds equations line chart', async () => {
+      const organizationWithFlag = OrganizationFixture();
+      organizationWithFlag.features.push('visibility-explore-equations');
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: organizationWithFlag,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                yAxis: ['count(span.duration)'],
+              },
+            }),
+          }),
+
+          deprecatedRouterMocks: true,
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg(');
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg(span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Select an attribute')).toHaveFocus();
+      });
+      await userEvent.type(input, '{ArrowDown}{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
+        }),
+        expect.anything()
+      );
+    });
   });
 
-  it('disables changing visualize fields for count', async function () {
+  it('disables changing visualize fields for count', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1493,7 +1609,7 @@ describe('Visualize', () => {
     expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
   });
 
-  it('changes to count(span.duration) when using count', async function () {
+  it('changes to count(span.duration) when using count', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1536,7 +1652,7 @@ describe('Visualize', () => {
     expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
   });
 
-  it('disables changing visualize fields for epm', async function () {
+  it('disables changing visualize fields for epm', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1565,7 +1681,7 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('disables changing visualize fields for failure_rate', async function () {
+  it('disables changing visualize fields for failure_rate', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1594,7 +1710,7 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('changes to epm() when using epm', async function () {
+  it('changes to epm() when using epm', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1635,7 +1751,7 @@ describe('Visualize', () => {
       screen.queryByRole('button', {name: 'Column Selection'})
     ).not.toBeInTheDocument();
   });
-  it('changes to failure_rate() when using failure_rate', async function () {
+  it('changes to failure_rate() when using failure_rate', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1677,7 +1793,7 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('defaults count_unique argument to span.op', async function () {
+  it('defaults count_unique argument to span.op', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -1746,7 +1862,7 @@ describe('Visualize', () => {
     ).toHaveTextContent('span.op');
   });
 
-  it('disables visualize step when discover-saved-queries-deprecation feature is enabled and dataset is transactions', async function () {
+  it('disables visualize step when discover-saved-queries-deprecation feature is enabled and dataset is transactions', async () => {
     const organizationWithDeprecation = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
     });
@@ -1780,7 +1896,7 @@ describe('Visualize', () => {
     expect(columnSelect).toBeDisabled();
   });
 
-  it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async function () {
+  it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {
     const organizationWithoutDeprecation = OrganizationFixture({
       features: [], // No discover-saved-queries-deprecation feature
     });

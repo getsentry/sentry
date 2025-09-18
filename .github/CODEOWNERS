@@ -125,7 +125,6 @@ package.json                                             @getsentry/owners-js-de
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
 ## Design
-/static/app/icons/                                       @getsentry/design
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
 
@@ -287,6 +286,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 /static/app/views/discover/                                               @getsentry/explore
 /static/app/utils/discover/                                               @getsentry/explore
+/static/app/utils/timeSeries/                                             @getsentry/visibility
 ## Endof Visibility
 
 
@@ -357,8 +357,16 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/components/analyticsArea.tsx       @getsentry/app-frontend
 /static/app/components/events/interfaces/      @getsentry/app-frontend
 /static/app/components/forms/                  @getsentry/app-frontend
+/static/app/locale.tsx                         @getsentry/app-frontend
 ## End of Frontend
 
+# Workflow engine
+/src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
+/tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
+/static/app/components/workflowEngine/                     @getsentry/alerts-create-issues
+/static/app/views/automations/                             @getsentry/alerts-create-issues
+/static/app/views/detectors/                               @getsentry/alerts-create-issues
+# End of Workflow Engine (ACI)
 
 ## Integrations
 /src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
@@ -378,6 +386,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/pipeline/                                                @getsentry/ecosystem
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
+/src/sentry/workflow_engine/tasks/actions.py                         @getsentry/ecosystem
 
 /src/sentry/users/models/identity.py                                 @getsentry/enterprise
 
@@ -487,6 +496,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
+/static/app/components/onboarding/                                               @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
 /static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
 /static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
@@ -495,7 +505,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 /static/app/views/projectInstall/                                                @getsentry/telemetry-experience
-/static/app/views/insights/agentMonitoring/                                      @getsentry/telemetry-experience
+/static/app/views/insights/agents/                                               @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
@@ -651,15 +661,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/utils/arroyo.py                              @getsentry/streaming-platform
 /src/sentry/utils/arroyo_producer.py                     @getsentry/streaming-platform
 
-# Workflow engine
-/src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
-/tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
-
-/static/app/components/workflowEngine/                     @getsentry/alerts-create-issues
-/static/app/views/automations/                             @getsentry/alerts-create-issues
-/static/app/views/detectors/                               @getsentry/alerts-create-issues
-# End of Workflow Engine (ACI)
-
 ## Migrations
 /src/sentry/migrations/                                  @getsentry/owners-migrations
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
@@ -679,4 +680,5 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/stories/                                  @getsentry/design-engineering
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
+/scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform

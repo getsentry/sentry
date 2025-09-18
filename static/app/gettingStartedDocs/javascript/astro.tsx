@@ -24,7 +24,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -36,10 +39,9 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      sourceMapsUploadOptions: {
-        project: "${params.project.slug}",
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-      },
+      project: "${params.project.slug}",
+      org: "${params.organization.slug}",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
 });
@@ -403,10 +405,9 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      sourceMapsUploadOptions: {
-        project: "${params.project.slug}",
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-      },
+      project: "${params.project.slug}",
+      org: "${params.organization.slug}",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
 });
@@ -540,6 +541,10 @@ const docs: Docs = {
   replayOnboarding,
   crashReportOnboarding,
   featureFlagOnboarding,
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'astro',
+    sdkPackage: '@sentry/astro',
+  }),
   profilingOnboarding,
 };
 

@@ -1,11 +1,12 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {mockTraceItemAttributeKeysApi} from 'sentry-fixture/traceItemAttributeKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import type {Tag} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -28,8 +29,8 @@ function createWrapper(organization: Organization) {
 }
 
 describe('useTraceItemAttributeKeys', () => {
-  const organization = OrganizationFixture({slug: 'org-slug'});
-  const mockAttributeKeys = [
+  const {organization} = initializeOrg();
+  const mockAttributeKeys: Tag[] = [
     {
       key: 'test.attribute1',
       name: 'Test Attribute 1',
@@ -52,13 +53,12 @@ describe('useTraceItemAttributeKeys', () => {
     },
   ];
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     mockedUsedLocation.mockReturnValue(LocationFixture());
 
     // Setup the PageFilters store with default values
-    const {organization: _initOrg} = initializeOrg();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       {
@@ -76,18 +76,10 @@ describe('useTraceItemAttributeKeys', () => {
   });
 
   it('fetches attribute keys correctly for string type', async () => {
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/`,
-      body: mockAttributeKeys,
-      match: [
-        (_url: string, options: {query?: Record<string, any>}) => {
-          const query = options?.query || {};
-          return (
-            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'string'
-          );
-        },
-      ],
-    });
+    const mockResponse = mockTraceItemAttributeKeysApi(
+      organization.slug,
+      mockAttributeKeys
+    );
 
     const {result} = renderHook(
       () =>
@@ -103,7 +95,6 @@ describe('useTraceItemAttributeKeys', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockResponse).toHaveBeenCalled();
 
-    // Verify expected attributes (excluding sentry. prefixed ones)
     const expectedAttributes = {
       'test.attribute1': {
         key: 'test.attribute1',
@@ -142,18 +133,12 @@ describe('useTraceItemAttributeKeys', () => {
       },
     ];
 
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/`,
-      body: numberAttributeKeys,
-      match: [
-        (_url: string, options: {query?: Record<string, any>}) => {
-          const query = options?.query || {};
-          return (
-            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'number'
-          );
-        },
-      ],
-    });
+    const mockResponse = mockTraceItemAttributeKeysApi(
+      organization.slug,
+      numberAttributeKeys,
+      TraceItemDataset.LOGS,
+      'number'
+    );
 
     const {result} = renderHook(
       () =>
@@ -211,10 +196,7 @@ describe('useTraceItemAttributeKeys', () => {
       },
     ];
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/`,
-      body: attributesWithInvalidChars,
-    });
+    mockTraceItemAttributeKeysApi(organization.slug, attributesWithInvalidChars);
 
     const {result} = renderHook(
       () =>
@@ -229,7 +211,6 @@ describe('useTraceItemAttributeKeys', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    // Should only contain valid attributes
     const expectedAttributes = {
       'valid.attribute': {
         key: 'valid.attribute',
@@ -270,18 +251,10 @@ describe('useTraceItemAttributeKeys', () => {
       },
     ];
 
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/`,
-      body: testAttributeKeys,
-      match: [
-        (_url: string, options: {query?: Record<string, any>}) => {
-          const query = options?.query || {};
-          return (
-            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'string'
-          );
-        },
-      ],
-    });
+    const mockResponse = mockTraceItemAttributeKeysApi(
+      organization.slug,
+      testAttributeKeys
+    );
 
     const {result} = renderHook(
       () =>

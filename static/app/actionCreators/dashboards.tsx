@@ -125,7 +125,7 @@ export async function updateDashboardFavorite(
       queryKey: getQueryKey(organization),
     });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
-  } catch (response) {
+  } catch (response: any) {
     const errorResponse = response?.responseJSON ?? null;
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});

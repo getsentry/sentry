@@ -39,7 +39,6 @@ const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ITEM_TYPE,
-  OurLogKnownFieldKey.PROJECT,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
   'project.id',
   'project_id', // these are both aliases that might show up
@@ -57,6 +56,10 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   'sentry.observed_timestamp_nanos',
   'tags[sentry.trace_flags,number]',
   'span_id',
+];
+
+export const DeprecatedLogDetailFields: OurLogFieldKey[] = [
+  OurLogKnownFieldKey.TIMESTAMP_NANOS,
 ];
 
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];

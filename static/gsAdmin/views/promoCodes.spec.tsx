@@ -23,8 +23,8 @@ function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
   };
 }
 
-describe('PromoCodes', function () {
-  it('renders', async function () {
+describe('PromoCodes', () => {
+  it('renders', async () => {
     const {routerProps} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -36,7 +36,7 @@ describe('PromoCodes', function () {
     expect(await screen.findByRole('heading', {name: 'Promo Codes'})).toBeInTheDocument();
   });
 
-  it('shows a promo code created by someone with an email', async function () {
+  it('shows a promo code created by someone with an email', async () => {
     const {routerProps} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -50,7 +50,7 @@ describe('PromoCodes', function () {
     ).toBeInTheDocument();
   });
 
-  it('shows a promo code created by someone without an email', async function () {
+  it('shows a promo code created by someone without an email', async () => {
     const {routerProps} = initializeOrg();
 
     MockApiClient.addMockResponse({

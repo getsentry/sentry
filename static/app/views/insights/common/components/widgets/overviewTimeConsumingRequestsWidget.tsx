@@ -1,7 +1,11 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
+import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -13,6 +17,7 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
+import {ModalChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -45,9 +50,10 @@ export default function OverviewTimeConsumingRequestsWidget(
   const search = new MutableSearch(`${SpanFields.SPAN_CATEGORY}:http ${query}`);
   const referrer = Referrer.TIME_CONSUMING_REQUESTS;
   const groupBy = SpanFields.SPAN_DOMAIN;
-  const yAxes = `avg(${SpanFields.SPAN_SELF_TIME})`;
+  const yAxes = `p75(${SpanFields.SPAN_DURATION})`;
   const totalTimeField = `sum(${SpanFields.SPAN_SELF_TIME})`;
   const title = t('Network Requests by Time Spent');
+  const interval = getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
 
   const {
     data: requestsListData,
@@ -80,6 +86,7 @@ export default function OverviewTimeConsumingRequestsWidget(
       yAxis: [yAxes],
       topN: 3,
       enabled: requestsListData?.length > 0,
+      interval,
     },
     referrer
   );
@@ -160,35 +167,53 @@ export default function OverviewTimeConsumingRequestsWidget(
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    interval,
     referrer,
   });
-
-  const chartActions = (
-    <BaseChartActionDropdown
-      key="time consuming requests widget"
-      exploreUrl={exploreUrl}
-      referrer={referrer}
-      alertMenuOptions={requestSeriesData.map(series => ({
-        key: series.seriesName,
-        label: aliases[series.seriesName],
-        to: getAlertsUrl({
-          project,
-          aggregate: yAxes,
-          organization,
-          pageFilters: selection,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          query: `${SpanFields.SPAN_DOMAIN}:${series.seriesName}`,
-          referrer,
-        }),
-      }))}
-    />
-  );
 
   return (
     <Widget
       Title={<Widget.WidgetTitle title={title} />}
       Visualization={visualization}
-      Actions={hasData && <Widget.WidgetToolbar>{chartActions}</Widget.WidgetToolbar>}
+      Actions={
+        hasData && (
+          <Widget.WidgetToolbar>
+            <Fragment>
+              <BaseChartActionDropdown
+                key="time consuming requests widget"
+                exploreUrl={exploreUrl}
+                referrer={referrer}
+                alertMenuOptions={requestSeriesData.map(series => ({
+                  key: series.seriesName,
+                  label: aliases[series.seriesName],
+                  to: getAlertsUrl({
+                    project,
+                    aggregate: yAxes,
+                    organization,
+                    pageFilters: selection,
+                    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                    query: `${SpanFields.SPAN_DOMAIN}:${series.seriesName}`,
+                    referrer,
+                  }),
+                }))}
+              />
+              <Button
+                size="xs"
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({
+                    title,
+                    footer,
+                    children: <ModalChartContainer>{visualization}</ModalChartContainer>,
+                  });
+                }}
+              />
+            </Fragment>
+          </Widget.WidgetToolbar>
+        )
+      }
       noFooterPadding
       Footer={props.loaderSource === 'releases-drawer' ? undefined : footer}
     />

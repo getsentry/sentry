@@ -20,6 +20,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -107,7 +108,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -117,7 +118,15 @@ const onboarding: OnboardingConfig = {
         {
           language: 'javascript',
           code: `
-          app.get("/debug-sentry", function mainHandler(req, res) {
+          app.get("/debug-sentry", function mainHandler(req, res) {${
+            params.isLogsSelected
+              ? `
+            // Send a log before throwing the error
+            Sentry.logger.info('User triggered test error', {
+              action: 'test_error_endpoint',
+            });`
+              : ''
+          }
             throw new Error("My first Sentry error!");
           });
           `,
@@ -164,6 +173,10 @@ const docs: Docs = {
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getNodeProfilingOnboarding(),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'fastify',
+    sdkPackage: '@sentry/node',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),
 };

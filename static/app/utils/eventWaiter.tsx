@@ -84,7 +84,7 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
         `/projects/${organization.slug}/${project.slug}/`
       );
       firstEvent = getFirstEvent(eventType, resp);
-    } catch (resp) {
+    } catch (resp: any) {
       if (!resp) {
         return;
       }

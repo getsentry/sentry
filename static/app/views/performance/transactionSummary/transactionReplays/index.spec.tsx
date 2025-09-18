@@ -239,7 +239,7 @@ describe('TransactionReplays', () => {
       })
     ).toHaveAttribute(
       'href',
-      `/organizations/org-slug/replays/346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
+      `/organizations/org-slug/explore/replays/346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
     );
 
     // Expect the second row to have the correct href
@@ -249,7 +249,7 @@ describe('TransactionReplays', () => {
       })
     ).toHaveAttribute(
       'href',
-      `/organizations/org-slug/replays/b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
+      `/organizations/org-slug/explore/replays/b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
     );
 
     // Expect the first row to have the correct duration

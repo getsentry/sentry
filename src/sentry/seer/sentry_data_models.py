@@ -50,6 +50,9 @@ class ProfileData(BaseModel):
     transaction_name: str | None
     execution_tree: list[ExecutionTreeNode]
     project_id: int
+    start_ts: float | None = None
+    end_ts: float | None = None
+    is_continuous: bool = False
 
 
 class TraceProfiles(BaseModel):
@@ -64,6 +67,8 @@ class IssueDetails(BaseModel):
     culprit: str | None
     transaction: str | None
     events: list[dict[str, Any]]
+    metadata: dict[str, Any] = {}
+    message: str = ""
 
 
 class TransactionIssues(BaseModel):

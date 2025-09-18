@@ -12,7 +12,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ModalStore from 'sentry/stores/modalStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -53,7 +52,6 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   afterEach(() => {
-    ModalStore.reset();
     jest.clearAllMocks();
   });
 

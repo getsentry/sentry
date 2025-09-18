@@ -8,7 +8,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 def has_stacktrace(event_data: Mapping[str, Any]) -> bool:
@@ -123,5 +123,4 @@ def track_event_since_received(
             "reprocessing": "true" if reprocessing2.is_reprocessed_event(event_data) else "false",
             "type": event_data.get("type"),
         },
-        sample_rate=0.01,
     )

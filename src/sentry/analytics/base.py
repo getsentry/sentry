@@ -4,7 +4,7 @@ import abc
 from typing import Any, overload
 from warnings import deprecated
 
-from sentry.analytics.event import Event
+from sentry.analytics.event import Event, EventEnvelope
 from sentry.utils.services import Service
 
 from .event_manager import default_manager
@@ -46,16 +46,21 @@ class Analytics(Service, abc.ABC):
         """
         ...
 
-    def record(self, event_or_type: Event | str, instance: Any = None, **kwargs: Any) -> None:
+    def record(
+        self,
+        event_or_type: Event | str,
+        instance: Any = None,
+        **kwargs: Any,
+    ) -> None:
         if isinstance(event_or_type, str):
             event_cls = self.event_manager.get(event_or_type)
             event = event_cls.from_instance(instance, **kwargs)
         else:
             event = event_or_type
 
-        self.record_event(event)
+        self.record_event_envelope(EventEnvelope(event=event))
 
-    def record_event(self, event: Event) -> None:
+    def record_event_envelope(self, envelope: EventEnvelope) -> None:
         pass
 
     def setup(self) -> None:

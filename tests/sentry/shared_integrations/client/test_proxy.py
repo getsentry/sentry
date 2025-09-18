@@ -162,14 +162,20 @@ class IntegrationProxyClientTest(TestCase):
         assert mock_is_control_silo_ip_address.call_count == 1
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.net.socket.is_ipaddress_allowed")
     @patch("sentry.shared_integrations.client.proxy.is_control_silo_ip_address")
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
     def test_does_not_validate_control_silo_ip_address_in_control(
-        self, mock_getaddrinfo, mock_get_control_silo_ip_address, mock_is_control_silo_ip_address
+        self,
+        mock_getaddrinfo,
+        mock_get_control_silo_ip_address,
+        mock_is_control_silo_ip_address,
+        mock_is_ipaddress_allowed,
     ):
         mock_get_control_silo_ip_address.return_value = ipaddress.ip_address("172.31.255.255")
         mock_getaddrinfo.return_value = [(2, 1, 6, "", ("172.31.255.255", 0))]
+        mock_is_ipaddress_allowed.return_value = True
         client = self.client_cls(org_integration_id=self.oi_id)
 
         class BailOut(Exception):
@@ -187,6 +193,8 @@ class IntegrationProxyClientTest(TestCase):
         # Assert control silo ip address was not validated
         assert mock_get_control_silo_ip_address.call_count == 0
         assert mock_is_control_silo_ip_address.call_count == 0
+        # But validation of is_ipaddress_allowed was used instead
+        assert mock_is_ipaddress_allowed.call_count == 1
 
     @patch.object(Session, "send")
     def test_custom_timeout(self, mock_session_send: MagicMock) -> None:

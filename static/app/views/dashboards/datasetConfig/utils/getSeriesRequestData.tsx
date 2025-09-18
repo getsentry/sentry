@@ -5,11 +5,11 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {
   getAggregateAlias,
+  getEquationAliasIndex,
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {TOP_N} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {getNumEquations, getWidgetInterval} from 'sentry/views/dashboards/utils';
 
@@ -93,18 +93,43 @@ export function getSeriesRequestData(
       requestData.excludeOther =
         widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
 
-      if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
-        const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
-        const isDescending = widgetQuery.orderby.startsWith('-');
-        const prefix = isDescending ? '-' : '';
+      if ([DiscoverDatasets.OURLOGS, DiscoverDatasets.SPANS].includes(dataset)) {
+        if (
+          isEquation(trimStart(widgetQuery.orderby, '-')) &&
+          !requestData.field?.includes(trimStart(widgetQuery.orderby, '-'))
+        ) {
+          requestData.field = [
+            ...widgetQuery.columns,
+            ...widgetQuery.aggregates,
+            trimStart(widgetQuery.orderby, '-'),
+          ];
+        } else if (isEquationAlias(trimStart(widgetQuery.orderby, '-'))) {
+          const equations = widgetQuery.fields?.filter(isEquation) ?? [];
+          const equationIndex = getEquationAliasIndex(
+            trimStart(widgetQuery.orderby, '-')
+          );
 
-        // Construct the alias form of the equation and inject it into the request
-        requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
-        requestData.field = [
-          ...widgetQuery.columns,
-          ...widgetQuery.aggregates,
-          trimStart(widgetQuery.orderby, '-'),
-        ];
+          const equationOrderBy = equations[equationIndex];
+          if (equationOrderBy) {
+            requestData.orderby = widgetQuery.orderby.startsWith('-')
+              ? `-${equationOrderBy}`
+              : equationOrderBy;
+          }
+        }
+      } else {
+        if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
+          const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
+          const isDescending = widgetQuery.orderby.startsWith('-');
+          const prefix = isDescending ? '-' : '';
+
+          // Construct the alias form of the equation and inject it into the request
+          requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
+          requestData.field = [
+            ...widgetQuery.columns,
+            ...widgetQuery.aggregates,
+            trimStart(widgetQuery.orderby, '-'),
+          ];
+        }
       }
     }
   }

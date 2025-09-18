@@ -37,7 +37,7 @@ import type {
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-export interface ReleaseWidgetQueriesProps {
+interface ReleaseWidgetQueriesProps {
   api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
@@ -205,7 +205,7 @@ class ReleaseWidgetQueries extends Component<ReleaseWidgetQueriesProps, State> {
         return;
       }
       this.setState({releases, loading: false});
-    } catch (error) {
+    } catch (error: any) {
       if (!this._isMounted) {
         return;
       }
@@ -342,7 +342,7 @@ class ReleaseWidgetQueries extends Component<ReleaseWidgetQueriesProps, State> {
     }
 
     if (releasesArray.length) {
-      data.groups.sort(function (group1, group2) {
+      data.groups.sort((group1, group2) => {
         const release1 = group1.by.release;
         const release2 = group2.by.release;
         // @ts-expect-error TS(2345): Argument of type 'string | number | undefined' is ... Remove this comment to see the full error message

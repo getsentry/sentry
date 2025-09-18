@@ -9,7 +9,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {gaming} from 'sentry/data/platformCategories';
+import {consoles, gaming} from 'sentry/data/platformCategories';
 import {
   createablePlatforms,
   filterAliases,
@@ -18,6 +18,8 @@ import {
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
@@ -83,6 +85,7 @@ function PlatformPicker({
   showFilterBar = true,
   showOther = true,
 }: PlatformPickerProps) {
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
   const categories = useMemo(() => {
     return getCategoryList(organization);
   }, [organization]);
@@ -100,12 +103,19 @@ function PlatformPicker({
       return selectablePlatforms;
     }
 
-    const gamingPlatforms = platforms.filter(
-      p => gaming.includes(p.id) && !createablePlatforms.has(p.id)
-    );
+    const gamingPlatforms = platforms.filter(p => {
+      if (!gaming.includes(p.id) || createablePlatforms.has(p.id)) {
+        return false;
+      }
+      if (isSelfHosted) {
+        return !consoles.includes(p.id);
+      }
+
+      return true;
+    });
 
     return [...selectablePlatforms, ...gamingPlatforms];
-  }, [includeGamingPlatforms]);
+  }, [includeGamingPlatforms, isSelfHosted]);
 
   const platformList = useMemo(() => {
     const currentCategory = categories.find(({id}) => id === category);
@@ -149,28 +159,51 @@ function PlatformPicker({
     });
   }, [filter, category, availablePlatforms, showOther, categories]);
 
-  const latestValuesRef = useRef({filter, platformList, source, organization});
-
-  useEffect(() => {
-    latestValuesRef.current = {filter, platformList, source, organization};
+  const latestValuesRef = useRef({
+    filter,
+    platformList,
+    source,
+    organization,
+    category,
   });
 
-  const debounceLogSearch = useRef(
+  useEffect(() => {
+    latestValuesRef.current = {filter, platformList, source, organization, category};
+  });
+
+  const debounceSearch = useRef(
     debounce(() => {
       const {
         filter: currentFilter,
         platformList: currentPlatformList,
         source: currentSource,
         organization: currentOrganization,
+        category: currentCategory,
       } = latestValuesRef.current;
-      if (currentFilter) {
-        trackAnalytics('growth.platformpicker_search', {
-          search: currentFilter.toLowerCase(),
-          num_results: currentPlatformList.length,
-          source: currentSource,
-          organization: currentOrganization ?? null,
-        });
+
+      if (!currentFilter) {
+        return;
       }
+      trackAnalytics('growth.platformpicker_search', {
+        search: currentFilter.toLowerCase(),
+        num_results: currentPlatformList.length,
+        source: currentSource,
+        organization: currentOrganization ?? null,
+      });
+
+      if (!visibleSelection) {
+        return;
+      }
+
+      const fullPlatformMatch = currentPlatformList.find(
+        platformItem => platformItem.name.toLowerCase() === currentFilter.toLowerCase()
+      );
+
+      if (!fullPlatformMatch) {
+        return;
+      }
+
+      setPlatform({...fullPlatformMatch, category: currentCategory});
     }, DEFAULT_DEBOUNCE_DURATION)
   ).current;
 
@@ -204,7 +237,7 @@ function PlatformPicker({
             placeholder={t('Filter Platforms')}
             onChange={val => {
               setFilter(val);
-              debounceLogSearch();
+              debounceSearch();
             }}
           />
         )}

@@ -10,6 +10,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
 from tests.sentry.spans.consumers.process import build_mock_span
@@ -28,6 +29,7 @@ def build_mock_message(data, topic=None):
     "sentry.spans.consumers.process_segments.factory.process_segment",
     side_effect=lambda x, **kwargs: x,
 )
+@thread_leak_allowlist(reason="spans processing", issue=97044)
 def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) -> None:
     topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
     partition_1 = Partition(topic, 0)

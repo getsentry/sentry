@@ -42,8 +42,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('AppContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('AppContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getAppContextData({data: MOCK_APP_CONTEXT, event: EventFixture()})).toEqual([
       {
         key: 'device_app_hash',
@@ -84,7 +84,7 @@ describe('AppContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {app: MOCK_REDACTION}},
     });

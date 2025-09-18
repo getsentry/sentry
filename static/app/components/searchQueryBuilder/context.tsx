@@ -33,7 +33,7 @@ interface SearchQueryBuilderContextData {
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
   autoSubmitSeer: boolean;
   committedQuery: string;
-  currentInputValue: string;
+  currentInputValueRef: React.RefObject<string>;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
@@ -55,7 +55,6 @@ interface SearchQueryBuilderContextData {
   query: string;
   searchSource: string;
   setAutoSubmitSeer: (enabled: boolean) => void;
-  setCurrentInputValue: (value: string) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
   size: 'small' | 'normal';
@@ -118,9 +117,9 @@ export function SearchQueryBuilderProvider({
   const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
-  const [currentInputValue, setCurrentInputValue] = useState('');
   const [displayAskSeer, setDisplayAskSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
+  const currentInputValueRef = useRef<string>('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
 
@@ -128,6 +127,8 @@ export function SearchQueryBuilderProvider({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
     disabled,
+    displayAskSeerFeedback,
+    setDisplayAskSeerFeedback,
   });
 
   const stableFieldDefinitionGetter = useMemo(
@@ -212,8 +213,7 @@ export function SearchQueryBuilderProvider({
       matchKeySuggestions,
       filterKeyAliases,
       gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
-      currentInputValue,
-      setCurrentInputValue,
+      currentInputValueRef,
       displayAskSeerFeedback,
       setDisplayAskSeerFeedback,
       askSeerNLQueryRef,
@@ -221,7 +221,6 @@ export function SearchQueryBuilderProvider({
     };
   }, [
     autoSubmitSeer,
-    currentInputValue,
     disabled,
     disallowFreeText,
     disallowWildcard,

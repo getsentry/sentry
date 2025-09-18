@@ -105,7 +105,7 @@ describe('SeerSection', () => {
   });
 
   describe('Seer button text', () => {
-    it('shows "Find Root Cause" when Seer needs setup and no run already', async () => {
+    it('shows "Fix it for me" when Seer needs setup and no run already', async () => {
       const customOrganization = OrganizationFixture({
         hideAiFeatures: false,
         features: ['gen-ai-features'],
@@ -128,9 +128,9 @@ describe('SeerSection', () => {
       });
 
       expect(
-        await screen.findByText('Explore potential root causes and solutions with Seer.')
+        await screen.findByText('Meet Seer, the AI debugging agent.')
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Fix it for me'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {

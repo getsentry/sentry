@@ -8,10 +8,11 @@ from rest_framework.response import Response
 from sentry import tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.serializers import serialize
+from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.utils import DEVICE_CLASS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -26,13 +27,15 @@ class GroupTagsEndpoint(GroupEndpoint):
     }
 
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
-            RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
+                RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+            }
         }
-    }
+    )
 
     def get(self, request: Request, group: Group) -> Response:
 

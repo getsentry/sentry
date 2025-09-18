@@ -2,7 +2,7 @@ import {SessionUserCountByStatusByReleaseFixture} from 'sentry-fixture/sessions'
 
 import {transformSessionsResponseToTable} from 'sentry/views/dashboards/utils/transformSessionsResponseToTable';
 
-describe('transformSessionsResponseToTable', function () {
+describe('transformSessionsResponseToTable', () => {
   it('transforms sessions into table', () => {
     expect(
       transformSessionsResponseToTable(SessionUserCountByStatusByReleaseFixture(), [], [])

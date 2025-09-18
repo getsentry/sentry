@@ -39,6 +39,35 @@ type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
+interface CodingAgentResult {
+  branch_name: string | null;
+  description: string;
+  pr_url: string | null;
+  repo_full_name: string;
+  repo_provider: string;
+}
+
+export enum CodingAgentStatus {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+export enum CodingAgentProvider {
+  CURSOR_BACKGROUND_AGENT = 'cursor_background_agent',
+}
+
+export interface CodingAgentState {
+  id: string;
+  name: string;
+  provider: CodingAgentProvider;
+  started_at: string;
+  status: CodingAgentStatus;
+  agent_url?: string;
+  results?: CodingAgentResult[];
+}
+
 type CodebaseState = {
   is_readable: boolean | null;
   is_writeable: boolean | null;
@@ -60,6 +89,7 @@ export type AutofixData = {
   codebase_indexing?: {
     status: 'COMPLETED';
   };
+  coding_agents?: Record<string, CodingAgentState>;
   completed_at?: string | null;
   error_message?: string;
   options?: AutofixOptions;
@@ -273,7 +303,7 @@ export interface SeerRepoDefinition {
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
-  automated_run_stopping_point?: 'solution' | 'code_changes' | 'open_pr';
+  automated_run_stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;

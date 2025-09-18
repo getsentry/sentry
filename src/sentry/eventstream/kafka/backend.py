@@ -22,7 +22,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event, GroupEvent
+    from sentry.services.eventstore.models import Event, GroupEvent
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
@@ -41,6 +41,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if topic not in self.__producers:
             cluster_name = get_topic_definition(topic)["cluster"]
             cluster_options = get_kafka_producer_cluster_options(cluster_name)
+            cluster_options["client.id"] = "sentry.eventstream.kafka"
             self.__producers[topic] = Producer(cluster_options)
 
         return self.__producers[topic]

@@ -16,7 +16,7 @@ from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 REGEX_PATTERN_KEYS = (
     "email",

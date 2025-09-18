@@ -7,16 +7,16 @@ import selectEvent from 'sentry-test/selectEvent';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 
-describe('CustomCommitsResolutionModal', function () {
+describe('CustomCommitsResolutionModal', () => {
   let commitsMock: any;
-  beforeEach(function () {
+  beforeEach(() => {
     commitsMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/commits/',
       body: [CommitFixture()],
     });
   });
 
-  it('can select a commit', async function () {
+  it('can select a commit', async () => {
     const onSelected = jest.fn();
 
     const wrapper = styled((p: any) => p.children);

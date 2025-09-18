@@ -11,14 +11,15 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
+  AlternativeConfiguration,
   getPythonAiocontextvarsConfig,
   getPythonInstallConfig,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -34,6 +35,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -100,16 +107,15 @@ const onboarding: OnboardingConfig = {
         ),
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
       configurations: [
         {
+          description: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
           language: 'python',
-
           code: `
 async def hello(request):
     1/0  # raises an error
@@ -121,6 +127,37 @@ app.add_routes([web.get('/', hello)])
 web.run_app(app)
 `,
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: t(
+                  'You can send logs to Sentry using the Sentry logging APIs:'
+                ),
+                language: 'python',
+                code: `import sentry_sdk
+
+# Send logs directly to Sentry
+sentry_sdk.logger.info('This is an info log message')
+sentry_sdk.logger.warning('This is a warning message')
+sentry_sdk.logger.error('This is an error message')`,
+              },
+              {
+                description: t(
+                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+                ),
+                language: 'python',
+                code: `import logging
+
+# Your existing logging setup
+logger = logging.getLogger(__name__)
+
+# These logs will be automatically sent to Sentry
+logger.info('This will be sent to Sentry')
+logger.warning('User login failed')
+logger.error('Something went wrong')`,
+              },
+            ]
+          : []),
       ],
       additionalInfo: (
         <span>
@@ -142,8 +179,23 @@ web.run_app(app)
       ),
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [] as any[];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -153,6 +205,7 @@ const docs: Docs = {
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

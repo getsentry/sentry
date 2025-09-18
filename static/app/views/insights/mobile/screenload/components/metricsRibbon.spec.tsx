@@ -10,7 +10,7 @@ import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/compo
 
 jest.mock('sentry/utils/usePageFilters');
 
-describe('MetricsRibbon', function () {
+describe('MetricsRibbon', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
@@ -45,7 +45,7 @@ describe('MetricsRibbon', function () {
     ],
   });
 
-  it('makes a request to discover with the correct dataset and fields', async function () {
+  it('makes a request to discover with the correct dataset and fields', async () => {
     const mockEventsQuery = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {

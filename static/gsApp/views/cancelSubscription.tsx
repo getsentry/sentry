@@ -137,7 +137,7 @@ function CancelSubscriptionForm() {
       });
 
       handleSubmitSuccess(response);
-    } catch (error) {
+    } catch (error: any) {
       addErrorMessage(error.responseJSON?.detail || t('Failed to cancel subscription'));
     }
   };

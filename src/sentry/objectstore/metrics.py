@@ -17,41 +17,36 @@ class StorageMetricEmitter:
         self.compressed_size: int | None = None
         self.compression: str = "unknown"
 
-    def record_latency(self, elapsed: float):
+    def record_latency(self, elapsed: float) -> None:
         tags = {"usecase": self.usecase}
-        metrics.timing(f"storage.{self.operation}.latency", elapsed, tags=tags, precise=True)
+        metrics.timing(f"storage.{self.operation}.latency", elapsed, tags=tags)
         self.elapsed = elapsed
 
-    def record_uncompressed_size(self, value: int):
+    def record_uncompressed_size(self, value: int) -> None:
         tags = {"usecase": self.usecase, "compression": "none"}
-        metrics.distribution(
-            f"storage.{self.operation}.size", value, tags=tags, unit="byte", precise=True
-        )
+        metrics.distribution(f"storage.{self.operation}.size", value, tags=tags, unit="byte")
         self.uncompressed_size = value
 
-    def record_compressed_size(self, value: int, compression: str = "unknown"):
+    def record_compressed_size(self, value: int, compression: str = "unknown") -> None:
         tags = {"usecase": self.usecase, "compression": compression}
-        metrics.distribution(
-            f"storage.{self.operation}.size", value, tags=tags, unit="byte", precise=True
-        )
+        metrics.distribution(f"storage.{self.operation}.size", value, tags=tags, unit="byte")
         self.compressed_size = value
         self.compression = compression
 
-    def maybe_record_compression_ratio(self):
+    def maybe_record_compression_ratio(self) -> None:
         if not self.uncompressed_size or not self.compressed_size:
-            return
+            return None
 
         tags = {"usecase": self.usecase, "compression": self.compression}
         metrics.distribution(
             f"storage.{self.operation}.compression_ratio",
             self.compressed_size / self.uncompressed_size,
             tags=tags,
-            precise=True,
         )
 
-    def maybe_record_throughputs(self):
+    def maybe_record_throughputs(self) -> None:
         if not self.elapsed or self.elapsed <= 0:
-            return
+            return None
 
         sizes = []
         if self.uncompressed_size:
@@ -62,13 +57,10 @@ class StorageMetricEmitter:
         for size, compression in sizes:
             tags = {"usecase": self.usecase, "compression": compression}
             metrics.distribution(
-                f"storage.{self.operation}.throughput", size / self.elapsed, tags=tags, precise=True
+                f"storage.{self.operation}.throughput", size / self.elapsed, tags=tags
             )
             metrics.distribution(
-                f"storage.{self.operation}.inverse_throughput",
-                self.elapsed / size,
-                tags=tags,
-                precise=True,
+                f"storage.{self.operation}.inverse_throughput", self.elapsed / size, tags=tags
             )
 
 

@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class TeamsProjectsDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         team = self.create_team(organization=self.organization)
         self.create_project(name="foo", organization=self.organization, teams=[team])
 

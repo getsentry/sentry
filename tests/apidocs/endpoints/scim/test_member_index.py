@@ -6,7 +6,7 @@ from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.member = self.create_member(user=self.create_user(), organization=self.organization)
 

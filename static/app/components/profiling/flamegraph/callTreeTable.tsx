@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {IconUser} from 'sentry/icons/iconUser';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
@@ -77,10 +79,6 @@ export const CallTreeTable = styled('div')`
     padding-right: ${space(1)};
     justify-content: flex-end;
 
-    &:nth-child(2) {
-      padding-right: 0;
-    }
-
     &:focus {
       outline: none;
     }
@@ -89,7 +87,7 @@ export const CallTreeTable = styled('div')`
   .${CallTreeTableClassNames.FRAME_CELL} {
     display: flex;
     align-items: center;
-    padding: 0 ${space(1)};
+    padding-left: ${space(1)};
     white-space: nowrap;
 
     &:focus {
@@ -378,12 +376,12 @@ const TEXT_ALIGN_RIGHT: React.CSSProperties = {textAlign: 'right'};
 
 interface CallTreeTableRowProps {
   children: React.ReactNode;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLElement>) => void;
   onContextMenu: (e: React.MouseEvent) => void;
-  onKeyDown: (event: React.KeyboardEvent) => void;
-  onMouseEnter: () => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+  onMouseEnter: (e: React.MouseEvent<HTMLElement>) => void;
   tabIndex: number;
-  top: string;
+  top: React.CSSProperties['top'];
   ref?: React.Ref<HTMLDivElement>;
 }
 export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {
@@ -403,7 +401,7 @@ export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {
   );
 }
 
-interface CallTreeTableColumns {
+interface BaseCallTreeTableColumns {
   formatDuration: (value: number) => string;
   frameColor: string;
   node: VirtualizedTreeNode<FlamegraphFrame>;
@@ -413,12 +411,17 @@ interface CallTreeTableColumns {
     opts?: {expandChildren: boolean}
   ) => void;
   referenceNode: FlamegraphFrame;
+  tabIndex: number;
+  type: 'count' | 'time';
+}
+
+interface CallTreeTableColumns extends BaseCallTreeTableColumns {
   relativeSelfWeight: number;
   relativeTotalWeight: number;
   selfWeight: number | React.ReactNode;
-  tabIndex: number;
   totalWeight: number | React.ReactNode;
-  type: 'count' | 'time';
+  avgWeight?: React.ReactNode;
+  showAvg?: boolean;
 }
 
 export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
@@ -437,34 +440,39 @@ export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
         </div>
       </div>
       <div className={CallTreeTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
-        {typeof props.totalWeight === 'number'
-          ? props.formatDuration(props.totalWeight)
-          : props.totalWeight}
-        <div className={CallTreeTableClassNames.WEIGHT}>
-          {props.relativeTotalWeight.toFixed(1)}%
-          <div
-            className={CallTreeTableClassNames.BACKGROUND_WEIGHT}
-            style={{transform: `scaleX(${props.relativeTotalWeight / 100})`}}
-          />
-        </div>
-        <div className={CallTreeTableClassNames.FRAME_TYPE}>
-          {props.node.node.node.frame.is_application ? (
-            <IconUser size="xs" />
+        {props.showAvg ? (
+          defined(props.avgWeight) ? (
+            props.avgWeight
           ) : (
-            <IconSettings size="xs" />
-          )}
-        </div>
+            <span>{t('Unknown')}</span>
+          )
+        ) : (
+          <Fragment>
+            {typeof props.totalWeight === 'number'
+              ? props.formatDuration(props.totalWeight)
+              : props.totalWeight}
+            <div className={CallTreeTableClassNames.WEIGHT}>
+              {props.relativeTotalWeight.toFixed(1)}%
+              <div
+                className={CallTreeTableClassNames.BACKGROUND_WEIGHT}
+                style={{transform: `scaleX(${props.relativeTotalWeight / 100})`}}
+              />
+            </div>
+            <div className={CallTreeTableClassNames.FRAME_TYPE}>
+              {props.node.node.node.frame.is_application ? (
+                <IconUser size="xs" />
+              ) : (
+                <IconSettings size="xs" />
+              )}
+            </div>
+          </Fragment>
+        )}
       </div>
     </Fragment>
   );
 }
 
-export function CallTreeTableDynamicColumns(
-  props: Omit<
-    CallTreeTableColumns,
-    'relativeTotalWeight' | 'relativeSelfWeight' | 'selfWeight' | 'totalWeight'
-  >
-) {
+export function CallTreeTableDynamicColumns(props: BaseCallTreeTableColumns) {
   const handleExpanding = (evt: React.MouseEvent) => {
     evt.stopPropagation();
     props.onExpandClick(props.node, !props.node.expanded, {

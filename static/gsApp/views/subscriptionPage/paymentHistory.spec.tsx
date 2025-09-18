@@ -10,8 +10,8 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType, PlanTier} from 'getsentry/types';
 import PaymentHistory from 'getsentry/views/subscriptionPage/paymentHistory';
 
-describe('Subscription > PaymentHistory', function () {
-  beforeEach(function () {
+describe('Subscription > PaymentHistory', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/dogz-rule/billing-config/`,
@@ -39,7 +39,7 @@ describe('Subscription > PaymentHistory', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
@@ -83,7 +83,7 @@ describe('Subscription > PaymentHistory', function () {
     expect(screen.getByText('Sep 20, 2021')).toBeInTheDocument();
   });
 
-  it('renders an error for non-billing users', async function () {
+  it('renders an error for non-billing users', async () => {
     const organization = OrganizationFixture({slug: 'dogz-rule', access: []});
     const subscription = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, subscription);
@@ -107,7 +107,7 @@ describe('Subscription > PaymentHistory', function () {
     expect(screen.queryByTestId('payment-list')).not.toBeInTheDocument();
   });
 
-  it('renders unpaid invoice', async function () {
+  it('renders unpaid invoice', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
@@ -135,7 +135,7 @@ describe('Subscription > PaymentHistory', function () {
     expect(screen.getByText('closed')).toBeInTheDocument();
   });
 
-  it('renders awaiting payment invoice', async function () {
+  it('renders awaiting payment invoice', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
@@ -158,7 +158,7 @@ describe('Subscription > PaymentHistory', function () {
     expect(screen.getByText('awaiting payment')).toBeInTheDocument();
   });
 
-  it('renders paid invoice', async function () {
+  it('renders paid invoice', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],

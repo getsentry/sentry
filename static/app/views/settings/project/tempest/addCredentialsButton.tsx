@@ -9,10 +9,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 interface AddCredentialsButtonProps {
+  origin: 'onboarding' | 'project-creation' | 'project-settings';
   project: Project;
 }
 
-export function AddCredentialsButton({project}: AddCredentialsButtonProps) {
+export function AddCredentialsButton({project, origin}: AddCredentialsButtonProps) {
   const organization = useOrganization();
   const hasWriteAccess = useHasTempestWriteAccess();
 
@@ -28,10 +29,11 @@ export function AddCredentialsButton({project}: AddCredentialsButtonProps) {
         disabled={!hasWriteAccess}
         icon={<IconAdd isCircled />}
         onClick={() => {
-          openAddTempestCredentialsModal({organization, project});
+          openAddTempestCredentialsModal({organization, project, origin});
           trackAnalytics('tempest.credentials.add_modal_opened', {
             organization,
             project_slug: project.slug,
+            origin,
           });
         }}
       >

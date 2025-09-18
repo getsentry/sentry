@@ -399,6 +399,19 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_comment_reactions_missing_reactions(self, get_jwt) -> None:
+        comment_reactions = {"other": "stuff"}
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2",
+            json=comment_reactions,
+        )
+
+        reactions = self.github_client.get_comment_reactions(repo=self.repo.name, comment_id="2")
+        assert reactions == {}
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_merge_commit_sha_from_commit(self, get_jwt) -> None:
         merge_commit_sha = "jkl123"
         pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]
@@ -666,6 +679,123 @@ class GithubProxyClientTest(TestCase):
             assert control_proxy_responses.call_count == 1
             assert client.base_url not in request.url
             client.assert_proxy_request(request, is_proxy=True)
+
+
+class GitHubCommitContextClientTest(TestCase):
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def setUp(self, get_jwt):
+        ten_days = timezone.now() + timedelta(days=10)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github Test Org",
+            external_id="1",
+            metadata={"access_token": "12345token", "expires_at": ten_days.isoformat()},
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            name="Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            integration_id=self.integration.id,
+        )
+        self.install = get_installation_of_type(
+            GitHubIntegration, self.integration, self.organization.id
+        )
+        self.github_client = self.install.get_client()
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_check_run(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        check_data = {
+            "name": "sentry/ci",
+            "head_sha": "abc123",
+            "status": "completed",
+            "conclusion": "success",
+            "details_url": "https://example.com/build/123",
+        }
+
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/repos/{repo_name}/check-runs",
+            json={
+                "id": 1,
+                "name": "sentry/ci",
+                "head_sha": "abc123",
+                "status": "completed",
+                "conclusion": "success",
+                "details_url": "https://example.com/build/123",
+            },
+            status=201,
+        )
+
+        result = self.github_client.create_check_run(repo_name, check_data)
+
+        assert result["id"] == 1
+        assert result["name"] == "sentry/ci"
+        assert result["head_sha"] == "abc123"
+        assert result["status"] == "completed"
+        assert result["conclusion"] == "success"
+        assert result["details_url"] == "https://example.com/build/123"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_check_runs(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        sha = "abc123"
+
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{repo_name}/commits/{sha}/check-runs",
+            json={
+                "total_count": 2,
+                "check_runs": [
+                    {
+                        "id": 1,
+                        "name": "sentry/ci",
+                        "head_sha": "abc123",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "details_url": "https://example.com/build/123",
+                    },
+                    {
+                        "id": 2,
+                        "name": "sentry/tests",
+                        "head_sha": "abc123",
+                        "status": "in_progress",
+                        "conclusion": None,
+                        "details_url": "https://example.com/tests/456",
+                    },
+                ],
+            },
+            status=200,
+        )
+
+        result = self.github_client.get_check_runs(repo_name, sha)
+
+        assert result["total_count"] == 2
+        assert len(result["check_runs"]) == 2
+        assert result["check_runs"][0]["id"] == 1
+        assert result["check_runs"][0]["conclusion"] == "success"
+        assert result["check_runs"][1]["id"] == 2
+        assert result["check_runs"][1]["status"] == "in_progress"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_check_run_error(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        check_data = {"name": "sentry/ci", "head_sha": "abc123"}
+
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/repos/{repo_name}/check-runs",
+            json={"message": "Validation Failed"},
+            status=422,
+        )
+
+        with pytest.raises(ApiError):
+            self.github_client.create_check_run(repo_name, check_data)
 
 
 class GitHubClientFileBlameBase(TestCase):

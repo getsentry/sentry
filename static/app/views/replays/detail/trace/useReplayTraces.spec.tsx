@@ -17,7 +17,7 @@ const wrapper = ({children}: {children: React.ReactNode}) => (
 );
 
 describe('useTraceMeta', () => {
-  beforeEach(function () {
+  beforeEach(() => {
     queryClient.clear();
     jest.clearAllMocks();
   });

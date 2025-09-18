@@ -4,14 +4,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UserDetails from 'admin/views/userDetails';
 
-describe('User Details', function () {
+describe('User Details', () => {
   const mockUser = UserFixture({
     username: 'test-username',
     email: 'test-email@gmail.com',
     isActive: true,
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/users/${mockUser.id}/`,
@@ -40,8 +40,8 @@ describe('User Details', function () {
     });
   });
 
-  describe('page rendering', function () {
-    it('renders correct sections', async function () {
+  describe('page rendering', () => {
+    it('renders correct sections', async () => {
       render(<UserDetails />, {
         initialRouterConfig: {
           location: {
@@ -56,7 +56,7 @@ describe('User Details', function () {
       expect(screen.getByText('User Emails')).toBeInTheDocument();
     });
 
-    it('renders correct dropdown options for active account', async function () {
+    it('renders correct dropdown options for active account', async () => {
       render(<UserDetails />, {
         initialRouterConfig: {
           location: {
@@ -73,7 +73,7 @@ describe('User Details', function () {
       expect(screen.queryByTestId('action-reactivate')).not.toBeInTheDocument();
     });
 
-    it('renders correct UserOverview', async function () {
+    it('renders correct UserOverview', async () => {
       render(<UserDetails />, {
         initialRouterConfig: {
           location: {

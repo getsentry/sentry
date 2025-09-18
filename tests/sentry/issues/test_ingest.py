@@ -17,7 +17,6 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MonitorIncidentType,
     NoiseConfig,
 )
 from sentry.issues.ingest import (
@@ -39,6 +38,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
@@ -755,6 +755,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "message": "test",
                 "name": "Name Test",
                 "source": "crash report widget",
+                "summary": "test",
             },
         )
         event = self.store_event(data={}, project_id=self.project.id)
@@ -770,6 +771,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
+            "summary": "test",
             "initial_priority": occurrence.priority,
         }
 
@@ -781,6 +783,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "message": "test",
                 "name": "Name Test",
                 "source": "crash report widget",
+                "summary": "test",
                 "associated_event_id": "55798fee4d21425c8689c980cde794f2",
             },
         )
@@ -797,6 +800,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
+            "summary": "test",
             "initial_priority": occurrence.priority,
             "associated_event_id": "55798fee4d21425c8689c980cde794f2",
         }

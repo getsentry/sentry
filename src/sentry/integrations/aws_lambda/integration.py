@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
 DESCRIPTION = """
-The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. We use CloudFormation Stack ([Learn more about CloudFormation](https://aws.amazon.com/cloudformation/)) to create Sentry role and enable errors and transactions capture from your Lambda functions.
+The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. We use a CloudFormation Stack ([learn more about CloudFormation](https://aws.amazon.com/cloudformation/)) to create a Sentry role and enable error and transaction capture from your Lambda functions.
 """
 
 

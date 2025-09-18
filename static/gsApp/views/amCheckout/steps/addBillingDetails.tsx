@@ -71,7 +71,7 @@ function AddBillingDetails({
           billingDetails: response,
           useExisting: response.addressType === AddressType.STRUCTURED,
         }));
-      } catch (error) {
+      } catch (error: any) {
         setState(prevState => ({...prevState, loadError: error, isLoading: false}));
         if (error.status !== 401 && error.status !== 403) {
           Sentry.captureException(error);
@@ -150,8 +150,8 @@ function AddBillingDetails({
           onSubmitSuccess={() => onCompleteStep(stepNumber)}
           onSubmitError={err => setState({...state, submitError: err})}
           submitLabel={t('Continue')}
-          fieldProps={fieldProps}
           footerStyle={footerStyle}
+          fieldProps={fieldProps}
         />
       </FormWrapper>
     );

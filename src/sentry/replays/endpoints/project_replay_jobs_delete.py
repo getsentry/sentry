@@ -102,6 +102,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             status="pending",
         )
 
+        # We don't check Seer features because an org may have previously had them on, then turned them off.
         has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
 
         # We always start with an offset of 0 (obviously) but future work doesn't need to obey

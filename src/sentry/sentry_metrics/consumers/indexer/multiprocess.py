@@ -26,9 +26,9 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         producer: AbstractProducer[KafkaPayload] | None = None,
     ) -> None:
         snuba_metrics = kafka_config.get_topic_definition(output_topic)
-        self.__producer = Producer(
-            kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
-        )
+        producer_config = kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"])
+        producer_config["client.id"] = "sentry.sentry_metrics.multiprocess"
+        self.__producer = Producer(producer_config)
         self.__producer_topic = snuba_metrics["real_topic_name"]
 
         self.__commit = CommitOffsets(commit_function)

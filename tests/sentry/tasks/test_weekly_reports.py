@@ -12,12 +12,13 @@ from django.utils import timezone
 
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import MonitorIncidentType, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import TeamStatus
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write

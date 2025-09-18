@@ -5,16 +5,16 @@ from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
@@ -240,7 +240,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             assert start.args == (EventLifecycleOutcome.STARTED,)
             assert_halt_metric(
                 mock_record_event,
-                IntegrationInstallationConfigurationError(
+                IntegrationConfigurationError(
                     "Could not fetch issue create configuration from Jira."
                 ),
             )

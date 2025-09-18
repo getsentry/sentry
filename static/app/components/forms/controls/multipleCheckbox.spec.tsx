@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 
-describe('MultipleCheckbox', function () {
-  it('renders', function () {
+describe('MultipleCheckbox', () => {
+  it('renders', () => {
     render(
       <MultipleCheckbox name="test" value={[1]}>
         <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>
@@ -13,7 +13,7 @@ describe('MultipleCheckbox', function () {
     );
   });
 
-  it('unselects a checked input', async function () {
+  it('unselects a checked input', async () => {
     const onChange = jest.fn();
     render(
       <MultipleCheckbox name="test" value={[1]} onChange={onChange}>
@@ -27,7 +27,7 @@ describe('MultipleCheckbox', function () {
     expect(onChange).toHaveBeenCalledWith([], expect.anything());
   });
 
-  it('selects an unchecked input', async function () {
+  it('selects an unchecked input', async () => {
     const onChange = jest.fn();
     render(
       <MultipleCheckbox name="test" value={[1]} onChange={onChange}>

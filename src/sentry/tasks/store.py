@@ -14,8 +14,6 @@ from sentry_relay.processing import StoreNormalizer
 from sentry import options, reprocessing2
 from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
-from sentry.datascrubbing import scrub_data
-from sentry.eventstore import processing
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
@@ -24,6 +22,8 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.relay.datascrubbing import scrub_data
+from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
@@ -717,6 +717,7 @@ def save_event_transaction(
         processing_deadline_duration=65,
     ),
 )
+@metrics.wraps("feedback_consumer.save_event_feedback_task")
 def save_event_feedback(
     cache_key: str | None = None,
     start_time: float | None = None,

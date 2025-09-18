@@ -14,6 +14,7 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
@@ -28,7 +29,7 @@ const datePageFilterProps: PickableDays = {
   }),
 };
 
-describe('LogsTabContent', function () {
+describe('LogsTabContent', () => {
   const {organization, project, setupPageFilters} = initializeLogsTest();
 
   let eventTableMock: jest.Mock;
@@ -65,7 +66,7 @@ describe('LogsTabContent', function () {
 
   setupPageFilters();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     // Default API mocks
@@ -75,46 +76,46 @@ describe('LogsTabContent', function () {
       body: {
         data: [
           {
-            'sentry.item_id': '019621262d117e03bce898cb8f4f6ff7',
-            'project.id': 1,
-            trace: '17cc0bae407042eaa4bf6d798c37d026',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:12+00:00',
-            message: 'some log message1',
-            'tags[sentry.timestamp_precise,number]': 1.7443128722090732e18,
+            [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
+            [OurLogKnownFieldKey.PROJECT_ID]: 1,
+            [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+            [OurLogKnownFieldKey.SEVERITY]: 'info',
+            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
+            [OurLogKnownFieldKey.MESSAGE]: 'some log message1',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
           },
           {
-            'sentry.item_id': '0196212624a17144aa392d01420256a2',
-            'project.id': 1,
-            trace: 'c331c2df93d846f5a2134203416d40bb',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:10+00:00',
-            message: 'some log message2',
-            'tags[sentry.timestamp_precise,number]': 1.744312870049196e18,
+            [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
+            [OurLogKnownFieldKey.PROJECT_ID]: 1,
+            [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+            [OurLogKnownFieldKey.SEVERITY]: 'info',
+            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:10+00:00',
+            [OurLogKnownFieldKey.MESSAGE]: 'some log message2',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
           },
         ],
         meta: {
           fields: {
-            'sentry.item_id': 'string',
-            'project.id': 'string',
-            trace: 'string',
-            severity_number: 'integer',
-            severity_text: 'string',
-            timestamp: 'string',
-            message: 'string',
-            'tags[sentry.timestamp_precise,number]': 'number',
+            [OurLogKnownFieldKey.ID]: 'string',
+            [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+            [OurLogKnownFieldKey.TRACE_ID]: 'string',
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+            [OurLogKnownFieldKey.SEVERITY]: 'string',
+            [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+            [OurLogKnownFieldKey.MESSAGE]: 'string',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
           },
           units: {
-            'sentry.item_id': null,
-            'project.id': null,
-            trace: null,
-            severity_number: null,
-            severity_text: null,
-            timestamp: null,
-            message: null,
-            'tags[sentry.timestamp_precise,number]': null,
+            [OurLogKnownFieldKey.ID]: null,
+            [OurLogKnownFieldKey.PROJECT_ID]: null,
+            [OurLogKnownFieldKey.TRACE_ID]: null,
+            [OurLogKnownFieldKey.SEVERITY_NUMBER]: null,
+            [OurLogKnownFieldKey.SEVERITY]: null,
+            [OurLogKnownFieldKey.TIMESTAMP]: null,
+            [OurLogKnownFieldKey.MESSAGE]: null,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: null,
           },
           isMetricsData: false,
           isMetricsExtractedData: false,
@@ -161,7 +162,7 @@ describe('LogsTabContent', function () {
     });
   });
 
-  it('should call APIs as expected', async function () {
+  it('should call APIs as expected', async () => {
     render(
       <ProviderWrapper>
         <LogsTabContent {...datePageFilterProps} />
@@ -192,8 +193,7 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           yAxis: 'count(message)',
           interval: '1h',
-          query:
-            'severity:error tags[sentry.timestamp_precise,number]:<=1508208040000000000',
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
         }),
       })
     );
@@ -204,7 +204,7 @@ describe('LogsTabContent', function () {
     expect(table).toHaveTextContent(/some log message2/);
   });
 
-  it('should switch between modes', async function () {
+  it('should switch between modes', async () => {
     render(
       <ProviderWrapper>
         <LogsTabContent {...datePageFilterProps} />

@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
         ),
     ),
 )
-def check_autofix_status(run_id: int):
-    state = get_autofix_state(run_id=run_id)
+def check_autofix_status(run_id: int, organization_id: int) -> None:
+    state = get_autofix_state(run_id=run_id, organization_id=organization_id)
 
     if (
         state
@@ -50,7 +50,7 @@ def check_autofix_status(run_id: int):
         ),
     ),
 )
-def start_seer_automation(group_id: int):
+def start_seer_automation(group_id: int) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary
 
     group = Group.objects.get(id=group_id)

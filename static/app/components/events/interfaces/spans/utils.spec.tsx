@@ -5,8 +5,8 @@ import {
   getFormattedTimeRangeWithLeadingAndTrailingZero,
 } from 'sentry/components/events/interfaces/spans/utils';
 
-describe('test utility functions', function () {
-  it('getFormattedTimeRangeWithLeadingAndTrailingZero', function () {
+describe('test utility functions', () => {
+  it('getFormattedTimeRangeWithLeadingAndTrailingZero', () => {
     let result = getFormattedTimeRangeWithLeadingAndTrailingZero(
       1658925888.601534,
       1658925888.60193

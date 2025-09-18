@@ -15,7 +15,6 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function, Identifier, Lambda
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import eventstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -27,6 +26,7 @@ from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams, Span
+from sentry.services import eventstore
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
@@ -91,13 +91,11 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
         self,
         request: Request,
         organization: Organization,
-        check_global_views: bool = True,
         quantize_date_params: bool = True,
     ) -> SnubaParams:
         snuba_params = super().get_snuba_params(
             request,
             organization,
-            check_global_views=check_global_views,
             quantize_date_params=quantize_date_params,
         )
 

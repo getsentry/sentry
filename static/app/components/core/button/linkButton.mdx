@@ -1,0 +1,229 @@
+---
+title: LinkButton
+description: LinkButtons are clickable elements that navigate to a different URL or route while maintaining button styling and behavior.
+source: 'sentry/components/core/button/linkButton'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/button/linkButton.tsx#L23
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 2.5.8: https://www.w3.org/TR/WCAG22/#target-size-minimum
+    WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
+---
+
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {
+  IconAdd,
+  IconArrow,
+  IconChevron,
+  IconClock,
+  IconClose,
+  IconDelete,
+  IconDocs,
+  IconEdit,
+  IconEllipsis,
+  IconLightning,
+  IconLink,
+  IconOpen,
+  IconStar,
+  IconZoom,
+} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/button/linkButton';
+
+export const types = {LinkButton: APIReference.LinkButton};
+
+LinkButtons combine the visual appearance of buttons with navigation functionality. Use LinkButton when you need to navigate to a different URL or route while maintaining consistent button styling.
+
+## Basic Usage
+
+LinkButton supports two types of navigation: internal routing with the `to` prop and external links with the `href` prop.
+
+```jsx
+// Internal navigation
+<LinkButton to="/settings">Go to Settings</LinkButton>
+
+// External link
+<LinkButton href="https://docs.sentry.io">Documentation</LinkButton>
+```
+
+## Navigation Types
+
+### Internal Navigation
+
+Use the `to` prop for internal app navigation. This renders as a `Link` component and supports client-side routing.
+
+<Storybook.Demo>
+  <LinkButton to="/organizations/settings">Organization Settings</LinkButton>
+  <LinkButton to="/projects">View Projects</LinkButton>
+</Storybook.Demo>
+```jsx
+<LinkButton to="/organizations/settings">Organization Settings</LinkButton>
+<LinkButton to="/projects">View Projects</LinkButton>
+```
+
+### External Navigation
+
+Use the `href` prop for external URLs. External links automatically open in a new tab with security attributes.
+
+<Storybook.Demo>
+  <LinkButton href="https://docs.sentry.io" external>
+    Documentation
+  </LinkButton>
+  <LinkButton href="https://github.com/getsentry/sentry" external>
+    GitHub
+  </LinkButton>
+</Storybook.Demo>
+```jsx
+<LinkButton href="https://docs.sentry.io" external>
+  Documentation
+</LinkButton>
+<LinkButton href="https://github.com/getsentry/sentry" external>
+  GitHub
+</LinkButton>
+```
+
+## Sizes
+
+LinkButtons are available in the same sizes as regular buttons.
+
+<Storybook.Demo>
+  <LinkButton size="md" to="/medium">
+    Medium (default)
+  </LinkButton>
+  <LinkButton size="sm" to="/small">
+    Small
+  </LinkButton>
+  <LinkButton size="xs" to="/extra-small">
+    Extra small
+  </LinkButton>
+  <LinkButton size="zero" to="/zero">
+    Zero
+  </LinkButton>
+</Storybook.Demo>
+```jsx
+<LinkButton size="md" to="/medium">
+  Medium (default)
+</LinkButton>
+<LinkButton size="sm" to="/small">
+  Small
+</LinkButton>
+<LinkButton size="xs" to="/extra-small">
+  Extra small
+</LinkButton>
+<LinkButton size="zero" to="/zero">
+  Zero
+</LinkButton>
+```
+
+## Icons
+
+LinkButtons support an optional leading icon, following the same patterns as regular buttons.
+
+<Alert type="info">
+  You do not typically need to set the `size` prop for the icon, the LinkButton wraps the
+  rendered Icon in a `IcconDefaultsProvider` to provide an icon size proportional to the
+  button size.
+</Alert>
+
+<Storybook.Demo>
+  <LinkButton icon={<IconOpen />} priority="primary" to="/dashboard">
+    Open Dashboard
+  </LinkButton>
+  <LinkButton icon={<IconDocs />} href="https://docs.sentry.io" external>
+    Read Docs
+  </LinkButton>
+</Storybook.Demo>
+```jsx
+<LinkButton icon={<IconOpen />} priority="primary" to="/dashboard">
+  Open Dashboard
+</LinkButton>
+<LinkButton icon={<IconDocs />} href="https://docs.sentry.io" external>
+  Read Docs
+</LinkButton>
+```
+
+We have standardized call to action copy and specific icon pairings. When creating an icon LinkButton, please use a pairing from the following list.
+
+| Icon         | Name   | Copy              | Meaning                                             |
+| ------------ | ------ | ----------------- | --------------------------------------------------- |
+| <IconOpen /> | `open` | Open in `Product` | Leaves existing view and goes to another product    |
+| <IconDocs /> | `docs` | Read Docs         | Similar to "Open In" but always goes to Sentry Docs |
+
+## Disabled State
+
+Disabled LinkButtons prevent navigation and show a non-interactive appearance.
+
+<Storybook.Demo>
+  <LinkButton disabled priority="primary" to="/disabled">
+    Disabled Primary
+  </LinkButton>
+  <LinkButton disabled to="/disabled">
+    Disabled Default
+  </LinkButton>
+</Storybook.Demo>
+```jsx
+<LinkButton disabled priority="primary" to="/disabled">
+  Disabled Primary
+</LinkButton>
+<LinkButton disabled to="/disabled">
+  Disabled Default
+</LinkButton>
+```
+
+## External Link Security
+
+LinkButtons with the `external` prop automatically include security attributes (`target="_blank"`, `rel="noreferrer noopener"`) to prevent security vulnerabilities when opening external links.
+
+<Storybook.Demo>
+  <LinkButton href="https://docs.sentry.io" external priority="primary">
+    Secure External Link
+  </LinkButton>
+</Storybook.Demo>
+```jsx
+<LinkButton href="https://docs.sentry.io" external priority="primary">
+  Secure External Link
+</LinkButton>
+```
+
+## Icon-only LinkButtons
+
+For high information density interfaces, LinkButtons can display only an icon without text.
+
+> [!WARNING]
+> Icon-only LinkButtons **must** include an `aria-label` for screen readers!
+
+<Storybook.Demo>
+  <LinkButton
+    icon={<IconOpen />}
+    aria-label="Open in new tab"
+    href="https://docs.sentry.io"
+    external
+  />
+  <LinkButton icon={<IconEdit />} aria-label="Edit settings" to="/settings/edit" />
+</Storybook.Demo>
+```jsx
+<LinkButton
+  icon={<IconOpen />}
+  aria-label="Open in new tab"
+  href="https://docs.sentry.io"
+  external
+/>
+<LinkButton icon={<IconEdit />} aria-label="Edit settings" to="/settings/edit" />
+```
+
+## Accessibility
+
+LinkButtons automatically meet WCAG 2.2 AA compliance requirements and include proper `role="button"` attributes. They support keyboard navigation and focus management.
+
+When using external links, the component automatically adds appropriate security attributes and considers accessibility implications of opening links in new tabs.
+
+For optimal accessibility:
+
+- Always include `aria-label` for icon-only LinkButtons
+- Use descriptive link text that makes sense out of context
+- Consider using `title` prop for additional context when needed

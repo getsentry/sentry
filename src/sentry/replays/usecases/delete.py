@@ -4,9 +4,8 @@ import concurrent.futures as cf
 import functools
 import logging
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
-import requests
 from django.conf import settings
 from google.cloud.exceptions import NotFound
 from snuba_sdk import (
@@ -25,6 +24,7 @@ from snuba_sdk import (
 
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
+from sentry.net.http import connection_from_url
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -35,7 +35,7 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -54,8 +54,13 @@ SNUBA_RETRY_EXCEPTIONS = (
     UnexpectedResponseError,
 )
 
-SEER_DELETE_SUMMARIES_URL = (
-    f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/delete"
+SEER_DELETE_SUMMARIES_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/delete"
+
+seer_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
+fallback_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
 
 logger = logging.getLogger(__name__)
@@ -195,59 +200,50 @@ def fetch_rows_matching_pattern(
     }
 
 
-def make_seer_request(
-    url: str,
-    data: dict[str, Any],
-    timeout: int | tuple[int, int] | None = None,
-) -> tuple[requests.Response | None, int]:
+def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
     """
-    Makes a standalone POST request to a Seer URL with built in error handling. Expects valid JSON data.
-    Returns a tuple of (response, status code). If a request error occurred the response will be None.
-    XXX: Investigate migrating this to the shared util make_signed_seer_api_request, which uses connection pool.
+    Delete replay data from Seer.
+
+    Returns True if the request was successful, False otherwise.
     """
-    str_data = json.dumps(data)
+    seer_request = {
+        "replay_ids": replay_ids,
+    }
 
     try:
-        response = requests.post(
-            url,
-            data=str_data,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(str_data.encode()),
-            },
-            timeout=timeout or settings.SEER_DEFAULT_TIMEOUT or 5,
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
+            body=json.dumps(seer_request).encode("utf-8"),
         )
-        # Don't raise for error status, just return response.
+    except Exception:
+        # If summarization pod fails, fall back to autofix pod
+        logger.warning(
+            "Summarization pod connection failed for delete replay, falling back to autofix",
+            exc_info=True,
+        )
+        try:
+            response = make_signed_seer_api_request(
+                connection_pool=fallback_connection_pool,
+                path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
+                body=json.dumps(seer_request).encode("utf-8"),
+            )
+        except Exception:
+            logger.exception(
+                "Failed to delete replay data from Seer on both pods",
+                extra={"project_id": project_id, "replay_ids": replay_ids},
+            )
+            return False
 
-    except requests.exceptions.Timeout:
-        return (None, 504)
-
-    except requests.exceptions.RequestException:
-        return (None, 502)
-
-    return (response, response.status_code)
-
-
-def delete_seer_replay_data(
-    project_id: int,
-    replay_ids: list[str],
-    timeout: int | tuple[int, int] | None = None,
-) -> bool:
-    response, status_code = make_seer_request(
-        SEER_DELETE_SUMMARIES_URL,
-        {
-            "replay_ids": replay_ids,
-        },
-        timeout=timeout,
-    )
-    if status_code >= 400:
+    response_status_ok = response.status >= 200 and response.status < 300
+    if not response_status_ok:
         logger.error(
             "Failed to delete replay data from Seer",
             extra={
                 "project_id": project_id,
                 "replay_ids": replay_ids,
-                "status_code": status_code,
-                "response": response.content if response else None,
+                "status_code": response.status,
+                "response": response.data,
             },
         )
-    return status_code < 400
+    return response_status_ok

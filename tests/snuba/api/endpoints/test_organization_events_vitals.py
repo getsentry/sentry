@@ -12,7 +12,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.end = self.start + timedelta(hours=6)
@@ -22,7 +22,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
         }
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def store_event(self, data, measurements=None, **kwargs):
         if measurements:
@@ -126,9 +126,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
                 )
 
         self.query.update({"vital": ["measurements.lcp"]})
-        response = self.do_request(
-            features={"organizations:global-views": True, "organizations:discover-basic": True}
-        )
+        response = self.do_request(features={"organizations:discover-basic": True})
 
         assert response.status_code == 200, response.content
         assert not response.data["meta"]["isMetricsData"]
@@ -141,9 +139,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         }
 
         self.query.update({"query": "user_misery():<0.04"})
-        response = self.do_request(
-            features={"organizations:global-views": True, "organizations:discover-basic": True}
-        )
+        response = self.do_request(features={"organizations:discover-basic": True})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -303,7 +299,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = ["measurement_rating"]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.end = self.start + timedelta(hours=6)

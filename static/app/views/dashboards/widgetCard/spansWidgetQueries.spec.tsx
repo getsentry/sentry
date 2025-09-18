@@ -23,12 +23,20 @@ describe('spansWidgetQueries', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
-        confidence: [
-          [1, [{count: 'low'}]],
-          [2, [{count: 'low'}]],
-          [3, [{count: 'low'}]],
+        data: [
+          [1, [{count: 1}]],
+          [2, [{count: 2}]],
+          [3, [{count: 3}]],
         ],
-        data: [],
+        meta: {
+          accuracy: {
+            confidence: [
+              {timestamp: 1, value: 'low'},
+              {timestamp: 2, value: 'low'},
+              {timestamp: 3, value: 'low'},
+            ],
+          },
+        },
       },
     });
 
@@ -63,20 +71,36 @@ describe('spansWidgetQueries', () => {
       url: '/organizations/org-slug/events-stats/',
       body: {
         a: {
-          confidence: [
-            [1, [{count: 'high'}]],
-            [2, [{count: 'high'}]],
-            [3, [{count: 'high'}]],
+          meta: {
+            accuracy: {
+              confidence: [
+                {timestamp: 1, value: 'high'},
+                {timestamp: 2, value: 'high'},
+                {timestamp: 3, value: 'high'},
+              ],
+            },
+          },
+          data: [
+            [1, [{count: 1}]],
+            [2, [{count: 2}]],
+            [3, [{count: 3}]],
           ],
-          data: [],
         },
         b: {
-          confidence: [
-            [1, [{count: 'high'}]],
-            [2, [{count: 'high'}]],
-            [3, [{count: 'high'}]],
+          meta: {
+            accuracy: {
+              confidence: [
+                {timestamp: 1, value: 'high'},
+                {timestamp: 2, value: 'high'},
+                {timestamp: 3, value: 'high'},
+              ],
+            },
+          },
+          data: [
+            [1, [{count: 1}]],
+            [2, [{count: 2}]],
+            [3, [{count: 3}]],
           ],
-          data: [],
         },
       },
     });

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
+import type {TimeRangeItem} from 'sentry/components/timeRangeSelector/types';
 import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -45,22 +45,19 @@ function DisabledSelectorItems({
     : relativePeriods;
   const omittedRelativeArr = Object.entries(omittedRelativePeriods);
 
-  const items = (onClick: () => void, canTrial: boolean): Item[] => [
+  const items = (onSelect: () => void, canTrial: boolean): TimeRangeItem[] => [
     ...(shouldShowRelative
-      ? omittedRelativeArr.map(([value, itemLabel], index) => ({
-          index,
+      ? omittedRelativeArr.map(([value, itemLabel]) => ({
           value,
-          searchKey: typeof itemLabel === 'string' ? itemLabel : String(value),
+          textValue: typeof itemLabel === 'string' ? itemLabel : String(value),
           label: <SelectorItemLabel>{itemLabel}</SelectorItemLabel>,
-          'data-test-id': value,
         }))
       : []),
     ...(shouldOmitPremiumPeriods
       ? [
           {
-            index: omittedRelativeArr.length,
             value: '90d-trial',
-            searchKey:
+            textValue:
               typeof relativePeriods['90d'] === 'string'
                 ? relativePeriods['90d']
                 : '90d-trial',
@@ -78,19 +75,16 @@ function DisabledSelectorItems({
                 </UpsellMessage>
               </SelectorItemLabel>
             ),
-            'data-test-id': '90d',
-            onClick,
+            onSelect,
           },
         ]
       : []),
     ...(shouldShowAbsolute
       ? [
           {
-            index: omittedRelativeArr.length + 1,
             value: 'absolute',
-            searchKey: 'absolute',
+            textValue: 'absolute',
             label: <SelectorItemLabel>{t('Absolute date')}</SelectorItemLabel>,
-            'data-test-id': 'absolute',
           },
         ]
       : []),

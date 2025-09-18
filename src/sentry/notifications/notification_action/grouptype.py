@@ -6,12 +6,12 @@ from hashlib import md5
 from uuid import uuid4
 
 from sentry.event_manager import set_tag
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.samples import load_data
 from sentry.workflow_engine.tasks.utils import fetch_event
 

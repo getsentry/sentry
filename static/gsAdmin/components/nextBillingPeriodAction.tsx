@@ -34,7 +34,7 @@ function EndPeriodEarlyModal({orgId, onSuccess, closeModal, Header, Body}: Modal
       });
 
       closeModal();
-    } catch (err) {
+    } catch (err: any) {
       onSubmitError({
         responseJSON: err.responseJSON,
       });

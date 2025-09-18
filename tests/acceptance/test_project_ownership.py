@@ -4,7 +4,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class ProjectOwnershipTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.path = f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/"

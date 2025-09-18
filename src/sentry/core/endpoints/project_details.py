@@ -11,11 +11,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import audit_log, features
+from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.decorators import sudo_required
+from sentry.api.decorators import is_considered_sudo
+from sentry.api.exceptions import SudoRequired
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
@@ -32,14 +33,14 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
-from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.grouping.fingerprinting import FingerprintingConfig
+from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
@@ -54,6 +55,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
+from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
@@ -136,6 +138,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "tempestFetchDumps",
         "autofixAutomationTuning",
         "seerScannerAutomation",
+        "debugFilesRole",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -233,6 +236,12 @@ E.g. `['release', 'environment']`""",
     # Keeping options here for backward compatibility but removing it from documentation.
     options = serializers.DictField(
         required=False,
+    )
+    debugFilesRole = serializers.ChoiceField(
+        choices=roles.get_choices(),
+        required=False,
+        allow_null=True,
+        help_text="The role required to download debug information files, ProGuard mappings and source maps. If not set, inherits from organization setting.",
     )
 
     def validate(self, data):
@@ -349,7 +358,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_rules_text(value)
+            EnhancementsConfig.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -370,7 +379,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            FingerprintingRules.from_config_string(value)
+            FingerprintingConfig.from_config_string(value)
         except InvalidFingerprintingConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -445,6 +454,16 @@ E.g. `['release', 'environment']`""",
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
+        return value
+
+    def validate_debugFilesRole(self, value):
+        if value is None:
+            return value
+
+        try:
+            roles.get(value)
+        except KeyError:
+            raise serializers.ValidationError("Invalid role")
         return value
 
 
@@ -752,6 +771,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:seer_scanner_automation"] = result[
                     "seerScannerAutomation"
                 ]
+        if "debugFilesRole" in result:
+            if result["debugFilesRole"] is None:
+                project.delete_option("sentry:debug_files_role")
+                changed_proj_settings["sentry:debug_files_role"] = None
+            else:
+                if project.update_option("sentry:debug_files_role", result["debugFilesRole"]):
+                    changed_proj_settings["sentry:debug_files_role"] = result["debugFilesRole"]
 
         if has_elevated_scopes:
             options = result.get("options", {})
@@ -943,8 +969,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @sudo_required
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Schedules a project for deletion.
 
@@ -957,6 +982,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # In most cases we want to confirm password before deleting a project, but this isn't
+        # necessary if we never received any events in the first place. This allows us to avoid
+        # password confirmation in onboarding when undoing project creation.
+        if project.first_event is not None and not is_considered_sudo(request):
+            raise SudoRequired(request.user)
+
         updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
             status=ObjectStatus.PENDING_DELETION
         )
@@ -964,7 +995,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             scheduled = RegionScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             common_audit_data = {
-                "request": request,
                 "organization": project.organization,
                 "target_object": project.id,
                 "transaction_id": scheduled.id,
@@ -973,6 +1003,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if request.data.get("origin"):
                 self.create_audit_entry(
                     **common_audit_data,
+                    request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
                     data={
                         **project.get_audit_log_data(),
@@ -982,6 +1013,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             else:
                 self.create_audit_entry(
                     **common_audit_data,
+                    request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE"),
                     data={**project.get_audit_log_data()},
                 )

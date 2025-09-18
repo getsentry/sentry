@@ -7,17 +7,17 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useMembers} from 'sentry/utils/useMembers';
 
-describe('useMembers', function () {
+describe('useMembers', () => {
   const org = OrganizationFixture();
 
   const mockUsers = [UserFixture()];
 
-  beforeEach(function () {
+  beforeEach(() => {
     MemberListStore.reset();
     OrganizationStore.onUpdate(org, {replace: true});
   });
 
-  it('provides members from the MemberListStore', function () {
+  it('provides members from the MemberListStore', () => {
     MemberListStore.loadInitialData(mockUsers);
 
     const {result} = renderHook(useMembers);
@@ -26,7 +26,7 @@ describe('useMembers', function () {
     expect(members).toEqual(mockUsers);
   });
 
-  it('loads more members when using onSearch', async function () {
+  it('loads more members when using onSearch', async () => {
     MemberListStore.loadInitialData(mockUsers);
     const newUser2 = UserFixture({id: '2', email: 'test-user2@example.com'});
     const newUser3 = UserFixture({id: '3', email: 'test-user3@example.com'});
@@ -59,7 +59,7 @@ describe('useMembers', function () {
     expect(result.current.members).toEqual([...mockUsers, newUser2, newUser3]);
   });
 
-  it('provides only the specified emails', async function () {
+  it('provides only the specified emails', async () => {
     MemberListStore.loadInitialData(mockUsers);
     const userFoo = UserFixture({email: 'foo@test.com'});
     const mockRequest = MockApiClient.addMockResponse({
@@ -81,7 +81,7 @@ describe('useMembers', function () {
     expect(members).toEqual(expect.arrayContaining([userFoo]));
   });
 
-  it('provides only the specified ids', async function () {
+  it('provides only the specified ids', async () => {
     MemberListStore.loadInitialData(mockUsers);
     const userFoo = UserFixture({id: '10'});
     const mockRequest = MockApiClient.addMockResponse({
@@ -103,7 +103,7 @@ describe('useMembers', function () {
     expect(members).toEqual(expect.arrayContaining([userFoo]));
   });
 
-  it('only loads emails when needed', function () {
+  it('only loads emails when needed', () => {
     MemberListStore.loadInitialData(mockUsers);
 
     const {result} = renderHook(useMembers, {
@@ -115,7 +115,7 @@ describe('useMembers', function () {
     expect(members).toEqual(expect.arrayContaining(mockUsers));
   });
 
-  it('correctly returns hasMore before and after store update', async function () {
+  it('correctly returns hasMore before and after store update', async () => {
     const {result} = renderHook(useMembers);
 
     const {members, hasMore} = result.current;

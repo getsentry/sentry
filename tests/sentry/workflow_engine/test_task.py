@@ -93,7 +93,37 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             mock_delay.assert_not_called()
 
     @with_feature("organizations:workflow-engine-single-process-metric-issues")
-    def test(self) -> None:
+    def test_single_processing(self) -> None:
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        activity = Activity(
+            project=self.project,
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={"fingerprint": ["test_fingerprint"]},
+        )
+        message = StatusChangeMessageData(
+            id="test_message_id",
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            fingerprint=["test_fingerprint"],
+            detector_id=detector.id,
+            activity_data={"test": "test"},
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
+        ) as mock_delay:
+            workflow_status_update_handler(group, message, activity)
+            mock_delay.assert_called_once_with(
+                activity_id=activity.id,
+                group_id=group.id,
+                detector_id=detector.id,
+            )
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_dual_processing(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
         activity = Activity(
@@ -176,10 +206,10 @@ class TestProcessWorkflowActivity(TestCase):
             group=self.group,
         )
 
-        mock_evaluate.assert_called_once_with({self.workflow}, event_data)
+        mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
         assert mock_eval_actions.call_count == 0
 
-    @mock.patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
+    @mock.patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
@@ -210,8 +240,13 @@ class TestProcessWorkflowActivity(TestCase):
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
     @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @mock.patch(
+        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
+    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
-    def test__e2e__issue_plat_to_processed(self, mock_incr: mock.MagicMock) -> None:
+    def test__e2e__issue_plat_to_processed(
+        self, mock_incr: mock.MagicMock, mock_update_igop: mock.MagicMock
+    ) -> None:
         self.message = StatusChangeMessageData(
             id="test-id",
             fingerprint=["group-1"],
@@ -252,9 +287,15 @@ class TestProcessWorkflowActivity(TestCase):
     @with_feature("organizations:workflow-engine-single-process-metric-issues")
     @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     @mock.patch("sentry.issues.status_change_consumer.get_group_from_fingerprint")
+    @mock.patch(
+        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
+    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
     def test__e2e__issue_plat_to_processed_activity_data_is_set(
-        self, mock_incr: mock.MagicMock, mock_get_group_from_fingerprint: mock.MagicMock
+        self,
+        mock_incr: mock.MagicMock,
+        mock_update_igop: mock.MagicMock,
+        mock_get_group_from_fingerprint: mock.MagicMock,
     ) -> None:
         mock_get_group_from_fingerprint.return_value = self.group
 

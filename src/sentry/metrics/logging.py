@@ -26,7 +26,6 @@ class LoggingBackend(MetricsBackend):
         tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
-        precise: bool = False,
     ) -> None:
         logger.debug(
             "%r: %g ms", key, value * 1000, extra={"instance": instance, "tags": tags or {}}
@@ -53,7 +52,6 @@ class LoggingBackend(MetricsBackend):
         sample_rate: float = 1,
         unit: str | None = None,
         stacklevel: int = 0,
-        precise: bool = False,
     ) -> None:
         logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})
 

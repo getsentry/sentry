@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +17,7 @@ jest.mock('sentry/utils/useReleaseStats');
 
 describe('queuesLandingPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules'],
+    features: ['insight-modules'],
   });
   const project = ProjectFixture();
   project.firstTransactionEvent = true;
@@ -54,6 +55,20 @@ describe('queuesLandingPage', () => {
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'epm()',
+            values: [{value: 1, timestamp: 1739378162000}],
+          }),
+        ],
+      },
+    });
+
+    // Mock for unchanged throughput chart that still uses events-stats
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {data: []},

@@ -6,9 +6,10 @@ from collections import deque
 from collections.abc import Sequence
 from typing import Any
 
+from sentry import features
 from sentry.issues.grouptype import (
-    PerformanceMNPlusOneDBQueriesExperimentalGroupType,
-    PerformanceNPlusOneExperimentalGroupType,
+    PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -42,6 +43,9 @@ class MNPlusOneState(ABC):
         second_op = b.get("op") or None
         if not first_op or not second_op or first_op != second_op:
             return False
+
+        if first_op == "default":
+            return a.get("description") == b.get("description")
 
         if first_op.startswith("db"):
             return a.get("hash") == b.get("hash")
@@ -119,6 +123,14 @@ class SearchingForMNPlusOne(MNPlusOneState):
         found_db_op = False
         found_different_span = False
 
+        # Patterns shouldn't start with a serialize span, since that follows an operation or query.
+        first_span_description = pattern[0].get("description", "")
+        if (
+            first_span_description == "prisma:client:serialize"
+            or first_span_description == "prisma:engine:serialize"
+        ):
+            return False
+
         for span in pattern:
             op = span.get("op") or ""
             description = span.get("description") or ""
@@ -187,9 +199,14 @@ class ContinuingMNPlusOne(MNPlusOneState):
 
         # We've broken the MN pattern, so return to the Searching state. If it
         # is a significant problem, also return a PerformanceProblem.
-        times_occurred = int(len(self.spans) / len(self.pattern))
-        start_index = len(self.pattern) * times_occurred
-        remaining_spans = self.spans[start_index:] + [span]
+
+        # Keep more context for pattern detection by including spans that could be
+        # the beginning of a new pattern. Instead of just keeping the incomplete
+        # remainder, keep the last pattern_length spans plus the current span.
+        # Keep at least the last pattern_length spans (or all if we have fewer)
+        pattern_length = len(self.pattern)
+        context_start = max(0, len(self.spans) - pattern_length)
+        remaining_spans = self.spans[context_start:] + [span]
         return (
             SearchingForMNPlusOne(
                 settings=self.settings,
@@ -243,7 +260,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             fingerprint=self._fingerprint(db_span["hash"], common_parent_span),
             op="db",
             desc=db_span["description"],
-            type=PerformanceNPlusOneExperimentalGroupType,
+            type=PerformanceNPlusOneGroupType,
             parent_span_ids=[common_parent_span["span_id"]],
             cause_span_ids=db_span_ids,
             offender_span_ids=offender_span_ids,
@@ -353,7 +370,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         full_fingerprint = hashlib.sha1(
             (parent_op + parent_hash + db_hash).encode("utf8")
         ).hexdigest()
-        return f"1-{PerformanceMNPlusOneDBQueriesExperimentalGroupType.type_id}-{full_fingerprint}"
+        return f"1-{PerformanceMNPlusOneDBQueriesGroupType.type_id}-{full_fingerprint}"
 
 
 class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
@@ -387,7 +404,7 @@ class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
+        return features.has("organizations:experimental-mn-plus-one-detector-rollout", organization)
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

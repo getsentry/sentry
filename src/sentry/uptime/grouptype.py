@@ -11,11 +11,18 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, Che
 from sentry import features, options
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_project_subscription
-from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
+from sentry.uptime.models import UptimeStatus, UptimeSubscription
+from sentry.uptime.types import (
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    UptimeMonitorMode,
+)
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
@@ -32,6 +39,23 @@ from sentry.workflow_engine.types import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_uptime_issue(detector: Detector) -> None:
+    """
+    Sends an update to the issue platform to resolve the uptime issue for this
+    monitor.
+    """
+    status_change = StatusChangeMessage(
+        fingerprint=build_fingerprint(detector),
+        project_id=detector.project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
+    )
 
 
 @dataclass(frozen=True)
@@ -51,22 +75,6 @@ def build_detector_fingerprint_component(detector: Detector) -> str:
 
 def build_fingerprint(detector: Detector) -> list[str]:
     return [build_detector_fingerprint_component(detector)]
-
-
-def get_active_failure_threshold() -> int:
-    """
-    When in active monitoring mode, overrides how many failures in a row we
-    need to see to mark the monitor as down
-    """
-    return options.get("uptime.active-failure-threshold")
-
-
-def get_active_recovery_threshold() -> int:
-    """
-    When in active monitoring mode, how many successes in a row do we need to
-    mark it as up
-    """
-    return options.get("uptime.active-recovery-threshold")
 
 
 def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
@@ -112,19 +120,12 @@ def build_event_data(result: CheckResult, detector: Detector) -> EventData:
     # Received time is the actual time the check was performed.
     received = datetime.fromtimestamp(result["actual_check_time_ms"] / 1000)
 
-    # XXX(epurkhiser): This can be changed over to using the detector ID in the
-    # future once we're no longer using the ProjectUptimeSubscription.id as a tag.
-    project_subscription = get_project_subscription(detector)
-
     return {
         "project_id": detector.project_id,
         "environment": env,
         "received": received,
         "platform": "other",
         "sdk": None,
-        "tags": {
-            "uptime_rule": str(project_subscription.id),
-        },
         "contexts": {
             "trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")},
         },
@@ -135,9 +136,17 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
     @override
     @property
     def thresholds(self) -> DetectorThresholds:
+        # TODO: Drop these fallbacks once migration 0045 is deployed and all detectors have config values
+        recovery_threshold = self.detector.config.get(
+            "recovery_threshold", DEFAULT_RECOVERY_THRESHOLD
+        )
+        downtime_threshold = self.detector.config.get(
+            "downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD
+        )
+
         return {
-            DetectorPriorityLevel.OK: get_active_recovery_threshold(),
-            DetectorPriorityLevel.HIGH: get_active_failure_threshold(),
+            DetectorPriorityLevel.OK: recovery_threshold,
+            DetectorPriorityLevel.HIGH: downtime_threshold,
         }
 
     @override
@@ -296,6 +305,16 @@ class UptimeDomainCheckFailure(GroupType):
                     "enum": [mode.value for mode in UptimeMonitorMode],
                 },
                 "environment": {"type": ["string", "null"]},
+                "recovery_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of consecutive successful checks required to mark monitor as recovered",
+                },
+                "downtime_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of consecutive failed checks required to mark monitor as down",
+                },
             },
             "additionalProperties": False,
         },

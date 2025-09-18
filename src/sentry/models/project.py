@@ -40,7 +40,6 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
 from sentry.models.team import Team
-from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.notifications.services import notifications_service
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -50,6 +49,8 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
@@ -129,6 +130,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-fastify",
     "node-gcpfunctions",
     "node-hapi",
+    "node-hono",
     "node-koa",
     "node-nestjs",
     "php",
@@ -503,7 +505,7 @@ class Project(Model):
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
-        from sentry.monitors.models import Monitor
+        from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
         from sentry.snuba.models import SnubaQuery
 
         old_org_id = self.organization_id
@@ -673,7 +675,7 @@ class Project(Model):
                 self.update_option("sentry:token", security_token)
             return security_token
 
-    def get_lock_key(self):
+    def get_lock_key(self) -> str:
         return f"project_token:{self.id}"
 
     def copy_settings_from(self, project_id: int) -> bool:
@@ -748,6 +750,15 @@ class Project(Model):
     def delete(self, *args, **kwargs):
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
+
+        # There are projects being blocked from deletion because they have GroupHash objects
+        # that are preventing the project from being deleted.
+        try:
+            from sentry.deletions.defaults.group import delete_project_group_hashes
+
+            delete_project_group_hashes(project_id=self.id)
+        except Exception:
+            logger.warning("Failed to delete group hashes for project %s", self.id)
 
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()

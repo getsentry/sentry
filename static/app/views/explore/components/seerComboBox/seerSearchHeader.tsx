@@ -23,7 +23,6 @@ const HeaderWrapper = styled('div')`
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   width: 100%;
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const StyledIconSeer = styled(IconSeer)`

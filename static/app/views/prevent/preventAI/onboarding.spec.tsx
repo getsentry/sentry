@@ -1,3 +1,4 @@
+import {ThemeProvider, type Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -7,11 +8,17 @@ import PreventAIOnboarding from './onboarding';
 
 jest.mock('sentry-images/features/prevent-hero.svg', () => 'prevent-hero-mock.svg');
 jest.mock(
-  'sentry-images/features/prevent-pr-comment.png',
-  () => 'prevent-pr-comment-mock.png'
+  'sentry-images/features/prevent-pr-comments-light.png',
+  () => 'prevent-pr-comments-light-mock.png',
+  {virtual: true}
+);
+jest.mock(
+  'sentry-images/features/prevent-pr-comments-dark.png',
+  () => 'prevent-pr-comments-dark-mock.png',
+  {virtual: true}
 );
 
-describe('PreventAIOnboarding', function () {
+describe('PreventAIOnboarding', () => {
   const organization = OrganizationFixture({
     slug: 'test-org',
   });
@@ -20,7 +27,7 @@ describe('PreventAIOnboarding', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders the main onboarding content', function () {
+  it('renders the main onboarding content', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -38,12 +45,12 @@ describe('PreventAIOnboarding', function () {
     expect(screen.getByText('How to use Prevent AI', {exact: false})).toBeInTheDocument();
   });
 
-  it('renders all three onboarding steps', function () {
+  it('renders all three onboarding steps', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', {name: 'Enable Generative AI features'})
+      screen.getByRole('heading', {name: 'Enable Prevent AI features'})
     ).toBeInTheDocument();
 
     expect(screen.getByText('2')).toBeInTheDocument();
@@ -55,14 +62,22 @@ describe('PreventAIOnboarding', function () {
     expect(screen.getByRole('heading', {name: 'Setup Seer'})).toBeInTheDocument();
   });
 
-  it('renders external links with correct hrefs', function () {
+  it('renders external links with correct hrefs', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const orgSettingsLink = screen.getByRole('link', {name: 'organization settings'});
-    expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org');
+    expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org/#hideAiFeatures');
+
+    const sentryGitHubAppLink = screen.getByRole('link', {
+      name: 'Sentry GitHub App',
+    });
+    expect(sentryGitHubAppLink).toHaveAttribute(
+      'href',
+      '/settings/test-org/integrations/github/'
+    );
 
     const githubIntegrationLink = screen.getByRole('link', {
-      name: 'GitHub integration instructions',
+      name: 'GitHub integration',
     });
     expect(githubIntegrationLink).toHaveAttribute(
       'href',
@@ -79,7 +94,7 @@ describe('PreventAIOnboarding', function () {
     );
   });
 
-  it('renders feature list items', function () {
+  it('renders feature list items', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -93,7 +108,7 @@ describe('PreventAIOnboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders how to use feature descriptions', function () {
+  it('renders how to use feature descriptions', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -111,7 +126,7 @@ describe('PreventAIOnboarding', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with @sentry review.'
+          'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with @sentry review.'
         )
       )
     ).toBeInTheDocument();
@@ -125,18 +140,18 @@ describe('PreventAIOnboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders images with correct alt text', function () {
+  it('renders images with correct alt text', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const heroImage = screen.getByAltText('Prevent AI Hero');
     expect(heroImage).toBeInTheDocument();
 
-    const prCommentImage = screen.getByAltText('Prevent PR Comment');
-    expect(prCommentImage).toBeInTheDocument();
-    expect(prCommentImage).toHaveAttribute('src', 'prevent-pr-comment-mock.png');
+    const prCommentsImage = screen.getByAltText('Prevent PR Comments');
+    expect(prCommentsImage).toBeInTheDocument();
+    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-light-mock.png');
   });
 
-  it('renders admin notice text', function () {
+  it('renders admin notice text', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -146,7 +161,7 @@ describe('PreventAIOnboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders sentry error prediction notice', function () {
+  it('renders sentry error prediction notice', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -157,43 +172,58 @@ describe('PreventAIOnboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('has proper semantic structure with headings', function () {
+  it('has proper semantic structure with headings', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const stepHeadings = screen.getAllByRole('heading', {level: 3});
     expect(stepHeadings).toHaveLength(3);
 
-    expect(stepHeadings[0]).toHaveTextContent('Enable Generative AI features');
+    expect(stepHeadings[0]).toHaveTextContent('Enable Prevent AI features');
     expect(stepHeadings[1]).toHaveTextContent('Setup GitHub Integration');
     expect(stepHeadings[2]).toHaveTextContent('Setup Seer');
   });
 
-  describe('step descriptions', function () {
-    it('renders step 1 description with organization link', function () {
+  describe('step descriptions', () => {
+    it('renders step 1 description with organization link', () => {
       render(<PreventAIOnboarding />, {organization});
 
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'Make sure AI features are enabled in your organization settings.'
+            'An organization admin needs to turn on two toggles: Enable Prevent AI and Show Generative AI Features in your organization settings.'
           )
         )
       ).toBeInTheDocument();
     });
 
-    it('renders step 2 description with GitHub instructions', function () {
+    it('renders step 1 description with italic text components', () => {
+      render(<PreventAIOnboarding />, {organization});
+
+      // Check that the italic text components are rendered
+      const enablePreventAIText = screen.getByText('Enable Prevent AI');
+      const showGenerativeAIText = screen.getByText('Show Generative AI Features');
+
+      expect(enablePreventAIText).toBeInTheDocument();
+      expect(showGenerativeAIText).toBeInTheDocument();
+
+      // Verify they are span elements (default for Text component)
+      expect(enablePreventAIText.tagName).toBe('SPAN');
+      expect(showGenerativeAIText.tagName).toBe('SPAN');
+    });
+
+    it('renders step 2 description with GitHub instructions', () => {
       render(<PreventAIOnboarding />, {organization});
 
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'To grant Seer access to your codebase, follow these GitHub integration instructions: 1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.'
+            'To grant Seer access to your codebase, install the Sentry GitHub App to connect your GitHub repositories. Learn more about GitHub integration.'
           )
         )
       ).toBeInTheDocument();
     });
 
-    it('renders step 3 description with Seer app link', function () {
+    it('renders step 3 description with Seer app link', () => {
       render(<PreventAIOnboarding />, {organization});
 
       expect(
@@ -204,5 +234,20 @@ describe('PreventAIOnboarding', function () {
         )
       ).toBeInTheDocument();
     });
+  });
+
+  it.each([
+    [{type: 'dark'}, 'prevent-pr-comments-dark-mock.png'],
+    [{type: 'light'}, 'prevent-pr-comments-light-mock.png'],
+  ])('renders the correct image in %p theme', (theme, expectedSrc) => {
+    render(
+      <ThemeProvider theme={theme as Theme}>
+        <PreventAIOnboarding />
+      </ThemeProvider>,
+      {organization}
+    );
+    const prCommentsImage = screen.getByAltText('Prevent PR Comments');
+    expect(prCommentsImage).toBeInTheDocument();
+    expect(prCommentsImage).toHaveAttribute('src', expectedSrc);
   });
 });

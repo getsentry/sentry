@@ -13,8 +13,8 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import DocIntegrationDetails from 'admin/views/docIntegrationDetails';
 import DocIntegrations from 'admin/views/docIntegrations';
 
-describe('Doc Integrations', function () {
-  it('renders', function () {
+describe('Doc Integrations', () => {
+  it('renders', () => {
     const {routerProps} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -31,15 +31,15 @@ describe('Doc Integrations', function () {
   });
 });
 
-describe('Doc Integration Details', function () {
+describe('Doc Integration Details', () => {
   const mockDocIntegration = DocIntegrationFixture({});
   const ENDPOINT = `/doc-integrations/${mockDocIntegration.slug}/`;
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -68,7 +68,7 @@ describe('Doc Integration Details', function () {
     expect(definitions[6]).toHaveTextContent('8');
   });
 
-  it('can delete', async function () {
+  it('can delete', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -120,7 +120,7 @@ describe('Doc Integration Details', function () {
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 
-  it('handles API errors when deleting', async function () {
+  it('handles API errors when deleting', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
 
     MockApiClient.addMockResponse({
@@ -176,7 +176,7 @@ describe('Doc Integration Details', function () {
     expect(failedMock).toHaveBeenCalledWith(ENDPOINT, expect.anything());
   });
 
-  it('can unpublish', async function () {
+  it('can unpublish', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
     MockApiClient.addMockResponse({

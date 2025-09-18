@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
+
+class DiscordMessageComponentDict(TypedDict):
+    type: int
+
 
 class DiscordMessageComponent:
     """
@@ -14,6 +20,5 @@ class DiscordMessageComponent:
     def __init__(self, type: int) -> None:
         self.type = type
 
-    def build(self) -> dict[str, object]:
-        attributes = vars(self).items()
-        return {k: v for k, v in attributes if v is not None}
+    def build(self) -> DiscordMessageComponentDict:
+        return DiscordMessageComponentDict(type=self.type)

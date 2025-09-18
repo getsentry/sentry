@@ -4,7 +4,6 @@ from collections.abc import Iterable, Sequence
 from typing import Any, Literal, TypedDict
 
 from sentry import features
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.issues.grouptype import GroupCategory
@@ -14,11 +13,11 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
@@ -109,6 +108,8 @@ def fetch_environment_name(rule_env: int) -> str | None:
 def get_rule_environment_param_from_rule(
     rule_id: int, rule_environment_id: int | None, organization: Organization, type_id: int
 ) -> dict[str, str]:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     params = {}
     if should_fire_workflow_actions(organization, type_id):
         if (
@@ -270,6 +271,8 @@ def build_attachment_replay_link(
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     org_slug = group.organization.slug
     project_slug = project.slug
     if should_fire_workflow_actions(group.organization, group.type):

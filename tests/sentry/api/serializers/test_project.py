@@ -19,6 +19,7 @@ from sentry.api.serializers.models.project import (
     bulk_fetch_project_latest_releases,
 )
 from sentry.app import env
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.features.base import ProjectFeature
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment, EnvironmentProject
@@ -262,6 +263,15 @@ class ProjectSerializerTest(TestCase):
         assert_has_features(late_red, [red_flag])
         assert_has_features(late_blue, [blue_flag])
 
+    @mock.patch.object(settings, "SENTRY_MODE", SentryMode.SELF_HOSTED)
+    def test_has_logs_self_hosted_mode(self) -> None:
+        current_flags = self.project.flags
+        current_flags.has_logs = False
+        self.project.update(flags=current_flags)
+
+        result = serialize(self.project, self.user)
+        assert result["hasLogs"] is True
+
 
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self) -> None:
@@ -494,6 +504,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasFlags"] is True
 
+    @mock.patch.object(settings, "SENTRY_MODE", SentryMode.SAAS)
     def test_has_logs_flag(self) -> None:
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasLogs"] is False

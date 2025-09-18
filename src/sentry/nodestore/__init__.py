@@ -1,13 +1,10 @@
-from django.conf import settings
+"""
+Backward compatibility shim for getsentry.
 
-from sentry.utils.services import LazyServiceWrapper
+This module re-exports everything from the new sentry.services.nodestore location
+to maintain compatibility with existing getsentry imports.
+"""
 
-from .base import NodeStorage
-
-backend = LazyServiceWrapper(
-    NodeStorage,
-    settings.SENTRY_NODESTORE,
-    settings.SENTRY_NODESTORE_OPTIONS,
-    metrics_path="nodestore",
-)
-backend.expose(locals())
+# Re-export everything from the new location
+from sentry.services.nodestore import *  # noqa: F401, F403
+from sentry.services.nodestore import backend  # noqa: F401

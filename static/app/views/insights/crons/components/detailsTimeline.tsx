@@ -10,8 +10,8 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
+import {Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
-import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
@@ -32,7 +32,7 @@ interface Props {
   /**
    * Called when monitor stats have been loaded for this timeline.
    */
-  onStatsLoaded: (stats: MonitorBucket[]) => void;
+  onStatsLoaded?: (stats: MonitorBucket[]) => void;
 }
 
 export function DetailsTimeline({monitor, onStatsLoaded}: Props) {

@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class SlackRequestRoutingTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 

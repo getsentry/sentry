@@ -4,8 +4,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs, {PackageManager} from './kotlin';
 
-describe('GettingStartedWithKotlin', function () {
-  it('renders gradle docs correctly', async function () {
+describe('GettingStartedWithKotlin', () => {
+  it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -27,7 +27,7 @@ describe('GettingStartedWithKotlin', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders maven docs correctly', async function () {
+  it('renders maven docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.maven-plugin': {

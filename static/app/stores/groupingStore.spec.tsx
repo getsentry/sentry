@@ -1,18 +1,18 @@
 import * as GroupActionCreators from 'sentry/actionCreators/group';
 import GroupingStore from 'sentry/stores/groupingStore';
 
-describe('Grouping Store', function () {
+describe('Grouping Store', () => {
   let trigger!: jest.SpyInstance;
 
-  beforeAll(function () {
+  beforeAll(() => {
     MockApiClient.asyncDelay = 1;
   });
 
-  afterAll(function () {
+  afterAll(() => {
     MockApiClient.asyncDelay = undefined;
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     GroupingStore.init();
     trigger = jest.spyOn(GroupingStore, 'trigger');
     MockApiClient.addMockResponse({
@@ -31,6 +31,7 @@ describe('Grouping Store', function () {
           },
           state: 'unlocked',
           id: '2',
+          mergedBySeer: true,
         },
         {
           latestEvent: {
@@ -45,6 +46,7 @@ describe('Grouping Store', function () {
           },
           state: 'unlocked',
           id: '4',
+          mergedBySeer: true,
         },
         {
           latestEvent: {
@@ -98,16 +100,16 @@ describe('Grouping Store', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });
 
-  describe('onFetch()', function () {
+  describe('onFetch()', () => {
     beforeEach(() => GroupingStore.init());
 
-    it('initially gets called with correct state values', function () {
+    it('initially gets called with correct state values', () => {
       GroupingStore.onFetch([]);
 
       expect(trigger).toHaveBeenCalled();
@@ -126,7 +128,7 @@ describe('Grouping Store', function () {
       );
     });
 
-    it('fetches list of similar items', async function () {
+    it('fetches list of similar items', async () => {
       await GroupingStore.onFetch([
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
@@ -174,7 +176,7 @@ describe('Grouping Store', function () {
       });
     });
 
-    it('unsuccessfully fetches list of similar items', function () {
+    it('unsuccessfully fetches list of similar items', () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/issues/groupId/similar/',
@@ -200,7 +202,7 @@ describe('Grouping Store', function () {
       });
     });
 
-    it('ignores null scores in aggregate', async function () {
+    it('ignores null scores in aggregate', async () => {
       await GroupingStore.onFetch([
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
@@ -214,7 +216,7 @@ describe('Grouping Store', function () {
       expect(item.aggregate.message).toBe(0.7);
     });
 
-    it('fetches list of hashes', function () {
+    it('fetches list of hashes', () => {
       const promise = GroupingStore.onFetch([
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
@@ -241,7 +243,30 @@ describe('Grouping Store', function () {
       });
     });
 
-    it('unsuccessfully fetches list of hashes items', function () {
+    it('handles fingerprints with seer merging information', async () => {
+      await GroupingStore.onFetch([
+        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+      ]);
+
+      expect(trigger).toHaveBeenCalled();
+      const mergedItems = GroupingStore.getState().mergedItems;
+
+      // Check that fingerprints with metadata are properly handled
+      const fingerprintWithSeer = mergedItems.find((item: any) => item.id === '2');
+      expect(fingerprintWithSeer).toBeDefined();
+      expect(fingerprintWithSeer?.mergedBySeer).toBe(true);
+
+      const fingerprintWithSeerV2 = mergedItems.find((item: any) => item.id === '4');
+      expect(fingerprintWithSeerV2).toBeDefined();
+      expect(fingerprintWithSeerV2?.mergedBySeer).toBe(true);
+
+      // Check that fingerprints without seer merging are still handled correctly
+      const fingerprintWithoutSeer = mergedItems.find((item: any) => item.id === '3');
+      expect(fingerprintWithoutSeer).toBeDefined();
+      expect(fingerprintWithoutSeer?.mergedBySeer).toBeUndefined();
+    });
+
+    it('unsuccessfully fetches list of hashes items', () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/issues/groupId/hashes/',
@@ -268,20 +293,20 @@ describe('Grouping Store', function () {
     });
   });
 
-  describe('Similar Issues list (to be merged)', function () {
+  describe('Similar Issues list (to be merged)', () => {
     let mergeList: (typeof GroupingStore)['state']['mergeList'];
     let mergeState: (typeof GroupingStore)['state']['mergeState'];
 
-    beforeEach(function () {
+    beforeEach(() => {
       GroupingStore.init();
       mergeList = [];
       mergeState = new Map();
       GroupingStore.onFetch([{dataKey: 'similar', endpoint: '/issues/groupId/similar/'}]);
     });
 
-    describe('onToggleMerge (checkbox state)', function () {
+    describe('onToggleMerge (checkbox state)', () => {
       // Attempt to check first item but its "locked" so should not be able to do anything
-      it('can check and uncheck item', function () {
+      it('can check and uncheck item', () => {
         GroupingStore.onToggleMerge('1');
 
         mergeList = ['1'];
@@ -315,8 +340,8 @@ describe('Grouping Store', function () {
       });
     });
 
-    describe('onMerge', function () {
-      beforeEach(function () {
+    describe('onMerge', () => {
+      beforeEach(() => {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'PUT',
@@ -325,7 +350,7 @@ describe('Grouping Store', function () {
         GroupingStore.init();
       });
 
-      it('disables rows to be merged', async function () {
+      it('disables rows to be merged', async () => {
         const mergeMock = jest.spyOn(GroupActionCreators, 'mergeGroups');
 
         trigger.mockReset();
@@ -391,7 +416,7 @@ describe('Grouping Store', function () {
         );
       });
 
-      it('keeps rows in "busy" state and unchecks after successfully adding to merge queue', async function () {
+      it('keeps rows in "busy" state and unchecks after successfully adding to merge queue', async () => {
         GroupingStore.onToggleMerge('1');
         mergeList = ['1'];
         mergeState.set('1', {checked: true});
@@ -441,7 +466,7 @@ describe('Grouping Store', function () {
         );
       });
 
-      it('resets busy state and has same items checked after error when trying to merge', async function () {
+      it('resets busy state and has same items checked after error when trying to merge', async () => {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'PUT',
@@ -486,11 +511,11 @@ describe('Grouping Store', function () {
     });
   });
 
-  describe('Hashes list (to be unmerged)', function () {
+  describe('Hashes list (to be unmerged)', () => {
     let unmergeList: (typeof GroupingStore)['state']['unmergeList'];
     let unmergeState: (typeof GroupingStore)['state']['unmergeState'];
 
-    beforeEach(async function () {
+    beforeEach(async () => {
       GroupingStore.init();
       unmergeList = new Map();
       unmergeState = new Map();
@@ -505,9 +530,9 @@ describe('Grouping Store', function () {
     // WARNING: all the tests in this describe block are not running in isolated state.
     // There is a good chance that moving them around will break them. To simulate an isolated state,
     // add a beforeEach(() => GroupingStore.init())
-    describe('onToggleUnmerge (checkbox state for hashes)', function () {
+    describe('onToggleUnmerge (checkbox state for hashes)', () => {
       // Attempt to check first item but its "locked" so should not be able to do anything
-      it('can not check locked item', function () {
+      it('can not check locked item', () => {
         GroupingStore.onToggleUnmerge('1');
 
         expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
@@ -515,7 +540,7 @@ describe('Grouping Store', function () {
         expect(trigger).not.toHaveBeenCalled();
       });
 
-      it('can check and uncheck unlocked items', function () {
+      it('can check and uncheck unlocked items', () => {
         // Check
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
@@ -551,7 +576,7 @@ describe('Grouping Store', function () {
         );
       });
 
-      it('should have Compare button enabled only when two fingerprints are checked', function () {
+      it('should have Compare button enabled only when two fingerprints are checked', () => {
         expect(GroupingStore.getState().enableFingerprintCompare).toBe(false);
 
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
@@ -562,7 +587,7 @@ describe('Grouping Store', function () {
         expect(GroupingStore.getState().enableFingerprintCompare).toBe(false);
       });
 
-      it('selecting all available checkboxes should disable the unmerge button and re-enable when unchecking', function () {
+      it('selecting all available checkboxes should disable the unmerge button and re-enable when unchecking', () => {
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         GroupingStore.onToggleUnmerge(['3', 'event-3']);
         GroupingStore.onToggleUnmerge(['4', 'event-4']);
@@ -599,8 +624,8 @@ describe('Grouping Store', function () {
     // WARNING: all the tests in this describe block are not running in isolated state.
     // There is a good chance that moving them around will break them. To simulate an isolated state,
     // add a beforeEach(() => GroupingStore.init())
-    describe('onUnmerge', function () {
-      beforeEach(function () {
+    describe('onUnmerge', () => {
+      beforeEach(() => {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'PUT',
@@ -608,7 +633,7 @@ describe('Grouping Store', function () {
         });
       });
 
-      it('can not toggle unmerge for a locked item', function () {
+      it('can not toggle unmerge for a locked item', () => {
         // Event 1 is locked
         GroupingStore.onToggleUnmerge(['1', 'event-1']);
         unmergeState.set('1', {busy: true});
@@ -630,7 +655,7 @@ describe('Grouping Store', function () {
         });
       });
 
-      it('disables rows to be merged', async function () {
+      it('disables rows to be merged', async () => {
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
         unmergeState.set('2', {checked: true, busy: false});
@@ -672,7 +697,7 @@ describe('Grouping Store', function () {
         });
       });
 
-      it('keeps rows in "busy" state and unchecks after successfully adding to unmerge queue', async function () {
+      it('keeps rows in "busy" state and unchecks after successfully adding to unmerge queue', async () => {
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
         unmergeState.set('2', {checked: true, busy: false});
@@ -702,7 +727,7 @@ describe('Grouping Store', function () {
         });
       });
 
-      it('resets busy state and has same items checked after error when trying to merge', async function () {
+      it('resets busy state and has same items checked after error when trying to merge', async () => {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'PUT',

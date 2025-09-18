@@ -1,4 +1,27 @@
+from traceback import FrameSummary
+
 from sentry.testutils.thread_leaks import diff
+
+
+def test_get_relevant_frames_filters_thread_leak_infrastructure() -> None:
+    """Regression test: get_relevant_frames should filter out thread_leaks package frames.
+
+    When code was moved from thread_leaks.py to thread_leaks/ package, the __file__ filter
+    became obsolete and only filtered diff.py, not other files like assertion.py.
+    This caused production issues to show infrastructure frames instead of app code.
+    """
+    frames = [
+        FrameSummary("./src/sentry/testutils/thread_leaks/assertion.py", 43, "patched__init__"),
+        FrameSummary("./src/sentry/testutils/thread_leaks/assertion.py", 31, "_where"),
+        FrameSummary("./src/sentry/some_app_code.py", 100, "business_logic"),
+    ]
+
+    filtered = diff.get_relevant_frames(frames)
+
+    # Should filter out thread_leaks infrastructure frames, keep app code
+    assert len(filtered) == 1
+    assert filtered[0].filename == "./src/sentry/some_app_code.py"
+    assert filtered[0].name == "business_logic"
 
 
 def test_diff() -> None:

@@ -2,11 +2,13 @@
 
 import zlib
 from datetime import datetime
+from typing import Any
 from unittest import mock
 
 import msgpack
 import pytest
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
@@ -14,7 +16,7 @@ from sentry.utils import json
 
 
 @pytest.fixture
-def consumer():
+def consumer() -> ProcessingStrategy[KafkaPayload]:
     return ProcessReplayRecordingStrategyFactory(
         input_block_size=1,
         max_batch_size=1,
@@ -25,7 +27,7 @@ def consumer():
     ).create_with_partitions(lambda x, force=False: None, {})
 
 
-def submit(consumer, message):
+def submit(consumer: ProcessingStrategy[KafkaPayload], message: dict[str, Any]) -> None:
     consumer.submit(
         Message(
             BrokerValue(
@@ -41,11 +43,7 @@ def submit(consumer, message):
     consumer.terminate()
 
 
-@mock.patch("sentry.replays.consumers.recording.options.get")
-def test_recording_consumer(mock_options_get, consumer) -> None:
-    # disable profiling
-    mock_options_get.return_value = False
-
+def test_recording_consumer(consumer: ProcessingStrategy[KafkaPayload]) -> None:
     headers = json.dumps({"segment_id": 42}).encode()
     recording_payload = headers + b"\n" + zlib.compress(b"")
 
@@ -62,7 +60,6 @@ def test_recording_consumer(mock_options_get, consumer) -> None:
         "replay_video": b"",
         "version": 0,
     }
-
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
         submit(consumer, message)
 
@@ -70,11 +67,7 @@ def test_recording_consumer(mock_options_get, consumer) -> None:
         assert commit.called
 
 
-@mock.patch("sentry.replays.consumers.recording.options.get")
-def test_recording_consumer_invalid_message(mock_options_get, consumer) -> None:
-    # disable profiling
-    mock_options_get.return_value = False
-
+def test_recording_consumer_invalid_message(consumer: ProcessingStrategy[KafkaPayload]) -> None:
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
         submit(consumer, {})
 

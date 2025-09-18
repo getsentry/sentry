@@ -7,7 +7,6 @@ import DetailedError from 'sentry/components/errors/detailedError';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import getDynamicText from 'sentry/utils/getDynamicText';
 
 type DefaultProps = {
   mini: boolean;
@@ -67,8 +66,10 @@ class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(_error: Error | string, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
+
+    const error = typeof _error === 'string' ? new Error(_error) : _error;
 
     this.setState({error});
     Sentry.withScope(scope => {
@@ -139,10 +140,7 @@ class ErrorBoundary extends Component<Props, State> {
     return (
       <Wrapper data-test-id="error-boundary">
         <DetailedError
-          heading={getDynamicText({
-            value: getExclamation(),
-            fixed: exclamation[0],
-          })}
+          heading={getExclamation()}
           message={t(
             `Something went horribly wrong rendering this page.
 We use a decent error reporting service so this will probably be fixed soon. Unless our error reporting service is also broken. That would be awkward.

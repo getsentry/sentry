@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -12,14 +13,14 @@ import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('WebVitalsLandingPage', function () {
+describe('WebVitalsLandingPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData([
       ProjectFixture({hasInsightsVitals: true, firstTransactionEvent: true}),
     ]);
@@ -49,19 +50,33 @@ describe('WebVitalsLandingPage', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {
-        'performance_score(measurements.score.lcp)': {
-          data: [[1743348600, [{count: 0.6106921965623204}]]],
-        },
-        'performance_score(measurements.score.fcp)': {
-          data: [[1743435000, [{count: 0.7397871866098699}]]],
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'performance_score(measurements.score.lcp)',
+            values: [
+              {
+                timestamp: 1743348600000,
+                value: 0.6106921965623204,
+              },
+            ],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'performance_score(measurements.score.fcp)',
+            values: [
+              {
+                timestamp: 1743348600000,
+                value: 0.7397871866098699,
+              },
+            ],
+          }),
+        ],
       },
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 

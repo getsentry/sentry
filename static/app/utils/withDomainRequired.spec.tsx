@@ -10,7 +10,7 @@ import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 
-describe('withDomainRequired', function () {
+describe('withDomainRequired', () => {
   type Props = RouteComponentProps<{orgId: string}>;
   function MyComponent(props: Props) {
     const {params} = props;
@@ -18,7 +18,7 @@ describe('withDomainRequired', function () {
   }
   let configState: Config;
 
-  beforeEach(function () {
+  beforeEach(() => {
     setWindowLocation(
       'http://localhost:3000/organizations/albertos-apples/issues/?q=123#hash'
     );
@@ -38,11 +38,11 @@ describe('withDomainRequired', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     ConfigStore.loadInitialData(configState);
   });
 
-  it('redirects to sentryUrl in non-customer domain world', function () {
+  it('redirects to sentryUrl in non-customer domain world', () => {
     ConfigStore.loadInitialData({
       ...configState,
       customerDomain: null,
@@ -87,7 +87,7 @@ describe('withDomainRequired', function () {
     );
   });
 
-  it('redirects to sentryUrl if multi-region feature is omitted', function () {
+  it('redirects to sentryUrl if multi-region feature is omitted', () => {
     ConfigStore.loadInitialData({
       ...configState,
       customerDomain: {
@@ -136,7 +136,7 @@ describe('withDomainRequired', function () {
     );
   });
 
-  it('renders when window.__initialData.customerDomain and multi-region feature is present', function () {
+  it('renders when window.__initialData.customerDomain and multi-region feature is present', () => {
     ConfigStore.loadInitialData({
       ...configState,
       customerDomain: {

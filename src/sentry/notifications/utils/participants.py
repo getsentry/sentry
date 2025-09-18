@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
@@ -40,7 +39,7 @@ from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event, GroupEvent
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +198,7 @@ def get_participants_for_release(
 
 def get_owners(
     project: Project,
-    event: Event | None = None,
+    event: Event | GroupEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> tuple[list[Actor], str]:
     """
@@ -229,7 +228,7 @@ def get_owners(
 def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
-    event: Event | None = None,
+    event: Event | GroupEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
@@ -284,7 +283,7 @@ def determine_eligible_recipients(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: Event | None = None,
+    event: Event | GroupEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Iterable[Actor]:
     """
@@ -312,9 +311,11 @@ def determine_eligible_recipients(
 
         # We're adding the current assignee to the list of suggested assignees because
         # a new issue could have multiple codeowners and one of them got auto-assigned.
-        group_assignee: GroupAssignee | None = GroupAssignee.objects.filter(
-            group_id=event.group_id
-        ).first()
+        group_assignee = (
+            GroupAssignee.objects.filter(group_id=event.group_id).first()
+            if event.group_id is not None
+            else None
+        )
         if group_assignee:
             outcome = "match"
             assignee_actor = group_assignee.assigned_actor()
@@ -354,7 +355,7 @@ def get_send_to(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: Event | None = None,
+    event: Event | GroupEvent | None = None,
     notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,

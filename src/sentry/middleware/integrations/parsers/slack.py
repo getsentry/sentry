@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from typing import Any
 from urllib.parse import parse_qs
 
 import orjson
 import sentry_sdk
+from django.http import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
 from rest_framework.request import Request
@@ -89,7 +91,7 @@ class SlackRequestParser(BaseRequestParser):
     See: `src/sentry/integrations/slack/views`
     """
 
-    def build_loading_modal(self, external_id: str, title: str):
+    def build_loading_modal(self, external_id: str, title: str) -> dict[str, Any]:
         return {
             "type": "modal",
             "external_id": external_id,
@@ -103,7 +105,7 @@ class SlackRequestParser(BaseRequestParser):
             ],
         }
 
-    def parse_slack_payload(self, request) -> tuple[dict, str]:
+    def parse_slack_payload(self, request: HttpRequest) -> tuple[dict[str, str], str]:
         try:
             decoded_body = parse_qs(request.body.decode(encoding="utf-8"))
             payload_list = decoded_body.get("payload")
@@ -133,7 +135,7 @@ class SlackRequestParser(BaseRequestParser):
         except (json.JSONDecodeError, KeyError, IndexError, TypeError) as e:
             raise ValueError(f"Error parsing Slack payload: {str(e)}")
 
-    def handle_dialog(self, request, action: str, title: str) -> None:
+    def handle_dialog(self, request: HttpRequest, action: str, title: str) -> None:
         payload, action_ts = self.parse_slack_payload(request)
 
         integration = self.get_integration_from_request()
@@ -299,7 +301,7 @@ class SlackRequestParser(BaseRequestParser):
         )
         return organizations
 
-    def get_response(self):
+    def get_response(self) -> HttpResponseBase:
         """
         Slack Webhook Requests all require synchronous responses.
         """
