@@ -136,8 +136,6 @@ export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
   return useMetricsAPI && rawOrderby === 'release';
 }
 
-const config = ReleasesConfig;
-
 function getLimit(displayType: DisplayType, limit = 0) {
   switch (displayType) {
     case DisplayType.TOP_N:
@@ -210,6 +208,8 @@ function ReleaseWidgetQueries({
   onDataFetchStart,
   children,
 }: ReleaseWidgetQueriesProps) {
+  const config = ReleasesConfig;
+
   const mounted = useRef(false);
   const allProjects = useProjects();
   const api = useApi();
