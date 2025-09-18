@@ -166,8 +166,7 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
     """
     Schedule delayed workflow buffers in a batch.
     """
-    from sentry.rules.processing.buffer_processing import process_buffer_for_type
-    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+    from sentry.workflow_engine.processors.schedule import process_buffered_workflows
 
     lock_name = "schedule_delayed_workflows"
     lock = locks.get(f"workflow_engine:{lock_name}", duration=60, name=lock_name)
@@ -181,6 +180,6 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
                     "Configured to use process_pending_batch for delayed_workflow; exiting."
                 )
                 return
-            process_buffer_for_type("delayed_workflow", DelayedWorkflow)
+            process_buffered_workflows()
     except UnableToAcquireLock as error:
         logger.warning("schedule_delayed_workflows.fail", extra={"error": error})
