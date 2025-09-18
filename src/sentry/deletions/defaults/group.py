@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
-GROUP_HASH_CHUNK_SIZE = options.get("deletions.group-hashes-batch-size")
 GROUP_HASH_ITERATIONS = 10000
 
 # Group models that relate only to groups and not to events. We assume those to
@@ -234,7 +233,7 @@ def delete_group_hashes(
     seer_deletion: bool = False,
 ) -> None:
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
-    hashes_batch_size = max(1, GROUP_HASH_CHUNK_SIZE)
+    hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
 
     # Set a reasonable upper bound on iterations to prevent infinite loops.
     # The loop will naturally terminate when no more hashes are found.
