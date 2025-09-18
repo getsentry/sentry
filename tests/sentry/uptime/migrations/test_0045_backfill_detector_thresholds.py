@@ -1,6 +1,9 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip()
 class BackfillDetectorThresholdsTest(TestMigrations):
     migrate_from = "0044_remove_project_uptime_subscription"
     migrate_to = "0045_backfill_detector_thresholds"

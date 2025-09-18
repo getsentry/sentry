@@ -94,6 +94,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         self.create_data_source_detector(
@@ -402,6 +404,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         cron_detector = self.create_detector(

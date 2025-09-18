@@ -17,12 +17,7 @@ from sentry.models.group import GroupStatus
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.uptime.models import UptimeStatus, UptimeSubscription
-from sentry.uptime.types import (
-    DEFAULT_DOWNTIME_THRESHOLD,
-    DEFAULT_RECOVERY_THRESHOLD,
-    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-    UptimeMonitorMode,
-)
+from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
@@ -136,13 +131,8 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
     @override
     @property
     def thresholds(self) -> DetectorThresholds:
-        # TODO: Drop these fallbacks once migration 0045 is deployed and all detectors have config values
-        recovery_threshold = self.detector.config.get(
-            "recovery_threshold", DEFAULT_RECOVERY_THRESHOLD
-        )
-        downtime_threshold = self.detector.config.get(
-            "downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD
-        )
+        recovery_threshold = self.detector.config["recovery_threshold"]
+        downtime_threshold = self.detector.config["downtime_threshold"]
 
         return {
             DetectorPriorityLevel.OK: recovery_threshold,
@@ -298,7 +288,7 @@ class UptimeDomainCheckFailure(GroupType):
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of an uptime alert",
             "type": "object",
-            "required": ["mode", "environment"],
+            "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
             "properties": {
                 "mode": {
                     "type": ["integer"],
