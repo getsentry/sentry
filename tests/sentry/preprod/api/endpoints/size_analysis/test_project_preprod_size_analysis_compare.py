@@ -66,6 +66,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1000,
+            max_download_size=500,
         )
 
         # Create size metrics for base artifact
@@ -75,6 +77,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1000,
+            max_download_size=500,
         )
 
     def _get_url(self, head_artifact_id=None, base_artifact_id=None):
@@ -105,8 +109,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         )
 
         data = response.data
-        assert data["head_artifact_id"] == self.head_artifact.id
-        assert data["base_artifact_id"] == self.base_artifact.id
+        assert data["head_build_details"]["id"] == str(self.head_artifact.id)
+        assert data["base_build_details"]["id"] == str(self.base_artifact.id)
         assert len(data["comparisons"]) == 1
 
         comparison_data = data["comparisons"][0]
