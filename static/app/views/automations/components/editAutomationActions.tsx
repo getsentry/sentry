@@ -23,7 +23,7 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
   const navigate = useNavigate();
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();
-  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation({});
+  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
     const newEnabled = !automation.enabled;

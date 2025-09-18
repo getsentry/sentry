@@ -15,7 +15,6 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -116,14 +115,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
     Record<string, string>
   >({});
-  const [updateErrors, setUpdateErrors] =
-    useState<RequestError['responseJSON']>(undefined);
 
-  const {mutateAsync: updateAutomation} = useUpdateAutomation({
-    onError: error => {
-      setUpdateErrors(error.responseJSON);
-    },
-  });
+  const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
 
   const removeError = useCallback((errorId: string) => {
     setAutomationBuilderErrors(prev => {
@@ -180,7 +173,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
                 errors: automationBuilderErrors,
                 setErrors: setAutomationBuilderErrors,
                 removeError,
-                mutationErrors: updateErrors,
+                mutationErrors: error?.responseJSON,
               }}
             >
               <AutomationBuilderContext.Provider value={{state, actions}}>

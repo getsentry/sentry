@@ -136,11 +136,7 @@ export function useAvailableActionsQuery() {
   });
 }
 
-export function useCreateAutomation({
-  onError,
-}: {
-  onError?: (error: RequestError) => void;
-}) {
+export function useCreateAutomation() {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -156,8 +152,7 @@ export function useCreateAutomation({
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
     },
-    onError: error => {
-      onError?.(error);
+    onError: _ => {
       addErrorMessage(t('Unable to create automation'));
     },
   });
@@ -218,11 +213,7 @@ export function useDeleteAutomationsMutation() {
   });
 }
 
-export function useUpdateAutomation({
-  onError,
-}: {
-  onError?: (error: RequestError) => void;
-}) {
+export function useUpdateAutomation() {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -249,8 +240,7 @@ export function useUpdateAutomation({
         queryKey: [`/organizations/${org.slug}/workflows/`],
       });
     },
-    onError: error => {
-      onError?.(error);
+    onError: _ => {
       addErrorMessage(t('Unable to update automation'));
     },
   });

@@ -17,7 +17,6 @@ import {
 } from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -85,9 +84,6 @@ export default function AutomationNewSettings() {
     });
   }, []);
 
-  const [updateErrors, setUpdateErrors] =
-    useState<RequestError['responseJSON']>(undefined);
-
   const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
       | string
@@ -102,11 +98,7 @@ export default function AutomationNewSettings() {
     return connectedIds;
   }, [location.query.connectedIds]);
 
-  const {mutateAsync: createAutomation} = useCreateAutomation({
-    onError: error => {
-      setUpdateErrors(error.responseJSON);
-    },
-  });
+  const {mutateAsync: createAutomation, error} = useCreateAutomation();
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, ____) => {
@@ -147,7 +139,7 @@ export default function AutomationNewSettings() {
                 errors: automationBuilderErrors,
                 setErrors: setAutomationBuilderErrors,
                 removeError,
-                mutationErrors: updateErrors,
+                mutationErrors: error?.responseJSON,
               }}
             >
               <AutomationBuilderContext.Provider value={{state, actions}}>
