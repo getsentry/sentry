@@ -146,13 +146,21 @@ function IncidentMarkerSeries({
 
   // Create mark lines for the start of each incident period
   const markLineData: MarkLineComponentOption['data'] = incidentPeriods.map(period => {
+    const lineStyle: MarkLineComponentOption['lineStyle'] = {
+      color: period.color ?? theme.gray400,
+      type: 'solid',
+      width: 1,
+      opacity: 0.8,
+    };
+
     return {
       xAxis: period.start,
-      lineStyle: {
-        color: period.color ?? theme.gray400,
-        type: 'solid',
-        width: 1,
-        opacity: 1,
+      lineStyle,
+      emphasis: {
+        lineStyle: {
+          ...lineStyle,
+          opacity: 1,
+        },
       },
       label: {
         show: false,
@@ -161,11 +169,11 @@ function IncidentMarkerSeries({
         trigger: 'item',
         position: 'bottom',
         formatter: markLineTooltip
-          ? (p: TooltipComponentFormatterCallbackParams) => {
-              const datum = (Array.isArray(p) ? p[0]?.data : p.data) as
+          ? (args: TooltipComponentFormatterCallbackParams) => {
+              const p = (Array.isArray(args) ? args[0]?.data : args.data) as
                 | IncidentPeriod
                 | undefined;
-              return datum ? markLineTooltip({theme, period: datum}) : '';
+              return p ? markLineTooltip({theme, period: p}) : '';
             }
           : undefined,
       },
