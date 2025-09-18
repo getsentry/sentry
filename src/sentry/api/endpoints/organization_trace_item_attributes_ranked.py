@@ -68,14 +68,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         columns = match.group("columns")
         arguments = fields.parse_arguments(function_name, columns)
 
-        if len(arguments) != 1:
-            raise InvalidSearchQuery(
-                f"Function {function_name} must have exactly one argument, got {len(arguments)}"
-            )
-
-        function_parameter = arguments[0]
-
-        should_segment_suspect_cohort = function_name in [
+        should_segment_suspect_cohort = len(arguments) == 1 and function_name in [
             "avg",
             "p50",
             "p75",
@@ -84,6 +77,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             "p99",
             "p100",
         ]
+
+        function_parameter = arguments[0] if len(arguments) == 1 else None
 
         query_1 = request.GET.get("query_1", "")  # Suspect query
         query_2 = request.GET.get("query_2", "")  # Query for all the spans with the base query

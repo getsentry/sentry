@@ -113,3 +113,41 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert "total_baseline" in call_args.kwargs
         assert "config" in call_args.kwargs
         assert "meta" in call_args.kwargs
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_function_with_multiple_arguments(self, mock_compare_distributions) -> None:
+        """Test that functions with multiple arguments work but skip suspect cohort segmentation."""
+        mock_compare_distributions.return_value = {
+            "results": [
+                ("sentry.device", 0.8),
+                ("browser", 0.6),
+            ]
+        }
+
+        tags = [
+            ({"browser": "chrome", "device": "desktop"}, 500),
+            ({"browser": "chrome", "device": "mobile"}, 100),
+        ]
+
+        for tag, duration in tags:
+            self._store_span(tags=tag, duration=duration)
+
+        # Use a function with multiple arguments (e.g., coalesce)
+        response = self.do_request(
+            query={
+                "function": "coalesce(span.duration, span.self_time)",
+                "query_1": "span.duration:<=100",
+                "query_2": "span.duration:>100",
+            }
+        )
+
+        # Should succeed (not return 400 error)
+        assert response.status_code == 200, response.data
+
+        # Should have ranking info but no function value since segmentation was skipped
+        assert "rankingInfo" in response.data
+        assert response.data["rankingInfo"]["function"] == "coalesce(span.duration, span.self_time)"
+        assert response.data["rankingInfo"]["value"] == "N/A"  # No segmentation performed
+
+        # Should still return ranked attributes based on the queries
+        assert "rankedAttributes" in response.data
