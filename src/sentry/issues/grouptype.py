@@ -217,8 +217,6 @@ class GroupType:
     # Controls whether _all_ workflow notification types are enabled (e.g. assignment).
     # Useful when the group type is still in development
     enable_workflow_notifications = True
-    # Whether we should store the group's detected priority changes in the GroupOpenPeriodActivity table
-    track_priority_changes: bool = False
 
     # Controls whether users are able to manually update the group's priority.
     enable_user_priority_changes = True

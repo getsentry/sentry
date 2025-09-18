@@ -334,7 +334,6 @@ class MetricIssue(GroupType):
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     enable_user_priority_changes = False
-    track_priority_changes = True
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
         validator=MetricIssueDetectorValidator,

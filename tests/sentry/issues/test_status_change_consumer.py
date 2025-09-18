@@ -143,10 +143,10 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         open_period = get_latest_open_period(self.group)
         assert open_period is not None
         assert open_period.date_ended is not None
-        open_period_closed_activity = GroupOpenPeriodActivity.objects.filter(
+        open_period_closed_activity = GroupOpenPeriodActivity.objects.get(
             group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
         )
-        assert open_period_closed_activity is not None
+        assert open_period_closed_activity
 
     @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
     def test_valid_payload_archived_forever(self, mock_kick_off_status_syncs: MagicMock) -> None:

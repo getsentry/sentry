@@ -12,6 +12,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -80,9 +81,10 @@ def update_priority(
     # create a row in the GroupOpenPeriodActivity table
     open_period = get_latest_open_period(group)
     if open_period is None:
+        metrics.incr("issues.priority.no_open_period_found")
         logger.error("No open period found for group", extra={"group_id": group.id})
     else:
-        if get_group_type_by_type_id(group.type).track_priority_changes:
+        if get_group_type_by_type_id(group.type).detector_settings is not None:
             if is_regression:
                 try:
                     activity_entry_to_update = GroupOpenPeriodActivity.objects.get(
@@ -91,6 +93,7 @@ def update_priority(
                     activity_entry_to_update.update(value=priority)
                 except GroupOpenPeriodActivity.DoesNotExist:
                     # in case the rollout somehow goes out between open period creation and priority update
+                    metrics.incr("issues.priority.open_period_activity_race_condition")
                     GroupOpenPeriodActivity.objects.create(
                         date_added=open_period.date_started,
                         group_open_period=open_period,
