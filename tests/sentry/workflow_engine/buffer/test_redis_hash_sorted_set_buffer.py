@@ -30,38 +30,43 @@ class MockTimeProvider:
 
 @pytest.mark.django_db
 class TestRedisHashSortedSetBuffer:
+    buf: RedisHashSortedSetBuffer
+    mock_time: MockTimeProvider
+
     @pytest.fixture
-    def mock_time(self):
+    def mock_time_provider(self) -> MockTimeProvider:
         """Provide controllable time for deterministic tests."""
         return MockTimeProvider()
 
     @pytest.fixture(params=["cluster", "standalone", "blaster"])
-    def buffer(self, set_sentry_option, request, mock_time):
+    def buffer(self, set_sentry_option, request, mock_time_provider):
         value = copy.deepcopy(options.get("redis.clusters"))
         value["default"]["is_redis_cluster"] = request.param in ["cluster", "standalone"]
         with set_sentry_option("redis.clusters", value):
             match request.param:
                 case "cluster":
                     with use_redis_cluster("cluster"):
-                        buf = RedisHashSortedSetBuffer("", {"cluster": "cluster"}, now_fn=mock_time)
+                        buf = RedisHashSortedSetBuffer(
+                            "", {"cluster": "cluster"}, now_fn=mock_time_provider
+                        )
                         for _, info in buf.cluster.info("server").items():
                             assert info["redis_mode"] == "cluster"
                         buf.cluster.flushdb()
                         yield buf
                 case "standalone":
-                    buf = RedisHashSortedSetBuffer(now_fn=mock_time)
+                    buf = RedisHashSortedSetBuffer(now_fn=mock_time_provider)
                     info = buf.cluster.info("server")
                     assert info["redis_mode"] == "standalone"
                     yield buf
                 case "blaster":
-                    buf = RedisHashSortedSetBuffer(now_fn=mock_time)
+                    buf = RedisHashSortedSetBuffer(now_fn=mock_time_provider)
                     assert isinstance(buf.cluster, rb.Cluster)
                     yield buf
 
     @pytest.fixture(autouse=True)
-    def setup_buffer(self, buffer, mock_time):
-        self.buf: RedisHashSortedSetBuffer = buffer
-        self.mock_time: MockTimeProvider = mock_time
+    def setup_buffer(self, buffer, mock_time_provider):
+        self.buf = buffer
+        self.mock_time = mock_time_provider
 
     def test_push_to_hash(self):
         filters: Mapping[str, BufferField] = {"project_id": 1}

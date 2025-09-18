@@ -329,9 +329,9 @@ class RedisHashSortedSetBuffer:
         if not members_and_scores or not keys:
             return {key: [] for key in keys}
 
-        if not self.is_redis_cluster:
-            # rb.Cluster path - use atomic Lua script execution per key
-            return self._conditional_delete_rb_fallback(keys, members_and_scores)
+        cluster = self.cluster
+        if is_instance_rb_cluster(cluster, self.is_redis_cluster):
+            return self._conditional_delete_rb_fallback(cluster, keys, members_and_scores)
 
         # Fast path for RedisCluster - group keys by slot for optimal batching
         script_args = []
@@ -345,7 +345,8 @@ class RedisHashSortedSetBuffer:
         self._ensure_script_loaded_on_cluster()
 
         # Pipeline all slot group executions
-        pipe = self._get_redis_connection(None, transaction=False)
+        # pipe = self._get_redis_connection(None, transaction=False)
+        pipe = cluster.pipeline(transaction=False)
         for slot_keys in slot_groups:
             pipe.execute_command(
                 "EVALSHA",
@@ -383,15 +384,12 @@ class RedisHashSortedSetBuffer:
         return dict(host_groups)
 
     def _conditional_delete_rb_fallback(
-        self, keys: list[str], members_and_scores: list[tuple[int, float]]
+        self, cluster: rb.Cluster, keys: list[str], members_and_scores: list[tuple[int, float]]
     ) -> dict[str, list[int]]:
         """
         Fallback implementation for rb.Cluster using atomic Lua script execution.
         Groups keys by host for efficient batching.
         """
-        cluster = self.cluster
-        assert is_instance_rb_cluster(cluster, self.is_redis_cluster), "Method requires rb.Cluster"
-
         # Flatten the list for Lua script ARGV: [member1, max_score1, member2, max_score2, ...]
         script_args = []
         for member, score in members_and_scores:
