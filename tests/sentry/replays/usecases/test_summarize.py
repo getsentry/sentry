@@ -3,7 +3,7 @@ import zlib
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import requests
@@ -857,7 +857,7 @@ class RpcGetReplaySummaryLogsTestCase(
         super().setUp()
         self.replay_id = uuid.uuid4().hex
 
-    def store_replay(self, dt: datetime | None = None, **kwargs) -> None:
+    def store_replay(self, dt: datetime | None = None, **kwargs: Any) -> None:
         replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
@@ -1148,7 +1148,9 @@ class RpcGetReplaySummaryLogsTestCase(
         assert "User experienced an error" in logs[2]
 
     @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
-    def test_rpc_with_trace_errors_duplicate_feedback(self, mock_fetch_feedback_details):
+    def test_rpc_with_trace_errors_duplicate_feedback(
+        self, mock_fetch_feedback_details: MagicMock
+    ) -> None:
         """Test that duplicate feedback events are filtered.
         Duplicates may happen when the replay has a feedback breadcrumb,
         and the feedback is also returned from the Snuba query for trace-connected errors."""
