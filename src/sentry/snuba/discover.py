@@ -434,7 +434,7 @@ def create_groupby_dict(
                     # Even though frontend renders only the last element, this can cause key overlaps
                     # For now lets just render this as a list to avoid that problem
                     # TODO: timeseries can handle this correctly since this value isn't used as a dict key
-                    filtered_value = [val if val is not None else NO_VALUE for val in value]
+                    filtered_value = [str(val) if val is not None else NO_VALUE for val in value]
                     value = f"[{','.join(filtered_value)}]"
                 else:
                     value = ""

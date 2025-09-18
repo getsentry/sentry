@@ -161,6 +161,17 @@ export function useQueryParamsSortBys(): readonly Sort[] {
   return queryParams.sortBys;
 }
 
+export function useSetQueryParamsSortBys() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (sortBys: Sort[]) => {
+      setQueryParams({sortBys});
+    },
+    [setQueryParams]
+  );
+}
+
 interface UseQueryParamsAggregateFieldsOptions {
   validate: boolean;
 }
@@ -335,4 +346,20 @@ export function useSetQueryParamsAggregateCursor() {
 export function useQueryParamsCursor(): string {
   const queryParams = useQueryParams();
   return queryParams.cursor;
+}
+
+export function useQueryParamsExtrapolate() {
+  const queryParams = useQueryParams();
+  return queryParams.extrapolate;
+}
+
+export function useSetQueryParamsExtrapolate() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (extrapolate: boolean) => {
+      setQueryParams({extrapolate});
+    },
+    [setQueryParams]
+  );
 }

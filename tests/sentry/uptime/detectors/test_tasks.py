@@ -34,12 +34,13 @@ from sentry.uptime.detectors.tasks import (
     schedule_detections,
     set_failed_url,
 )
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.models import get_uptime_subscription
 from sentry.uptime.subscriptions.subscriptions import (
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.workflow_engine.models import Detector
 
 
 @freeze_time()
@@ -245,9 +246,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         uptime_subscription = self.create_uptime_subscription(
             url=url, interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS
         )
-        self.create_project_uptime_subscription(
-            project=other_project, uptime_subscription=uptime_subscription
-        )
+        self.create_uptime_detector(project=other_project, uptime_subscription=uptime_subscription)
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert process_candidate_url(self.project, 100, url, 50)
         assert is_url_auto_monitored_for_project(self.project, url)
@@ -364,15 +363,16 @@ class TestMonitorUrlForProject(UptimeTestCase):
 
     def test_manual_existing(self) -> None:
         manual_url = "https://sentry.io"
-        self.create_project_uptime_subscription(
+        self.create_uptime_detector(
             uptime_subscription=self.create_uptime_subscription(url=manual_url),
             mode=UptimeMonitorMode.MANUAL,
         )
         url = "http://santry.io"
         monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
-        assert ProjectUptimeSubscription.objects.filter(
+        detectors = Detector.objects.filter(
             project=self.project,
-            mode=UptimeMonitorMode.MANUAL,
-            uptime_subscription__url=manual_url,
-        ).exists()
+            config__mode=UptimeMonitorMode.MANUAL.value,
+        )
+        assert detectors.exists()
+        assert any(get_uptime_subscription(detector).url == manual_url for detector in detectors)

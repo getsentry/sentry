@@ -9,6 +9,10 @@ import pytest
 from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.functional import cached_property
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
@@ -48,14 +52,14 @@ from sentry.testutils.silo import assume_test_silo_mode
 # on a per-class method basis
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    UptimeStatus,
-    UptimeSubscription,
-    UptimeSubscriptionRegion,
-    create_detector_from_project_subscription,
+from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    UptimeMonitorMode,
 )
-from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -798,44 +802,100 @@ class Fixtures:
     ):
         Factories.create_uptime_subscription_region(subscription, region_slug, mode)
 
-    def create_project_uptime_subscription(
+    def create_uptime_detector(
         self,
         project: Project | None = None,
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         status: int = ObjectStatus.ACTIVE,
+        enabled: bool = True,
         mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
         uptime_status_update_date: datetime | None = None,
         id: int | None = None,
-    ) -> ProjectUptimeSubscription:
+        recovery_threshold: int = DEFAULT_RECOVERY_THRESHOLD,
+        downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
+    ) -> Detector:
         if project is None:
             project = self.project
         if env is None:
             env = self.environment
+
+        actor = Actor.from_object(owner) if owner else None
+        owner_team_id = None
+        owner_user_id = None
+        if actor:
+            if actor.is_team:
+                owner_team_id = actor.id
+            elif actor.is_user:
+                owner_user_id = actor.id
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription(
                 uptime_status=uptime_status,
                 uptime_status_update_date=uptime_status_update_date,
             )
-        monitor = Factories.create_project_uptime_subscription(
-            project,
-            env,
-            uptime_subscription,
-            status,
-            mode,
-            name,
-            Actor.from_object(owner) if owner else None,
-            id,
-        )
-        # TODO(epurkhiser): Dual create a detector as well, can be removed
-        # once we completely remove ProjectUptimeSubscription
-        create_detector_from_project_subscription(monitor)
 
-        return monitor
+        data_source = Factories.create_data_source(
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+            organization=project.organization,
+            source_id=str(uptime_subscription.id),
+        )
+        condition_group = Factories.create_data_condition_group(
+            organization=project.organization,
+        )
+        Factories.create_data_condition(
+            comparison=CHECKSTATUS_FAILURE,
+            type=Condition.EQUAL,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=condition_group,
+        )
+        Factories.create_data_condition(
+            comparison=CHECKSTATUS_SUCCESS,
+            type=Condition.EQUAL,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=condition_group,
+        )
+        env_name = env.name if env else None
+        detector = Factories.create_detector(
+            id=id,
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            project=project,
+            name=name,
+            status=status,
+            enabled=enabled,
+            owner_user_id=owner_user_id,
+            owner_team_id=owner_team_id,
+            config={
+                "environment": env_name,
+                "mode": mode,
+                "recovery_threshold": recovery_threshold,
+                "downtime_threshold": downtime_threshold,
+            },
+            workflow_condition_group=condition_group,
+        )
+        Factories.create_data_source_detector(
+            data_source=data_source,
+            detector=detector,
+        )
+
+        # Create DetectorState based on the uptime_status from the uptime_subscription
+        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+            Factories.create_detector_state(
+                detector=detector,
+                state=DetectorPriorityLevel.HIGH,
+                is_triggered=True,
+            )
+        else:
+            Factories.create_detector_state(
+                detector=detector,
+                state=DetectorPriorityLevel.OK,
+                is_triggered=False,
+            )
+
+        return detector
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

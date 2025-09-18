@@ -1,43 +1,26 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useTeamsById} from './useTeamsById';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
 
 describe('useTeamsById', () => {
   const org = OrganizationFixture();
   const mockTeams = [TeamFixture()];
 
-  const wrapper = ({children}: {children?: any}) => (
-    <OrganizationContext.Provider value={org}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </OrganizationContext.Provider>
-  );
-
   beforeEach(() => {
     TeamStore.reset();
     OrganizationStore.onUpdate(org, {replace: true});
-    queryClient.clear();
   });
 
   it('provides teams from the team store', () => {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = renderHook(useTeamsById, {wrapper});
+    const {result} = renderHookWithProviders(useTeamsById, {organization: org});
     const {teams} = result.current;
 
     expect(teams).toEqual(mockTeams);
@@ -51,9 +34,9 @@ describe('useTeamsById', () => {
     });
     // TeamStore.loadInitialData not yet called
     expect(TeamStore.getState().loading).toBe(true);
-    const {result} = renderHook(useTeamsById, {
+    const {result} = renderHookWithProviders(useTeamsById, {
       initialProps: {slugs: ['foo']},
-      wrapper,
+      organization: org,
     });
     const {isLoading} = result.current;
     expect(isLoading).toBe(true);
@@ -69,9 +52,9 @@ describe('useTeamsById', () => {
       body: [teamFoo],
     });
 
-    const {result} = renderHook(useTeamsById, {
+    const {result} = renderHookWithProviders(useTeamsById, {
       initialProps: {slugs: ['foo']},
-      wrapper,
+      organization: org,
     });
 
     expect(result.current.isLoading).toBe(true);
@@ -89,9 +72,9 @@ describe('useTeamsById', () => {
   it('only loads slugs when needed', () => {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = renderHook(useTeamsById, {
+    const {result} = renderHookWithProviders(useTeamsById, {
       initialProps: {slugs: [mockTeams[0]!.slug]},
-      wrapper,
+      organization: org,
     });
 
     const {teams, isLoading} = result.current;
@@ -109,9 +92,9 @@ describe('useTeamsById', () => {
 
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = renderHook(useTeamsById, {
+    const {result} = renderHookWithProviders(useTeamsById, {
       initialProps: {ids: ['2']},
-      wrapper,
+      organization: org,
     });
 
     expect(result.current.isLoading).toBe(true);
@@ -140,9 +123,9 @@ describe('useTeamsById', () => {
 
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = renderHook(useTeamsById, {
+    const {result} = renderHookWithProviders(useTeamsById, {
       initialProps: {ids: ['2', '3']},
-      wrapper,
+      organization: org,
     });
 
     expect(result.current.isLoading).toBe(true);
@@ -161,9 +144,9 @@ describe('useTeamsById', () => {
   it('does not fetch anything if the teams are already loaded', () => {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = renderHook(useTeamsById, {
+    const {result} = renderHookWithProviders(useTeamsById, {
       initialProps: {ids: ['1']},
-      wrapper,
+      organization: org,
     });
 
     const {teams, isLoading} = result.current;
@@ -188,9 +171,9 @@ describe('useTeamsById', () => {
     TeamStore.loadInitialData([mockTeamsToFetch[0]!]);
 
     // Request teams 1 and 2
-    const {result} = renderHook(useTeamsById, {
+    const {result} = renderHookWithProviders(useTeamsById, {
       initialProps: {ids: ['1', '2']},
-      wrapper,
+      organization: org,
     });
 
     // Should return both teams

@@ -180,7 +180,8 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     ),
     "count_if": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
-        default_search_type="duration",
+        infer_search_type_from_arguments=False,
+        default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -188,6 +189,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "number",
                     "percentage",
                     "currency",
+                    "boolean",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -201,6 +203,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "number",
                     "percentage",
                     "currency",
+                    "boolean",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 }

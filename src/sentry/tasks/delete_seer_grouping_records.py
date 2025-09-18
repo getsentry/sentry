@@ -3,8 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry import options
-from sentry.models.group import Group
-from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
     call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
@@ -47,7 +46,7 @@ def delete_seer_grouping_records_by_hash(
     ):
         return
 
-    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
+    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
     if len_hashes <= batch_size:  # Base case
         call_seer_to_delete_these_hashes(project_id, hashes)
@@ -68,8 +67,8 @@ def delete_seer_grouping_records_by_hash(
             delete_seer_grouping_records_by_hash.apply_async(args=[project_id, chunked_hashes, 0])
 
 
-def may_schedule_task_to_delete_hashes_from_seer(group_ids: Sequence[int]) -> None:
-    if not group_ids:
+def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequence[str]) -> None:
+    if not hashes:
         return
 
     if killswitch_enabled(None, ReferrerOptions.DELETION) or options.get(
@@ -77,14 +76,7 @@ def may_schedule_task_to_delete_hashes_from_seer(group_ids: Sequence[int]) -> No
     ):
         return
 
-    # Single optimized query for project lookup
-    try:
-        group = Group.objects.select_related("project").get(id=group_ids[0])
-    except Group.DoesNotExist:
-        logger.warning("Group not found for deletion", extra={"group_id": group_ids[0]})
-        return
-
-    project = group.project
+    project = Project.objects.get(id=project_id)
 
     if not (
         project
@@ -93,19 +85,11 @@ def may_schedule_task_to_delete_hashes_from_seer(group_ids: Sequence[int]) -> No
     ):
         return
 
-    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size") or 100
+    seer_batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
 
-    # Single query to get all hashes, then chunk in memory
-    # For large datasets, this is faster than many individual queries
-    hashes = list(GroupHash.objects.filter(group_id__in=group_ids).values_list("hash", flat=True))
-
-    if not hashes:
-        return
-
-    # Schedule tasks in chunks
-    for i in range(0, len(hashes), batch_size):
-        chunk = hashes[i : i + batch_size]
-        delete_seer_grouping_records_by_hash.apply_async(args=[project.id, chunk, 0])
+    for i in range(0, len(hashes), seer_batch_size):
+        hash_chunk = hashes[i : i + seer_batch_size]
+        delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hash_chunk, 0])
 
 
 @instrumented_task(

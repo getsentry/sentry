@@ -19,6 +19,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
+from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
@@ -132,7 +133,6 @@ def assemble_preprod_artifact(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
-            **kwargs,
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
@@ -438,6 +438,15 @@ def _assemble_preprod_artifact_size_analysis(
     create_preprod_status_check_task.apply_async(
         kwargs={
             "preprod_artifact_id": artifact_id,
+        }
+    )
+
+    # Trigger size analysis comparison if eligible
+    compare_preprod_artifact_size_analysis.apply_async(
+        kwargs={
+            "project_id": project.id,
+            "org_id": org_id,
+            "artifact_id": artifact_id,
         }
     )
 

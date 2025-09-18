@@ -43,6 +43,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -65,12 +66,15 @@ import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTraces
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
+  useQueryParamsExtrapolate,
   useQueryParamsMode,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
-import {ExploreExport} from 'sentry/views/explore/spans/spansExport';
+import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
+import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
+import {SpansExport} from 'sentry/views/explore/spans/spansExport';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -405,6 +409,7 @@ function SpanTabContentSection({
   const {selection} = usePageFilters();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
+  const extrapolate = useQueryParamsExtrapolate();
   const [tab, setTab] = useTab();
 
   const query = useExploreQuery();
@@ -510,16 +515,20 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
-        <Feature features="organizations:tracing-export-csv">
-          <ExploreExport
-            aggregatesTableResult={aggregatesTableResult}
-            spansTableResult={spansTableResult}
-          />
-        </Feature>
+        <ActionButtonsGroup>
+          <Feature features="organizations:tracing-export-csv">
+            <SpansExport
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+            />
+          </Feature>
+          <SettingsDropdown />
+        </ActionButtonsGroup>
       </OverChartButtonGroup>
       {!resultsLoading && !hasResults && (
         <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       )}
+      <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
           <Alert type="error">{error.message}</Alert>
@@ -538,6 +547,7 @@ function SpanTabContentSection({
         <ExploreCharts
           confidences={confidences}
           query={query}
+          extrapolate={extrapolate}
           timeseriesResult={timeseriesResult}
           visualizes={visualizes}
           setVisualizes={setVisualizes}
@@ -654,9 +664,13 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
+const ActionButtonsGroup = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+`;
+
 const ChevronButton = withChonk(
   styled(Button)<{expanded: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -673,7 +687,6 @@ const ChevronButton = withChonk(
       `}
   `,
   chonkStyled(Button)<{expanded: boolean}>`
-    margin-bottom: ${space(1)};
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -693,18 +706,6 @@ const ChevronButton = withChonk(
       `}
   `
 );
-
-const OverChartButtonGroup = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.xs};
-  justify-content: space-between;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    justify-content: flex-end;
-    margin-bottom: ${p => p.theme.space.md};
-  }
-`;
 
 const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};

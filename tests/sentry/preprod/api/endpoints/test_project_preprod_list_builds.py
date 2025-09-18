@@ -101,7 +101,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert "builds" in resp_data
-        assert "pagination" in resp_data
+        assert "Link" in response  # Pagination info is in headers
         assert len(resp_data["builds"]) == 3  # Should return all 3 artifacts
 
         # Check that builds are ordered by date_added (most recent first)
@@ -112,7 +112,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_with_pagination(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?per_page=2&page=1",
+            f"{url}?per_page=2",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -120,23 +120,12 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert len(resp_data["builds"]) == 2
-        assert resp_data["pagination"]["per_page"] == 2
-        assert resp_data["pagination"]["page"] == 0
-        assert resp_data["pagination"]["has_next"] is True
-        assert resp_data["pagination"]["has_prev"] is False
+        assert "Link" in response  # Pagination info is in headers
 
-        # Get second page
-        response = self.client.get(
-            f"{url}?per_page=2&page=2",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
-        )
-
-        assert response.status_code == 200
-        resp_data = response.json()
-        assert len(resp_data["builds"]) == 1
-        assert resp_data["pagination"]["has_next"] is False
-        assert resp_data["pagination"]["has_prev"] is True
+        # Check that Link header contains pagination info
+        link_header = response["Link"]
+        assert "next" in link_header
+        assert "previous" in link_header
 
     def test_list_builds_with_filters(self) -> None:
         url = self._get_url()
@@ -186,25 +175,15 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_invalid_pagination_params(self) -> None:
         url = self._get_url()
 
-        # Test invalid per_page (should be capped at 100)
+        # Test per_page over max (should return validation error)
         response = self.client.get(
             f"{url}?per_page=200",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
-        assert response.status_code == 200
+        assert response.status_code == 400
         resp_data = response.json()
-        assert resp_data["pagination"]["per_page"] == 100
-
-        # Test invalid page (should default to 1)
-        response = self.client.get(
-            f"{url}?page=0",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
-        )
-        assert response.status_code == 200
-        resp_data = response.json()
-        assert resp_data["pagination"]["page"] == 0
+        assert "per_page" in resp_data  # DRF validation error format
 
     def test_list_builds_empty_builds(self) -> None:
         # Create a different project with no artifacts
@@ -220,14 +199,13 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert len(resp_data["builds"]) == 0
-        assert resp_data["pagination"]["has_next"] is False
-        assert resp_data["pagination"]["has_prev"] is False
+        assert "Link" in response  # Pagination headers still present
 
     # Search functionality tests
     def test_list_builds_search_by_app_name(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=TestApp2",
+            f"{url}?query=TestApp2",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -239,7 +217,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_search_by_app_id(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=com.example.app3",
+            f"{url}?query=com.example.app3",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -251,7 +229,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_search_by_build_version(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=2.0.0",
+            f"{url}?query=2.0.0",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -263,7 +241,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_search_by_commit_sha(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=123456789009876543211234567890",
+            f"{url}?query=123456789009876543211234567890",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -274,7 +252,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_search_by_head_ref(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=feature/xyz",
+            f"{url}?query=feature/xyz",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -285,7 +263,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_search_by_pr_number(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=123",
+            f"{url}?query=123",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -297,17 +275,21 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         url = self._get_url()
         long_search = "a" * 101  # > 100 characters
         response = self.client.get(
-            f"{url}?search={long_search}",
+            f"{url}?query={long_search}",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        assert "Search term too long" in response.json()["error"]
+        resp_data = response.json()
+        assert "query" in resp_data  # DRF validation error format
+        # Check for either our custom message or DRF's default max_length message
+        query_error = str(resp_data["query"])
+        assert "Search term too long" in query_error or "no more than 100 characters" in query_error
 
     def test_list_builds_search_no_results(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=nonexistent",
+            f"{url}?query=nonexistent",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -404,7 +386,8 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        assert "Invalid platform: windows" in response.json()["error"]
+        resp_data = response.json()
+        assert "platform" in resp_data  # DRF validation error format
 
     # Build configuration filtering tests
     def test_list_builds_filter_by_build_configuration(self) -> None:
@@ -437,6 +420,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         resp_data = response.json()
         assert len(resp_data["builds"]) == 1
         assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.configured"
+        assert resp_data["builds"][0]["app_info"]["build_configuration"] == "Release"
 
     # Build version filtering tests
     def test_list_builds_filter_by_build_version(self) -> None:
@@ -467,23 +451,25 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_pagination_invalid_string_params(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?per_page=invalid&page=invalid",
+            f"{url}?per_page=invalid&cursor=invalid",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
         assert response.status_code == 400
-        assert "Invalid pagination parameters" in response.json()["error"]
+        resp_data = response.json()
+        # Either per_page or cursor validation should fail
+        assert "per_page" in resp_data or "cursor" in resp_data
 
-    def test_list_builds_pagination_negative_page(self) -> None:
+    def test_list_builds_pagination_negative_per_page(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?page=-1",
+            f"{url}?per_page=-1",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
-        assert response.status_code == 200
+        assert response.status_code == 400
         resp_data = response.json()
-        assert resp_data["pagination"]["page"] == 0  # Should be clamped to 0 (page 1 in 1-indexed)
+        assert "per_page" in resp_data  # Should validate min_value=1
 
     def test_list_builds_pagination_zero_per_page(self) -> None:
         url = self._get_url()
@@ -492,8 +478,9 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
-        assert response.status_code == 200
-        # per_page should be minimum 1, but actual behavior depends on implementation
+        assert response.status_code == 400
+        resp_data = response.json()
+        assert "per_page" in resp_data  # Should validate min_value=1
 
     # State filtering edge cases
     def test_list_builds_filter_by_invalid_state(self) -> None:
@@ -503,9 +490,9 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
-        assert response.status_code == 200
+        assert response.status_code == 400
         resp_data = response.json()
-        assert len(resp_data["builds"]) == 3  # Should return all when state is invalid
+        assert "state" in resp_data  # DRF validation error format
 
     def test_list_builds_filter_by_state_string(self) -> None:
         url = self._get_url()
@@ -514,9 +501,9 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
-        assert response.status_code == 200
+        assert response.status_code == 400
         resp_data = response.json()
-        assert len(resp_data["builds"]) == 3  # Should return all when state is invalid
+        assert "state" in resp_data  # DRF validation error format
 
     # Analytics tests
     @patch.object(analytics, "record")
@@ -579,7 +566,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_empty_query_params(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=&app_id=&platform=",
+            f"{url}?query=&app_id=&platform=",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )
@@ -591,7 +578,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
     def test_list_builds_search_whitespace_trimming(self) -> None:
         url = self._get_url()
         response = self.client.get(
-            f"{url}?search=  TestApp2  ",
+            f"{url}?query=  TestApp2  ",
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
         )

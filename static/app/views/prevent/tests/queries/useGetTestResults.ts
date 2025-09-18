@@ -37,7 +37,6 @@ function sortValueToSortKey(value: string) {
 
 type TestResultItem = {
   avgDuration: number;
-  commitsFailed: number;
   failureRate: number;
   flakeRate: number;
   lastDuration: number;
@@ -70,11 +69,19 @@ export function useInfiniteTestResults({
   cursor?: string | null;
   navigation?: 'next' | 'prev';
 }) {
-  const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
+  const {
+    integratedOrgId,
+    repository,
+    branch: rawBranch,
+    preventPeriod,
+  } = usePreventContext();
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
 
-  const sortBy = searchParams.get('sort') || '-commitsFailed';
+  // Normalize branch to undefined when falsy for consistent caching
+  const branch = rawBranch || undefined;
+
+  const sortBy = searchParams.get('sort') || '-totalFailCount';
   const signedSortBy = sortValueToSortKey(sortBy);
 
   const term = searchParams.get('term') || '';

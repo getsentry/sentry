@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -159,6 +160,7 @@ export function PageOverviewSidebar({
 
   const runSeerAnalysis = useRunSeerAnalysis({
     projectScore,
+    projectData: projectData?.[0],
     transaction,
     webVitalTraceSamples,
   });
@@ -334,7 +336,10 @@ function SeerSuggestionsSection({
 
   return (
     <div>
-      <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+      <SectionHeading>
+        {t('Seer Suggestions')}
+        <FeatureBadge type="beta" />
+      </SectionHeading>
       <Content>
         <SeerSuggestionGrid>
           {/* Issues are still loading, or projectScore is still loading, or seer analysis is still running */}

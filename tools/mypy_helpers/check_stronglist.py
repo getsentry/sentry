@@ -2,9 +2,8 @@ import argparse
 import glob
 import os.path
 import re
-from collections.abc import Sequence
-
 import tomllib
+from collections.abc import Sequence
 
 
 def _glob_to_re(s: str) -> str:

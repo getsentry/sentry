@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_actor import ExternalActor
@@ -9,6 +8,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 LATEST_GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -65,7 +65,7 @@ class CodeOwnersTest(TestCase):
                 {
                     "matcher": {"type": "codeowners", "pattern": "docs/*"},
                     "owners": [
-                        {"type": "team", "identifier": "tiger-team"},
+                        {"type": "team", "identifier": "tiger-team", "id": self.team.id},
                     ],
                 }
             ],
@@ -82,14 +82,12 @@ class CodeOwnersTest(TestCase):
 
         assert code_owners.schema == {"$version": 1, "rules": []}
 
-    @patch("django.utils.timezone.now")
+    @freeze_time("2023-01-01 00:00:00")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=LATEST_GITHUB_CODEOWNERS,
     )
-    def test_codeowners_auto_sync_successful(
-        self, mock_get_codeowner_file: MagicMock, mock_timezone_now: MagicMock
-    ) -> None:
+    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file: MagicMock) -> None:
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
         assert code_owners.raw == self.data["raw"]
 
@@ -104,12 +102,10 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="A",
             )
-            mock_now = datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)
-            mock_timezone_now.return_value = mock_now
             code_owners_auto_sync(commit.id)
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
@@ -120,17 +116,19 @@ class CodeOwnersTest(TestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": "admin@localhost", "type": "user"},
-                        {"identifier": "tiger-team", "type": "team"},
+                        {"identifier": "admin@localhost", "type": "user", "id": self.user.id},
+                        {"identifier": "tiger-team", "type": "team", "id": self.team.id},
                     ],
                 },
                 {
                     "matcher": {"pattern": "*", "type": "codeowners"},
-                    "owners": [{"identifier": "admin@localhost", "type": "user"}],
+                    "owners": [
+                        {"identifier": "admin@localhost", "type": "user", "id": self.user.id}
+                    ],
                 },
             ],
         }
-        assert code_owners.date_updated == mock_now
+        assert code_owners.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-01-01 00:00:00"
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
@@ -154,7 +152,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="A",
             )
@@ -177,7 +175,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="A",
             )
@@ -197,7 +195,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename="CODEOWNERS",
                 type="M",
             )
@@ -217,7 +215,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="D",
             )
@@ -237,7 +235,7 @@ class CodeOwnersTest(TestCase):
             )
             CommitFileChange.objects.create(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename="src/main.py",
                 type="A",
             )
@@ -257,13 +255,13 @@ class CodeOwnersTest(TestCase):
             )
             change1 = CommitFileChange(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="M",
             )
             change2 = CommitFileChange(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename="src/main.py",
                 type="A",
             )
@@ -284,13 +282,13 @@ class CodeOwnersTest(TestCase):
             )
             change1 = CommitFileChange(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=".github/CODEOWNERS",
                 type="M",
             )
             change2 = CommitFileChange(
                 organization_id=self.organization.id,
-                commit=commit,
+                commit_id=commit.id,
                 filename="src/main.py",
                 type="A",
             )

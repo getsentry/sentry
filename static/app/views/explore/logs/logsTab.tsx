@@ -18,6 +18,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -40,6 +41,7 @@ import {
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
+import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
@@ -353,21 +355,28 @@ export function LogsTabContent({
         )}
         <BottomSectionBody sidebarOpen={sidebarOpen}>
           <section>
-            <LogsSidebarCollapseButton
-              sidebarOpen={sidebarOpen}
-              aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-              size="xs"
-              icon={
-                <IconChevron
-                  isDouble
-                  direction={sidebarOpen ? 'left' : 'right'}
-                  size="xs"
-                />
-              }
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? null : t('Advanced')}
-            </LogsSidebarCollapseButton>
+            <OverChartButtonGroup>
+              <LogsSidebarCollapseButton
+                sidebarOpen={sidebarOpen}
+                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                size="xs"
+                icon={
+                  <IconChevron
+                    isDouble
+                    direction={sidebarOpen ? 'left' : 'right'}
+                    size="xs"
+                  />
+                }
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? null : t('Advanced')}
+              </LogsSidebarCollapseButton>
+              <LogsExportButton
+                isLoading={tableData.isPending}
+                tableData={tableData.data}
+                error={tableData.error}
+              />
+            </OverChartButtonGroup>
             {!tableData.isPending && tableData.isEmpty && (
               <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             )}

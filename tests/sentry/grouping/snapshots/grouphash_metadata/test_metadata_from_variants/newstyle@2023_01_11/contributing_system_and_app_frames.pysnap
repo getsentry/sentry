@@ -1,5 +1,5 @@
 ---
-created: '2025-05-12T23:51:31.432361+00:00'
+created: '2025-09-11T18:40:11.921846+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -35,7 +35,7 @@ contributing variants:
                 "dogpark.js"
               function*
                 "playFetch"
-              context-line*
+              context_line*
                 "raise FailedToFetchError('Charlie didn't bring the ball back!');"
           type*
             "FailedToFetchError"
@@ -51,14 +51,14 @@ contributing variants:
                 "router.js"
               function*
                 "handleRequest"
-              context-line*
+              context_line*
                 "return handler(request);"
             frame*
               filename*
                 "dogpark.js"
               function*
                 "playFetch"
-              context-line*
+              context_line*
                 "raise FailedToFetchError('Charlie didn't bring the ball back!');"
           type*
             "FailedToFetchError"

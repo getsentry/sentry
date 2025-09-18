@@ -1,10 +1,6 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import type {Organization} from 'sentry/types/organization';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeTraceError,
@@ -25,13 +21,11 @@ const getMockedTraceResults = (
     data,
   }) as UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
 
-const organization = OrganizationFixture();
-
-const contextWrapper = (org: Organization) => {
+const contextWrapper = () => {
   return function ({children}: {children: React.ReactNode}) {
     return (
       <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-        <OrganizationContext value={org}>{children}</OrganizationContext>
+        {children}
       </TraceStateProvider>
     );
   };
@@ -39,14 +33,14 @@ const contextWrapper = (org: Organization) => {
 
 describe('useTraceTree', () => {
   it('returns tree for error case', async () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useTraceTree({
           trace: getMockedTraceResults('error'),
           traceSlug: 'test-trace',
           replay: null,
         }),
-      {wrapper: contextWrapper(organization)}
+      {additionalWrapper: contextWrapper()}
     );
 
     await waitFor(() => {
@@ -55,14 +49,14 @@ describe('useTraceTree', () => {
   });
 
   it('returns tree for loading case', async () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useTraceTree({
           trace: getMockedTraceResults('pending'),
           traceSlug: 'test-trace',
           replay: null,
         }),
-      {wrapper: contextWrapper(organization)}
+      {additionalWrapper: contextWrapper()}
     );
 
     await waitFor(() => {
@@ -71,7 +65,7 @@ describe('useTraceTree', () => {
   });
 
   it('returns tree for empty success case', async () => {
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useTraceTree({
           trace: getMockedTraceResults('success', {
@@ -81,7 +75,7 @@ describe('useTraceTree', () => {
           traceSlug: 'test-trace',
           replay: null,
         }),
-      {wrapper: contextWrapper(organization)}
+      {additionalWrapper: contextWrapper()}
     );
 
     await waitFor(() => {
@@ -125,14 +119,14 @@ describe('useTraceTree', () => {
       ],
     };
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
         useTraceTree({
           trace: getMockedTraceResults('success', mockedTrace),
           traceSlug: 'test-trace',
           replay: null,
         }),
-      {wrapper: contextWrapper(organization)}
+      {additionalWrapper: contextWrapper()}
     );
 
     await waitFor(() => {
