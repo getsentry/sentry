@@ -1,6 +1,8 @@
 from collections.abc import Sequence
+from typing import Any, override
 
 import jsonschema
+from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
@@ -11,7 +13,13 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.uptime.models import UptimeSubscription, get_audit_log_data, get_uptime_subscription
+from sentry.uptime.models import (
+    UptimeStatus,
+    UptimeSubscription,
+    UptimeSubscriptionDataSourceHandler,
+    get_audit_log_data,
+    get_uptime_subscription,
+)
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
@@ -19,11 +27,18 @@ from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
     check_url_limits,
     create_uptime_detector,
+    create_uptime_subscription,
     update_uptime_detector,
+    update_uptime_subscription,
 )
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.models.detector import Detector
+from sentry.utils.db import atomic_transaction
+from sentry.workflow_engine.endpoints.validators.base import (
+    BaseDataSourceValidator,
+    BaseDetectorTypeValidator,
+)
+from sentry.workflow_engine.models import Detector
 
 """
 The bounding upper limit on how many uptime Detectors's can exist for a single
@@ -68,6 +83,53 @@ def compute_http_request_size(
     if body is not None:
         body_size = len(body.encode("utf-8")) + len("\r\n")
     return request_line_size + headers_size + body_size
+
+
+def _validate_url(url):
+    try:
+        check_url_limits(url)
+    except MaxUrlsForDomainReachedException as e:
+        raise serializers.ValidationError(
+            f"The domain *.{e.domain}.{e.suffix} has already been used in {e.max_urls} uptime monitoring alerts, "
+            "which is the limit. You cannot create any additional alerts for this domain."
+        )
+    return url
+
+
+def _validate_headers(headers):
+    try:
+        jsonschema.validate(headers, HEADERS_LIST_SCHEMA)
+        return headers
+    except jsonschema.ValidationError:
+        raise serializers.ValidationError("Expected array of header tuples.")
+
+
+def _validate_monitor_status(value):
+    return MONITOR_STATUSES.get(value, ObjectStatus.ACTIVE)
+
+
+def _validate_mode(mode, request_context):
+    if not is_active_superuser(request_context):
+        raise serializers.ValidationError("Only superusers can modify `mode`")
+    try:
+        return UptimeMonitorMode(mode)
+    except ValueError:
+        raise serializers.ValidationError(
+            "Invalid mode, valid values are %s" % [item.value for item in UptimeMonitorMode]
+        )
+
+
+def _validate_request_size(method, url, headers, body):
+    request_size = compute_http_request_size(
+        method,
+        url,
+        headers,
+        body,
+    )
+    if request_size > MAX_REQUEST_SIZE_BYTES:
+        raise serializers.ValidationError(
+            f"Request is too large, max size is {MAX_REQUEST_SIZE_BYTES} bytes"
+        )
 
 
 @extend_schema_serializer()
@@ -150,47 +212,26 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             body = uptime_subscription.body
             url = uptime_subscription.url
 
-        request_size = compute_http_request_size(
+        _validate_request_size(
             attrs.get("method", method),
             attrs.get("url", url),
             attrs.get("headers", headers),
             attrs.get("body", body),
         )
-        if request_size > MAX_REQUEST_SIZE_BYTES:
-            raise serializers.ValidationError(
-                f"Request is too large, max size is {MAX_REQUEST_SIZE_BYTES} bytes"
-            )
+
         return attrs
 
     def validate_url(self, url):
-        try:
-            check_url_limits(url)
-        except MaxUrlsForDomainReachedException as e:
-            raise serializers.ValidationError(
-                f"The domain *.{e.domain}.{e.suffix} has already been used in {e.max_urls} uptime monitoring alerts, "
-                "which is the limit. You cannot create any additional alerts for this domain."
-            )
-        return url
+        return _validate_url(url)
 
     def validate_headers(self, headers):
-        try:
-            jsonschema.validate(headers, HEADERS_LIST_SCHEMA)
-            return headers
-        except jsonschema.ValidationError:
-            raise serializers.ValidationError("Expected array of header tuples.")
+        return _validate_headers(headers)
 
     def validate_status(self, value):
-        return MONITOR_STATUSES.get(value, ObjectStatus.ACTIVE)
+        return _validate_monitor_status(value)
 
     def validate_mode(self, mode):
-        if not is_active_superuser(self.context["request"]):
-            raise serializers.ValidationError("Only superusers can modify `mode`")
-        try:
-            return UptimeMonitorMode(mode)
-        except ValueError:
-            raise serializers.ValidationError(
-                "Invalid mode, valid values are %s" % [item.value for item in UptimeMonitorMode]
-            )
+        return _validate_mode(mode, self.context["request"])
 
     def create(self, validated_data):
         if validated_data.get("environment") is not None:
@@ -220,17 +261,19 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 downtime_threshold=validated_data["downtime_threshold"],
                 **method_headers_body,
             )
+
+            create_audit_entry(
+                request=self.context["request"],
+                organization=self.context["organization"],
+                target_object=detector.id,
+                event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
+                data=get_audit_log_data(detector),
+            )
         except MaxManualUptimeSubscriptionsReached:
             raise serializers.ValidationError(
                 f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"
             )
-        create_audit_entry(
-            request=self.context["request"],
-            organization=self.context["organization"],
-            target_object=detector.id,
-            event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
-            data=get_audit_log_data(detector),
-        )
+
         return detector
 
     def update(self, instance: Detector, data):
@@ -313,3 +356,167 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             )
 
         return instance
+
+
+class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscription]):
+    @property
+    def data_source_type_handler(self) -> type[UptimeSubscriptionDataSourceHandler]:
+        return UptimeSubscriptionDataSourceHandler
+
+    name = serializers.CharField(
+        required=True,
+        max_length=128,
+        help_text="Name of the uptime monitor.",
+    )
+    status = serializers.ChoiceField(
+        choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
+        default="active",
+        help_text="Status of the uptime monitor. Disabled uptime monitors will not perform checks and do not count against the uptime monitor quota.",
+    )
+    owner = ActorField(
+        required=False,
+        allow_null=True,
+        help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
+    )
+    environment = serializers.CharField(
+        max_length=64,
+        required=False,
+        allow_null=True,
+        help_text="Name of the environment to create uptime issues in.",
+    )
+    url = URLField(required=True, max_length=255)
+    interval_seconds = serializers.ChoiceField(
+        required=True,
+        choices=UptimeSubscription.IntervalSeconds.choices,
+        help_text="Time in seconds between uptime checks.",
+    )
+    timeout_ms = serializers.IntegerField(
+        required=True,
+        min_value=1000,
+        max_value=60_000,
+        help_text="The number of milliseconds the request will wait for a response before timing-out.",
+    )
+    mode = serializers.IntegerField(required=False)
+    method = serializers.ChoiceField(
+        required=False,
+        choices=UptimeSubscription.SupportedHTTPMethods.choices,
+        help_text="The HTTP method used to make the check request.",
+    )
+    headers = serializers.JSONField(
+        required=False,
+        help_text="Additional headers to send with the check request.",
+    )
+    trace_sampling = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
+    )
+    body = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The body to send with the check request.",
+    )
+
+    class Meta:
+        model = UptimeSubscription
+        fields = [
+            "environment",
+            "name",
+            "url",
+            "headers",
+            "status",
+            "mode",
+            "timeout_ms",
+            "method",
+            "owner",
+            "trace_sampling",
+            "body",
+            "interval_seconds",
+        ]
+
+    def validate_url(self, url):
+        return _validate_url(url)
+
+    def validate_headers(self, headers):
+        return _validate_headers(headers)
+
+    def validate_status(self, value):
+        return _validate_monitor_status(value)
+
+    def validate_mode(self, mode):
+        return _validate_mode(mode, self.context["request"])
+
+    def validate(self, attrs: dict[str, Any]):
+        attrs = super().validate(attrs)
+
+        headers = []
+        method = "GET"
+        body = None
+        url = ""
+        if self.instance:
+            headers = self.instance.headers
+            method = self.instance.method
+            body = self.instance.body
+            url = self.instance.url
+
+        _validate_request_size(
+            attrs.get("method", method),
+            attrs.get("url", url),
+            attrs.get("headers", headers),
+            attrs.get("body", body),
+        )
+
+        return attrs
+
+    @override
+    def create_source(self, validated_data: dict[str, Any]) -> UptimeSubscription:
+        with atomic_transaction(using=(router.db_for_write(UptimeSubscription),)):
+            method_headers_body = {
+                k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
+            }
+            uptime_subscription = create_uptime_subscription(
+                url=validated_data["url"],
+                interval_seconds=validated_data["interval_seconds"],
+                timeout_ms=validated_data["timeout_ms"],
+                trace_sampling=validated_data.get("trace_sampling", False),
+                uptime_status=UptimeStatus.OK,
+                **method_headers_body,
+            )
+        return uptime_subscription
+
+
+class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
+    data_source = UptimeMonitorDataSourceValidator(required=True)
+
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        super().update(instance, validated_data)
+
+        if "data_source" in validated_data:
+            data_source = validated_data.pop("data_source")
+            if data_source:
+                self.update_data_source(instance, data_source)
+        return instance
+
+    def update_data_source(self, instance: Detector, data_source: dict[str, Any]):
+        # data_source will have some extra Detector-related in it, so cull them before
+        # calling update_project_uptime_subscription
+        uptime_data = {
+            k: data_source[k]
+            for k in data_source
+            if k in UptimeMonitorDataSourceValidator.Meta.fields
+        }
+        subscription = get_uptime_subscription(instance)
+        update_uptime_subscription(subscription=subscription, **uptime_data)
+
+        create_audit_entry(
+            request=self.context["request"],
+            organization=self.context["organization"],
+            target_object=instance.id,
+            event=audit_log.get_event_id("UPTIME_MONITOR_EDIT"),
+            data=instance.get_audit_log_data(),
+        )
+
+        return instance
+
+    def create(self, validated_data):
+        return super().create(validated_data)
