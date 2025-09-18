@@ -720,7 +720,6 @@ module = [
     "tests.sentry.auth.providers.google.*",
     "tests.sentry.auth.services.*",
     "tests.sentry.auth_v2.endpoints.*",
-    "tests.sentry.celery.*",
     "tests.sentry.charts.*",
     "tests.sentry.data_export.*",
     "tests.sentry.data_secrecy.*",

@@ -9,6 +9,13 @@ from sentry.conf.types.taskworker import crontab
 from sentry.taskworker.registry import taskregistry
 
 
+@pytest.fixture
+def load_tasks() -> None:
+    """Ensure that tasks are loaded for schedule tests"""
+    for path in settings.TASKWORKER_IMPORTS:
+        __import__(path)
+
+
 def test_import_paths() -> None:
     for path in settings.TASKWORKER_IMPORTS:
         try:
@@ -31,7 +38,7 @@ def test_taskworker_schedule_unique() -> None:
 
 
 @pytest.mark.parametrize("name,config", list(settings.TASKWORKER_SCHEDULES.items()))
-def test_taskworker_schedule_type(name: str, config: dict[str, Any]) -> None:
+def test_taskworker_schedule_type(name: str, config: dict[str, Any], load_tasks) -> None:
     assert config["task"], f"schedule {name} is missing a task name"
     (namespace, taskname) = config["task"].split(":")
     assert taskregistry.get_task(namespace, taskname), f"task for {name} is not registered"
