@@ -7,7 +7,7 @@ import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/
 import {t} from 'sentry/locale';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-export interface SizeCompareSelectedBuildsProps {
+interface SizeCompareSelectedBuildsProps {
   headBuildDetails: BuildDetailsApiResponse;
   isComparing: boolean;
   onClearBaseBuild: () => void;
