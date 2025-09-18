@@ -1,4 +1,7 @@
-from typing import TypeGuard
+from typing import Any, TypeGuard
+from unittest.mock import Mock, patch
+
+import pytest
 
 from sentry.integrations.discord.message_builder.base.component.action_row import (
     DiscordActionRowDict,
@@ -7,7 +10,17 @@ from sentry.integrations.discord.message_builder.base.component.base import (
     DiscordMessageComponentDict,
 )
 from sentry.integrations.discord.message_builder.base.component.button import DiscordButtonDict
-from sentry.notifications.platform.discord.provider import DiscordNotificationProvider
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.discord.provider import (
+    DiscordNotificationProvider,
+    DiscordRenderable,
+)
+from sentry.notifications.platform.provider import NotificationProviderError
+from sentry.notifications.platform.target import (
+    GenericNotificationTarget,
+    IntegrationNotificationTarget,
+)
 
 
 def is_action_row(component: DiscordMessageComponentDict) -> TypeGuard[DiscordActionRowDict]:
@@ -20,7 +33,6 @@ def is_button(component: DiscordMessageComponentDict) -> TypeGuard[DiscordButton
     return component.get("type") == 2
 
 
-from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
@@ -234,3 +246,180 @@ class DiscordNotificationProviderTest(TestCase):
     def test_is_available(self) -> None:
         assert DiscordNotificationProvider.is_available() is False
         assert DiscordNotificationProvider.is_available(organization=self.organization) is False
+
+
+class DiscordNotificationProviderValidateTargetTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider=IntegrationProviderSlug.DISCORD,
+            organization=self.organization,
+            user=self.user,
+            name="test-discord",
+            metadata={"guild_id": "123456789", "guild_name": "Test Guild"},
+        )
+
+    def _create_target(
+        self,
+        resource_id: str = "987654321",
+        resource_type: NotificationTargetResourceType = NotificationTargetResourceType.CHANNEL,
+        integration: Any = None,
+    ) -> IntegrationNotificationTarget:
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.DISCORD,
+            resource_id=resource_id,
+            resource_type=resource_type,
+            integration_id=integration.id if integration else self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        # Manually set the integration fields (prepare_targets is a stub)
+        rpc_integration = integration_service.get_integration(integration_id=target.integration_id)
+        rpc_org_integration = integration_service.get_organization_integration(
+            integration_id=target.integration_id,
+            organization_id=target.organization_id,
+        )
+
+        object.__setattr__(target, "integration", rpc_integration)
+        object.__setattr__(target, "organization_integration", rpc_org_integration)
+
+        return target
+
+    @patch("sentry.notifications.platform.discord.provider.validate_integration_for_target")
+    def test_validate_target_success(self, mock_validate_integration: Mock) -> None:
+        """Test successful validation with valid integration and channel"""
+        mock_validate_integration.return_value = None  # Integration validation passes
+
+        target = self._create_target()
+
+        # Should not raise any exceptions
+        DiscordNotificationProvider.validate_target(target=target)
+
+        mock_validate_integration.assert_called_once_with(target=target)
+
+    def test_validate_target_invalid_target_class(self) -> None:
+        """Test validation fails with wrong target class"""
+        target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.DISCORD,
+            resource_id="test@example.com",
+            resource_type=NotificationTargetResourceType.EMAIL,
+        )
+
+        with pytest.raises(NotificationProviderError, match="Target .* is not a valid dataclass"):
+            DiscordNotificationProvider.validate_target(target=target)
+
+    def test_validate_target_wrong_provider_key(self) -> None:
+        """Test validation fails with wrong provider key"""
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,  # Wrong provider
+            resource_id="987654321",
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        with pytest.raises(NotificationProviderError, match="Target intended for 'slack' provider"):
+            DiscordNotificationProvider.validate_target(target=target)
+
+    def test_validate_target_unsupported_resource_type(self) -> None:
+        """Test validation fails with unsupported resource type"""
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.DISCORD,
+            resource_id="test@example.com",
+            resource_type=NotificationTargetResourceType.EMAIL,  # Not supported by Discord
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        with pytest.raises(
+            NotificationProviderError, match="Target with resource type 'email' is not supported"
+        ):
+            DiscordNotificationProvider.validate_target(target=target)
+
+
+class DiscordNotificationProviderSendTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider=IntegrationProviderSlug.DISCORD,
+            organization=self.organization,
+            user=self.user,
+            name="test-discord",
+            metadata={"guild_id": "123456789", "guild_name": "Test Guild"},
+        )
+
+    def _create_target(self, resource_id: str = "987654321") -> IntegrationNotificationTarget:
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.DISCORD,
+            resource_id=resource_id,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        # Manually set the integration fields (prepare_targets is a stub)
+        rpc_integration = integration_service.get_integration(integration_id=target.integration_id)
+        rpc_org_integration = integration_service.get_organization_integration(
+            integration_id=target.integration_id,
+            organization_id=target.organization_id,
+        )
+
+        object.__setattr__(target, "integration", rpc_integration)
+        object.__setattr__(target, "organization_integration", rpc_org_integration)
+
+        return target
+
+    def _create_renderable(self) -> DiscordRenderable:
+        """Create a sample DiscordRenderable for testing"""
+        from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+        from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
+
+        embed = DiscordMessageEmbed(
+            title="Test Notification",
+            description="This is a test message",
+        )
+        builder = DiscordMessageBuilder(embeds=[embed])
+        return builder.build()
+
+    @patch("sentry.notifications.platform.discord.provider.DiscordClient")
+    def test_send_success(self, mock_discord_client: Mock) -> None:
+        """Test successful message sending"""
+        mock_client_instance = mock_discord_client.return_value
+        mock_client_instance.send_message.return_value = {"id": "1234567890123456789"}
+
+        target = self._create_target()
+        renderable = self._create_renderable()
+
+        DiscordNotificationProvider.send(target=target, renderable=renderable)
+
+        mock_client_instance.send_message.assert_called_once_with("987654321", renderable)
+
+    @patch("sentry.notifications.platform.discord.provider.DiscordClient")
+    def test_send_to_direct_message(self, mock_discord_client: Mock) -> None:
+        """Test sending message to direct message (user)"""
+        mock_client_instance = mock_discord_client.return_value
+        mock_client_instance.send_message.return_value = {"id": "1234567890123456789"}
+
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.DISCORD,
+            resource_id="123456789012345678",  # User ID format
+            resource_type=NotificationTargetResourceType.DIRECT_MESSAGE,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        # Manually set the integration fields (prepare_targets is a stub)
+        rpc_integration = integration_service.get_integration(integration_id=target.integration_id)
+        rpc_org_integration = integration_service.get_organization_integration(
+            integration_id=target.integration_id,
+            organization_id=target.organization_id,
+        )
+
+        object.__setattr__(target, "integration", rpc_integration)
+        object.__setattr__(target, "organization_integration", rpc_org_integration)
+
+        renderable = self._create_renderable()
+
+        DiscordNotificationProvider.send(target=target, renderable=renderable)
+
+        mock_client_instance.send_message.assert_called_once_with("123456789012345678", renderable)

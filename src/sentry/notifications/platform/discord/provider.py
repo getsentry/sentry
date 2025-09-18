@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from sentry.integrations.discord.client import DiscordClient
 from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -11,6 +12,7 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTargetResourceType,
 )
+from sentry.notifications.platform.utiils import validate_integration_for_target
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
 if TYPE_CHECKING:
@@ -95,5 +97,18 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         return False
 
     @classmethod
+    def validate_target(cls, *, target: NotificationTarget) -> None:
+        super().validate_target(target=target)
+
+        assert isinstance(
+            target, cls.target_class
+        ), "Target for DiscordNotificationProvider must be a IntegrationNotificationTarget"
+
+        # 1. Validate the integration exists
+        # 2. Validate the organization integration exists
+        validate_integration_for_target(target=target)
+
+    @classmethod
     def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
-        pass
+        client = DiscordClient()
+        client.send_message(target.resource_id, renderable)
