@@ -220,7 +220,6 @@ function ReleaseWidgetQueries({
   const mounted = useRef(false);
   const allProjects = useProjects();
   const api = useApi();
-  const [loading, setLoading] = useState(false);
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | undefined>(
     undefined
   );
@@ -228,7 +227,6 @@ function ReleaseWidgetQueries({
 
   const fetchReleases = useCallback(async () => {
     const {environments, projects} = selection;
-    setLoading(true);
     setRequestErrorMessage(undefined);
 
     try {
@@ -252,7 +250,6 @@ function ReleaseWidgetQueries({
         return;
       }
       setReleases(releaseResponse);
-      setLoading(false);
     } catch (error: any) {
       if (!mounted.current) {
         return;
@@ -262,7 +259,6 @@ function ReleaseWidgetQueries({
         ? error.responseJSON.error
         : t('Error sorting by releases');
       setRequestErrorMessage(message);
-      setLoading(false);
       addErrorMessage(message);
     }
   }, [api, dashboardFilters, organization.slug, selection]);
