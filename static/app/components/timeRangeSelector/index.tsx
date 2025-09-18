@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
@@ -451,7 +452,7 @@ export function TimeRangeSelector({
                     <FooterWrap>
                       <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
                       {showAbsoluteSelector && (
-                        <AbsoluteSelectorFooter>
+                        <Flex gap="md" justify="end">
                           {showRelative && (
                             <Button
                               size="xs"
@@ -473,7 +474,7 @@ export function TimeRangeSelector({
                           >
                             {t('Apply')}
                           </Button>
-                        </AbsoluteSelectorFooter>
+                        </Flex>
                       )}
                     </FooterWrap>
                   </Fragment>
@@ -518,12 +519,6 @@ const AbsoluteDateRangeWrap = styled('div')`
 const StyledDateRangeHook = styled(DateRangeHook)`
   border: none;
   width: max-content;
-`;
-
-const AbsoluteSelectorFooter = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-end;
 `;
 
 const FooterMessage = styled('p')`
