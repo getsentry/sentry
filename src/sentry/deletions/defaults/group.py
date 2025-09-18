@@ -222,9 +222,9 @@ def delete_project_group_hashes(project_id: int) -> None:
 
     error_groups, issue_platform_groups = separate_by_group_category(groups)
     error_group_ids = [group.id for group in error_groups]
-    issue_platform_group_ids = [group.id for group in issue_platform_groups]
-
     delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
+
+    issue_platform_group_ids = [group.id for group in issue_platform_groups]
     delete_group_hashes(project_id, issue_platform_group_ids)
 
 
