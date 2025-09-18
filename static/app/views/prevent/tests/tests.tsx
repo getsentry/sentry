@@ -11,12 +11,12 @@ import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector'
 import {TestSuiteDropdown} from 'sentry/components/prevent/testSuiteDropdown/testSuiteDropdown';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useInfiniteTestResults} from 'sentry/views/prevent/tests/queries/useGetTestResults';
+import type {UseInfiniteTestResultsResult} from 'sentry/views/prevent/tests/queries/useGetTestResults';
 import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {DEFAULT_SORT} from 'sentry/views/prevent/tests/settings';
 import {Summaries} from 'sentry/views/prevent/tests/summaries/summaries';
@@ -41,7 +41,11 @@ export function EmptySelectorsMessage() {
 export default function TestsPage() {
   const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
   const location = useLocation();
-  const defaultBranch = location.query?.defaultBranch;
+  const response = useInfiniteTestResults({
+    cursor: location.query?.cursor as string | undefined,
+    navigation: location.query?.navigation as 'next' | 'prev' | undefined,
+  });
+  const defaultBranch = response.data?.defaultBranch;
   const shouldDisplayTestSuiteDropdown = branch === null || branch === defaultBranch;
 
   const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
@@ -58,7 +62,11 @@ export default function TestsPage() {
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
       {shouldDisplayContent ? (
-        <Content integratedOrgId={integratedOrgId} repository={repository} />
+        <Content
+          integratedOrgId={integratedOrgId}
+          repository={repository}
+          response={response}
+        />
       ) : (
         <EmptySelectorsMessage />
       )}
@@ -74,9 +82,10 @@ const LayoutGap = styled('div')`
 interface TestResultsContentData {
   integratedOrgId: string;
   repository: string;
+  response: UseInfiniteTestResultsResult;
 }
 
-function Content({integratedOrgId, repository}: TestResultsContentData) {
+function Content({response, integratedOrgId, repository}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -93,11 +102,6 @@ function Content({integratedOrgId, repository}: TestResultsContentData) {
       navigate('/prevent/tests/new');
     }
   }, [repoData?.testAnalyticsEnabled, navigate, isSuccess]);
-
-  const response = useInfiniteTestResults({
-    cursor: location.query?.cursor as string | undefined,
-    navigation: location.query?.navigation as 'next' | 'prev' | undefined,
-  });
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -156,13 +160,13 @@ function Content({integratedOrgId, repository}: TestResultsContentData) {
 const MessageContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-items: center;
   align-items: center;
   text-align: center;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Subtitle = styled('div')`
@@ -175,12 +179,12 @@ const Title = styled('div')`
 `;
 
 const StyledIconSearch = styled(IconSearch)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const ControlsContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const StyledPagination = styled(Pagination)`

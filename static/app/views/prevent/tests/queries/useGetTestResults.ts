@@ -209,3 +209,5 @@ export function useInfiniteTestResults({
     ...rest,
   };
 }
+
+export type UseInfiniteTestResultsResult = ReturnType<typeof useInfiniteTestResults>;
