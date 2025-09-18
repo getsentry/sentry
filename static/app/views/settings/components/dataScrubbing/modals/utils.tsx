@@ -16,10 +16,10 @@ type StorageValue = {
 export function useSourceGroupData() {
   const [sourceGroupData, setSourceGroupData] = useLocalStorageState<StorageValue>(
     ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY,
-    () => ({
+    {
       eventId: '',
       sourceSuggestions: valueSuggestions,
-    })
+    }
   );
 
   const saveToSourceGroupData = (
