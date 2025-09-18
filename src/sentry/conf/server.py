@@ -1427,12 +1427,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},  # 1 minute
     },
-    "preprod-detect-expired-artifacts": {
-        "task": "sentry.preprod.tasks.detect_expired_preprod_artifacts",
-        # Run every 15 minutes to check for expired preprod artifacts
-        "schedule": crontab(minute="*/15"),
-        "options": {"expires": 15 * 60},
-    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.

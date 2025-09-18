@@ -672,22 +672,33 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             expired_uploading_artifact.error_code
             == PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_TIMEOUT
         )
-        assert "30 minutes" in expired_uploading_artifact.error_message
+        assert (
+            expired_uploading_artifact.error_message
+            and "30 minutes" in expired_uploading_artifact.error_message
+        )
 
         assert expired_uploaded_artifact.state == PreprodArtifact.ArtifactState.FAILED
         assert (
             expired_uploaded_artifact.error_code
             == PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_TIMEOUT
         )
-        assert "30 minutes" in expired_uploaded_artifact.error_message
+        assert (
+            expired_uploaded_artifact.error_message
+            and "30 minutes" in expired_uploaded_artifact.error_message
+        )
 
         assert expired_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
         assert expired_size_metric.error_code == PreprodArtifactSizeMetrics.ErrorCode.TIMEOUT
-        assert "30 minutes" in expired_size_metric.error_message
+        assert (
+            expired_size_metric.error_message and "30 minutes" in expired_size_metric.error_message
+        )
 
         assert expired_size_comparison.state == PreprodArtifactSizeComparison.State.FAILED
         assert expired_size_comparison.error_code == PreprodArtifactSizeComparison.ErrorCode.TIMEOUT
-        assert "30 minutes" in expired_size_comparison.error_message
+        assert (
+            expired_size_comparison.error_message
+            and "30 minutes" in expired_size_comparison.error_message
+        )
 
     def test_detect_expired_preprod_artifacts_mixed_states(self):
         """Test that only artifacts in the right states are considered for expiration"""
