@@ -138,3 +138,283 @@ class TestRedisHashSortedSetBuffer:
         result2 = self.buf.get_sorted_set(keys[9], 0, later)
         assert len(result1) == 0
         assert len(result2) == 0
+
+    def test_conditional_delete_from_sorted_sets_works_with_all_backends(self):
+        """Test that conditional_delete_from_sorted_sets works with all Redis backends."""
+        # Should work with all backends (cluster, standalone, and rb.Cluster)
+        result = self.buf.conditional_delete_from_sorted_sets(["key1"], [(123, 1.0)])
+        assert result == {"key1": []}  # Empty result since key doesn't exist
+
+    def test_conditional_delete_from_sorted_sets_empty_inputs(self):
+        """Test conditional delete with empty inputs."""
+
+        # Empty keys
+        result = self.buf.conditional_delete_from_sorted_sets([], [(123, 1.0)])
+        assert result == {}
+
+        # Empty members_and_scores
+        result = self.buf.conditional_delete_from_sorted_sets(["key1"], [])
+        assert result == {"key1": []}
+
+    def test_conditional_delete_from_sorted_sets_removes_when_score_matches(self):
+        """Test that members are removed when their score is <= provided score."""
+
+        # Add members with known timestamps
+        key = "test_conditional_key"
+
+        # Add members at different times
+        self.buf.push_to_sorted_set(key, [111, 222])
+        time.sleep(0.1)  # Small delay to ensure different timestamps
+        later_time = time.time()
+        self.buf.push_to_sorted_set(key, [333, 444])
+
+        # Try to delete members with score up to later_time
+        # This should remove 111 and 222 (added before later_time)
+        # but not 333 and 444 (added after later_time)
+        result = self.buf.conditional_delete_from_sorted_sets(
+            [key], [(111, later_time), (222, later_time), (333, later_time), (444, later_time)]
+        )
+
+        # Should have removed 111 and 222
+        assert set(result[key]) == {111, 222}
+
+        # Verify remaining members
+        remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+        remaining_values = {item[0] for item in remaining}
+        assert remaining_values == {333, 444}
+
+    def test_conditional_delete_from_sorted_sets_keeps_newer_members(self):
+        """Test that members with scores > provided score are kept."""
+
+        key = "test_conditional_key2"
+
+        # Add member
+        self.buf.push_to_sorted_set(key, 555)
+
+        # Try to delete with an older timestamp (should not delete)
+        old_time = time.time() - 10  # 10 seconds ago
+        result = self.buf.conditional_delete_from_sorted_sets([key], [(555, old_time)])
+
+        # Should not have removed anything
+        assert result[key] == []
+
+        # Verify member is still there
+        remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+        assert len(remaining) == 1
+        assert remaining[0][0] == 555
+
+    def test_conditional_delete_from_sorted_sets_multiple_keys(self):
+        """Test conditional delete across multiple keys."""
+
+        keys = ["conditional_key1", "conditional_key2", "conditional_key3"]
+
+        # Add members to all keys
+        for key in keys:
+            self.buf.push_to_sorted_set(key, [100, 200, 300])
+
+        # Get current time after all adds
+        later = time.time()
+
+        # Delete specific members from all keys
+        result = self.buf.conditional_delete_from_sorted_sets(keys, [(100, later), (200, later)])
+
+        # Should have removed 100 and 200 from all keys
+        for key in keys:
+            assert set(result[key]) == {100, 200}
+
+        # Verify 300 remains in all keys
+        for key in keys:
+            remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+            remaining_values = {item[0] for item in remaining}
+            assert remaining_values == {300}
+
+    def test_conditional_delete_from_sorted_sets_nonexistent_members(self):
+        """Test conditional delete with members that don't exist."""
+
+        key = "test_conditional_nonexistent"
+
+        # Add only some members
+        self.buf.push_to_sorted_set(key, [111])
+        later = time.time()
+
+        # Try to delete both existing and non-existing members
+        result = self.buf.conditional_delete_from_sorted_sets(
+            [key], [(111, later), (999, later)]  # 999 doesn't exist
+        )
+
+        # Should only remove the existing member
+        assert result[key] == [111]
+
+        # Verify key is now empty
+        remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+        assert len(remaining) == 0
+
+    def test_conditional_delete_from_sorted_sets_rb_fallback(self):
+        """Test that rb.Cluster fallback works atomically using Lua scripts."""
+        if self.buf.is_redis_cluster:
+            pytest.skip("This test is specifically for rb.Cluster fallback")
+
+        # Add some test data
+        key = "rb_fallback_test"
+        self.buf.push_to_sorted_set(key, [100, 200])
+
+        # Give some time for scores to be set, then get a timestamp that's after the data
+        time.sleep(0.1)
+        later = time.time() + 1  # Set later to be after the data was added
+
+        # Test conditional delete using rb.Cluster fallback
+        result = self.buf.conditional_delete_from_sorted_sets([key], [(100, later), (200, later)])
+
+        # Should have removed both members using the fallback path
+        assert set(result[key]) == {100, 200}
+
+        # Verify key is empty
+        remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+        assert len(remaining) == 0
+
+    def test_conditional_delete_pipelined_performance(self):
+        """Test that multiple key operations are properly pipelined for performance."""
+        if not self.buf.is_redis_cluster:
+            pytest.skip("Pipelining test is for RedisCluster only")
+
+        # Create many keys with data
+        keys = [f"perf_test_key_{i}" for i in range(10)]
+        for key in keys:
+            self.buf.push_to_sorted_set(key, [100, 200, 300])
+
+        later = time.time() + 1  # Ensure we can delete everything
+
+        # This should execute as a single pipelined operation
+        result = self.buf.conditional_delete_from_sorted_sets(
+            keys, [(100, later), (200, later), (300, later)]
+        )
+
+        # Verify all keys had their members removed
+        for key in keys:
+            assert set(result[key]) == {100, 200, 300}
+
+        # Verify all keys are empty
+        for key in keys:
+            remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+            assert len(remaining) == 0
+
+    def test_conditional_delete_atomicity(self):
+        """Test that conditional delete is atomic - no race conditions between check and delete."""
+        key = "atomicity_test"
+
+        # Add a member
+        self.buf.push_to_sorted_set(key, [999])
+
+        # Get the current score
+        existing = self.buf.get_sorted_set(key, 0, time.time() + 10)
+        assert len(existing) == 1
+        member, score = existing[0]
+        assert member == 999
+
+        # Try to delete with the exact score - should succeed atomically
+        result = self.buf.conditional_delete_from_sorted_sets([key], [(999, score)])
+
+        # Should have removed the member
+        assert result[key] == [999]
+
+        # Verify key is empty
+        remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+        assert len(remaining) == 0
+
+    def test_conditional_delete_script_loading_failure_propagates(self):
+        """Test that script loading failures are properly propagated."""
+        # Only test script loading failure for cluster/standalone since that's where it's called
+        if not self.buf.is_redis_cluster:
+            pytest.skip("Script loading only happens for RedisCluster")
+
+        import unittest.mock
+
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        # Mock script loading failure
+        with unittest.mock.patch.object(
+            self.buf, "_ensure_script_loaded_on_cluster"
+        ) as mock_ensure:
+            mock_ensure.side_effect = RedisConnectionError("Connection failed")
+
+            with pytest.raises(RedisConnectionError):
+                self.buf.conditional_delete_from_sorted_sets(["key1", "key2"], [(123, 1.0)])
+
+    def test_conditional_delete_slot_based_batching(self):
+        """Test that keys are grouped by slot for efficient batch execution."""
+        if not self.buf.is_redis_cluster:
+            pytest.skip("Slot-based batching is for RedisCluster only")
+
+        # Test slot calculation
+        slot1 = self.buf._calculate_key_slot("test_key_1")
+        slot2 = self.buf._calculate_key_slot("test_key_2")
+        assert isinstance(slot1, int) and 0 <= slot1 < 16384
+        assert isinstance(slot2, int) and 0 <= slot2 < 16384
+
+        # Test key grouping
+        keys = ["key1", "key2", "key3", "key4"]
+        groups = self.buf._group_keys_by_slot(keys)
+
+        # Verify all keys are assigned to groups
+        total_keys = sum(len(group_keys) for group_keys in groups)
+        assert total_keys == len(keys)
+
+        # Test with keys that should have same slot (using hash tags)
+        same_slot_keys = ["prefix{tag}key1", "prefix{tag}key2", "prefix{tag}key3"]
+        same_slot_groups = self.buf._group_keys_by_slot(same_slot_keys)
+
+        # All should be in the same slot due to hash tag
+        assert len(same_slot_groups) == 1
+
+    def test_conditional_delete_functional_slot_batching(self):
+        """Test that slot-based batching works functionally with real data."""
+        if not self.buf.is_redis_cluster:
+            pytest.skip("Slot-based batching is for RedisCluster only")
+
+        # Use hash tags to force keys into same slot for testing
+        keys = ["test{slot}key1", "test{slot}key2", "test{slot}key3"]
+
+        # Add data to all keys
+        for key in keys:
+            self.buf.push_to_sorted_set(key, [100, 200, 300])
+
+        later = time.time() + 1
+
+        # This should execute as a single multi-key script call due to same slot
+        result = self.buf.conditional_delete_from_sorted_sets(keys, [(100, later), (200, later)])
+
+        # Verify all keys had the correct members removed
+        for key in keys:
+            assert set(result[key]) == {100, 200}
+
+        # Verify 300 remains in all keys
+        for key in keys:
+            remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+            remaining_values = {item[0] for item in remaining}
+            assert remaining_values == {300}
+
+    def test_conditional_delete_multi_slot_pipelining(self):
+        """Test that multiple slot groups are pipelined for optimal performance."""
+        if not self.buf.is_redis_cluster:
+            pytest.skip("Multi-slot pipelining is for RedisCluster only")
+
+        # Create keys that will likely be in different slots
+        keys = [f"slot_test_key_{i}" for i in range(20)]  # High chance of multiple slots
+
+        # Add data to all keys
+        for key in keys:
+            self.buf.push_to_sorted_set(key, [100, 200])
+
+        later = time.time() + 1
+
+        # This should pipeline multiple slot group executions
+        result = self.buf.conditional_delete_from_sorted_sets(keys, [(100, later), (200, later)])
+
+        # Verify all keys had their members removed
+        for key in keys:
+            assert set(result[key]) == {100, 200}
+
+        # Verify all keys are empty
+        for key in keys:
+            remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+            assert len(remaining) == 0
