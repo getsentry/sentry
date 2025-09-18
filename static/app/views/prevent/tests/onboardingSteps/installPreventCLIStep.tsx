@@ -7,7 +7,6 @@ import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface InstallPreventCLIStepProps {
@@ -17,15 +16,14 @@ interface InstallPreventCLIStepProps {
 type Method = 'pip' | 'binary';
 
 const PLATFORMS = {
-  macOS: {label: 'MacOS', value: 'macOS'},
-  'windows.exe': {label: 'Windows', value: 'windows'},
+  macOS: {label: 'MacOS', value: 'macos'},
+  windows: {label: 'Windows', value: 'windows.exe'},
   linux_x86_64: {label: 'Linux x86_64', value: 'linux_x86_64'},
   linux_arm64: {label: 'Linux Arm64', value: 'linux_arm64'},
   alpine_arm64: {label: 'Alpine Linux Arm64', value: 'alpine_arm64'},
   alpine_x86_64: {label: 'Alpine Linux x86_64', value: 'alpine_x86_64'},
 } as const;
 type Platform = keyof typeof PLATFORMS;
-
 const PLATFORM_OPTIONS = Object.values(PLATFORMS);
 
 const PIP_SNIPPET = `pip install sentry-prevent-cli
@@ -109,16 +107,16 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
 
 const StyledSelectControl = styled(Select)`
   width: 200px;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const Paragraph = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const BottomParagraph = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const CLILink = (
