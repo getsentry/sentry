@@ -28,7 +28,7 @@ describe('UptimeAlertDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?limit=1&project=2&query=issue.type%3Auptime_domain_failure%20title%3A%22Downtime%20detected%20for%20https%3A%2F%2Fexample.com%22`,
+      url: `/organizations/org-slug/issues/?limit=1&project=2&query=detector%3A3`,
       body: [],
     });
     MockApiClient.addMockResponse({
