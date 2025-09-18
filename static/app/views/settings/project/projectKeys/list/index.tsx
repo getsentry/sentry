@@ -56,7 +56,7 @@ function ProjectKeys({project}: Props) {
       {
         query: {
           cursor: decodeScalar(location.query.cursor),
-          per_page: 100,
+          per_page: 5,
         },
       },
     ],
