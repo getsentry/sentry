@@ -25,6 +25,12 @@ const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
 const INCIDENT_MARKER_AREA_SERIES_ID = '__incident_marker_area__';
 const INCIDENT_MARKER_HEIGHT = 6;
 
+// Default X-axis configuration (when incidents are hidden)
+const DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG = {
+  axisLine: {onZero: true},
+  offset: 0,
+};
+
 /**
  * Represents a generic incident/event time period
  */
@@ -71,11 +77,11 @@ interface IncidentMarkerSeriesProps {
 function IncidentMarkerSeries({
   incidentPeriods,
   theme,
-  markLineTooltip,
   seriesId,
   seriesName,
-  seriesTooltip,
   yAxisIndex,
+  seriesTooltip,
+  markLineTooltip,
 }: IncidentMarkerSeriesProps): CustomSeriesOption | null {
   if (!incidentPeriods.length) {
     return null;
@@ -120,12 +126,11 @@ function IncidentMarkerSeries({
 
     const shape = {
       // Position the rectangle in the space created by the grid/xAxis offset
-      x: incidentStartX + renderMarkerPadding / 2,
+      x: incidentStartX + renderMarkerPadding / 2 - 1,
       y: incidentStartY + renderMarkerPadding - 1,
       width: width - renderMarkerPadding,
       height: INCIDENT_MARKER_HEIGHT,
-      // Border radius
-      r: 4,
+      r: 2,
     };
 
     return {
@@ -139,33 +144,32 @@ function IncidentMarkerSeries({
     };
   };
 
-  // Create mark lines for the start of each incident period.
-  // If a period provides a custom tooltip, attach it to that specific mark line item.
+  // Create mark lines for the start of each incident period
   const markLineData: MarkLineComponentOption['data'] = incidentPeriods.map(period => {
-    const baseItem = {
+    return {
       xAxis: period.start,
       lineStyle: {
         color: period.color ?? theme.gray400,
-        type: 'solid' as const,
+        type: 'solid',
         width: 1,
-        opacity: 0.25,
+        opacity: 1,
       },
       label: {
         show: false,
       },
+      tooltip: {
+        trigger: 'item',
+        position: 'bottom',
+        formatter: markLineTooltip
+          ? (p: TooltipComponentFormatterCallbackParams) => {
+              const datum = (Array.isArray(p) ? p[0]?.data : p.data) as
+                | IncidentPeriod
+                | undefined;
+              return datum ? markLineTooltip({theme, period: datum}) : '';
+            }
+          : undefined,
+      },
     };
-
-    if (markLineTooltip) {
-      return {
-        ...baseItem,
-        tooltip: {
-          trigger: 'item',
-          position: 'bottom',
-        },
-      } as unknown as NonNullable<MarkLineComponentOption['data']>[number];
-    }
-
-    return baseItem as unknown as NonNullable<MarkLineComponentOption['data']>[number];
   });
 
   return {
@@ -242,15 +246,6 @@ export function useIncidentMarkers({
   const markerPadding = 2;
   const totalMarkerPaddingY = markerPadding * 2; // 2px padding on top and bottom
 
-  // Default X-axis configuration (when incidents are hidden)
-  const defaultMarkerXAxis = useMemo(
-    () => ({
-      axisLine: {onZero: true},
-      offset: 0,
-    }),
-    []
-  );
-
   // X-axis configuration for when incidents are shown (moves axis down to make space)
   const incidentMarkerXAxis = useMemo(
     () => ({
@@ -300,7 +295,11 @@ export function useIncidentMarkers({
       const echartsInstance = ref?.getEchartsInstance?.();
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
-        if (params.seriesId !== seriesId || !echartsInstance) {
+        if (
+          params.seriesId !== seriesId ||
+          !echartsInstance ||
+          params.componentType !== 'series'
+        ) {
           return;
         }
 
@@ -334,7 +333,11 @@ export function useIncidentMarkers({
       };
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
-        if (params.seriesId !== seriesId || !echartsInstance) {
+        if (
+          params.seriesId !== seriesId ||
+          !echartsInstance ||
+          params.componentType !== 'series'
+        ) {
           return;
         }
 
@@ -398,6 +401,6 @@ export function useIncidentMarkers({
     incidentMarkerGrid,
     incidentMarkerXAxis: incidentPeriods.length
       ? incidentMarkerXAxis
-      : defaultMarkerXAxis,
+      : DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG,
   };
 }
