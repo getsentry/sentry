@@ -94,11 +94,11 @@ A "score" is a positive integer value from 0 to 100. Scores are a synthetic meas
 
 A "rate" is a measurement of a number over time. Throughput measurements like "spans per minute" are a "rate". Rates use one of three multiplier units (per second, per minute, per hour), but they are not chosen automatically based on the quantity. Rate units must be chosen based on what is semantically valid. For example, the metric `epm()` is "events per minute", therefore it must _always_ be represented using the "per minute" unit. Rates also have a minimum. Any value below 0.0001 are shown as "&lt;0.01"
 
-| Representation | Common Value    | Large Value           | Small Value       | Zero       |
-| -------------- | --------------- | --------------------- | ----------------- | ---------- | --- |
-| Full           | 12.1 per minute | 12,000,123 per minute | 0.000213 per hour | 0/m        |
-| Regular        | 12.1/min        | 724 KiB               | 12,000,123/min    | &lt;0.01/h | 0/m |
-| Dense          | 12.1/min        | 12,000,123/min        | &lt;0.01/h        | 0/m        |
+| Representation | Common Value    | Large Value           | Small Value       | Zero         |
+| -------------- | --------------- | --------------------- | ----------------- | ------------ |
+| Full           | 12.1 per minute | 12,000,123 per minute | 0.000213 per hour | 0 per minute |
+| Regular        | 12.1/min        | 12,000,123/min        | &lt;0.01/h        | 0/m          |
+| Dense          | 12.1/min        | 12,000,123/min        | &lt;0.01/h        | 0/m          |
 
 - the number part of the display follows the same formatting rules as the "number" type
 - the number part is always rounded to two significant figures
