@@ -5,6 +5,7 @@ from sentry.integrations.services.integration.model import (
     RpcIntegration,
     RpcOrganizationIntegration,
 )
+from sentry.integrations.services.integration.service import integration_service
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTarget,
@@ -14,6 +15,13 @@ from sentry.notifications.platform.types import (
 
 class NotificationTargetError(Exception):
     pass
+
+
+INTEGRATION_PROVIDER_KEYS = [
+    NotificationProviderKey.SLACK,
+    NotificationProviderKey.DISCORD,
+    NotificationProviderKey.MSTEAMS,
+]
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -66,4 +74,24 @@ def prepare_targets(targets: list[NotificationTarget]) -> None:
     `organization_integration` fields by making RPC/DB calls.
     """
     for target in targets:
+        if target.provider_key in INTEGRATION_PROVIDER_KEYS:
+            assert isinstance(
+                target, IntegrationNotificationTarget
+            ), "Target for integration providers must be an IntegrationNotificationTarget"
+            prepare_integration_target(target)
+
         object.__setattr__(target, "is_prepared", True)
+
+
+def prepare_integration_target(target: IntegrationNotificationTarget) -> None:
+    """
+    This method is used to prepare the integration target by populating the `integration` and
+    `organization_integration` fields.
+    """
+    integration = integration_service.get_integration(integration_id=target.integration_id)
+    organization_integration = integration_service.get_organization_integration(
+        integration_id=target.integration_id,
+        organization_id=target.organization_id,
+    )
+    object.__setattr__(target, "integration", integration)
+    object.__setattr__(target, "organization_integration", organization_integration)
