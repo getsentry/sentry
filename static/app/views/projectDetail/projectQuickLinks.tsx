@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconLink} from 'sentry/icons';
@@ -89,10 +90,10 @@ function ProjectQuickLinks({organization, project}: Props) {
             >
               <QuickLink to={to} disabled={disabled}>
                 <IconLink />
-                <QuickLinkTextContainer>
+                <Flex align="center" gap="xs">
                   <QuickLinkText>{title}</QuickLinkText>
                   {showNewBadge && <FeatureBadge type="new" />}
-                </QuickLinkTextContainer>
+                </Flex>
               </QuickLink>
             </Tooltip>
           </div>
@@ -122,12 +123,6 @@ const QuickLink = styled((p: any) =>
       color: ${p.theme.gray200};
       cursor: not-allowed;
     `}
-`;
-
-const QuickLinkTextContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const QuickLinkText = styled('span')`
