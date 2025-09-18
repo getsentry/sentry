@@ -60,7 +60,7 @@ function SettingsPanel({isOpen, onClose}: {isOpen: boolean; onClose: () => void}
     {
       value: 3,
       label: 'Critical',
-      details: 'Post only critical, high-confidence issues.',
+      details: 'Post only high-impact, high-sensitivity issues for maximum focus.',
     },
   ];
 
