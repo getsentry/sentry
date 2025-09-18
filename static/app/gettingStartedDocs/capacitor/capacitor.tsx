@@ -1,7 +1,7 @@
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   ContentBlock,
   Docs,
@@ -147,7 +147,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      content: getContentBlocksSetupConfiguration({params, showExtraStep: true}),
+      content: getSetupConfiguration({params, showExtraStep: true}),
     },
     getUploadSourceMapsStep({
       guideLink:
@@ -289,7 +289,7 @@ const getStaticParts = (params: Params): string[] => {
   return staticParts;
 };
 
-function getContentBlocksSetupConfiguration({
+function getSetupConfiguration({
   params,
   showExtraStep,
   showDescription,
@@ -371,79 +371,6 @@ export class AppModule {}`,
   return configuration;
 }
 
-// TODO: Remove this function once content blocks support codeHeader
-function getSetupConfiguration({
-  params,
-  showExtraStep,
-  showDescription,
-}: {
-  params: Params;
-  showExtraStep: boolean;
-  showDescription?: boolean;
-}) {
-  const siblingOption = params.platformOptions.siblingOption;
-
-  const config = buildSdkConfig({
-    params,
-    staticParts: getStaticParts(params),
-    getIntegrations,
-    getDynamicParts,
-  });
-
-  const configuration = [
-    {
-      description: showDescription
-        ? tct(
-            `You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]:`,
-            {
-              siblingName: getSiblingName(siblingOption),
-              code: <code />,
-            }
-          )
-        : null,
-      language: 'javascript',
-      code: `${getSiblingImportsSetupConfiguration(siblingOption)}
-          import * as Sentry from '@sentry/capacitor';
-          import * as ${getSiblingImportName(siblingOption)} from '${getNpmPackage(
-            siblingOption
-          )}';
-          ${getVueConstSetup(siblingOption)}
-          Sentry.init({
-            ${config}
-},
-// Forward the init method from ${getNpmPackage(params.platformOptions.siblingOption)}
-${getSiblingImportName(siblingOption)}.init
-);`,
-    },
-  ];
-  if (isAngular(siblingOption) && showExtraStep) {
-    configuration.push({
-      description: tct(
-        "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler.",
-        {}
-      ),
-      language: 'javascript',
-      code: `
-import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
-import { Router } from "@angular/router";
-import * as SentryAngular from "${getNpmPackage(siblingOption)}";
-
-@NgModule({
-// ...
-providers: [
-{
-  provide: ErrorHandler,
-  useValue: SentryAngular.createErrorHandler(),
-}${params.isPerformanceSelected ? performanceAngularErrorHandler : ' '}
-],
-// ...
-})
-export class AppModule {}`,
-    });
-  }
-  return configuration;
-}
-
 function getNpmPackage(siblingOption: string): string {
   const packages: Record<SiblingOption, string> = {
     [SiblingOption.ANGULARV10]: '@sentry/angular',
@@ -491,15 +418,20 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
-      }),
-      configurations: getSetupConfiguration({
-        params,
-        showExtraStep: false,
-        showDescription: false,
-      }),
-      additionalInfo: <TracePropagationMessage />,
+      content: [
+        {
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
+          }),
+        },
+        ...getSetupConfiguration({
+          params,
+          showExtraStep: false,
+          showDescription: false,
+        }),
+        tracePropagationBlock,
+      ],
     },
   ],
   verify: getReplayVerifyStep(),
@@ -511,20 +443,28 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getFeedbackConfigureDescription({
-        linkConfig:
-          'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/',
-        linkButton:
-          'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#bring-your-own-button',
-      }),
-      configurations: getSetupConfiguration({
-        params,
-        showExtraStep: false,
-        showDescription: false,
-      }),
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getFeedbackConfigureDescription({
+            linkConfig:
+              'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/',
+            linkButton:
+              'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#bring-your-own-button',
+          }),
+        },
+        ...getSetupConfiguration({
+          params,
+          showExtraStep: false,
+          showDescription: false,
+        }),
+        {
+          type: 'text',
+          text: crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
@@ -544,12 +484,9 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
             link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#crash-report-modal',
           }),
         },
-        {
-          type: 'custom',
-          content: widgetCallout({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#user-feedback-widget',
-          }),
-        },
+        widgetCalloutBlock({
+          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#user-feedback-widget',
+        }),
       ],
     },
   ],
