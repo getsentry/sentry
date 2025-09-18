@@ -219,6 +219,13 @@ function ReleaseWidgetQueries({
   );
   const [releases, setReleases] = useState<Release[] | undefined>(undefined);
 
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const fetchReleases = useCallback(async () => {
     const {environments, projects} = selection;
     setRequestErrorMessage(undefined);
@@ -258,14 +265,9 @@ function ReleaseWidgetQueries({
   }, [api, dashboardFilters, organization.slug, selection]);
 
   useEffect(() => {
-    mounted.current = true;
     if (widget.queries[0] && requiresCustomReleaseSorting(widget.queries[0])) {
       fetchReleases();
     }
-
-    return () => {
-      mounted.current = false;
-    };
   }, [widget.queries, fetchReleases]);
 
   const transformWidget = useCallback(
