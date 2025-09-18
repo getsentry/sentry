@@ -257,14 +257,12 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         recovery_threshold = (
             data["recovery_threshold"]
             if "recovery_threshold" in data
-            # TODO: Remove DEFAULT_RECOVERY_THRESHOLD fallback after backfill migration ensures all configs have this value
-            else instance.config.get("recovery_threshold", DEFAULT_RECOVERY_THRESHOLD)
+            else instance.config["recovery_threshold"]
         )
         downtime_threshold = (
             data["downtime_threshold"]
             if "downtime_threshold" in data
-            # TODO: Remove DEFAULT_DOWNTIME_THRESHOLD fallback after backfill migration ensures all configs have this value
-            else instance.config.get("downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD)
+            else instance.config["downtime_threshold"]
         )
 
         if "environment" in data:
