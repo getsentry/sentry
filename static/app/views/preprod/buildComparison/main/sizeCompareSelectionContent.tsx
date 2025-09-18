@@ -21,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
+  isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
@@ -147,8 +148,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const commitHash = build.vcs_info?.head_sha?.substring(0, 7);
   const branchName = build.vcs_info?.head_ref;
   const dateAdded = build.app_info?.date_added;
-  const downloadSize = build.size_info?.download_size_bytes;
-  const installSize = build.size_info?.install_size_bytes;
+  const sizeInfo = build.size_info;
 
   return (
     <BuildItemContainer
@@ -182,16 +182,16 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
               <TimeSince date={dateAdded} />
             </Flex>
           )}
-          {downloadSize && (
+          {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconDownload size="xs" color="gray300" />
-              <Text>{formatBytesBase10(downloadSize)}</Text>
+              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
             </Flex>
           )}
-          {installSize && (
+          {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconCode size="xs" color="gray300" />
-              <Text>{formatBytesBase10(installSize)}</Text>
+              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
             </Flex>
           )}
         </Flex>
