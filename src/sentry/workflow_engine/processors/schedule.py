@@ -106,7 +106,36 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         for project_id in project_ids:
             process_in_batches(buffer_client.for_project(project_id))
 
-        buffer_client.clear_project_ids(
-            min=0,
-            max=fetch_time,
-        )
+        if options.get("workflow_engine.scheduler.use_conditional_delete"):
+            member_maxes = [
+                (project_id, max(timestamps))
+                for project_id, timestamps in all_project_ids_and_timestamps.items()
+            ]
+            try:
+                with metrics.timer("workflow_engine.conditional_delete_from_sorted_sets.duration"):
+                    deleted = buffer.conditional_delete_from_sorted_sets(buffer_keys, member_maxes)
+
+                deleted_project_ids = set().union(*deleted.values())
+                logger.info(
+                    "process_buffered_workflows.project_ids_deleted",
+                    extra={
+                        "deleted_project_ids": sorted(deleted_project_ids),
+                        "processed_project_ids": sorted(project_ids),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "process_buffered_workflows.conditional_delete_from_sorted_sets_error"
+                )
+                # Fallback.
+                buffer.delete_keys(
+                    buffer_keys,
+                    min=0,
+                    max=fetch_time,
+                )
+        else:
+            buffer.delete_keys(
+                buffer_keys,
+                min=0,
+                max=fetch_time,
+            )
