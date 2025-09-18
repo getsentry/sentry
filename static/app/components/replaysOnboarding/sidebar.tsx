@@ -443,7 +443,7 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const HeaderActions = styled(props => (
-  <Flex direction="row" justify="between" gap="2xl" {...props} />
+  <Flex direction="row" justify="between" gap="2xl">{props.children}</Flex>
 ))``;
 
 const PlatformLabel = styled(props => <Flex gap="md" align="center" {...props} />)``;
