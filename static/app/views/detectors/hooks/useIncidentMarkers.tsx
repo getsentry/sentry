@@ -56,39 +56,32 @@ export interface IncidentPeriod {
   hoverColor?: string;
 }
 
-function incidentTooltipFormatter(params: TooltipComponentFormatterCallbackParams) {
-  const data = (Array.isArray(params) ? params[0]?.data : params.data) as
-    | IncidentPeriod
-    | undefined;
-
-  if (!data) {
-    return '';
-  }
-
-  const startTime = getFormattedDate(
-    data.start,
-    getFormat({timeZone: false, year: false}),
+export function formatTimestamp(
+  ts: number,
+  opts?: {timeZone?: boolean; year?: boolean}
+): string {
+  return getFormattedDate(
+    ts,
+    getFormat({timeZone: opts?.timeZone ?? true, year: opts?.year ?? false}),
     {local: true}
   );
-
-  const endTime = getFormattedDate(data.end, getFormat({timeZone: true, year: false}), {
-    local: true,
-  });
-
-  return [
-    '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>${data.name}</strong></span></div>`,
-    '</div>',
-    `<div class="tooltip-footer">${startTime} — ${endTime}</div>`,
-    '<div class="tooltip-arrow arrow-top"></div>',
-  ].join('');
 }
 
 interface IncidentMarkerSeriesProps {
   incidentPeriods: IncidentPeriod[];
   theme: Theme;
+  markLineTooltip?: (context: {
+    format: (ts: number, opts?: {timeZone?: boolean; year?: boolean}) => string;
+    period: IncidentPeriod;
+    theme: Theme;
+  }) => string;
   seriesId?: string;
   seriesName?: string;
+  seriesTooltip?: (context: {
+    format: (ts: number, opts?: {timeZone?: boolean; year?: boolean}) => string;
+    period: IncidentPeriod;
+    theme: Theme;
+  }) => string;
   yAxisIndex?: number;
 }
 
@@ -98,9 +91,11 @@ interface IncidentMarkerSeriesProps {
 function IncidentMarkerSeries({
   incidentPeriods,
   theme,
-  yAxisIndex,
-  seriesName,
+  markLineTooltip,
   seriesId,
+  seriesName,
+  seriesTooltip,
+  yAxisIndex,
 }: IncidentMarkerSeriesProps): CustomSeriesOption | null {
   if (!incidentPeriods.length) {
     return null;
@@ -164,35 +159,34 @@ function IncidentMarkerSeries({
     };
   };
 
-  // Create mark lines for start and end of each incident period
-  const markLineData: MarkLineComponentOption['data'] = incidentPeriods.flatMap(
-    period => [
-      {
-        xAxis: period.start,
-        lineStyle: {
-          color: theme.gray400,
-          type: 'solid',
-          width: 1,
-          opacity: 0.25,
-        },
-        label: {
-          show: false,
-        },
+  // Create mark lines for the start of each incident period.
+  // If a period provides a custom tooltip, attach it to that specific mark line item.
+  const markLineData: MarkLineComponentOption['data'] = incidentPeriods.map(period => {
+    const baseItem = {
+      xAxis: period.start,
+      lineStyle: {
+        color: period.color ?? theme.gray400,
+        type: 'solid' as const,
+        width: 1,
+        opacity: 0.25,
       },
-      {
-        xAxis: period.end,
-        lineStyle: {
-          color: theme.gray400,
-          type: 'solid',
-          width: 1,
-          opacity: 0.25,
-        },
-        label: {
-          show: false,
-        },
+      label: {
+        show: false,
       },
-    ]
-  );
+    };
+
+    if (markLineTooltip) {
+      return {
+        ...baseItem,
+        tooltip: {
+          trigger: 'item',
+          position: 'bottom',
+        },
+      } as unknown as NonNullable<MarkLineComponentOption['data']>[number];
+    }
+
+    return baseItem as unknown as NonNullable<MarkLineComponentOption['data']>[number];
+  });
 
   return {
     id: seriesId ?? INCIDENT_MARKER_SERIES_ID,
@@ -204,22 +198,39 @@ function IncidentMarkerSeries({
     color: theme.red300,
     animation: false,
     markLine: MarkLine({
-      silent: true,
+      silent: false,
       animation: false,
       data: markLineData,
     }),
-    tooltip: {
-      trigger: 'item',
-      position: 'bottom',
-      formatter: incidentTooltipFormatter,
-    },
+    tooltip: seriesTooltip
+      ? {
+          trigger: 'item',
+          position: 'bottom',
+          formatter: (p: TooltipComponentFormatterCallbackParams) => {
+            const datum = (Array.isArray(p) ? p[0]?.data : p.data) as
+              | IncidentPeriod
+              | undefined;
+            return datum
+              ? seriesTooltip({theme, period: datum, format: formatTimestamp})
+              : '';
+          },
+        }
+      : undefined,
   };
 }
 
 interface UseIncidentMarkersProps {
   incidents: IncidentPeriod[];
   seriesName: string;
+  /**
+   * Provide a custom tooltip for the mark line items
+   */
+  markLineTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
   seriesId?: string;
+  /**
+   * Provide a custom tooltip for the series
+   */
+  seriesTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
   yAxisIndex?: number;
 }
 
@@ -239,9 +250,11 @@ interface UseIncidentMarkersResult {
  */
 export function useIncidentMarkers({
   incidents,
-  seriesName,
-  yAxisIndex = 0,
   seriesId = INCIDENT_MARKER_SERIES_ID,
+  seriesName,
+  seriesTooltip,
+  markLineTooltip,
+  yAxisIndex = 0,
 }: UseIncidentMarkersProps): UseIncidentMarkersResult {
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef | null>(null);
@@ -387,8 +400,18 @@ export function useIncidentMarkers({
       yAxisIndex,
       seriesName,
       seriesId,
+      seriesTooltip,
+      markLineTooltip,
     });
-  }, [incidentPeriods, theme, yAxisIndex, seriesName, seriesId]);
+  }, [
+    incidentPeriods,
+    theme,
+    yAxisIndex,
+    seriesName,
+    seriesId,
+    seriesTooltip,
+    markLineTooltip,
+  ]);
 
   return {
     connectIncidentMarkerChartRef,

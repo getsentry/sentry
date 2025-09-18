@@ -1,8 +1,10 @@
 import {useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/core/layout';
@@ -15,11 +17,54 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useDetectorDateParams} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
-import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {
+  useIncidentMarkers,
+  type IncidentPeriod,
+} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+
+interface IncidentTooltipContext {
+  period: IncidentPeriod;
+  theme: Theme;
+}
+
+function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
+  const startTime = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
+  const endTime = ctx.period.end
+    ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
+    : '-';
+  const footerStart = startTime;
+  const footerEnd = endTime;
+  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${ctx.theme.red400};margin-right:6px;vertical-align:middle;"></span>`;
+  return [
+    '<div class="tooltip-series">',
+    `<div><span class="tooltip-label"><strong>#ID_MISSING</strong></span></div>`,
+    `<div><span class="tooltip-label">${t('Started')}</span> ${startTime}</div>`,
+    `<div><span class="tooltip-label">${t('Ended')}</span> ${endTime}</div>`,
+    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${t('Critical')}</div>`,
+    '</div>',
+    `<div class="tooltip-footer">${footerStart} — ${footerEnd}</div>`,
+    '<div class="tooltip-arrow arrow-top"></div>',
+  ].join('');
+}
+
+function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
+  const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
+  const footerStart = time;
+  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${ctx.theme.red400};margin-right:6px;vertical-align:middle;"></span>`;
+  return [
+    '<div class="tooltip-series">',
+    `<div><span class="tooltip-label"><strong>${t('Triggered')}</strong></span></div>`,
+    `<div><span class="tooltip-label">${t('Time')}</span> ${time}</div>`,
+    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${t('Critical')}</div>`,
+    '</div>',
+    `<div class="tooltip-footer">${footerStart}</div>`,
+    '<div class="tooltip-arrow arrow-top"></div>',
+  ].join('');
+}
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
@@ -83,7 +128,7 @@ function MetricDetectorChart({
   const incidentPeriods = useMemo(() => {
     const endDate = end ? new Date(end).getTime() : Date.now();
 
-    return openPeriods.map(period => ({
+    return openPeriods.map<IncidentPeriod>(period => ({
       ...period,
       // TODO: When open periods return a priority, use that to determine the color
       color: 'red',
@@ -99,6 +144,8 @@ function MetricDetectorChart({
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
+    seriesTooltip: incidentSeriesTooltip,
+    markLineTooltip: incidentMarklineTooltip,
   });
 
   const chartZoomProps = useChartZoom({
