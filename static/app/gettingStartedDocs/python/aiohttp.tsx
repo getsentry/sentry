@@ -87,10 +87,12 @@ const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        ...[...getPythonInstallConfig(), ...getPythonAiocontextvarsConfig()].filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...[...getPythonInstallConfig(), ...getPythonAiocontextvarsConfig()]
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],
@@ -152,9 +154,7 @@ web.run_app(app)
           ? [
               {
                 type: 'text' as const,
-                text: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
+                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
               },
               {
                 type: 'code' as const,

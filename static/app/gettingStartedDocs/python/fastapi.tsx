@@ -87,10 +87,12 @@ const onboarding: OnboardingConfig = {
             }
           ),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[fastapi]'}).filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[fastapi]'})
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],
@@ -159,9 +161,7 @@ async def trigger_error():
           ? [
               {
                 type: 'text' as const,
-                text: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
+                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
               },
               {
                 type: 'code' as const,

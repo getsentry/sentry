@@ -78,17 +78,16 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Install [code:sentry-sdk] from PyPI with the [code:celery] extra:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:celery] extra:', {
+            code: <code />,
+          }),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[celery]'}).filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[celery]'})
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],
@@ -127,41 +126,41 @@ const onboarding: OnboardingConfig = {
         {
           type: 'custom',
           content: (
-        <Fragment>
-          {params.isProfilingSelected &&
-            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-              <Fragment>
-                <AlternativeConfiguration />
-                <br />
-              </Fragment>
-            )}
-          <h5>{t('Standalone Setup')}</h5>
-          {t("If you're using Celery standalone, there are two ways to set this up:")}
-          <ul>
-            <li>
-              {tct(
-                "Initializing the SDK in the configuration file loaded with Celery's [code:--config] parameter",
-                {
-                  code: <code />,
-                }
-              )}
-            </li>
-            <li>
-              {tct(
-                'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals:',
-                {
-                  celerydInit: (
-                    <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#celeryd-init" />
-                  ),
-                  workerInit: (
-                    <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#worker-init" />
-                  ),
-                }
-              )}
-            </li>
-          </ul>
-          <SpacedOnboardingCodeSnippet dark language="python">
-            {`import sentry_sdk
+            <Fragment>
+              {params.isProfilingSelected &&
+                params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+                  <Fragment>
+                    <AlternativeConfiguration />
+                    <br />
+                  </Fragment>
+                )}
+              <h5>{t('Standalone Setup')}</h5>
+              {t("If you're using Celery standalone, there are two ways to set this up:")}
+              <ul>
+                <li>
+                  {tct(
+                    "Initializing the SDK in the configuration file loaded with Celery's [code:--config] parameter",
+                    {
+                      code: <code />,
+                    }
+                  )}
+                </li>
+                <li>
+                  {tct(
+                    'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals:',
+                    {
+                      celerydInit: (
+                        <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#celeryd-init" />
+                      ),
+                      workerInit: (
+                        <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#worker-init" />
+                      ),
+                    }
+                  )}
+                </li>
+              </ul>
+              <SpacedOnboardingCodeSnippet dark language="python">
+                {`import sentry_sdk
 from celery import Celery, signals
 
 app = Celery("myapp")
@@ -170,22 +169,22 @@ app = Celery("myapp")
 @signals.celeryd_init.connect
 def init_sentry(**_kwargs):
     sentry_sdk.init(...)  # same as above`}
-          </SpacedOnboardingCodeSnippet>
-          <h5>{t('Setup With Django')}</h5>
-          <p>
-            {tct(
-              "If you're using Celery with Django in a conventional setup, have already initialized the SDK in [settingsLink:your settings.py], and have Celery using the same settings with [celeryDocsLinks:config_from_object], you don't need to initialize the SDK separately for Celery.",
-              {
-                settingsLink: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/python/guides/django/#configure" />
-                ),
-                celeryDocsLinks: (
-                  <ExternalLink href="https://docs.celeryq.dev/en/stable/django/first-steps-with-django.html" />
-                ),
-              }
-            )}
-          </p>
-        </Fragment>
+              </SpacedOnboardingCodeSnippet>
+              <h5>{t('Setup With Django')}</h5>
+              <p>
+                {tct(
+                  "If you're using Celery with Django in a conventional setup, have already initialized the SDK in [settingsLink:your settings.py], and have Celery using the same settings with [celeryDocsLinks:config_from_object], you don't need to initialize the SDK separately for Celery.",
+                  {
+                    settingsLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/python/guides/django/#configure" />
+                    ),
+                    celeryDocsLinks: (
+                      <ExternalLink href="https://docs.celeryq.dev/en/stable/django/first-steps-with-django.html" />
+                    ),
+                  }
+                )}
+              </p>
+            </Fragment>
           ),
         },
       ],
