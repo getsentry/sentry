@@ -16,7 +16,12 @@ const [_LogsPageDataProvider, _useLogsPageData, _ctx] =
   });
 export const useLogsPageData = _useLogsPageData;
 
-export function LogsPageDataProvider({children}: {children: React.ReactNode}) {
+export function LogsPageDataProvider({
+  children,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
   const organization = useOrganization();
   const feature = isLogsEnabled(organization);
   const infiniteLogsQueryResult = useInfiniteLogsQuery({

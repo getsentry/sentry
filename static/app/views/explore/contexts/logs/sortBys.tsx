@@ -17,6 +17,11 @@ export const logsTimestampDescendingSortBy: Sort = {
   kind: 'desc' as const,
 };
 
+export const logsTimestampAscendingSortBy: Sort = {
+  field: OurLogKnownFieldKey.TIMESTAMP,
+  kind: 'asc' as const,
+};
+
 export function getLogSortBysFromLocation(location: Location, fields: string[]): Sort[] {
   const sortBys = decodeSorts(location.query[LOGS_SORT_BYS_KEY]);
 

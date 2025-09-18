@@ -55,6 +55,9 @@ export enum OurLogKnownFieldKey {
 
   // Deprecated fields
   TIMESTAMP_NANOS = 'sentry.timestamp_nanos',
+
+  // Replay integration
+  REPLAY_ID = 'replay_id',
 }
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
