@@ -348,7 +348,6 @@ class RedisHashSortedSetBuffer:
         self._ensure_script_loaded_on_cluster()
 
         # Pipeline all slot group executions
-        # pipe = self._get_redis_connection(None, transaction=False)
         pipe = cluster.pipeline(transaction=False)
         for slot_keys in slot_groups:
             pipe.execute_command(
