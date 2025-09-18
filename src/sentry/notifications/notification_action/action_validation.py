@@ -1,5 +1,7 @@
 from typing import Any
 
+from django.core.exceptions import ValidationError
+
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
@@ -217,4 +219,4 @@ class SentryAppActionValidatorHandler:
             validate_sentry_app_action(action)
             return self.validated_data
         except SentryAppBaseError as e:
-            raise ValidationError(e.message)
+            raise ValidationError(e.message) from e
