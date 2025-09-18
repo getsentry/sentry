@@ -418,7 +418,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         storageNamespace,
       });
       expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
@@ -485,7 +484,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         storageNamespace,
       });
       expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
