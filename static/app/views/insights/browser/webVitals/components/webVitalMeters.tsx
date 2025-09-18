@@ -1,7 +1,4 @@
-import styled from '@emotion/styled';
-
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 
 export type ProjectData = {
@@ -37,12 +34,3 @@ export const WEB_VITALS_METERS_CONFIG = {
 export const getFormattedDuration = (value: number) => {
   return getDuration(value, value < 1 ? 0 : 2, true);
 };
-
-export const Dot = styled('span')<{color: string}>`
-  display: inline-block;
-  margin-right: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  width: ${space(1)};
-  height: ${space(1)};
-  background-color: ${p => p.color};
-`;
