@@ -1,10 +1,8 @@
-import {Fragment} from 'react';
-
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   BasePlatformOptions,
@@ -487,42 +485,47 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
-      ],
-      additionalInfo: (
-        <Fragment>
-          <h5>{t('Default Configuration')}</h5>
-          <p>
-            {t(
-              'The Loader Script settings are automatically updated based on the product selection above. Toggling products will dynamically configure the SDK defaults.'
-            )}
-          </p>
-          <p>
-            {tct(
+        {
+          type: 'subheader',
+          text: t('Default Configuration'),
+        },
+        {
+          type: 'text',
+          text: t(
+            'The Loader Script settings are automatically updated based on the product selection above. Toggling products will dynamically configure the SDK defaults.'
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            tct(
               'For Tracing, the SDK is initialized with [code:tracesSampleRate: 1], meaning all traces will be captured.',
               {
                 code: <code />,
               }
-            )}
-          </p>
-          <p>
-            {tct(
+            ),
+            tct(
               'For Session Replay, the default rates are [code:replaysSessionSampleRate: 0.1] and [code:replaysOnErrorSampleRate: 1]. This captures 10% of regular sessions and 100% of sessions with an error.',
               {
                 code: <code />,
               }
-            )}
-          </p>
-          <p>
-            {tct('You can review or change these settings in [link:Project Settings].', {
+            ),
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'You can review or change these settings in [link:Project Settings].',
+            {
               link: (
                 <Link
                   to={`/settings/${params.organization.slug}/projects/${params.project.slug}/loader-script/`}
                 />
               ),
-            })}
-          </p>
-        </Fragment>
-      ),
+            }
+          ),
+        },
+      ],
     },
   ],
   configure: params => [
@@ -543,30 +546,30 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
               label: 'HTML',
               language: 'html',
               code: `
-              <script>
-                Sentry.onLoad(function() {
-                  Sentry.init({${
-                    params.isPerformanceSelected || params.isReplaySelected
-                      ? ''
-                      : `
-                      // You can add any additional configuration here`
-                  }${
-                    params.isPerformanceSelected
-                      ? `
-                      // Tracing
-                      tracesSampleRate: 1.0, // Capture 100% of the transactions`
-                      : ''
-                  }${
-                    params.isReplaySelected
-                      ? `
-                      // Session Replay
-                      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-                      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-                      : ''
-                  }
-                    });
-                });
-              </script>`,
+<script>
+  Sentry.onLoad(function() {
+    Sentry.init({${
+      params.isPerformanceSelected || params.isReplaySelected
+        ? ''
+        : `
+      // You can add any additional configuration here`
+    }${
+      params.isPerformanceSelected
+        ? `
+      // Tracing
+      tracesSampleRate: 1.0, // Capture 100% of the transactions`
+        : ''
+    }${
+      params.isReplaySelected
+        ? `
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+        : ''
+    }
+    });
+  });
+</script>`,
             },
           ],
         },
@@ -870,12 +873,17 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#crash-report-modal',
-      }),
-      additionalInfo: widgetCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-widget',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+        widgetCalloutBlock({
+          link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-widget',
+        }),
+      ],
     },
   ],
   verify: () => [],
@@ -1026,62 +1034,78 @@ export const featureFlagOnboarding: OnboardingConfig = {
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
       ];
 
-    const installConfig = [
-      {
-        language: 'bash',
-        code: [
-          {
-            label: 'npm',
-            value: 'npm',
-            language: 'bash',
-            code: `npm install --save @sentry/browser ${packageName}`,
-          },
-          {
-            label: 'yarn',
-            value: 'yarn',
-            language: 'bash',
-            code: `yarn add @sentry/browser ${packageName}`,
-          },
-          {
-            label: 'pnpm',
-            value: 'pnpm',
-            language: 'bash',
-            code: `pnpm add @sentry/browser ${packageName}`,
-          },
-        ],
-      },
-    ];
-
     return [
       {
         type: StepType.INSTALL,
-        description: t('Install Sentry and the selected feature flag SDK.'),
-        configurations: installConfig,
+        content: [
+          {
+            type: 'text',
+            text: t('Install Sentry and the selected feature flag SDK.'),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'npm',
+                language: 'bash',
+                code: `npm install --save @sentry/browser ${packageName}`,
+              },
+              {
+                label: 'yarn',
+                language: 'bash',
+                code: `yarn add @sentry/browser ${packageName}`,
+              },
+              {
+                label: 'pnpm',
+                language: 'bash',
+                code: `pnpm add @sentry/browser ${packageName}`,
+              },
+            ],
+          },
+        ],
       },
       {
         type: StepType.CONFIGURE,
-        description: tct(
-          'Add [name] to your integrations list, and initialize your feature flag SDK.',
+        content: [
           {
-            name: <code>{integrationName}</code>,
-          }
-        ),
-        configurations: [
+            type: 'text',
+            text: tct(
+              'Add [name] to your integrations list, and initialize your feature flag SDK.',
+              {
+                name: <code>{integrationName}</code>,
+              }
+            ),
+          },
           {
-            language: 'JavaScript',
-            code: makeConfigureCode(dsn.public),
+            type: 'code',
+            tabs: [
+              {
+                label: 'JavaScript',
+                language: 'javascript',
+                code: makeConfigureCode(dsn.public),
+              },
+            ],
           },
         ],
       },
       {
         type: StepType.VERIFY,
-        description: t(
-          'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
-        ),
-        configurations: [
+        content: [
           {
-            language: 'JavaScript',
-            code: makeVerifyCode(),
+            type: 'text',
+            text: t(
+              'Test your setup by evaluating a flag, then capturing an exception. Check the Feature Flags table in Issue Details to confirm that your error event has recorded the flag and its result.'
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'JavaScript',
+                language: 'javascript',
+                code: makeVerifyCode(),
+              },
+            ],
           },
         ],
       },
