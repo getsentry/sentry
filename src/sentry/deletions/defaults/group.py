@@ -233,13 +233,16 @@ def delete_group_hashes(
     group_ids: Sequence[int],
     seer_deletion: bool = False,
 ) -> None:
+    # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
+    hashes_batch_size = max(1, GROUP_HASH_CHUNK_SIZE)
+
     # Set a reasonable upper bound on iterations to prevent infinite loops.
     # The loop will naturally terminate when no more hashes are found.
     iterations = 0
     while iterations < GROUP_HASH_ITERATIONS:
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
             "id", "hash"
-        )[:GROUP_HASH_CHUNK_SIZE]
+        )[:hashes_batch_size]
         hashes_chunk = list(qs)
         if not hashes_chunk:
             break
