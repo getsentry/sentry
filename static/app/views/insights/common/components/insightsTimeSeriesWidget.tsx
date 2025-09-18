@@ -271,6 +271,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
 const COMMON_COLORS = (theme: Theme): Record<string, string> => {
   const colors = theme.chart.getColorPalette(2);
+  const vitalColors = theme.chart.getColorPalette(4);
   return {
     'epm()': THROUGHPUT_COLOR(theme),
     'count()': COUNT_COLOR(theme),
@@ -280,5 +281,10 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
     'avg(messaging.message.receive.latency)': colors[1],
     'avg(span.duration)': colors[2],
+    'performance_score(measurements.score.lcp)': vitalColors[0],
+    'performance_score(measurements.score.fcp)': vitalColors[1],
+    'performance_score(measurements.score.inp)': vitalColors[2],
+    'performance_score(measurements.score.cls)': vitalColors[3],
+    'performance_score(measurements.score.ttfb)': vitalColors[4],
   };
 };
