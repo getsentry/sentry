@@ -137,11 +137,12 @@ def source_map_debug(
         except SourceMapException as e:
             return SourceMapDebug(issue=e.issue, data=e.data)
 
-        if not sourcemap_artifact.file.getfile().read():
-            return SourceMapDebug(
-                issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND,
-                data={"filename": filename},
-            )
+        with sourcemap_artifact.file.getfile() as f:
+            if not f.read():
+                return SourceMapDebug(
+                    issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND,
+                    data={"filename": filename},
+                )
 
     if can_use_debug_id:
         # at this point we know the source maps aren't mapped but we can use a debug id
@@ -274,7 +275,8 @@ def _discover_sourcemap_url(artifact: ReleaseFile, filename: str) -> str | None:
     sourcemap_header = file.headers.get("Sourcemap", file.headers.get("X-SourceMap"))
     sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
     try:
-        sourcemap = find_sourcemap(sourcemap_header, file.getfile().read())
+        with file.getfile() as f:
+            sourcemap = find_sourcemap(sourcemap_header, f.read())
     except AssertionError:
         raise SourceMapException(
             SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, {"filename": filename}
