@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# flake8: noqa: S002
 
 import argparse
 import dataclasses
@@ -13,48 +14,44 @@ from flagpole.evaluation_context import EvaluationContext
 from sentry.utils import json
 
 
-def output(*args):
-    print(*args)  # noqa: S002
-
-
 def main() -> None:
     args = get_arguments()
 
     indent = "    "
-    output("Opening file:")
-    output(indent, args.get("flagpole_file"))
-    output("")
-    output("Evaluating flag:")
-    output(indent, args.get("flag_name"))
-    output("")
-    output("Evaluation Context:")
+    print("Opening file:")
+    print(indent, args.get("flagpole_file"))
+    print("")
+    print("Evaluating flag:")
+    print(indent, args.get("flag_name"))
+    print("")
+    print("Evaluation Context:")
 
-    output(indent, args.get("context"))
-    output("")
+    print(indent, args.get("context"))
+    print("")
 
     try:
         feature = read_feature(args.get("flag_name"), args.get("flagpole_file"))
     except Exception as e:
-        output("Unable to load feature")
-        output(e)
+        print("Unable to load feature")
+        print(e)
         sys.exit(1)
 
-    output("Definition:")
-    output(feature.to_yaml_str())
+    print("Definition:")
+    print(feature.to_yaml_str())
 
     try:
         eval_context = EvaluationContext(args.get("context"))
         (result, rollout, segment) = evaluate_flag(feature, eval_context)
     except Exception as e:
-        output("Unable to eval. Check your context value")
-        output(e)
+        print("Unable to eval. Check your context value")
+        print(e)
         sys.exit(1)
 
-    output("Result:")
-    output(indent, result, f"({rollout}% rollout)" if rollout != 100 else "")
+    print("Result:")
+    print(indent, result, f"({rollout}% rollout)" if result and rollout != 100 else "")
     if segment:
-        output("Passing Segment:")
-        output(indent, segment.name)
+        print("Passing Segment:")
+        print(indent, segment.name)
 
 
 def get_arguments() -> dict:
@@ -122,7 +119,7 @@ def evaluate_flag(feature: Feature, context: EvaluationContext) -> (bool, bool, 
         if test.match(context):
             return (real_result, original_rollout, segment)
 
-    return (real_result, 100, None)
+    return (real_result, None, None)
 
 
 if __name__ == "__main__":
