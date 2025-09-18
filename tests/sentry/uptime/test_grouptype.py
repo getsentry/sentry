@@ -88,8 +88,8 @@ class BuildDetectorFingerprintComponentTest(UptimeTestCase):
         assert fingerprint_component == f"uptime-detector:{detector.id}"
 
 
-class BuildFingerprintForProjectSubscriptionTest(UptimeTestCase):
-    def test_build_fingerprint_for_project_subscription(self) -> None:
+class BuildFingerprintTest(UptimeTestCase):
+    def test_build_fingerprint(self) -> None:
         detector = self.create_uptime_detector()
 
         fingerprint = build_fingerprint(detector)

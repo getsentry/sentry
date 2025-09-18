@@ -235,6 +235,7 @@ type WrappedDiscoverQueryProps<T> = {
   limit?: number;
   noPagination?: boolean;
   referrer?: string;
+  refetchInterval?: number;
   samplingMode?: SamplingMode;
 };
 
@@ -252,6 +253,7 @@ function useWrappedDiscoverQueryBase<T>({
   samplingMode,
   pageFiltersReady,
   additionalQueryKey,
+  refetchInterval,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -287,6 +289,7 @@ function useWrappedDiscoverQueryBase<T>({
       retryDelay: getRetryDelay,
       staleTime: getStaleTimeForEventView(eventView),
       additionalQueryKey,
+      refetchInterval,
       placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     },
     queryExtras,

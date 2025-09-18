@@ -33,6 +33,8 @@ from sentry.uptime.subscriptions.tasks import (
 )
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
@@ -45,6 +47,7 @@ from sentry.workflow_engine.models.data_condition_group import DataConditionGrou
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
 
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
@@ -187,6 +190,8 @@ def create_uptime_detector(
     owner: Actor | None = None,
     trace_sampling: bool = False,
     override_manual_org_limit: bool = False,
+    recovery_threshold: int = DEFAULT_RECOVERY_THRESHOLD,
+    downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
 ) -> Detector:
     """
     Creates an UptimeSubscription and associated Detector
@@ -272,6 +277,8 @@ def create_uptime_detector(
             config={
                 "environment": env,
                 "mode": mode,
+                "recovery_threshold": recovery_threshold,
+                "downtime_threshold": downtime_threshold,
             },
             workflow_condition_group=condition_group,
         )
@@ -316,6 +323,8 @@ def update_uptime_detector(
     status: int = ObjectStatus.ACTIVE,
     mode: UptimeMonitorMode = UptimeMonitorMode.MANUAL,
     ensure_assignment: bool = False,
+    recovery_threshold: int | NotSet = NOT_SET,
+    downtime_threshold: int | NotSet = NOT_SET,
 ):
     """
     Updates a uptime detector and its associated uptime subscription.
@@ -363,6 +372,18 @@ def update_uptime_detector(
             config={
                 "mode": mode,
                 "environment": env.name if env else None,
+                "recovery_threshold": default_if_not_set(
+                    # TODO: Remove DEFAULT_RECOVERY_THRESHOLD fallback after
+                    # backfill migration ensures all configs have this value
+                    detector.config.get("recovery_threshold", DEFAULT_RECOVERY_THRESHOLD),
+                    recovery_threshold,
+                ),
+                "downtime_threshold": default_if_not_set(
+                    # TODO: Remove DEFAULT_DOWNTIME_THRESHOLD fallback after
+                    # backfill migration ensures all configs have this value
+                    detector.config.get("downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD),
+                    downtime_threshold,
+                ),
             },
         )
 
@@ -478,11 +499,11 @@ def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription
     Determines if an uptime subscription is no longer used by any detectors and removes it if so
     """
     # If the uptime subscription is no longer used, we also remove it.
-    has_active_detectors = Detector.objects.filter(
+    has_active_detector = Detector.objects.filter(
         data_sources__source_id=str(uptime_subscription.id),
         status=ObjectStatus.ACTIVE,
     ).exists()
-    if not has_active_detectors:
+    if not has_active_detector:
         delete_uptime_subscription(uptime_subscription)
 
 

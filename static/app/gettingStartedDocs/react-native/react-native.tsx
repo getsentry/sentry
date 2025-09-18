@@ -202,7 +202,7 @@ const getReactNativeProfilingOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: t(
-        'To confirm that profiling is working correctly, run your application and check the Sentry profiles page for the collected profiles.'
+        'Verify that profiling is working correctly by simply using your application.'
       ),
     },
   ],

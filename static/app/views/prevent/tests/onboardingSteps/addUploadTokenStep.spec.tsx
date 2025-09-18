@@ -121,8 +121,7 @@ describe('AddUploadTokenStep', () => {
     );
 
     const link = await screen.findByRole('link', {name: 'repository secret'});
-    // this href is after "#" was normalized by the Link component
-    expect(link).toHaveAttribute('href', '/mock-pathname/');
+    expect(link).toHaveAttribute('href', '#');
   });
 
   it('handles valid GitHub naming characters in organization and repository names', async () => {

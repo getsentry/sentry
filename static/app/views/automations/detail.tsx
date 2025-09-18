@@ -35,7 +35,10 @@ import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {
+  makeAutomationBasePathname,
+  makeAutomationEditPathname,
+} from 'sentry/views/automations/pathnames';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 const AUTOMATION_DETECTORS_LIMIT = 10;
@@ -221,6 +224,7 @@ export default function AutomationDetail() {
 }
 
 function Actions({automation}: {automation: Automation}) {
+  const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
@@ -246,7 +250,12 @@ function Actions({automation}: {automation: Automation}) {
       <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
-      <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
+      <LinkButton
+        to={makeAutomationEditPathname(organization.slug, automation.id)}
+        priority="primary"
+        icon={<IconEdit />}
+        size="sm"
+      >
         {t('Edit')}
       </LinkButton>
     </Fragment>

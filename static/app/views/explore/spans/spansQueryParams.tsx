@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -90,7 +91,11 @@ export function getTargetWithReadableQueryParams(
   updateNullableLocation(
     target,
     SPANS_EXTRAPOLATE_KEY,
-    writableQueryParams.extrapolate ? null : '0'
+    defined(writableQueryParams.extrapolate)
+      ? writableQueryParams.extrapolate
+        ? null
+        : '0'
+      : writableQueryParams.extrapolate
   );
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
 
