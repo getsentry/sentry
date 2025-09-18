@@ -58,7 +58,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     );
   }
 
-  if (!installDetails || !installDetails.install_url) {
+  if (!installDetails?.install_url) {
     const message = installDetails
       ? t('No install download link available')
       : t('No install details available');
