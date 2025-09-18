@@ -1,7 +1,9 @@
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {useRendererContext} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/rendererContext';
 import type {
   BlockRenderers,
@@ -16,9 +18,16 @@ import {
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 
+// TODO(aknaus): Remove !important once we can remove style overrides from the onboarding layouts
 const baseBlockStyles = css`
   :not(:last-child) {
-    margin-bottom: var(${ContentBlockCssVariables.BLOCK_SPACING});
+    margin-bottom: var(${ContentBlockCssVariables.BLOCK_SPACING}) !important;
+  }
+`;
+
+const coloredCodeStyles = (theme: Theme) => css`
+  code:not([class*='language-']) {
+    color: ${theme.pink400};
   }
 `;
 
@@ -95,11 +104,27 @@ function TextBlock(block: Extract<ContentBlock, {type: 'text'}>) {
 
 const TextBlockWrapper = styled('div')`
   ${baseBlockStyles}
-
-  code:not([class*='language-']) {
-    color: ${p => p.theme.pink400};
-  }
+  white-space: pre-wrap;
+  ${p => coloredCodeStyles(p.theme)}
 `;
+
+function SubHeaderBlock(block: Extract<ContentBlock, {type: 'subheader'}>) {
+  // TODO(aknaus): Use <Heading/> throughout the onboarding docs codebase
+  // <Heading as="h5"> has a different styling and does not match the other headings we currently use
+  return <h5 css={baseBlockStyles}>{block.text}</h5>;
+}
+
+function ListBlock(block: Extract<ContentBlock, {type: 'list'}>) {
+  return (
+    <List symbol="bullet" css={baseBlockStyles}>
+      {block.items.map((item, index) => (
+        <ListItem css={coloredCodeStyles} key={index}>
+          {item}
+        </ListItem>
+      ))}
+    </List>
+  );
+}
 
 export const defaultRenderers: BlockRenderers = {
   text: TextBlock,
@@ -107,4 +132,6 @@ export const defaultRenderers: BlockRenderers = {
   custom: CustomBlock,
   alert: AlertBlock,
   conditional: ConditionalBlock,
+  subheader: SubHeaderBlock,
+  list: ListBlock,
 };

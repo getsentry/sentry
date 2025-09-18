@@ -14,7 +14,6 @@ import type {
 } from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
@@ -349,42 +348,6 @@ export const lightenHexToRgb = (colors: readonly string[]) =>
     ];
     return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
   });
-
-const DEFAULT_GEO_DATA = {
-  title: '',
-  data: [],
-};
-export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
-  if (!tableResults?.length) {
-    return DEFAULT_GEO_DATA;
-  }
-
-  const tableResult = tableResults[0]!;
-
-  const {data} = tableResult;
-
-  if (!data?.length) {
-    return DEFAULT_GEO_DATA;
-  }
-
-  const preAggregate = Object.keys(data[0]!).find(column => {
-    return column !== 'geo.country_code';
-  });
-
-  if (!preAggregate) {
-    return DEFAULT_GEO_DATA;
-  }
-
-  return {
-    title: tableResult.title ?? '',
-    data: data.map(row => {
-      return {
-        name: row['geo.country_code'] as string,
-        value: row[preAggregate] as number,
-      };
-    }),
-  };
-};
 
 export const getPreviousSeriesName = (seriesName: string) => {
   return `previous ${seriesName}`;

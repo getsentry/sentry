@@ -1,6 +1,7 @@
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -139,12 +140,10 @@ export const getCrashReportModalConfigDescription = ({link}: {link: string}) =>
 
 const getCrashReportModalSnippetJavaScript = (params: any) => [
   {
-    code: [
-      {
-        label: 'HTML',
-        value: 'html',
-        language: 'html',
-        code: `<script>
+    label: 'HTML',
+    value: 'html',
+    language: 'html',
+    code: `<script>
   Sentry.init({
     dsn: "${params.dsn.public}",
     beforeSend(event, hint) {
@@ -156,8 +155,6 @@ const getCrashReportModalSnippetJavaScript = (params: any) => [
     },
   });
 </script>`,
-      },
-    ],
   },
 ];
 
@@ -165,7 +162,16 @@ export const getCrashReportJavaScriptInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     description: getCrashReportModalInstallDescriptionJavaScript(),
-    configurations: getCrashReportModalSnippetJavaScript(params),
+    content: [
+      {
+        type: 'text',
+        text: getCrashReportModalInstallDescriptionJavaScript(),
+      },
+      {
+        type: 'code',
+        tabs: getCrashReportModalSnippetJavaScript(params),
+      },
+    ] satisfies ContentBlock[],
   },
 ];
 
