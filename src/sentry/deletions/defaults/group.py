@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry import models
+from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
-GROUP_HASH_CHUNK_SIZE = 10000
+GROUP_HASH_CHUNK_SIZE = options.get("deletions.group-hashes-batch-size")
 GROUP_HASH_ITERATIONS = 10000
 
 # Group models that relate only to groups and not to events. We assume those to
