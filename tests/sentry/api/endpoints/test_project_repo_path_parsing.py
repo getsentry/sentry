@@ -145,6 +145,34 @@ class PathMappingSerializerTest(TestCase):
 
 
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
+    # def setUp(self) -> None:
+    #     super().setUp()
+    #     with assume_test_silo_mode(SiloMode.CONTROL):
+    #         self.integration, self.oi = self.create_provider_integration_for(
+    #             self.org,
+    #             self.user,
+    #             provider="github",
+    #             name="getsentry",
+    #             external_id="1234",
+    #             metadata={"domain_name": "github.com/getsentry"},
+    #         )
+
+    #     self.repo = self.create_repo(
+    #         project=self.project,
+    #         name="getsentry/sentry",
+    #         provider="integrations:github",
+    #         integration_id=self.integration.id,
+    #         url="https://github.com/getsentry/sentry",
+    #     )
+
+    #     self.create_repo(
+    #         project=self.project,
+    #         name="getsentry/getsentry",
+    #         provider="integrations:github",
+    #         integration_id=self.integration.id,
+    #         url="https://github.com/getsentry/getsentry",
+    #     )
+
     def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -152,26 +180,33 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
                 self.org,
                 self.user,
                 provider="github",
-                name="getsentry",
+                name="sentry-demos",
                 external_id="1234",
-                metadata={"domain_name": "github.com/getsentry"},
+                metadata={"domain_name": "github.com/sentry-demos"},
             )
 
         self.repo = self.create_repo(
             project=self.project,
-            name="getsentry/sentry",
+            name="sentry-demos/unity",
             provider="integrations:github",
             integration_id=self.integration.id,
-            url="https://github.com/getsentry/sentry",
+            url="https://github.com/sentry-demos/unity",
         )
 
-        self.create_repo(
-            project=self.project,
-            name="getsentry/getsentry",
-            provider="integrations:github",
-            integration_id=self.integration.id,
-            url="https://github.com/getsentry/getsentry",
-        )
+    def test_repro(self) -> None:
+        source_url = "https://github.com/sentry-demos/unity/blob/main/sentry-defenses/Assets/Scripts/Bugs/BugVisuals.cs"
+        stack_path = "BugVisuals.cs"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "BugVisuals.cs",
+            "sourceRoot": "sentry-defenses/Assets/Scripts/Bugs/BugVisuals.cs",
+            "defaultBranch": "main",
+        }
 
     def test_bad_source_url(self) -> None:
         source_url = "github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
