@@ -22,7 +22,7 @@ from sentry.performance_issues.base import (
     parameterize_url,
     parameterize_url_with_result,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
+from sentry.performance_issues.detectors.utils import get_total_span_duration, is_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -132,7 +132,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         if not url:
             return False
 
-        if has_filtered_url(self._event, span):
+        if is_filtered_url(url):
             return False
 
         # Once most users update their SDKs to use the latest standard, we
