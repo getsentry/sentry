@@ -197,29 +197,41 @@ const onboarding: OnboardingConfig = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
-      ),
-      configurations: params.isLogsSelected
-        ? [
-            {
-              description: t(
-                'You can send logs to Sentry using the Sentry logging APIs:'
-              ),
-              language: 'python',
-              code: `import sentry_sdk
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
+          ),
+        },
+        ...(params.isLogsSelected
+          ? [
+              {
+                type: 'text' as const,
+                text: t(
+                  'You can send logs to Sentry using the Sentry logging APIs:'
+                ),
+              },
+              {
+                type: 'code' as const,
+                language: 'python',
+                code: `import sentry_sdk
 
 # Send logs directly to Sentry
 sentry_sdk.logger.info('This is an info log message')
 sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
-            },
-            {
-              description: t(
-                "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-              ),
-              language: 'python',
-              code: `import logging
+              },
+              {
+                type: 'text' as const,
+                text: t(
+                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+                ),
+              },
+              {
+                type: 'code' as const,
+                language: 'python',
+                code: `import logging
 
 # Your existing logging setup
 logger = logging.getLogger(__name__)
@@ -228,9 +240,10 @@ logger = logging.getLogger(__name__)
 logger.info('This will be sent to Sentry')
 logger.warning('User login failed')
 logger.error('Something went wrong')`,
-            },
-          ]
-        : [],
+              },
+            ]
+          : []),
+      ],
     },
   ],
   nextSteps: (params: Params) => {
@@ -255,9 +268,14 @@ const profilingOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 };

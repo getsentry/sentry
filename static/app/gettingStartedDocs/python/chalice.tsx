@@ -79,48 +79,73 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:chalice] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[chalice]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:chalice] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[chalice]'}).filter(config => config.code).map(config => ({
+          type: 'code' as const,
+          tabs: config.code!,
+        })),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        ...(params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? [
+              {
+                type: 'custom' as const,
+                content: <AlternativeConfiguration />,
+              },
+            ]
+          : []),
       ],
-      additionalInfo: params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <AlternativeConfiguration />
-        ),
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t('To verify that everything is working trigger an error on purpose:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify that everything is working trigger an error on purpose:'),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getVerifySnippet(),
         },
         ...(params.isLogsSelected
           ? [
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   'You can send logs to Sentry using the Sentry logging APIs:'
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import sentry_sdk
 
@@ -130,9 +155,13 @@ sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
               },
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import logging
 
@@ -146,13 +175,16 @@ logger.error('Something went wrong')`,
               },
             ]
           : []),
-      ],
-      additionalInfo: tct(
-        'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
         {
-          code: <code />,
-        }
-      ),
+          type: 'text',
+          text: tct(
+            'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+      ],
     },
   ],
 };

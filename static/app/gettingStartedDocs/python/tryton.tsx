@@ -88,48 +88,64 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
+        },
+        ...getPythonInstallConfig().filter(config => config.code).map(config => ({
+          type: 'code' as const,
+          tabs: config.code!,
+        })),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'wsgi.py',
-              value: 'wsgi.py',
               language: 'python',
               code: getSdkSetupSnippet(params),
             },
           ],
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
           ),
-          language: 'python',
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'wsgi.py',
-              value: 'wsgi.py',
               language: 'python',
               code: getErrorHandlerSnippet(),
             },
           ],
         },
+        {
+          type: 'custom',
+          content: <AlternativeConfiguration />,
+        },
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
@@ -137,11 +153,15 @@ const onboarding: OnboardingConfig = {
       ? [
           {
             type: StepType.VERIFY,
-            configurations: [
+            content: [
               {
-                description: t(
+                type: 'text',
+                text: t(
                   'You can send logs to Sentry using the Sentry logging APIs:'
                 ),
+              },
+              {
+                type: 'code',
                 language: 'python',
                 code: `import sentry_sdk
 
@@ -151,9 +171,13 @@ sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
               },
               {
-                description: t(
+                type: 'text',
+                text: t(
                   "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
                 ),
+              },
+              {
+                type: 'code',
                 language: 'python',
                 code: `import logging
 

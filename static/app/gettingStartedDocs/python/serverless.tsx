@@ -96,51 +96,76 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
+        },
+        ...getPythonInstallConfig().filter(config => config.code).map(config => ({
+          type: 'code' as const,
+          tabs: config.code!,
+        })),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Apply the [code:serverless_function] decorator to each function that might throw errors:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'Apply the [code:serverless_function] decorator to each function that might throw errors:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        ...(params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? [
+              {
+                type: 'custom' as const,
+                content: <AlternativeConfiguration />,
+              },
+            ]
+          : []),
       ],
-      additionalInfo: params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <AlternativeConfiguration />
-        ),
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Wrap a functions with the [code:serverless_function] that triggers an error:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Wrap a functions with the [code:serverless_function] that triggers an error:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'python',
           code: getVerifySnippet(),
         },
         ...(params.isLogsSelected
           ? [
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   'You can send logs to Sentry using the Sentry logging APIs:'
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import sentry_sdk
 
@@ -150,9 +175,13 @@ sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
               },
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import logging
 
@@ -166,10 +195,13 @@ logger.error('Something went wrong')`,
               },
             ]
           : []),
+        {
+          type: 'text',
+          text: t(
+            'Now deploy your function. When you now run your function an error event will be sent to Sentry.'
+          ),
+        },
       ],
-      additionalInfo: t(
-        'Now deploy your function. When you now run your function an error event will be sent to Sentry.'
-      ),
     },
   ],
   nextSteps: (params: Params) => {
