@@ -485,8 +485,17 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert result.data == {"require_link": "to False"}
 
     def test_edit_sso_settings__default_role(self) -> None:
+        owner_user = self.create_user("manager@example.com")
+
         organization, auth_provider = self.create_org_and_auth_provider()
-        self.create_om_and_link_sso(organization)
+        self.create_member(user=owner_user, organization=organization, role="owner")
+
+        om = self.create_om_and_link_sso(organization)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            om.role = "manager"
+            om.save()
+
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
 
         assert not auth_provider.flags.allow_unlinked
@@ -500,11 +509,22 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
+        # no update occurred. owner is not an option from the dropdown
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = Organization.objects.get(id=organization.id)
+            assert organization.default_role == "member"
+
+        with self.feature("organizations:sso-basic"), outbox_runner():
+            resp = self.client.post(
+                path, {"op": "settings", "require_link": True, "default_role": "manager"}
+            )
+        assert resp.status_code == 200
+
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert not auth_provider.flags.allow_unlinked
         with assume_test_silo_mode(SiloMode.REGION):
             organization = Organization.objects.get(id=organization.id)
-            assert organization.default_role == "owner"
+            assert organization.default_role == "manager"
 
         result = AuditLogEntry.objects.filter(
             organization_id=organization.id,
@@ -512,7 +532,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
         ).get()
-        assert result.data == {"default_role": "to owner"}
+        assert result.data == {"default_role": "to manager"}
 
     def test_edit_sso_settings__no_change(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()
