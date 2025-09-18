@@ -69,6 +69,7 @@ export interface InsightsTimeSeriesWidgetProps
     referrer: string;
     search: MutableSearch;
     groupBy?: SpanFields[];
+    interval?: string;
     yAxis?: string[];
   };
   samples?: Samples;
@@ -234,6 +235,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 search={props.queryInfo?.search}
                 aliases={aliases}
                 referrer={props.queryInfo?.referrer ?? ''}
+                interval={props.queryInfo?.interval}
               />
             )}
             {props.loaderSource !== 'releases-drawer' && (

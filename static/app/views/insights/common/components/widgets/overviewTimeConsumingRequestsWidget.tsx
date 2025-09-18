@@ -5,6 +5,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -52,6 +53,7 @@ export default function OverviewTimeConsumingRequestsWidget(
   const yAxes = `p75(${SpanFields.SPAN_DURATION})`;
   const totalTimeField = `sum(${SpanFields.SPAN_SELF_TIME})`;
   const title = t('Network Requests by Time Spent');
+  const interval = getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
 
   const {
     data: requestsListData,
@@ -84,6 +86,7 @@ export default function OverviewTimeConsumingRequestsWidget(
       yAxis: [yAxes],
       topN: 3,
       enabled: requestsListData?.length > 0,
+      interval,
     },
     referrer
   );
@@ -164,6 +167,7 @@ export default function OverviewTimeConsumingRequestsWidget(
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    interval,
     referrer,
   });
 

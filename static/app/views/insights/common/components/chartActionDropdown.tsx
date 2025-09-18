@@ -5,6 +5,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,6 +23,7 @@ type Props = {
   yAxes: string[];
   aliases?: Record<string, string>;
   groupBy?: SpanFields[];
+  interval?: string;
   search?: MutableSearch;
   title?: string;
 };
@@ -34,10 +36,14 @@ export function ChartActionDropdown({
   title,
   aliases,
   referrer,
+  interval,
 }: Props) {
   const organization = useOrganization();
   const project = useAlertsProject();
   const {selection} = usePageFilters();
+
+  const queryInterval =
+    interval ?? getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
 
   const exploreUrl = getExploreUrl({
     selection,
@@ -53,6 +59,7 @@ export function ChartActionDropdown({
     query: search?.formatString(),
     sort: undefined,
     groupBy,
+    interval: queryInterval,
     referrer,
   });
 
@@ -69,6 +76,7 @@ export function ChartActionDropdown({
         aggregate: yAxis,
         organization,
         referrer,
+        interval: queryInterval,
       }),
     };
   });
