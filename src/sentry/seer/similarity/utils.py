@@ -3,8 +3,11 @@ from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
 
+import tiktoken
+
 from sentry import options
 from sentry.grouping.api import get_contributing_variant_and_component
+from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
@@ -314,6 +317,15 @@ def has_too_many_contributing_frames(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**shared_tags, "outcome": "bypass"},
         )
+        metrics.distribution(
+            "grouping.similarity.token_count",
+            get_token_count(event, variants),
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={
+                "platform": platform,
+                "frame_check_outcome": "bypass",
+            },
+        )
         return False
 
     stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
@@ -326,12 +338,30 @@ def has_too_many_contributing_frames(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**shared_tags, "outcome": "block"},
         )
+        metrics.distribution(
+            "grouping.similarity.token_count",
+            get_token_count(event, variants),
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={
+                "platform": platform,
+                "frame_check_outcome": "block",
+            },
+        )
         return True
 
     metrics.incr(
         "grouping.similarity.frame_count_filter",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags={**shared_tags, "outcome": "pass"},
+    )
+    metrics.distribution(
+        "grouping.similarity.token_count",
+        get_token_count(event, variants),
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={
+            "platform": platform,
+            "frame_check_outcome": "pass",
+        },
     )
     return False
 
@@ -446,3 +476,53 @@ def set_default_project_seer_scanner_automation(
         project.update_option(
             "sentry:default_seer_scanner_automation", org_default_seer_scanner_automation
         )
+
+
+def get_token_count(event: Event, variants: dict[str, BaseVariant] | None = None) -> int:
+    """
+    Count the number of tokens in the stack trace of an event.
+
+    Stacktrace string should be already cached on the event, and only calculates it if needed.
+
+    Args:
+        event: A Sentry Event object containing stack trace data
+        variants: Optional pre-calculated grouping variants to avoid recalculation
+
+    Returns:
+        The number of tokens in the stack trace text
+    """
+    with metrics.timer(
+        "grouping.similarity.get_token_count",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"platform": event.platform or "unknown"},
+    ) as timer_tags:
+        try:
+            timer_tags["has_content"] = False
+
+            # Get the encoding for cl100k_base (used by GPT-3.5-turbo/GPT-4)
+            encoding = tiktoken.get_encoding("cl100k_base")
+
+            # Check if stacktrace string is already cached on the event
+            stacktrace_text = event.data.get("stacktrace_string")
+            timer_tags["cached"] = stacktrace_text is not None
+            timer_tags["source"] = "stacktrace_string"
+
+            if stacktrace_text is None:
+                if variants is None:
+                    timer_tags["source"] = "no_variants"
+                    return 0
+
+                stacktrace_text = get_stacktrace_string(get_grouping_info_from_variants(variants))
+
+            if stacktrace_text:
+                token_count = len(encoding.encode(stacktrace_text))
+                timer_tags["has_content"] = True
+                return token_count
+
+            timer_tags["source"] = "no_stacktrace_string"
+            return 0
+
+        except Exception:
+            # For now avoid letting get_token_count fail the Seer flow
+            timer_tags["error"] = True
+            return 0

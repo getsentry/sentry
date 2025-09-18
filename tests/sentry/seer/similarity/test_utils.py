@@ -13,6 +13,7 @@ from sentry.seer.similarity.utils import (
     _is_snipped_context_line,
     filter_null_from_string,
     get_stacktrace_string,
+    get_token_count,
     has_too_many_contributing_frames,
 )
 from sentry.services.eventstore.models import Event
@@ -1051,3 +1052,152 @@ class HasTooManyFramesTest(TestCase):
             has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because it's grouped by fingerprint
         )
+
+
+class GetTokenCountTest(TestCase):
+    def setUp(self) -> None:
+        self.event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "ZeroDivisionError('division by zero')",
+                "platform": "python",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "python_onboarding.py",
+                                        "function": "divide_by_zero",
+                                        "context_line": "divide = 1/0",
+                                        "lineno": 10,
+                                        "in_app": True,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+        )
+
+    def test_uses_cached_stacktrace_string(self) -> None:
+        """Test that get_token_count uses cached stacktrace_string if available."""
+        # Pre-cache a stacktrace string on the event
+        cached_stacktrace = "ZeroDivisionError: division by zero\nFile cached.py, function cached_func\n    cached_line = True"
+        self.event.data["stacktrace_string"] = cached_stacktrace
+
+        # The token count should be based on the cached string, not recalculated
+        token_count = get_token_count(self.event)
+
+        # Exact token count for this specific string
+        assert token_count == 21
+
+        # Verify the cached string is still there (not consumed)
+        assert self.event.data.get("stacktrace_string") == cached_stacktrace
+
+    def test_different_stacktraces_give_different_counts(self) -> None:
+        """Test that different stacktraces give different token counts."""
+        # Test with cached stacktrace strings to get exact counts
+        simple_stacktrace = 'Error: simple\n  File "a.py", function a\n    x = 1'
+        complex_stacktrace = 'VeryLongExceptionNameThatShouldIncreaseTokenCount: This is a very long exception message with lots of details about what went wrong in the application when processing the user request\n  File "very_long_filename_that_describes_the_module.py", function very_descriptive_function_name_that_explains_what_it_does\n    result = some_very_complex_operation_with_many_parameters_and_calculations(param1, param2, param3)\n  File "another_long_filename.py", function another_complex_function\n    processed_data = transform_and_validate_user_input_with_comprehensive_error_handling(raw_input)'
+
+        simple_event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Simple error",
+                "platform": "python",
+                "stacktrace_string": simple_stacktrace,
+            },
+        )
+
+        complex_event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Complex error",
+                "platform": "python",
+                "stacktrace_string": complex_stacktrace,
+            },
+        )
+
+        simple_count = get_token_count(simple_event)
+        complex_count = get_token_count(complex_event)
+
+        # Exact token counts for these specific strings
+        assert simple_count == 18
+        assert complex_count == 116
+
+    def test_calculates_with_provided_variants(self) -> None:
+        """Test that get_token_count uses provided variants to calculate stacktrace."""
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+        token_count = get_token_count(self.event, variants)
+
+        # Exact token count for the test event's stacktrace
+        assert token_count == 28
+
+    def test_returns_zero_when_no_variants_and_no_cache(self) -> None:
+        """Test that get_token_count returns 0 when no variants provided and can't calculate."""
+        # Don't provide variants, and ensure no cached stacktrace
+        self.event.data.pop("stacktrace_string", None)
+
+        token_count = get_token_count(self.event, variants=None)
+
+        # Should return 0 since variants is None and there's no fallback in the current implementation
+        assert token_count == 0
+
+    def test_returns_zero_for_empty_stacktrace(self) -> None:
+        """Test that get_token_count returns 0 for events with no meaningful stacktrace."""
+        # Create an event with no stacktrace data
+        empty_event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "Empty event",
+                "platform": "python",
+            },
+        )
+
+        variants = empty_event.get_grouping_variants(normalize_stacktraces=True)
+        token_count = get_token_count(empty_event, variants)
+
+        assert token_count == 0
+
+    def test_handles_exception_gracefully(self) -> None:
+        """Test that get_token_count handles exceptions gracefully and returns 0."""
+        # Create an event with malformed data that might cause exceptions
+        broken_event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={"title": "Broken event"},
+        )
+
+        # Should not raise an exception, even with bad data
+        token_count = get_token_count(broken_event, variants=None)
+        assert token_count == 0
+
+    def test_consistent_with_get_stacktrace_string(self) -> None:
+        """Test that get_token_count gives consistent results with get_stacktrace_string."""
+        import tiktoken
+
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+        # Get token count using our function
+        token_count = get_token_count(self.event, variants)
+
+        # Get stacktrace string and count tokens manually
+        from sentry.grouping.grouping_info import get_grouping_info_from_variants
+
+        stacktrace_text = get_stacktrace_string(get_grouping_info_from_variants(variants))
+
+        if stacktrace_text:
+            encoding = tiktoken.get_encoding("cl100k_base")
+            expected_token_count = len(encoding.encode(stacktrace_text))
+            assert token_count == expected_token_count
+        else:
+            assert token_count == 0
