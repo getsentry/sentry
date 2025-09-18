@@ -234,24 +234,21 @@ function Dashboard({
     fetchMemberList();
   }, [fetchMemberList]);
 
-  const handleDeleteWidget = useCallback(
-    (widgetToDelete: Widget) => () => {
-      trackAnalytics('dashboards_views.widget.delete', {
-        organization,
-        widget_type: widgetToDelete.displayType,
-      });
+  const handleDeleteWidget = (widgetToDelete: Widget) => () => {
+    trackAnalytics('dashboards_views.widget.delete', {
+      organization,
+      widget_type: widgetToDelete.displayType,
+    });
 
-      let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
-      nextList = generateWidgetsAfterCompaction(nextList);
+    let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    nextList = generateWidgetsAfterCompaction(nextList);
 
-      onUpdate(nextList);
+    onUpdate(nextList);
 
-      if (!isEditingDashboard) {
-        handleUpdateWidgetList(nextList);
-      }
-    },
-    [organization, dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList]
-  );
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
 
   const handleDuplicateWidget = (widget: Widget) => () => {
     trackAnalytics('dashboards_views.widget.duplicate', {
