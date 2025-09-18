@@ -5,15 +5,15 @@ import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
 export const SideBySide = styled(
-  (props: {children?: React.ReactNode; vertical?: boolean}) => (
+  ({children, vertical, ...rest}: {children?: React.ReactNode; vertical?: boolean}) => (
     <Flex
-      direction={props.vertical ? 'column' : 'row'}
+      direction={vertical ? 'column' : 'row'}
       gap="xl"
       wrap="wrap"
       align="start"
-      {...props}
+      {...rest}
     >
-      {props.children}
+      {children}
     </Flex>
   )
 )<{vertical?: boolean}>``;
