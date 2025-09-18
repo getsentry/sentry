@@ -32,7 +32,6 @@ import {
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -81,17 +80,6 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const categories = Object.values(DATA_CATEGORY_INFO);
     const info = categories.find(c => c.plural === dataCategoryPlural);
-
-    if (
-      info?.name === DataCategoryExact.SPAN &&
-      this.props.organization.features.includes('spans-usage-tracking') &&
-      !hasDynamicSamplingCustomFeature(this.props.organization)
-    ) {
-      return {
-        ...info,
-        name: DataCategoryExact.SPAN_INDEXED,
-      };
-    }
 
     // Default to errors
     return info ?? DATA_CATEGORY_INFO.error;
