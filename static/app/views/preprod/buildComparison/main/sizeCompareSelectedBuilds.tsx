@@ -61,43 +61,45 @@ export function SizeCompareSelectedBuilds({
 
       <Flex align="center" gap="sm">
         {baseBuildDetails ? (
-          <SelectedBaseBuild align="center" gap="sm">
-            <IconFocus size="xs" color="purple400" />
-            <Text size="sm" variant="accent" bold>
-              {t('Comparison:')}
-            </Text>
-            <Flex align="center" gap="md">
-              {basePrNumber && (
-                <Text size="sm" variant="accent" bold>
-                  {`#${basePrNumber} `}
-                </Text>
-              )}
-              {baseSha && (
-                <Text size="sm" variant="accent" bold>
-                  <Flex align="center" gap="xs">
-                    <IconCommit size="xs" />
-                    {baseSha}
-                  </Flex>
-                </Text>
-              )}
-            </Flex>
-            <BaseBuildBranch>
-              <Text size="sm" variant="muted">
-                {baseBranchName}
+          <Button>
+            <Flex align="center" gap="sm">
+              <IconFocus size="xs" color="purple400" />
+              <Text size="sm" variant="accent" bold>
+                {t('Comparison:')}
               </Text>
-            </BaseBuildBranch>
-            <Button
-              onClick={e => {
-                e.stopPropagation();
-                onClearBaseBuild();
-              }}
-              size="zero"
-              priority="transparent"
-              borderless
-              aria-label={t('Clear base build')}
-              icon={<IconClose size="xs" color="purple400" />}
-            />
-          </SelectedBaseBuild>
+              <Flex align="center" gap="md">
+                {basePrNumber && (
+                  <Text size="sm" variant="accent" bold>
+                    {`#${basePrNumber} `}
+                  </Text>
+                )}
+                {baseSha && (
+                  <Text size="sm" variant="accent" bold>
+                    <Flex align="center" gap="xs">
+                      <IconCommit size="xs" />
+                      {baseSha}
+                    </Flex>
+                  </Text>
+                )}
+              </Flex>
+              <BaseBuildBranch>
+                <Text size="sm" variant="muted">
+                  {baseBranchName}
+                </Text>
+              </BaseBuildBranch>
+              <Button
+                onClick={e => {
+                  e.stopPropagation();
+                  onClearBaseBuild();
+                }}
+                size="zero"
+                priority="transparent"
+                borderless
+                aria-label={t('Clear base build')}
+                icon={<IconClose size="xs" color="purple400" />}
+              />
+            </Flex>
+          </Button>
         ) : (
           <SelectBuild>
             <Text size="sm">{t('Select a build')}</Text>
@@ -140,11 +142,4 @@ const SelectBuild = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   border-style: dashed;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-`;
-
-const SelectedBaseBuild = styled(Flex)`
-  background-color: ${p => p.theme.surface100};
-  border: 1px solid ${p => p.theme.focusBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
 `;

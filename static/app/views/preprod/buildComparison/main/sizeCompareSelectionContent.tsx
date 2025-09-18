@@ -3,23 +3,13 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import {Stack} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
-import {
-  IconCalendar,
-  IconClose,
-  IconCode,
-  IconCommit,
-  IconDownload,
-  IconFocus,
-  IconLock,
-  IconTelescope,
-} from 'sentry/icons';
+import {IconCalendar, IconCode, IconCommit, IconDownload} from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -111,6 +101,7 @@ export function SizeCompareSelectionContent({
         onClearBaseBuild={() => setSelectedBaseBuild(undefined)}
         onTriggerComparison={() => {
           if (!selectedBaseBuild) {
+            addErrorMessage(t('Please select a base build to compare.'));
             return;
           }
 
