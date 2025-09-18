@@ -617,7 +617,7 @@ def retry_task_or_fail_relocation(
 ) -> Generator[None]:
     """
     Catches all exceptions, and does one of two things: calls into `fail_relocation` if there are no
-    retry attempts forthcoming, or simply bubbles them up (thereby triggering a celery retry) if
+    retry attempts forthcoming, or simply bubbles them up (thereby triggering a retry) if
     there are.
 
     This function is ideal for transient failures, like networked service lag, where retrying at a
