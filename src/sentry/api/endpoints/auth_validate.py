@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import OrgAuthTokenAuthentication, UserAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -28,7 +29,9 @@ class AuthValidateEndpoint(Endpoint):
     permission_classes = ()
 
     enforce_rate_limit = True
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=1250, window=60)}}
+    rate_limits = RateLimitConfig(
+        limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=1250, window=60)}}
+    )
 
     def get(self, request: Request) -> Response:
         if request.auth or request.user.is_authenticated:
