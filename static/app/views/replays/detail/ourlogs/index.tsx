@@ -172,10 +172,6 @@ const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
   ${p => p.isStatus && 'justify-content: center;'}
 `;
 
-const StatusGridBody = styled(GridBody)`
-  height: unset;
-`;
-
 const TableScrollContainer = styled('div')`
   overflow-y: auto;
   overflow-x: hidden;
