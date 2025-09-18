@@ -127,3 +127,71 @@ const Label = styled('span')`
   Text
 </Text>;
 ```
+
+- Do not use or style h1, h2, h3, h4, h5, h6 intrinsic elements. Prefer using <Heading as="h1...h6">title</Heading> component instead
+
+```tsx
+import {Heading} from 'sentry/components/core/text';
+
+// ❌ No need to use styled and create a new styled component
+const Title = styled('h4')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizes.small};
+`;
+
+// ❌ Do not use intrinsic heading elements directly
+function Component(){
+  return <h4>Title<h4>
+}
+
+// ✅ Use the Heading typography primitive
+<Heading as="h4">Title</Heading>;
+
+// ✅ Use the Heading typography primitive
+function Component(){
+  return <Heading as="h4">Title</Heading>
+}
+```
+
+- Do not use or style intrinsic elements like. Prefer using <Text as="p | span | div">text...</Text> component instead
+
+```tsx
+import {Text} from 'sentry/components/core/text';
+
+// ❌ Do not style intrinsic elements directly
+const Paragraph = styled('p')`
+  color: ${p => p.theme.subText};
+  line-height: 1.5;
+`;
+
+const Label = styled('span')`
+  font-weight: bold;
+  text-transform: uppercase;
+`;
+
+// ❌ Do not use raw intrinsic elements
+function Content() {
+  return (
+    <div>
+      <p>This is a paragraph of content</p>
+      <span>Status: Active</span>
+      <div>Container content</div>
+    </div>
+  );
+}
+
+// ✅ Use Text component with semantic HTML via 'as' prop
+function Content() {
+  return (
+    <div>
+      <Text as="p" variant="muted" density="comfortable">
+        This is a paragraph of content
+      </Text>
+      <Text as="span" bold uppercase>
+        Status: Active
+      </Text>
+      <Text as="div">Container content</Text>
+    </div>
+  );
+}
+```

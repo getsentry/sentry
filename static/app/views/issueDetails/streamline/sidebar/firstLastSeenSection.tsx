@@ -11,6 +11,7 @@ import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
@@ -42,8 +43,13 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
     }
   );
 
+  const {data: openPeriods} = useOpenPeriods(
+    {groupId: group.id},
+    {enabled: issueTypeConfig.useOpenPeriodChecks}
+  );
+
   const lastSeen = issueTypeConfig.useOpenPeriodChecks
-    ? (group.openPeriods?.[0]?.lastChecked ?? group.lastSeen)
+    ? (openPeriods?.[0]?.lastChecked ?? group.lastSeen)
     : group.lastSeen;
 
   const lastSeenGlobal = issueTypeConfig.useOpenPeriodChecks
