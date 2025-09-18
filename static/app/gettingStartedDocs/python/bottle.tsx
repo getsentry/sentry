@@ -139,7 +139,7 @@ run(app, host='localhost', port=8000)
           type: 'text',
           text: [
             tct(
-              'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
+              'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
               {
                 link: <ExternalLink href="http://localhost:8000/" />,
               }
