@@ -225,7 +225,7 @@ export default function AutomationDetail() {
 
 function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation({});
+  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
     const newEnabled = !automation.enabled;
