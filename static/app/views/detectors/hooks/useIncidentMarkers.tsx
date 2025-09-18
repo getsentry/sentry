@@ -20,7 +20,6 @@ import type {
   EChartMouseOverHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 
 const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
 const INCIDENT_MARKER_AREA_SERIES_ID = '__incident_marker_area__';
@@ -56,32 +55,13 @@ export interface IncidentPeriod {
   hoverColor?: string;
 }
 
-export function formatTimestamp(
-  ts: number,
-  opts?: {timeZone?: boolean; year?: boolean}
-): string {
-  return getFormattedDate(
-    ts,
-    getFormat({timeZone: opts?.timeZone ?? true, year: opts?.year ?? false}),
-    {local: true}
-  );
-}
-
 interface IncidentMarkerSeriesProps {
   incidentPeriods: IncidentPeriod[];
   theme: Theme;
-  markLineTooltip?: (context: {
-    format: (ts: number, opts?: {timeZone?: boolean; year?: boolean}) => string;
-    period: IncidentPeriod;
-    theme: Theme;
-  }) => string;
+  markLineTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
   seriesId?: string;
   seriesName?: string;
-  seriesTooltip?: (context: {
-    format: (ts: number, opts?: {timeZone?: boolean; year?: boolean}) => string;
-    period: IncidentPeriod;
-    theme: Theme;
-  }) => string;
+  seriesTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
   yAxisIndex?: number;
 }
 
@@ -210,9 +190,7 @@ function IncidentMarkerSeries({
             const datum = (Array.isArray(p) ? p[0]?.data : p.data) as
               | IncidentPeriod
               | undefined;
-            return datum
-              ? seriesTooltip({theme, period: datum, format: formatTimestamp})
-              : '';
+            return datum ? seriesTooltip({theme, period: datum}) : '';
           },
         }
       : undefined,
