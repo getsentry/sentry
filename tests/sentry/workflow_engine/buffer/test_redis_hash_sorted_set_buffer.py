@@ -175,11 +175,11 @@ class TestRedisHashSortedSetBuffer:
     def test_conditional_delete_from_sorted_sets_empty_inputs(self):
         """Test conditional delete with empty inputs."""
 
-        # Empty keys
-        result = self.buf.conditional_delete_from_sorted_sets([], [(123, 1.0)])
-        assert result == {}
+        # Empty keys should raise ValueError
+        with pytest.raises(ValueError, match="Keys list cannot be empty"):
+            self.buf.conditional_delete_from_sorted_sets([], [(123, 1.0)])
 
-        # Empty members_and_scores
+        # Empty members_and_scores is fine - no work to do
         result = self.buf.conditional_delete_from_sorted_sets(["key1"], [])
         assert result == {"key1": []}
 
