@@ -68,6 +68,7 @@ export interface HybridFilterProps<Value extends SelectKey>
    */
   onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
+  storageNamespace?: string;
 }
 
 /**
