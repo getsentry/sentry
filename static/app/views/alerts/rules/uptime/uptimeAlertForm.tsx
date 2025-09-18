@@ -455,7 +455,7 @@ const Configuration = styled('div')`
 const ConfigurationPanel = styled(Panel)`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: fit-content(350px) 1fr;
   align-items: center;
 
   ${FieldWrapper} {
