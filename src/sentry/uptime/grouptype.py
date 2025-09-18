@@ -17,7 +17,12 @@ from sentry.models.group import GroupStatus
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.uptime.models import UptimeStatus, UptimeSubscription
-from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
+from sentry.uptime.types import (
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    UptimeMonitorMode,
+)
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
@@ -70,22 +75,6 @@ def build_detector_fingerprint_component(detector: Detector) -> str:
 
 def build_fingerprint(detector: Detector) -> list[str]:
     return [build_detector_fingerprint_component(detector)]
-
-
-def get_active_failure_threshold() -> int:
-    """
-    When in active monitoring mode, overrides how many failures in a row we
-    need to see to mark the monitor as down
-    """
-    return options.get("uptime.active-failure-threshold")
-
-
-def get_active_recovery_threshold() -> int:
-    """
-    When in active monitoring mode, how many successes in a row do we need to
-    mark it as up
-    """
-    return options.get("uptime.active-recovery-threshold")
 
 
 def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
@@ -147,9 +136,17 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
     @override
     @property
     def thresholds(self) -> DetectorThresholds:
+        # TODO: Drop these fallbacks once migration 0045 is deployed and all detectors have config values
+        recovery_threshold = self.detector.config.get(
+            "recovery_threshold", DEFAULT_RECOVERY_THRESHOLD
+        )
+        downtime_threshold = self.detector.config.get(
+            "downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD
+        )
+
         return {
-            DetectorPriorityLevel.OK: get_active_recovery_threshold(),
-            DetectorPriorityLevel.HIGH: get_active_failure_threshold(),
+            DetectorPriorityLevel.OK: recovery_threshold,
+            DetectorPriorityLevel.HIGH: downtime_threshold,
         }
 
     @override
@@ -308,6 +305,16 @@ class UptimeDomainCheckFailure(GroupType):
                     "enum": [mode.value for mode in UptimeMonitorMode],
                 },
                 "environment": {"type": ["string", "null"]},
+                "recovery_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of consecutive successful checks required to mark monitor as recovered",
+                },
+                "downtime_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of consecutive failed checks required to mark monitor as down",
+                },
             },
             "additionalProperties": False,
         },

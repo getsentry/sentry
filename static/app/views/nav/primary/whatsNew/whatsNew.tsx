@@ -2,7 +2,6 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -91,11 +90,7 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
   }
 
   if (broadcasts.length === 0) {
-    return (
-      <SidebarPanelEmpty>
-        {t('No recent updates from the Sentry team.')}
-      </SidebarPanelEmpty>
-    );
+    return <Empty>{t('No recent updates from the Sentry team.')}</Empty>;
   }
 
   return (
@@ -160,4 +155,14 @@ const WhatsNewButton = styled(SidebarButton)`
   @media (min-height: 800px) {
     display: flex;
   }
+`;
+
+const Empty = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${p => p.theme.subText};
+  padding: 0 60px;
+  text-align: center;
+  min-height: 150px;
 `;

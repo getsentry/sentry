@@ -312,7 +312,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         try:
             detector = get_detector(subscription, prefetch_workflow_data=True)
         except Detector.DoesNotExist:
-            # Nothing to do if there's an orphaned project subscription
+            # Nothing to do if there's an orphaned uptime subscription
             remove_uptime_subscription_if_unused(subscription)
             return
 
