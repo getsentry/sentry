@@ -29,7 +29,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {
   useLogsFrozenProjectIds,
-  useLogsFrozenReplayIds,
+  useLogsFrozenReplayInfo,
   useLogsFrozenSearch,
   useLogsFrozenTraceIds,
 } from 'sentry/views/explore/logs/logsFrozenContext';
@@ -168,7 +168,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const _fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const frozenTraceIds = useLogsFrozenTraceIds();
-  const frozenReplayIds = useLogsFrozenReplayIds();
+  const frozenReplayInfo = useLogsFrozenReplayInfo();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsFrozenProjectIds();
@@ -193,12 +193,20 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     dataset,
     projectIds ?? pageFilters.projects
   );
+
   const eventViewPayload = eventView.getEventsAPIPayload(location);
+
+  if (frozenReplayInfo) {
+    delete eventViewPayload.statsPeriod;
+    eventViewPayload.start = frozenReplayInfo.replayStartedAt?.toISOString();
+    eventViewPayload.end = frozenReplayInfo.replayEndedAt?.toISOString();
+  }
+
   const params = {
     query: {
       ...eventViewPayload,
       ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
-      ...(frozenReplayIds ? {replayId: frozenReplayIds} : {}),
+      ...(frozenReplayInfo ? {replayId: frozenReplayInfo.replayId} : {}),
       cursor,
       orderby: eventViewPayload.sort,
       per_page: limit ? limit : undefined,
@@ -208,7 +216,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     eventView,
   };
 
-  const endpointSuffix = frozenTraceIds || frozenReplayIds ? 'trace-logs' : 'events';
+  const endpointSuffix = frozenTraceIds || frozenReplayInfo ? 'trace-logs' : 'events';
 
   const queryKey: ApiQueryKey = [
     `/organizations/${organization.slug}/${endpointSuffix}/`,

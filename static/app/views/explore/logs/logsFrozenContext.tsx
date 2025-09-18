@@ -9,7 +9,9 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 interface LogsFrozenContextValue {
   frozen: boolean;
   projectIds?: number[];
-  replayIds?: string[];
+  replayEndedAt?: Date;
+  replayId?: string;
+  replayStartedAt?: Date;
   search?: MutableSearch;
   spanId?: string;
   traceIds?: string[];
@@ -39,10 +41,8 @@ interface LogsFrozenForSpanProviderProps {
 
 interface LogsFrozenForReplayProviderProps {
   replayId: string;
-}
-
-interface LogsFrozenForReplaysProviderProps {
-  replayIds: string[];
+  replayStartedAt: Date;
+  replayEndedAt?: Date;
 }
 
 type LogsNotFrozenProviderProps = Record<keyof any, never>;
@@ -52,7 +52,6 @@ export type LogsFrozenContextProviderProps =
   | LogsFrozenForTraceProviderProps
   | LogsFrozenForSpanProviderProps
   | LogsFrozenForReplayProviderProps
-  | LogsFrozenForReplaysProviderProps
   | LogsNotFrozenProviderProps;
 
 interface LogsFrozenForTracesProviderWithChildrenProps
@@ -71,16 +70,11 @@ interface LogsFrozenForReplayProviderWithChildrenProps
   extends ReactPortal,
     LogsFrozenForReplayProviderProps {}
 
-interface LogsFrozenForReplaysProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForReplaysProviderProps {}
-
 type LogsFrozenContextProviderWithChildrenProps =
   | LogsFrozenForTracesProviderWithChildrenProps
   | LogsFrozenForTraceProviderWithChildrenProps
   | LogsFrozenForSpanProviderWithChildrenProps
   | LogsFrozenForReplayProviderWithChildrenProps
-  | LogsFrozenForReplaysProviderWithChildrenProps
   | {children: ReactNode};
 
 function isLogsFrozenForTracesProviderWithChildrenProps(
@@ -105,12 +99,6 @@ function isLogsFrozenForReplayProviderWithChildrenProps(
   value: LogsFrozenContextProviderWithChildrenProps
 ): value is LogsFrozenForReplayProviderWithChildrenProps {
   return value.hasOwnProperty('replayId');
-}
-
-function isLogsFrozenForReplaysProviderWithChildrenProps(
-  value: LogsFrozenContextProviderWithChildrenProps
-): value is LogsFrozenForReplaysProviderWithChildrenProps {
-  return value.hasOwnProperty('replayIds');
 }
 
 export function LogsFrozenContextProvider(
@@ -152,29 +140,16 @@ export function LogsFrozenContextProvider(
       };
     }
 
-    if (
-      isLogsFrozenForReplaysProviderWithChildrenProps(props) &&
-      props.replayIds.length
-    ) {
-      const search = new MutableSearch('');
-      const replayIds = `[${props.replayIds.join(',')}]`;
-      search.addFilterValue(OurLogKnownFieldKey.REPLAY_ID, replayIds);
-      return {
-        frozen: true,
-        search,
-        replayIds: props.replayIds,
-        projectIds: [ALL_ACCESS_PROJECTS],
-      };
-    }
-
     if (isLogsFrozenForReplayProviderWithChildrenProps(props)) {
       const search = new MutableSearch('');
       search.addFilterValue(OurLogKnownFieldKey.REPLAY_ID, props.replayId);
       return {
         frozen: true,
         search,
-        replayIds: [props.replayId],
+        replayId: props.replayId,
         projectIds: [ALL_ACCESS_PROJECTS],
+        replayStartedAt: props.replayStartedAt,
+        replayEndedAt: props.replayEndedAt,
       };
     }
 
@@ -201,8 +176,12 @@ export function useLogsFrozenTraceIds() {
   return useLogsFrozenContext().traceIds;
 }
 
-export function useLogsFrozenReplayIds() {
-  return useLogsFrozenContext().replayIds;
+export function useLogsFrozenReplayInfo() {
+  return {
+    replayId: useLogsFrozenContext().replayId,
+    replayStartedAt: useLogsFrozenContext().replayStartedAt,
+    replayEndedAt: useLogsFrozenContext().replayEndedAt,
+  };
 }
 
 export function useLogsFrozenSearch() {

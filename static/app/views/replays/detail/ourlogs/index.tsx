@@ -1,10 +1,11 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {GridBody} from 'sentry/components/tables/gridEditable/styles';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
@@ -21,7 +22,6 @@ import {
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
-  ErrorRenderer,
   LoadingRenderer,
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
@@ -32,29 +32,17 @@ import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
 import {ourlogsAsFrames} from 'sentry/views/replays/detail/ourlogs/ourlogsAsFrames';
 import useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
-import {useReplayTraces} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 export default function OurLogs() {
   const replay = useReplayReader();
-  const {indexComplete, indexError} = useReplayTraces({
-    replayRecord: replay?.getReplay(),
-  });
 
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
 
   const replayId = replay?.getReplay()?.id;
+  const replayStartedAt = replay?.getReplay()?.started_at;
+  const replayEndedAt = replay?.getReplay()?.finished_at;
 
-  if (indexError) {
-    return (
-      <BorderedSection isStatus>
-        <StatusGridBody>
-          <ErrorRenderer />
-        </StatusGridBody>
-      </BorderedSection>
-    );
-  }
-
-  if (!replay || !indexComplete || !replayId) {
+  if (!replay || !defined(replayStartedAt) || !defined(replayEndedAt) || !replayId) {
     return (
       <BorderedSection isStatus>
         <GridBody>
@@ -67,7 +55,7 @@ export default function OurLogs() {
   return (
     <LogsQueryParamsProvider
       source="state"
-      freeze={{replayId}}
+      freeze={{replayId, replayStartedAt, replayEndedAt}}
       frozenParams={{
         sortBys: [logsTimestampAscendingSortBy],
         fields: rearrangedLogsReplayFields(defaultLogFields()),
