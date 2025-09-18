@@ -1069,7 +1069,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
         content: [
           {
             type: 'text',
-            text: t(
+            text: tct(
               'Add [name] to your integrations list, and initialize your feature flag SDK.',
               {
                 name: <code>{integrationName}</code>,
