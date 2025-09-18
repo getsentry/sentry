@@ -154,9 +154,8 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'This library comes with an extension to capture all error messages that the Plug handler might not. This is based on adding an erlang logger handler when your application starts:',
-            {code: <code />}
+          text: t(
+            'This library comes with an extension to capture all error messages that the Plug handler might not. This is based on adding an erlang logger handler when your application starts:'
           ),
         },
         {
