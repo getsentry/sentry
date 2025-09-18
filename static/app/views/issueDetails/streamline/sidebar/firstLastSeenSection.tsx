@@ -42,7 +42,6 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
       gcTime: 30000,
     }
   );
-
   const {data: openPeriods} = useOpenPeriods(
     {groupId: group.id},
     {enabled: issueTypeConfig.useOpenPeriodChecks}
