@@ -196,7 +196,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
 
   const eventViewPayload = eventView.getEventsAPIPayload(location);
 
-  if (frozenReplayInfo) {
+  if (frozenReplayInfo.replayId) {
     delete eventViewPayload.statsPeriod;
     eventViewPayload.start = frozenReplayInfo.replayStartedAt?.toISOString();
     eventViewPayload.end = frozenReplayInfo.replayEndedAt?.toISOString();
@@ -216,7 +216,8 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     eventView,
   };
 
-  const endpointSuffix = frozenTraceIds || frozenReplayInfo ? 'trace-logs' : 'events';
+  const endpointSuffix =
+    frozenTraceIds || frozenReplayInfo.replayId ? 'trace-logs' : 'events';
 
   const queryKey: ApiQueryKey = [
     `/organizations/${organization.slug}/${endpointSuffix}/`,
