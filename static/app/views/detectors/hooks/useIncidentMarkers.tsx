@@ -16,6 +16,7 @@ import type {
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {
+  EChartClickHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   ReactEchartsRef,
@@ -63,12 +64,12 @@ export interface IncidentPeriod {
 
 interface IncidentMarkerSeriesProps {
   incidentPeriods: IncidentPeriod[];
+  markLineTooltip: UseIncidentMarkersProps['markLineTooltip'];
+  seriesId: string;
+  seriesName: string;
+  seriesTooltip: UseIncidentMarkersProps['seriesTooltip'];
   theme: Theme;
-  markLineTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
-  seriesId?: string;
-  seriesName?: string;
-  seriesTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
-  yAxisIndex?: number;
+  yAxisIndex: number;
 }
 
 /**
@@ -159,6 +160,7 @@ function IncidentMarkerSeries({
       emphasis: {
         lineStyle: {
           ...lineStyle,
+          width: 2,
           opacity: 1,
         },
       },
@@ -216,6 +218,7 @@ interface UseIncidentMarkersProps {
    * Provide a custom tooltip for the mark line items
    */
   markLineTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
+  onClick?: (context: {item: 'line' | 'bubble'; period: IncidentPeriod}) => void;
   seriesId?: string;
   /**
    * Provide a custom tooltip for the series
@@ -245,6 +248,7 @@ export function useIncidentMarkers({
   seriesTooltip,
   markLineTooltip,
   yAxisIndex = 0,
+  onClick,
 }: UseIncidentMarkersProps): UseIncidentMarkersResult {
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef | null>(null);
@@ -301,6 +305,12 @@ export function useIncidentMarkers({
       chartRef.current = ref;
 
       const echartsInstance = ref?.getEchartsInstance?.();
+
+      // Map incident start timestamps to periods for quick lookup on markLine clicks
+      const periodByStart = new Map<number, IncidentPeriod>();
+      for (const period of incidentPeriods) {
+        periodByStart.set(period.start, period);
+      }
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
         if (
@@ -360,11 +370,39 @@ export function useIncidentMarkers({
         );
       };
 
+      const handleClick = (params: Parameters<EChartClickHandler>[0]) => {
+        if (!echartsInstance || !onClick) {
+          return;
+        }
+
+        // Click on the incident rectangle ("bubble")
+        if (params.componentType === 'series' && params.seriesId === seriesId) {
+          const datum = params.data as IncidentPeriod;
+          if (datum) {
+            onClick({item: 'bubble', period: datum});
+          }
+          return;
+        }
+
+        // Click on the incident start markLine
+        if (params.componentType === 'markLine' && params.seriesId === seriesId) {
+          type MarkLineDatum = {xAxis?: number};
+          const datum = params.data as MarkLineDatum;
+          const start = typeof datum?.xAxis === 'number' ? datum.xAxis : undefined;
+          const period = start === undefined ? undefined : periodByStart.get(start);
+          if (period) {
+            onClick({item: 'line', period});
+          }
+        }
+      };
+
       if (echartsInstance) {
         // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseover', handleMouseOver);
         // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseout', handleMouseOut);
+        // @ts-expect-error not sure what type echarts is expecting here
+        echartsInstance.on('click', handleClick);
       }
 
       return () => {
@@ -373,9 +411,10 @@ export function useIncidentMarkers({
         }
         echartsInstance.off('mouseover', handleMouseOver);
         echartsInstance.off('mouseout', handleMouseOut);
+        echartsInstance.off('click', handleClick);
       };
     },
-    [seriesId]
+    [seriesId, incidentPeriods, onClick]
   );
 
   const incidentMarkerSeries = useMemo(() => {

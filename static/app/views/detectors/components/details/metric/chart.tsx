@@ -14,6 +14,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {
+  buildDetectorZoomQuery,
+  computeZoomRangeMs,
+} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useDetectorDateParams} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
@@ -86,6 +91,8 @@ function MetricDetectorChart({
   snubaQuery,
   detector,
 }: MetricDetectorChartProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const detectionType = detector.config.detectionType;
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
@@ -141,6 +148,20 @@ function MetricDetectorChart({
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
     seriesTooltip: incidentSeriesTooltip,
     markLineTooltip: incidentMarklineTooltip,
+    onClick: context => {
+      const startMs = context.period.start;
+      const endMs = context.period.end ?? Date.now();
+      const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
+      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+        startMs,
+        endMs,
+        intervalSeconds,
+      });
+      navigate({
+        pathname: location.pathname,
+        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
+      });
+    },
   });
 
   const chartZoomProps = useChartZoom({
