@@ -11,7 +11,7 @@
             <a href="{{group.get_absolute_url}}">{{metadata.type|truncatechars:40}}</a>
           {% endif %}
           {% if culprit %}
-            &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:40 }}</span>
+            &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:35 }}</span>
           {% endif %}
           <br />
           {% if metadata.value %}
@@ -25,7 +25,7 @@
           {% endif %}
           <br />
           {% if culprit %}
-          &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:40 }}</span>
+          &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:35 }}</span>
           {% endif %}
         {% endif %}
       </h3>
@@ -53,7 +53,7 @@
           <a href="{{group.get_absolute_url}}">{{group.title|truncatechars:40}}</a>
         {% endif %}
         {% if culprit %}
-          &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:40 }}</span>
+          &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:35 }}</span>
         {% endif %}
         <br />
         {% if metadata.value %}

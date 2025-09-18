@@ -7,13 +7,19 @@
 {% block head %}
   {{ block.super }}
   <style type="text/css" inline="false">
+    @media only screen and (max-device-width: 480px) {
+      /* Hide CTA in header on mobile */
+      .header-buttons .integration-link {
+        display: none !important;
+      }
+      .banner {
+        display: none !important;
+      }
+    }
     @media only screen and (max-device-width: 768px) {
       .text-desktop-only {
         display: none !important;
       }
-    }
-    .group-header {
-      border-top: 2px solid #E7EBEE !important;
     }
   </style>
 {% endblock %}

@@ -12,6 +12,9 @@
         <th>
           <h6>On this issue</h6>
         </th>
+        <th class="align-right">
+          <h6>Level</h6>
+        </th>
       </tr>
     </thead>
     <tr>
@@ -24,10 +27,13 @@
           </small>
         </p>
       </td>
+      <td class="group-level">
+        <p class="value"><span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span></p>
+      </td>
     </tr>
   </table>
 </div>
-
+<br />
 <div class="interface">
   <table>
     <colgroup>
@@ -37,16 +43,6 @@
       <tr>
         <th>Project</th>
          <td><a href="{{group.project.get_absolute_url}}">{{ group.project.slug }}</a></td>
-      </tr>
-      {% if environment %}
-        <tr>
-          <th>Environment</th>
-          <td>{{ environment }}</td>
-        </tr>
-      {% endif %}
-      <tr>
-        <th>Level</th>
-        <td>{{ group.get_level_display }}</td>
       </tr>
     </tbody>
   </table>
