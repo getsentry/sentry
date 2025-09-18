@@ -26,13 +26,13 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByTransactionQuery} from 'sentry/views/insights/queues/queries/useQueuesByTransactionQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {type SpanResponse} from 'sentry/views/insights/types';
+import {type SpanNumberFields, type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
   SpanResponse,
   | 'sum(span.duration)'
   | 'transaction'
-  | `avg_if(${string},${string},${string},${string})`
+  | `avg_if(${SpanNumberFields},${string},${string},${string})`
   | `count_op(${string})`
 >;
 
