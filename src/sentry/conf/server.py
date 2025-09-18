@@ -1802,7 +1802,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
-        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
 }
 

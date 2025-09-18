@@ -572,6 +572,7 @@ def detect_expired_preprod_artifacts():
         },
     )
 
+    # note: looks for date_updated rather than date_added just to keep things more conservative for now
     expired_artifacts = PreprodArtifact.objects.filter(
         state__in=[PreprodArtifact.ArtifactState.UPLOADING, PreprodArtifact.ArtifactState.UPLOADED],
         date_updated__lte=timeout_threshold,
