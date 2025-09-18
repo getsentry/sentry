@@ -10,8 +10,8 @@ import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
 const durations = {
-  xs: 0.06,
-  sm: 0.11,
+  xs: 0.08,
+  sm: 0.12,
   md: 0.16,
   lg: 0.24,
   xl: 0.32,
