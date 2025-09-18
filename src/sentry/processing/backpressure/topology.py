@@ -8,7 +8,6 @@ In other words, which service (consumer) depends on which other services (queues
 
 
 class ProcessingServices(Enum):
-    Celery = "celery"
     AttachmentsStore = "attachments-store"
     ProcessingStore = "processing-store"
     ProcessingStoreTransactions = "processing-store-transactions"
@@ -17,7 +16,7 @@ class ProcessingServices(Enum):
 
 
 def get_all_services() -> list[str]:
-    return [item.value for item in ProcessingServices if item != ProcessingServices.Celery]
+    return [item.value for item in ProcessingServices]
 
 
 CONSUMERS = {
