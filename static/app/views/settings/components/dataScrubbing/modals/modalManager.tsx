@@ -36,22 +36,25 @@ type Values = FormProps['values'];
 type EventId = NonNullable<FormProps['eventId']>;
 type SourceSuggestions = FormProps['sourceSuggestions'];
 
-type Props = ModalRenderProps & {
+export type ModalManagerProps = ModalRenderProps & {
   api: Client;
   attributeResults: AttributeResults;
   endpoint: string;
   onGetNewRules: (values: Values) => Rule[];
   onSubmitSuccess: (data: {relayPiiConfig: string}) => void;
   orgSlug: Organization['slug'];
+  savedRules: Rule[];
+  title: string;
+  initialState?: Partial<Values>;
+  projectId?: Project['id'];
+};
+
+type ModalManagerWithLocalStorageProps = ModalManagerProps & {
   saveToSourceGroupData: (
     eventId: EventId,
     sourceSuggestions?: SourceSuggestions
   ) => void;
-  savedRules: Rule[];
   sourceGroupData: {eventId: string; sourceSuggestions: SourceSuggestions};
-  title: string;
-  initialState?: Partial<Values>;
-  projectId?: Project['id'];
 };
 
 type State = {
@@ -64,14 +67,14 @@ type State = {
   values: Values;
 };
 
-class ModalManager extends Component<Props, State> {
+class ModalManager extends Component<ModalManagerWithLocalStorageProps, State> {
   state = this.getDefaultState();
 
   componentDidMount() {
     this.handleValidateForm();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
+  componentDidUpdate(_prevProps: ModalManagerWithLocalStorageProps, prevState: State) {
     if (!isEqual(prevState.values, this.state.values)) {
       this.handleValidateForm();
     }
@@ -351,9 +354,7 @@ class ModalManager extends Component<Props, State> {
   }
 }
 
-function ModalManagerWithLocalStorage(
-  props: Omit<Props, 'sourceGroupData' | 'saveToSourceGroupData'>
-) {
+function ModalManagerWithLocalStorage(props: ModalManagerProps) {
   const {sourceGroupData, saveToSourceGroupData} = useSourceGroupData();
 
   return (
