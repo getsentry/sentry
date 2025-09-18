@@ -23,7 +23,7 @@ interface PreventAIConfig {
     Feature,
     {
       enabled: boolean;
-      triggers?: Trigger[];
+      triggers?: Record<Trigger, boolean>;
     }
   >;
 }

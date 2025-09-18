@@ -12,15 +12,24 @@ export interface PreventAIConfigResult {
   refetch: () => void;
 }
 
-const STORAGE_KEY = 'prevent-ai-config';
-
-export function usePreventAIConfig(): PreventAIConfigResult {
+export function usePreventAIConfig(
+  orgName?: string,
+  repoName?: string
+): PreventAIConfigResult {
   // TODO: Hook up to real API
   // const organization = useOrganization();
   // const {data, isLoading, isError, refetch} = useApiQuery<PreventAIConfig>(
   //   [`/organizations/${organization.slug}/prevent/ai/config/`],
   //   {staleTime: Infinity}
   // );
+
+  // Generate storage key based on org and repo
+  const getStorageKey = useCallback(() => {
+    if (!orgName || !repoName) {
+      return 'prevent-ai-config-default';
+    }
+    return `prevent-ai-config-${orgName}-${repoName}`;
+  }, [orgName, repoName]);
 
   // Load from localStorage
   const loadConfig = useCallback((): PreventAIConfig => {
@@ -35,13 +44,18 @@ export function usePreventAIConfig(): PreventAIConfigResult {
         },
         bug_prediction: {
           enabled: false,
-          triggers: [],
+          triggers: {
+            on_command_phrase: false,
+            on_ready_for_review: false,
+            on_new_commit: false,
+          },
         },
       },
     };
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const storageKey = getStorageKey();
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         // Merge with defaults to ensure all fields exist
@@ -56,7 +70,7 @@ export function usePreventAIConfig(): PreventAIConfigResult {
       // Silently handle localStorage errors
     }
     return defaultConfig;
-  }, []);
+  }, [getStorageKey]);
 
   const [config, setConfig] = useState<PreventAIConfig>(loadConfig);
 

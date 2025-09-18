@@ -75,10 +75,12 @@ export default function PreventAIManageRepos({
           </ManageReposLeftTitleBlock>
           <FeatureOverview />
           <ManageReposPanel
+            key={`${selectedOrg || 'no-org'}-${selectedRepo || 'no-repo'}`}
             collapsed={!isPanelOpen}
             onClose={() => setIsPanelOpen(false)}
-            orgName={selectedOrgData?.name || 'Select Organization'}
             repoName={selectedRepoData?.name || 'Select Repository'}
+            orgName={selectedOrgData?.name}
+            repoFullName={selectedRepoData?.fullName}
           />
         </ManageReposLeft>
 
@@ -93,7 +95,6 @@ export default function PreventAIManageRepos({
 
 const ManageReposContainer = styled(Flex)`
   flex-direction: column;
-  gap: ${p => p.theme.space.md};
   max-width: 1000px;
 `;
 

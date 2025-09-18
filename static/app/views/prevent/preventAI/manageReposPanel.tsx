@@ -1,8 +1,10 @@
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Switch} from 'sentry/components/core/switch';
+import {Text} from 'sentry/components/core/text';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
@@ -14,8 +16,9 @@ import useUpdatePreventAIFeature from './hooks/useUpdatePreventAIFeature';
 interface RepoSettingsSidePanelProps {
   collapsed: boolean;
   onClose: () => void;
-  orgName: string;
   repoName: string;
+  orgName?: string;
+  repoFullName?: string;
 }
 
 function getGithubUrl(repoFullName?: string) {
@@ -27,36 +30,62 @@ function getGithubUrl(repoFullName?: string) {
 export default function ManageReposPanel({
   collapsed,
   onClose,
-  orgName,
   repoName,
+  orgName,
+  repoFullName,
 }: RepoSettingsSidePanelProps) {
   // Use the config hook to get current feature state
   const {
     data: config,
     isLoading: configLoading,
     refetch: refetchConfig,
-  } = usePreventAIConfig();
+  } = usePreventAIConfig(orgName, repoName);
   const {
     enableFeature,
     isLoading: updateLoading,
     error: updateError,
-  } = useUpdatePreventAIFeature();
+  } = useUpdatePreventAIFeature(orgName, repoName);
 
   const isLoading = configLoading || updateLoading;
+
+  // Refetch config when org or repo changes
+  useEffect(() => {
+    if (orgName && repoName) {
+      refetchConfig();
+    }
+  }, [orgName, repoName, refetchConfig]);
 
   // Extract feature states from config, fallback to false if loading or missing
   const enableTestGeneration = config?.features?.test_generation?.enabled ?? false;
   const enablePRReview = config?.features?.vanilla_pr_review?.enabled ?? false;
   const bugPredictionConfig = config?.features?.bug_prediction;
   const enableErrorPrediction = bugPredictionConfig?.enabled ?? false;
-  const triggers = bugPredictionConfig?.triggers ?? [];
+  const triggers = bugPredictionConfig?.triggers ?? {
+    on_command_phrase: false,
+    on_ready_for_review: false,
+    on_new_commit: false,
+  };
 
   // For error prediction, determine sub-toggle states from triggers
-  const errorPredAutoRun = triggers.includes('on_ready_for_review');
-  const errorPredMentionOnly = triggers.includes('on_command_phrase');
+  const errorPredAutoRun = triggers?.on_ready_for_review ?? false;
+  const errorPredMentionOnly = triggers?.on_command_phrase ?? false;
 
-  const repository = `${orgName}/${repoName}`;
-  const repoUrl = getGithubUrl(repository);
+  const repoUrl = useMemo(() => {
+    return getGithubUrl(repoFullName);
+  }, [repoFullName]);
+
+  // Handle missing data gracefully
+  if (!orgName || !repoName || !repoFullName) {
+    return (
+      <SlideOverPanel
+        collapsed={collapsed}
+        slidePosition="right"
+        ariaLabel="Settings Panel"
+      >
+        <div>Loading...</div>
+      </SlideOverPanel>
+    );
+  }
 
   return (
     <SlideOverPanel
@@ -126,7 +155,9 @@ export default function ManageReposPanel({
                     await enableFeature({
                       feature: 'vanilla_pr_review',
                       enabled: newValue,
-                      triggers: newValue ? ['on_command_phrase'] : [],
+                      triggers: newValue
+                        ? {on_command_phrase: true}
+                        : {on_command_phrase: false},
                     });
                     refetchConfig();
                   }}
@@ -153,7 +184,9 @@ export default function ManageReposPanel({
                     await enableFeature({
                       feature: 'test_generation',
                       enabled: newValue,
-                      triggers: newValue ? ['on_command_phrase'] : [],
+                      triggers: newValue
+                        ? {on_command_phrase: true}
+                        : {on_command_phrase: false},
                     });
                     refetchConfig();
                   }}
@@ -180,7 +213,17 @@ export default function ManageReposPanel({
                     await enableFeature({
                       feature: 'bug_prediction',
                       enabled: newValue,
-                      triggers: newValue ? ['on_ready_for_review', 'on_new_commit'] : [],
+                      triggers: newValue
+                        ? {
+                            on_ready_for_review: true,
+                            on_new_commit: true,
+                            on_command_phrase: false,
+                          }
+                        : {
+                            on_ready_for_review: false,
+                            on_new_commit: false,
+                            on_command_phrase: false,
+                          },
                     });
                     refetchConfig();
                   }}
@@ -189,9 +232,13 @@ export default function ManageReposPanel({
               </FeatureSectionTop>
               {enableErrorPrediction && (
                 <FeatureSectionSubItemContainer>
-                  <StyledFieldGroup
-                    label={t('Auto Run on Opened Pull Requests')}
-                    help={t('Run when a PR is published, ignoring new pushes.')}
+                  <FieldGroup
+                    label={<Text size="md">{t('Auto Run on Opened Pull Requests')}</Text>}
+                    help={
+                      <Text size="xs">
+                        {t('Run when a PR is published, ignoring new pushes.')}
+                      </Text>
+                    }
                     inline
                     flexibleControlStateSize
                   >
@@ -201,11 +248,11 @@ export default function ManageReposPanel({
                       disabled={isLoading}
                       onChange={async () => {
                         const newValue = !errorPredAutoRun;
-                        const newTriggers = [
-                          ...(newValue ? ['on_ready_for_review'] : []),
-                          ...(errorPredMentionOnly ? ['on_command_phrase'] : []),
-                          ...(enableErrorPrediction ? ['on_new_commit'] : []),
-                        ];
+                        const newTriggers = {
+                          on_ready_for_review: newValue,
+                          on_command_phrase: errorPredMentionOnly,
+                          on_new_commit: enableErrorPrediction,
+                        };
                         await enableFeature({
                           feature: 'bug_prediction',
                           enabled:
@@ -216,10 +263,14 @@ export default function ManageReposPanel({
                       }}
                       aria-label="Auto Run on Opened Pull Requests"
                     />
-                  </StyledFieldGroup>
-                  <StyledFieldGroup
-                    label={t('Run When Mentioned')}
-                    help={t('Run when @sentry review is commented on a PR')}
+                  </FieldGroup>
+                  <FieldGroup
+                    label={<Text size="md">{t('Run When Mentioned')}</Text>}
+                    help={
+                      <Text size="xs">
+                        {t('Run when @sentry review is commented on a PR')}
+                      </Text>
+                    }
                     inline
                     flexibleControlStateSize
                   >
@@ -229,11 +280,11 @@ export default function ManageReposPanel({
                       disabled={isLoading}
                       onChange={async () => {
                         const newValue = !errorPredMentionOnly;
-                        const newTriggers = [
-                          ...(errorPredAutoRun ? ['on_ready_for_review'] : []),
-                          ...(newValue ? ['on_command_phrase'] : []),
-                          ...(enableErrorPrediction ? ['on_new_commit'] : []),
-                        ];
+                        const newTriggers = {
+                          on_ready_for_review: errorPredAutoRun,
+                          on_command_phrase: newValue,
+                          on_new_commit: enableErrorPrediction,
+                        };
                         await enableFeature({
                           feature: 'bug_prediction',
                           enabled: enableErrorPrediction || errorPredAutoRun || newValue,
@@ -243,7 +294,7 @@ export default function ManageReposPanel({
                       }}
                       aria-label="Run When Mentioned"
                     />
-                  </StyledFieldGroup>
+                  </FieldGroup>
                 </FeatureSectionSubItemContainer>
               )}
             </FeatureSectionContainer>
@@ -323,8 +374,6 @@ const FeatureSectionSubItemContainer = styled(Flex)`
   padding-left: ${p => p.theme.space.md};
   gap: ${p => p.theme.space.md};
 `;
-
-const StyledFieldGroup = styled(FieldGroup)``;
 
 /// fix these
 

@@ -9,19 +9,17 @@ import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 interface UpdateFeatureParams {
   enabled: boolean;
   feature: string;
-  triggers: string[];
+  triggers: Record<string, boolean>;
 }
 
 interface UpdateFeatureResult {
   enabled: boolean;
   feature: string;
   success: boolean;
-  triggers: string[];
+  triggers: Record<string, boolean>;
 }
 
-const STORAGE_KEY = 'prevent-ai-config';
-
-function useUpdatePreventAIFeature() {
+function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,10 +53,19 @@ function useUpdatePreventAIFeature() {
       setError(null);
 
       try {
+        // Generate storage key based on org and repo
+        const getStorageKey = () => {
+          if (!orgName || !repoName) {
+            return 'prevent-ai-config-default';
+          }
+          return `prevent-ai-config-${orgName}-${repoName}`;
+        };
+
         // Load current config from localStorage
         const currentConfig: PreventAIConfig = (() => {
           try {
-            const stored = localStorage.getItem(STORAGE_KEY);
+            const storageKey = getStorageKey();
+            const stored = localStorage.getItem(storageKey);
             if (stored) {
               return JSON.parse(stored);
             }
@@ -70,7 +77,14 @@ function useUpdatePreventAIFeature() {
             features: {
               vanilla_pr_review: {enabled: false},
               test_generation: {enabled: false},
-              bug_prediction: {enabled: false, triggers: []},
+              bug_prediction: {
+                enabled: false,
+                triggers: {
+                  on_command_phrase: false,
+                  on_ready_for_review: false,
+                  on_new_commit: false,
+                },
+              },
             },
           };
         })();
@@ -88,7 +102,8 @@ function useUpdatePreventAIFeature() {
         };
 
         // Save to localStorage
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedConfig));
+        const storageKey = getStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(updatedConfig));
 
         // Simulate API delay for realistic UX
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -110,7 +125,7 @@ function useUpdatePreventAIFeature() {
         setIsLoading(false);
       }
     },
-    []
+    [orgName, repoName]
   );
 
   return {

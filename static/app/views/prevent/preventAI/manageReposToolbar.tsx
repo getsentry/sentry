@@ -117,7 +117,7 @@ const IconContainer = styled('span')`
 
 const TriggerLabel = styled('span')`
   font-size: ${p => p.theme.fontSize.md};
-  font-weight: 500;
+  font-weight: 600;
 `;
 
 export default ManageReposToolbar;
