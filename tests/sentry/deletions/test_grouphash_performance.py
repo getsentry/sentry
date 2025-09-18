@@ -5,9 +5,11 @@ The issue was that when deleting large numbers of GroupHash objects, Django woul
 generate UPDATE queries with very large IN clauses to set seer_matched_grouphash_id = NULL,
 causing database query cancellations due to missing indexes and large IN clauses.
 """
-import pytest
+
 from unittest.mock import patch
 from uuid import uuid4
+
+import pytest
 
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.models.group import Group
@@ -22,16 +24,14 @@ pytestmark = [requires_snuba]
 class GroupHashDeletionPerformanceTest(TestCase):
     def test_large_batch_deletion_with_seer_references(self) -> None:
         """
-        Test that deleting groups with many GroupHash objects and seer_matched_grouphash 
+        Test that deleting groups with many GroupHash objects and seer_matched_grouphash
         references doesn't cause query cancellation issues.
-        
-        This test simulates the scenario that was causing OperationalError: 
+
+        This test simulates the scenario that was causing OperationalError:
         canceling statement due to user request.
         """
         # Create a main group that will be referenced by many others
-        main_event = self.store_event(
-            data={"message": "Main group"}, project_id=self.project.id
-        )
+        main_event = self.store_event(data={"message": "Main group"}, project_id=self.project.id)
         assert main_event.group
         main_group_id = main_event.group.id
         main_grouphash = GroupHash.objects.filter(group_id=main_group_id).first()
@@ -39,7 +39,7 @@ class GroupHashDeletionPerformanceTest(TestCase):
 
         # Create multiple groups that will have seer matches pointing to the main group
         group_ids = []
-        
+
         # Create a batch of groups with seer references
         with patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True):
             with patch(
@@ -59,14 +59,14 @@ class GroupHashDeletionPerformanceTest(TestCase):
             seer_matched_grouphash=main_grouphash
         )
         assert seer_referenced_metadata.count() > 0
-        
+
         # Add the main group to the deletion list
         group_ids.append(main_group_id)
-        
+
         # Mock the batch size to be larger to test chunking behavior
         with patch("sentry.options.get") as mock_options:
             mock_options.return_value = 10000  # Large batch size
-            
+
             # This should not raise a query cancellation error
             with self.tasks():
                 delete_groups_for_project(
@@ -97,17 +97,17 @@ class GroupHashDeletionPerformanceTest(TestCase):
         # Mock the batch size settings to test chunking
         with patch("sentry.options.get") as mock_options:
             mock_options.return_value = 5000  # Large batch size
-            
+
             # Mock the GroupHash.objects.filter().delete() to verify chunking
             original_delete = GroupHash.objects.filter().__class__.delete
             delete_calls = []
-            
+
             def mock_delete(self):
                 # Record the size of each delete operation
-                delete_calls.append(len(self.values_list('id', flat=True)))
+                delete_calls.append(len(self.values_list("id", flat=True)))
                 return original_delete(self)
-            
-            with patch.object(GroupHash.objects.filter().__class__, 'delete', mock_delete):
+
+            with patch.object(GroupHash.objects.filter().__class__, "delete", mock_delete):
                 with self.tasks():
                     delete_groups_for_project(
                         object_ids=group_ids,
@@ -135,15 +135,15 @@ class GroupHashDeletionPerformanceTest(TestCase):
         # Mock one chunk to fail
         original_delete = GroupHash.objects.filter().__class__.delete
         call_count = 0
-        
+
         def mock_delete_with_failure(self):
             nonlocal call_count
             call_count += 1
             if call_count == 1:  # Fail the first chunk
                 raise Exception("Simulated database error")
             return original_delete(self)
-        
-        with patch.object(GroupHash.objects.filter().__class__, 'delete', mock_delete_with_failure):
+
+        with patch.object(GroupHash.objects.filter().__class__, "delete", mock_delete_with_failure):
             with self.tasks():
                 # This should not raise an exception despite the chunk failure
                 delete_groups_for_project(
