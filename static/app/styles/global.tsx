@@ -330,11 +330,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-left-color: ${theme.border};
           }
         }
-        /* Group Details - User context */
-        .user-widget .avatar {
-          box-shadow: 0 0 0 5px ${theme.background};
-          background: ${theme.background};
-        }
         .nav-header a.help-link,
         .nav-header span.help-link a {
           color: ${theme.subText};
