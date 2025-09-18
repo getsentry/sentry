@@ -3,10 +3,19 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useRepo} from './useRepo';
+
+const mockPreventContext = {
+  integratedOrgId: 'org123',
+  repository: 'test-repo',
+  branch: 'main',
+  preventPeriod: '30d',
+  changeContextValue: jest.fn(),
+};
 
 describe('useRepo', () => {
   beforeEach(() => {
@@ -27,19 +36,15 @@ describe('useRepo', () => {
 
     const wrapper = ({children}: {children: React.ReactNode}) => (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
+        <OrganizationContext value={organization}>
+          <PreventContext.Provider value={mockPreventContext}>
+            {children}
+          </PreventContext.Provider>
+        </OrganizationContext>
       </QueryClientProvider>
     );
 
-    const {result} = renderHook(
-      () =>
-        useRepo({
-          organizationSlug: organization.slug,
-          integratedOrgId: 'org123',
-          repository: 'test-repo',
-        }),
-      {wrapper}
-    );
+    const {result} = renderHook(() => useRepo(), {wrapper});
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -61,19 +66,15 @@ describe('useRepo', () => {
 
     const wrapper = ({children}: {children: React.ReactNode}) => (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
+        <OrganizationContext value={organization}>
+          <PreventContext.Provider value={mockPreventContext}>
+            {children}
+          </PreventContext.Provider>
+        </OrganizationContext>
       </QueryClientProvider>
     );
 
-    const {result} = renderHook(
-      () =>
-        useRepo({
-          organizationSlug: organization.slug,
-          integratedOrgId: 'org123',
-          repository: 'test-repo',
-        }),
-      {wrapper}
-    );
+    const {result} = renderHook(() => useRepo(), {wrapper});
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);

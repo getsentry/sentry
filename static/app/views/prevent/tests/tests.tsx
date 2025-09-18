@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   useInfiniteTestResults,
   type UseInfiniteTestResultsResult,
@@ -63,15 +62,7 @@ export default function TestsPage() {
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
-      {shouldDisplayContent ? (
-        <Content
-          integratedOrgId={integratedOrgId}
-          repository={repository}
-          response={response}
-        />
-      ) : (
-        <EmptySelectorsMessage />
-      )}
+      {shouldDisplayContent ? <Content response={response} /> : <EmptySelectorsMessage />}
     </LayoutGap>
   );
 }
@@ -82,22 +73,14 @@ const LayoutGap = styled('div')`
 `;
 
 interface TestResultsContentData {
-  integratedOrgId: string;
-  repository: string;
   response: UseInfiniteTestResultsResult;
 }
 
-function Content({response, integratedOrgId, repository}: TestResultsContentData) {
+function Content({response}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
-  const organization = useOrganization();
   const {branch: selectedBranch} = usePreventContext();
-
-  const {data: repoData, isSuccess} = useRepo({
-    organizationSlug: organization.slug,
-    integratedOrgId,
-    repository,
-  });
+  const {data: repoData, isSuccess} = useRepo();
 
   useEffect(() => {
     if (!repoData?.testAnalyticsEnabled && isSuccess) {

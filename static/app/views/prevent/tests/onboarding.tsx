@@ -44,6 +44,7 @@ export default function TestsOnboardingPage() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {integratedOrgId, repository} = usePreventContext();
+  const {data: repoData, isSuccess} = useRepo();
   const opt = searchParams.get('opt');
 
   const theme = useTheme();
@@ -57,12 +58,6 @@ export default function TestsOnboardingPage() {
   );
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>(UploadPermission.OIDC);
-
-  const {data: repoData, isSuccess} = useRepo({
-    organizationSlug: organization.slug,
-    integratedOrgId,
-    repository,
-  });
 
   useEffect(() => {
     if (repoData?.testAnalyticsEnabled && isSuccess) {
