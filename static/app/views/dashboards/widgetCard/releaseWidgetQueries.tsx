@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -227,7 +227,6 @@ function ReleaseWidgetQueries({
   }, []);
 
   const fetchReleases = useCallback(async () => {
-    const {environments, projects} = selection;
     setRequestErrorMessage(undefined);
 
     try {
@@ -237,9 +236,9 @@ function ReleaseWidgetQueries({
           method: 'GET',
           data: {
             sort: 'date',
-            project: projects,
+            project: selection.projects,
             per_page: 50,
-            environment: environments,
+            environment: selection.environments,
             // Propagate release filters
             query: dashboardFilters
               ? dashboardFiltersToString(pick(dashboardFilters, 'release'))
@@ -262,13 +261,23 @@ function ReleaseWidgetQueries({
       setRequestErrorMessage(message);
       addErrorMessage(message);
     }
-  }, [api, dashboardFilters, organization.slug, selection]);
+  }, [
+    api,
+    dashboardFilters,
+    organization.slug,
+    selection.environments,
+    selection.projects,
+  ]);
+
+  const fetchReleasesForCustomSorting = useMemo(() => {
+    return widget.queries[0] && requiresCustomReleaseSorting(widget.queries[0]);
+  }, [widget.queries]);
 
   useEffect(() => {
-    if (widget.queries[0] && requiresCustomReleaseSorting(widget.queries[0])) {
+    if (fetchReleasesForCustomSorting) {
       fetchReleases();
     }
-  }, [widget.queries, fetchReleases]);
+  }, [fetchReleasesForCustomSorting, fetchReleases]);
 
   const transformWidget = useCallback(
     (initialWidget: Widget): Widget => {
