@@ -248,8 +248,8 @@ def get_or_create_grouphashes(
                 logger.warning(
                     "grouphash_metadata.exception", extra={"event_id": event_id, "error": repr(exc)}
                 )
-
-        record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
+        if grouphash.metadata:
+            record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
 
         grouphashes.append(grouphash)
 
