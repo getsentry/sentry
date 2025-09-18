@@ -5,11 +5,9 @@ import {
   getSeriesApiInterval,
   GranularityLadder,
   lightenHexToRgb,
-  processTableResults,
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 describe('Chart Utils', () => {
   describe('getInterval()', () => {
@@ -178,46 +176,6 @@ describe('Chart Utils', () => {
         'rgb(77, 71, 84)',
         'rgb(255, 255, 255)',
       ]);
-    });
-  });
-
-  describe('processTableResults', () => {
-    it('transforms TableDataWithTitle array to chartable data', () => {
-      const tableData: TableDataWithTitle[] = [
-        {
-          data: [
-            {
-              'geo.country_code': 'PE',
-              count: 9215,
-              id: 'a',
-            },
-            {
-              'geo.country_code': 'VI',
-              count: 1,
-              id: 'b',
-            },
-          ],
-          meta: {
-            'geo.country_code': 'string',
-            count: 'integer',
-          },
-          title: 'Country',
-        },
-      ];
-      const result = {
-        title: 'Country',
-        data: [
-          {
-            name: 'PE',
-            value: 9215,
-          },
-          {
-            name: 'VI',
-            value: 1,
-          },
-        ],
-      };
-      expect(processTableResults(tableData)).toEqual(result);
     });
   });
 });
