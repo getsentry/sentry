@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
@@ -126,6 +126,20 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
     return ourlogsAsFrames(startTimestampMs, logItems);
   }, [replay, logItems, startTimestampMs]);
 
+  const embeddedOptions = useMemo(
+    () => ({
+      replay: {
+        timestampRelativeTo: startTimestampMs,
+        onReplayTimeClick: handleReplayTimeClick,
+        displayReplayTimeIndicator: true,
+        frames: replayFrames,
+        currentTime,
+        currentHoverTime,
+      },
+    }),
+    [startTimestampMs, handleReplayTimeClick, replayFrames, currentTime, currentHoverTime]
+  );
+
   return (
     <OurLogsContentWrapper>
       <OurLogFilters logItems={logItems} replayId={replayId} {...filterProps} />
@@ -139,16 +153,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             scrollContainer={scrollContainerRef}
             allowPagination
             embedded
-            embeddedOptions={{
-              replay: {
-                timestampRelativeTo: startTimestampMs,
-                onReplayTimeClick: handleReplayTimeClick,
-                displayReplayTimeIndicator: true,
-                currentTime,
-                currentHoverTime,
-                frames: replayFrames,
-              },
-            }}
+            embeddedOptions={embeddedOptions}
             localOnlyItemFilters={{
               filteredItems: filteredLogItems,
               filterText: filterProps.searchTerm,

@@ -13,6 +13,7 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import tempest_tasks
 from sentry.tempest.models import MessageType, TempestCredentials
+from sentry.tempest.utils import has_tempest_access
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,12 @@ logger = logging.getLogger(__name__)
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
-    for credentials in TempestCredentials.objects.all():
+    for credentials in TempestCredentials.objects.select_related("project__organization").all():
+        # Bruno wants to keeps the customers credentials around so need to
+        # skip if the credentials are associated with an org that no longer has tempest access.
+        if not has_tempest_access(credentials.project.organization):
+            continue
+
         if credentials.latest_fetched_item_id is None:
             fetch_latest_item_id.apply_async(
                 kwargs={"credentials_id": credentials.id},

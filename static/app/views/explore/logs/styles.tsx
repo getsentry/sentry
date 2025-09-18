@@ -50,7 +50,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     left: 0;
     position: absolute;
     top: 0;
-    width: 999999999%;
+    width: 100%;
   }
 
   &.beforeHoverTime:last-child:before {
@@ -59,7 +59,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     right: 0;
     position: absolute;
     bottom: 0;
-    width: 999999999%;
+    width: 100%;
   }
 
   &.beforeCurrentTime + &.afterCurrentTime:before {
@@ -68,7 +68,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     left: 0;
     position: absolute;
     top: 0;
-    width: 999999999%;
+    width: 100%;
   }
 
   &.beforeCurrentTime:last-child:before {
@@ -77,7 +77,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     right: 0;
     position: absolute;
     bottom: 0;
-    width: 999999999%;
+    width: 100%;
   }
 `;
 

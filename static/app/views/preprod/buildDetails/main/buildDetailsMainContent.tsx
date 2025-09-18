@@ -92,6 +92,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
+  const isAppSizeFailed =
+    buildDetailsData?.size_analysis_state === BuildDetailsSizeAnalysisState.FAILED;
+
+  if (isAppSizeFailed) {
+    return (
+      <Flex direction="column" gap="lg" minHeight="700px">
+        <Alert type="error">{t('Size analysis failed')}</Alert>
+      </Flex>
+    );
+  }
+
   // Show an error if the treemap data fetch fails
   // If the main data fetch fails, this component will not be rendered
   if (isAppSizeError) {
@@ -180,12 +191,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             <InputGroup.Input
               placeholder="Search files"
               value={searchQuery || ''}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value || undefined)}
             />
             {searchQuery && (
               <InputGroup.TrailingItems>
                 <Button
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => setSearchQuery(undefined)}
                   aria-label="Clear search"
                   borderless
                   size="zero"

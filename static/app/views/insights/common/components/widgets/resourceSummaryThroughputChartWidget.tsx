@@ -17,10 +17,13 @@ export default function ResourceSummaryThroughputChartWidget(
 
   const {data, isPending, error} = useResourceSummarySeries({
     search,
-    pageFilters: props.pageFilters,
     enabled,
+    pageFilters: props.pageFilters,
     referrer,
   });
+
+  const timeSeries = data?.timeSeries || [];
+  const throughputSeries = timeSeries.find(ts => ts.yAxis === 'epm()');
 
   return (
     <InsightsLineChartWidget
@@ -28,7 +31,7 @@ export default function ResourceSummaryThroughputChartWidget(
       queryInfo={{search, referrer}}
       id="resourceSummaryThroughputChartWidget"
       title={getThroughputChartTitle('resource')}
-      series={[data?.[`epm()`]]}
+      timeSeries={throughputSeries ? [throughputSeries] : []}
       isLoading={isPending}
       error={error}
     />

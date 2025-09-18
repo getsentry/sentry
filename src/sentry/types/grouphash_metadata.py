@@ -83,7 +83,7 @@ class SecurityHashingMetadata(TypedDict):
     Transparency, Online Certificate Status Protocol Stapling, or HTTP Public Key Pinning) reports
     """
 
-    # Either "csp", "expect-ct", "expect-staple", or "hpkp"
+    # Either "csp", "expect_ct", "expect_staple", or "hpkp"
     security_report_type: str
     # Domain name of the blocked address
     blocked_host: str

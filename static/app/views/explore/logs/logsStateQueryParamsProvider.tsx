@@ -39,6 +39,7 @@ export function LogsStateQueryParamsProvider({
 
   const _readableQueryParams = useMemo(() => {
     return new ReadableQueryParams({
+      extrapolate: true,
       mode,
       query,
 

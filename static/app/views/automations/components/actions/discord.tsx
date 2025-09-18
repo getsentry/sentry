@@ -1,5 +1,6 @@
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
+import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {
   OptionalRowLine,
   RowLine,
@@ -12,9 +13,10 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
-import {TargetDisplayField} from 'sentry/views/automations/components/actions/targetDisplayField';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 
 export function DiscordDetails({
   action,
@@ -24,8 +26,7 @@ export function DiscordDetails({
   handler: ActionHandler;
 }) {
   const integrationName =
-    handler.integrations?.find(i => i.id === action.integrationId)?.name ||
-    action.integrationId;
+    handler.integrations?.find(i => i.id === action.integrationId)?.name || t('unknown');
   const tags = String(action.data.tags);
 
   return tct(
@@ -46,7 +47,7 @@ export function DiscordNode() {
         {tct('Send a [logo] Discord message to [server] server, to [channel]', {
           logo: ActionMetadata[ActionType.DISCORD]?.icon,
           server: <IntegrationField />,
-          channel: <TargetDisplayField placeholder={t('channel ID or URL')} />,
+          channel: <TargetIdentifierField />,
         })}
       </RowLine>
       <OptionalRowLine>
@@ -66,11 +67,30 @@ export function DiscordNode() {
   );
 }
 
+function TargetIdentifierField() {
+  const {action, actionId, onUpdate} = useActionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
+
+  return (
+    <AutomationBuilderInput
+      name={`${actionId}.config.targetIdentifier`}
+      placeholder={t('channel ID or URL')}
+      value={action.config.targetIdentifier}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        onUpdate({
+          config: {...action.config, targetIdentifier: e.target.value},
+        });
+        removeError(action.id);
+      }}
+    />
+  );
+}
+
 export function validateDiscordAction(action: Action): string | undefined {
   if (!action.integrationId) {
     return t('You must specify a Discord server.');
   }
-  if (!action.config.targetDisplay) {
+  if (!action.config.targetIdentifier) {
     return t('You must specify a channel ID or URL.');
   }
   return undefined;

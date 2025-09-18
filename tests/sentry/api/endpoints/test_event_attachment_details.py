@@ -3,13 +3,14 @@ from django.test import override_settings
 
 from sentry.attachments.base import CachedAttachment
 from sentry.models.activity import Activity
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
+from sentry.objectstore import attachments
 from sentry.testutils.cases import APITestCase, PermissionTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_objectstore, requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
@@ -84,6 +85,63 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Length") == str(self.attachment.size)
         assert response.get("Content-Type") == "image/png"
         assert close_streaming_response(response) == ATTACHMENT_CONTENT
+
+    @with_feature("organizations:event-attachments")
+    @requires_objectstore
+    def test_doublewrite_objectstore(self) -> None:
+        self.login_as(user=self.user)
+
+        with override_options(
+            {
+                # TODO: we should make sure the default works for local tests
+                "objectstore.config": {"base_url": "http://localhost:8888/"},
+                "objectstore.double_write.attachments": 1,
+            }
+        ):
+            attachment = self.create_attachment()
+
+            assert attachment.blob_path is not None
+            object_key = attachment.blob_path.removeprefix(V1_PREFIX + V2_PREFIX)
+            # the file should also be available in objectstore
+            os_response = attachments.for_project(self.organization.id, self.project.id).get(
+                object_key
+            )
+            assert os_response.payload.read() == ATTACHMENT_CONTENT
+
+            path1 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{attachment.id}/?download"
+            response = self.client.get(path1)
+
+            assert response.status_code == 200, response.content
+            assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
+            assert response.get("Content-Length") == str(attachment.size)
+            assert response.get("Content-Type") == "image/png"
+            assert close_streaming_response(response) == ATTACHMENT_CONTENT
+
+    @with_feature("organizations:event-attachments")
+    @requires_objectstore
+    def test_download_objectstore(self) -> None:
+        self.login_as(user=self.user)
+
+        with override_options(
+            {
+                # TODO: we should make sure the default works for local tests
+                "objectstore.config": {"base_url": "http://localhost:8888/"},
+                "objectstore.enable_for.attachments": 1,
+            }
+        ):
+            attachment = self.create_attachment()
+
+            assert attachment.blob_path is not None
+            assert attachment.blob_path.startswith("v2/")
+
+            path1 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{attachment.id}/?download"
+            response = self.client.get(path1)
+
+            assert response.status_code == 200, response.content
+            assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
+            assert response.get("Content-Length") == str(attachment.size)
+            assert response.get("Content-Type") == "image/png"
+            assert close_streaming_response(response) == ATTACHMENT_CONTENT
 
     @with_feature("organizations:event-attachments")
     def test_zero_sized_attachment(self) -> None:

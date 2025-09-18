@@ -76,12 +76,12 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
-  CONTAINS = '\uf00dcontains\uf00d',
-  DOES_NOT_CONTAIN = '\uf00ddoes not contain\uf00d',
-  STARTS_WITH = '\uf00dstarts with\uf00d',
-  DOES_NOT_START_WITH = '\uf00ddoes not start with\uf00d',
-  ENDS_WITH = '\uf00dends with\uf00d',
-  DOES_NOT_END_WITH = '\uf00ddoes not end with\uf00d',
+  CONTAINS = '\uf00dContains\uf00d',
+  DOES_NOT_CONTAIN = '\uf00dDoesNotContain\uf00d',
+  STARTS_WITH = '\uf00dStartsWith\uf00d',
+  DOES_NOT_START_WITH = '\uf00dDoesNotStartWith\uf00d',
+  ENDS_WITH = '\uf00dEndsWith\uf00d',
+  DOES_NOT_END_WITH = '\uf00dDoesNotEndWith\uf00d',
 }
 
 /**
@@ -122,31 +122,25 @@ export enum FilterType {
  * \uf00d unicode character to isolate the wildcard operator from the rest of the string,
  * as this gives us more flexibility down the road to add more operators.
  *
- * Unicode Character: \uf00d
+ * Unicode Character: `\uf00d`
  */
 export enum WildcardOperators {
-  CONTAINS = '\uf00dcontains\uf00d',
-  STARTS_WITH = '\uf00dstarts with\uf00d',
-  ENDS_WITH = '\uf00dends with\uf00d',
+  CONTAINS = '\uf00dContains\uf00d',
+  STARTS_WITH = '\uf00dStartsWith\uf00d',
+  ENDS_WITH = '\uf00dEndsWith\uf00d',
 }
 
-export const allOperators = [
-  TermOperator.DEFAULT,
+export const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+export type BasicOperator = (typeof basicOperators)[number];
+
+export const comparisonOperators = [
   TermOperator.GREATER_THAN_EQUAL,
   TermOperator.LESS_THAN_EQUAL,
   TermOperator.GREATER_THAN,
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
-  TermOperator.NOT_EQUAL,
-  TermOperator.CONTAINS,
-  TermOperator.DOES_NOT_CONTAIN,
-  TermOperator.STARTS_WITH,
-  TermOperator.DOES_NOT_START_WITH,
-  TermOperator.ENDS_WITH,
-  TermOperator.DOES_NOT_END_WITH,
 ] as const;
-
-const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+export type ComparisonOperator = (typeof comparisonOperators)[number];
 
 export const wildcardOperators = [
   TermOperator.CONTAINS,
@@ -155,7 +149,8 @@ export const wildcardOperators = [
   TermOperator.DOES_NOT_START_WITH,
   TermOperator.ENDS_WITH,
   TermOperator.DOES_NOT_END_WITH,
-];
+] as const;
+export type WildcardOperator = (typeof wildcardOperators)[number];
 
 /**
  * Map of certain filter types to other filter types with applicable operators
@@ -164,6 +159,14 @@ export const wildcardOperators = [
 export const interchangeableFilterOperators = {
   [FilterType.SPECIFIC_DATE]: [FilterType.DATE],
   [FilterType.DATE]: [FilterType.SPECIFIC_DATE],
+};
+
+type InterchangeableFilterOperators = keyof typeof interchangeableFilterOperators;
+
+export const isInterchangeableFilterOperator = (
+  type: FilterType
+): type is InterchangeableFilterOperators => {
+  return type in interchangeableFilterOperators;
 };
 
 const textKeys = [
@@ -197,7 +200,7 @@ export const filterTypeConfig = {
   },
   [FilterType.DATE]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
   },
@@ -215,19 +218,19 @@ export const filterTypeConfig = {
   },
   [FilterType.DURATION]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
   },
   [FilterType.SIZE]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
   },
   [FilterType.NUMERIC]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
   },
@@ -245,37 +248,37 @@ export const filterTypeConfig = {
   },
   [FilterType.AGGREGATE_DURATION]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
   },
   [FilterType.AGGREGATE_SIZE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_NUMERIC]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
   },
   [FilterType.AGGREGATE_PERCENTAGE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_PERCENTAGE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_RELATIVE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: true,
   },

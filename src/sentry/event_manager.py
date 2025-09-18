@@ -1322,6 +1322,7 @@ def assign_event_to_group(
     # `get_or_create_grouphashes`. If it doesn't, perhaps there's a race condition between creation
     # of the metadata and our ability to pull it from the database immediately thereafter.
     for grouphash in [*primary.grouphashes, *secondary.grouphashes]:
+        grouphash.refresh_from_db()
         if not grouphash.metadata:
             logger.warning(
                 "grouphash_metadata.hash_without_metadata",

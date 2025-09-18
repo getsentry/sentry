@@ -16,6 +16,7 @@ describe('Issues -> Merged View', () => {
         latestEvent: events[0],
         state: 'unlocked',
         id: '2c4887696f708c476a81ce4e834c4b02',
+        mergedBySeer: true,
       },
       {
         latestEvent: events[1],
@@ -48,7 +49,8 @@ describe('Issues -> Merged View', () => {
       }
     );
 
-    expect(await screen.findByText(mockData.merged[0]!.id)).toBeInTheDocument();
+    // Wait for the component to load
+    await screen.findByText('Fingerprints included in this issue');
 
     const title = await screen.findByText('Fingerprints included in this issue');
     expect(title.parentElement).toHaveTextContent(

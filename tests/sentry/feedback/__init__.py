@@ -1,44 +1,17 @@
-import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
-
-from openai.types.chat.chat_completion import ChatCompletion, Choice
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from sentry.utils import json
 
 
-def create_dummy_openai_response(*args: object, **kwargs: Any) -> ChatCompletion:
-    return ChatCompletion(
-        id="test",
-        choices=[
-            Choice(
-                index=0,
-                message=ChatCompletionMessage(
-                    content=(
-                        "spam"
-                        if "this is definitely spam"
-                        in kwargs["messages"][0][
-                            "content"
-                        ]  # assume make_input_prompt lower-cases the msg
-                        else "not spam"
-                    ),
-                    role="assistant",
-                ),
-                finish_reason="stop",
-            )
-        ],
-        created=int(time.time()),
-        model="gpt3.5-turbo",
-        object="chat.completion",
-    )
-
-
 def mock_feedback_event(
-    project_id: int, dt: datetime | None = None, message: str | None = None
+    project_id: int,
+    dt: datetime | None = None,
+    message: str | None = None,
+    tags: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if dt is None:
-        dt = datetime.now(UTC)
+        dt = datetime.now(UTC) - timedelta(minutes=5)
 
     return {
         "project_id": project_id,
@@ -70,6 +43,7 @@ def mock_feedback_event(
                 "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
             },
         },
+        "tags": tags or {},
         "breadcrumbs": [],
         "platform": "javascript",
     }

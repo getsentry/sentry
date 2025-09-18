@@ -208,11 +208,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     eventView,
   };
 
-  const endpointSuffix = frozenTraceIds
-    ? 'trace-logs'
-    : frozenReplayIds
-      ? 'replay-logs'
-      : 'events';
+  const endpointSuffix = frozenTraceIds || frozenReplayIds ? 'trace-logs' : 'events';
 
   const queryKey: ApiQueryKey = [
     `/organizations/${organization.slug}/${endpointSuffix}/`,

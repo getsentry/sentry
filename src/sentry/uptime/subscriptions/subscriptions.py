@@ -17,12 +17,9 @@ from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.grouptype import UptimeDomainCheckFailure, resolve_uptime_issue
 from sentry.uptime.models import (
-    ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
-    get_project_subscription,
     get_uptime_subscription,
     load_regions_for_uptime_subscription,
 )
@@ -36,6 +33,8 @@ from sentry.uptime.subscriptions.tasks import (
 )
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
@@ -48,6 +47,7 @@ from sentry.workflow_engine.models.data_condition_group import DataConditionGrou
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
 
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
@@ -190,12 +190,15 @@ def create_uptime_detector(
     owner: Actor | None = None,
     trace_sampling: bool = False,
     override_manual_org_limit: bool = False,
+    recovery_threshold: int = DEFAULT_RECOVERY_THRESHOLD,
+    downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
 ) -> Detector:
     """
-    Creates an UptimeSubscription and associated ProjectUptimeSubscription
+    Creates an UptimeSubscription and associated Detector
     """
     if mode == UptimeMonitorMode.MANUAL:
         manual_subscription_count = Detector.objects.filter(
+            status=ObjectStatus.ACTIVE,
             type=UptimeDomainCheckFailure.slug,
             project__organization=project.organization,
             config__mode=UptimeMonitorMode.MANUAL,
@@ -224,7 +227,6 @@ def create_uptime_detector(
             router.db_for_write(DataConditionGroup),
             router.db_for_write(DataSourceDetector),
             router.db_for_write(Detector),
-            router.db_for_write(ProjectUptimeSubscription),
         )
     ):
         uptime_subscription = create_uptime_subscription(
@@ -275,20 +277,12 @@ def create_uptime_detector(
             config={
                 "environment": env,
                 "mode": mode,
+                "recovery_threshold": recovery_threshold,
+                "downtime_threshold": downtime_threshold,
             },
             workflow_condition_group=condition_group,
         )
         DataSourceDetector.objects.create(data_source=data_source, detector=detector)
-
-        uptime_monitor = ProjectUptimeSubscription.objects.create(
-            project=project,
-            environment=environment,
-            uptime_subscription=uptime_subscription,
-            mode=mode.value,
-            name=name,
-            owner_user_id=owner_user_id,
-            owner_team_id=owner_team_id,
-        )
 
         # Don't consume a seat if we're still in onboarding mode
         if mode != UptimeMonitorMode.AUTO_DETECTED_ONBOARDING:
@@ -307,9 +301,8 @@ def create_uptime_detector(
                 case ObjectStatus.DISABLED:
                     disable_uptime_detector(detector)
 
-    # ProjectUptimeSubscription may have been updated as part of
+    # Detector may have been updated as part of
     # {enable,disable}_uptime_detector
-    uptime_monitor.refresh_from_db()
     detector.refresh_from_db()
 
     return detector
@@ -330,14 +323,15 @@ def update_uptime_detector(
     status: int = ObjectStatus.ACTIVE,
     mode: UptimeMonitorMode = UptimeMonitorMode.MANUAL,
     ensure_assignment: bool = False,
+    recovery_threshold: int | NotSet = NOT_SET,
+    downtime_threshold: int | NotSet = NOT_SET,
 ):
     """
-    Links a project to an uptime subscription so that it can process results.
+    Updates a uptime detector and its associated uptime subscription.
     """
     with atomic_transaction(
         using=(
             router.db_for_write(UptimeSubscription),
-            router.db_for_write(ProjectUptimeSubscription),
             router.db_for_write(Detector),
         )
     ):
@@ -354,9 +348,8 @@ def update_uptime_detector(
             trace_sampling=trace_sampling,
         )
 
-        uptime_monitor = get_project_subscription(detector)
-        owner_user_id = uptime_monitor.owner_user_id
-        owner_team_id = uptime_monitor.owner_team_id
+        owner_user_id = detector.owner_user_id
+        owner_team_id = detector.owner_team_id
         if owner and owner is not NOT_SET:
             if owner.is_user:
                 owner_user_id = owner.id
@@ -365,22 +358,32 @@ def update_uptime_detector(
                 owner_team_id = owner.id
                 owner_user_id = None
 
-        env = default_if_not_set(uptime_monitor.environment, environment)
-        uptime_monitor.update(
-            environment=env,
-            name=default_if_not_set(uptime_monitor.name, name),
-            mode=mode,
-            owner_user_id=owner_user_id,
-            owner_team_id=owner_team_id,
-        )
+        current_env = detector.config.get("environment")
+        if current_env:
+            current_env_obj = Environment.get_or_create(detector.project, current_env)
+        else:
+            current_env_obj = None
+        env = default_if_not_set(current_env_obj, environment)
 
         detector.update(
-            name=default_if_not_set(uptime_monitor.name, name),
+            name=default_if_not_set(detector.name, name),
             owner_user_id=owner_user_id,
             owner_team_id=owner_team_id,
             config={
                 "mode": mode,
                 "environment": env.name if env else None,
+                "recovery_threshold": default_if_not_set(
+                    # TODO: Remove DEFAULT_RECOVERY_THRESHOLD fallback after
+                    # backfill migration ensures all configs have this value
+                    detector.config.get("recovery_threshold", DEFAULT_RECOVERY_THRESHOLD),
+                    recovery_threshold,
+                ),
+                "downtime_threshold": default_if_not_set(
+                    # TODO: Remove DEFAULT_DOWNTIME_THRESHOLD fallback after
+                    # backfill migration ensures all configs have this value
+                    detector.config.get("downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD),
+                    downtime_threshold,
+                ),
             },
         )
 
@@ -402,21 +405,18 @@ def update_uptime_detector(
 
 def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
     """
-    Disables a uptime detector. The associated ProjectUptimeSubscription will also be disabled,
-    and if the UptimeSubscription no longer has any active ProjectUptimeSubscriptions, it will
-    also be disabled.
+    Disables a uptime detector. If the UptimeSubscription no longer has any active
+    detectors, it will also be disabled.
     """
     with atomic_transaction(
         using=(
             router.db_for_write(UptimeSubscription),
-            router.db_for_write(ProjectUptimeSubscription),
             router.db_for_write(Detector),
         )
     ):
-        uptime_monitor = get_project_subscription(detector)
-        uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
+        uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
 
-        if uptime_monitor.status == ObjectStatus.DISABLED and not detector.enabled:
+        if not detector.enabled:
             return
 
         if uptime_subscription.uptime_status == UptimeStatus.FAILED:
@@ -427,16 +427,17 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         # from a good state
         uptime_subscription.update(uptime_status=UptimeStatus.OK)
 
-        uptime_monitor.update(status=ObjectStatus.DISABLED)
         detector.update(enabled=False)
 
         if not skip_quotas:
             quotas.backend.disable_seat(DataCategory.UPTIME, detector)
 
-        # Are there any other project subscriptions associated to the subscription
-        # that are NOT disabled?
-        has_active_subscription = uptime_subscription.projectuptimesubscription_set.exclude(
-            status=ObjectStatus.DISABLED
+        # Are there any other detectors associated to the subscription
+        # that are still enabled?
+        has_active_subscription = Detector.objects.filter(
+            data_sources__source_id=str(uptime_subscription.id),
+            enabled=True,
+            status=ObjectStatus.ACTIVE,
         ).exists()
 
         # All project subscriptions are disabled, we can disable the subscription
@@ -460,13 +461,7 @@ def enable_uptime_detector(
     By default if the monitor is already marked as ACTIVE this function is a
     no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
-    uptime_monitor = get_project_subscription(detector)
-
-    if (
-        not ensure_assignment
-        and uptime_monitor.status != ObjectStatus.DISABLED
-        and detector.enabled
-    ):
+    if not ensure_assignment and detector.enabled:
         return
 
     if not skip_quotas:
@@ -482,8 +477,7 @@ def enable_uptime_detector(
             disable_uptime_detector(detector)
             raise UptimeMonitorNoSeatAvailable(None)
 
-    uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
-    uptime_monitor.update(status=ObjectStatus.ACTIVE)
+    uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
     detector.update(enabled=True)
 
     # The subscription was disabled, it can be re-activated now
@@ -493,31 +487,30 @@ def enable_uptime_detector(
 
 
 def delete_uptime_detector(detector: Detector):
-    uptime_monitor = get_project_subscription(detector)
-    delete_project_uptime_subscription(uptime_monitor)
-    RegionScheduledDeletion.schedule(detector, days=0)
-
-
-def delete_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscription):
-    uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
-    detector = get_detector(uptime_monitor.uptime_subscription)
+    uptime_subscription = get_uptime_subscription(detector)
     quotas.backend.remove_seat(DataCategory.UPTIME, detector)
-    uptime_monitor.delete()
+    detector.update(status=ObjectStatus.PENDING_DELETION)
+    RegionScheduledDeletion.schedule(detector, days=0)
     remove_uptime_subscription_if_unused(uptime_subscription)
 
 
 def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription):
     """
-    Determines if an uptime subscription is no longer used by any `ProjectUptimeSubscriptions` and removes it if so
+    Determines if an uptime subscription is no longer used by any detectors and removes it if so
     """
     # If the uptime subscription is no longer used, we also remove it.
-    if not uptime_subscription.projectuptimesubscription_set.exists():
+    has_active_detector = Detector.objects.filter(
+        data_sources__source_id=str(uptime_subscription.id),
+        status=ObjectStatus.ACTIVE,
+    ).exists()
+    if not has_active_detector:
         delete_uptime_subscription(uptime_subscription)
 
 
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
     auto_detected_subscription_ids = list(
         Detector.objects.filter(
+            status=ObjectStatus.ACTIVE,
             type=UptimeDomainCheckFailure.slug,
             project=project,
             config__mode__in=(

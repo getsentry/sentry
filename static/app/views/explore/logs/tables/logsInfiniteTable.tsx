@@ -195,6 +195,8 @@ export function LogsInfiniteTable({
     [virtualizer]
   );
 
+  const hasReplay = !!embeddedOptions?.replay;
+
   const replayJumpButtons = useJumpButtons({
     currentTime: embeddedOptions?.replay?.currentTime ?? 0,
     frames: embeddedOptions?.replay?.frames ?? [],
@@ -235,7 +237,7 @@ export function LogsInfiniteTable({
         scrollDirection === 'backward' &&
         scrollOffset &&
         scrollOffset <= LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD &&
-        !embeddedOptions?.replay // Disable scroll up reload for replay context
+        !hasReplay // Disable scroll up reload for replay context
       ) {
         fetchPreviousPage();
       }
@@ -265,19 +267,17 @@ export function LogsInfiniteTable({
     isFunctionScrolling,
     scrollFetchDisabled,
     lastFetchTime,
-    embeddedOptions?.replay,
+    hasReplay,
   ]);
 
   useEffect(() => {
-    if (embeddedOptions?.replay && virtualItems.length > 0) {
-      const startIndex = virtualItems[0]?.index ?? 0;
-      const stopIndex = virtualItems[virtualItems.length - 1]?.index ?? 0;
+    if (hasReplay) {
       onRowsRendered({
-        startIndex,
-        stopIndex,
+        startIndex: firstItemIndex ?? 0,
+        stopIndex: lastItemIndex ?? 0,
       });
     }
-  }, [virtualItems, embeddedOptions?.replay, onRowsRendered]);
+  }, [hasReplay, firstItemIndex, lastItemIndex, onRowsRendered]);
 
   const handleExpand = useCallback((logItemId: string) => {
     setExpandedLogRows(prev => {
@@ -311,7 +311,7 @@ export function LogsInfiniteTable({
   }, [theme.isChonk]);
 
   // For replay context, render empty states outside the table for proper centering
-  if (embeddedOptions?.replay && (isPending || isError || isEmpty)) {
+  if (hasReplay && (isPending || isError || isEmpty)) {
     return (
       <Fragment>
         <CenteredEmptyStateContainer>
@@ -354,15 +354,13 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!embeddedOptions?.replay && isPending && <LoadingRenderer />}
-          {!embeddedOptions?.replay && isError && <ErrorRenderer />}
-          {!embeddedOptions?.replay &&
-            isEmpty &&
-            (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
+          {!hasReplay && isPending && <LoadingRenderer />}
+          {!hasReplay && isError && <ErrorRenderer />}
+          {!hasReplay && isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
-          {isRefetching && !embeddedOptions?.replay && (
+          {isRefetching && !hasReplay && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
           {virtualItems.map(virtualRow => {
