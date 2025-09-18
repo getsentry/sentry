@@ -109,7 +109,9 @@ def read_feature(flag_name: str, flagpole_file: str) -> Feature:
         return feature
 
 
-def evaluate_flag(feature: Feature, context: EvaluationContext) -> (bool, bool, Segment | None):
+def evaluate_flag(
+    feature: Feature, context: EvaluationContext
+) -> (bool, int | None, Segment | None):
     real_result = feature.match(context)
 
     for segment in feature.segments:
