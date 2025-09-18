@@ -44,7 +44,12 @@ class DataForwarderSerializer(Serializer):
             "isEnabled": obj.is_enabled,
             "enrollNewProjects": obj.enroll_new_projects,
             "enrolledProjects": [
-                str(project_config.project_id) for project_config in project_configs
+                {
+                    "id": str(project_config.project_id),
+                    "slug": project_config.project.slug,
+                    "platform": project_config.project.platform,
+                }
+                for project_config in project_configs
             ],
             "provider": obj.provider,
             "config": obj.config,
@@ -57,7 +62,7 @@ class DataForwarderSerializer(Serializer):
 
 
 @register(DataForwarderProject)
-class ProjectDataForwarderSerializer(Serializer):
+class DataForwarderProjectSerializer(Serializer):
     def serialize(
         self,
         obj: DataForwarderProject,
@@ -68,7 +73,11 @@ class ProjectDataForwarderSerializer(Serializer):
         return {
             "id": str(obj.id),
             "dataForwarderId": str(obj.data_forwarder_id),
-            "projectId": str(obj.project_id),
+            "project": {
+                "id": str(obj.project_id),
+                "slug": obj.project.slug,
+                "platform": obj.project.platform,
+            },
             "overrides": obj.overrides,
             "effectiveConfig": obj.get_config(),
             "dateAdded": obj.date_added,
