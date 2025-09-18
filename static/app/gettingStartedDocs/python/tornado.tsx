@@ -85,10 +85,12 @@ const onboarding: OnboardingConfig = {
             }
           ),
         },
-        ...[...getPythonInstallConfig(), ...getPythonAiocontextvarsConfig()].filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...[...getPythonInstallConfig(), ...getPythonAiocontextvarsConfig()]
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],
@@ -160,9 +162,7 @@ asyncio.run(main())
           ? [
               {
                 type: 'text' as const,
-                text: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
+                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
               },
               {
                 type: 'code' as const,

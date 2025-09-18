@@ -85,10 +85,12 @@ const onboarding: OnboardingConfig = {
             }
           ),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[starlette]'}).filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[starlette]'})
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],

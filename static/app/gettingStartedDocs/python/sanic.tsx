@@ -52,17 +52,19 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Install [code:sentry-sdk] from PyPI with the [code:sanic] extra:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:sanic] extra:', {
+            code: <code />,
+          }),
         },
-        ...[...getPythonInstallConfig({packageName: 'sentry-sdk[sanic]'}), ...getPythonAiocontextvarsConfig()].filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...[
+          ...getPythonInstallConfig({packageName: 'sentry-sdk[sanic]'}),
+          ...getPythonAiocontextvarsConfig(),
+        ]
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],

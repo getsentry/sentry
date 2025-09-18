@@ -77,17 +77,16 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Install [code:sentry-sdk] from PyPI with the [code:bottle] extra:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:bottle] extra:', {
+            code: <code />,
+          }),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[bottle]'}).filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[bottle]'})
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],
@@ -130,9 +129,7 @@ app = Bottle()
       content: [
         {
           type: 'text',
-          text: t(
-            'To verify that everything is working, trigger an error on purpose:'
-          ),
+          text: t('To verify that everything is working, trigger an error on purpose:'),
         },
         {
           type: 'code',
@@ -153,9 +150,7 @@ run(app, host='localhost', port=8000)
           ? [
               {
                 type: 'text' as const,
-                text: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
+                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
               },
               {
                 type: 'code' as const,
