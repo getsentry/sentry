@@ -1,17 +1,17 @@
 type PreventAIProvider = 'github' | 'bitbucket' | 'gitlab';
 
-interface IntegrationRepo {
+interface PreventAIRepo {
   fullName: string;
   id: string;
   name: string;
   url: string;
 }
 
-interface IntegrationOrg {
+interface PreventAIOrg {
   id: string;
   name: string;
   provider: PreventAIProvider;
-  repos: IntegrationRepo[];
+  repos: PreventAIRepo[];
 }
 
 type Feature = 'vanilla_pr_review' | 'bug_prediction' | 'test_generation';
@@ -28,4 +28,4 @@ interface PreventAIConfig {
   >;
 }
 
-export type {Feature, Trigger, PreventAIConfig, IntegrationOrg, IntegrationRepo};
+export type {Feature, Trigger, PreventAIConfig, PreventAIOrg, PreventAIRepo};

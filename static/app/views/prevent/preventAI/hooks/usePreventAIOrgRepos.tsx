@@ -4,7 +4,7 @@
 import type {IntegrationOrg} from 'sentry/views/prevent/preventAI/types';
 
 export interface PreventAIIntegrationOrgsResponse {
-  integrationOrgs: IntegrationOrg[];
+  orgRepos: IntegrationOrg[];
 }
 
 export interface PreventAIIntegrationOrgsReposResult {
@@ -24,7 +24,7 @@ export function usePreventAIOrgRepos(): PreventAIIntegrationOrgsReposResult {
 
   return {
     data: {
-      integrationOrgs: [
+      orgRepos: [
         {
           id: '1',
           name: 'org-1',

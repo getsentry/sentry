@@ -1,3 +1,4 @@
+import Feature from 'sentry/components/acl/feature';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -6,14 +7,13 @@ import PreventAIOnboarding from 'sentry/views/prevent/preventAI/onboarding';
 
 import {usePreventAIOrgRepos} from './hooks/usePreventAIOrgRepos';
 
-export default function PreventAIIndex() {
+function PreventAIContent() {
   const {data, isLoading, isError} = usePreventAIOrgRepos();
-  const hasOrgs = data?.integrationOrgs?.length && data.integrationOrgs.length > 0;
+  const hasOrgs = data?.orgRepos?.length && data.orgRepos.length > 0;
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
-
   if (isError) {
     return (
       <LoadingError
@@ -22,10 +22,19 @@ export default function PreventAIIndex() {
       />
     );
   }
-
   if (hasOrgs) {
-    return <PreventAIManageRepos installedOrgs={data.integrationOrgs} />;
+    return <PreventAIManageRepos installedOrgs={data.orgRepos} />;
   }
-
   return <PreventAIOnboarding />;
+}
+
+export default function PreventAIIndex() {
+  return (
+    <Feature
+      features={['organizations:prevent-ai-configure']}
+      renderDisabled={() => <PreventAIOnboarding />}
+    >
+      <PreventAIContent />
+    </Feature>
+  );
 }

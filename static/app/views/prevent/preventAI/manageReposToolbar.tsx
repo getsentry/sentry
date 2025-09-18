@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -8,15 +8,21 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IconIntegratedOrg} from 'sentry/components/prevent/integratedOrgSelector/iconIntegratedOrg';
 import {IconRepository} from 'sentry/components/prevent/repoSelector/iconRepository';
 import {t} from 'sentry/locale';
-import type {IntegrationOrg} from 'sentry/views/prevent/preventAI/types';
+import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
 
-function ManageReposToolbar({installedOrgs}: {installedOrgs: IntegrationOrg[]}) {
-  // Default to first org/repo if available
-  const [selectedOrg, setSelectedOrg] = useState(installedOrgs[0]?.id ?? '');
-  const [selectedRepo, setSelectedRepo] = useState(
-    installedOrgs[0]?.repos?.[0]?.id ?? ''
-  );
-
+function ManageReposToolbar({
+  installedOrgs,
+  onOrgChange,
+  onRepoChange,
+  selectedOrg,
+  selectedRepo,
+}: {
+  installedOrgs: PreventAIOrg[];
+  onOrgChange: (orgId: string) => void;
+  onRepoChange: (repoId: string) => void;
+  selectedOrg: string;
+  selectedRepo: string;
+}) {
   // Memoize options for performance
   const organizationOptions = useMemo(
     () =>
@@ -37,23 +43,13 @@ function ManageReposToolbar({installedOrgs}: {installedOrgs: IntegrationOrg[]}) 
     );
   }, [installedOrgs, selectedOrg]);
 
-  // Keep selectedRepo in sync if org changes
-  // (If selectedRepo is not in new org, pick first repo)
-
-  useMemo(() => {
-    const repoIds = repositoryOptions.map(r => r.value);
-    if (!repoIds.includes(selectedRepo)) {
-      setSelectedRepo(repoIds[0] ?? '');
-    }
-  }, [repositoryOptions, selectedRepo]);
-
   return (
     <ControlsContainer>
       <PageFilterBar condensed>
         <CompactSelect
           value={selectedOrg}
           options={organizationOptions}
-          onChange={option => setSelectedOrg(String(option?.value))}
+          onChange={option => onOrgChange(String(option?.value))}
           trigger={(triggerProps, isOpen) => (
             <DropdownButton
               isOpen={isOpen}
@@ -78,7 +74,7 @@ function ManageReposToolbar({installedOrgs}: {installedOrgs: IntegrationOrg[]}) 
         <CompactSelect
           value={selectedRepo}
           options={repositoryOptions}
-          onChange={option => setSelectedRepo(String(option?.value))}
+          onChange={option => onRepoChange(String(option?.value))}
           trigger={(triggerProps, isOpen) => (
             <DropdownButton
               isOpen={isOpen}
