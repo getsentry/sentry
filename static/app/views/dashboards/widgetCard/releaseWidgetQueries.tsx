@@ -136,7 +136,7 @@ export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
   return useMetricsAPI && rawOrderby === 'release';
 }
 
-function getLimit(displayType: DisplayType, limit = 0) {
+function getLimit(displayType: DisplayType, limit?: number) {
   switch (displayType) {
     case DisplayType.TOP_N:
       return TOP_N;
