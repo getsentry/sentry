@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import Hook from 'sentry/components/hook';
-import {TOPBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -15,6 +14,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
+import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/nav/constants';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondaryMobile} from 'sentry/views/nav/secondary/secondaryMobile';
@@ -127,7 +127,7 @@ function NavigationOverlayPortal({
 }
 
 const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
-  height: ${TOPBAR_MOBILE_HEIGHT};
+  height: ${NAV_MOBILE_TOPBAR_HEIGHT}px;
   width: 100vw;
   padding-left: ${space(1.5)};
   padding-right: ${space(1.5)};

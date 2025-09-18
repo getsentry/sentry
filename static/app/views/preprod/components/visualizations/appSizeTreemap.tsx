@@ -42,6 +42,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         borderColor,
         borderWidth: 6,
         gapWidth: 2,
+        gapColor: 'transparent',
       },
       label: {
         fontSize: 12,
@@ -141,6 +142,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         {
           itemStyle: {
             gapWidth: 4,
+            borderColor: 'transparent',
             borderRadius: 6,
           },
           colorSaturation: [0.3, 0.5],
@@ -189,7 +191,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const tooltip: TooltipOption = {
     trigger: 'item',
     borderWidth: 0,
-    backgroundColor: theme.white,
+    backgroundColor: theme.background,
     hideDelay: 0,
     transitionDuration: 0,
     padding: 12,

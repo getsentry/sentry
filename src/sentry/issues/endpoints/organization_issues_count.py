@@ -15,6 +15,7 @@ from sentry.exceptions import InvalidParams
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -32,13 +33,15 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=1),
-            RateLimitCategory.USER: RateLimit(limit=10, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=1),
+                RateLimitCategory.USER: RateLimit(limit=10, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=1),
+            }
         }
-    }
+    )
 
     def _count(
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None

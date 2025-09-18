@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import pickle
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from enum import Enum
@@ -40,6 +40,24 @@ Pipeline = Any
 
 def _get_model_key(model: type[models.Model]) -> str:
     return str(model._meta)
+
+
+def _coerce_val(value: BufferField) -> bytes:
+    """Convert a buffer field value to bytes."""
+    if isinstance(value, models.Model):
+        value = value.pk
+    return force_bytes(value, errors="replace")
+
+
+def make_key(model: type[models.Model], filters: Mapping[str, Any]) -> str:
+    """
+    Returns a Redis-compatible key for the model given filters.
+    """
+    md5 = md5_text(
+        "&".join(f"{k}={_coerce_val(v)!r}" for k, v in sorted(filters.items()))
+    ).hexdigest()
+    model_key = _get_model_key(model=model)
+    return f"b:k:{model_key}:{md5}"
 
 
 def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -> None:
@@ -220,7 +238,7 @@ class RedisBuffer(Buffer):
         Returns a Redis-compatible key for the model given filters.
         """
         md5 = md5_text(
-            "&".join(f"{k}={self._coerce_val(v)!r}" for k, v in sorted(filters.items()))
+            "&".join(f"{k}={_coerce_val(v)!r}" for k, v in sorted(filters.items()))
         ).hexdigest()
         model_key = _get_model_key(model=model)
         return f"b:k:{model_key}:{md5}"
@@ -310,7 +328,7 @@ class RedisBuffer(Buffer):
         """
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
         """
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         pipe = self.get_redis_connection(key, transaction=False)
 
         for col in columns:
@@ -428,7 +446,7 @@ class RedisBuffer(Buffer):
         filters: dict[str, BufferField],
         fields: list[str],
     ) -> None:
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         pipe = self.get_redis_connection(self.pending_key, transaction=False)
         for field in fields:
             getattr(pipe, RedisOperation.HASH_DELETE.value)(key, field)
@@ -442,7 +460,7 @@ class RedisBuffer(Buffer):
         field: str,
         value: str,
     ) -> None:
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         self._execute_redis_operation_no_txn(key, RedisOperation.HASH_ADD, field, value)
 
     def push_to_hash_bulk(
@@ -451,11 +469,11 @@ class RedisBuffer(Buffer):
         filters: dict[str, BufferField],
         data: dict[str, str],
     ) -> None:
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         self._execute_redis_operation_no_txn(key, RedisOperation.HASH_ADD_BULK, data)
 
     def get_hash(self, model: type[models.Model], field: dict[str, BufferField]) -> dict[str, str]:
-        key = self._make_key(model, field)
+        key = make_key(model, field)
         redis_hash = self._execute_redis_operation_no_txn(key, RedisOperation.HASH_GET_ALL)
         decoded_hash = {}
         for k, v in redis_hash.items():
@@ -468,7 +486,7 @@ class RedisBuffer(Buffer):
         return decoded_hash
 
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
-        key = self._make_key(model, field)
+        key = make_key(model, field)
         return self._execute_redis_operation_no_txn(key, RedisOperation.HASH_LENGTH)
 
     def incr(
@@ -488,7 +506,7 @@ class RedisBuffer(Buffer):
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
         pipe = self.get_redis_connection(key)

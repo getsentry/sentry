@@ -1165,7 +1165,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 10, "queue": "buffers.process_pending_batch"},
     },
     "flush-delayed-workflows": {
-        "task": "sentry.tasks.process_buffer.schedule_delayed_workflows",
+        "task": "sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 10, "queue": "workflow_engine.process_workflows"},
@@ -1594,7 +1594,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-delayed-workflows": {
-        "task": "workflow_engine:sentry.tasks.process_buffer.schedule_delayed_workflows",
+        "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "sync-options": {
@@ -3871,19 +3871,15 @@ SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 
 # This is a view of which abstract processing service is backed by which infrastructure.
-# Right now, the infrastructure can be `redis` or `rabbitmq`.
+# Right now, the infrastructure can be `redis`.
 #
 # For `redis`, one has to provide the cluster id.
 # It has to match a cluster defined in `redis.redis_clusters`.
-#
-# For `rabbitmq`, one has to provide a list of server URLs.
-# The URL is in the format `http://{user}:{password}@{hostname}:{port}/`.
 #
 # The definition can also be empty, in which case nothing is checked and
 # the service is assumed to be healthy.
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
-    "celery": {"redis": "default"},
     "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-store-transactions": {},

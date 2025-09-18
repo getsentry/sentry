@@ -566,6 +566,7 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                     op=operator,
                     value=self._resolve_search_value(resolved_column, term.operator, value),
+                    ignore_case=self.params.case_insensitive,
                 )
             ),
             context_definition,

@@ -6,7 +6,6 @@ import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type {SentryRouteObject} from 'sentry/components/route';
-import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {WidgetType} from 'sentry/views/dashboards/types';
@@ -56,7 +55,7 @@ export type HookName = keyof Hooks;
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
   'routes:root': RouteObjectHook;
-  'routes:settings': RouteObjectHook;
+  'routes:subscription-settings': RouteObjectHook;
 };
 
 /**
@@ -230,6 +229,7 @@ type ComponentHooks = {
  */
 type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
+  'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
 };
@@ -497,17 +497,10 @@ type SidebarItemLabelHook = () => React.ComponentType<{
   id?: string;
 }>;
 
-type SidebarProps = Pick<
-  React.ComponentProps<typeof SidebarItem>,
-  'orientation' | 'collapsed' | 'hasPanel'
->;
-
 /**
  * Returns an additional list of sidebar items.
  */
-type SidebarTryBusinessHook = (
-  opts: SidebarProps & {organization: Organization}
-) => React.ReactNode;
+type SidebarTryBusinessHook = (opts: {organization: Organization}) => React.ReactNode;
 
 /**
  * Provides augmentation of the help modal footer
@@ -598,6 +591,25 @@ type IntegrationsFeatureGatesHook = () => {
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
 };
 
+/**
+ * Invite Button customization allows for a render-props component to replace
+ * or intercept props of the button element.
+ */
+type InviteButtonCustomizationHook = () => React.ComponentType<{
+  children: (opts: {
+    /**
+     * Whether the Invite Members button is active or not
+     */
+    disabled: boolean;
+    onTriggerModal: () => void;
+    /**
+     * Whether to display a message that new members must be registered via SSO
+     */
+    isSsoRequired?: boolean;
+  }) => React.ReactElement;
+  onTriggerModal: () => void;
+  organization: Organization;
+}>;
 /**
  * Invite Modal customization allows for a render-prop component to add
  * additional react elements into the modal, and add invite-send middleware.

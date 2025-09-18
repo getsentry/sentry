@@ -13,7 +13,7 @@ from pydantic import BaseModel, validator
 
 import sentry.workflow_engine.buffer as buffer
 from sentry import features, nodestore, options
-from sentry.buffer.base import Buffer, BufferField
+from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -37,10 +37,10 @@ from sentry.taskworker.state import current_task
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
-from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import RateLimitExceeded, SnubaError
+from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     GroupValues,
@@ -953,5 +953,5 @@ class DelayedWorkflow(DelayedProcessingBase):
         return process_delayed_workflows
 
     @staticmethod
-    def buffer_backend() -> LazyServiceWrapper[Buffer]:
+    def buffer_backend() -> RedisHashSortedSetBuffer:
         return buffer.get_backend()

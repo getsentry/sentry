@@ -1,5 +1,8 @@
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
@@ -16,6 +19,7 @@ interface Props {
 
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
+  const replay = readerResult.replay;
   const badge = replayRecord ? (
     <UserBadge
       avatarSize={24}
@@ -32,6 +36,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
+              {replay?.getIsLive() ? <Live /> : null}
             </TimeContainer>
           ) : null}
         </DisplayHeader>
@@ -76,4 +81,50 @@ const TimeContainer = styled('div')`
 const DisplayHeader = styled('div')`
   display: flex;
   flex-direction: column;
+`;
+
+function Live() {
+  return (
+    <Flex align="center">
+      <LiveText bold>{t('LIVE')}</LiveText>
+      <LiveIndicator />
+    </Flex>
+  );
+}
+
+const pulse = keyframes`
+  0% {
+    transform: scale(0.1);
+    opacity: 1
+  }
+
+  40%, 100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+`;
+
+const LiveText = styled(Text)`
+  color: ${p => p.theme.success};
+`;
+
+const LiveIndicator = styled('div')`
+  background: ${p => p.theme.success};
+  height: 8px;
+  width: 8px;
+  position: relative;
+  border-radius: 50%;
+  margin-left: 6px;
+
+  &:before {
+    content: '';
+    animation: ${pulse} 3s ease-out infinite;
+    border: 6px solid ${p => p.theme.success};
+    position: absolute;
+    border-radius: 50%;
+    height: 20px;
+    width: 20px;
+    top: -6px;
+    left: -6px;
+  }
 `;
