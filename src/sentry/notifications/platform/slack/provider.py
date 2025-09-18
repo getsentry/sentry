@@ -1,6 +1,5 @@
 from typing import TypedDict
 
-from django.core.exceptions import ValidationError
 from slack_sdk.models.blocks import (
     ActionsBlock,
     Block,
@@ -13,7 +12,6 @@ from slack_sdk.models.blocks import (
 )
 
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.utils.channel import validate_slack_entity_id
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -25,9 +23,7 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTargetResourceType,
 )
-from sentry.notifications.platform.utiils import validate_integration_for_target
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
-from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class SlackRenderable(TypedDict):
@@ -73,36 +69,6 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         NotificationTargetResourceType.CHANNEL,
         NotificationTargetResourceType.DIRECT_MESSAGE,
     ]
-
-    @classmethod
-    def validate_target(cls, *, target: NotificationTarget) -> None:
-        super().validate_target(target=target)
-
-        assert isinstance(
-            target, cls.target_class
-        ), "Target for SlackNotificationProvider must be a IntegrationNotificationTarget"
-
-        # 1. Validate the integration exists
-        # 2. Validate the organization integration exists
-        validate_integration_for_target(target=target)
-
-        # 3. Validate the Slack channel or user exists
-        channel_name = target.specific_data.get("channel_name") if target.specific_data else None
-        if channel_name is None:
-            raise NotificationProviderError(
-                f"Slack channel or user with id '{target.resource_id}' could not be validated"
-            )
-
-        try:
-            validate_slack_entity_id(
-                integration_id=target.integration_id,
-                input_name=channel_name,
-                input_id=target.resource_id,
-            )
-        except (ValidationError, IntegrationError) as e:
-            raise NotificationProviderError(
-                f"Slack channel or user with id '{target.resource_id}' could not be validated"
-            ) from e
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
