@@ -2200,6 +2200,11 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
 register(
+    "backpressure.high_watermarks.celery",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "backpressure.high_watermarks.attachments-store",
     default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
