@@ -91,7 +91,7 @@ type IssuesTotals = {
   unhandled: number;
 } | null;
 
-function ReleaseComparisonChart({
+export default function ReleaseComparisonChart({
   release,
   project,
   releaseSessions,
@@ -140,6 +140,7 @@ function ReleaseComparisonChart({
         ReleaseComparisonChartType.ABNORMAL_SESSIONS,
         ReleaseComparisonChartType.ERRORED_SESSIONS,
         ReleaseComparisonChartType.CRASHED_SESSIONS,
+        ReleaseComparisonChartType.UNHANDLED_SESSIONS,
       ].includes(chartInUrl)
     ) {
       setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
@@ -151,6 +152,7 @@ function ReleaseComparisonChart({
         ReleaseComparisonChartType.ABNORMAL_USERS,
         ReleaseComparisonChartType.ERRORED_USERS,
         ReleaseComparisonChartType.CRASHED_USERS,
+        ReleaseComparisonChartType.UNHANDLED_USERS,
       ].includes(chartInUrl)
     ) {
       setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_USERS)));
@@ -353,6 +355,21 @@ function ReleaseComparisonChart({
       ? releaseErroredSessions - allErroredSessions
       : null;
 
+  const releaseUnhandledSessions = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionFieldWithOperation.SESSIONS,
+    SessionStatus.UNHANDLED
+  );
+  const allUnhandledSessions = getSessionStatusRate(
+    allSessions?.groups,
+    SessionFieldWithOperation.SESSIONS,
+    SessionStatus.UNHANDLED
+  );
+  const diffUnhandledSessions =
+    defined(releaseUnhandledSessions) && defined(allUnhandledSessions)
+      ? releaseUnhandledSessions - allUnhandledSessions
+      : null;
+
   const releaseCrashedSessions = getSessionStatusRate(
     releaseSessions?.groups,
     SessionFieldWithOperation.SESSIONS,
@@ -424,6 +441,21 @@ function ReleaseComparisonChart({
   const diffErroredUsers =
     defined(releaseErroredUsers) && defined(allErroredUsers)
       ? releaseErroredUsers - allErroredUsers
+      : null;
+
+  const releaseUnhandledUsers = getSessionStatusRate(
+    releaseSessions?.groups,
+    SessionFieldWithOperation.USERS,
+    SessionStatus.UNHANDLED
+  );
+  const allUnhandledUsers = getSessionStatusRate(
+    allSessions?.groups,
+    SessionFieldWithOperation.USERS,
+    SessionStatus.UNHANDLED
+  );
+  const diffUnhandledUsers =
+    defined(releaseUnhandledUsers) && defined(allUnhandledUsers)
+      ? releaseUnhandledUsers - allUnhandledUsers
       : null;
 
   const releaseCrashedUsers = getSessionStatusRate(
@@ -581,6 +613,50 @@ function ReleaseComparisonChart({
             : null,
         },
         {
+          type: ReleaseComparisonChartType.UNHANDLED_SESSIONS,
+          role: 'children',
+          drilldown: defined(issuesTotals?.handled) ? (
+            <Tooltip title={t('Open in Issues')}>
+              <GlobalSelectionLink
+                to={getReleaseUnhandledIssuesUrl(
+                  organization.slug,
+                  project.id,
+                  release.version,
+                  {start, end, period: period ?? undefined}
+                )}
+              >
+                {tct('([count] unhandled [issues])', {
+                  count: issuesTotals?.handled
+                    ? issuesTotals.handled >= 100
+                      ? '99+'
+                      : issuesTotals.handled
+                    : 0,
+                  issues: tn('issue', 'issues', issuesTotals?.handled),
+                })}
+              </GlobalSelectionLink>
+            </Tooltip>
+          ) : null,
+          thisRelease: defined(releaseUnhandledSessions)
+            ? displaySessionStatusPercent(releaseUnhandledSessions)
+            : null,
+          allReleases: defined(allUnhandledSessions)
+            ? displaySessionStatusPercent(allUnhandledSessions)
+            : null,
+          diff: defined(diffUnhandledSessions)
+            ? displaySessionStatusPercent(diffUnhandledSessions)
+            : null,
+          diffDirection: diffUnhandledSessions
+            ? diffUnhandledSessions > 0
+              ? 'up'
+              : 'down'
+            : null,
+          diffColor: diffUnhandledSessions
+            ? diffUnhandledSessions > 0
+              ? 'red300'
+              : 'green300'
+            : null,
+        },
+        {
           type: ReleaseComparisonChartType.CRASHED_SESSIONS,
           role: 'default',
           drilldown: defined(issuesTotals?.unhandled) ? (
@@ -712,6 +788,30 @@ function ReleaseComparisonChart({
           diffDirection: diffErroredUsers ? (diffErroredUsers > 0 ? 'up' : 'down') : null,
           diffColor: diffErroredUsers
             ? diffErroredUsers > 0
+              ? 'red300'
+              : 'green300'
+            : null,
+        },
+        {
+          type: ReleaseComparisonChartType.UNHANDLED_USERS,
+          role: 'children',
+          drilldown: null,
+          thisRelease: defined(releaseUnhandledUsers)
+            ? displaySessionStatusPercent(releaseUnhandledUsers)
+            : null,
+          allReleases: defined(allUnhandledUsers)
+            ? displaySessionStatusPercent(allUnhandledUsers)
+            : null,
+          diff: defined(diffUnhandledUsers)
+            ? displaySessionStatusPercent(diffUnhandledUsers)
+            : null,
+          diffDirection: diffUnhandledUsers
+            ? diffUnhandledUsers > 0
+              ? 'up'
+              : 'down'
+            : null,
+          diffColor: diffUnhandledUsers
+            ? diffUnhandledUsers > 0
               ? 'red300'
               : 'green300'
             : null,
@@ -1086,5 +1186,3 @@ const ShowMoreButton = styled('div')`
   align-items: center;
   justify-content: flex-end;
 `;
-
-export default ReleaseComparisonChart;
