@@ -173,9 +173,7 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('You can then report errors or messages to Sentry:', {
-            code: <code />,
-          }),
+          text: t('You can then report errors or messages to Sentry:'),
         },
         {
           type: 'code',
