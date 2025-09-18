@@ -208,13 +208,13 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.surface100};
   }
 
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.surface100};
+      background-color: ${p.theme.surface200};
     `}
 `;
 
