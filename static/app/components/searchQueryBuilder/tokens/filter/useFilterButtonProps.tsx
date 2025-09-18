@@ -12,7 +12,6 @@ type Props = {
 export function useFilterButtonProps({item, state}: Props) {
   const onFocus = useCallback(() => {
     // Ensure that the state is updated correctly
-    // This is where the focus is set to the filter button
     state.selectionManager.setFocusedKey(item.key);
   }, [item.key, state.selectionManager]);
 
