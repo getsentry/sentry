@@ -510,7 +510,7 @@ function LogsTableHeader({
   );
 }
 
-export function EmptyRenderer() {
+function EmptyRenderer() {
   return (
     <TableStatus>
       <EmptyStateWarning withIcon>
@@ -532,7 +532,7 @@ export function EmptyRenderer() {
   );
 }
 
-export function ErrorRenderer() {
+function ErrorRenderer() {
   return (
     <TableStatus>
       <IconWarning color="gray300" size="lg" />
