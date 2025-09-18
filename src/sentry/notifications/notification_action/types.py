@@ -507,6 +507,12 @@ def _get_integrations(organization: Organization, provider: str) -> list[RpcInte
     )
 
 
+class BaseActionValidatorProtocol(Protocol):
+    def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None: ...
+
+    def clean_data(self) -> dict[str, Any]: ...
+
+
 class BaseActionValidatorHandler(ABC):
     provider: str
     notify_action_form: type[NotificationActionForm] | None
