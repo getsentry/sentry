@@ -46,7 +46,7 @@ def load_service_definitions() -> dict[str, Service]:
             )
             services[name] = Redis(cluster)
         else:
-            services[name] = None
+            logger.error("Unknown service: %s", name)
 
     return services
 
