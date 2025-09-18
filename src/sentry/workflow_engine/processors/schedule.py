@@ -10,6 +10,9 @@ from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
 )
+from sentry.utils.iterators import chunked
+from sentry.workflow_engine.buffer import get_backend
+from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.tasks.delayed_workflows import process_delayed_workflows
 
 logger = logging.getLogger(__name__)
@@ -112,10 +115,19 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
                 for project_id, timestamps in all_project_ids_and_timestamps.items()
             ]
             try:
-                with metrics.timer("workflow_engine.conditional_delete_from_sorted_sets.duration"):
-                    deleted = buffer.conditional_delete_from_sorted_sets(buffer_keys, member_maxes)
+                deleted_project_ids = set[int]()
+                with metrics.timer(
+                    "workflow_engine.conditional_delete_from_sorted_sets.total_duration"
+                ):
+                    # The conditional delete can be slow, so we break it into chunks that probably
+                    # aren't big enough to hold onto the main redis thread for too long.
+                    for chunk in chunked(member_maxes, 500):
+                        with metrics.timer(
+                            "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
+                        ):
+                            deleted = buffer.conditional_delete_from_sorted_sets(buffer_keys, chunk)
+                            deleted_project_ids.update(*deleted.values())
 
-                deleted_project_ids = set().union(*deleted.values())
                 logger.info(
                     "process_buffered_workflows.project_ids_deleted",
                     extra={
