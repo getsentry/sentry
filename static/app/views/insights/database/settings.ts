@@ -43,10 +43,10 @@ export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
 
 export const DEFAULT_DURATION_AGGREGATE: Aggregate = SpanFunction.AVG;
 
+// Note: all these options should come from static/app/views/explore/hooks/useChartInterval.tsx ALL_INTERVAL_OPTIONS
 export const COUNTER_GRANULARITIES = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
   [THIRTY_DAYS, '12h'],
-  [TWO_WEEKS, '4h'],
+  [TWO_WEEKS, '3h'],
   [TWENTY_FOUR_HOURS, '30m'],
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
@@ -54,7 +54,7 @@ export const COUNTER_GRANULARITIES = new GranularityLadder([
 ]);
 
 export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
-  [TWO_WEEKS, '1d'],
+  [TWO_WEEKS, '12h'],
   [FORTY_EIGHT_HOURS, '1h'],
   [TWENTY_FOUR_HOURS, '30m'],
   [SIX_HOURS, '5m'],
