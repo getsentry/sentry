@@ -11,7 +11,7 @@ from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-account_unlink_endpoint = "sentry/internal/account/unlink/"
+account_unlink_endpoint = "/sentry/internal/account/unlink/"
 
 
 @instrumented_task(

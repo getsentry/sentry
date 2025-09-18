@@ -13,7 +13,7 @@ from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-account_link_endpoint = "sentry/internal/account/link/"
+account_link_endpoint = "/sentry/internal/account/link/"
 
 
 @instrumented_task(
