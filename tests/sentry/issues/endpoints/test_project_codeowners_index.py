@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
@@ -354,7 +353,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    @with_feature("organizations:use-case-insensitive-codeowners")
     def test_case_insensitive_team_matching(self, get_codeowner_mock_file: MagicMock) -> None:
         """Test that team names are matched case-insensitively in CODEOWNERS files."""
 
