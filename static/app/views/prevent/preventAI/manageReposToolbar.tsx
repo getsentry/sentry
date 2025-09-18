@@ -23,7 +23,6 @@ function ManageReposToolbar({
   selectedOrg: string;
   selectedRepo: string;
 }) {
-  // Memoize options for performance
   const organizationOptions = useMemo(
     () =>
       installedOrgs.map(org => ({
@@ -51,11 +50,7 @@ function ManageReposToolbar({
           options={organizationOptions}
           onChange={option => onOrgChange(String(option?.value))}
           trigger={(triggerProps, isOpen) => (
-            <DropdownButton
-              isOpen={isOpen}
-              data-test-id="page-filter-org-selector"
-              {...triggerProps}
-            >
+            <DropdownButton isOpen={isOpen} {...triggerProps}>
               <TriggerLabelWrap>
                 <Flex align="center" gap="sm">
                   <IconContainer>
@@ -76,11 +71,7 @@ function ManageReposToolbar({
           options={repositoryOptions}
           onChange={option => onRepoChange(String(option?.value))}
           trigger={(triggerProps, isOpen) => (
-            <DropdownButton
-              isOpen={isOpen}
-              data-test-id="page-filter-repo-selector"
-              {...triggerProps}
-            >
+            <DropdownButton isOpen={isOpen} {...triggerProps}>
               <TriggerLabelWrap>
                 <Flex align="center" gap="sm">
                   <IconContainer>

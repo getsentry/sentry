@@ -5,14 +5,14 @@ import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 interface UpdateFeatureParams {
   enabled: boolean;
   feature: string;
-  triggers: Record<string, boolean>;
+  triggers?: Record<string, boolean>;
 }
 
 interface UpdateFeatureResult {
   enabled: boolean;
   feature: string;
   success: boolean;
-  triggers: Record<string, boolean>;
+  triggers?: Record<string, boolean>;
 }
 
 export function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {

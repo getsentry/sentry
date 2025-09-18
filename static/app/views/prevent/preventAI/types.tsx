@@ -1,5 +1,5 @@
 // note: we only support github for now
-type PreventAIProvider = 'github' | 'bitbucket' | 'gitlab';
+export type PreventAIProvider = 'github' | 'bitbucket' | 'gitlab';
 
 interface PreventAIRepo {
   fullName: string;
@@ -15,7 +15,7 @@ export interface PreventAIOrg {
   repos: PreventAIRepo[];
 }
 
-type Trigger = 'on_command_phrase' | 'on_ready_for_review' | 'on_new_commit';
+type Trigger = 'on_command_phrase' | 'on_ready_for_review';
 
 export interface PreventAIConfig {
   features: {
@@ -26,7 +26,7 @@ export interface PreventAIConfig {
     test_generation: {
       enabled: boolean;
     };
-    vanilla_pr_review: {
+    vanilla: {
       enabled: boolean;
     };
   };
