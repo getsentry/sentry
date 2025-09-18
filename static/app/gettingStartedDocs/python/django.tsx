@@ -73,17 +73,16 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Install [code:sentry-sdk] from PyPI with the [code:django] extra:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
+            code: <code />,
+          }),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[django]'}).filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[django]'})
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],
@@ -93,12 +92,9 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Initialize the Sentry SDK in your Django [code:settings.py] file:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Initialize the Sentry SDK in your Django [code:settings.py] file:', {
+            code: <code />,
+          }),
         },
         {
           type: 'code',
@@ -151,9 +147,7 @@ urlpatterns = [
           ? [
               {
                 type: 'text' as const,
-                text: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
+                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
               },
               {
                 type: 'code' as const,

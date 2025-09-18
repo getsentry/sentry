@@ -79,17 +79,16 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Install [code:sentry-sdk] from PyPI with the [code:flask] extra:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:flask] extra:', {
+            code: <code />,
+          }),
         },
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[flask]'}).filter(config => config.code).map(config => ({
-          type: 'code' as const,
-          tabs: config.code!,
-        })),
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[flask]'})
+          .filter(config => config.code)
+          .map(config => ({
+            type: 'code' as const,
+            tabs: config.code!,
+          })),
       ],
     },
   ],
@@ -158,9 +157,7 @@ def hello_world():
           ? [
               {
                 type: 'text' as const,
-                text: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
+                text: t('You can send logs to Sentry using the Sentry logging APIs:'),
               },
               {
                 type: 'code' as const,
