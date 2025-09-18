@@ -367,12 +367,14 @@ const FeatureSectionDescription = styled('div')`
   margin-top: 2px;
 `;
 
+// width 150% because FieldGroup > FieldDescription has fixed width 50%
 const FeatureSectionSubItemContainer = styled(Flex)`
   flex-direction: column;
   margin-left: ${p => p.theme.space.xl};
   border-left: 2px solid ${p => p.theme.border};
   padding-left: ${p => p.theme.space.md};
   gap: ${p => p.theme.space.md};
+  width: 150%;
 `;
 
 /// fix these

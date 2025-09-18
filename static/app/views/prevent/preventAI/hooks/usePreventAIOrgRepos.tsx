@@ -1,20 +1,20 @@
 // import {useApiQuery} from 'sentry/utils/queryClient';
 // import useOrganization from 'sentry/utils/useOrganization';
 
-import type {IntegrationOrg} from 'sentry/views/prevent/preventAI/types';
+import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
 
-export interface PreventAIIntegrationOrgsResponse {
-  orgRepos: IntegrationOrg[];
+export interface PreventAIOrgReposResponse {
+  orgRepos: PreventAIOrg[];
 }
 
-export interface PreventAIIntegrationOrgsReposResult {
-  data: PreventAIIntegrationOrgsResponse | undefined;
+export interface PreventAIOrgReposResult {
+  data: PreventAIOrgReposResponse | undefined;
   isError: boolean;
   isLoading: boolean;
   refetch: () => void;
 }
 
-export function usePreventAIOrgRepos(): PreventAIIntegrationOrgsReposResult {
+export function usePreventAIOrgRepos(): PreventAIOrgReposResult {
   // TODO: Hook up to real API
   // const organization = useOrganization();
   // const {data, isLoading, isError, refetch} = useApiQuery<PreventAIIntegrationOrgsResponse>(
