@@ -40,7 +40,8 @@ class MemberPermission(OrganizationPermission):
             if not request.access.has_project_access(obj):
                 return False
 
-        return True
+            return True
+        return False
 
 
 SORT_MAP = {
@@ -192,7 +193,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         validated_data = serializer.validated_data
 
-        projects = Project.objects.filter(id__in=validated_data["projects"])
+        projects = Project.objects.filter(
+            id__in=validated_data["projects"], organization=organization
+        )
 
         for project in projects:
             self.check_object_permissions(request, project)
