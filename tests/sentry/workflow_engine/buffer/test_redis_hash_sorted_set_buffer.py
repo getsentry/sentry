@@ -1,9 +1,11 @@
 import copy
 import time
 from collections.abc import Mapping
+from unittest.mock import patch
 
 import pytest
 import rb
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from sentry import options
 from sentry.buffer.base import BufferField
@@ -327,14 +329,8 @@ class TestRedisHashSortedSetBuffer:
         if not self.buf.is_redis_cluster:
             pytest.skip("Script loading only happens for RedisCluster")
 
-        import unittest.mock
-
-        from redis.exceptions import ConnectionError as RedisConnectionError
-
         # Mock script loading failure
-        with unittest.mock.patch.object(
-            self.buf, "_ensure_script_loaded_on_cluster"
-        ) as mock_ensure:
+        with patch.object(self.buf, "_ensure_script_loaded_on_cluster") as mock_ensure:
             mock_ensure.side_effect = RedisConnectionError("Connection failed")
 
             with pytest.raises(RedisConnectionError):
@@ -408,6 +404,32 @@ class TestRedisHashSortedSetBuffer:
         later = time.time() + 1
 
         # This should pipeline multiple slot group executions
+        result = self.buf.conditional_delete_from_sorted_sets(keys, [(100, later), (200, later)])
+
+        # Verify all keys had their members removed
+        for key in keys:
+            assert set(result[key]) == {100, 200}
+
+        # Verify all keys are empty
+        for key in keys:
+            remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
+            assert len(remaining) == 0
+
+    def test_conditional_delete_rb_host_batching(self):
+        """Test that rb.Cluster groups keys by host for efficient batching."""
+        if self.buf.is_redis_cluster:
+            pytest.skip("This test is specifically for rb.Cluster host batching")
+
+        # Test with multiple keys that should be batched by host
+        keys = [f"rb_host_test_{i}" for i in range(5)]
+
+        # Add data to all keys
+        for key in keys:
+            self.buf.push_to_sorted_set(key, [100, 200])
+
+        later = time.time() + 1
+
+        # This should group keys by host and execute fewer script calls
         result = self.buf.conditional_delete_from_sorted_sets(keys, [(100, later), (200, later)])
 
         # Verify all keys had their members removed
