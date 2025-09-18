@@ -70,51 +70,68 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:django] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[django]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:django] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getPythonInstallConfig({packageName: 'sentry-sdk[django]'}).filter(config => config.code).map(config => ({
+          type: 'code' as const,
+          tabs: config.code!,
+        })),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Initialize the Sentry SDK in your Django [code:settings.py] file:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Initialize the Sentry SDK in your Django [code:settings.py] file:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'settings.py',
-              value: 'settings.py',
               language: 'python',
               code: getSdkSetupSnippet(params),
             },
           ],
         },
+        {
+          type: 'custom',
+          content: <AlternativeConfiguration />,
+        },
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'urls.py',
-              value: 'urls.py',
               language: 'python',
               code: `
 from django.urls import path
@@ -133,9 +150,13 @@ urlpatterns = [
         ...(params.isLogsSelected
           ? [
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   'You can send logs to Sentry using the Sentry logging APIs:'
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import sentry_sdk
 
@@ -145,9 +166,13 @@ sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
               },
               {
-                description: t(
+                type: 'text' as const,
+                text: t(
                   "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
                 ),
+              },
+              {
+                type: 'code' as const,
                 language: 'python',
                 code: `import logging
 
@@ -161,25 +186,28 @@ logger.error('Something went wrong')`,
               },
             ]
           : []),
+        {
+          type: 'custom' as const,
+          content: (
+            <div>
+              <p>
+                {tct(
+                  'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
+                  {
+                    link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
+                  }
+                )}
+              </p>
+              <br />
+              <p>
+                {t(
+                  'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
+                )}
+              </p>
+            </div>
+          ),
+        },
       ],
-      additionalInfo: (
-        <div>
-          <p>
-            {tct(
-              'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
-              {
-                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
-              }
-            )}
-          </p>
-          <br />
-          <p>
-            {t(
-              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
-            )}
-          </p>
-        </div>
-      ),
     },
   ],
   nextSteps: (params: Params) => {
