@@ -60,10 +60,6 @@ const config: KnipConfig = {
   compilers: {
     mdx: async text => String(await compile(text)),
   },
-  ignore: [
-    // will be removed in the next PR
-    'static/app/components/deprecatedSmartSearchBar/**',
-  ],
   ignoreDependencies: [
     'core-js',
     'eslint-import-resolver-typescript', // used in eslint config
