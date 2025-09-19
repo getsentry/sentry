@@ -4,6 +4,10 @@ description: A family of hooks that interface with the /events-timeseries/ endpo
 source: 'sentry/utils/timeSeries/useFetchEventsTimeSeries'
 ---
 
+import APIReference from '!!type-loader!sentry/utils/timeSeries/useFetchEventsTimeSeries';
+
+export const types = {useFetchEventsTimeSeries: APIReference.useFetchEventsTimeSeries};
+
 `useFetchEventsTimeSeries` is a hook that fetches data from the `/events-timeseries/` endpoint. These hooks are the preferred way to fetch time series data for use in charts. For example, Insights pages use this hook to fetch and plot throughput, durations, and other data. There also are helper exports for dataset-specific hooks like `useFetchSpanTimeSeries`.
 
 ## Basic Usage
