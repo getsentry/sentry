@@ -7,3 +7,4 @@ export {Demo} from './demo';
 export {story} from './storybook';
 export {ThemeSwitcher, ThemeToggle} from './theme';
 export {APIReference} from './apiReference';
+export {TokenReference} from './tokenReference';
