@@ -12,7 +12,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
-import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {FilterOperator as FilterOperatorComponent} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
@@ -30,7 +30,6 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {prettifyTagKey} from 'sentry/utils/fields';
 
@@ -170,6 +169,24 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
       <InteractionStateLayer />
       <FilterValueText token={token} />
     </ValueButton>
+  );
+}
+
+interface FilterOperatorProps {
+  item: Node<ParseResultToken>;
+  onOpenChange: (isOpen: boolean) => void;
+  state: ListState<ParseResultToken>;
+  token: TokenResult<Token.FILTER>;
+}
+
+function FilterOperator({token, state, item, onOpenChange}: FilterOperatorProps) {
+  return (
+    <FilterOperatorComponent
+      token={token}
+      state={state}
+      item={item}
+      onOpenChange={onOpenChange}
+    />
   );
 }
 
@@ -333,7 +350,7 @@ const FilterValueGridCell = styled(BaseGridCell)`
 `;
 
 const ValueButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -348,7 +365,7 @@ const ValueButton = styled(UnstyledButton)`
 `;
 
 const ValueEditing = styled('div')`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -362,7 +379,7 @@ const ValueEditing = styled('div')`
 `;
 
 const DeleteButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.75)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
   color: ${p => p.theme.subText};
   border-left: 1px solid transparent;
@@ -377,7 +394,7 @@ const FilterValueList = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   max-width: 400px;
 `;
 

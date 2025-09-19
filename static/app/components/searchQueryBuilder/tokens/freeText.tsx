@@ -26,6 +26,7 @@ import {
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
+  FilterType,
   InvalidReason,
   parseSearch,
   Token,
@@ -33,7 +34,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -131,13 +131,22 @@ function countPreviousItemsOfType({
 
 function calculateNextFocusForFilter(
   state: ListState<ParseResultToken>,
-  definition: FieldDefinition | null
+  definition: FieldDefinition | null,
+  key: string | null,
+  hasInputChangeFlows: boolean
 ): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
-  const part =
-    definition && definition.kind === FieldKind.FUNCTION && definition.parameters?.length
-      ? 'key'
-      : 'value';
+
+  let part: FocusOverride['part'] = hasInputChangeFlows ? 'op' : 'value';
+  if (
+    definition &&
+    definition.kind === FieldKind.FUNCTION &&
+    definition.parameters?.length
+  ) {
+    part = 'key';
+  } else if (key === FilterType.IS || key === FilterType.HAS) {
+    part = 'value';
+  }
 
   return {
     itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
@@ -242,12 +251,16 @@ function SearchQueryBuilderInputInternal({
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
-  const organization = useOrganization();
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
+
+  const organization = useOrganization();
+  const hasInputChangeFlows = organization.features.includes(
+    'search-query-builder-input-flow-changes'
+  );
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -460,7 +473,12 @@ function SearchQueryBuilderInputInternal({
               value,
               getFieldDefinition
             ),
-            focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
+            focusOverride: calculateNextFocusForFilter(
+              state,
+              getFieldDefinition(value),
+              value,
+              hasInputChangeFlows
+            ),
             shouldCommitQuery: false,
           });
           resetInputValue();
@@ -560,7 +578,9 @@ function SearchQueryBuilderInputInternal({
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
-                    getFieldDefinition(filterValue)
+                    getFieldDefinition(filterValue),
+                    null,
+                    hasInputChangeFlows
                   ),
                   shouldCommitQuery: false,
                 });
@@ -601,7 +621,9 @@ function SearchQueryBuilderInputInternal({
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
-                getFieldDefinition(filterKey)
+                getFieldDefinition(filterKey),
+                filterKey,
+                hasInputChangeFlows
               ),
               shouldCommitQuery: false,
             });
@@ -716,8 +738,8 @@ const Row = styled('div')`
     [data-hidden-text='true']::before {
       content: '';
       position: absolute;
-      left: ${space(0.5)};
-      right: ${space(0.5)};
+      left: ${p => p.theme.space.xs};
+      right: ${p => p.theme.space.xs};
       top: 0;
       bottom: 0;
       background-color: ${p => p.theme.gray100};
@@ -733,7 +755,7 @@ const GridCell = styled('div')`
   width: 100%;
 
   input {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space.xs};
     min-width: 9px;
     width: 100%;
   }
@@ -749,7 +771,7 @@ const PositionedTooltip = styled(InvalidTokenTooltip)`
 const InvisibleText = styled('div')`
   position: relative;
   color: transparent;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
   min-width: 9px;
   height: 100%;
 `;

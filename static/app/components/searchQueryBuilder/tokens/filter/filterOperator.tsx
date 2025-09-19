@@ -1,7 +1,15 @@
-import {useMemo, type ReactNode} from 'react';
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
+import {useFocusWithin} from '@react-aria/interactions';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
@@ -216,9 +224,10 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
     'search-query-builder-wildcard-operators'
   );
 
-  const {dispatch, searchSource, query, recentSearches, disabled} =
+  const {dispatch, searchSource, query, recentSearches, disabled, focusOverride} =
     useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
+  const {focusWithinProps} = useFocusWithin({});
 
   const {operator, label, options} = useMemo(
     () => getOperatorInfo(token, hasWildcardOperators),
@@ -227,21 +236,48 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
 
+  const [autoFocus, setAutoFocus] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+
+  const initialOpSetting = useRef(false);
+
+  useLayoutEffect(() => {
+    if (focusOverride?.itemKey === item.key && focusOverride.part === 'op') {
+      setAutoFocus(true);
+      initialOpSetting.current = true;
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, item.key, onOpenChange]);
+
+  useLayoutEffect(() => {
+    if (autoFocus && ref.current && initialOpSetting.current) {
+      ref.current.click();
+    }
+  }, [autoFocus]);
+
+  const resetState = useCallback(() => {
+    setAutoFocus(false);
+  }, []);
+
   return (
     <CompactSelect
       disabled={disabled}
-      trigger={triggerProps => (
-        <OpButton
-          disabled={disabled}
-          aria-label={t('Edit operator for filter: %s', token.key.text)}
-          onlyOperator={onlyOperator}
-          {...mergeProps(triggerProps, filterButtonProps)}
-        >
-          <InteractionStateLayer />
-          {label}
-        </OpButton>
-      )}
+      trigger={triggerProps => {
+        return (
+          <OpButton
+            disabled={disabled}
+            aria-label={t('Edit operator for filter: %s', token.key.text)}
+            onlyOperator={onlyOperator}
+            {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
+            ref={mergeRefs(triggerProps.ref, ref)}
+          >
+            <InteractionStateLayer />
+            {label}
+          </OpButton>
+        );
+      }}
       size="sm"
+      autoFocus={autoFocus}
       options={options}
       value={operator}
       onOpenChange={onOpenChange}
@@ -259,9 +295,20 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
+          focusOverride: initialOpSetting.current
+            ? {
+                itemKey: `${item.key}`,
+                part: 'value',
+              }
+            : undefined,
         });
+        initialOpSetting.current = false;
+        resetState();
       }}
       offset={MENU_OFFSET}
+      onInteractOutside={() => {
+        resetState();
+      }}
     />
   );
 }
