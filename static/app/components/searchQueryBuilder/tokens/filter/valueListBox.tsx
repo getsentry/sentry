@@ -12,7 +12,6 @@ import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {type Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {isWildcardOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface ConstrainAndAlignListBoxArgs {
   popoverRef: React.RefObject<HTMLElement | null>;
@@ -223,13 +222,13 @@ const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
 `;
 
 const FooterContainer = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSize.sm};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const LoadingWrapper = styled('div')<{height?: string; width?: string}>`
