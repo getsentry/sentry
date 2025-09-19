@@ -1,12 +1,12 @@
 import {getUtcDateString} from 'sentry/utils/dates';
 
-export interface ComputeZoomRangeOptions {
+interface ComputeZoomRangeOptions {
   endMs: number;
   startMs: number;
   intervalSeconds?: number;
 }
 
-export interface ZoomRangeMs {
+interface ZoomRangeMs {
   end: number;
   start: number;
 }
