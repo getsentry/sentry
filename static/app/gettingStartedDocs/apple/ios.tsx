@@ -1,6 +1,4 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list/';
-import ListItem from 'sentry/components/list/listItem';
 import type {
   BasePlatformOptions,
   Docs,
@@ -274,21 +272,21 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ? [
           {
             type: StepType.INSTALL,
-            description: (
-              <p>
-                {tct(
+            content: [
+              {
+                type: 'text',
+                text: tct(
                   'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
                   {
                     wizardLink: (
                       <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#install" />
                     ),
                   }
-                )}
-              </p>
-            ),
-            configurations: [
+                ),
+              },
               {
-                code: getWizardInstallSnippet({
+                type: 'code',
+                tabs: getWizardInstallSnippet({
                   platform: 'ios',
                   params,
                 }),
@@ -299,34 +297,42 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       : [
           {
             type: StepType.INSTALL,
-            description: tct(
-              'We recommend installing the SDK with Swift Package Manager (SPM), but we also support [alternateMethods: alternate installation methods]. To integrate Sentry into your Xcode project using SPM, open your App in Xcode and open [addPackage: File > Add Packages]. Then add the SDK by entering the Git repo url in the top right search field:',
+            content: [
               {
-                alternateMethods: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/install/" />
+                type: 'text',
+                text: tct(
+                  'We recommend installing the SDK with Swift Package Manager (SPM), but we also support [alternateMethods: alternate installation methods]. To integrate Sentry into your Xcode project using SPM, open your App in Xcode and open [addPackage: File > Add Packages]. Then add the SDK by entering the Git repo url in the top right search field:',
+                  {
+                    alternateMethods: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/apple/install/" />
+                    ),
+                    addPackage: <strong />,
+                  }
                 ),
-                addPackage: <strong />,
-              }
-            ),
-            configurations: [
+              },
               {
+                type: 'code',
                 language: 'url',
                 code: `https://github.com/getsentry/sentry-cocoa.git`,
               },
               {
-                description: (
-                  <p>
-                    {tct(
-                      'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
-                      {
-                        packageSwift: <code />,
-                      }
-                    )}
-                  </p>
+                type: 'text',
+                text: tct(
+                  'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
+                  {
+                    packageSwift: <code />,
+                  }
                 ),
-                language: 'swift',
-                partialLoading: params.sourcePackageRegistries.isLoading,
-                code: getManualInstallSnippet(params),
+              },
+              {
+                type: 'code',
+                tabs: [
+                  {
+                    label: 'Swift',
+                    language: 'swift',
+                    code: getManualInstallSnippet(params),
+                  },
+                ],
               },
             ],
           },
@@ -336,47 +342,37 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ? [
           {
             type: StepType.CONFIGURE,
-            description: (
-              <p>{t('The Sentry wizard will automatically patch your application:')}</p>
-            ),
-            configurations: [
+            content: [
               {
-                description: (
-                  <List symbol="bullet">
-                    <ListItem>
-                      {t('Install the Sentry SDK via Swift Package Manager or Cocoapods')}
-                    </ListItem>
-                    <ListItem>
-                      {tct(
-                        'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
-                        {
-                          appDelegate: <code />,
-                        }
-                      )}
-                    </ListItem>
-                    <ListItem>
-                      {tct(
-                        'Add a new [code: Upload Debug Symbols] phase to your [code: xcodebuild] build script',
-                        {
-                          code: <code />,
-                        }
-                      )}
-                    </ListItem>
-                    <ListItem>
-                      {tct(
-                        'Create [code: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [code: .gitignore])',
-                        {
-                          code: <code />,
-                        }
-                      )}
-                    </ListItem>
-                    <ListItem>
-                      {t(
-                        "When you're using Fastlane, it will add a Sentry lane for uploading debug symbols"
-                      )}
-                    </ListItem>
-                  </List>
-                ),
+                type: 'text',
+                text: t('The Sentry wizard will automatically patch your application:'),
+              },
+              {
+                type: 'list',
+                items: [
+                  t('Install the Sentry SDK via Swift Package Manager or Cocoapods'),
+                  tct(
+                    'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
+                    {
+                      appDelegate: <code />,
+                    }
+                  ),
+                  tct(
+                    'Add a new [code: Upload Debug Symbols] phase to your [code: xcodebuild] build script',
+                    {
+                      code: <code />,
+                    }
+                  ),
+                  tct(
+                    'Create [code: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [code: .gitignore])',
+                    {
+                      code: <code />,
+                    }
+                  ),
+                  t(
+                    "When you're using Fastlane, it will add a Sentry lane for uploading debug symbols"
+                  ),
+                ],
               },
             ],
           },
@@ -384,9 +380,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       : [
           {
             type: StepType.CONFIGURE,
-            description: (
-              <p>
-                {tct(
+            content: [
+              {
+                type: 'text',
+                text: tct(
                   'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your [appDelegate:] method:',
                   {
                     appDelegate: (
@@ -395,38 +392,62 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       </code>
                     ),
                   }
-                )}
-              </p>
-            ),
-            configurations: isManualSwift(params)
-              ? [
+                ),
+              },
+              {
+                type: 'conditional',
+                condition: isManualSwift(params),
+                content: [
                   {
-                    language: 'swift',
-                    code: getConfigurationSnippetSwift(params),
+                    type: 'code',
+                    tabs: [
+                      {
+                        label: 'Swift',
+                        language: 'swift',
+                        code: getConfigurationSnippetSwift(params),
+                      },
+                    ],
                   },
                   {
-                    description: (
-                      <p>
-                        {tct(
-                          "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
-                          {
-                            initializer: (
-                              <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
-                            ),
-                          }
-                        )}
-                      </p>
+                    type: 'text',
+                    text: tct(
+                      "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
+                      {
+                        initializer: (
+                          <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
+                        ),
+                      }
                     ),
-                    language: 'swift',
-                    code: getConfigurationSnippetSwiftUi(params),
                   },
-                ]
-              : [
                   {
-                    language: 'objc',
-                    code: getConfigurationSnippetObjectiveC(params),
+                    type: 'code',
+                    tabs: [
+                      {
+                        label: 'SwiftUI',
+                        language: 'swift',
+                        code: getConfigurationSnippetSwiftUi(params),
+                      },
+                    ],
                   },
                 ],
+              },
+              {
+                type: 'conditional',
+                condition: !isManualSwift(params),
+                content: [
+                  {
+                    type: 'code',
+                    tabs: [
+                      {
+                        label: 'Objective-C',
+                        language: 'objc',
+                        code: getConfigurationSnippetObjectiveC(params),
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
           },
         ],
   verify: params =>
@@ -434,28 +455,38 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ? [
           {
             type: StepType.VERIFY,
-            description: t(
-              'The Sentry wizard automatically adds a code snippet that captures a message to your project. Simply run your app and you should see this message in your Sentry project.'
-            ),
+            content: [
+              {
+                type: 'text',
+                text: t(
+                  'The Sentry wizard automatically adds a code snippet that captures a message to your project. Simply run your app and you should see this message in your Sentry project.'
+                ),
+              },
+            ],
           },
         ]
       : [
           {
             type: StepType.VERIFY,
-            description: (
-              <p>
-                {tct(
+            content: [
+              {
+                type: 'text',
+                text: tct(
                   'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can call [verifySentrySDK: verifySentrySDK()] from where you want to test it.',
                   {
                     verifySentrySDK: <code />,
                   }
-                )}
-              </p>
-            ),
-            configurations: [
+                ),
+              },
               {
-                language: selectedLanguage(params),
-                code: getVerifySnippet(params),
+                type: 'code',
+                tabs: [
+                  {
+                    label: isManualSwift(params) ? 'Swift' : 'Objective-C',
+                    language: selectedLanguage(params),
+                    code: getVerifySnippet(params),
+                  },
+                ],
               },
             ],
           },
@@ -488,15 +519,18 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: t(
-        'Make sure your Sentry Cocoa SDK version is at least 8.43.0. If you already have the SDK installed, you can update it to the latest version with:'
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            'Make sure your Sentry Cocoa SDK version is at least 8.43.0. If you already have the SDK installed, you can update it to the latest version with:'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'SPM',
-              value: 'spm',
               language: 'swift',
               code: `.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
                 params,
@@ -506,13 +540,11 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             },
             {
               label: 'CocoaPods',
-              value: 'cocoapods',
               language: 'ruby',
               code: `pod update`,
             },
             {
               label: 'Carthage',
-              value: 'carthage',
               language: 'swift',
               code: `github "getsentry/sentry-cocoa" "${getPackageVersion(
                 params,
@@ -523,15 +555,16 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             'To set up the integration, add the following to your Sentry initialization:'
           ),
         },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Swift',
-              value: 'swift',
               language: 'swift',
               code: getReplaySetupSnippet(params),
             },
@@ -543,18 +576,24 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayMobileConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/apple/guides/ios/session-replay/#privacy',
-      }),
-      configurations: [
+      content: [
         {
-          description: t(
+          type: 'text',
+          text: getReplayMobileConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/apple/guides/ios/session-replay/#privacy',
+          }),
+        },
+        {
+          type: 'text',
+          text: t(
             'The following code is the default configuration, which masks and blocks everything.'
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Swift',
-              value: 'swift',
               language: 'swift',
               code: getReplayConfigurationSnippet(),
             },
