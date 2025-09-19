@@ -858,6 +858,7 @@ export function SearchQueryBuilderValueCombobox({
               items={items}
               isLoading={isFetching}
               canUseWildcard={canUseWildcard}
+              token={token}
             />
           );
         };
