@@ -11,6 +11,7 @@ import type {
 } from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -60,6 +61,18 @@ export function ScreensTable({
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
+
+  // Create dynamic column order for the hook
+  const dynamicColumnOrder = columnOrder.map(columnKey => ({
+    key: columnKey,
+    name: columnNameMap[columnKey]!,
+    width: COL_WIDTH_UNDEFINED,
+  }));
+
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: dynamicColumnOrder,
+    location,
+  });
 
   function renderBodyCell(
     column: GridColumn<string>,
@@ -152,17 +165,12 @@ export function ScreensTable({
       <GridEditable
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}
-        columnOrder={columnOrder.map(columnKey => {
-          return {
-            key: columnKey,
-            name: columnNameMap[columnKey]!,
-            width: COL_WIDTH_UNDEFINED,
-          };
-        })}
+        columnOrder={columns}
         columnSortBy={defaultSort}
         grid={{
           renderHeadCell,
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination
