@@ -81,7 +81,7 @@ def drop_unsupported_columns(columns):
             # regex for beginning of equation or function (if it starts with a parenthesis or comma)
             regex_beginning = r".*[\(,]"
             # regex for ending of equation or function (if it ends with a parenthesis or comma and other args)
-            regex_ending = r"[(,.*)\)]"
+            regex_ending = r"((,.*)|\))"
             # fields can be within the columns if the column is a function (like in count_if)
             for field in FIELDS_TO_DROP:
                 if re.search(regex_beginning + re.escape(field) + regex_ending, column):
