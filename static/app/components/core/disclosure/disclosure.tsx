@@ -15,7 +15,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 
-export interface DisclosureProps
+interface DisclosureProps
   extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
     React.HTMLAttributes<HTMLDivElement> {
   children: NonNullable<React.ReactNode>;
