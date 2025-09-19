@@ -24,6 +24,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.email import parse_email
 
@@ -47,13 +48,15 @@ class WorkItemWebhook(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=100, window=1),
-            RateLimitCategory.USER: RateLimit(limit=100, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=100, window=1),
+                RateLimitCategory.USER: RateLimit(limit=100, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
+            },
+        }
+    )
 
     authentication_classes = ()
     permission_classes = ()
