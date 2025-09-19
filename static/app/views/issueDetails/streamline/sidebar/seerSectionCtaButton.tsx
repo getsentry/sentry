@@ -234,6 +234,10 @@ const ChevronContainer = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
   margin-left: ${space(1)};
+
+  .loading-indicator {
+    border-left-color: ${p => p.theme.progressBackground};
+  }
 `;
 
 const ButtonPlaceholder = styled(Placeholder)`
