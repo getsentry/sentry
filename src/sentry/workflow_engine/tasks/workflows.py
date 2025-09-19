@@ -55,6 +55,8 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
+    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
+
     with transaction.atomic(router.db_for_write(Detector)):
         try:
             activity = Activity.objects.get(id=activity_id)
@@ -76,7 +78,10 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         group=group,
     )
     with quiet_redis_noise():
-        process_workflows(event_data, event_start_time=activity.datetime, detector=detector)
+        batch_client = DelayedWorkflowClient()
+        process_workflows(
+            batch_client, event_data, event_start_time=activity.datetime, detector=detector
+        )
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type, "detector_type": detector.type},
@@ -114,6 +119,8 @@ def process_workflows_event(
     start_timestamp_seconds: float | None = None,
     **kwargs: dict[str, Any],
 ) -> None:
+    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
+
     recorder = scopedstats.Recorder()
     start_time = time.time()
     with recorder.record():
@@ -137,7 +144,8 @@ def process_workflows_event(
             else datetime.now(tz=UTC)
         )
         with quiet_redis_noise():
-            process_workflows(event_data, event_start_time=event_start_time)
+            batch_client = DelayedWorkflowClient()
+            process_workflows(batch_client, event_data, event_start_time=event_start_time)
     duration = time.time() - start_time
     is_slow = duration > 1.0
     # We want full coverage for particularly slow cases, plus a random sampling.

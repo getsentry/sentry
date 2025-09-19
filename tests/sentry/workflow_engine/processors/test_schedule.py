@@ -6,15 +6,13 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
-from sentry.workflow_engine.buffer import get_backend
 from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.processors.schedule import (
     bucket_num_groups,
-    fetch_group_to_event_data,
     process_buffered_workflows,
     process_in_batches,
 )
-from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 
@@ -43,15 +41,10 @@ class CreateEventTestCase(TestCase):
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
-        buffer = get_backend()
-        processing_info = DelayedWorkflow(project_id)
-        hash_args = processing_info.hash_args
-
-        buffer.push_to_hash(
-            model=hash_args.model,
-            filters={"project_id": project_id},
-            field=f"{rule_id}:{group_id}",
-            value=value,
+        client = DelayedWorkflowClient().for_project(project_id)
+        client.push_to_hash(
+            batch_key=None,
+            data={f"{rule_id}:{group_id}": value},
         )
 
 
@@ -66,62 +59,43 @@ class ProcessBufferedWorkflowsTest(CreateEventTestCase):
         rule = self.create_alert_rule()
 
         # Push data to buffer (need actual workflow data, not just rule data)
-        processing_info1 = DelayedWorkflow(project.id)
-        processing_info2 = DelayedWorkflow(project_two.id)
-
-        # Add some workflow data to the hash
-        buffer = get_backend()
-        buffer.push_to_hash(
-            model=processing_info1.hash_args.model,
-            filters={"project_id": project.id},
-            field=f"{rule.id}:{group.id}",
-            value=json.dumps({"event_id": "event-1"}),
+        client = DelayedWorkflowClient()
+        client.for_project(project.id).push_to_hash(
+            batch_key=None,
+            data={f"{rule.id}:{group.id}": json.dumps({"event_id": "event-1"})},
         )
-        buffer.push_to_hash(
-            model=processing_info2.hash_args.model,
-            filters={"project_id": project_two.id},
-            field=f"{rule.id}:{group_two.id}",
-            value=json.dumps({"event_id": "event-2"}),
+        client.for_project(project_two.id).push_to_hash(
+            batch_key=None,
+            data={f"{rule.id}:{group_two.id}": json.dumps({"event_id": "event-2"})},
         )
 
-        # Add projects to sorted set (use the main buffer key, not all sharded keys)
-        buffer.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=project.id)
-        buffer.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=project_two.id)
+        # Add projects to sorted set
+        client.add_project_ids([project.id, project_two.id])
 
-        process_buffered_workflows()
+        process_buffered_workflows(client)
 
         # Should be called for each project
         assert mock_process_in_batches.call_count == 2
 
         # Verify that the buffer keys are cleaned up
         fetch_time = datetime.now().timestamp()
-        buffer_keys = DelayedWorkflow.get_buffer_keys()
-        all_project_ids = buffer.bulk_get_sorted_set(
-            buffer_keys,
-            min=0,
-            max=fetch_time,
-        )
+        all_project_ids = client.get_project_ids(min=0, max=fetch_time)
         assert all_project_ids == {}
 
     @patch("sentry.workflow_engine.processors.schedule.process_in_batches")
     @override_options({"delayed_workflow.rollout": False})
     def test_skips_processing_with_option(self, mock_process_in_batches) -> None:
         project = self.create_project()
-        buffer = get_backend()
-        buffer.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=project.id)
+        client = DelayedWorkflowClient()
+        client.add_project_ids([project.id])
 
-        process_buffered_workflows()
+        process_buffered_workflows(client)
 
         assert mock_process_in_batches.call_count == 0
 
         # Verify that the buffer keys are NOT cleaned up when disabled
         fetch_time = datetime.now().timestamp()
-        buffer_keys = DelayedWorkflow.get_buffer_keys()
-        all_project_ids = buffer.bulk_get_sorted_set(
-            buffer_keys,
-            min=0,
-            max=fetch_time,
-        )
+        all_project_ids = client.get_project_ids(min=0, max=fetch_time)
         # Should still contain our project
         assert project.id in all_project_ids
 
@@ -138,8 +112,8 @@ class ProcessInBatchesTest(CreateEventTestCase):
 
     @patch("sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async")
     def test_no_redis_data(self, mock_apply_delayed: MagicMock) -> None:
-        buffer = get_backend()
-        process_in_batches(buffer, self.project.id)
+        client = DelayedWorkflowClient().for_project(self.project.id)
+        process_in_batches(client)
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
@@ -150,8 +124,8 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        buffer = get_backend()
-        process_in_batches(buffer, self.project.id)
+        client = DelayedWorkflowClient().for_project(self.project.id)
+        process_in_batches(client)
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
@@ -163,30 +137,23 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        buffer = get_backend()
-        process_in_batches(buffer, self.project.id)
+        client = DelayedWorkflowClient().for_project(self.project.id)
+        process_in_batches(client)
         assert mock_apply_delayed.call_count == 2
 
         # Validate the batches are created correctly
         batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
-        processing_info = DelayedWorkflow(self.project.id)
-        hash_args = processing_info.hash_args
+        client = DelayedWorkflowClient().for_project(self.project.id)
 
-        batch_one = buffer.get_hash(
-            model=hash_args.model, field={"project_id": self.project.id, "batch_key": batch_one_key}
-        )
+        batch_one = client.fetch_group_to_event_data(batch_key=batch_one_key)
         batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
-        batch_two = buffer.get_hash(
-            model=hash_args.model, field={"project_id": self.project.id, "batch_key": batch_two_key}
-        )
+        batch_two = client.fetch_group_to_event_data(batch_key=batch_two_key)
 
         assert len(batch_one) == 2
         assert len(batch_two) == 1
 
         # Validate that we've cleared the original data to reduce storage usage
-        original_data = buffer.get_hash(
-            model=hash_args.model, field={"project_id": self.project.id}
-        )
+        original_data = client.fetch_group_to_event_data(batch_key=None)
         assert not original_data
 
 
@@ -196,15 +163,12 @@ class FetchGroupToEventDataTest(CreateEventTestCase):
         self.project = self.create_project()
         self.group = self.create_group(self.project)
         self.rule = self.create_alert_rule()
+        self.project_client = DelayedWorkflowClient().for_project(self.project.id)
 
     def test_fetch_group_to_event_data_basic(self) -> None:
         self.push_to_hash(self.project.id, self.rule.id, self.group.id, "event-123")
 
-        buffer = get_backend()
-        processing_info = DelayedWorkflow(self.project.id)
-        hash_args = processing_info.hash_args
-
-        result = fetch_group_to_event_data(buffer, self.project.id, hash_args.model)
+        result = self.project_client.fetch_group_to_event_data(batch_key=None)
 
         assert f"{self.rule.id}:{self.group.id}" in result
         data = json.loads(result[f"{self.rule.id}:{self.group.id}"])
@@ -215,22 +179,10 @@ class FetchGroupToEventDataTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group.id, "event-456")
 
         # Move data to batch
-        buffer = get_backend()
-        processing_info = DelayedWorkflow(self.project.id)
-        hash_args = processing_info.hash_args
+        original_data = self.project_client.fetch_group_to_event_data(batch_key=None)
+        self.project_client.push_to_hash(batch_key=batch_key, data=original_data)
 
-        original_data = buffer.get_hash(
-            model=hash_args.model, field={"project_id": self.project.id}
-        )
-        buffer.push_to_hash_bulk(
-            model=hash_args.model,
-            filters={"project_id": self.project.id, "batch_key": batch_key},
-            data=original_data,
-        )
-
-        result = fetch_group_to_event_data(
-            buffer, self.project.id, hash_args.model, batch_key=batch_key
-        )
+        result = self.project_client.fetch_group_to_event_data(batch_key=batch_key)
 
         assert f"{self.rule.id}:{self.group.id}" in result
         data = json.loads(result[f"{self.rule.id}:{self.group.id}"])
