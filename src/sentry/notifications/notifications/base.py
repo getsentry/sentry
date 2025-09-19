@@ -195,8 +195,7 @@ class BaseNotification(abc.ABC):
             }
 
             try:
-                event_class = PROVIDER_TO_EVENT_CLASS.get(provider)
-                if event_class is None:
+                if event_class := PROVIDER_TO_EVENT_CLASS.get(provider):
                     analytics.record(
                         event_class(
                             organization_id=self.organization.id,
