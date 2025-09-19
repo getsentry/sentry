@@ -98,9 +98,7 @@ class Event:
         return super().__new__(cls)
 
     def serialize(self) -> dict[str, Any]:
-        if self.data is None:
-            self.data = {k: v for k, v in asdict(self).items() if k != "type"}
-        return self.data
+        return {k: v for k, v in asdict(self).items() if k != "type"}
 
     @classmethod
     # @deprecated("This constructor function is discouraged, as it is not type-safe.")
