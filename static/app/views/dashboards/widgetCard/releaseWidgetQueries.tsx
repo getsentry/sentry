@@ -155,7 +155,7 @@ function customDidUpdateComparator(
 ) {
   const {loading, limit, widget, cursor, organization, selection, dashboardFilters} =
     nextProps;
-  const ignoredWidgetProps = [
+  const ignoredWidgetProps: Array<Partial<keyof Widget>> = [
     'queries',
     'title',
     'id',
@@ -164,7 +164,12 @@ function customDidUpdateComparator(
     'widgetType',
     'tableWidths',
   ];
-  const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
+  const ignoredQueryProps: Array<Partial<keyof WidgetQuery>> = [
+    'name',
+    'fields',
+    'aggregates',
+    'columns',
+  ];
   return (
     limit !== prevProps.limit ||
     organization.slug !== prevProps.organization.slug ||
