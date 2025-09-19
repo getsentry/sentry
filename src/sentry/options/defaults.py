@@ -3120,12 +3120,6 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "grouping.grouphash_metadata.backfill_sample_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "workflow_engine.issue_alert.group.type_id.rollout",
