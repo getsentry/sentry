@@ -478,7 +478,9 @@ def set_default_project_seer_scanner_automation(
         )
 
 
-def get_token_count(event: Event, variants: dict[str, BaseVariant] | None = None) -> int:
+def get_token_count(
+    event: Event | GroupEvent, variants: dict[str, BaseVariant] | None = None
+) -> int:
     """
     Count the number of tokens in the stack trace of an event.
 
