@@ -28,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 
 import SubscriptionHeader from './subscriptionHeader';
@@ -96,11 +96,9 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
     return <ContactBillingMembers />;
   }
 
-  const isNewBillingUI = hasNewBillingUI(organization);
-
   if (isPending || !backendThresholds || !notificationThresholds) {
     return (
-      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+      <Container>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
       </Container>
@@ -114,7 +112,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   const onDemandEnabled = subscription.planDetails.allowOnDemand;
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+    <Container>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <PageDescription>
         {t("Configure the thresholds for your organization's spend notifications.")}
