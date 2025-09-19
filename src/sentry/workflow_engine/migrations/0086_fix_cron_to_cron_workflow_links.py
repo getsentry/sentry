@@ -40,7 +40,8 @@ def fix_cron_to_cron_workflow_links(
         )
         rule_workflows = {link.rule_id: link.workflow for link in links}
 
-        rules = [r for r in rules if r.id in rule_workflows]
+        # Process ALL rules, not just those with workflows
+        # Rules without workflows need to be mapped to the primary workflow of their hash group
         if not rules:
             continue
 
