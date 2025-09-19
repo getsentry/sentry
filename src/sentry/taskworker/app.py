@@ -11,6 +11,10 @@ class AtMostOnceStore(Protocol):
 
 
 class TaskworkerApp:
+    """
+    Container for an application's task setup and configuration.
+    """
+
     def __init__(self, taskregistry: TaskRegistry | None = None) -> None:
         self._config = {
             "rpc_secret": None,
@@ -30,16 +34,14 @@ class TaskworkerApp:
         return self._config
 
     def set_config(self, config: dict[str, Any]) -> None:
-        """
-        Update the configuration values.
-        """
+        """Update configuration data"""
         for key, value in config.items():
             if key in self._config:
                 self._config[key] = value
 
     def set_modules(self, modules: Iterable[str]) -> None:
         """
-        Set the list of modules to be loaded by workers when they start.
+        Set the list of modules containing tasks to be loaded by workers and schedulers.
         """
         self._modules = modules
 
@@ -49,6 +51,11 @@ class TaskworkerApp:
             __import__(mod)
 
     def at_most_once_store(self, backend: AtMostOnceStore) -> None:
+        """
+        Set the backend store for `at_most_once` tasks.
+        The storage implementation should support atomic operations
+        to avoid races with at_most_once tasks.
+        """
         self._at_most_once_store = backend
 
     def should_attempt_at_most_once(self, activation: TaskActivation) -> bool:
