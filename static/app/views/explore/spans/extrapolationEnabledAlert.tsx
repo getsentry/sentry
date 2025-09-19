@@ -20,7 +20,7 @@ export function ExtrapolationEnabledAlert() {
         {tct('You have disabled extrapolation. [toggle]', {
           toggle: (
             <Button priority="link" onClick={() => setExtrapolate(true)}>
-              {t('Enable')}
+              {t('Re-enable')}
             </Button>
           ),
         })}
