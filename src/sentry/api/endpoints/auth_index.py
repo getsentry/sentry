@@ -79,6 +79,7 @@ class BaseAuthIndexEndpoint(Endpoint):
 
     @staticmethod
     def _verify_user_via_inputs(validator: AuthVerifyValidator, request: Request) -> bool:
+        assert request.user.is_authenticated
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
