@@ -11,7 +11,7 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonInstallConfig,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -56,40 +56,56 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:pymongo] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[pymongo]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:pymongo] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[pymongo]'}),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "To configure the SDK, initialize it before creating any of PyMongo's MongoClient instances:"
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            "To configure the SDK, initialize it before creating any of PyMongo's MongoClient instances:"
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
+        {
+          type: 'text',
+          text: tct(
+            'The above configuration captures both breadcrumbs and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
+            {code: <code />}
+          ),
+        },
       ],
-      additionalInfo: tct(
-        'The above configuration captures both breadcrumbs and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
-        {code: <code />}
-      ),
     },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'To verify that everything is working, run some queries and check Sentry for performance traces.'
-      ),
-      configurations: [],
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'To verify that everything is working, run some queries and check Sentry for performance traces.'
+          ),
+        },
+      ],
     },
   ],
 };
