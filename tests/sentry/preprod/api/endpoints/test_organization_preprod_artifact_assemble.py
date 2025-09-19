@@ -246,6 +246,66 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data["error"] == "Unsupported provider"
 
+    def test_assemble_incomplete_vcs_parameters_only_head_sha(self) -> None:
+        """Test that providing only head_sha without other required VCS parameters is rejected."""
+        response = self.client.post(
+            self.url,
+            data={"checksum": "a" * 40, "chunks": [], "head_sha": "b" * 40},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert "Incomplete VCS information" in response.data["error"]
+        assert "head_repo_name" in response.data["error"]
+        assert "provider" in response.data["error"]
+        assert "head_ref" in response.data["error"]
+
+    def test_assemble_incomplete_vcs_parameters_missing_head_ref(self) -> None:
+        """Test that providing some but not all required VCS parameters is rejected."""
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": "a" * 40,
+                "chunks": [],
+                "head_sha": "b" * 40,
+                "head_repo_name": "owner/repo",
+                "provider": "github",
+                # Missing head_ref
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert "Incomplete VCS information" in response.data["error"]
+        assert "head_ref" in response.data["error"]
+
+    def test_assemble_complete_vcs_parameters_success(self) -> None:
+        """Test that providing all required VCS parameters succeeds (at least past VCS validation)."""
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": "a" * 40,
+                "chunks": [],
+                "head_sha": "b" * 40,
+                "head_repo_name": "owner/repo",
+                "provider": "github",
+                "head_ref": "feature/test",
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        # Should pass VCS validation and fail at the "missing chunks" stage instead
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
+
+    def test_assemble_no_vcs_parameters_success(self) -> None:
+        """Test that providing no VCS parameters at all succeeds (VCS is optional)."""
+        response = self.client.post(
+            self.url,
+            data={"checksum": "a" * 40, "chunks": []},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        # Should pass VCS validation and fail at the "missing chunks" stage instead
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
+
     def test_assemble_json_schema_missing_checksum(self) -> None:
         """Test that missing checksum field is rejected."""
         response = self.client.post(

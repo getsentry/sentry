@@ -127,6 +127,29 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if provider is not None and provider not in SUPPORTED_VCS_PROVIDERS:
                 return Response({"error": "Unsupported provider"}, status=400)
 
+            # Validate VCS parameters: if any are provided, all required ones must be present
+            vcs_params = {
+                "head_sha": data.get("head_sha"),
+                "head_repo_name": data.get("head_repo_name"),
+                "provider": data.get("provider"),
+                "head_ref": data.get("head_ref"),
+            }
+
+            # Check if any VCS parameters are provided
+            has_any_vcs_param = any(param is not None for param in vcs_params.values())
+
+            if has_any_vcs_param:
+                # If any VCS parameter is provided, all required ones must be present
+                missing_params = [name for name, value in vcs_params.items() if not value]
+                if missing_params:
+                    return Response(
+                        {
+                            "error": f"Incomplete VCS information: missing required parameters: {', '.join(missing_params)}. "
+                            f"When providing VCS parameters, all of {', '.join(vcs_params.keys())} are required."
+                        },
+                        status=400,
+                    )
+
             checksum = data.get("checksum")
             chunks = data.get("chunks", [])
 
