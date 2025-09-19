@@ -1,4 +1,5 @@
 import orjson
+from rest_framework.response import Response
 
 from sentry.api.serializers.base import serialize
 from sentry.testutils.cases import APITestCase
@@ -26,7 +27,7 @@ class SentryAppsStatsTest(APITestCase):
         self.create_sentry_app_installation(slug=self.app_one.slug, organization=self.organization)
         self.create_sentry_app_installation(slug=self.app_two.slug, organization=self.organization)
 
-    def _check_response(self, response):
+    def _check_response(self, response: Response) -> None:
         assert {
             "id": self.app_two.id,
             "uuid": self.app_two.uuid,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -19,6 +19,7 @@ from sentry.constants import SentryAppStatus
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.roles.manager import OrganizationRole
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
@@ -65,13 +66,13 @@ class MockOrganizationRoles:
         {"id": "alice", "name": "Alice", "desc": "In Wonderland"},
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         from sentry.roles.manager import RoleManager
 
         self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
         self.organization_roles = self.default_manager.organization_roles
 
-    def get(self, x):
+    def get(self, x: str) -> OrganizationRole:
         return self.organization_roles.get(x)
 
 
@@ -82,7 +83,7 @@ class SentryAppsTest(APITestCase):
         super().setUp()
         self.default_popularity = SentryApp._meta.get_field("popularity").default
 
-    def setup_apps(self):
+    def setup_apps(self) -> None:
         self.published_app = self.create_sentry_app(organization=self.organization, published=True)
         self.unpublished_app = self.create_sentry_app(organization=self.organization)
         self.unowned_unpublished_app = self.create_sentry_app(
@@ -453,7 +454,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
 
     def assert_no_permission(
         self, organization: Organization, sentry_app: SentryApp, slug: str | None
-    ):
+    ) -> None:
         self.create_project(organization=organization)
         token = ApiToken.objects.get(application=sentry_app.application)
 
@@ -609,7 +610,7 @@ class PostSentryAppsTest(SentryAppsTest):
                 assert content[key] == value
 
     @patch("sentry.analytics.record")
-    def test_wrong_schema_format(self, record) -> None:
+    def test_wrong_schema_format(self, record: MagicMock) -> None:
         kwargs = {
             "schema": {
                 "elements": [

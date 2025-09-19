@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+from rest_framework.response import Response
 
 from sentry import audit_log, deletions
 from sentry.analytics.events.sentry_app_schema_validation_error import (
@@ -113,7 +114,7 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
 class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     method = "PUT"
 
-    def _validate_updated_published_app(self, response):
+    def _validate_updated_published_app(self, response: Response) -> None:
         data = response.data
         data["featureData"] = sorted(data["featureData"], key=lambda a: a["featureId"])
 
