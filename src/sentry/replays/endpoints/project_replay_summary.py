@@ -1,5 +1,4 @@
 import logging
-import time
 from typing import Any
 
 import sentry_sdk
@@ -7,6 +6,7 @@ from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from urllib3.util.retry import Retry
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -92,26 +92,14 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 connection_pool=seer_connection_pool,
                 path=path,
                 body=data.encode("utf-8"),
+                retries=Retry(total=1, backoff_factor=3),  # 1 retry with 3 second delay
             )
         except Exception:
-            logger.warning(
-                "Summarization pod connection failed for replay summary, retrying in 3s",
-                exc_info=True,
+            logger.exception(
+                "Seer replay breadcrumbs summary endpoint failed after retries",
                 extra={"path": path},
             )
-            time.sleep(3)  # Wait 3 seconds before retrying
-            try:
-                response = make_signed_seer_api_request(
-                    connection_pool=seer_connection_pool,
-                    path=path,
-                    body=data.encode("utf-8"),
-                )
-            except Exception:
-                logger.exception(
-                    "Seer replay breadcrumbs summary endpoint failed after retry",
-                    extra={"path": path},
-                )
-                return self.respond("Internal Server Error", status=500)
+            return self.respond("Internal Server Error", status=500)
 
         if response.status < 200 or response.status >= 300:
             logger.error(
