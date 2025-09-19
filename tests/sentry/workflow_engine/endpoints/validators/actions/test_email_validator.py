@@ -58,17 +58,6 @@ class TestEmailActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate__issue_owners_extra_identifier(self):
-        validator = BaseActionValidator(
-            data={
-                **self.valid_data,
-                "config": {"target_type": ActionTarget.ISSUE_OWNERS, "target_identifier": "extra"},
-            },
-            context={"organization": self.organization},
-        )
-        result = validator.is_valid()
-        assert result is False
-
     def test_validate__invalid_target_type(self):
         validator = BaseActionValidator(
             data={

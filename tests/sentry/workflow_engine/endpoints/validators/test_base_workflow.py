@@ -638,8 +638,8 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "id": action.id,
                 "type": Action.Type.EMAIL,
                 "config": {
-                    "targetIdentifier": "foo",
-                    "targetType": 0,
+                    "targetIdentifier": str(self.user.id),
+                    "targetType": ActionTarget.USER,
                 },
                 "data": {},
             }
