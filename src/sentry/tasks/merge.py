@@ -2,6 +2,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
@@ -12,7 +13,6 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
-from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
@@ -190,26 +190,14 @@ def merge_groups(
                     num_comments=F("num_comments") + group.num_comments,
                 )
             except DataError as e:
-                logger.warning(
-                    "tasks.merge.times_seen_update_failure",
-                    extra={
-                        "new_group_id": new_group.id,
-                        "old_group_id": group.id,
-                        "new_times_seen": new_group.times_seen,
-                        "old_times_seen": group.times_seen,
-                        "attempted_times_seen": new_group.times_seen + group.times_seen,
-                        "error_message": str(e),
-                    },
-                )
-                metrics.incr(
-                    "tasks.merge.times_seen_update_failure",
-                    tags={
-                        "project_id": new_group.project_id,
-                        "new_group_id": new_group.id,
-                        "old_group_id": group.id,
-                    },
-                    sample_rate=1.0,
-                )
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_extra("new_group_id", new_group.id)
+                    scope.set_extra("old_group_id", group.id)
+                    scope.set_extra("new_times_seen", new_group.times_seen)
+                    scope.set_extra("old_times_seen", group.times_seen)
+                    scope.set_extra("attempted_times_seen", new_group.times_seen + group.times_seen)
+                    scope.set_extra("project_id", new_group.project_id)
+                    sentry_sdk.capture_exception(e, level="warning")
 
     if from_object_ids:
         # This task is recursed until `from_object_ids` is empty and all
