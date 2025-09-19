@@ -683,12 +683,16 @@ class ProjectReplaySummaryTestCase(
             "temperature": 0.73,
         }
 
+    @patch("sentry.replays.endpoints.project_replay_summary.time.sleep")
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
-    def test_seer_timeout(self, mock_make_seer_api_request: Mock) -> None:
+    def test_seer_timeout(self, mock_make_seer_api_request: Mock, mock_sleep: Mock) -> None:
         for method in ["GET", "POST"]:
             mock_make_seer_api_request.side_effect = requests.exceptions.Timeout(
                 "Request timed out"
             )
+            mock_sleep.reset_mock()
+            mock_make_seer_api_request.reset_mock()
+
             self.save_recording_segment(0, json.dumps([]).encode())
             self.store_replay()
 
@@ -702,13 +706,23 @@ class ProjectReplaySummaryTestCase(
                 )
 
             assert response.status_code == 500, method
+            # Verify retry behavior: initial attempt + 1 retry = 2 calls
+            assert mock_make_seer_api_request.call_count == 2, f"Expected 2 calls for {method}"
+            assert mock_sleep.call_count == 1, f"Expected 1 sleep call for {method}"
+            mock_sleep.assert_called_with(3)
 
+    @patch("sentry.replays.endpoints.project_replay_summary.time.sleep")
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
-    def test_seer_connection_error(self, mock_make_seer_api_request: Mock) -> None:
+    def test_seer_connection_error(
+        self, mock_make_seer_api_request: Mock, mock_sleep: Mock
+    ) -> None:
         for method in ["GET", "POST"]:
             mock_make_seer_api_request.side_effect = requests.exceptions.ConnectionError(
                 "Connection error"
             )
+            mock_sleep.reset_mock()
+            mock_make_seer_api_request.reset_mock()
+
             self.save_recording_segment(0, json.dumps([]).encode())
             self.store_replay()
 
@@ -722,13 +736,21 @@ class ProjectReplaySummaryTestCase(
                 )
 
             assert response.status_code == 500, method
+            # Verify retry behavior: initial attempt + 1 retry = 2 calls
+            assert mock_make_seer_api_request.call_count == 2, f"Expected 2 calls for {method}"
+            assert mock_sleep.call_count == 1, f"Expected 1 sleep call for {method}"
+            mock_sleep.assert_called_with(3)
 
+    @patch("sentry.replays.endpoints.project_replay_summary.time.sleep")
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
-    def test_seer_request_error(self, mock_make_seer_api_request: Mock) -> None:
+    def test_seer_request_error(self, mock_make_seer_api_request: Mock, mock_sleep: Mock) -> None:
         for method in ["GET", "POST"]:
             mock_make_seer_api_request.side_effect = requests.exceptions.RequestException(
                 "Generic request error"
             )
+            mock_sleep.reset_mock()
+            mock_make_seer_api_request.reset_mock()
+
             self.save_recording_segment(0, json.dumps([]).encode())
             self.store_replay()
 
@@ -742,6 +764,10 @@ class ProjectReplaySummaryTestCase(
                 )
 
             assert response.status_code == 500, method
+            # Verify retry behavior: initial attempt + 1 retry = 2 calls
+            assert mock_make_seer_api_request.call_count == 2, f"Expected 2 calls for {method}"
+            assert mock_sleep.call_count == 1, f"Expected 1 sleep call for {method}"
+            mock_sleep.assert_called_with(3)
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_seer_http_errors(self, mock_make_seer_api_request: Mock) -> None:

@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Any
 
 import sentry_sdk
@@ -39,9 +40,6 @@ SEER_POLL_STATE_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/sta
 seer_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
-fallback_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
 
 
 class ReplaySummaryPermission(ProjectPermission):
@@ -74,7 +72,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         super().__init__(**kw)
 
     def make_seer_request(self, path: str, post_body: dict[str, Any]) -> Response:
-        """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
+        """Make a POST request to a Seer endpoint with retry logic. Raises HTTPError and logs non-200 status codes."""
         data = json.dumps(post_body)
 
         if len(data) > SEER_REQUEST_SIZE_LOG_THRESHOLD:
@@ -96,21 +94,21 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 body=data.encode("utf-8"),
             )
         except Exception:
-            # If summarization pod fails, fall back to autofix pod
             logger.warning(
-                "Summarization pod connection failed for replay summary, falling back to autofix",
+                "Summarization pod connection failed for replay summary, retrying in 3s",
                 exc_info=True,
                 extra={"path": path},
             )
+            time.sleep(3)  # Wait 3 seconds before retrying
             try:
                 response = make_signed_seer_api_request(
-                    connection_pool=fallback_connection_pool,
+                    connection_pool=seer_connection_pool,
                     path=path,
                     body=data.encode("utf-8"),
                 )
             except Exception:
                 logger.exception(
-                    "Seer replay breadcrumbs summary endpoint failed on both pods",
+                    "Seer replay breadcrumbs summary endpoint failed after retry",
                     extra={"path": path},
                 )
                 return self.respond("Internal Server Error", status=500)
