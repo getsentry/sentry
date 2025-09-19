@@ -1091,13 +1091,18 @@ class GetTokenCountTest(TestCase):
         self.event.data["stacktrace_string"] = cached_stacktrace
 
         # The token count should be based on the cached string, not recalculated
-        token_count = get_token_count(self.event)
+        with patch(
+            "sentry.seer.similarity.utils.get_stacktrace_string"
+        ) as mock_get_stacktrace_string:
 
-        # Exact token count for this specific string
-        assert token_count == 21
+            token_count = get_token_count(self.event, None, "python")
+            mock_get_stacktrace_string.assert_not_called()
 
-        # Verify the cached string is still there (not consumed)
-        assert self.event.data.get("stacktrace_string") == cached_stacktrace
+            # Exact token count for this specific string
+            assert token_count == 21
+
+            # Verify the cached string is still there (not consumed)
+            assert self.event.data.get("stacktrace_string") == cached_stacktrace
 
     def test_different_stacktraces_give_different_counts(self) -> None:
         """Test that different stacktraces give different token counts."""
@@ -1125,8 +1130,8 @@ class GetTokenCountTest(TestCase):
             },
         )
 
-        simple_count = get_token_count(simple_event)
-        complex_count = get_token_count(complex_event)
+        simple_count = get_token_count(simple_event, None, "python")
+        complex_count = get_token_count(complex_event, None, "python")
 
         # Exact token counts for these specific strings
         assert simple_count == 18
@@ -1136,20 +1141,10 @@ class GetTokenCountTest(TestCase):
         """Test that get_token_count uses provided variants to calculate stacktrace."""
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        token_count = get_token_count(self.event, variants)
+        token_count = get_token_count(self.event, variants, "python")
 
         # Exact token count for the test event's stacktrace
         assert token_count == 28
-
-    def test_returns_zero_when_no_variants_and_no_cache(self) -> None:
-        """Test that get_token_count returns 0 when no variants provided and can't calculate."""
-        # Don't provide variants, and ensure no cached stacktrace
-        self.event.data.pop("stacktrace_string", None)
-
-        token_count = get_token_count(self.event, variants=None)
-
-        # Should return 0 since variants is None and there's no fallback in the current implementation
-        assert token_count == 0
 
     def test_returns_zero_for_empty_stacktrace(self) -> None:
         """Test that get_token_count returns 0 for events with no meaningful stacktrace."""
@@ -1164,40 +1159,28 @@ class GetTokenCountTest(TestCase):
         )
 
         variants = empty_event.get_grouping_variants(normalize_stacktraces=True)
-        token_count = get_token_count(empty_event, variants)
+        token_count = get_token_count(empty_event, variants, "python")
 
         assert token_count == 0
 
     def test_handles_exception_gracefully(self) -> None:
         """Test that get_token_count handles exceptions gracefully and returns 0."""
-        # Create an event with malformed data that might cause exceptions
+        # Create an event with cached stacktrace that will cause tiktoken to fail
         broken_event = Event(
             event_id="12312012041520130908201311212012",
             project_id=self.project.id,
-            data={"title": "Broken event"},
+            data={
+                "title": "Broken event",
+                "stacktrace_string": "valid stacktrace",  # Will cause encoding to be called
+            },
         )
 
-        # Should not raise an exception, even with bad data
-        token_count = get_token_count(broken_event, variants=None)
-        assert token_count == 0
+        # Mock tiktoken encoding to raise an exception
+        with patch("sentry.seer.similarity.utils.TIKTOKEN_ENCODING.encode") as mock_encode:
+            mock_encode.side_effect = ValueError("Tiktoken encoding failed")
 
-    def test_consistent_with_get_stacktrace_string(self) -> None:
-        """Test that get_token_count gives consistent results with get_stacktrace_string."""
-        import tiktoken
+            with patch("sentry.seer.similarity.utils.logger.error") as mock_logger_error:
+                token_count = get_token_count(broken_event, variants=None, platform="python")
+                mock_logger_error.assert_called()
 
-        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-
-        # Get token count using our function
-        token_count = get_token_count(self.event, variants)
-
-        # Get stacktrace string and count tokens manually
-        from sentry.grouping.grouping_info import get_grouping_info_from_variants
-
-        stacktrace_text = get_stacktrace_string(get_grouping_info_from_variants(variants))
-
-        if stacktrace_text:
-            encoding = tiktoken.get_encoding("cl100k_base")
-            expected_token_count = len(encoding.encode(stacktrace_text))
-            assert token_count == expected_token_count
-        else:
-            assert token_count == 0
+                assert token_count == 0
