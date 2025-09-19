@@ -13,12 +13,8 @@ logger = logging.getLogger(__name__)
 
 SEER_TITLE_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/title"
 
-seer_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
-fallback_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
+seer_connection_pool = connection_from_url(settings.SEER_SUMMARIZATION_URL, timeout=10)
+fallback_connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL, timeout=10)
 
 
 class GenerateFeedbackTitleRequest(TypedDict):

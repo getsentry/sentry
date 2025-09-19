@@ -25,12 +25,8 @@ MAX_AI_LABELS_JSON_LENGTH = 200
 
 SEER_LABEL_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/labels"
 
-seer_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
-fallback_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
+seer_connection_pool = connection_from_url(settings.SEER_SUMMARIZATION_URL, timeout=30)
+fallback_connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL, timeout=30)
 
 
 @metrics.wraps("feedback.generate_labels")
