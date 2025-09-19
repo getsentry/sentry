@@ -251,7 +251,7 @@ def query_using_optimized_search(
 
     # If we're only looking for replay-ids we attempt an existence check optimization which removes
     # grouping, ordering, and data queries.
-    if fields == ["id"]:
+    if fields == ["id"] and len(search_filters) > 0:
         try:
             return QueryResponse(
                 response=replay_existence_check(
