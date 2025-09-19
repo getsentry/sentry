@@ -1800,6 +1800,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
+    "preprod-detect-expired-artifacts": {
+        "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
+    },
 }
 
 TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
@@ -3918,19 +3922,15 @@ SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 
 # This is a view of which abstract processing service is backed by which infrastructure.
-# Right now, the infrastructure can be `redis` or `rabbitmq`.
+# Right now, the infrastructure can be `redis`.
 #
 # For `redis`, one has to provide the cluster id.
 # It has to match a cluster defined in `redis.redis_clusters`.
-#
-# For `rabbitmq`, one has to provide a list of server URLs.
-# The URL is in the format `http://{user}:{password}@{hostname}:{port}/`.
 #
 # The definition can also be empty, in which case nothing is checked and
 # the service is assumed to be healthy.
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
-    "celery": {"redis": "default"},
     "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-store-transactions": {},

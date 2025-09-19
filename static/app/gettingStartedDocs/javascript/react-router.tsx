@@ -541,6 +541,7 @@ const docs: Docs = {
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'react-router',
+    configFileName: 'instrument.server.mjs',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'react-router',

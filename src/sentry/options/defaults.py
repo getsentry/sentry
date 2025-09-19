@@ -593,6 +593,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for the Spans V2 format in Kafka.
+register(
+    "relay.kafka.span-v2.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -2199,11 +2207,6 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
-register(
-    "backpressure.high_watermarks.celery",
-    default=0.5,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "backpressure.high_watermarks.attachments-store",
     default=0.8,

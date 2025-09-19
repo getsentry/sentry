@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -45,23 +46,29 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=20, window=60),
-            RateLimitCategory.USER: RateLimit(limit=20, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=60, window=60),
-        },
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
-            RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5000, window=60, concurrent_limit=1000),
-        },
-        "OPTIONS": {
-            RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
-            RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5000, window=60, concurrent_limit=1000),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=20, window=60),
+                RateLimitCategory.USER: RateLimit(limit=20, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=60, window=60),
+            },
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
+                RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=5000, window=60, concurrent_limit=1000
+                ),
+            },
+            "OPTIONS": {
+                RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
+                RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=5000, window=60, concurrent_limit=1000
+                ),
+            },
+        }
+    )
 
     def post(self, request: Request, project: Project) -> Response:
         data = orjson.loads(request.body)
