@@ -44,6 +44,13 @@ const actionHandlers: ActionHandler[] = [
   }),
 ];
 
+const defaultErrorContextProps = {
+  errors: {},
+  mutationErrors: undefined,
+  setErrors: jest.fn(),
+  removeError: jest.fn(),
+};
+
 describe('ActionNodeList', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
 
@@ -70,9 +77,7 @@ describe('ActionNodeList', () => {
 
   it('renders correct action options', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -96,9 +101,7 @@ describe('ActionNodeList', () => {
 
   it('adds actions', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -114,9 +117,7 @@ describe('ActionNodeList', () => {
   it('updates existing actions', async () => {
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -134,9 +135,7 @@ describe('ActionNodeList', () => {
   it('deletes existing actions', async () => {
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
       </AutomationBuilderErrorContext.Provider>,
       {

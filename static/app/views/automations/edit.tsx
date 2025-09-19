@@ -89,7 +89,6 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const params = useParams<{automationId: string}>();
-  const {mutateAsync: updateAutomation} = useUpdateAutomation();
 
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
@@ -116,6 +115,9 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
     Record<string, string>
   >({});
+
+  const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
+
   const removeError = useCallback((errorId: string) => {
     setAutomationBuilderErrors(prev => {
       const {[errorId]: _removedError, ...remainingErrors} = prev;
@@ -171,6 +173,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
                 errors: automationBuilderErrors,
                 setErrors: setAutomationBuilderErrors,
                 removeError,
+                mutationErrors: error?.responseJSON,
               }}
             >
               <AutomationBuilderContext.Provider value={{state, actions}}>

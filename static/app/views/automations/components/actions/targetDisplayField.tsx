@@ -15,7 +15,10 @@ export function TargetDisplayField({placeholder}: {placeholder?: string}) {
       value={action.config.targetDisplay}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
-          config: {...action.config, targetDisplay: e.target.value},
+          config: {
+            targetType: action.config.targetType,
+            targetDisplay: e.target.value,
+          },
         });
         removeError(action.id);
       }}
