@@ -4,7 +4,7 @@ from typing import Any, Literal, cast
 from unittest.mock import MagicMock, patch
 
 from sentry.grouping.api import get_contributing_variant_and_component
-from sentry.grouping.variants import CustomFingerprintVariant
+from sentry.grouping.variants import BaseVariant, CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     IGNORED_FILENAMES,
@@ -1095,7 +1095,9 @@ class GetTokenCountTest(TestCase):
             "sentry.seer.similarity.utils.get_stacktrace_string"
         ) as mock_get_stacktrace_string:
 
-            token_count = get_token_count(self.event, None, "python")
+            # Use empty variants since we're testing cached behavior
+            variants: dict[str, BaseVariant] = {}
+            token_count = get_token_count(self.event, variants, "python")
             mock_get_stacktrace_string.assert_not_called()
 
             # Exact token count for this specific string
@@ -1130,8 +1132,11 @@ class GetTokenCountTest(TestCase):
             },
         )
 
-        simple_count = get_token_count(simple_event, None, "python")
-        complex_count = get_token_count(complex_event, None, "python")
+        simple_variants = simple_event.get_grouping_variants(normalize_stacktraces=True)
+        complex_variants = complex_event.get_grouping_variants(normalize_stacktraces=True)
+
+        simple_count = get_token_count(simple_event, simple_variants, "python")
+        complex_count = get_token_count(complex_event, complex_variants, "python")
 
         # Exact token counts for these specific strings
         assert simple_count == 18
@@ -1180,7 +1185,9 @@ class GetTokenCountTest(TestCase):
             mock_encode.side_effect = ValueError("Tiktoken encoding failed")
 
             with patch("sentry.seer.similarity.utils.logger.error") as mock_logger_error:
-                token_count = get_token_count(broken_event, variants=None, platform="python")
+                # Use empty variants for this error test case
+                variants: dict[str, BaseVariant] = {}
+                token_count = get_token_count(broken_event, variants=variants, platform="python")
                 mock_logger_error.assert_called()
 
                 assert token_count == 0

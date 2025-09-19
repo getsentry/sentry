@@ -477,6 +477,13 @@ def report_token_count_metric(
 
     platform = event.platform or "unknown"
 
+    # Calculate variants if not provided
+    if variants is None:
+        from sentry.grouping.api import get_default_grouping_config_dict
+
+        grouping_config = get_default_grouping_config_dict()
+        variants = event.get_grouping_variants(grouping_config)
+
     token_count = get_token_count(event, variants, platform)
 
     metrics.distribution(
@@ -501,6 +508,7 @@ def get_token_count(
     Args:
         event: A Sentry Event object containing stack trace data
         variants: Pre-calculated grouping variants to avoid recalculation
+        platform: The platform of the event (e.g., "python", "java")
 
     Returns:
         The number of tokens in the stack trace text
