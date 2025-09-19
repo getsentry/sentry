@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import importlib
 import logging
 import queue
 import signal
@@ -94,9 +95,9 @@ def status_name(status: TaskActivationStatus.ValueType) -> str:
 
 
 def import_app(app_module: str) -> TaskworkerApp:
-    module, name = app_module.split(":")
-    mod = __import__(module)
-    return getattr(mod, name)
+    module_name, name = app_module.split(":")
+    module = importlib.import_module(module_name)
+    return getattr(module, name)
 
 
 def child_process(
@@ -124,6 +125,7 @@ def child_process(
     from sentry.utils.memory import track_memory_usage
 
     app = import_app(app_module)
+    app.load_modules()
     taskregistry = app.taskregistry
 
     def _get_known_task(activation: TaskActivation) -> Task[Any, Any] | None:
