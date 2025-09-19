@@ -340,6 +340,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
 )
 
+# Deletions
+register(
+    "deletions.group-hashes-batch-size",
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
@@ -1138,7 +1145,7 @@ register(
     "embeddings-grouping.seer.delete-record-batch-size",
     type=Int,
     default=100,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
@@ -1224,6 +1231,13 @@ register(
 # Switch for new logic for release health metrics, based on filtering on org & project ids
 register(
     "release-health.use-org-and-project-filter",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "release-health.disable-release-last-seen-update",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2186,11 +2200,6 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
 register(
-    "backpressure.high_watermarks.celery",
-    default=0.5,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "backpressure.high_watermarks.attachments-store",
     default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2864,7 +2873,7 @@ register(
 register(
     "spans.buffer.compression.level",
     type=Int,
-    default=-1,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3129,6 +3138,17 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Control whether delayed workflow engine evaluation is done
+# via the old process_pending_batch task with rules delayed processing, or
+# via the new schedule_delayed_workflows task.
+# NB: These tasks are allowed to run concurrently, so a naive switch here
+# may result in duplicate processing.
+register(
+    "workflow_engine.use_new_scheduling_task",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3333,7 +3353,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3425,6 +3445,11 @@ register(
 
 # Whether the new objectstore implementation is being used for attachments
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether the new objectstore implementation is being used for attachments in a double-write
+# configuration where it writes to the new objectstore alongside the existing filestore.
+# This is mutually exclusive with the above setting.
+register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Whether to use 60s granularity for the dynamic sampling query
 register(
@@ -3459,14 +3484,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether the async task fetches AI model prices from
-# external sources and stores them in cache.
-register(
-    "ai.model-costs.enable-external-price-fetch",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "commit.dual-write-start-date",
     type=String,

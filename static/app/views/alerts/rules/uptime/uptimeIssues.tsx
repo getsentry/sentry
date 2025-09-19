@@ -3,22 +3,15 @@ import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-
-import type {UptimeRule} from './types';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 
 interface Props {
   project: Project;
-  uptimeRule: UptimeRule;
+  uptimeDetector: UptimeDetector;
 }
 
-export function UptimeIssues({project, uptimeRule}: Props) {
-  // TODO(epurkhiser): We need a better way to query for uptime issues, using
-  // the title is brittle and means when the user changes the URL we'll have to
-  // wait for a new event before the issue matches again.
-  const query = `issue.type:${IssueType.UPTIME_DOMAIN_FAILURE} title:"Downtime detected for ${uptimeRule.url}"`;
-
+export function UptimeIssues({project, uptimeDetector}: Props) {
   const emptyMessage = () => {
     return (
       <Panel>
@@ -37,7 +30,7 @@ export function UptimeIssues({project, uptimeRule}: Props) {
       withPagination={false}
       withColumns={['assignee']}
       queryParams={{
-        query,
+        query: `detector:${uptimeDetector.id}`,
         project: project.id,
         limit: 1,
       }}

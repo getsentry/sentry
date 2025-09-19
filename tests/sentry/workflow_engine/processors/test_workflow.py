@@ -4,8 +4,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry.buffer.base import Buffer
-from sentry.buffer.redis import RedisBuffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
@@ -19,6 +17,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine import buffer as workflow_buffer
+from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -27,6 +26,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.contexts.workflow_event_context import (
+    WorkflowEventContext,
+    WorkflowEventContextData,
+)
+from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
     DelayedWorkflowItem,
     delete_workflow,
@@ -340,7 +344,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
 
 def mock_workflows_buffer():
-    return patch("sentry.workflow_engine.buffer.get_backend", new=lambda: RedisBuffer())
+    return patch(
+        "sentry.workflow_engine.buffer.get_backend", new=lambda: RedisHashSortedSetBuffer()
+    )
 
 
 @mock_workflows_buffer()
@@ -351,7 +357,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             self.detector,
             self.detector_workflow,
             self.workflow_triggers,
-        ) = self.create_detector_and_workflow()
+        ) = self.create_detector_and_workflow(organization=self.organization)
 
         occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group, self.event, self.group_event = self.create_group_event(
@@ -369,6 +375,11 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
+        WorkflowEventContext.set(
+            WorkflowEventContextData(
+                detector=self.detector,
+            )
+        )
         evaluate_workflow_triggers({self.workflow}, self.event_data, self.event_start_time)
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_workflows.workflow_triggered",
@@ -434,6 +445,35 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         )
 
         assert triggered_workflows == {self.workflow, workflow_two}
+
+    @patch.object(get_data_conditions_for_group, "batch")
+    def test_batched_data_condition_lookup_is_used(self, mock_batch):
+        """Test that batch lookup is used when evaluating multiple workflows."""
+        workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
+
+        assert self.workflow.when_condition_group
+        assert workflow_two.when_condition_group
+        # Mock the batch method to return the expected data
+        mock_batch.return_value = [
+            list(self.workflow.when_condition_group.conditions.all()),
+            list(workflow_two.when_condition_group.conditions.all()),
+        ]
+
+        # Evaluate workflows with batching
+        workflows = {self.workflow, workflow_two}
+        evaluate_workflow_triggers(workflows, self.event_data, self.event_start_time)
+
+        # Verify batch was called once with the correct DCG IDs
+        mock_batch.assert_called_once()
+        call_args = mock_batch.call_args[0][0]
+
+        expected_dcg_ids = {
+            self.workflow.when_condition_group_id,
+            workflow_two.when_condition_group_id,
+        }
+        actual_dcg_ids = {args[0] for args in call_args}
+
+        assert actual_dcg_ids == expected_dcg_ids
 
     def test_delays_slow_conditions(self) -> None:
         assert self.workflow.when_condition_group
@@ -794,6 +834,32 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         # The first condition passes, but the second is enqueued for later evaluation
         assert not triggered_action_filters
 
+    @patch.object(get_data_conditions_for_group, "batch")
+    def test_batched_data_condition_lookup_for_action_filters(self, mock_batch):
+        """Test that batch lookup is used when evaluating action filters."""
+        # Create a second workflow with action filters
+        workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
+        action_group_two, action_two = self.create_workflow_action(workflow=workflow_two)
+
+        # Mock the batch method to return the expected data
+        mock_batch.return_value = [
+            list(self.action_group.conditions.all()),
+            list(action_group_two.conditions.all()),
+        ]
+
+        # Evaluate workflows action filters with batching
+        workflows = {self.workflow, workflow_two}
+        evaluate_workflows_action_filters(workflows, self.event_data, {}, FROZEN_TIME)
+
+        # Verify batch was called once with the correct DCG IDs
+        mock_batch.assert_called_once()
+        call_args = mock_batch.call_args[0][0]
+
+        expected_dcg_ids = {self.action_group.id, action_group_two.id}
+        actual_dcg_ids = {args[0] for args in call_args}
+
+        assert actual_dcg_ids == expected_dcg_ids
+
     def test_activity__with_slow_conditions(self) -> None:
         # Create a condition group with fast and slow conditions
         self.action_group.logic_type = DataConditionGroup.Type.ALL
@@ -893,7 +959,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
         self, mock_randchoice, mock_get_backend
     ) -> None:
-        mock_buffer = MagicMock(spec=Buffer)
+        mock_buffer = MagicMock(spec=RedisHashSortedSetBuffer)
         mock_get_backend.return_value = mock_buffer
         mock_randchoice.return_value = f"{DelayedWorkflow.buffer_key}:{5}"
         enqueue_workflows(
@@ -918,7 +984,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_get_backend: MagicMock
     ) -> None:
-        mock_buffer = MagicMock(spec=Buffer)
+        mock_buffer = MagicMock(spec=RedisHashSortedSetBuffer)
         mock_get_backend.return_value = mock_buffer
         current_time = timezone.now()
         workflow_filter_group_2 = self.create_data_condition_group()

@@ -1,3 +1,4 @@
+import {ThemeProvider, type Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -7,8 +8,14 @@ import PreventAIOnboarding from './onboarding';
 
 jest.mock('sentry-images/features/prevent-hero.svg', () => 'prevent-hero-mock.svg');
 jest.mock(
-  'sentry-images/features/prevent-pr-comments.png',
-  () => 'prevent-pr-comments-mock.png'
+  'sentry-images/features/prevent-pr-comments-light.png',
+  () => 'prevent-pr-comments-light-mock.png',
+  {virtual: true}
+);
+jest.mock(
+  'sentry-images/features/prevent-pr-comments-dark.png',
+  () => 'prevent-pr-comments-dark-mock.png',
+  {virtual: true}
 );
 
 describe('PreventAIOnboarding', () => {
@@ -59,14 +66,14 @@ describe('PreventAIOnboarding', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const orgSettingsLink = screen.getByRole('link', {name: 'organization settings'});
-    expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org');
+    expect(orgSettingsLink).toHaveAttribute('href', '/settings/test-org/#hideAiFeatures');
 
     const sentryGitHubAppLink = screen.getByRole('link', {
       name: 'Sentry GitHub App',
     });
     expect(sentryGitHubAppLink).toHaveAttribute(
       'href',
-      '/settings/test-org/integrations/github'
+      '/settings/test-org/integrations/github/'
     );
 
     const githubIntegrationLink = screen.getByRole('link', {
@@ -141,7 +148,7 @@ describe('PreventAIOnboarding', () => {
 
     const prCommentsImage = screen.getByAltText('Prevent PR Comments');
     expect(prCommentsImage).toBeInTheDocument();
-    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-mock.png');
+    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-light-mock.png');
   });
 
   it('renders admin notice text', () => {
@@ -227,5 +234,20 @@ describe('PreventAIOnboarding', () => {
         )
       ).toBeInTheDocument();
     });
+  });
+
+  it.each([
+    [{type: 'dark'}, 'prevent-pr-comments-dark-mock.png'],
+    [{type: 'light'}, 'prevent-pr-comments-light-mock.png'],
+  ])('renders the correct image in %p theme', (theme, expectedSrc) => {
+    render(
+      <ThemeProvider theme={theme as Theme}>
+        <PreventAIOnboarding />
+      </ThemeProvider>,
+      {organization}
+    );
+    const prCommentsImage = screen.getByAltText('Prevent PR Comments');
+    expect(prCommentsImage).toBeInTheDocument();
+    expect(prCommentsImage).toHaveAttribute('src', expectedSrc);
   });
 });

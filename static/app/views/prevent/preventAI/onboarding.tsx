@@ -2,10 +2,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
-import preventPrComments from 'sentry-images/features/prevent-pr-comments.png';
+import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.png';
+import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
 import {IconInfo} from 'sentry/icons/iconInfo';
@@ -108,7 +109,7 @@ export default function PreventAIOnboarding() {
                     </Text>
                   ),
                   organizationSettingsLink: (
-                    <ExternalLink href={`/settings/${organization.slug}`} />
+                    <Link to={`/settings/${organization.slug}/#hideAiFeatures`} />
                   ),
                 }
               )}
@@ -120,9 +121,7 @@ export default function PreventAIOnboarding() {
                 'To grant Seer access to your codebase, install the [sentryGitHubApp:Sentry GitHub App] to connect your GitHub repositories. Learn more about [gitHubIntegration:GitHub integration].',
                 {
                   sentryGitHubApp: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/integrations/github`}
-                    />
+                    <Link to={`/settings/${organization.slug}/integrations/github/`} />
                   ),
                   gitHubIntegration: (
                     <ExternalLink href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/#installing-github" />
@@ -218,7 +217,10 @@ export default function PreventAIOnboarding() {
             </Flex>
           </Text>
         </Flex>
-        <StyledImg src={preventPrComments} alt="Prevent PR Comments" />
+        <StyledImg
+          src={theme.type === 'dark' ? preventPrCommentsDark : preventPrCommentsLight}
+          alt="Prevent PR Comments"
+        />
       </Flex>
     </Flex>
   );

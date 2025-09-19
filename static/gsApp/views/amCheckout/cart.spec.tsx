@@ -101,6 +101,7 @@ describe('Cart', () => {
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend cap$0-$300/mo');
     expect(cart).toHaveTextContent('Plan Total$89/mo');
+    expect(cart).toHaveTextContent('Default Amount');
     expect(within(cart).getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
   });
 
@@ -140,6 +141,10 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('$312/yr');
     expect(planItem).toHaveTextContent('25 GB attachments');
     expect(planItem).toHaveTextContent('$65/yr');
+
+    // PAYG-only categories are also shown for paid plans
+    expect(planItem).toHaveTextContent('Continuous profile hours');
+    expect(planItem).toHaveTextContent('Available with pay-as-you-go');
 
     const seerItem = screen.getByTestId('summary-item-product-seer');
     expect(seerItem).toHaveTextContent('Seer AI Agent');

@@ -155,6 +155,8 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Handle race condition cases where this event lost the race to create the metadata record
         if not created:
+            grouphash.refresh_from_db()
+
             logger.info(
                 "grouphash_metadata.creation_race_condition.record_exists",
                 extra={
@@ -419,7 +421,7 @@ def _get_stacktrace_hashing_metadata(
         ),
         "num_stacktraces": (
             len(contributing_component.values)
-            if contributing_component.id == "chained-exception"
+            if contributing_component.id == "chained_exception"
             else 1
         ),
     }
@@ -532,8 +534,8 @@ def _get_template_hashing_metadata(
 
     if subcomponents_by_id["filename"].values:
         metadata["template_name"] = subcomponents_by_id["filename"].values[0]
-    if subcomponents_by_id["context-line"].values:
-        metadata["template_context_line"] = subcomponents_by_id["context-line"].values[0]
+    if subcomponents_by_id["context_line"].values:
+        metadata["template_context_line"] = subcomponents_by_id["context_line"].values[0]
 
     return metadata
 

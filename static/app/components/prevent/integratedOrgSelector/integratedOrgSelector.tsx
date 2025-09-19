@@ -10,13 +10,10 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconInfo} from 'sentry/icons';
+import {IconIntegratedOrg} from 'sentry/icons/iconIntegratedOrg';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Integration} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {IconIntegratedOrg} from './iconIntegratedOrg';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 
 const DEFAULT_ORG_LABEL = 'Select Integrated Org';
 
@@ -61,13 +58,7 @@ export function IntegratedOrgSelector() {
   const {integratedOrgId, preventPeriod, changeContextValue} = usePreventContext();
   const organization = useOrganization();
 
-  const {data: integrations = []} = useApiQuery<Integration[]>(
-    [
-      `/organizations/${organization.slug}/integrations/`,
-      {query: {includeConfig: 0, provider_key: 'github'}},
-    ],
-    {staleTime: 0}
-  );
+  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -161,7 +152,7 @@ const FooterInfoSubheading = styled('p')`
 
 const MenuFooterDivider = styled('div')`
   position: relative;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
   &:before {
     display: block;
     white-space: normal;

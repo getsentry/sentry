@@ -69,8 +69,8 @@ const mockBranches = [
 ];
 
 const mockIntegrations = [
-  {name: 'integration-1', id: '1'},
-  {name: 'integration-2', id: '2'},
+  {name: 'integration-1', id: '1', status: 'active'},
+  {name: 'integration-2', id: '2', status: 'active'},
 ];
 
 const mockApiCall = () => {
@@ -114,6 +114,13 @@ const mockApiCall = () => {
     url: `/organizations/org-slug/integrations/`,
     method: 'GET',
     body: mockIntegrations,
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/prevent/owner/123/repositories/sync/',
+    method: 'GET',
+    body: {
+      isSyncing: false,
+    },
   });
 };
 

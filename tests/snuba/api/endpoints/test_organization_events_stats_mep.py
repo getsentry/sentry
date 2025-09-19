@@ -1017,7 +1017,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
         query = {
             "field": ["count()"],

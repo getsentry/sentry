@@ -156,8 +156,8 @@ class PreprodArtifact(DefaultFieldsModel):
     ) -> models.QuerySet["PreprodArtifact"]:
         """
         Get the base artifact for the same commit comparison (monorepo scenario).
-        There can only be one base artifact for a commit comparison, as we only create one
-        CommitComparison for a given build and head SHA.
+        Multiple artifacts can share the same commit comparison, but only one should
+        match the same (app_id, artifact_type, build_configuration) combination.
         """
         if not self.commit_comparison:
             return PreprodArtifact.objects.none()
@@ -175,6 +175,7 @@ class PreprodArtifact(DefaultFieldsModel):
             project__organization_id=self.project.organization_id,
             app_id=self.app_id,
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
+            build_configuration=self.build_configuration,
         )
 
     def get_head_artifacts_for_commit(
@@ -199,6 +200,69 @@ class PreprodArtifact(DefaultFieldsModel):
             app_id=self.app_id,
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
         )
+
+    def get_size_metrics(
+        self,
+        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        identifier: str | None = None,
+    ) -> models.QuerySet["PreprodArtifactSizeMetrics"]:
+        """Get size metrics for this artifact with optional filtering."""
+        queryset = self.preprodartifactsizemetrics_set.all()
+
+        if metrics_artifact_type is not None:
+            queryset = queryset.filter(metrics_artifact_type=metrics_artifact_type)
+
+        if identifier is not None:
+            queryset = queryset.filter(identifier=identifier)
+
+        return queryset
+
+    @classmethod
+    def get_size_metrics_for_artifacts(
+        cls,
+        artifacts: models.QuerySet["PreprodArtifact"] | list["PreprodArtifact"],
+        metrics_artifact_type: "PreprodArtifactSizeMetrics.MetricsArtifactType | None" = None,
+        identifier: str | None = None,
+    ) -> dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]]:
+        """
+        Get size metrics for multiple artifacts using a single query.
+
+        Returns:
+            Dict mapping artifact_id -> QuerySet of size metrics
+        """
+        from sentry.preprod.models import PreprodArtifactSizeMetrics
+
+        if isinstance(artifacts, list):
+            artifact_ids = [a.id for a in artifacts]
+        else:
+            artifact_ids = list(artifacts.values_list("id", flat=True))
+
+        if not artifact_ids:
+            return {}
+
+        queryset = PreprodArtifactSizeMetrics.objects.filter(preprod_artifact_id__in=artifact_ids)
+
+        if metrics_artifact_type is not None:
+            queryset = queryset.filter(metrics_artifact_type=metrics_artifact_type)
+
+        if identifier is not None:
+            queryset = queryset.filter(identifier=identifier)
+
+        # Group results by artifact_id
+        results: dict[int, models.QuerySet["PreprodArtifactSizeMetrics"]] = {}
+        for artifact_id in artifact_ids:
+            results[artifact_id] = queryset.filter(preprod_artifact_id=artifact_id)
+
+        return results
+
+    def is_android(self) -> bool:
+        return (
+            self.artifact_type == self.ArtifactType.AAB
+            or self.artifact_type == self.ArtifactType.APK
+        )
+
+    def is_ios(self) -> bool:
+        return self.artifact_type == self.ArtifactType.XCARCHIVE
 
     class Meta:
         app_label = "preprod"

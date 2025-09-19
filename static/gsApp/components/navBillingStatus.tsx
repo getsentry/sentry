@@ -16,7 +16,6 @@ import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
@@ -226,7 +225,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     overlayProps,
     state: overlayState,
   } = usePrimaryButtonOverlay({});
-  const prefersStackedNav = usePrefersStackedNav();
 
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
@@ -276,7 +274,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
   ]);
 
   const shouldShow =
-    prefersStackedNav &&
     exceededCategories.length > 0 &&
     subscription &&
     subscription.canSelfServe &&

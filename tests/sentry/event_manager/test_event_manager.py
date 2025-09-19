@@ -359,6 +359,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -414,6 +415,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -468,6 +470,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -505,6 +508,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.normalize()
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -1235,9 +1239,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event1.culprit == "foobar"
 
     def test_culprit_after_stacktrace_processing(self) -> None:
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:in_app_function +app
             function:not_in_app_function -app
@@ -1550,6 +1554,47 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert None not in event.tags
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
+    def test_multi_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
+        def save_event(env: str) -> Event:
+            manager = EventManager(
+                make_event(
+                    **{
+                        "message": "foo",
+                        "event_id": uuid.uuid1().hex,
+                        "environment": env,
+                        "release": "1.0",
+                    }
+                )
+            )
+            manager.normalize()
+            return manager.save(self.project.id)
+
+        event = save_event("dev")
+        assert event.group_id is not None
+
+        instance = GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id, name="dev"
+            ).id,
+        )
+
+        assert instance.first_seen == event.datetime
+
+        event = save_event("prod")
+        assert event.group_id is not None
+
+        new_instance = GroupEnvironment.objects.get(
+            group_id=event.group_id,
+            environment_id=Environment.objects.get(
+                organization_id=self.project.organization_id, name="prod"
+            ).id,
+        )
+
+        assert new_instance.id != instance.id
+        assert new_instance.first_seen == event.datetime
+
+    @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
         release_version = "1.0"
 
@@ -1578,6 +1623,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             ).id,
         )
 
+        assert instance.first_seen == event.datetime
         assert Release.objects.get(id=instance.first_release_id).version == release_version
 
         group_states1 = {
@@ -2219,6 +2265,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             event = manager.save(self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
         tombstone = GroupTombstone.objects.create(
             project_id=group.project_id,
@@ -2603,9 +2650,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure that grouping in-app enhancements work in
         principle.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:foo category=bar
             function:foo2 category=bar
@@ -2679,9 +2726,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure categories are applied consistently and don't
         produce hash mismatches.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group

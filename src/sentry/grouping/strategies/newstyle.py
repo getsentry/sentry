@@ -17,6 +17,8 @@ from sentry.grouping.component import (
     FrameGroupingComponent,
     FunctionGroupingComponent,
     ModuleGroupingComponent,
+    NSErrorCodeGroupingComponent,
+    NSErrorDomainGroupingComponent,
     NSErrorGroupingComponent,
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
@@ -529,11 +531,12 @@ def single_exception(
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
 
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
+            ns_error = exception.mechanism.meta["ns_error"]
             ns_error_component = NSErrorGroupingComponent(
                 values=[
-                    exception.mechanism.meta["ns_error"].get("domain"),
-                    exception.mechanism.meta["ns_error"].get("code"),
-                ],
+                    NSErrorDomainGroupingComponent(values=[ns_error.get("domain")]),
+                    NSErrorCodeGroupingComponent(values=[ns_error.get("code")]),
+                ]
             )
 
     if exception.stacktrace is not None:

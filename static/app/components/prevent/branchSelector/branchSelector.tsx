@@ -9,10 +9,9 @@ import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSelector/useInfiniteRepositoryBranches';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {IconBranch} from './iconBranch';
 
 const ALL_BRANCHES = 'All Branches';
 
@@ -26,7 +25,6 @@ export function BranchSelector() {
     term: searchValue,
   });
   const branches = data.branches;
-  const defaultBranch = data.defaultBranch;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -88,7 +86,7 @@ export function BranchSelector() {
 
   const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
-      if (!defaultBranch || !branch || branch === defaultBranch) {
+      if (!branch || branch === ALL_BRANCHES) {
         return null;
       }
 
@@ -99,25 +97,18 @@ export function BranchSelector() {
               integratedOrgId,
               repository,
               preventPeriod,
-              branch: defaultBranch,
+              branch: null,
             });
             closeOverlay();
           }}
           size="zero"
           borderless
         >
-          {t('Reset to default')}
+          {t('Reset to all branches')}
         </ResetButton>
       );
     },
-    [
-      branch,
-      integratedOrgId,
-      preventPeriod,
-      repository,
-      changeContextValue,
-      defaultBranch,
-    ]
+    [branch, integratedOrgId, preventPeriod, repository, changeContextValue]
   );
 
   function getEmptyMessage() {

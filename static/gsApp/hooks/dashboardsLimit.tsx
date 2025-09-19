@@ -41,21 +41,9 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
       ],
       {
         staleTime: 0,
-        enabled:
-          organization.features.includes('dashboards-plan-limits') &&
-          !isUnlimitedPlan &&
-          dashboardsLimit !== 0,
+        enabled: !isUnlimitedPlan && dashboardsLimit !== 0,
       }
     );
-
-  if (!organization.features.includes('dashboards-plan-limits')) {
-    return {
-      hasReachedDashboardLimit: false,
-      dashboardsLimit: 0,
-      isLoading: false,
-      limitMessage: null,
-    };
-  }
 
   // Add 1 to dashboardsLimit to account for the General dashboard
   const hasReachedDashboardLimit =

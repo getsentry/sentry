@@ -236,6 +236,27 @@ const SECTIONS: TSection[] = [
         name: 'Building',
         defaultProps: {},
       },
+      {
+        id: 'branch',
+        groups: ['product'],
+        keywords: ['git', 'version control', 'branch', 'development', 'code'],
+        name: 'Branch',
+        defaultProps: {},
+      },
+      {
+        id: 'repository',
+        groups: ['product'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project'],
+        name: 'Repository',
+        defaultProps: {},
+      },
+      {
+        id: 'integratedOrg',
+        groups: ['product'],
+        keywords: ['organization', 'integration', 'github', 'external'],
+        name: 'IntegratedOrg',
+        defaultProps: {},
+      },
     ],
   },
   {
@@ -1036,6 +1057,13 @@ const SECTIONS: TSection[] = [
         groups: ['action'],
         keywords: ['visible', 'eye', 'view', 'display'],
         name: 'Show',
+        defaultProps: {},
+      },
+      {
+        id: 'hide',
+        groups: ['action'],
+        keywords: ['invisible', 'hidden'],
+        name: 'Hide',
         defaultProps: {},
       },
       {

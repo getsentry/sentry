@@ -399,7 +399,7 @@ export function metricSavedDetectorToFormData(
     projectId: detector.projectId,
     workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
-    owner: detector.owner || '',
+    owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||

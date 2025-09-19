@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.utils import timezone
@@ -14,7 +14,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
 
 if TYPE_CHECKING:
     from sentry.auth.provider import Provider
@@ -29,7 +28,7 @@ class AuthProviderReplica(Model):
     )
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE, unique=True)
     provider = models.CharField(max_length=128)
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    config = models.JSONField(default=dict)
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
