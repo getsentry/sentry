@@ -11,7 +11,7 @@ class BaseNotificationSent(analytics.Event, abc.ABC):
     actor_id: int | None = None
     user_id: int | None = None
     group_id: int | None = None
-    id: int
-    actor_type: str
+    id: int | None = None
+    actor_type: str | None = None
     notification_uuid: str
     alert_id: int | None = None
