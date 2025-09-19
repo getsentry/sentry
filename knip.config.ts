@@ -35,6 +35,8 @@ const testingEntryPoints = [
 const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storybook.tsx',
+  'static/**/*.stories.{js,mjs,ts,tsx}',
+  'static/**/*.mdx',
 ];
 
 const config: KnipConfig = {
@@ -43,7 +45,6 @@ const config: KnipConfig = {
     ...testingEntryPoints,
     ...storyBookEntryPoints,
   ],
-  storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
     'config/**/*.ts',
