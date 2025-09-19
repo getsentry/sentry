@@ -51,6 +51,9 @@ const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
 
 const MINUTE = 60;
 
+const DEFAULT_DOWNTIME_THRESHOLD = 3;
+const DEFAULT_RECOVERY_THRESHOLD = 1;
+
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
   MINUTE * 5,
@@ -360,9 +363,20 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               name="downtimeThreshold"
               min={1}
               placeholder={t('Defaults to 3')}
-              help={t(
-                'Trigger an issue when this many consecutive failed checks are observed.'
-              )}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('downtimeThreshold')) ||
+                  DEFAULT_DOWNTIME_THRESHOLD;
+                const downDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue created after [threshold] consecutive failures in a row (after [downtime] of downtime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    downtime: <strong>{getDuration(downDuration)}</strong>,
+                  }
+                );
+              }}
               label={t('Failure Tolerance')}
               flexibleControlStateSize
             />
@@ -370,9 +384,20 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               name="recoveryThreshold"
               min={1}
               placeholder={t('Defaults to 1')}
-              help={t(
-                'Resolve the issue when this many consecutive successful checks are observed.'
-              )}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('recoveryThreshold')) ||
+                  DEFAULT_RECOVERY_THRESHOLD;
+                const upDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue resolved after [threshold] consecutive successes in a row (after [uptime] of recovered uptime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    uptime: <strong>{getDuration(upDuration)}</strong>,
+                  }
+                );
+              }}
               label={t('Recovery Tolerance')}
               flexibleControlStateSize
             />
@@ -455,7 +480,7 @@ const Configuration = styled('div')`
 const ConfigurationPanel = styled(Panel)`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: fit-content(350px) 1fr;
+  grid-template-columns: fit-content(325px) 1fr;
   align-items: center;
 
   ${FieldWrapper} {
