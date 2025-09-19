@@ -164,7 +164,7 @@ def process_commit_context(
                     "user_id": user_dct.get("id"),
                     "project_id": project.id,
                     "organization_id": project.organization_id,
-                    "context__contains": f'"commitId":{commit.id}',
+                    "context__asjsonb__commitId": commit.id,
                 },
                 defaults={
                     "date_added": django_timezone.now(),
