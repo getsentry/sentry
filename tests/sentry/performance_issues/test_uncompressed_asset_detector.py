@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.performance_issues.detectors.uncompressed_asset_detector import (
     UncompressedAssetSpanDetector,
@@ -400,14 +401,24 @@ class UncompressedAssetsDetectorTest(TestCase):
                 type=PerformanceUncompressedAssetsGroupType,
                 parent_span_ids=[],
                 cause_span_ids=[],
-                offender_span_ids=["b66a5642da1edb52"],
+                offender_span_ids=["c77a5642da1edb53"],
                 evidence_data={
                     "op": "resource.script",
                     "parent_span_ids": [],
                     "cause_span_ids": [],
-                    "offender_span_ids": ["b66a5642da1edb52"],
+                    "offender_span_ids": ["c77a5642da1edb53"],
+                    "transaction_name": "",
+                    "repeating_spans": "resource.script - https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
+                    "repeating_spans_compact": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
+                    "num_repeating_spans": "16",
                 },
-                evidence_display=[],
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="resource.script - https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
+                        important=True,
+                    )
+                ],
             ),
         ]
 
