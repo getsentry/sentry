@@ -395,52 +395,59 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   }
                 ),
               },
-              ...(isManualSwift(params)
-                ? [
-                    {
-                      type: 'code' as const,
-                      tabs: [
-                        {
-                          label: 'Swift',
-                          language: 'swift',
-                          code: getConfigurationSnippetSwift(params),
-                        },
-                      ],
-                    },
-                    {
-                      type: 'text' as const,
-                      text: tct(
-                        "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
-                        {
-                          initializer: (
-                            <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
-                          ),
-                        }
-                      ),
-                    },
-                    {
-                      type: 'code' as const,
-                      tabs: [
-                        {
-                          label: 'SwiftUI',
-                          language: 'swift',
-                          code: getConfigurationSnippetSwiftUi(params),
-                        },
-                      ],
-                    },
-                  ]
-                : [
-                    {
-                      type: 'code' as const,
-                      tabs: [
-                        {
-                          label: 'Objective-C',
-                          language: 'objc',
-                          code: getConfigurationSnippetObjectiveC(params),
-                        },
-                      ],
-                    },
-                  ]),
+              {
+                type: 'conditional',
+                condition: isManualSwift(params),
+                content: [
+                  {
+                    type: 'code',
+                    tabs: [
+                      {
+                        label: 'Swift',
+                        language: 'swift',
+                        code: getConfigurationSnippetSwift(params),
+                      },
+                    ],
+                  },
+                  {
+                    type: 'text',
+                    text: tct(
+                      "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
+                      {
+                        initializer: (
+                          <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
+                        ),
+                      }
+                    ),
+                  },
+                  {
+                    type: 'code',
+                    tabs: [
+                      {
+                        label: 'SwiftUI',
+                        language: 'swift',
+                        code: getConfigurationSnippetSwiftUi(params),
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'conditional',
+                condition: !isManualSwift(params),
+                content: [
+                  {
+                    type: 'code',
+                    tabs: [
+                      {
+                        label: 'Objective-C',
+                        language: 'objc',
+                        code: getConfigurationSnippetObjectiveC(params),
+                      },
+                    ],
+                  },
+                ],
+              },
             ],
           },
         ],
