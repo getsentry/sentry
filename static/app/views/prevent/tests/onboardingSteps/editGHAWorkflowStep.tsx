@@ -15,9 +15,9 @@ const PERMISSIONS_SNIPPET = `permissions:
     id-token: write
 `;
 
-const ACTION_SNIPPET = `- name: Upload test results to Codecov
+const ACTION_SNIPPET = `- name: Upload test results to Sentry Prevent
   if: \${{ !cancelled() }}
-  uses: getsentry/prevent-action
+  uses: getsentry/prevent-action@latest
 `;
 
 export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
@@ -74,7 +74,7 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
           </CodeSnippet>
           <Paragraph>
             {t(
-              'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'
+              'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'
             )}
           </Paragraph>
         </OnboardingStep.Content>

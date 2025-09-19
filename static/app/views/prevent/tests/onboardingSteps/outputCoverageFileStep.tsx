@@ -22,8 +22,7 @@ const INSTALL_REQUIREMENTS_SNIPPETS: Record<Frameworks, string> = {
 };
 
 const GENERATE_FILE_SNIPPETS: Record<Frameworks, string> = {
-  jest: `npm i --save-dev jest-junit
-JEST_JUNIT_CLASSNAME="{filepath}" jest --reporters=jest-junit`,
+  jest: `JEST_JUNIT_CLASSNAME="{filepath}" jest --reporters=jest-junit`,
   vitest: 'vitest --reporter=junit --outputFile=test-report.junit.xml',
   pytest: 'pytest --cov --junitxml=junit.xml -o junit_family=legacy',
   phpunit: './vendor/bin/phpunit --log-junit junit.xml',
