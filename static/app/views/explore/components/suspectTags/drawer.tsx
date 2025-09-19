@@ -51,7 +51,7 @@ function FeedbackButton() {
           ),
           tags: {
             ['feedback.source']: 'suspect-attributes',
-            ['feedback.owner']: 'performance',
+            ['feedback.owner']: 'ml-ai',
           },
         })
       }
@@ -80,7 +80,6 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
       );
     }
 
-    // const searchFor = searchQuery.toLocaleLowerCase().trim();
     const sortedAttrs = [...filteredAttrs].sort((a, b) => {
       const aOrder = a.order[sortingMethod];
       const bOrder = b.order[sortingMethod];
