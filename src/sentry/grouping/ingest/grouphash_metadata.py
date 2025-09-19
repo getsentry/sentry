@@ -11,7 +11,6 @@ import logging
 from datetime import datetime
 from typing import Any, TypeIs, cast
 
-from sentry import options
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
@@ -105,14 +104,6 @@ METRICS_TAGS_BY_HASH_BASIS = {
     HashBasis.FALLBACK: ["fallback_reason"],
     HashBasis.UNKNOWN: [],
 }
-
-
-def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
-    # Killswitches
-    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
-        return False
-
-    return True
 
 
 def create_or_update_grouphash_metadata_if_needed(
