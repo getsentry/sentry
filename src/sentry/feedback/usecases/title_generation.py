@@ -10,7 +10,8 @@ from sentry.utils import json, metrics
 logger = logging.getLogger(__name__)
 
 SEER_TITLE_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/title"
-SEER_TIMEOUT_S = 10
+SEER_TIMEOUT_S = 15
+SEER_RETRIES = 0  # Do not retry since this is called in ingest.
 
 
 class GenerateFeedbackTitleRequest(TypedDict):
@@ -74,7 +75,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
             path=SEER_TITLE_GENERATION_ENDPOINT_PATH,
             body=json.dumps(seer_request).encode("utf-8"),
             timeout=SEER_TIMEOUT_S,
-            retries=0,  # Do not retry since this is called in ingest.
+            retries=SEER_RETRIES,
         )
         response_data = response.json()
     except Exception:

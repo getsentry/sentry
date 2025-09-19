@@ -22,7 +22,8 @@ MAX_AI_LABELS = 15
 MAX_AI_LABELS_JSON_LENGTH = 200
 
 SEER_LABEL_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/labels"
-SEER_TIMEOUT_S = 10
+SEER_TIMEOUT_S = 15
+SEER_RETRIES = 0  # Do not retry since this is called in ingest.
 
 
 @metrics.wraps("feedback.generate_labels")
@@ -43,7 +44,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             path=SEER_LABEL_GENERATION_ENDPOINT_PATH,
             body=json.dumps(request).encode("utf-8"),
             timeout=SEER_TIMEOUT_S,
-            retries=0,  # Do not retry since this is called in ingest.
+            retries=SEER_RETRIES,
         )
         response_data = response.json()
     except Exception:
