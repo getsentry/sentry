@@ -266,14 +266,12 @@ export function Provider({
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => {
           replayer.play(time);
-          // Re-evaluate fast-forward opportunities after scrubbing to new position
           replayer.reevaluateFastForward();
         }, 0);
         setIsPlaying(true);
       } else {
         playTimer.current = window.setTimeout(() => {
           replayer.pause(time);
-          // Re-evaluate fast-forward opportunities after scrubbing to new position
           replayer.reevaluateFastForward();
         }, 0);
         setIsPlaying(false);
