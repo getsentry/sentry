@@ -169,6 +169,13 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         if not fingerprint:
             return
 
+        if self.stored_problems.get(fingerprint):
+            logging.info(
+                "Multiple occurrences detected for fingerprint",
+                extra={"detector": self.settings_key},
+            )
+            return
+
         offender_span_ids = [span["span_id"] for span in self.spans]
         problem_description = self._get_parameterized_url(self.spans[0])
         if problem_description == "":
@@ -177,8 +184,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
             )
 
         parent_span_id = last_span.get("parent_span_id")
-        if self.stored_problems.get(fingerprint):
-            logging.info("Multiple N+1 API Call Problems for Fingerprint")
+
         parameters = self._get_parameters()
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
