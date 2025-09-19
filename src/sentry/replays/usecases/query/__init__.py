@@ -28,7 +28,6 @@ from snuba_sdk import (
     Entity,
     Function,
     Granularity,
-    Limit,
     Op,
     Or,
     OrderBy,
@@ -259,7 +258,6 @@ def query_using_optimized_search(
                     period_start,
                     period_stop,
                     handle_search_filters(existence_search_config, search_filters),
-                    pagination.limit,
                     organization_id,
                 ),
                 has_more=False,
@@ -343,7 +341,6 @@ def replay_existence_check(
     start: datetime,
     stop: datetime,
     conditions: list[Condition],
-    limit: int,
     organization_id: int | None,
 ) -> list[ExistenceResponse]:
     """
@@ -370,7 +367,6 @@ def replay_existence_check(
             Condition(Column("segment_id"), Op.EQ, 0),
             *conditions,
         ],
-        limit=Limit(limit),
     )
 
     results = execute_query(query, tenant_id, referrer="replays.query.replay_existence_check")
