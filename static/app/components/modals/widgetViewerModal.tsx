@@ -571,8 +571,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <ReleaseWidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={

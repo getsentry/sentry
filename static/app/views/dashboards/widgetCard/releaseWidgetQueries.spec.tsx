@@ -4,7 +4,6 @@ import {
 } from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
@@ -16,8 +15,6 @@ import {
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
 describe('Dashboards > ReleaseWidgetQueries', () => {
-  const {organization} = initializeOrg();
-
   const badMessage = 'Bad request data';
 
   const multipleQueryWidget = {
@@ -71,8 +68,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     },
   };
 
-  const api = new MockApiClient();
-
   beforeEach(() => {
     setMockDate(new Date('2022-08-02'));
   });
@@ -89,12 +84,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div />);
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={singleQueryWidget}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={singleQueryWidget} selection={selection}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -148,9 +138,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={{...singleQueryWidget, queries}}
-        organization={organization}
         selection={selection}
       >
         {children}
@@ -208,9 +196,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={{...singleQueryWidget, queries}}
-        organization={organization}
         selection={selection}
       >
         {children}
@@ -242,9 +228,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={singleQueryWidget}
-        organization={organization}
         selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
@@ -289,12 +273,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     };
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={injectedOrderby}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={injectedOrderby} selection={selection}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -473,9 +452,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
-        organization={organization}
         selection={selection}
       >
         {children}
@@ -578,9 +555,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.BIG_NUMBER}}
-        organization={organization}
         selection={selection}
       >
         {children}
@@ -628,12 +603,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
       ],
     });
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={multipleQueryWidget}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={multipleQueryWidget} selection={selection}>
         {() => <div data-test-id="child" />}
       </ReleaseWidgetQueries>
     );
@@ -691,12 +661,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div data-test-id="child" />);
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={multipleQueryWidget}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={multipleQueryWidget} selection={selection}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -719,9 +684,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={{...singleQueryWidget, interval: '1m'}}
-        organization={organization}
         selection={{...selection, datetime: {...selection.datetime, period: '14d'}}}
       >
         {() => <div data-test-id="child" />}
@@ -751,12 +714,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div />);
 
     const {rerender} = render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={singleQueryWidget}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={singleQueryWidget} selection={selection}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -767,7 +725,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     rerender(
       <ReleaseWidgetQueries
-        api={api}
         widget={{
           ...singleQueryWidget,
           queries: [
@@ -778,7 +735,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
             },
           ],
         }}
-        organization={organization}
         selection={selection}
       >
         {children}
@@ -800,9 +756,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     const {rerender} = render(
       <ReleaseWidgetQueries
-        api={api}
         widget={singleQueryWidget}
-        organization={organization}
         selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
@@ -816,9 +770,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     rerender(
       <ReleaseWidgetQueries
-        api={api}
         widget={singleQueryWidget}
-        organization={organization}
         selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
@@ -866,12 +818,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const children = jest.fn(() => <div />);
 
     const {rerender} = render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={releasesWidget}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={releasesWidget} selection={selection}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -884,7 +831,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     rerender(
       <ReleaseWidgetQueries
-        api={api}
         widget={{
           ...releasesWidget,
           queries: [
@@ -894,7 +840,6 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
             },
           ],
         }}
-        organization={organization}
         selection={selection}
       >
         {children}
@@ -937,9 +882,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={{...singleQueryWidget, queries}}
-        organization={organization}
         selection={selection}
       >
         {children}
