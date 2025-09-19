@@ -120,10 +120,10 @@ class RedisHashSortedSetBuffer:
         self._execute_redis_operation(key, "hmset", data)
 
     def get_hash(
-        self, model: type[models.Model], field: Mapping[str, BufferField]
+        self, model: type[models.Model], filters: Mapping[str, BufferField]
     ) -> dict[str, str]:
         """Get all field-value pairs from a Redis hash."""
-        key = make_key(model, field)
+        key = make_key(model, filters)
         redis_hash = self._execute_redis_operation(key, "hgetall")
         decoded_hash = {}
         for k, v in redis_hash.items():
@@ -134,9 +134,9 @@ class RedisHashSortedSetBuffer:
             decoded_hash[k] = v
         return decoded_hash
 
-    def get_hash_length(self, model: type[models.Model], field: Mapping[str, BufferField]) -> int:
+    def get_hash_length(self, model: type[models.Model], filters: Mapping[str, BufferField]) -> int:
         """Get the number of fields in a Redis hash."""
-        key = make_key(model, field)
+        key = make_key(model, filters)
         return self._execute_redis_operation(key, "hlen")
 
     def delete_hash(
