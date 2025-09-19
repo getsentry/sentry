@@ -25,7 +25,7 @@ from sentry.performance_issues.base import (
     get_url_from_span,
     parameterize_url,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
+from sentry.performance_issues.detectors.utils import get_total_span_duration, is_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -132,8 +132,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not url:
             return False
 
-        # Check if any spans have filtered URLs
-        if has_filtered_url(self._event, span):
+        if is_filtered_url(url):
             return False
 
         # Once most users update their SDKs to use the latest standard, we
@@ -318,6 +317,9 @@ def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None
     method, url_str = parts
     method = method.upper()
     if method not in HTTP_METHODS:
+        return None
+
+    if is_filtered_url(url_str):
         return None
 
     url = urlparse(url_str)

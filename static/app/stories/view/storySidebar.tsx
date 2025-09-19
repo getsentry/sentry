@@ -8,7 +8,7 @@ import {inferFileCategory, StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
-  const {foundations, typography, layout, core, product, shared} =
+  const {foundations, principles, typography, layout, core, product, shared} =
     useStoryBookFilesByCategory();
 
   return (
@@ -18,6 +18,12 @@ export function StorySidebar() {
           <h3>Foundations</h3>
           <StoryTree nodes={foundations} />
         </li>
+        {principles.length > 0 && (
+          <li>
+            <h3>Principles</h3>
+            <StoryTree nodes={principles} />
+          </li>
+        )}
         <li>
           <h3>Typography</h3>
           <StoryTree nodes={typography} />
@@ -30,12 +36,12 @@ export function StorySidebar() {
           <h3>Components</h3>
           <StoryTree nodes={core} />
         </li>
-        {product.length > 0 && (
+        {product.length > 0 ? (
           <li>
             <h3>Product</h3>
             <StoryTree nodes={product} />
           </li>
-        )}
+        ) : null}
         <li>
           <h3>Shared</h3>
           <StoryTree nodes={shared} />
@@ -52,7 +58,7 @@ function scrollIntoView(node: HTMLElement | null) {
 }
 
 export function useStoryBookFilesByCategory(): Record<
-  'foundations' | 'typography' | 'layout' | 'core' | 'product' | 'shared',
+  'foundations' | 'principles' | 'typography' | 'layout' | 'core' | 'product' | 'shared',
   StoryTreeNode[]
 > {
   const files = useStoryBookFiles();
@@ -60,6 +66,7 @@ export function useStoryBookFilesByCategory(): Record<
     // The order of keys here is important and used by the pagination in storyFooter
     const map: Record<ReturnType<typeof inferFileCategory>, string[]> = {
       foundations: [],
+      principles: [],
       typography: [],
       layout: [],
       core: [],
@@ -70,6 +77,9 @@ export function useStoryBookFilesByCategory(): Record<
       switch (inferFileCategory(file)) {
         case 'foundations':
           map.foundations.push(file);
+          break;
+        case 'principles':
+          map.principles.push(file);
           break;
         case 'typography':
           map.typography.push(file);
@@ -91,6 +101,11 @@ export function useStoryBookFilesByCategory(): Record<
   }, [files]);
 
   const foundations = useStoryTree(filesByOwner.foundations, {
+    query: '',
+    representation: 'category',
+    type: 'flat',
+  });
+  const principles = useStoryTree(filesByOwner.principles, {
     query: '',
     representation: 'category',
     type: 'flat',
@@ -122,6 +137,7 @@ export function useStoryBookFilesByCategory(): Record<
 
   return {
     foundations,
+    principles,
     typography,
     core,
     product,
