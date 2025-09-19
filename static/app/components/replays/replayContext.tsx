@@ -267,14 +267,14 @@ export function Provider({
         playTimer.current = window.setTimeout(() => {
           replayer.play(time);
           // Re-evaluate fast-forward opportunities after scrubbing to new position
-          replayer.refreshSkipState();
+          replayer.reevaluateFastForward();
         }, 0);
         setIsPlaying(true);
       } else {
         playTimer.current = window.setTimeout(() => {
           replayer.pause(time);
           // Re-evaluate fast-forward opportunities after scrubbing to new position
-          replayer.refreshSkipState();
+          replayer.reevaluateFastForward();
         }, 0);
         setIsPlaying(false);
       }
@@ -494,7 +494,7 @@ export function Provider({
         // Re-evaluate fast-forward opportunities when starting playback
         // Add small delay to ensure play() has finished setting up
         window.setTimeout(() => {
-          replayer.refreshSkipState();
+          replayer.reevaluateFastForward();
         }, 10);
       } else {
         replayer.pause(getCurrentPlayerTime());

@@ -190,7 +190,7 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
         replayer.play(offsetMs);
       } else {
         replayer.pause(offsetMs);
-        replayer.refreshSkipState();
+        replayer.reevaluateFastForward();
       }
 
       return;
