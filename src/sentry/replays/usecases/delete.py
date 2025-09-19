@@ -207,11 +207,18 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
         "replay_ids": replay_ids,
     }
 
-    response = make_signed_seer_api_request(
-        connection_pool=seer_connection_pool,
-        path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
-        body=json.dumps(seer_request).encode("utf-8"),
-    )
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
+            body=json.dumps(seer_request).encode("utf-8"),
+        )
+    except Exception:
+        logger.exception(
+            "Failed to delete replay data from Seer on both pods",
+            extra={"project_id": project_id, "replay_ids": replay_ids},
+        )
+        return False
 
     response_status_ok = response.status >= 200 and response.status < 300
     if not response_status_ok:
