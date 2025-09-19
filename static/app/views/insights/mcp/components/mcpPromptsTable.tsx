@@ -153,7 +153,13 @@ function McpPromptCell({prompt}: {prompt: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
-    field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
+    field: [
+      'span.description',
+      'span.status',
+      'mcp.prompt.result.message_content',
+      'span.duration',
+      'timestamp',
+    ],
     query: `span.op:mcp.server ${SpanFields.MCP_PROMPT_NAME}:"${prompt}"`,
     sort: `-count(span.duration)`,
   });
