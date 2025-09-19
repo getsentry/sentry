@@ -1,7 +1,7 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs from './mongo';
+import docs from './pymongo';
 
 describe('mongo onboarding docs', () => {
   it('renders doc correctly', () => {
