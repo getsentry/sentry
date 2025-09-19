@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -24,13 +25,6 @@ type Props = {
   boxSelectOptions: BoxSelectOptions;
   chartInfo: ChartInfo;
 };
-
-const TitleContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(0.5)};
-`;
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -103,10 +97,10 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
     <DrawerContainer>
       <DrawerHeader hideBar />
       <StyledDrawerBody>
-        <TitleContainer>
+        <Flex justify="between" align="center">
           <Title>{t('Suspect Attributes')}</Title>
           <FeedbackButton />
-        </TitleContainer>
+        </Flex>
         <SubTitle>
           {t(
             'Comparing selected and unselected (baseline) data, we sorted  attributes that differ the most in frequency. This indicates how suspicious they are. '
@@ -161,6 +155,7 @@ const StyledBaseSearchBar = styled(BaseSearchBar)`
 `;
 
 const SubTitle = styled('span')`
+  margin-top: ${space(0.5)};
   margin-bottom: ${space(3)};
 `;
 
