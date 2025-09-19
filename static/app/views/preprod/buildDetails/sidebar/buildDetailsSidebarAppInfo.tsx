@@ -9,6 +9,7 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {
+  BuildDetailsSizeAnalysisState,
   type BuildDetailsAppInfo,
   type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -43,18 +44,23 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
       </Flex>
 
-      {props.sizeInfo && (
-        <Flex gap="sm">
-          <Flex direction="column" gap="xs" flex={1}>
-            <Heading as="h4">{installSizeText}</Heading>
-            <Text size="md">{formatBytesBase10(props.sizeInfo.install_size_bytes)}</Text>
+      {props.sizeInfo &&
+        props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED && (
+          <Flex gap="sm">
+            <Flex direction="column" gap="xs" flex={1}>
+              <Heading as="h4">{installSizeText}</Heading>
+              <Text size="md">
+                {formatBytesBase10(props.sizeInfo.install_size_bytes)}
+              </Text>
+            </Flex>
+            <Flex direction="column" gap="xs" flex={1}>
+              <Heading as="h4">{t('Download Size')}</Heading>
+              <Text size="md">
+                {formatBytesBase10(props.sizeInfo.download_size_bytes)}
+              </Text>
+            </Flex>
           </Flex>
-          <Flex direction="column" gap="xs" flex={1}>
-            <Heading as="h4">{t('Download Size')}</Heading>
-            <Text size="md">{formatBytesBase10(props.sizeInfo.download_size_bytes)}</Text>
-          </Flex>
-        </Flex>
-      )}
+        )}
 
       <Flex wrap="wrap" gap="md">
         <Flex gap="2xs" align="center">

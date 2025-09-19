@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -34,7 +33,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
-import {getPlatformIconFromPlatform} from 'sentry/views/preprod/utils/labelUtils';
+import {
+  formattedDownloadSize,
+  formattedInstallSize,
+  getPlatformIconFromPlatform,
+} from 'sentry/views/preprod/utils/labelUtils';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import {EmptyState} from './emptyState';
@@ -206,15 +209,11 @@ function PreprodBuildsList({organization, projectSlug}: PreprodBuildsProps) {
                         </SimpleTable.RowCell>
 
                         <SimpleTable.RowCell>
-                          {build.size_info?.install_size_bytes
-                            ? formatBytesBase10(build.size_info.install_size_bytes)
-                            : '-'}
+                          {formattedInstallSize(build)}
                         </SimpleTable.RowCell>
 
                         <SimpleTable.RowCell>
-                          {build.size_info?.download_size_bytes
-                            ? formatBytesBase10(build.size_info.download_size_bytes)
-                            : '-'}
+                          {formattedDownloadSize(build)}
                         </SimpleTable.RowCell>
 
                         <SimpleTable.RowCell>
