@@ -75,8 +75,6 @@ def test_replay_existence_check(replay_store, delta, is_returned, reason):
     """
     Assert a replay is only found if its zeroth segment is within the extended range defined by
     the query.
-
-    Limit is set to `2` so that we can assert duplicates are removed.
     """
     replay_id = str(uuid.uuid4())
 
@@ -90,7 +88,6 @@ def test_replay_existence_check(replay_store, delta, is_returned, reason):
         start=start,
         stop=end,
         conditions=[Condition(Column("replay_id"), Op.EQ, replay_id)],
-        limit=2,
         organization_id=1,
     )
 

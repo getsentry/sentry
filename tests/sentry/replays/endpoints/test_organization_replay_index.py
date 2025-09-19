@@ -1768,8 +1768,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=0))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, segment_id=1))
 
         with self.feature(self.features):
             uid2 = uuid.uuid4().hex
