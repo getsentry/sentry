@@ -99,13 +99,7 @@ export default function TestsOnboardingPage() {
 
   const uploadPermissionUploadTokenSteps = (
     <Fragment>
-      {/* this component currently only rendered when repository and integratedOrgId are defined */}
-      <AddUploadTokenStep
-        step="2b"
-        repoData={repoData}
-        repository={repository!}
-        integratedOrgId={integratedOrgId!}
-      />
+      <AddUploadTokenStep step="2b" />
       <AddScriptToYamlStep step="3" />
       <RunTestSuiteStep step="4" />
       <ViewResultsInsightsStep step="5" />
@@ -129,13 +123,7 @@ export default function TestsOnboardingPage() {
   const cliSteps = (
     <Fragment>
       <OutputCoverageFileStep step="1" />
-      {/* this component currently only rendered when repository and integratedOrgId are defined */}
-      <AddUploadTokenStep
-        step="2"
-        repoData={repoData}
-        repository={repository!}
-        integratedOrgId={integratedOrgId!}
-      />
+      <AddUploadTokenStep step="2" />
       <InstallPreventCLIStep step="3" />
       <UploadFileCLIStep previousStep="3" step="4" />
       <RunTestSuiteStep step="5" />
