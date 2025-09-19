@@ -4,7 +4,8 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 
-interface SideBySideProps extends Omit<FlexProps, 'direction'> {
+interface SideBySideProps extends Omit<FlexProps, 'direction' | 'children'> {
+  children: React.ReactNode;
   vertical?: boolean;
 }
 
