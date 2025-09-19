@@ -62,15 +62,14 @@ export function ScreensTable({
   const location = useLocation();
   const organization = useOrganization();
 
-  // Create dynamic column order for the hook
-  const dynamicColumnOrder = columnOrder.map(columnKey => ({
+  const gridColumnOrder = columnOrder.map(columnKey => ({
     key: columnKey,
     name: columnNameMap[columnKey]!,
     width: COL_WIDTH_UNDEFINED,
   }));
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
-    columns: dynamicColumnOrder,
+    columns: gridColumnOrder,
     location,
   });
 
