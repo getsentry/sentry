@@ -3,17 +3,25 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Callable, Iterable
+from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
+from celery import Task
+from celery.exceptions import Ignore, MaxRetriesExceededError, Reject, Retry, SoftTimeLimitExceeded
+from django.conf import settings
 from django.db.models import Model
 
+from sentry import options
+from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.taskworker.config import TaskworkerConfig  # noqa (used in getsentry)
+from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.retry import RetryError, retry_task
 from sentry.taskworker.state import current_task
+from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
+from sentry.utils.memory import track_memory_usage
 
 ModelT = TypeVar("ModelT", bound=Model)
 
@@ -25,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 class TaskSiloLimit(SiloLimit):
     """
-    Silo limiter for tasks
+    Silo limiter for celery tasks
 
     We don't want tasks to be spawned in the incorrect silo.
     We can't reliably cause tasks to fail as not all tasks use
@@ -46,8 +54,8 @@ class TaskSiloLimit(SiloLimit):
         return handle
 
     def __call__(self, decorated_task: Any) -> Any:
-        # Replace the sentry.taskworker.Task interface used to schedule tasks.
-        replacements = {"delay", "apply_async"}
+        # Replace the celery.Task interface we use.
+        replacements = {"delay", "apply_async", "s", "signature", "retry", "apply", "run"}
         for attr_name in replacements:
             task_attr = getattr(decorated_task, attr_name)
             if callable(task_attr):
@@ -58,6 +66,46 @@ class TaskSiloLimit(SiloLimit):
         if hasattr(decorated_task, "name"):
             limited_func.name = decorated_task.name  # type: ignore[attr-defined]
         return limited_func
+
+
+def taskworker_override(
+    celery_task_attr: Callable[P, R],
+    taskworker_attr: Callable[P, R],
+) -> Callable[P, R]:
+    def override(*args: P.args, **kwargs: P.kwargs) -> R:
+        if options.get("taskworker.enabled"):
+            return taskworker_attr(*args, **kwargs)
+
+        return celery_task_attr(*args, **kwargs)
+
+    functools.update_wrapper(override, celery_task_attr)
+    return override
+
+
+def override_task(
+    celery_task: Task,
+    taskworker_task: TaskworkerTask,
+    taskworker_config: TaskworkerConfig,
+    task_name: str,
+) -> Task:
+    """
+    This function is used to override SentryTasks methods with TaskworkerTask methods
+    depending on the rollout percentage set in sentry options.
+
+    This is used to migrate tasks from celery to taskworker in a controlled manner.
+    """
+    replacements = {"delay", "apply_async"}
+    for attr_name in replacements:
+        celery_task_attr = getattr(celery_task, attr_name)
+        taskworker_attr = getattr(taskworker_task, attr_name)
+        if callable(celery_task_attr) and callable(taskworker_attr):
+            limited_attr = taskworker_override(
+                celery_task_attr,
+                taskworker_attr,
+            )
+            setattr(celery_task, attr_name, limited_attr)
+
+    return celery_task
 
 
 def load_model_from_db(
@@ -73,12 +121,14 @@ def load_model_from_db(
 
 def instrumented_task(
     name,
+    stat_suffix=None,
     silo_mode=None,
+    record_timing=False,
     taskworker_config=None,
     **kwargs,
 ):
     """
-    Decorator for defining tasks.
+    Decorator for defining celery tasks.
 
     Includes a few application specific batteries like:
 
@@ -89,16 +139,71 @@ def instrumented_task(
     """
 
     def wrapped(func):
-        assert taskworker_config, "The `taskworker_config` parameter is required to define a task"
-        task = taskworker_config.namespace.register(
-            name=name,
-            retry=taskworker_config.retry,
-            expires=taskworker_config.expires,
-            processing_deadline_duration=taskworker_config.processing_deadline_duration,
-            at_most_once=taskworker_config.at_most_once,
-            wait_for_delivery=taskworker_config.wait_for_delivery,
-            compression_type=taskworker_config.compression_type,
-        )(func)
+        @functools.wraps(func)
+        def _wrapped(*args, **kwargs):
+            record_queue_wait_time = record_timing
+
+            # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
+            # Unhandled exception could cause all tasks to be effected and not work
+
+            # TODO(dcramer): we want to tag a transaction ID, but overriding
+            # the base on app.task seems to cause problems w/ Celery internals
+            transaction_id = kwargs.pop("__transaction_id", None)
+            start_time = kwargs.pop("__start_time", None)
+
+            key = "jobs.duration"
+            if stat_suffix:
+                instance = f"{name}.{stat_suffix(*args, **kwargs)}"
+            else:
+                instance = name
+
+            if start_time and record_queue_wait_time:
+                curr_time = datetime.now().timestamp()
+                duration = (curr_time - start_time) * 1000
+                metrics.distribution(
+                    "jobs.queue_time", duration, instance=instance, unit="millisecond"
+                )
+
+            scope = sentry_sdk.get_isolation_scope()
+            scope.set_tag("task_name", name)
+            scope.set_tag("transaction_id", transaction_id)
+
+            with (
+                metrics.timer(key, instance=instance),
+                track_memory_usage("jobs.memory_change", instance=instance),
+            ):
+                result = func(*args, **kwargs)
+
+            return result
+
+        # If the split task router is configured for the task, always use queues defined
+        # in the split task configuration
+        if name in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES and "queue" in kwargs:
+            q = kwargs.pop("queue")
+            logger.warning("ignoring queue: %s, using value from CELERY_SPLIT_QUEUE_TASK_ROUTES", q)
+
+        # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
+        # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
+        # being OOM killed.
+        kwargs["trail"] = False
+
+        task = app.task(name=name, **kwargs)(_wrapped)
+        if taskworker_config:
+            taskworker_task = taskworker_config.namespace.register(
+                name=name,
+                retry=taskworker_config.retry,
+                expires=taskworker_config.expires,
+                processing_deadline_duration=taskworker_config.processing_deadline_duration,
+                at_most_once=taskworker_config.at_most_once,
+                wait_for_delivery=taskworker_config.wait_for_delivery,
+                compression_type=taskworker_config.compression_type,
+            )(func)
+
+            task = override_task(task, taskworker_task, taskworker_config, name)
+        else:
+            raise Exception(
+                f"taskworker_config must be defined, please add TaskworkerConfig to instrumented_task call for {name}"
+            )
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
@@ -131,7 +236,7 @@ def retry(
         return retry()(func)
 
     timeout_exceptions: tuple[type[BaseException], ...]
-    timeout_exceptions = (ProcessingDeadlineExceeded,)
+    timeout_exceptions = (ProcessingDeadlineExceeded, SoftTimeLimitExceeded)
     if not timeouts:
         timeout_exceptions = ()
 
@@ -142,7 +247,7 @@ def retry(
                 return func(*args, **kwargs)
             except ignore:
                 return
-            except RetryError:
+            except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
                 # We shouldn't interfere with exceptions that exist to communicate
                 # retry state.
                 raise
