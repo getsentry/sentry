@@ -981,3 +981,8 @@ export function getCreditApplied({
   }
   return creditApplied;
 }
+
+// TODO(isabella): clean this up after GA
+export function hasNewCheckout(organization: Organization) {
+  return organization.features.includes('checkout-v3');
+}
