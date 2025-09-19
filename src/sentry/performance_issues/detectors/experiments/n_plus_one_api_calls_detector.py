@@ -22,7 +22,7 @@ from sentry.performance_issues.base import (
     parameterize_url,
     parameterize_url_with_result,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
+from sentry.performance_issues.detectors.utils import get_total_span_duration, is_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -132,7 +132,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         if not url:
             return False
 
-        if has_filtered_url(self._event, span):
+        if is_filtered_url(url):
             return False
 
         # Once most users update their SDKs to use the latest standard, we
@@ -179,6 +179,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         parent_span_id = last_span.get("parent_span_id")
         if self.stored_problems.get(fingerprint):
             logging.info("Multiple N+1 API Call Problems for Fingerprint")
+        parameters = self._get_parameters()
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
@@ -196,8 +197,8 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
                 "repeating_spans": self._get_path_prefix(self.spans[0]),
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
-                "parameters": self._get_parameters()["query_params"],
-                "path_parameters": self._get_parameters()["path_params"],
+                "parameters": parameters["query_params"],
+                "path_parameters": parameters["path_params"],
                 "common_url": problem_description,
             },
             evidence_display=[
@@ -224,10 +225,8 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
         for parameterized_url in parameterized_urls:
             query_params = parameterized_url["query_params"]
-
             for key, value in query_params.items():
                 query_dict[key] += value
-
         # Note: dict.fromkeys() is just to deduplicate values and Python dicts are ordered
         path_params_list: list[str] = list(
             dict.fromkeys(

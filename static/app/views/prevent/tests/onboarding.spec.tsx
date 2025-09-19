@@ -21,6 +21,7 @@ const mockGitHubIntegration = {
     name: 'GitHub',
   },
   externalId: '88888888',
+  status: 'active',
 };
 
 const mockRepositories = [

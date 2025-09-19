@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -37,6 +36,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
+import {getHasTag} from 'sentry/utils/tag';
 import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 
 const FILTER_KEYS: TagCollection = {
