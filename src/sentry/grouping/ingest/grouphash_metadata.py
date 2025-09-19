@@ -111,27 +111,15 @@ METRICS_TAGS_BY_HASH_BASIS = {
 def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
     # Killswitches
     if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": False, "reason": "killswitch"},
-        )
         return False
 
     # While we're backfilling metadata for existing grouphash records, if the load is too high, we
     # want to prioritize metadata for new grouphashes because there's certain information
     # (timestamp, Seer data) which is only available at group creation time.
     if grouphash_is_new:
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": True, "reason": "new_group"},
-        )
         return True
     else:
         result = random.random() <= options.get("grouping.grouphash_metadata.backfill_sample_rate")
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": result, "reason": f"die_roll_{result}"},
-        )
         return result
 
 
