@@ -301,9 +301,14 @@ export function EventGraph({
     onReleaseClick: handleReleaseLineClick,
   });
 
+  const flagsForSeries = useMemo(() => {
+    const result = shouldShowBubbles ? flags : [];
+    return result;
+  }, [shouldShowBubbles, flags]);
+
   const flagSeries = useFlagSeries({
     event,
-    flags: shouldShowBubbles ? [] : flags,
+    flags: flagsForSeries,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
