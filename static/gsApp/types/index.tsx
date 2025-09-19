@@ -1035,11 +1035,6 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   maxAdminGift: number;
   /**
-   * The multiplier to use on the category to display
-   * its PAYG pricing
-   */
-  paygPriceMultiplier: number;
-  /**
    * The tooltip text for the checkout page
    */
   reservedVolumeTooltip: string | null;
@@ -1047,4 +1042,8 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * How usage is tallied for the category
    */
   tallyType: 'usage' | 'seat';
+  /**
+   * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
+   */
+  shortenedUnitName?: string;
 }
