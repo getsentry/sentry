@@ -21,6 +21,7 @@ from snuba_sdk import (
     OrderBy,
     Query,
 )
+from urllib3 import Retry
 
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
@@ -209,7 +210,7 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
             path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
             body=json.dumps(seer_request).encode("utf-8"),
             timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
-            retries=None,  # Default behavior of 3 retries.
+            retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
         )
     except Exception:
         logger.exception(
