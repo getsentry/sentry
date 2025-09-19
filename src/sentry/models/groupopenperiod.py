@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateTimeRangeField
 from django.contrib.postgres.fields.ranges import RangeBoundary, RangeOperators
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 
 from sentry import features
@@ -152,15 +152,20 @@ def create_open_period(group: Group, start_time: datetime) -> None:
         logger.warning("Latest open period is not closed", extra={"group_id": group.id})
         return
 
-    # There are some historical cases where we log multiple regressions for the same group,
-    # but we only want to create a new open period for the first regression
-    GroupOpenPeriod.objects.create(
-        group=group,
-        project=group.project,
-        date_started=start_time,
-        date_ended=None,
-        resolution_activity=None,
-    )
+    with transaction.atomic(router.db_for_write(Group)):
+        # Force a Group lock before the create to establish consistent lock ordering
+        # This prevents deadlocks by ensuring we always acquire the Group lock first
+        Group.objects.select_for_update().filter(id=group.id).first()
+
+        # There are some historical cases where we log multiple regressions for the same group,
+        # but we only want to create a new open period for the first regression
+        GroupOpenPeriod.objects.create(
+            group=group,
+            project=group.project,
+            date_started=start_time,
+            date_ended=None,
+            resolution_activity=None,
+        )
 
 
 def update_group_open_period(
