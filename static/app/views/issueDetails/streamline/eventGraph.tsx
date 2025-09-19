@@ -301,14 +301,10 @@ export function EventGraph({
     onReleaseClick: handleReleaseLineClick,
   });
 
-  const flagsForSeries = useMemo(() => {
-    const result = shouldShowBubbles ? flags : [];
-    return result;
-  }, [shouldShowBubbles, flags]);
-
+  // always show flag lines regardless of release line/bubble display
   const flagSeries = useFlagSeries({
     event,
-    flags: flagsForSeries,
+    flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
