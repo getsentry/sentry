@@ -302,19 +302,6 @@ def fetch_project(project_id: int) -> Project | None:
         return None
 
 
-def fetch_group_to_event_data(
-    project_id: int, model: type[models.Model], batch_key: str | None = None
-) -> dict[str, str]:
-    field: dict[str, models.Model | int | str] = {
-        "project_id": project_id,
-    }
-
-    if batch_key:
-        field["batch_key"] = batch_key
-
-    return buffer.get_backend().get_hash(model=model, field=field)
-
-
 def fetch_workflows_envs(
     workflow_ids: list[WorkflowId],
 ) -> Mapping[WorkflowId, int | None]:
@@ -963,10 +950,6 @@ class DelayedWorkflowClient:
             f"{cls.buffer_key}:{shard}" if shard > 0 else cls.buffer_key
             for shard in range(cls.buffer_shards)
         ]
-
-    @staticmethod
-    def buffer_backend() -> RedisHashSortedSetBuffer:
-        return buffer.get_backend()
 
     def for_project(self, project_id: int) -> ProjectDelayedWorkflowClient:
         return ProjectDelayedWorkflowClient(project_id, self._buffer)
