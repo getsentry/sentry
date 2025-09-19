@@ -191,6 +191,59 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
         return mock_context()
 
 
+class StoreCodingAgentStatesToSeerTest(APITestCase):
+    def test_batch_function_posts_correct_payload(self):
+        from datetime import UTC, datetime
+        from unittest.mock import MagicMock, patch
+
+        import orjson
+
+        from sentry.integrations.api.endpoints.organization_coding_agents import (
+            store_coding_agent_states_to_seer,
+        )
+        from sentry.seer.autofix.utils import (
+            CodingAgentProviderType,
+            CodingAgentState,
+            CodingAgentStatus,
+        )
+
+        state1 = CodingAgentState(
+            id="a1",
+            status=CodingAgentStatus.PENDING,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+            name="Agent 1",
+            started_at=datetime.now(UTC),
+        )
+        state2 = CodingAgentState(
+            id="a2",
+            status=CodingAgentStatus.PENDING,
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+            name="Agent 2",
+            started_at=datetime.now(UTC),
+        )
+
+        mocked_response = MagicMock()
+        mocked_response.status = 200
+        mocked_response.data = b"{}"
+
+        with patch(
+            "sentry.integrations.api.endpoints.organization_coding_agents.make_signed_seer_api_request",
+            return_value=mocked_response,
+        ) as mocked_call:
+            store_coding_agent_states_to_seer(run_id=5, coding_agent_states=[state1, state2])
+
+            mocked_call.assert_called_once()
+            args, kwargs = mocked_call.call_args
+            # path is the second positional arg
+            assert args[1] == "/v1/automation/autofix/coding-agent/state/set"
+            body = orjson.loads(kwargs["body"]) if "body" in kwargs else orjson.loads(args[2])
+            assert body["run_id"] == 5
+            assert isinstance(body["coding_agent_states"], list)
+            assert len(body["coding_agent_states"]) == 2
+            ids = {s["id"] for s in body["coding_agent_states"]}
+            assert ids == {"a1", "a2"}
+
+
 class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
     """Test class for GET endpoint functionality."""
 
@@ -1155,4 +1208,5 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=500, **data
             )
+            assert response.data["detail"] == "No prompt to send to agents."
             assert response.data["detail"] == "No prompt to send to agents."
