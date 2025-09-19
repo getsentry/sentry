@@ -10,7 +10,6 @@ from uuid import UUID, uuid1
 
 from django.utils import timezone
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -85,7 +84,6 @@ class Event:
     # the type of the event, used for serialization and matching. Can be None for abstract base event classes
     type: ClassVar[str | None]
     _eventclass_initialized: ClassVar[bool] = False
-
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:
         # Check if this class was decorated with @eventclass
