@@ -193,11 +193,12 @@ class TeamProjectsEndpoint(TeamEndpoint):
             409: OpenApiResponse(description="A project with this slug already exists."),
         },
         examples=ProjectExamples.CREATE_PROJECT,
+        description="""Create a new project bound to a team.
+
+        Note: If your organization has disabled member project creation, the `org:write` or `team:admin` scope is required.
+        """,
     )
     def post(self, request: Request, team: Team) -> Response:
-        """
-        Create a new project bound to a team.
-        """
         from sentry.core.endpoints.organization_projects_experiment import (
             DISABLED_FEATURE_ERROR_STRING,
         )

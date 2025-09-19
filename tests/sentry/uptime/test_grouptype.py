@@ -274,6 +274,8 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
             config={
                 "mode": UptimeMonitorMode.MANUAL,
                 "environment": "hi",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
 
