@@ -528,12 +528,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         with patch(
             "sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async"
         ) as mock_apply_async:
-            with self.options(
-                {
-                    "workflow_engine.use_new_scheduling_task": True,
-                    "delayed_workflow.rollout": True,
-                }
-            ):
+            with self.options({"delayed_workflow.rollout": True}):
                 # Call schedule_delayed_workflows - this runs the real buffer processing
                 schedule_delayed_workflows()
 

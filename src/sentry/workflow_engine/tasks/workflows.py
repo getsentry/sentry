@@ -6,7 +6,6 @@ from typing import Any
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
 
-from sentry import options
 from sentry.eventstream.base import GroupState
 from sentry.locks import locks
 from sentry.models.activity import Activity
@@ -167,19 +166,13 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
     Schedule delayed workflow buffers in a batch.
     """
     from sentry.workflow_engine.processors.schedule import process_buffered_workflows
+    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
 
     lock_name = "schedule_delayed_workflows"
     lock = locks.get(f"workflow_engine:{lock_name}", duration=60, name=lock_name)
 
     try:
         with lock.acquire():
-            # Only process delayed_workflow type
-            use_new_scheduling = options.get("workflow_engine.use_new_scheduling_task")
-            if not use_new_scheduling:
-                logger.info(
-                    "Configured to use process_pending_batch for delayed_workflow; exiting."
-                )
-                return
-            process_buffered_workflows()
+            process_buffered_workflows(DelayedWorkflowClient())
     except UnableToAcquireLock as error:
         logger.warning("schedule_delayed_workflows.fail", extra={"error": error})
