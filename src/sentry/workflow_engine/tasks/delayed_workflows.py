@@ -8,7 +8,6 @@ from functools import cached_property
 from typing import Any, TypeAlias
 
 import sentry_sdk
-from celery import Task
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
@@ -35,6 +34,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.taskworker.state import current_task
+from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
@@ -949,7 +949,7 @@ class DelayedWorkflow(DelayedProcessingBase):
         return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
 
     @property
-    def processing_task(self) -> Task:
+    def processing_task(self) -> Task[Any, Any]:
         return process_delayed_workflows
 
     @staticmethod

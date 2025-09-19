@@ -4,7 +4,6 @@ import math
 from typing import Any
 
 import sentry_sdk
-from celery import Task
 from django.conf import settings
 from django.db.models import Max, Min
 
@@ -19,6 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import hybridcloud_control_tasks, hybridcloud_tasks
+from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 
@@ -72,7 +72,7 @@ CONCURRENCY = 5
 
 def schedule_batch(
     silo_mode: SiloMode,
-    drain_task: Task,
+    drain_task: Task[Any, Any],
     concurrency: int | None = None,
     process_outbox_backfills: bool = True,
 ) -> None:

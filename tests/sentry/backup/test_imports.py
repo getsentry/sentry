@@ -1552,7 +1552,7 @@ class CollisionTests(ImportTestCase):
     )
     @expect_models(COLLISION_TESTED, QuerySubscription)
     def test_colliding_query_subscription(self, expected_models: list[type[Model]]) -> None:
-        # We need a celery task running to properly test the `subscription_id` assignment, otherwise
+        # We need a task running to properly test the `subscription_id` assignment, otherwise
         # its value just defaults to `None`.
         with self.tasks():
             owner = self.create_exhaustive_user("owner")

@@ -7,11 +7,10 @@ from datetime import datetime, timezone
 from itertools import islice
 from typing import Any, ClassVar, Protocol
 
-from celery import Task
-
 from sentry import options
 from sentry.buffer.base import BufferField
 from sentry.db import models
+from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 
@@ -126,7 +125,7 @@ def process_in_batches(buffer: BufferProtocol, project_id: int, processing_type:
     The batches are replicated into a new redis hash with a unique filter (a uuid) to identify the batch.
     We need to use a UUID because these batches can be created in multiple processes and we need to ensure
     uniqueness across all of them for the centralized redis buffer. The batches are stored in redis because
-    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the celery tasks
+    we shouldn't pass objects that need to be pickled and 10k items could be problematic in tasks
     as arguments could be problematic. Finally, we can't use a pagination system on the data because
     redis doesn't maintain the sort order of the hash keys.
 

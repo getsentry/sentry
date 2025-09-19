@@ -13,7 +13,6 @@ from uuid import UUID
 from zipfile import ZipFile
 
 import yaml
-from celery.app.task import Task
 from cryptography.fernet import Fernet
 from django.core.exceptions import ValidationError
 from django.db import router, transaction
@@ -81,6 +80,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import relocation_tasks
 from sentry.taskworker.retry import LastAction, Retry
+from sentry.taskworker.task import Task
 from sentry.types.region import get_local_region
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
@@ -222,7 +222,7 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
     03. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::request_new_export: The
         request RPC call is received, and is immediately packaged into a `ControlRelocationTransfer`,
         so that we may robustly forward it to the exporting region. This task successfully completing causes
-        the RPC to successfully return to the sender, allowing the calling `uploading_start` celery
+        the RPC to successfully return to the sender, allowing the calling `uploading_start`
         task to finish successfully as well.
     04. (CS) ./tasks/transfer.py::process_relocation_transfer_control: Whenever an outbox draining attempt
         occurs, this code will be called to forward the proxied call into the exporting region.
@@ -230,10 +230,10 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
         silo to the exporting region.
     06. (ER) .../relocation_export/impl.py::DBBackedRelocationExportService::request_new_export: The
         request RPC call is received, and immediately schedules the
-        `fulfill_cross_region_export_request` celery task, which uses an exponential backoff
+        `fulfill_cross_region_export_request` task, which uses an exponential backoff
         algorithm to try and create an encrypted tarball containing an export of the requested org
         slug.
-    07. (ER) ./tasks/process.py::fulfill_cross_region_export_request: This celery task performs
+    07. (ER) ./tasks/process.py::fulfill_cross_region_export_request: This task performs
         the actual export operation locally in the exporting region. This data is written as a file
         to this region's relocation-specific GCS bucket, and the response is immediately packaged
         into a `RegionRelocationTransfer`, so that we may robustly attempt to send it to control silo
@@ -434,7 +434,7 @@ def fulfill_cross_region_export_request(
         exporting_region=replying_region_name,
         org_slug=org_slug,
         state=RelocationTransferState.Reply,
-        # Set next runtime in the future to reduce races with celerybeat
+        # Set next runtime in the future to reduce races with scheduled tasks
         scheduled_for=timezone.now() + TRANSFER_RETRY_BACKOFF,
     )
     process_relocation_transfer_region.delay(transfer_id=transfer.id)
@@ -1854,8 +1854,20 @@ def completed(uuid: str) -> None:
         relocation.save()
 
 
+@instrumented_task(
+    name="sentry.relocation.completed",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+    ),
+)
+def noop():
+    pass
+
+
 TASK_MAP: dict[OrderedTask, Task] = {
-    OrderedTask.NONE: Task(),
+    OrderedTask.NONE: noop,
     OrderedTask.UPLOADING_START: uploading_start,
     OrderedTask.UPLOADING_COMPLETE: uploading_complete,
     OrderedTask.PREPROCESSING_SCAN: preprocessing_scan,

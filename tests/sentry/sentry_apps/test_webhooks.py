@@ -516,7 +516,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_queues_tasks_asynchronously(self, mock_installations, mock_send_webhook):
-        """Test that webhook sending is queued as Celery tasks, not executed synchronously."""
+        """Test that webhook sending is queued as tasks, not executed synchronously."""
         mock_installations.return_value = [self.installation_1, self.installation_2]
 
         payload = {"test": "data"}
