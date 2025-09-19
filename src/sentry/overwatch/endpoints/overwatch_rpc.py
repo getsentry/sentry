@@ -21,12 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def _signature_input_from_request(request: Request) -> bytes:
-    """Build message to sign: raw request body bytes.
-
-    We sign only the raw request.body bytes, matching the Rpcsignature rpc0
-    scheme used by service clients. For GET or empty bodies, clients send
-    an empty JSON array, so we treat an empty body as b"[]".
-    """
+    """Build message to sign: raw request body bytes."""
     body_bytes = request.body if request.body not in (None, b"") else b"[]"
     return body_bytes
 
