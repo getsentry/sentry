@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any
 
 import grpc
-from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
 from sentry import options
@@ -51,6 +50,7 @@ class TaskWorker:
 
     def __init__(
         self,
+        app_module: str,
         broker_hosts: list[str],
         max_child_task_count: int | None = None,
         namespace: str | None = None,
@@ -65,6 +65,7 @@ class TaskWorker:
         **options: dict[str, Any],
     ) -> None:
         self.options = options
+        self._app_module = app_module
         self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
@@ -101,10 +102,6 @@ class TaskWorker:
 
         self._processing_pool_name: str = processing_pool_name or "unknown"
 
-    def do_imports(self) -> None:
-        for module in settings.TASKWORKER_IMPORTS:
-            __import__(module)
-
     def start(self) -> int:
         """
         Run the worker main loop
@@ -112,7 +109,6 @@ class TaskWorker:
         Once started a Worker will loop until it is killed, or
         completes its max_task_count when it shuts down.
         """
-        self.do_imports()
         self.start_result_thread()
         self.start_spawn_children_thread()
 
@@ -344,6 +340,7 @@ class TaskWorker:
                         name=f"taskworker-child-{i}",
                         target=child_process,
                         args=(
+                            self._app_module,
                             self._child_tasks,
                             self._processed_tasks,
                             self._shutdown_event,
