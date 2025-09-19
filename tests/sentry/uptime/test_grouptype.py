@@ -22,13 +22,15 @@ from sentry.uptime.grouptype import (
     UptimeDetectorHandler,
     UptimeDomainCheckFailure,
     UptimePacketValue,
-    build_detector_fingerprint_component,
     build_event_data,
     build_evidence_display,
+)
+from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_uptime_subscription
+from sentry.uptime.subscriptions.subscriptions import (
+    build_detector_fingerprint_component,
     build_fingerprint,
     resolve_uptime_issue,
 )
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
