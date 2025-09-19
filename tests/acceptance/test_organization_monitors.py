@@ -47,6 +47,9 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         schedule_input.clear()
         schedule_input.send_keys("10 0 * * *")
 
+        self.browser.click_when_visible("#project")
+        self.browser.click_when_visible(f'[data-test-id="{self.project.slug}"]')
+
         self.browser.click_when_visible('button[aria-label="Create"]')
         self.browser.wait_until(xpath="//h1[text()='My Monitor']")
 
