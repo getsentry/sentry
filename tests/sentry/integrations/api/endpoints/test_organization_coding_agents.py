@@ -1209,4 +1209,3 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
                 self.organization.slug, method="post", status_code=500, **data
             )
             assert response.data["detail"] == "No prompt to send to agents."
-            assert response.data["detail"] == "No prompt to send to agents."
