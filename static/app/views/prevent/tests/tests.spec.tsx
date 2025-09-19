@@ -73,6 +73,11 @@ const mockIntegrations = [
   {name: 'integration-2', id: '2', status: 'active'},
 ];
 
+const mockRepoData = {
+  testAnalyticsEnabled: true,
+  uploadToken: 'test-token',
+};
+
 const mockApiCall = () => {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/prevent/owner/123/repository/some-repository/test-results/`,
@@ -121,6 +126,11 @@ const mockApiCall = () => {
     body: {
       isSyncing: false,
     },
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/prevent/owner/123/repository/some-repository/',
+    method: 'GET',
+    body: mockRepoData,
   });
 };
 
