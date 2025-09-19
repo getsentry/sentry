@@ -797,6 +797,11 @@ BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
+# Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
+# this works.
+CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
+
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -3751,6 +3756,10 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
+# Used to validate RPC requests from the Overwatch service
+OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
+if (val := os.environ.get("OVERWATCH_RPC_SHARED_SECRET")) is not None:
+    OVERWATCH_RPC_SHARED_SECRET = [val]
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")

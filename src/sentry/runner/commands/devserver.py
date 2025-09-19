@@ -19,6 +19,8 @@ from sentry.runner.decorators import configuration, log_options
 # If you are looking to add a kafka consumer, please do not create a new click
 # subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
+    "celery-worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
+    "celery-beat": ["sentry", "run", "cron", "--autoreload"],
     "server": ["sentry", "run", "web"],
     "taskworker": ["sentry", "run", "taskworker"],
     "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
@@ -56,6 +58,16 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     "--watchers/--no-watchers",
     default=True,
     help="Watch static files and recompile on changes.",
+)
+@click.option(
+    "--celery-worker/--no-celery-worker",
+    default=False,
+    help="Run a celery worker (excluding celerybeat).",
+)
+@click.option(
+    "--celery-beat/--no-celery-beat",
+    default=False,
+    help="Run celerybeat workers.",
 )
 @click.option(
     "--ingest/--no-ingest",
@@ -144,6 +156,8 @@ def devserver(
     ctx: click.Context,
     reload: bool,
     watchers: bool,
+    celery_worker: bool,
+    celery_beat: bool,
     ingest: bool,
     occurrence_ingest: bool,
     experimental_spa: bool,
@@ -293,15 +307,32 @@ def devserver(
             click.echo("--ingest was provided, implicitly enabling --workers")
             workers = True
 
+        if celery_worker or celery_beat:
+            click.secho(
+                "Celery support is deprecated and will be removed soon. Update to use --workers and --task-scheduler instead "
+                "of --celery-beat and --celery-worker.",
+                fg="yellow",
+            )
+
+        if celery_worker and not celery_beat:
+            click.secho(
+                "If you want to run periodic tasks from celery (celerybeat), you need to also pass --celery-beat.",
+                fg="yellow",
+            )
+        if celery_worker:
+            daemons.append(_get_daemon("celery-worker"))
+        if celery_beat and silo != "control":
+            daemons.append(_get_daemon("celery-beat"))
+
         if task_scheduler and silo != "control":
             daemons.append(_get_daemon("taskworker-scheduler"))
 
         if workers and silo != "control":
             kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
 
-            if settings.TASKWORKER_ALWAYS_EAGER:
+            if settings.CELERY_ALWAYS_EAGER:
                 raise click.ClickException(
-                    "Disable TASKWORKER_ALWAYS_EAGER in your settings file to spawn workers."
+                    "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
                 )
 
             daemons.append(_get_daemon("taskworker"))
@@ -515,6 +546,10 @@ def devserver(
                 control_services.append("taskworker")
             if task_scheduler:
                 control_services.append("taskworker-scheduler")
+            if celery_worker:
+                control_services.append("celery-worker")
+            if celery_beat:
+                control_services.append("celery-beat")
 
             for service in control_services:
                 name, cmd = _get_daemon(service)
