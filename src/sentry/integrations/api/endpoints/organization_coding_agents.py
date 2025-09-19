@@ -33,6 +33,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
 
@@ -367,7 +368,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
             try:
                 coding_agent_state = installation.launch(launch_request)
-            except HTTPError:
+            except (HTTPError, ApiError):
                 logger.exception(
                     "coding_agent.repo_launch_error",
                     extra={
