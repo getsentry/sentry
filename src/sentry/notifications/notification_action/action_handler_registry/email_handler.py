@@ -32,14 +32,6 @@ class EmailActionHandler(ActionHandler):
                     "required": ["target_type", "target_identifier"],
                 },
             },
-            {
-                "if": {"properties": {"target_type": {"enum": [ActionTarget.ISSUE_OWNERS]}}},
-                "then": {
-                    "properties": {"target_type": {"enum": [ActionTarget.ISSUE_OWNERS]}},
-                    "required": ["target_type"],
-                    "additionalProperties": False,
-                },
-            },
         ],
     }
     data_schema = {
