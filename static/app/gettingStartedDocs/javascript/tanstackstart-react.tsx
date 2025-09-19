@@ -499,6 +499,7 @@ const docs: Docs = {
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'tanstackstart-react',
+    configFileName: 'app/ssr.tsx',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'tanstackstart-react',

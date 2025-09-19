@@ -28,6 +28,7 @@ import {
   getJavascriptFullStackOnboarding,
   getJavascriptLogsFullStackOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -546,6 +547,10 @@ const docs: Docs = {
     sdkPackage: '@sentry/astro',
   }),
   profilingOnboarding,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'astro',
+    configFileName: 'sentry.server.config.js',
+  }),
 };
 
 export default docs;
