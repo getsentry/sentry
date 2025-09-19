@@ -10,7 +10,7 @@ import {Text} from 'sentry/components/core/text';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -164,6 +164,22 @@ export function UptimeDetailsSidebar({
         <KeyValueTableRow
           keyName={t('Timeout')}
           value={t('After %s', getDuration(uptimeSub.timeoutMs / 1000, 2))}
+        />
+        <KeyValueTableRow
+          keyName={t('Failure tolerance')}
+          value={tn(
+            '%s failure check',
+            '%s failure checks',
+            uptimeDetector.config.downtimeThreshold
+          )}
+        />
+        <KeyValueTableRow
+          keyName={t('Recovery tolerance')}
+          value={tn(
+            '%s up check',
+            '%s up checks',
+            uptimeDetector.config.recoveryThreshold
+          )}
         />
         <KeyValueTableRow
           keyName={t('Environment')}

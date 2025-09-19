@@ -113,7 +113,9 @@ export type MetricDetectorConfig =
   | MetricDetectorConfigDynamic;
 
 interface UptimeDetectorConfig {
+  downtimeThreshold: number;
   environment: string;
+  recoveryThreshold: number;
 }
 
 type BaseDetector = Readonly<{
