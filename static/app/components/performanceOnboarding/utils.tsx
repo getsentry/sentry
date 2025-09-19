@@ -2,7 +2,7 @@ import {
   withoutPerformanceSupport,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
-import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 
 export function filterProjects(rawProjects: Project[]) {
   // filter on projects that have not sent a first transaction event
@@ -27,18 +27,4 @@ export function generateDocKeys(platform: PlatformKey): string[] {
   return ['1-install', '2-configure', '3-verify'].map(
     key => `${platform}-performance-onboarding-${key}`
   );
-}
-
-export function isPlatformSupported(platform: undefined | PlatformIntegration) {
-  if (!platform) {
-    return false;
-  }
-  const hasPerformanceOnboarding = platform
-    ? withPerformanceOnboarding.has(platform.id)
-    : false;
-
-  const doesNotSupportPerformance = platform
-    ? withoutPerformanceSupport.has(platform.id)
-    : false;
-  return hasPerformanceOnboarding && !doesNotSupportPerformance;
 }

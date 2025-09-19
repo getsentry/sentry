@@ -1,8 +1,8 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 
-import {generateDocKeys, isPlatformSupported} from './utils';
+import {generateDocKeys} from './utils';
 
 describe('performanceOnboarding/utils/generateDocKeys()', () => {
   it('should generate the correct onboarding keys for a React project', () => {
@@ -48,22 +48,5 @@ describe('performanceOnboarding/utils/generateDocKeys()', () => {
       'elixir-performance-onboarding-2-configure',
       'elixir-performance-onboarding-3-verify',
     ]);
-  });
-});
-
-describe('performanceOnboarding/utils/isPlatformSupported()', () => {
-  it('should not support docs when there is no platform selected', () => {
-    expect(isPlatformSupported(undefined)).toBeFalsy();
-  });
-
-  it('should not support docs when the platform does not support performance', () => {
-    expect(isPlatformSupported({id: 'elixir'} as PlatformIntegration)).toBeFalsy();
-  });
-
-  it('should support docs when the platform has support for performance onboarding', () => {
-    expect(isPlatformSupported({id: 'javascript'} as PlatformIntegration)).toBeTruthy();
-    expect(
-      isPlatformSupported({id: 'javascript-react'} as PlatformIntegration)
-    ).toBeTruthy();
   });
 });
