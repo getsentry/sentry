@@ -9,30 +9,25 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
+import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
-import type {Repository} from 'sentry/views/prevent/tests/queries/useRepo';
+import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {useRegenerateRepositoryToken} from 'sentry/views/prevent/tokens/repoTokenTable/hooks/useRegenerateRepositoryToken';
 
 interface AddUploadTokenStepProps {
-  integratedOrgId: string;
-  repository: string;
   step: string;
-  repoData?: Repository;
 }
 
-export function AddUploadTokenStep({
-  repoData,
-  step,
-  repository,
-  integratedOrgId,
-}: AddUploadTokenStepProps) {
+export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   const organization = useOrganization();
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
+  const {integratedOrgId, repository} = usePreventContext();
+  const {data: repoData} = useRepo();
 
   const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
   const githubOrgDomain = integratedOrgIdToDomainName(integratedOrgId, integrations);
@@ -75,21 +70,23 @@ export function AddUploadTokenStep({
                     {repoData.uploadToken}
                   </RightPaddedCodeSnippet>
                 </Flex>
-                <Button
-                  priority="default"
-                  onClick={() => {
-                    regenerateToken({
-                      orgSlug: organization.slug,
-                      integratedOrgId,
-                      repository,
-                    });
-                  }}
-                >
-                  {t('Regenerate')}
-                </Button>
+                {integratedOrgId && repository ? (
+                  <Button
+                    priority="default"
+                    onClick={() => {
+                      regenerateToken({
+                        orgSlug: organization.slug,
+                        integratedOrgId,
+                        repository,
+                      });
+                    }}
+                  >
+                    {t('Regenerate')}
+                  </Button>
+                ) : null}
               </Flex>
             </Fragment>
-          ) : (
+          ) : integratedOrgId && repository ? (
             <Button
               priority="primary"
               onClick={() => {
@@ -102,7 +99,7 @@ export function AddUploadTokenStep({
             >
               {t('Generate Repository Token')}
             </Button>
-          )}
+          ) : null}
         </OnboardingStep.Content>
       </OnboardingStep.Body>
       <OnboardingStep.ExpandableDropdown

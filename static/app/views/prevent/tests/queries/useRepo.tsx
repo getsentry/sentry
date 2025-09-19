@@ -19,7 +19,7 @@ export function useRepo(): UseApiQueryResult<Repository, RequestError> {
       `/organizations/${organizationSlug}/prevent/owner/${integratedOrgId}/repository/${repository}/`,
     ],
     {
-      staleTime: 0,
+      staleTime: 30_000,
       enabled: Boolean(organizationSlug && integratedOrgId && repository),
     }
   );
