@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import type SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
@@ -103,9 +102,15 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   ];
 };
 
-type Props = React.ComponentProps<typeof SmartSearchBar> & {
+type Props = Omit<
+  React.ComponentProps<typeof SearchQueryBuilder>,
+  'filterKeys' | 'getTagValues' | 'searchSource' | 'onSearch'
+> & {
   organization: Organization;
   pageFilters: PageFilters;
+  query: string;
+  onSearch?: (query: string) => void;
+  searchSource?: string;
 };
 
 function ReplaySearchBar(props: Props) {
@@ -213,7 +218,7 @@ function ReplaySearchBar(props: Props) {
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
       matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
-      initialQuery={props.query ?? props.defaultQuery ?? ''}
+      initialQuery={props.query ?? props.initialQuery ?? ''}
       onSearch={onSearchWithAnalytics}
       searchSource={props.searchSource ?? 'replay_index'}
       placeholder={

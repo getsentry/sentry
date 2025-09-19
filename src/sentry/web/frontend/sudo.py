@@ -19,6 +19,9 @@ class SudoView(BaseSudoView):
         if super().handle_sudo(request, context):
             return True
 
+        if not request.user.is_authenticated:
+            return False
+
         try:
             interface = Authenticator.objects.get_interface(request.user, "u2f")
             assert isinstance(interface, U2fInterface), "Must be U2F interface to check if enrolled"

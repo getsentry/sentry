@@ -373,15 +373,11 @@ def update_uptime_detector(
                 "mode": mode,
                 "environment": env.name if env else None,
                 "recovery_threshold": default_if_not_set(
-                    # TODO: Remove DEFAULT_RECOVERY_THRESHOLD fallback after
-                    # backfill migration ensures all configs have this value
-                    detector.config.get("recovery_threshold", DEFAULT_RECOVERY_THRESHOLD),
+                    detector.config["recovery_threshold"],
                     recovery_threshold,
                 ),
                 "downtime_threshold": default_if_not_set(
-                    # TODO: Remove DEFAULT_DOWNTIME_THRESHOLD fallback after
-                    # backfill migration ensures all configs have this value
-                    detector.config.get("downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD),
+                    detector.config["downtime_threshold"],
                     downtime_threshold,
                 ),
             },

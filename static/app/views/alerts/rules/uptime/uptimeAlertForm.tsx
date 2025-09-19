@@ -12,6 +12,7 @@ import {Text} from 'sentry/components/core/text';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -76,6 +77,8 @@ function getFormDataFromRule(rule: UptimeRule) {
     timeoutMs: rule.timeoutMs,
     traceSampling: rule.traceSampling,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
+    recoveryThreshold: rule.recoveryThreshold,
+    downtimeThreshold: rule.downtimeThreshold,
   };
 }
 
@@ -347,6 +350,34 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             )}
           </Observer>
         </Configuration>
+        <AlertListItem>{t('Set thresholds')}</AlertListItem>
+        <ListItemSubText>
+          {t('Configure when an issue is created or resolved.')}
+        </ListItemSubText>
+        <Configuration>
+          <ConfigurationPanel>
+            <NumberField
+              name="downtimeThreshold"
+              min={1}
+              placeholder={t('Defaults to 3')}
+              help={t(
+                'Trigger an issue when this many consecutive failed checks are observed.'
+              )}
+              label={t('Failure Tolerance')}
+              flexibleControlStateSize
+            />
+            <NumberField
+              name="recoveryThreshold"
+              min={1}
+              placeholder={t('Defaults to 1')}
+              help={t(
+                'Resolve the issue when this many consecutive successful checks are observed.'
+              )}
+              label={t('Recovery Tolerance')}
+              flexibleControlStateSize
+            />
+          </ConfigurationPanel>
+        </Configuration>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
         <ListItemSubText>
           {t(
@@ -424,7 +455,7 @@ const Configuration = styled('div')`
 const ConfigurationPanel = styled(Panel)`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: fit-content(350px) 1fr;
   align-items: center;
 
   ${FieldWrapper} {
