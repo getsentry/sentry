@@ -141,25 +141,19 @@ web.run_app(app)
         },
         getVerifyLogsContent(params),
         {
-          type: 'custom',
-          content: (
-            <span>
-              <p>
-                {tct(
-                  `When you point your browser to [localhostLInk:http://localhost:8080/] a transaction in the Performance section of Sentry will be created.`,
-                  {
-                    localhostLInk: <ExternalLink href="http://localhost:8080/" />,
-                  }
-                )}
-              </p>
-              <p>
-                {t(
-                  'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-                )}
-              </p>
-              <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-            </span>
-          ),
+          type: 'text',
+          text: [
+            tct(
+              `When you point your browser to [localhostLInk:http://localhost:8080/] a transaction in the Performance section of Sentry will be created.`,
+              {
+                localhostLInk: <ExternalLink href="http://localhost:8080/" />,
+              }
+            ),
+            t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
         },
       ],
     },
