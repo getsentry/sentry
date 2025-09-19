@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import random
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any, TypeAlias
@@ -12,15 +11,12 @@ import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-import sentry.workflow_engine.buffer as buffer
 from sentry import features, nodestore, options
-from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
-from sentry.rules.processing.buffer_processing import BufferHashKeys, FilterKeys
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -34,7 +30,10 @@ from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import RateLimitExceeded, SnubaError
-from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
+from sentry.workflow_engine.buffer.batch_client import (
+    DelayedWorkflowClient,
+    ProjectDelayedWorkflowClient,
+)
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     GroupValues,
@@ -774,7 +773,7 @@ def fire_actions_for_groups(
 def cleanup_redis_buffer(
     client: ProjectDelayedWorkflowClient, event_keys: Iterable[EventKey], batch_key: str | None
 ) -> None:
-    client.delete_hash(batch_key=batch_key, fields=[key.original_key for key in event_keys])
+    client.delete_hash_fields(batch_key=batch_key, fields=[key.original_key for key in event_keys])
 
 
 def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
@@ -827,7 +826,7 @@ def process_delayed_workflows(
         ):
             log_context.set_verbose(True)
 
-        redis_data = batch_client.for_project(project_id).fetch_group_to_event_data(batch_key)
+        redis_data = batch_client.for_project(project_id).get_hash_data(batch_key)
         event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
 
         metrics.incr(
@@ -913,83 +912,3 @@ def process_delayed_workflows(
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
     cleanup_redis_buffer(batch_client.for_project(project_id), event_data.events.keys(), batch_key)
-
-
-class DelayedWorkflowClient:
-    buffer_key = "workflow_engine_delayed_processing_buffer"
-    buffer_shards = 8
-    option = "delayed_workflow.rollout"
-
-    def __init__(
-        self, buf: RedisHashSortedSetBuffer | None = None, buffer_keys: list[str] | None = None
-    ) -> None:
-        self._buffer = buf or buffer.get_backend()
-        self._buffer_keys = buffer_keys or self.get_buffer_keys()
-
-    def add_project_ids(self, project_ids: list[int]) -> None:
-        sharded_key = random.choice(self._buffer_keys)
-        self._buffer.push_to_sorted_set(key=sharded_key, value=project_ids)
-
-    def get_project_ids(self, min: float, max: float) -> dict[int, list[float]]:
-        return self._buffer.bulk_get_sorted_set(
-            self._buffer_keys,
-            min=min,
-            max=max,
-        )
-
-    def clear_project_ids(self, min: float, max: float) -> None:
-        self._buffer.delete_keys(
-            self._buffer_keys,
-            min=min,
-            max=max,
-        )
-
-    @classmethod
-    def get_buffer_keys(cls) -> list[str]:
-        return [
-            f"{cls.buffer_key}:{shard}" if shard > 0 else cls.buffer_key
-            for shard in range(cls.buffer_shards)
-        ]
-
-    def for_project(self, project_id: int) -> ProjectDelayedWorkflowClient:
-        return ProjectDelayedWorkflowClient(project_id, self._buffer)
-
-
-class ProjectDelayedWorkflowClient:
-    def __init__(self, project_id: int, buffer: RedisHashSortedSetBuffer) -> None:
-        self.project_id = project_id
-        self._buffer = buffer
-
-    @property
-    def hash_args(self) -> BufferHashKeys:
-        return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
-
-    def delete_hash(self, batch_key: str | None, fields: list[str]) -> None:
-        hash_args = self.hash_args
-        filters = asdict(hash_args.filters)
-        if batch_key:
-            filters["batch_key"] = batch_key
-        self._buffer.delete_hash(model=hash_args.model, filters=filters, fields=fields)
-
-    def get_hash_length(self) -> int:
-        hash_args = self.hash_args
-        return self._buffer.get_hash_length(model=hash_args.model, field=asdict(hash_args.filters))
-
-    def fetch_group_to_event_data(self, batch_key: str | None = None) -> dict[str, str]:
-        field: dict[str, models.Model | int | str] = {
-            "project_id": self.project_id,
-        }
-
-        if batch_key:
-            field["batch_key"] = batch_key
-
-        hash_args = self.hash_args
-        return self._buffer.get_hash(model=hash_args.model, field=field)
-
-    def push_to_hash(self, batch_key: str | None, data: dict[str, str]) -> None:
-        hash_args = self.hash_args
-        filters = asdict(hash_args.filters)
-        if batch_key:
-            filters["batch_key"] = batch_key
-
-        self._buffer.push_to_hash_bulk(model=hash_args.model, filters=filters, data=data)

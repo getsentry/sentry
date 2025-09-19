@@ -19,6 +19,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
@@ -45,7 +46,6 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.schedule import process_in_batches
 from sentry.workflow_engine.tasks.delayed_workflows import (
-    DelayedWorkflowClient,
     EventInstance,
     EventKey,
     EventRedisData,
@@ -122,16 +122,8 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.detector_dcg = self.create_data_condition_group()
         self.detector.update(workflow_condition_group=self.detector_dcg)
 
-        # Set up buffer mock
-        self.buffer_mock = mock_workflows_buffer()
-        self.buffer_mock.start()
-
         self.batch_client = DelayedWorkflowClient()
         self.batch_client.add_project_ids([self.project.id, self.project2.id])
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        self.buffer_mock.stop()
 
     def create_project_event_freq_workflow(
         self,
@@ -287,9 +279,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
     def test_fetch_workflows_envs(self) -> None:
         self._push_base_events()
         event_data = EventRedisData.from_redis_data(
-            self.batch_client.for_project(self.project.id).fetch_group_to_event_data(
-                batch_key=None
-            ),
+            self.batch_client.for_project(self.project.id).get_hash_data(batch_key=None),
             continue_on_error=False,
         )
         workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
@@ -301,9 +291,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
     def test_parse_none_timestamps(self) -> None:
         self._push_base_events()
         event_data = EventRedisData.from_redis_data(
-            self.batch_client.for_project(self.project.id).fetch_group_to_event_data(
-                batch_key=None
-            ),
+            self.batch_client.for_project(self.project.id).get_hash_data(batch_key=None),
             continue_on_error=False,
         )
         for instance in event_data.events.values():
@@ -313,9 +301,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
     def test_parse_timestamps(self) -> None:
         self._push_base_events(timestamp=timezone.now())
         event_data = EventRedisData.from_redis_data(
-            self.batch_client.for_project(self.project.id).fetch_group_to_event_data(
-                batch_key=None
-            ),
+            self.batch_client.for_project(self.project.id).get_hash_data(batch_key=None),
             continue_on_error=False,
         )
         for instance in event_data.events.values():
@@ -925,9 +911,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
     def test_get_group_to_groupevent(self) -> None:
         self._push_base_events()
-        buffer_data = self.batch_client.for_project(self.project.id).fetch_group_to_event_data(
-            batch_key=None
-        )
+        buffer_data = self.batch_client.for_project(self.project.id).get_hash_data(batch_key=None)
         event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
         group_to_groupevent = get_group_to_groupevent(
             event_data,
@@ -996,12 +980,12 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         self._push_base_events()
 
         project_client = self.batch_client.for_project(self.project.id)
-        data = project_client.fetch_group_to_event_data(batch_key=None)
+        data = project_client.get_hash_data(batch_key=None)
         assert set(data.keys()) == self.workflow_group_dcg_mapping
 
         event_data = EventRedisData.from_redis_data(data, continue_on_error=False)
         cleanup_redis_buffer(project_client, event_data.events.keys(), None)
-        data = project_client.fetch_group_to_event_data(batch_key=None)
+        data = project_client.get_hash_data(batch_key=None)
         assert data == {}
 
     @override_options({"delayed_processing.batch_size": 1})
@@ -1009,17 +993,17 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
     def test_batched_cleanup(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
         project_client = self.batch_client.for_project(self.project.id)
-        all_data = project_client.fetch_group_to_event_data(batch_key=None)
+        all_data = project_client.get_hash_data(batch_key=None)
 
         process_in_batches(project_client)
         batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify we removed the data from the buffer
-        data = project_client.fetch_group_to_event_data(batch_key=None)
+        data = project_client.get_hash_data(batch_key=None)
         assert data == {}
 
-        first_batch = project_client.fetch_group_to_event_data(batch_key=batch_one_key)
+        first_batch = project_client.get_hash_data(batch_key=batch_one_key)
         event_data = EventRedisData.from_redis_data(first_batch, continue_on_error=False)
         cleanup_redis_buffer(
             project_client,
@@ -1028,11 +1012,11 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         )
 
         # Verify the batch we "executed" is removed
-        data = project_client.fetch_group_to_event_data(batch_key=batch_one_key)
+        data = project_client.get_hash_data(batch_key=batch_one_key)
         assert data == {}
 
         # Verify the batch we didn't execute is still in redis
-        data = project_client.fetch_group_to_event_data(batch_key=batch_two_key)
+        data = project_client.get_hash_data(batch_key=batch_two_key)
         for key in first_batch.keys():
             all_data.pop(key)
         assert data == all_data

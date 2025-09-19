@@ -6,11 +6,11 @@ from itertools import islice
 
 from sentry import options
 from sentry.utils import metrics
-from sentry.workflow_engine.tasks.delayed_workflows import (
+from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
-    process_delayed_workflows,
 )
+from sentry.workflow_engine.tasks.delayed_workflows import process_delayed_workflows
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
     )
 
     # if the dictionary is large, get the items and chunk them.
-    alertgroup_to_event_data = client.fetch_group_to_event_data(batch_key=None)
+    alertgroup_to_event_data = client.get_hash_data(batch_key=None)
 
     with metrics.timer("delayed_workflow.process_batch.duration"):
         items = iter(alertgroup_to_event_data.items())
@@ -68,7 +68,7 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
                 batch_key=batch_key,
                 data=batch,
             )
-            client.delete_hash(batch_key=None, fields=list(batch.keys()))
+            client.delete_hash_fields(batch_key=None, fields=list(batch.keys()))
 
             process_delayed_workflows.apply_async(
                 kwargs={"project_id": client.project_id, "batch_key": batch_key},

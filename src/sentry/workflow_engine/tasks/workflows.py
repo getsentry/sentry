@@ -55,7 +55,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
-    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
+    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 
     with transaction.atomic(router.db_for_write(Detector)):
         try:
@@ -119,7 +119,7 @@ def process_workflows_event(
     start_timestamp_seconds: float | None = None,
     **kwargs: dict[str, Any],
 ) -> None:
-    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
+    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 
     recorder = scopedstats.Recorder()
     start_time = time.time()
@@ -175,8 +175,8 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
     """
     Schedule delayed workflow buffers in a batch.
     """
+    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
     from sentry.workflow_engine.processors.schedule import process_buffered_workflows
-    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
 
     lock_name = "schedule_delayed_workflows"
     lock = locks.get(f"workflow_engine:{lock_name}", duration=60, name=lock_name)
