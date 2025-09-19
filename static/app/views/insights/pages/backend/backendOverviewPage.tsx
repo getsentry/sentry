@@ -27,7 +27,7 @@ import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/componen
 import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
 import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
 import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
-import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
+import OverviewTimeConsumingQueriesWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
@@ -237,7 +237,7 @@ function EAPBackendOverviewPage() {
                       <OverviewJobsChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <OverviewSlowQueriesChartWidget />
+                      <OverviewTimeConsumingQueriesWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
                       <OverviewCacheMissChartWidget />
