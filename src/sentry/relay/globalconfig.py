@@ -16,18 +16,19 @@ from sentry.utils import metrics
 
 # List of options to include in the global config.
 RELAY_OPTIONS: list[str] = [
-    "profiling.profile_metrics.unsampled_profiles.enabled",
     "profiling.profile_metrics.unsampled_profiles.platforms",
     "profiling.profile_metrics.unsampled_profiles.sample_rate",
-    "relay.cardinality-limiter.error-sample-rate",
+    "profiling.profile_metrics.unsampled_profiles.enabled",
+    "relay.span-usage-metric",
     "relay.cardinality-limiter.mode",
-    "relay.drop-transaction-attachments",
-    "relay.kafka.span-v2.sample-rate",
-    "relay.metric-bucket-distribution-encodings",
+    "relay.cardinality-limiter.error-sample-rate",
     "relay.metric-bucket-set-encodings",
+    "relay.metric-bucket-distribution-encodings",
     "relay.span-extraction.sample-rate",
     "relay.span-normalization.allowed_hosts",
-    "relay.span-usage-metric",
+    "relay.drop-transaction-attachments",
+    "replay.relay-snuba-publishing-disabled.sample-rate",
+    "relay.kafka.span-v2.sample-rate",
 ]
 
 
