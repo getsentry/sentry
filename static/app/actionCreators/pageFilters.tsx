@@ -474,14 +474,6 @@ export function updateDateTime(
 }
 
 /**
- * Pins a particular filter so that it is read out of local storage
- */
-export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
-  PageFiltersStore.pin(filter, pin);
-  persistPageFilters(null, {save: true});
-}
-
-/**
  * Changes whether any value updates will be persisted into local storage.
  */
 export function updatePersistence(shouldPersist: boolean) {
