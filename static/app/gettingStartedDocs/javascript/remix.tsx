@@ -281,6 +281,7 @@ const docs: Docs = {
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'remix',
+    configFileName: 'instrument.server.mjs',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'remix',
