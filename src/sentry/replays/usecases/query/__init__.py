@@ -13,11 +13,10 @@ intelligible output for the "post_process" module.  More information on its impl
 found in the function.
 """
 
-from __future__ import annotations
-
+import dataclasses
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal, cast
+from typing import Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -29,6 +28,7 @@ from snuba_sdk import (
     Entity,
     Function,
     Granularity,
+    Limit,
     Op,
     Or,
     OrderBy,
@@ -37,7 +37,6 @@ from snuba_sdk import (
 )
 from snuba_sdk.expressions import Expression
 
-from sentry import options
 from sentry.api.event_search import (
     ParenExpression,
     QueryToken,
@@ -46,9 +45,16 @@ from sentry.api.event_search import (
     SearchValue,
 )
 from sentry.api.exceptions import BadRequest
-from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
+from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
+from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
+from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
+from sentry.replays.usecases.query.configs.existence import existence_search_config
+from sentry.replays.usecases.query.configs.scalar import (
+    can_scalar_search_subquery,
+    scalar_search_config,
+)
 from sentry.replays.usecases.query.errors import RetryAggregated
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
@@ -63,6 +69,7 @@ VIEWED_BY_DENYLIST_MSG = (
 )
 
 PREFERRED_SOURCE = Literal["aggregated", "scalar"]
+REPLAY_LENGTH_OFFSET = timedelta(hours=1)
 
 
 def handle_viewed_by_me_filters(
@@ -187,19 +194,6 @@ def search_filter_to_condition(
     return None
 
 
-# Everything below here will move to replays/query.py once we deprecate the old query behavior.
-# Leaving it here for now so this is easier to review/remove.
-import dataclasses
-
-from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
-from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
-from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
-from sentry.replays.usecases.query.configs.scalar import (
-    can_scalar_search_subquery,
-    scalar_search_config,
-)
-
-
 @dataclasses.dataclass
 class Paginators:
     limit: int
@@ -228,14 +222,15 @@ def query_using_optimized_search(
     environments: list[str],
     sort: str | None,
     pagination: Paginators,
-    organization: Organization | None,
+    organization_id: int | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    viewed_by_denylist: list[int],
     request_user_id: int | None = None,
     preferred_source: PREFERRED_SOURCE = "scalar",
 ):
-    tenant_id = _make_tenant_id(organization)
+    tenant_id = _make_tenant_id(organization_id)
 
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
     # the values in that parameter so let's shove it inside and process it like any other filter.
@@ -245,7 +240,6 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    viewed_by_denylist = options.get("replay.viewed-by.project-denylist")
     if any([project_id in viewed_by_denylist for project_id in project_ids]):
         # Skip all viewed by filters if in denylist
         for search_filter in search_filters:
@@ -254,6 +248,29 @@ def query_using_optimized_search(
     else:
         # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
         search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
+
+    # If we're only looking for replay-ids we attempt an existence check optimization which removes
+    # grouping, ordering, and data queries.
+    if fields == ["id"]:
+        try:
+            return QueryResponse(
+                response=replay_existence_check(
+                    project_ids,
+                    period_start,
+                    period_stop,
+                    handle_search_filters(existence_search_config, search_filters),
+                    pagination.limit,
+                    organization_id,
+                ),
+                has_more=False,
+                source="replay-existence-check",
+            )
+        except ParseError:
+            # Fall-through if this is not an existence query.
+            #
+            # The control flow is pretty complicated here. This deserves a refactor but, at the
+            # moment, I don't know what to do.
+            pass
 
     if preferred_source == "aggregated":
         query, referrer, source = _query_using_aggregated_strategy(
@@ -317,6 +334,49 @@ def query_using_optimized_search(
     )
 
 
+class ExistenceResponse(TypedDict):
+    replay_id: str
+
+
+def replay_existence_check(
+    project_ids: list[int],
+    start: datetime,
+    stop: datetime,
+    conditions: list[Condition],
+    limit: int,
+    organization_id: int | None,
+) -> list[ExistenceResponse]:
+    """
+    Query a set of replay_ids for existence.
+
+    This function returns every replay_id which exists in the database and has a zeroth segment. It
+    will look back one hour to find the zeroth segment from the start date specified.
+
+    :param replay_ids: A list of replay ids.
+    :param project_ids: A list of project ids these replays are expected to belong to.
+    :param start: The start point of your query range.
+    :param stop: The ending point of your query range.
+    :param organization_id: Optionally specified to record the tenant-id metric.
+    """
+    tenant_id = _make_tenant_id(organization_id)
+
+    query = Query(
+        match=Entity("replays"),
+        select=[Column("replay_id")],
+        where=[
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("timestamp"), Op.GTE, start - REPLAY_LENGTH_OFFSET),
+            Condition(Column("timestamp"), Op.LT, stop),
+            Condition(Column("segment_id"), Op.EQ, 0),
+            *conditions,
+        ],
+        limit=Limit(limit),
+    )
+
+    results = execute_query(query, tenant_id, referrer="replays.query.replay_existence_check")
+    return cast(list[ExistenceResponse], results["data"])
+
+
 def _query_using_scalar_strategy(
     search_filters: Sequence[QueryToken],
     sort: str | None,
@@ -334,13 +394,6 @@ def _query_using_scalar_strategy(
             period_start,
             period_stop,
         )
-
-    # NOTE: This query may return replay-ids which do not have a segment_id 0 row. These replays
-    # will be removed from the final output and could lead to pagination peculiarities. In
-    # practice, this is not expected to be noticable by the end-user.
-    #
-    # To fix this issue remove the ability to search against "varying" columns and apply a
-    # "segment_id = 0" condition to the WHERE clause.
 
     try:
         where = handle_search_filters(scalar_search_config, search_filters)
@@ -432,8 +485,8 @@ def make_full_aggregation_query(
             # We can scan an extended time range to account for replays which span either end of
             # the range.  These timestamps are an optimization and could be removed with minimal
             # performance impact.  It's a point query.  Its super fast.
-            Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
-            Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
+            Condition(Column("timestamp"), Op.GTE, period_start - REPLAY_LENGTH_OFFSET),
+            Condition(Column("timestamp"), Op.LT, period_end + REPLAY_LENGTH_OFFSET),
         ],
         # NOTE: Refer to this note: "make_scalar_search_conditions_query".
         #
@@ -477,11 +530,11 @@ def _get_sort_column(config: dict[str, Expression], column_name: str) -> Functio
         raise ParseError(f"The field `{column_name}` is not a sortable field.")
 
 
-def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
-    if organization is None:
+def _make_tenant_id(organization_id: int | None) -> dict[str, int]:
+    if organization_id is None:
         return {}
     else:
-        return {"organization_id": organization.id}
+        return {"organization_id": organization_id}
 
 
 def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:

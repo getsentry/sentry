@@ -73,10 +73,11 @@ def query_replays_collection_paginated(
         environments=environment,
         sort=sort,
         pagination=paginators,
-        organization=organization,
+        organization_id=organization.id if organization else None,
         project_ids=project_ids,
         period_start=start,
         period_stop=end,
+        viewed_by_denylist=options.get("replay.viewed-by.project-denylist"),
         request_user_id=actor.id if actor else None,
         preferred_source=preferred_source,
     )

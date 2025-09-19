@@ -1934,7 +1934,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
-                assert response.status_code == 200
+                assert response.status_code == 200, response.content
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
 
