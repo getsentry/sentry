@@ -89,7 +89,7 @@ function DetectorListTable({
       setSelected(new Set<string>());
     }
   };
-  const pageSelected = detectorIds.difference(selected).size === 0;
+  const pageSelected = !isPending && detectorIds.difference(selected).size === 0;
   const anySelected = selected.size > 0;
 
   const handleSelect = useCallback(

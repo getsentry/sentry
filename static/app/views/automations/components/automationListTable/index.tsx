@@ -95,7 +95,7 @@ function AutomationListTable({
     setSelected(newSelected);
   };
   const automationIds = new Set(automations.map(a => a.id));
-  const pageSelected = automationIds.difference(selected).size === 0;
+  const pageSelected = !isPending && automationIds.difference(selected).size === 0;
   const anySelected = selected.size > 0;
 
   const canEnable = useMemo(
