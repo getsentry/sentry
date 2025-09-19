@@ -8,7 +8,6 @@ the `GroupHash` model file, so that existing records will get updated with the n
 from __future__ import annotations
 
 import logging
-import random
 from datetime import datetime
 from typing import Any, TypeIs, cast
 
@@ -113,14 +112,7 @@ def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -
     if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
         return False
 
-    # While we're backfilling metadata for existing grouphash records, if the load is too high, we
-    # want to prioritize metadata for new grouphashes because there's certain information
-    # (timestamp, Seer data) which is only available at group creation time.
-    if grouphash_is_new:
-        return True
-    else:
-        result = random.random() <= options.get("grouping.grouphash_metadata.backfill_sample_rate")
-        return result
+    return True
 
 
 def create_or_update_grouphash_metadata_if_needed(
