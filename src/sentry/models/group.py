@@ -517,24 +517,30 @@ class GroupManager(BaseManager["Group"]):
                     resolution_time=activity.datetime,
                     resolution_activity=activity,
                 )
+                # TODO (aci cleanup): remove this once we've deprecated the incident model
+                if group.type == MetricIssue.type_id:
+                    if detector_id is None:
+                        logger.error(
+                            "Call to update metric issue status missing detector ID",
+                            extra={"group_id": group.id},
+                        )
+                        continue
+                    update_incident_based_on_open_period_status_change(group, status, detector_id)
+
             elif status == GroupStatus.UNRESOLVED and should_reopen_open_period[group.id]:
                 update_group_open_period(
                     group=group,
                     new_status=GroupStatus.UNRESOLVED,
                 )
-
-            # TODO (aci cleanup): remove this once we've deprecated the incident model
-            if group.type == MetricIssue.type_id and status in (
-                GroupStatus.RESOLVED,
-                GroupStatus.UNRESOLVED,
-            ):
-                if detector_id is None:
-                    logger.error(
-                        "Call to update metric issue status missing detector ID",
-                        extra={"group_id": group.id},
-                    )
-                    continue
-                update_incident_based_on_open_period_status_change(group, status, detector_id)
+                # TODO (aci cleanup): remove this once we've deprecated the incident model
+                if group.type == MetricIssue.type_id:
+                    if detector_id is None:
+                        logger.error(
+                            "Call to update metric issue status missing detector ID",
+                            extra={"group_id": group.id},
+                        )
+                        continue
+                    update_incident_based_on_open_period_status_change(group, status, detector_id)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
