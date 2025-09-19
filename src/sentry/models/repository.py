@@ -53,6 +53,43 @@ class Repository(Model):
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 
+    @classmethod
+    def get_by_name_case_insensitive(
+        cls, organization_id: int, name: str, provider: str
+    ) -> Repository | None:
+        """
+        Get repository by name with case-insensitive matching.
+
+        VCS providers (GitHub, GitLab, etc.) treat repository names as case-insensitive,
+        but our database stores them case-sensitively. This method attempts to find
+        a repository using case-insensitive matching.
+
+        Args:
+            organization_id: The organization ID
+            name: Repository name (e.g., "owner/repo", case-insensitive)
+            provider: Provider string (e.g., "integrations:github")
+
+        Returns:
+            Repository instance if found, None otherwise
+        """
+        try:
+            # First try exact case match (most common case, better performance)
+            return cls.objects.get(
+                organization_id=organization_id,
+                name=name,
+                provider=provider,
+            )
+        except cls.DoesNotExist:
+            # Fall back to case-insensitive lookup using iexact
+            try:
+                return cls.objects.get(
+                    organization_id=organization_id,
+                    name__iexact=name,
+                    provider=provider,
+                )
+            except cls.DoesNotExist:
+                return None
+
     def has_integration_provider(self):
         return self.provider and self.provider.startswith("integrations:")
 
