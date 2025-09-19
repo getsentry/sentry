@@ -10,7 +10,7 @@ from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 BATCH_SIZE = 1000
@@ -31,7 +31,7 @@ def unlink_monitors_without_alert_rules(apps: StateApps) -> None:
     monitor_id_to_data_source = {int(ds.source_id): ds for ds in data_sources}
 
     for monitor_batch in chunked(
-        RangeQuerySetWrapperWithProgressBar(
+        RangeQuerySetWrapper(
             Monitor.objects.all(),
             step=BATCH_SIZE,
         ),
