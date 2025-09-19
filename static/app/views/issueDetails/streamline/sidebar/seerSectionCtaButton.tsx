@@ -151,7 +151,7 @@ export function SeerSectionCtaButton({
       (aiConfig.orgNeedsGenAiAcknowledgement || !aiConfig.hasAutofixQuota) &&
       !aiConfig.isAutofixSetupLoading
     ) {
-      return t('Fix it for me');
+      return t('Fix with Seer');
     }
 
     if (!lastStep) {
@@ -175,18 +175,13 @@ export function SeerSectionCtaButton({
     }
 
     if (isAutofixCompleted) {
-      if (lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
-        return t('View Root Cause');
-      }
       if (lastStep.type === AutofixStepType.SOLUTION) {
-        return t('View Solution');
+        return t('Fix with Seer');
       }
-      if (lastStep.type === AutofixStepType.CHANGES) {
-        return t('View Code Changes');
-      }
+      return t('Open Seer');
     }
 
-    return t('Find Root Cause');
+    return t('Fix with Seer');
   };
 
   if (isButtonLoading) {
@@ -208,6 +203,7 @@ export function SeerSectionCtaButton({
         autofix_exists: Boolean(autofixData?.steps?.length),
         autofix_step_type: lastStep?.type ?? null,
       }}
+      priority="primary"
     >
       {getButtonText()}
       <ChevronContainer>
@@ -224,9 +220,6 @@ export function SeerSectionCtaButton({
 const StyledButton = styled(LinkButton)`
   margin-top: ${space(1)};
   width: 100%;
-  background: ${p => p.theme.background}
-    linear-gradient(to right, ${p => p.theme.background}, ${p => p.theme.pink400}20);
-  color: ${p => p.theme.pink400};
 `;
 
 const ChevronContainer = styled('div')`
