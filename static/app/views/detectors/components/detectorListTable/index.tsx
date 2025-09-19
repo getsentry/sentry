@@ -2,6 +2,7 @@ import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -89,6 +90,7 @@ function DetectorListTable({
     }
   };
   const pageSelected = detectorIds.difference(selected).size === 0;
+  const anySelected = selected.size > 0;
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -121,7 +123,13 @@ function DetectorListTable({
         {selected.size === 0 ? (
           <SimpleTable.Header>
             <HeaderCell sortKey="name" sort={sort}>
-              <NamePadding>{t('Name')}</NamePadding>
+              <NameHeader>
+                <SelectAllHeaderCheckbox
+                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                  onChange={checked => togglePageSelected(checked)}
+                />
+                <span>{t('Name')}</span>
+              </NameHeader>
             </HeaderCell>
             <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
               {t('Type')}
@@ -183,9 +191,13 @@ const Container = styled('div')`
   container-type: inline-size;
 `;
 
-const NamePadding = styled('div')`
-  padding-left: 28px;
+const NameHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
 `;
+
+//
 
 const DetectorListSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
