@@ -5,7 +5,7 @@ import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {saveToSourceGroupData} from 'sentry/views/settings/components/dataScrubbing/modals/utils';
+import {useSourceGroupData} from 'sentry/views/settings/components/dataScrubbing/modals/utils';
 import type {EventId} from 'sentry/views/settings/components/dataScrubbing/types';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
@@ -19,6 +19,7 @@ type Props = {
 
 function EventIdField({disabled, eventId, onUpdateEventId}: Props) {
   const [eventData, setEventData] = useState<EventId>(eventId);
+  const {saveToSourceGroupData} = useSourceGroupData();
 
   useEffect(() => {
     setEventData(eventId);
