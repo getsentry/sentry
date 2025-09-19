@@ -11,9 +11,11 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
+import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {
   MetricsArtifactType,
@@ -26,6 +28,7 @@ import type {
 
 export function SizeCompareMainContent() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -138,7 +141,16 @@ export function SizeCompareMainContent() {
 
   return (
     <Flex direction="column" gap="2xl">
-      {/* TODO: Build compare details */}
+      <SizeCompareSelectedBuilds
+        headBuildDetails={sizeComparisonQuery.data.head_build_details}
+        baseBuildDetails={sizeComparisonQuery.data.base_build_details}
+        isComparing={false}
+        onClearBaseBuild={() => {
+          navigate(
+            `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
+          );
+        }}
+      />
 
       {/* Metrics Grid */}
       <Grid columns="repeat(3, 1fr)" gap="lg">

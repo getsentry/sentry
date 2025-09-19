@@ -11,8 +11,8 @@ interface SizeCompareSelectedBuildsProps {
   headBuildDetails: BuildDetailsApiResponse;
   isComparing: boolean;
   onClearBaseBuild: () => void;
-  onTriggerComparison: () => void;
   baseBuildDetails?: BuildDetailsApiResponse;
+  onTriggerComparison?: () => void;
 }
 
 export function SizeCompareSelectedBuilds({
@@ -107,20 +107,22 @@ export function SizeCompareSelectedBuilds({
         )}
       </Flex>
 
-      <Flex align="center" gap="sm">
-        <Button
-          onClick={() => {
-            if (baseBuildDetails) {
-              onTriggerComparison();
-            }
-          }}
-          disabled={!baseBuildDetails || isComparing}
-          priority="primary"
-          icon={<IconTelescope size="sm" />}
-        >
-          {isComparing ? t('Comparing...') : t('Compare builds')}
-        </Button>
-      </Flex>
+      {onTriggerComparison && (
+        <Flex align="center" gap="sm">
+          <Button
+            onClick={() => {
+              if (baseBuildDetails) {
+                onTriggerComparison();
+              }
+            }}
+            disabled={!baseBuildDetails || isComparing}
+            priority="primary"
+            icon={<IconTelescope size="sm" />}
+          >
+            {isComparing ? t('Comparing...') : t('Compare builds')}
+          </Button>
+        </Flex>
+      )}
     </Flex>
   );
 }
