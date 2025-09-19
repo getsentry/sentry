@@ -34,6 +34,7 @@ from sentry.uptime.subscriptions.subscriptions import (
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
+from sentry.utils.not_set import NOT_SET
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
@@ -363,16 +364,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
     def data_source_type_handler(self) -> type[UptimeSubscriptionDataSourceHandler]:
         return UptimeSubscriptionDataSourceHandler
 
-    name = serializers.CharField(
-        required=True,
-        max_length=128,
-        help_text="Name of the uptime monitor.",
-    )
-    status = serializers.ChoiceField(
-        choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
-        default="active",
-        help_text="Status of the uptime monitor. Disabled uptime monitors will not perform checks and do not count against the uptime monitor quota.",
-    )
     url = URLField(required=True, max_length=255)
     interval_seconds = serializers.ChoiceField(
         required=True,
@@ -409,15 +400,12 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
     class Meta:
         model = UptimeSubscription
         fields = [
-            "environment",
-            "name",
             "url",
             "headers",
             "status",
             "mode",
             "timeout_ms",
             "method",
-            "owner",
             "trace_sampling",
             "body",
             "interval_seconds",
@@ -460,16 +448,15 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
     @override
     def create_source(self, validated_data: dict[str, Any]) -> UptimeSubscription:
         with atomic_transaction(using=(router.db_for_write(UptimeSubscription),)):
-            method_headers_body = {
-                k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
-            }
             uptime_subscription = create_uptime_subscription(
                 url=validated_data["url"],
                 interval_seconds=validated_data["interval_seconds"],
                 timeout_ms=validated_data["timeout_ms"],
                 trace_sampling=validated_data.get("trace_sampling", False),
                 uptime_status=UptimeStatus.OK,
-                **method_headers_body,
+                method=validated_data.get("method", "GET"),
+                headers=validated_data.get("headers", None),
+                body=validated_data.get("body", None),
             )
         return uptime_subscription
 
@@ -489,13 +476,17 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     def update_data_source(self, instance: Detector, data_source: dict[str, Any]):
         # data_source will have some extra Detector-related in it, so cull them before
         # calling update_project_uptime_subscription
-        uptime_data = {
-            k: data_source[k]
-            for k in data_source
-            if k in UptimeMonitorDataSourceValidator.Meta.fields
-        }
         subscription = get_uptime_subscription(instance)
-        update_uptime_subscription(subscription=subscription, **uptime_data)
+        update_uptime_subscription(
+            subscription=subscription,
+            url=data_source.get("url", NOT_SET),
+            interval_seconds=data_source.get("interval_seconds", NOT_SET),
+            timeout_ms=data_source.get("timeout_ms", NOT_SET),
+            method=data_source.get("method", NOT_SET),
+            headers=data_source.get("headers", NOT_SET),
+            body=data_source.get("body", NOT_SET),
+            trace_sampling=data_source.get("trace_sampling", NOT_SET),
+        )
 
         create_audit_entry(
             request=self.context["request"],

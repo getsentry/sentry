@@ -1,5 +1,3 @@
-from sentry.constants import ObjectStatus
-from sentry.monitors.validators import MONITOR_STATUSES_REVERSE
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.uptime.endpoints.validators import (
     UptimeMonitorDataSourceValidator,
@@ -44,10 +42,6 @@ class ComputeHttpRequestSizeTest(UptimeTestCase):
 class UptimeMonitorDataSourceValidatorTest(TestCase):
     def get_valid_data(self):
         return {
-            "name": "Name",
-            "status": MONITOR_STATUSES_REVERSE[ObjectStatus.ACTIVE],
-            "owner": self.user.name,
-            "environment": self.environment.name,
             "url": "https://www.google.com",
             "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
             "timeout_ms": 30000,
