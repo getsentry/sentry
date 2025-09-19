@@ -50,6 +50,8 @@ from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.options.project_template_option import ProjectTemplateOptionManager
@@ -748,6 +750,15 @@ class Project(Model):
     def delete(self, *args, **kwargs):
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
+
+        # There are projects being blocked from deletion because they have GroupHash objects
+        # that are preventing the project from being deleted.
+        try:
+            from sentry.deletions.defaults.group import delete_project_group_hashes
+
+            delete_project_group_hashes(project_id=self.id)
+        except Exception:
+            logger.warning("Failed to delete group hashes for project %s", self.id)
 
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()

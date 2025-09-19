@@ -186,6 +186,3 @@ const RingBar = styled('circle')<{
 const MotionRingBar = motion.create(RingBar);
 
 export default ProgressRing;
-
-// We export components to allow for css selectors
-export {RingBackground, RingBar, Text as RingText};

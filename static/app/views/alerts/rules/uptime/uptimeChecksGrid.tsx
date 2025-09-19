@@ -137,13 +137,13 @@ function CheckInBodyCell({
     }
     case 'checkStatus': {
       const color = tickStyle(theme)[checkStatus].labelColor ?? theme.textColor;
+      const checkStatusReasonLabel = checkStatusReason
+        ? reasonToText[checkStatusReason](check)
+        : null;
       return (
         <Cell style={{color}}>
           {statusToText[checkStatus]}{' '}
-          {checkStatusReason &&
-            tct('([reason])', {
-              reason: reasonToText[checkStatusReason](check),
-            })}
+          {checkStatusReasonLabel && t('(%s)', checkStatusReasonLabel)}
         </Cell>
       );
     }

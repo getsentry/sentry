@@ -22,10 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
-import {
-  NO_REPLAY_SUMMARY_MESSAGES,
-  ReplaySummaryStatus,
-} from 'sentry/views/replays/detail/ai/utils';
+import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
 export default function Ai() {
@@ -141,14 +138,7 @@ export default function Ai() {
     );
   }
 
-  // checking this prevents initial flicker
-  const summaryNotComplete =
-    summaryData?.status &&
-    [ReplaySummaryStatus.NOT_STARTED, ReplaySummaryStatus.PROCESSING].includes(
-      summaryData?.status
-    );
-
-  if (isSummaryPending || summaryNotComplete) {
+  if (isSummaryPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>

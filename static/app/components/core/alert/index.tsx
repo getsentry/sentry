@@ -70,13 +70,13 @@ export function Alert({
       system={system}
       expand={expand}
       trailingItems={trailingItems}
-      showIcon={showIcon as false}
       onClick={handleClick}
       hovered={isHovered && !expandIsHovered}
       className={classNames(type ? `ref-${type}` : '', className)}
       type={type}
       {...hoverProps}
       {...props}
+      showIcon={showIcon}
     >
       <PanelProvider>
         {showIcon && (

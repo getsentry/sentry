@@ -140,6 +140,11 @@ performance_tasks = taskregistry.create_namespace(
     app_feature="transactions",
 )
 
+preprod_tasks = taskregistry.create_namespace(
+    "preprod",
+    app_feature="preprod",
+)
+
 profiling_tasks = taskregistry.create_namespace(
     "profiling",
     app_feature="profiles",

@@ -7,3 +7,9 @@ export const makeAutomationBasePathname = (orgSlug: string) => {
 export const makeAutomationDetailsPathname = (orgSlug: string, automationId: string) => {
   return normalizeUrl(`/organizations/${orgSlug}/issues/automations/${automationId}/`);
 };
+
+export const makeAutomationEditPathname = (orgSlug: string, automationId: string) => {
+  return normalizeUrl(
+    `/organizations/${orgSlug}/issues/automations/${automationId}/edit/`
+  );
+};

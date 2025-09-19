@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useState} from 'react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {SECOND} from 'sentry/utils/formatters';
 import useProjects from 'sentry/utils/useProjects';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {InsightsModuleDatePageFilter} from 'sentry/views/insights/common/components/insightsModuleDatePageFilter';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -77,7 +77,7 @@ export function ModulePageFilterBar({
       <div>
         <PageFilterBar condensed>
           {!disableProjectFilter && <InsightsProjectSelector />}
-          <EnvironmentPageFilter />
+          <InsightsEnvironmentSelector />
           <InsightsModuleDatePageFilter />
         </PageFilterBar>
       </div>

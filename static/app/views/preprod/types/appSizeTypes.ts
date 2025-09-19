@@ -2,6 +2,8 @@
  * API response types
  */
 
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
 export interface AppSizeApiResponse {
   generated_at: string;
   treemap: TreemapResults;
@@ -28,9 +30,9 @@ interface SizeAnalysisComparison {
 }
 
 export interface SizeComparisonApiResponse {
-  base_artifact_id: number;
+  base_build_details: BuildDetailsApiResponse;
   comparisons: SizeAnalysisComparison[];
-  head_artifact_id: number;
+  head_build_details: BuildDetailsApiResponse;
 }
 
 /**

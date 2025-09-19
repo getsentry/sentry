@@ -323,6 +323,7 @@ export type ReplayClickElement = {
 export interface DeadRageSelectorQueryParams {
   isWidgetData: boolean;
   cursor?: string | string[] | undefined | null;
+  enabled?: boolean;
   per_page?: number;
   prefix?: string;
   sort?:

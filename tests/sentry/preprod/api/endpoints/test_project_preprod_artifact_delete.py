@@ -79,14 +79,21 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
             status_code=404,
         )
 
-        assert "not found" in response.data["error"].lower()
+        assert "The requested head preprod artifact does not exist" in response.data["detail"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": False})
     def test_delete_artifact_feature_disabled(self):
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            app_name="test_artifact",
+            app_id="com.test.app",
+            build_version="1.0.0",
+            build_number=1,
+        )
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
-            "1",
+            artifact.id,
             status_code=403,
         )
 

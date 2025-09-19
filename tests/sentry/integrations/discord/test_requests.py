@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -12,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class DiscordRequestTest(TestCase):
-    def mock_request(self, request_data: dict | None = None) -> DiscordRequest:
+    def mock_request(self, request_data: dict[str, Any] | None = None) -> DiscordRequest:
         self.request = mock.Mock()
         self.request.data = (
             {

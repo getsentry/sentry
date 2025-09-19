@@ -1,58 +1,48 @@
-import {useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {GridBody} from 'sentry/components/tables/gridEditable/styles';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LogsPageDataProvider,
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   TraceItemAttributeProvider,
   useTraceItemAttributes,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
-  EmptyRenderer,
-  ErrorRenderer,
   LoadingRenderer,
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
+import {ourlogsAsFrames} from 'sentry/views/replays/detail/ourlogs/ourlogsAsFrames';
 import useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
-import {useReplayTraces} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 export default function OurLogs() {
   const replay = useReplayReader();
-  const {replayTraces, indexComplete, indexError} = useReplayTraces({
-    replayRecord: replay?.getReplay(),
-  });
 
-  const traceIds = useMemo(() => {
-    if (!replayTraces?.length) {
-      return undefined;
-    }
-    return replayTraces.map(trace => trace.traceSlug);
-  }, [replayTraces]);
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
 
-  if (indexError) {
-    return (
-      <BorderedSection isStatus>
-        <StatusGridBody>
-          <ErrorRenderer />
-        </StatusGridBody>
-      </BorderedSection>
-    );
-  }
+  const replayId = replay?.getReplay()?.id;
+  const replayStartedAt = replay?.getReplay()?.started_at;
+  const replayEndedAt = replay?.getReplay()?.finished_at;
 
-  if (!replay || !indexComplete || !replayTraces) {
+  if (!replay || !defined(replayStartedAt) || !defined(replayEndedAt) || !replayId) {
     return (
       <BorderedSection isStatus>
         <GridBody>
@@ -62,25 +52,22 @@ export default function OurLogs() {
     );
   }
 
-  if (!replayTraces.length) {
-    return (
-      <BorderedSection isStatus>
-        <StatusGridBody>
-          <EmptyRenderer />
-        </StatusGridBody>
-      </BorderedSection>
-    );
-  }
-
   return (
-    <LogsQueryParamsProvider source="state" freeze={traceIds ? {traceIds} : undefined}>
+    <LogsQueryParamsProvider
+      source="state"
+      freeze={{replayId, replayStartedAt, replayEndedAt}}
+      frozenParams={{
+        sortBys: [logsTimestampAscendingSortBy],
+        fields: rearrangedLogsReplayFields(defaultLogFields()),
+      }}
+    >
       <LogsPageParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         isTableFrozen
       >
         <LogsPageDataProvider>
           <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <OurLogsContent traceIds={traceIds} />
+            <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
           </TraceItemAttributeProvider>
         </LogsPageDataProvider>
       </LogsPageParamsProvider>
@@ -89,13 +76,18 @@ export default function OurLogs() {
 }
 
 interface OurLogsContentProps {
-  traceIds?: string[];
+  replayId: string;
+  startTimestampMs: number;
 }
 
-function OurLogsContent({traceIds}: OurLogsContentProps) {
+function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
   const {attributes: numberAttributes} = useTraceItemAttributes('number');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const {currentTime, setCurrentTime} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
+  const replay = useReplayReader();
 
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {data: logItems = [], isPending} = infiniteLogsQueryResult;
@@ -104,9 +96,41 @@ function OurLogsContent({traceIds}: OurLogsContentProps) {
   const {items: filteredLogItems, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
+  const handleReplayTimeClick = useCallback(
+    (offsetMs: string) => {
+      const offsetTime = parseFloat(offsetMs);
+      if (!isNaN(offsetTime)) {
+        setCurrentTime(offsetTime);
+      }
+    },
+    [setCurrentTime]
+  );
+
+  // Generate pseudo-frames for jump button functionality
+  const replayFrames = useMemo(() => {
+    if (!replay || !logItems) {
+      return [];
+    }
+    return ourlogsAsFrames(startTimestampMs, logItems);
+  }, [replay, logItems, startTimestampMs]);
+
+  const embeddedOptions = useMemo(
+    () => ({
+      replay: {
+        timestampRelativeTo: startTimestampMs,
+        onReplayTimeClick: handleReplayTimeClick,
+        displayReplayTimeIndicator: true,
+        frames: replayFrames,
+        currentTime,
+        currentHoverTime,
+      },
+    }),
+    [startTimestampMs, handleReplayTimeClick, replayFrames, currentTime, currentHoverTime]
+  );
+
   return (
     <OurLogsContentWrapper>
-      <OurLogFilters logItems={logItems} traceIds={traceIds} {...filterProps} />
+      <OurLogFilters logItems={logItems} replayId={replayId} {...filterProps} />
       <TableScrollContainer ref={scrollContainerRef}>
         {isPending ? (
           <Placeholder height="100%" />
@@ -117,6 +141,7 @@ function OurLogsContent({traceIds}: OurLogsContentProps) {
             scrollContainer={scrollContainerRef}
             allowPagination
             embedded
+            embeddedOptions={embeddedOptions}
             localOnlyItemFilters={{
               filteredItems: filteredLogItems,
               filterText: filterProps.searchTerm,
@@ -145,10 +170,6 @@ const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   ${p => p.isStatus && 'justify-content: center;'}
-`;
-
-const StatusGridBody = styled(GridBody)`
-  height: unset;
 `;
 
 const TableScrollContainer = styled('div')`

@@ -6,14 +6,7 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
-import {
-  SIDEBAR_COLLAPSED_WIDTH,
-  SIDEBAR_EXPANDED_WIDTH,
-  SIDEBAR_MOBILE_HEIGHT,
-} from 'sentry/components/sidebar/constants';
 import {t} from 'sentry/locale';
-import PreferencesStore from 'sentry/stores/preferencesStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -55,7 +48,6 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -124,9 +116,6 @@ function WidgetBuilderV2({
   const {navParentRef} = useNavContext();
   // Check if we have a valid nav reference
   const hasValidNav = Boolean(navParentRef?.current);
-  const prefersStackedNav = usePrefersStackedNav();
-
-  const hasNewNav = hasValidNav && prefersStackedNav;
 
   const dimensions = useDimensions({elementRef: navParentRef});
 
@@ -168,9 +157,6 @@ function WidgetBuilderV2({
     }
   }, [isPreviewDraggable]);
 
-  const preferences = useLegacyStore(PreferencesStore);
-  const sidebarCollapsed = !!preferences.collapsed;
-
   return (
     <Fragment>
       {isOpen && (
@@ -192,9 +178,8 @@ function WidgetBuilderV2({
                 >
                   <TraceItemAttributeProviderFromDataset>
                     <ContainerWithoutSidebar
-                      sidebarCollapsed={sidebarCollapsed}
                       style={
-                        hasNewNav
+                        hasValidNav
                           ? isMediumScreen
                             ? {
                                 left: 0,
@@ -492,19 +477,15 @@ const DraggableWidgetContainer = styled(`div`)`
   }
 `;
 
-const ContainerWithoutSidebar = styled('div')<{
-  sidebarCollapsed: boolean;
-}>`
+const ContainerWithoutSidebar = styled('div')`
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   position: fixed;
   top: 0;
-  left: ${p => (p.sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH)};
   right: 0;
   bottom: 0;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     left: 0;
-    top: ${SIDEBAR_MOBILE_HEIGHT};
   }
 `;
 

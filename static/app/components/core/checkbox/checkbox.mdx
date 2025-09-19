@@ -1,0 +1,126 @@
+---
+title: Checkbox
+description: Checkboxes are used to let users select one or more items from a set of options, or to indicate a binary choice.
+source: 'sentry/components/core/checkbox'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/checkbox/index.tsx#L35
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 2.5.8: https://www.w3.org/TR/WCAG22/#target-size-minimum
+    WAI-ARIA Checkbox Practices: https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/
+---
+
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Stack} from 'sentry/components/core/layout';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/checkbox';
+
+export const types = {Checkbox: APIReference.Checkbox};
+
+Checkboxes are form controls that allow users to select one or more options from a set. They represent a binary choice and can be in one of three states: unchecked, checked, or indeterminate.
+
+> [!NOTE]
+> Checkboxes currently only support controlled state. You must manage the `checked` state yourself.
+
+```jsx
+<Checkbox checked={isChecked} onChange={handleChange} />
+```
+
+## States
+
+Checkboxes can be in different states: unchecked (default), checked, and indeterminate. They also support disabled states.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    <label>
+      Default <Checkbox />
+    </label>
+    <label>
+      Checked <Checkbox checked />
+    </label>
+    <label>
+      Indeterminate <Checkbox checked="indeterminate" />
+    </label>
+    <label>
+      Disabled <Checkbox disabled />
+    </label>
+    <label>
+      Disabled Checked <Checkbox disabled checked />
+    </label>
+    <label>
+      Indeterminate Disabled <Checkbox checked="indeterminate" disabled />
+    </label>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<Checkbox />
+<Checkbox checked />
+<Checkbox checked="indeterminate" />
+<Checkbox disabled />
+<Checkbox disabled checked />
+<Checkbox checked="indeterminate" disabled />
+```
+
+## Indeterminate State
+
+The indeterminate state is useful for parent checkboxes in hierarchical lists where some, but not all, child items are selected. This provides a visual cue that there's a mixed selection state.
+
+<Storybook.Demo>
+  <Stack gap="sm">
+    <label>
+      <Checkbox checked="indeterminate" /> Select all items
+    </label>
+    <Stack gap="sm" paddingLeft="lg">
+      <label>
+        <Checkbox checked /> Item 1
+      </label>
+      <label>
+        <Checkbox /> Item 2
+      </label>
+      <label>
+        <Checkbox checked /> Item 3
+      </label>
+    </Stack>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<Checkbox checked="indeterminate" />
+<Checkbox checked />
+<Checkbox />
+<Checkbox checked />
+```
+
+## Sizes
+
+Checkboxes are available in different sizes: `md`, `sm` (default), and `xs`.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    <label>
+      Medium <Checkbox size="md" checked />
+    </label>
+    <label>
+      Small (default) <Checkbox size="sm" checked />
+    </label>
+    <label>
+      Extra small <Checkbox size="xs" checked />
+    </label>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<Checkbox size="md" checked />
+<Checkbox size="sm" checked />
+<Checkbox size="xs" checked />
+```
+
+## Accessibility
+
+To meet WCAG 2.2 AA compliance, `<Checkbox>` automatically meets the [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), and [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum) success criteria.
+
+Developers should ensure their implementations follow the [WAI-ARIA Checkbox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/) and provide appropriate labels for screen readers.

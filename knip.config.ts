@@ -58,7 +58,6 @@ const config: KnipConfig = {
     // TEMPORARY!
     '!static/app/components/core/disclosure/index.tsx',
     '!static/app/components/core/disclosure/disclosure.tsx',
-    '!static/app/utils/timeSeries/useFetchEventsTimeSeries.tsx',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

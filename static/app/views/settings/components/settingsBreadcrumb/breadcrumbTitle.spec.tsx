@@ -16,7 +16,7 @@ describe('BreadcrumbTitle', () => {
   it('renders settings breadcrumbs and replaces title', () => {
     render(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={testRoutes} params={{}} route={{}} />
+        <SettingsBreadcrumb routes={testRoutes} params={{}} />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
       </BreadcrumbProvider>
     );
@@ -32,7 +32,7 @@ describe('BreadcrumbTitle', () => {
 
     const {rerender} = render(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={testRoutes} params={{}} route={{}} />
+        <SettingsBreadcrumb routes={testRoutes} params={{}} />
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
       </BreadcrumbProvider>
@@ -50,7 +50,7 @@ describe('BreadcrumbTitle', () => {
     // Simulate navigating up a level, trimming the last title
     rerender(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={upOneRoutes} params={{}} route={{}} />
+        <SettingsBreadcrumb routes={upOneRoutes} params={{}} />
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
       </BreadcrumbProvider>
     );

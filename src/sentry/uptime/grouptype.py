@@ -72,22 +72,6 @@ def build_fingerprint(detector: Detector) -> list[str]:
     return [build_detector_fingerprint_component(detector)]
 
 
-def get_active_failure_threshold() -> int:
-    """
-    When in active monitoring mode, overrides how many failures in a row we
-    need to see to mark the monitor as down
-    """
-    return options.get("uptime.active-failure-threshold")
-
-
-def get_active_recovery_threshold() -> int:
-    """
-    When in active monitoring mode, how many successes in a row do we need to
-    mark it as up
-    """
-    return options.get("uptime.active-recovery-threshold")
-
-
 def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
     evidence_display: list[IssueEvidence] = []
 
@@ -147,9 +131,12 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
     @override
     @property
     def thresholds(self) -> DetectorThresholds:
+        recovery_threshold = self.detector.config["recovery_threshold"]
+        downtime_threshold = self.detector.config["downtime_threshold"]
+
         return {
-            DetectorPriorityLevel.OK: get_active_recovery_threshold(),
-            DetectorPriorityLevel.HIGH: get_active_failure_threshold(),
+            DetectorPriorityLevel.OK: recovery_threshold,
+            DetectorPriorityLevel.HIGH: downtime_threshold,
         }
 
     @override
@@ -301,13 +288,23 @@ class UptimeDomainCheckFailure(GroupType):
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of an uptime alert",
             "type": "object",
-            "required": ["mode", "environment"],
+            "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
             "properties": {
                 "mode": {
                     "type": ["integer"],
                     "enum": [mode.value for mode in UptimeMonitorMode],
                 },
                 "environment": {"type": ["string", "null"]},
+                "recovery_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of consecutive successful checks required to mark monitor as recovered",
+                },
+                "downtime_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Number of consecutive failed checks required to mark monitor as down",
+                },
             },
             "additionalProperties": False,
         },

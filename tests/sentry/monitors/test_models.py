@@ -283,6 +283,36 @@ class MonitorEnvironmentTestCase(TestCase):
         assert len(cm.records) == 1
         assert "invalid config" in cm.records[0].message
 
+    def test_build_occurrence_fingerprint(self):
+        """Test that build_occurrence_fingerprint returns the expected format"""
+        monitor = self.create_monitor()
+        monitor_environment = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=self.environment.id,
+        )
+        fingerprint = monitor_environment.build_occurrence_fingerprint()
+        assert fingerprint == f"crons:{monitor_environment.id}"
+
+    def test_build_occurrence_fingerprint_different_environments(self):
+        """Test that different MonitorEnvironments get different fingerprints"""
+        monitor = self.create_monitor()
+        env1 = self.create_environment(name="production")
+        env2 = self.create_environment(name="staging")
+
+        monitor_env1 = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=env1.id,
+        )
+        monitor_env2 = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=env2.id,
+        )
+        fingerprint1 = monitor_env1.build_occurrence_fingerprint()
+        fingerprint2 = monitor_env2.build_occurrence_fingerprint()
+        assert fingerprint1 != fingerprint2
+        assert fingerprint1 == f"crons:{monitor_env1.id}"
+        assert fingerprint2 == f"crons:{monitor_env2.id}"
+
 
 class CronMonitorDataSourceHandlerTest(TestCase):
     def setUp(self) -> None:

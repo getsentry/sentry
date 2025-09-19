@@ -37,7 +37,11 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import (
+    DEFAULT_DOWNTIME_THRESHOLD,
+    DEFAULT_RECOVERY_THRESHOLD,
+    UptimeMonitorMode,
+)
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models.detector import Detector
 
@@ -208,9 +212,24 @@ class CreateUptimeDetectorTest(UptimeTestCase):
 
         assert detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value
         assert detector.config["environment"] == self.environment.name
+        assert detector.config["recovery_threshold"] == DEFAULT_RECOVERY_THRESHOLD
+        assert detector.config["downtime_threshold"] == DEFAULT_DOWNTIME_THRESHOLD
         assert detector.project == self.project
         assert detector.owner_user_id is None
         assert detector.owner_team_id is None
+
+    def test_custom_thresholds(self) -> None:
+        detector = create_uptime_detector(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            recovery_threshold=2,
+            downtime_threshold=5,
+        )
+        assert detector.config["recovery_threshold"] == 2
+        assert detector.config["downtime_threshold"] == 5
 
     def test_already_exists(self) -> None:
         create_uptime_detector(
@@ -491,6 +510,25 @@ class UpdateUptimeDetectorTest(UptimeTestCase):
 
         # Detector fields should be updated
         assert detector.config["environment"] == self.environment.name
+        # Threshold values should remain at defaults since not specified in update
+        assert detector.config["recovery_threshold"] == DEFAULT_RECOVERY_THRESHOLD
+        assert detector.config["downtime_threshold"] == DEFAULT_DOWNTIME_THRESHOLD
+
+    def test_update_thresholds(self) -> None:
+        detector = self.create_uptime_detector()
+        # Verify initial defaults
+        assert detector.config["recovery_threshold"] == DEFAULT_RECOVERY_THRESHOLD
+        assert detector.config["downtime_threshold"] == DEFAULT_DOWNTIME_THRESHOLD
+
+        update_uptime_detector(
+            detector,
+            recovery_threshold=3,
+            downtime_threshold=7,
+        )
+
+        detector.refresh_from_db()
+        assert detector.config["recovery_threshold"] == 3
+        assert detector.config["downtime_threshold"] == 7
 
     def test_already_exists(self) -> None:
         with self.tasks():

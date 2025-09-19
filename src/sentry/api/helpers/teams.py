@@ -41,7 +41,7 @@ def get_teams(
         if is_active_superuser(request):
             # retrieve all teams within the organization
             myteams = Team.objects.filter(
-                organization=organization, status=TeamStatus.ACTIVE
+                organization_id=organization.id, status=TeamStatus.ACTIVE
             ).values_list("id", flat=True)
             verified_ids.update(myteams)
         else:
@@ -53,7 +53,7 @@ def get_teams(
             raise InvalidParams(f"Invalid Team ID: {team_id}")
     requested_teams.update(verified_ids)
 
-    teams_query = Team.objects.filter(id__in=requested_teams, organization=organization)
+    teams_query = Team.objects.filter(id__in=requested_teams, organization_id=organization.id)
     for team in teams_query:
         if team.id in verified_ids:
             continue

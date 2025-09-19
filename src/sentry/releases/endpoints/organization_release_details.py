@@ -440,7 +440,7 @@ class OrganizationReleaseDetailsEndpoint(
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("version", version)
         try:
-            release = Release.objects.get(organization_id=organization, version=version)
+            release = Release.objects.get(organization_id=organization.id, version=version)
             projects = release.projects.all()
         except Release.DoesNotExist:
             scope.set_tag("failure_reason", "Release.DoesNotExist")

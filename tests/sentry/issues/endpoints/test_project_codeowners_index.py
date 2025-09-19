@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
@@ -55,7 +54,37 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_codeowners_with_integration(self, get_codeowner_mock_file: MagicMock) -> None:
+    def test_get_codeowners_with_integration_post_creation(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            post_resp = self.client.post(self.url, self.data)
+            assert post_resp.status_code == 201
+            get_resp = self.client.get(self.url)
+        assert get_resp.status_code == 200
+        resp_data = get_resp.data[0]
+        assert resp_data["raw"] == self.data["raw"].strip()
+        assert resp_data["codeMappingId"] == str(self.code_mapping.id)
+        assert resp_data["provider"] == self.integration.provider
+        assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+        assert resp_data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                    "owners": [
+                        {"type": "user", "id": self.user.id, "name": self.user.email},
+                        {"type": "team", "id": self.team.id, "name": self.team.slug},
+                    ],
+                }
+            ],
+        }
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
+    def test_get_codeowners_no_schema_initially(self, get_codeowner_mock_file: MagicMock) -> None:
         code_owner = self.create_codeowners(
             self.project, self.code_mapping, raw=f"*.js {self.external_team.external_name}"
         )
@@ -65,8 +94,28 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         resp_data = resp.data[0]
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
-        # TODO (ID-832): this assert will pass once we are no longer updating ProjectCodeOwners objects in the GET request handler
-        # assert resp_data["dateUpdated"] == code_owner.date_updated
+        assert resp_data["dateUpdated"] == code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(self.code_mapping.id)
+        assert resp_data["provider"] == self.integration.provider
+        assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+        assert resp_data["schema"] == {}
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
+    def test_get_codeowners_with_integration(self, get_codeowner_mock_file: MagicMock) -> None:
+        code_owner = self.create_codeowners(
+            self.project, self.code_mapping, raw=f"*.js {self.external_team.external_name}"
+        )
+        code_owner.update_schema(organization=self.organization, raw=code_owner.raw)
+        with self.feature({"organizations:integrations-codeowners": True}):
+            resp = self.client.get(self.url)
+        assert resp.status_code == 200
+        resp_data = resp.data[0]
+        assert resp_data["raw"] == code_owner.raw
+        assert resp_data["dateCreated"] == code_owner.date_added
+        assert resp_data["dateUpdated"] == code_owner.date_updated
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider
         assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
@@ -90,14 +139,14 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         code_owner = self.create_codeowners(
             self.project, self.code_mapping, raw=f"*.js {self.external_team.external_name}"
         )
+        code_owner.update_schema(organization=self.organization, raw=code_owner.raw)
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(f"{self.url}?expand=codeMapping")
         assert resp.status_code == 200
         resp_data = resp.data[0]
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
-        # TODO (ID-832): this assert will pass once we are no longer updating ProjectCodeOwners objects in the GET request handler
-        # assert resp_data["dateUpdated"] == code_owner.date_updated
+        assert resp_data["dateUpdated"] == code_owner.date_updated
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["codeMapping"]["id"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider
@@ -304,7 +353,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    @with_feature("organizations:use-case-insensitive-codeowners")
     def test_case_insensitive_team_matching(self, get_codeowner_mock_file: MagicMock) -> None:
         """Test that team names are matched case-insensitively in CODEOWNERS files."""
 
@@ -554,7 +602,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_rule_one_deleted_owner(self, get_codeowner_mock_file: MagicMock) -> None:
+    @patch("sentry.tasks.codeowners.update_code_owners_schema")
+    def test_get_one_external_user_deletion_schema_updates_triggered(
+        self, mock_update_code_owners_schema: MagicMock, get_codeowner_mock_file: MagicMock
+    ) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -570,13 +621,25 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         with self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
             self.external_delete_user.delete()
+
+            # 2 calls: creation of one external user, deletion of one external user
+            assert mock_update_code_owners_schema.apply_async.call_count == 2
+
+            # Schema updates haven't run, so we should get the original schema
             response = self.client.get(self.url)
             assert response.data[0]["schema"] == {
                 "$version": 1,
                 "rules": [
                     {
                         "matcher": {"type": "codeowners", "pattern": "docs/*"},
-                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                        "owners": [
+                            {
+                                "type": "user",
+                                "name": self.member_user_delete.email,
+                                "id": self.member_user_delete.id,
+                            },
+                            {"type": "team", "name": self.team.slug, "id": self.team.id},
+                        ],
                     }
                 ],
             }
@@ -585,7 +648,44 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_no_rule_deleted_owner(self, get_codeowner_mock_file: MagicMock) -> None:
+    def test_get_one_external_user_deletion_schema_updates_correct(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
+        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.external_delete_user = self.create_external_user(
+            user=self.member_user_delete, external_name="@delete", integration=self.integration
+        )
+        self.data["raw"] = "docs/*  @delete @getsentry/ecosystem"
+
+        with self.tasks(), self.feature({"organizations:integrations-codeowners": True}):
+            self.client.post(self.url, self.data)
+            self.external_delete_user.delete()
+
+            response = self.client.get(self.url)
+            assert response.data[0]["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                        "owners": [{"type": "team", "name": self.team.slug, "id": self.team.id}],
+                    }
+                ],
+            }
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
+    @patch("sentry.tasks.codeowners.update_code_owners_schema")
+    def test_get_all_external_users_deletion_schema_updates_triggered(
+        self, mock_update_code_owners_schema: MagicMock, get_codeowner_mock_file: MagicMock
+    ) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -601,14 +701,35 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         with self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
             self.external_delete_user.delete()
+
+            # 2 calls: creation of one external user, deletion of one external user
+            assert mock_update_code_owners_schema.apply_async.call_count == 2
+
+            # Schema updates haven't run, so we should get the original schema
             response = self.client.get(self.url)
-            assert response.data[0]["schema"] == {"$version": 1, "rules": []}
+            assert response.data[0]["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"pattern": "docs/*", "type": "codeowners"},
+                        "owners": [
+                            {
+                                "type": "user",
+                                "name": self.member_user_delete.email,
+                                "id": self.member_user_delete.id,
+                            }
+                        ],
+                    }
+                ],
+            }
 
     @patch(
         "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_multiple_rules_deleted_owners(self, get_codeowner_mock_file: MagicMock) -> None:
+    def test_get_all_external_users_deletion_schema_updates_correct(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -619,38 +740,167 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.external_delete_user = self.create_external_user(
             user=self.member_user_delete, external_name="@delete", integration=self.integration
         )
-        self.member_user_delete2 = self.create_user("member_delete2@localhost", is_superuser=False)
+        self.data["raw"] = "docs/*  @delete"
+
+        with self.tasks(), self.feature({"organizations:integrations-codeowners": True}):
+            self.client.post(self.url, self.data)
+            self.external_delete_user.delete()
+
+            response = self.client.get(self.url)
+            assert response.data[0]["schema"] == {"$version": 1, "rules": []}
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
+    @patch("sentry.tasks.codeowners.update_code_owners_schema")
+    def test_get_multiple_rules_deleted_owners_schema_updates_triggered(
+        self, mock_update_code_owners_schema: MagicMock, get_codeowner_mock_file: MagicMock
+    ) -> None:
+        self.member_user_delete_1 = self.create_user(
+            "member_delete_1@localhost", is_superuser=False
+        )
         self.create_member(
-            user=self.member_user_delete2,
+            user=self.member_user_delete_1,
             organization=self.organization,
             role="member",
             teams=[self.team],
         )
-        self.external_delete_user2 = self.create_external_user(
-            user=self.member_user_delete, external_name="@delete2", integration=self.integration
+        self.external_delete_user_1 = self.create_external_user(
+            user=self.member_user_delete_1, external_name="@delete-1", integration=self.integration
+        )
+
+        self.member_user_delete_2 = self.create_user(
+            "member_delete_2@localhost", is_superuser=False
+        )
+        self.create_member(
+            user=self.member_user_delete_2,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.external_delete_user_2 = self.create_external_user(
+            user=self.member_user_delete_2, external_name="@delete-2", integration=self.integration
         )
         self.data["raw"] = (
-            "docs/*  @delete\n*.py @getsentry/ecosystem @delete\n*.css @delete2\n*.rb @NisanthanNanthakumar"
+            "docs/*  @delete-1\n*.py @getsentry/ecosystem @delete-1\n*.css @delete-2\n*.rb @NisanthanNanthakumar"
         )
 
         with self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
-            self.external_delete_user.delete()
-            self.external_delete_user2.delete()
+            self.external_delete_user_1.delete()
+            self.external_delete_user_2.delete()
+
+            # 4 calls: creation of two external users, deletion of two external users
+            assert mock_update_code_owners_schema.apply_async.call_count == 4
+
+            # Schema updates haven't run, so we should get the original schema
             response = self.client.get(self.url)
             assert response.data[0]["schema"] == {
                 "$version": 1,
                 "rules": [
                     {
+                        "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                        "owners": [
+                            {
+                                "type": "user",
+                                "name": self.member_user_delete_1.email,
+                                "id": self.member_user_delete_1.id,
+                            }
+                        ],
+                    },
+                    {
                         "matcher": {"type": "codeowners", "pattern": "*.py"},
-                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                        "owners": [
+                            {"type": "team", "name": self.team.slug, "id": self.team.id},
+                            {
+                                "type": "user",
+                                "name": self.member_user_delete_1.email,
+                                "id": self.member_user_delete_1.id,
+                            },
+                        ],
+                    },
+                    {
+                        "matcher": {
+                            "pattern": "*.css",
+                            "type": "codeowners",
+                        },
+                        "owners": [
+                            {
+                                "type": "user",
+                                "name": self.member_user_delete_2.email,
+                                "id": self.member_user_delete_2.id,
+                            },
+                        ],
                     },
                     {
                         "matcher": {"type": "codeowners", "pattern": "*.rb"},
                         "owners": [
                             {
                                 "type": "user",
-                                "name": "admin@sentry.io",
+                                "name": self.user.email,
+                                "id": self.user.id,
+                            }
+                        ],
+                    },
+                ],
+            }
+
+    @patch(
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
+        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
+    )
+    def test_get_multiple_rules_deleted_owners_schema_updates_correct(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
+        self.member_user_delete_1 = self.create_user(
+            "member_delete_1@localhost", is_superuser=False
+        )
+        self.create_member(
+            user=self.member_user_delete_1,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.external_delete_user_1 = self.create_external_user(
+            user=self.member_user_delete_1, external_name="@delete-1", integration=self.integration
+        )
+
+        self.member_user_delete_2 = self.create_user(
+            "member_delete_2@localhost", is_superuser=False
+        )
+        self.create_member(
+            user=self.member_user_delete_2,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.external_delete_user_2 = self.create_external_user(
+            user=self.member_user_delete_2, external_name="@delete-2", integration=self.integration
+        )
+        self.data["raw"] = (
+            "docs/*  @delete-1\n*.py @getsentry/ecosystem @delete-1\n*.css @delete-2\n*.rb @NisanthanNanthakumar"
+        )
+
+        with self.tasks(), self.feature({"organizations:integrations-codeowners": True}):
+            self.client.post(self.url, self.data)
+            self.external_delete_user_1.delete()
+            self.external_delete_user_2.delete()
+
+            response = self.client.get(self.url)
+            assert response.data[0]["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "*.py"},
+                        "owners": [{"type": "team", "name": self.team.slug, "id": self.team.id}],
+                    },
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "*.rb"},
+                        "owners": [
+                            {
+                                "type": "user",
+                                "name": self.user.email,
                                 "id": self.user.id,
                             }
                         ],

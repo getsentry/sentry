@@ -286,7 +286,7 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
         },
         DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS: {
             "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
-            "concurrency_threshold": 10,  # ms
+            "concurrency_threshold": 15,  # ms
             "count": 5,
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],

@@ -10,6 +10,10 @@ from sentry.utils.http import absolute_uri
 
 SENTRY_ICON_URL = "images/sentry-glyph-black.png"
 
+CURRENT_CARD_VERSION = "1.5"
+
+ADAPTIVE_CARD_SCHEMA_URL = "https://adaptivecards.io/schemas/adaptive-card.json"
+
 # NOTE: The classes below need to inherit from `str` as well to be serialized correctly.
 # `TextSize.SMALL` has to serialized to `Small`, if not inheriting from `str` it would be
 # serialized into something like `<TextSize.SMALL: 'Small'>`.
@@ -95,6 +99,7 @@ class _ImageBlockNotRequired(TypedDict, total=False):
     size: ImageSize
     height: str
     width: str
+    altText: str
 
 
 class ImageBlock(_ImageBlockNotRequired):

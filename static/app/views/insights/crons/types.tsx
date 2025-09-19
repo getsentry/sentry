@@ -328,6 +328,7 @@ export type CheckInCellKey =
   | 'started'
   | 'completed'
   | 'duration'
+  | 'checkInId'
   | 'issues'
   | 'environment'
   | 'expectedAt';

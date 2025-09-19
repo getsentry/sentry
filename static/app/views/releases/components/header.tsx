@@ -1,14 +1,11 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 function Header() {
-  const prefersStackedNav = usePrefersStackedNav();
-
   return (
-    <Layout.Header noActionWrap unified={prefersStackedNav}>
-      <Layout.HeaderContent unified={prefersStackedNav}>
+    <Layout.Header noActionWrap unified>
+      <Layout.HeaderContent unified>
         <Layout.Title>
           {t('Releases')}
           <PageHeadingQuestionTooltip

@@ -68,7 +68,6 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
     prefersNextjsInsightsOverview = serializers.BooleanField(required=False)
-    prefersStackedNavigation = serializers.BooleanField(required=False)
     prefersChonkUI = serializers.BooleanField(required=False)
 
 
@@ -238,7 +237,6 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-            "prefersStackedNavigation": "prefers_stacked_navigation",
             "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
             "prefersChonkUI": "prefers_chonk_ui",
         }

@@ -14,11 +14,23 @@ def _fetch_issues_from_repo_projects(
 ) -> list[Group]:
     project_ids = [project.id for project in repo_projects.projects]
     date_threshold = datetime.now(tz=UTC) - timedelta(days=num_days_ago)
+
+    # Normalize the search term by removing non-ASCII alphanumeric characters and converting to uppercase
+    # This matches the SQL regex [^a-zA-Z0-9] which only keeps ASCII alphanumeric characters
+    normalized_exception_type = "".join(
+        c.upper() for c in exception_type if c.isascii() and c.isalnum()
+    )
+
     # Using raw SQL since data is LegacyTextJSONField which can't be filtered with Django ORM
     query_set = (
-        Group.objects.annotate(metadata_type=RawSQL("(data::json -> 'metadata' ->> 'type')", []))
+        Group.objects.annotate(
+            metadata_type=RawSQL(
+                "UPPER(REGEXP_REPLACE(data::json -> 'metadata' ->> 'type', '[^a-zA-Z0-9]', '', 'g'))",
+                [],
+            )
+        )
         .filter(
-            metadata_type=exception_type,
+            metadata_type=normalized_exception_type,
             project_id__in=project_ids,
             last_seen__gte=date_threshold,
         )

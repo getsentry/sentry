@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
@@ -112,7 +113,7 @@ describe('HTTPDomainSummaryPage', () => {
     });
 
     throughputRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
@@ -120,23 +121,20 @@ describe('HTTPDomainSummaryPage', () => {
         }),
       ],
       body: {
-        data: [
-          [1699907700, [{count: 7810.2}]],
-          [1699908000, [{count: 1216.8}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'epm()',
+            values: [
+              {value: 7810.2, timestamp: 1699907700000},
+              {value: 1216.8, timestamp: 1699908000000},
+            ],
+          }),
         ],
-        meta: {
-          fields: {
-            'epm()': 'rate',
-          },
-          units: {
-            'epm()': '1/second',
-          },
-        },
       },
     });
 
     durationRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
@@ -144,23 +142,20 @@ describe('HTTPDomainSummaryPage', () => {
         }),
       ],
       body: {
-        data: [
-          [1699907700, [{count: 710.2}]],
-          [1699908000, [{count: 116.8}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'avg(span.self_time)',
+            values: [
+              {value: 710.2, timestamp: 1699907700000},
+              {value: 116.8, timestamp: 1699908000000},
+            ],
+          }),
         ],
-        meta: {
-          fields: {
-            'avg(span.duration)': 'rate',
-          },
-          units: {
-            'avg(span.duration)': '1/second',
-          },
-        },
       },
     });
 
     statusRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
@@ -168,33 +163,20 @@ describe('HTTPDomainSummaryPage', () => {
         }),
       ],
       body: {
-        'http_response_rate(3)': {
-          data: [[1699908000, [{count: 0.2}]]],
-          meta: {
-            fields: {
-              'http_response_rate(3)': 'percentage',
-            },
-            units: {},
-          },
-        },
-        'http_response_rate(4)': {
-          data: [[1699908000, [{count: 0.1}]]],
-          meta: {
-            fields: {
-              'http_response_rate(4)': 'percentage',
-            },
-            units: {},
-          },
-        },
-        'http_response_rate(5)': {
-          data: [[1699908000, [{count: 0.3}]]],
-          meta: {
-            fields: {
-              'http_response_rate(5)': 'percentage',
-            },
-            units: {},
-          },
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'http_response_rate(3)',
+            values: [{value: 0.2, timestamp: 1699908000000}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'http_response_rate(4)',
+            values: [{value: 0.1, timestamp: 1699908000000}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'http_response_rate(5)',
+            values: [{value: 0.3, timestamp: 1699908000000}],
+          }),
+        ],
       },
     });
   });
@@ -209,27 +191,22 @@ describe('HTTPDomainSummaryPage', () => {
     await waitFor(() => {
       expect(throughputRequestMock).toHaveBeenNthCalledWith(
         1,
-        `/organizations/${organization.slug}/events-stats/`,
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           method: 'GET',
           query: {
-            cursor: undefined,
             dataset: 'spans',
             sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             excludeOther: 0,
-            field: [],
+            groupBy: undefined,
             interval: '30m',
-            orderby: undefined,
             partial: 1,
-            per_page: 50,
             project: [],
             query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
             referrer: 'api.insights.http.domain-summary-throughput-chart',
             statsPeriod: '10d',
-            topEvents: undefined,
-            yAxis: 'epm()',
-            transformAliasToInputFormat: '1',
+            yAxis: ['epm()'],
           },
         })
       );
@@ -237,58 +214,48 @@ describe('HTTPDomainSummaryPage', () => {
 
     expect(durationRequestMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.insights.http.domain-summary-duration-chart',
           statsPeriod: '10d',
-          topEvents: undefined,
-          yAxis: 'avg(span.self_time)',
-          transformAliasToInputFormat: '1',
+          yAxis: ['avg(span.self_time)'],
         },
       })
     );
 
     expect(statusRequestMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.insights.http.domain-summary-response-code-chart',
           statsPeriod: '10d',
-          topEvents: undefined,
           yAxis: [
             'http_response_rate(3)',
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
-          transformAliasToInputFormat: '1',
         },
       })
     );

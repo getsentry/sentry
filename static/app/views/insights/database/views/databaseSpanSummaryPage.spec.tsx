@@ -1,6 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -84,29 +85,17 @@ describe('DatabaseSpanSummaryPage', () => {
     });
 
     const eventsStatsRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        'epm()': {
-          data: [
-            [1672531200, [{count: 5}]],
-            [1672542000, [{count: 10}]],
-            [1672552800, [{count: 15}]],
-          ],
-          order: 0,
-          start: 1672531200,
-          end: 1672552800,
-        },
-        'avg(span.self_time)': {
-          data: [
-            [1672531200, [{count: 100}]],
-            [1672542000, [{count: 150}]],
-            [1672552800, [{count: 200}]],
-          ],
-          order: 1,
-          start: 1672531200,
-          end: 1672552800,
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'epm()',
+          }),
+          TimeSeriesFixture({
+            yAxis: 'avg(span.self_time)',
+          }),
+        ],
       },
     });
 
@@ -254,27 +243,24 @@ describe('DatabaseSpanSummaryPage', () => {
     // EPM Chart
     expect(eventsStatsRequestMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
+          sort: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query: 'span.group:1756baf8fd19c116',
           referrer: 'api.insights.database.summary-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'epm()',
-          transformAliasToInputFormat: '1',
+          yAxis: ['epm()'],
         },
       })
     );
@@ -282,27 +268,24 @@ describe('DatabaseSpanSummaryPage', () => {
     // Duration Chart
     expect(eventsStatsRequestMock).toHaveBeenNthCalledWith(
       2,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
+          sort: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query: 'span.group:1756baf8fd19c116',
           referrer: 'api.insights.database.summary-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'avg(span.self_time)',
-          transformAliasToInputFormat: '1',
+          yAxis: ['avg(span.self_time)'],
         },
       })
     );

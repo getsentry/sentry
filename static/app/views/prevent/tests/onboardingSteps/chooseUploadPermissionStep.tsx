@@ -1,4 +1,4 @@
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
@@ -24,9 +24,9 @@ const CHOICE_OPTIONS: Array<
       'Recommended option, it does not require repo admin privileges to get started. Learn more about [OIDC].',
       {
         OIDC: (
-          <Link to="https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect">
+          <ExternalLink href="https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect">
             OIDC
-          </Link>
+          </ExternalLink>
         ),
       }
     ),

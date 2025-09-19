@@ -155,6 +155,8 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Handle race condition cases where this event lost the race to create the metadata record
         if not created:
+            grouphash.refresh_from_db()
+
             logger.info(
                 "grouphash_metadata.creation_race_condition.record_exists",
                 extra={

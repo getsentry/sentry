@@ -37,6 +37,7 @@ describe('InvoiceDetails > Payment Form', () => {
   };
 
   beforeEach(() => {
+    organization.features = [];
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, {});
   });
@@ -62,12 +63,37 @@ describe('InvoiceDetails > Payment Form', () => {
 
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Cancel', hidden: true})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Pay Now', hidden: true})
-    ).toBeInTheDocument();
+      screen.queryByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders form when Stripe components are enabled', async () => {
+    organization.features = ['stripe-components'];
+    const mockget = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
+      method: 'GET',
+      body: intentData,
+    });
+    render(
+      <InvoiceDetailsPaymentForm
+        organization={organization}
+        Header={modalDummy}
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        reloadInvoice={jest.fn()}
+        invoice={invoice}
+      />
+    );
+
+    await waitFor(() => expect(mockget).toHaveBeenCalled());
+    expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
       screen.queryByText(
         /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/

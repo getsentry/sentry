@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,7 +33,7 @@ export function useOnboardingSidebar() {
             user_clicked: userClicked,
           });
         }
-        SidebarPanelStore.activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
+        OnboardingDrawerStore.open(OnboardingDrawerKey.ONBOARDING_WIZARD);
       }, 0);
     },
     [organization]

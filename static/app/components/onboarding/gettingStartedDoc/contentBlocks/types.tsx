@@ -50,10 +50,25 @@ type TextBlock = BaseBlock<'text'> & {
 };
 
 /**
+ * Subheader blocks are used to render a subheader.
+ */
+type SubHeaderBlock = BaseBlock<'subheader'> & {
+  text: React.ReactNode;
+};
+
+/**
+ * List blocks are used to render a list of items.
+ */
+type ListBlock = BaseBlock<'list'> & {
+  items: React.ReactNode[];
+};
+
+/**
  * Custom blocks can be used to render any content that is not covered by the other block types.
  */
 type CustomBlock = BaseBlock<'custom'> & {
   content: React.ReactNode;
+  bottomMargin?: boolean;
 };
 
 export type ContentBlock =
@@ -61,7 +76,9 @@ export type ContentBlock =
   | CodeBlock
   | ConditionalBlock
   | CustomBlock
-  | TextBlock;
+  | TextBlock
+  | SubHeaderBlock
+  | ListBlock;
 
 export type BlockRenderers = {
   [key in ContentBlock['type']]: (

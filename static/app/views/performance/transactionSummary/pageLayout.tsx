@@ -42,7 +42,6 @@ import {
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
-import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import TransactionHeader, {type Props as TransactionHeaderProps} from './header';
@@ -141,8 +140,6 @@ function PageLayout(props: Props) {
           return tagsRouteWithQuery(routeQuery);
         case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
-        case Tab.SPANS:
-          return spansRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
@@ -333,7 +330,7 @@ function PageLayout(props: Props) {
   );
 }
 
-export function NoAccess() {
+function NoAccess() {
   return (
     <Alert.Container>
       <Alert type="warning" showIcon={false}>

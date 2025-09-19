@@ -20,6 +20,8 @@ def _get_user_option(assignee_id: int | None) -> RpcUser | None:
 
 
 def _get_team_option(assignee_id: int | None, organization: Organization) -> Team | None:
+    if assignee_id is None:
+        return None
     return Team.objects.filter(id=assignee_id, organization=organization).first()
 
 

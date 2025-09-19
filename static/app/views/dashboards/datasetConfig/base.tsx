@@ -1,7 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
 import type {Client, ResponseMeta} from 'sentry/api';
-import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
@@ -31,9 +30,9 @@ import {SpansConfig} from './spans';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
-  getFilterWarning: SearchBarProps['getFilterWarning'];
-  onClose: SearchBarProps['onClose'];
-  onSearch: SearchBarProps['onSearch'];
+  getFilterWarning: ((key: string) => React.ReactNode) | undefined;
+  onClose: (value: string, additionalSearchBarState: {validSearch: boolean}) => void;
+  onSearch: (query: string) => void;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;

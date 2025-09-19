@@ -5,6 +5,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -53,6 +54,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const yAxes = 'p75(span.duration)';
   const totalTimeField = 'sum(span.duration)';
   const title = t('Assets by Time Spent');
+  const interval = getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
 
   const {
     data: assetListData,
@@ -87,6 +89,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       sort: {field: yAxes, kind: 'desc'},
       topN: 3,
       enabled: assetListData?.length > 0,
+      interval,
     },
     referrer
   );
@@ -170,6 +173,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    interval,
     referrer,
   });
 

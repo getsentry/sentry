@@ -5,7 +5,6 @@ import {logout} from 'sentry/actionCreators/account';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LogoSentry from 'sentry/components/logoSentry';
-import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -101,7 +100,7 @@ const Wrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    height: ${SIDEBAR_MOBILE_HEIGHT};
+    height: 54px;
     margin-left: 0;
   }
 

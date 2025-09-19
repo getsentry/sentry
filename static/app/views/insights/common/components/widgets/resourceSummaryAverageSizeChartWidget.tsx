@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useParams} from 'sentry/utils/useParams';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DATA_TYPE, FIELD_ALIASES} from 'sentry/views/insights/browser/resources/settings';
@@ -30,25 +31,24 @@ export default function ResourceSummaryAverageSizeChartWidget(
     referrer,
   });
 
-  if (data) {
-    data[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {
-      type: 'dashed',
-    };
-    data[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`].lineStyle = {
-      type: 'dashed',
-    };
-  }
+  const timeSeries = data?.timeSeries || [];
+  const decodedSeries = timeSeries.find(
+    ts => ts.yAxis === `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`
+  );
+  const transferSeries = timeSeries.find(
+    ts => ts.yAxis === `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`
+  );
+  const contentSeries = timeSeries.find(
+    ts => ts.yAxis === `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
+  );
+
   return (
     <InsightsLineChartWidget
       {...props}
       queryInfo={{search, referrer}}
       id="resourceSummaryAverageSizeChartWidget"
       title={t('Average %s Size', DATA_TYPE)}
-      series={[
-        data?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
-        data?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
-        data?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
-      ]}
+      timeSeries={[decodedSeries, transferSeries, contentSeries].filter(defined)}
       aliases={FIELD_ALIASES}
       isLoading={isPending}
       error={error}

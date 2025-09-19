@@ -406,9 +406,9 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["count"] == "3"
         # result is rounded down to nearest second
         assert result["lastSeen"] == self.min_ago.replace(microsecond=0)
-        assert result["firstSeen"] == group_env.first_seen
+        assert result["firstSeen"] == group_env2.first_seen
         assert group_env2.first_seen is not None
-        assert group_env2.first_seen > group_env.first_seen
+        assert group_env2.first_seen < group_env.first_seen
         assert result["userCount"] == 3
 
         result = serialize(

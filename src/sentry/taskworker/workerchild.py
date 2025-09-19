@@ -456,7 +456,7 @@ def child_process(
         metrics.incr(
             "taskworker.cogs.usage",
             amount=int(execution_duration * 1000),
-            tags={"app_feature": namespace.app_feature},
+            tags={"feature": namespace.app_feature},
         )
 
         if (

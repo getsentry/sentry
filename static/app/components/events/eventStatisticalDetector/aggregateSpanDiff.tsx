@@ -4,16 +4,17 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanFields} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 import {EventRegressionTable} from './eventRegressionTable';
 
@@ -79,7 +80,6 @@ interface AggregateSpanDiffProps {
 }
 
 function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
-  const location = useLocation();
   const organization = useOrganization();
   const isSpansOnly = organization.features.includes(
     'statistical-detectors-rca-spans-only'
@@ -202,23 +202,19 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
       description: {
         defaultValue: t('(unnamed span)'),
         link: (dataRow: any) => ({
-          target: spanDetailsRouteWithQuery({
+          target: getSearchInExploreTargetForSpanDiff(
             organization,
-            spanSlug: {op: dataRow.operation, group: dataRow.group},
+            project.id,
             transaction,
-            projectID: project.id,
-            query: {
-              ...location.query,
-              statsPeriod: undefined,
-              query: undefined,
-              start: (start as Date).toISOString(),
-              end: (end as Date).toISOString(),
-            },
-          }),
+            dataRow.operation,
+            dataRow.group,
+            (start as Date).toISOString(),
+            (end as Date).toISOString()
+          ),
         }),
       },
     };
-  }, [location, organization, project, transaction, start, end]);
+  }, [organization, project, transaction, start, end]);
 
   return (
     <InterimSection
@@ -251,5 +247,35 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     </InterimSection>
   );
 }
+
+const getSearchInExploreTargetForSpanDiff = (
+  organization: Organization,
+  projectIds: string | string[] | undefined,
+  transaction: string,
+  spanOp: string,
+  spanGroup: string,
+  start: string,
+  end: string
+) => {
+  const search = new MutableSearch('');
+  search.addFilterValue(SpanFields.TRANSACTION, transaction);
+  search.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
+  search.addFilterValue(SpanFields.SPAN_OP, spanOp);
+  search.addFilterValue(SpanFields.SPAN_GROUP, spanGroup);
+
+  return {
+    pathname: makeTracesPathname({
+      organization,
+      path: '/',
+    }),
+    query: {
+      start,
+      end,
+      statsPeriod: undefined,
+      query: search.formatString(),
+      project: projectIds,
+    },
+  };
+};
 
 export default AggregateSpanDiff;

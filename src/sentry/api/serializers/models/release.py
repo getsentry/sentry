@@ -16,6 +16,7 @@ from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
     ReleaseSerializerResponse,
 )
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -233,79 +234,186 @@ class NonMappableUser(TypedDict):
 Author = Union[UserSerializerResponse, NonMappableUser]
 
 
+def get_author_users_by_external_actors(
+    authors: list[CommitAuthor], organization_id: int
+) -> tuple[dict[CommitAuthor, str], list[CommitAuthor]]:
+    found: dict[CommitAuthor, str] = {}
+
+    usernames_to_authors: dict[str, CommitAuthor] = {}
+    for author in authors:
+        username = author.get_username_from_external_id()
+        if username:
+            # ExternalActor.external_name includes @ prefix
+            # (e.g., "@username") for GitHub and GitLab
+            usernames_to_authors[f"@{username}"] = author
+
+    if not usernames_to_authors:
+        return found, authors
+
+    external_actors = (
+        ExternalActor.objects.filter(
+            external_name__in=list(usernames_to_authors.keys()),
+            organization_id=organization_id,
+            user_id__isnull=False,  # excludes team mappings
+        )
+        .order_by("id")
+        .values_list("user_id", "external_name")
+    )
+
+    if not external_actors:
+        return found, authors
+
+    missed: dict[int, CommitAuthor] = {a.id: a for a in authors}
+
+    for user_id, external_name in external_actors:
+        if external_name in usernames_to_authors:
+            found_author = usernames_to_authors[external_name]
+            found[found_author] = str(user_id)
+            missed.pop(found_author.id, None)
+
+    return found, list(missed.values())
+
+
+def get_author_users_by_email(
+    authors: list[CommitAuthor], organization_id: int
+) -> tuple[dict[CommitAuthor, str], list[CommitAuthor]]:
+    author_email_map: dict[str, CommitAuthor] = {a.email.lower(): a for a in authors}
+
+    users: list[RpcUser] = user_service.get_many(
+        filter={
+            "emails": list(author_email_map.keys()),
+            "organization_id": organization_id,
+            "is_active": True,
+        }
+    )
+
+    if not users:
+        return {}, authors
+
+    missed: dict[int, CommitAuthor] = {a.id: a for a in authors}
+    primary_match: dict[CommitAuthor, str] = {}
+    secondary_match: dict[CommitAuthor, str] = {}
+
+    for user in users:
+
+        primary_email = user.email.lower()
+        if primary_email in author_email_map:
+            found_author = author_email_map[primary_email]
+            primary_match[found_author] = str(user.id)
+            missed.pop(found_author.id, None)
+
+        for email in user.emails:
+            secondary_email = email.lower()
+            if secondary_email in author_email_map:
+                found_author = author_email_map[secondary_email]
+                if found_author not in primary_match:
+                    secondary_match[found_author] = str(user.id)
+                    missed.pop(found_author.id, None)
+
+    # merge matches, primary_match is kept if collision
+    found: dict[CommitAuthor, str] = secondary_match | primary_match
+
+    return found, list(missed.values())
+
+
+def get_cached_results(
+    authors: list[CommitAuthor], organization_id: int
+) -> tuple[dict[str, Author], list[CommitAuthor]]:
+    cached_results: dict[str, Author] = {}
+    fetched = cache.get_many(
+        [_user_to_author_cache_key(organization_id, author) for author in authors]
+    )
+
+    if not fetched:
+        return cached_results, authors
+
+    missed = []
+    for author in authors:
+        fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
+        if fetched_user is None:
+            missed.append(author)
+        else:
+            cached_results[str(author.id)] = fetched_user
+
+    return cached_results, missed
+
+
 def get_users_for_authors(
     organization_id: int,
     authors: list[CommitAuthor],
     user: User | AnonymousUser | RpcUser | None = None,
 ) -> Mapping[str, Author]:
     """
-    Returns a dictionary of author_id => user, if a Sentry
+    Returns a dictionary of commit_author_id => user, if a Sentry
     user object exists for that email. If there is no matching
     Sentry user, a {user, email} dict representation of that
-    author is returned.
+    commit author is returned.
     e.g.
     {
-        '<author-id-1>': serialized(<User id=1, ...>),
-        '<author-id-2>': {'email': 'not-a-user@example.com', 'name': 'dunno'},
-        '<author-id-3>': serialized(<User id=3, ...>),
+        '<commit-author-id-1>': serialized(<User id=1, ...>),
+        '<commit-author-id-2>': {'email': 'not-a-user@example.com', 'name': 'dunno'},
+        '<commit-author-id-3>': serialized(<User id=3, ...>),
         ...
     }
     """
-    results = {}
+    cached_results, missed = get_cached_results(authors, organization_id)
 
-    fetched = cache.get_many(
-        [_user_to_author_cache_key(organization_id, author) for author in authors]
+    if not missed:
+        metrics.incr("sentry.release.get_users_for_authors.missed", amount=0)
+        metrics.incr("sentry.release.get_users_for_authors.total", amount=len(cached_results))
+        return cached_results
+
+    # User Mappings take precedence over email lookup (higher signal)
+    external_actor_results, remaining_missed_authors = get_author_users_by_external_actors(
+        missed, organization_id
     )
-    if fetched:
-        missed = []
-        for author in authors:
-            fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
-            if fetched_user is None:
-                missed.append(author)
-            else:
-                results[str(author.id)] = fetched_user
-    else:
-        missed = authors
 
-    if missed:
-        if isinstance(user, AnonymousUser):
-            user = None
-
-        # Filter users based on the emails provided in the commits
-        # and that belong to the organization associated with the release
-        users: Sequence[UserSerializerResponse] = user_service.serialize_many(
-            filter={
-                "emails": [a.email for a in missed],
-                "organization_id": organization_id,
-                "is_active": True,
-            },
-            as_user=serialize_generic_user(user),
+    if remaining_missed_authors:
+        email_results, remaining_missed_authors = get_author_users_by_email(
+            remaining_missed_authors, organization_id
         )
-        # Figure out which email address matches to a user
-        users_by_email = {}
-        for email in [a.email for a in missed]:
-            # force emails to lower case so we can do case insensitive matching
-            lower_email = email.lower()
-            if lower_email not in users_by_email:
-                for u in users:
-                    for match in u["emails"]:
-                        if (
-                            match["email"].lower() == lower_email
-                            and lower_email not in users_by_email
-                        ):
-                            users_by_email[lower_email] = u
+    else:
+        email_results = {}
 
-        to_cache = {}
-        for author in missed:
-            results[str(author.id)] = users_by_email.get(
-                author.email.lower(), {"name": author.name, "email": author.email}
-            )
-            to_cache[_user_to_author_cache_key(organization_id, author)] = results[str(author.id)]
-        cache.set_many(to_cache)
+    unserialized_results: Mapping[CommitAuthor, str] = {
+        **external_actor_results,
+        **email_results,
+    }
+
+    serialized_users: Sequence[UserSerializerResponse] = user_service.serialize_many(
+        filter={"user_ids": list(unserialized_results.values())},
+        as_user=serialize_generic_user(user),
+    )
+
+    user_id_to_serialized_user_map: dict[str, UserSerializerResponse] = {
+        u["id"]: u for u in serialized_users
+    }
+
+    serialized_results: dict[str, UserSerializerResponse] = {}
+    for commit_author, user_id in unserialized_results.items():
+        # edge case: a user from unserialized_results could not come back in serialized_users
+        if user_id in user_id_to_serialized_user_map:
+            serialized_results[str(commit_author.id)] = user_id_to_serialized_user_map[user_id]
+        else:
+            remaining_missed_authors.append(commit_author)
+
+    authors_with_no_matches: dict[str, NonMappableUser] = {}
+    for author in remaining_missed_authors:
+        authors_with_no_matches[str(author.id)] = {
+            "name": author.name,
+            "email": author.email,
+        }
+
+    final_results = {**cached_results, **serialized_results, **authors_with_no_matches}
+
+    to_cache = {}
+    for author in missed:
+        to_cache[_user_to_author_cache_key(organization_id, author)] = final_results[str(author.id)]
+    cache.set_many(to_cache)
 
     metrics.incr("sentry.release.get_users_for_authors.missed", amount=len(missed))
-    metrics.incr("sentry.release.get_users_for_authors.total", amount=len(results))
-    return results
+    metrics.incr("sentry.release.get_users_for_authors.total", amount=len(final_results))
+    return final_results
 
 
 class _ProjectDict(TypedDict):

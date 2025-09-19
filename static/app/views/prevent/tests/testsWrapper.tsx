@@ -18,7 +18,7 @@ export default function TestAnalyticsPageWrapper() {
           <HeaderContentBar>
             <Layout.Title>
               {TESTS_PAGE_TITLE}
-              <FeatureBadge type="new" />
+              <FeatureBadge type="beta" />
             </Layout.Title>
           </HeaderContentBar>
         </Layout.HeaderContent>

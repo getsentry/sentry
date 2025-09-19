@@ -90,13 +90,13 @@ function DashboardCard({
           icon={
             <IconStar
               isSolid={favorited}
-              color={favorited ? 'yellow300' : 'gray300'}
+              color={favorited ? 'yellow300' : 'gray500'}
               size="sm"
-              aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+              aria-label={favorited ? t('Unstar') : t('Star')}
             />
           }
           borderless
-          aria-label={t('Dashboards Favorite')}
+          aria-label={favorited ? t('Starred Dashboard') : t('Star Dashboard')}
           size="xs"
           onClick={async () => {
             try {

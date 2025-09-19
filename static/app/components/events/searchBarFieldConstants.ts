@@ -1,6 +1,5 @@
 import omit from 'lodash/omit';
 
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {
   ERROR_ONLY_FIELDS,
   FIELD_TAGS,
@@ -10,11 +9,6 @@ import {
   TRANSACTION_ONLY_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
-
-export const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
-  `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
-  'g'
-);
 
 export const STATIC_FIELD_TAGS_SET = new Set(Object.keys(FIELD_TAGS));
 

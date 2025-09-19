@@ -300,7 +300,12 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert detector.owner.identifier == self.user.get_actor_identifier()
 
         # Verify serialized response includes owner
-        assert response.data["owner"] == self.user.get_actor_identifier()
+        assert response.data["owner"] == {
+            "email": self.user.email,
+            "id": str(self.user.id),
+            "name": self.user.get_username(),
+            "type": "user",
+        }
 
     def test_update_owner_to_team(self) -> None:
         # Set initial user owner
@@ -331,7 +336,11 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert detector.owner.identifier == f"team:{team.id}"
 
         # Verify serialized response includes team owner
-        assert response.data["owner"] == f"team:{team.id}"
+        assert response.data["owner"] == {
+            "id": str(team.id),
+            "name": team.slug,
+            "type": "team",
+        }
 
     def test_update_clear_owner(self) -> None:
         # Set initial owner

@@ -159,28 +159,51 @@ function PlatformPicker({
     });
   }, [filter, category, availablePlatforms, showOther, categories]);
 
-  const latestValuesRef = useRef({filter, platformList, source, organization});
-
-  useEffect(() => {
-    latestValuesRef.current = {filter, platformList, source, organization};
+  const latestValuesRef = useRef({
+    filter,
+    platformList,
+    source,
+    organization,
+    category,
   });
 
-  const debounceLogSearch = useRef(
+  useEffect(() => {
+    latestValuesRef.current = {filter, platformList, source, organization, category};
+  });
+
+  const debounceSearch = useRef(
     debounce(() => {
       const {
         filter: currentFilter,
         platformList: currentPlatformList,
         source: currentSource,
         organization: currentOrganization,
+        category: currentCategory,
       } = latestValuesRef.current;
-      if (currentFilter) {
-        trackAnalytics('growth.platformpicker_search', {
-          search: currentFilter.toLowerCase(),
-          num_results: currentPlatformList.length,
-          source: currentSource,
-          organization: currentOrganization ?? null,
-        });
+
+      if (!currentFilter) {
+        return;
       }
+      trackAnalytics('growth.platformpicker_search', {
+        search: currentFilter.toLowerCase(),
+        num_results: currentPlatformList.length,
+        source: currentSource,
+        organization: currentOrganization ?? null,
+      });
+
+      if (!visibleSelection) {
+        return;
+      }
+
+      const fullPlatformMatch = currentPlatformList.find(
+        platformItem => platformItem.name.toLowerCase() === currentFilter.toLowerCase()
+      );
+
+      if (!fullPlatformMatch) {
+        return;
+      }
+
+      setPlatform({...fullPlatformMatch, category: currentCategory});
     }, DEFAULT_DEBOUNCE_DURATION)
   ).current;
 
@@ -214,7 +237,7 @@ function PlatformPicker({
             placeholder={t('Filter Platforms')}
             onChange={val => {
               setFilter(val);
-              debounceLogSearch();
+              debounceSearch();
             }}
           />
         )}

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
   EAPSpanSearchQueryBuilder,
@@ -28,6 +27,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {McpInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -157,9 +157,6 @@ function McpOverviewPage() {
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const hasMatchKeySuggestions = organization.features.includes(
-    'search-query-builder-match-key-suggestions'
-  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -173,15 +170,12 @@ function McpOverviewPage() {
       numberSecondaryAliases,
       stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
-      matchKeySuggestions: hasMatchKeySuggestions
-        ? [
-            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-          ]
-        : undefined,
+      matchKeySuggestions: [
+        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+      ],
     }),
     [
-      hasMatchKeySuggestions,
       hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
@@ -215,7 +209,7 @@ function McpOverviewPage() {
                 <ToolRibbon>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector />
-                    <EnvironmentPageFilter />
+                    <InsightsEnvironmentSelector />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (

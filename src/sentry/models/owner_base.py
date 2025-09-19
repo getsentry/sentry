@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
-from django.db.models import BaseConstraint
 
 from sentry.db.models import FlexibleForeignKey, Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -22,7 +21,7 @@ class OwnerModel(Model):
     class Meta:
         abstract = True
 
-        constraints: list[BaseConstraint] = [
+        constraints = [
             models.CheckConstraint(
                 condition=(
                     models.Q(owner_user_id__isnull=True, owner_team__isnull=False)

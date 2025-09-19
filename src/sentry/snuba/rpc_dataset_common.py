@@ -591,6 +591,7 @@ class RPCBase:
         raw_groupby: list[str],
         orderby: list[str] | None,
         limit: int,
+        include_other: bool,
         referrer: str,
         config: SearchResolverConfig,
         sampling_mode: SAMPLING_MODES | None,
@@ -622,7 +623,7 @@ class RPCBase:
                 orderby=orderby,
                 offset=0,
                 limit=limit,
-                referrer=referrer,
+                referrer=f"{referrer}.find-topn",
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
                 equations=equations,
@@ -649,23 +650,29 @@ class RPCBase:
             query_string=query_string,
             y_axes=y_axes,
             groupby=groupby_columns_without_project,
-            referrer=referrer,
+            referrer=f"{referrer}.topn",
             sampling_mode=sampling_mode,
             extra_conditions=top_conditions,
         )
-        other_request, other_aggregates, other_groupbys = cls.get_timeseries_query(
-            search_resolver=search_resolver,
-            params=params,
-            query_string=query_string,
-            y_axes=y_axes,
-            groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
-            referrer=referrer,
-            sampling_mode=sampling_mode,
-            extra_conditions=other_conditions,
-        )
+        requests = [rpc_request]
+        if include_other:
+            other_request, _, _ = cls.get_timeseries_query(
+                search_resolver=search_resolver,
+                params=params,
+                query_string=query_string,
+                y_axes=y_axes,
+                groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
+                referrer=f"{referrer}.query-other",
+                sampling_mode=sampling_mode,
+                extra_conditions=other_conditions,
+            )
+            requests.append(other_request)
 
         """Run the query"""
-        rpc_response, other_response = snuba_rpc.timeseries_rpc([rpc_request, other_request])
+        timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
+        rpc_response = timeseries_rpc_response[0]
+        if len(timeseries_rpc_response) > 1:
+            other_response = timeseries_rpc_response[1]
 
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)
@@ -729,7 +736,7 @@ class RPCBase:
                 params.end,
                 params.granularity_secs,
             )
-        if other_response.result_timeseries:
+        if include_other and other_response.result_timeseries:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries]
             )

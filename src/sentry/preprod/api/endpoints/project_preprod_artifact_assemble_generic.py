@@ -97,7 +97,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
             return True
         return False
 
-    def post(self, request: Request, project, artifact_id) -> Response:
+    def post(self, request: Request, project, head_artifact_id) -> Response:
         """
         Assembles a generic file for a preprod artifact and stores it in the database.
         """
@@ -161,7 +161,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                         "project_id": project.id,
                         "checksum": checksum,
                         "chunks": chunks,
-                        "artifact_id": artifact_id,
+                        "artifact_id": head_artifact_id,
                     }
                 )
             elif assemble_type == AssembleType.INSTALLABLE_APP.value:
@@ -175,7 +175,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                         "project_id": project.id,
                         "checksum": checksum,
                         "chunks": chunks,
-                        "artifact_id": artifact_id,
+                        "artifact_id": head_artifact_id,
                     }
                 )
             else:

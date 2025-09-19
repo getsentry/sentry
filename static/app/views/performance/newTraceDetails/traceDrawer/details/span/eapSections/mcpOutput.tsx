@@ -2,42 +2,17 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ensureAttributeObject} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-const OUTPUT_ATTRIBUTE = 'mcp.tool.result.content';
-
-function getOutputValue(
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  event?: EventTransaction,
-  attributes?: TraceItemResponseAttribute[]
-): string | undefined {
-  if (isEAPSpanNode(node) && attributes) {
-    return attributes
-      .find(attribute => attribute.name === OUTPUT_ATTRIBUTE)
-      ?.value.toString();
-  }
-
-  if (isTransactionNode(node) && event?.contexts.trace?.data) {
-    return event.contexts.trace.data[OUTPUT_ATTRIBUTE]?.toString();
-  }
-
-  if (isSpanNode(node) && node.value.data) {
-    return node.value.data[OUTPUT_ATTRIBUTE]?.toString();
-  }
-
-  return undefined;
-}
+const TOOL_OUTPUT_ATTRIBUTE = 'mcp.tool.result.content';
+const PROMPT_OUTPUT_PREFIX = 'mcp.prompt.result.';
 
 export function MCPOutputSection({
   node,
@@ -52,10 +27,25 @@ export function MCPOutputSection({
   if (!hasMCPInsightsFeature(organization) && getIsMCPNode(node)) {
     return null;
   }
+  const attributeDict = ensureAttributeObject(node, event, attributes);
 
-  const outputValue = getOutputValue(node, event, attributes);
+  if (!attributeDict) {
+    return null;
+  }
 
-  if (!outputValue) {
+  const toolOutput = attributeDict[TOOL_OUTPUT_ATTRIBUTE];
+  const promptOutputDict = Object.entries(attributeDict)
+    .filter(([key]) => key.startsWith(PROMPT_OUTPUT_PREFIX))
+    .reduce(
+      (acc, [key, value]) => {
+        acc[key.replace(PROMPT_OUTPUT_PREFIX, '')] = value;
+        return acc;
+      },
+      {} as Record<string, string | number | boolean>
+    );
+  const hasPromptOutput = Object.keys(promptOutputDict).length > 0;
+
+  if (!toolOutput && !hasPromptOutput) {
     return null;
   }
 
@@ -65,7 +55,15 @@ export function MCPOutputSection({
       title={t('Output')}
       disableCollapsePersistence
     >
-      <TraceDrawerComponents.MultilineJSON value={outputValue} maxDefaultDepth={2} />
+      {toolOutput ? (
+        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={2} />
+      ) : null}
+      {hasPromptOutput ? (
+        <TraceDrawerComponents.MultilineJSON
+          value={promptOutputDict}
+          maxDefaultDepth={2}
+        />
+      ) : null}
     </FoldSection>
   );
 }

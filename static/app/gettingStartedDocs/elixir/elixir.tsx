@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import type {
   Docs,
   DocsParams,
@@ -7,7 +5,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportGenericInstallStep,
+  getCrashReportGenericInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -73,14 +71,21 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Edit your [code:mix.exs] file to add it as a dependency and add the [code::sentry] package to your applications:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'Edit your [code:mix.exs] file to add it as a dependency and add the [code::sentry] package to your applications:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk]:', {code: <code />}),
+        },
+        {
+          type: 'code',
           language: 'elixir',
-          description: <p>{tct('Install [code:sentry-sdk]:', {code: <code />})}</p>,
           code: getInstallSnippet(),
         },
       ],
@@ -89,14 +94,18 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Setup the application production environment in your [code:config/prod.exs]',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Setup the application production environment in your [code:config/prod.exs]',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'elixir',
           code: getConfigureSnippet(params),
         },
@@ -104,45 +113,53 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Package Source Code'),
-      description: tct(
-        'Add a call to [code:mix sentry.package_source_code] in your release script to make sure the stacktraces you receive are complete.',
-        {code: <code />}
-      ),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add a call to [code:mix sentry.package_source_code] in your release script to make sure the stacktraces you receive are complete.',
+            {code: <code />}
+          ),
+        },
+      ],
     },
     {
       title: t('Setup for Plug and Phoenix Applications'),
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              'You can capture errors in Plug (and Phoenix) applications with [code:Sentry.PlugContext] and [code:Sentry.PlugCapture]:',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'You can capture errors in Plug (and Phoenix) applications with [code:Sentry.PlugContext] and [code:Sentry.PlugCapture]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'diff',
           code: getPlugSnippet(),
         },
-      ],
-      additionalInfo: tct(
-        '[code:Sentry.PlugContext] gathers the contextual information for errors, and [code:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack.',
         {
-          code: <code />,
-        }
-      ),
+          type: 'text',
+          text: tct(
+            '[code:Sentry.PlugContext] gathers the contextual information for errors, and [code:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+      ],
     },
     {
       title: t('Capture Crashed Process Exceptions'),
-      description: t(
-        'This library comes with an extension to capture all error messages that the Plug handler might not. This is based on adding an erlang logger handler when your application starts:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'This library comes with an extension to capture all error messages that the Plug handler might not. This is based on adding an erlang logger handler when your application starts:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'elixir',
           code: getLoggerHandlerSnippet(),
         },
@@ -152,11 +169,14 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t('You can then report errors or messages to Sentry:'),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('You can then report errors or messages to Sentry:'),
+        },
+        {
+          type: 'code',
           language: 'elixir',
-
           code: getVerifySnippet(),
         },
       ],
@@ -166,13 +186,18 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  install: (params: Params) => getCrashReportGenericInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/elixir/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/elixir/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

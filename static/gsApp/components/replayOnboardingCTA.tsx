@@ -5,9 +5,10 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -118,7 +119,7 @@ function ReplayOnboardingCTAUpsell({
         subscription,
         onComplete: () => {
           window.location.hash = 'replay-sidequest';
-          SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+          OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
           onComplete();
         },
         surface: 'replay',

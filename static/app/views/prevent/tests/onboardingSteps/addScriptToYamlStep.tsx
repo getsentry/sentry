@@ -10,11 +10,11 @@ interface AddScriptToYamlStepProps {
   step: string;
 }
 
-const SNIPPET = `- name: Upload test results to Codecov
+const SNIPPET = `- name: Upload test results to Sentry Prevent
   if: \${{ !cancelled() }}
-  uses: codecov/test-results-action@v1
+  uses: getsentry/prevent-action@latest
   with:
-    token: \${{ secrets.CODECOV_TOKEN }}
+    token: \${{ secrets.SENTRY_PREVENT_TOKEN }}
 `;
 
 export function AddScriptToYamlStep({step}: AddScriptToYamlStepProps) {

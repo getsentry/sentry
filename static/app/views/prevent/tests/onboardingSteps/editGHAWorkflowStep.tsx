@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {GHAWorkflowExpandable} from 'sentry/views/prevent/tests/onboardingSteps/GHAWorkflowExpandable';
@@ -15,9 +15,9 @@ const PERMISSIONS_SNIPPET = `permissions:
     id-token: write
 `;
 
-const ACTION_SNIPPET = `- name: Upload test results to Codecov
+const ACTION_SNIPPET = `- name: Upload test results to Sentry Prevent
   if: \${{ !cancelled() }}
-  uses: getsentry/prevent-action
+  uses: getsentry/prevent-action@latest
 `;
 
 export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
@@ -48,12 +48,10 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
             </CodeSnippet>
             <Paragraph>
               {tct(
-                'Set this permission at the workflow or job level. For better security, define it at the job level as it limits access to only the job that needs the OIDC token. Learn more about [permissionsSettings].',
+                'Set this permission at the workflow or job level. For better security, define it at the job level as it limits access to only the job that needs the OIDC token. Learn more about [link:permissions settings].',
                 {
-                  permissionsSettings: (
-                    <Link to="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers#adding-permissions-settings">
-                      {t('permissions settings')}
-                    </Link>
+                  link: (
+                    <ExternalLink href="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers#adding-permissions-settings" />
                   ),
                 }
               )}
@@ -76,7 +74,7 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
           </CodeSnippet>
           <Paragraph>
             {t(
-              'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'
+              'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'
             )}
           </Paragraph>
         </OnboardingStep.Content>

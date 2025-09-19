@@ -30,7 +30,7 @@ from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
     can_edit_detector,

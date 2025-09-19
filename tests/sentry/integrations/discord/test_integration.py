@@ -39,12 +39,12 @@ class DiscordSetupTestCase(IntegrationTestCase):
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def assert_setup_flow(
         self,
-        mock_set_application_command,
-        guild_id="1234567890",
-        server_name="Cool server",
-        auth_code="auth_code",
-        command_response_empty=True,
-    ):
+        mock_set_application_command: mock.MagicMock,
+        guild_id: str = "1234567890",
+        server_name: str = "Cool server",
+        auth_code: str = "auth_code",
+        command_response_empty: bool = True,
+    ) -> None:
         responses.reset()
 
         resp = self.client.get(self.init_path)
@@ -128,10 +128,10 @@ class DiscordSetupTestCase(IntegrationTestCase):
 
     def assert_setup_flow_from_discord(
         self,
-        guild_id="1234567890",
-        server_name="Cool server",
-        auth_code="auth_code",
-    ):
+        guild_id: str = "1234567890",
+        server_name: str = "Cool server",
+        auth_code: str = "auth_code",
+    ) -> None:
         responses.reset()
 
         resp = self.client.get(self.configure_path)

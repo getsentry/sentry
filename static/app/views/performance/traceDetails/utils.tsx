@@ -6,10 +6,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
-  TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY,
   TraceViewSources,
 } from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -22,9 +20,7 @@ function getBaseTraceUrl(
   source?: TraceViewSources,
   view?: DomainView
 ) {
-  const routesMap = prefersStackedNav(organization)
-    ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
-    : TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY;
+  const routesMap = TRACE_SOURCE_TO_NON_INSIGHT_ROUTES;
 
   if (source === TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY) {
     return normalizeUrl(

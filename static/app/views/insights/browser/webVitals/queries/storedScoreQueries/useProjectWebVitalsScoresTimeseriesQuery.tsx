@@ -1,10 +1,10 @@
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Tag} from 'sentry/types/group';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
@@ -45,9 +45,9 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
   }
 
-  const result = useSpanSeries(
+  const result = useFetchSpanTimeSeries(
     {
-      search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
+      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       yAxis: [
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',
@@ -63,13 +63,22 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   const multiplyBy100 = (data: SeriesDataUnit[]) =>
     data.map(({name, value}) => ({name, value: value * 100}));
 
+  const timeSeries = result.data?.timeSeries || [];
+
+  const getSeriesData = (yAxis: string) => {
+    const series = timeSeries.find(ts => ts.yAxis === yAxis);
+    return series
+      ? series.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+      : [];
+  };
+
   const data: WebVitalsScoreBreakdown = {
-    lcp: multiplyBy100(result.data['performance_score(measurements.score.lcp)'].data),
-    fcp: multiplyBy100(result.data['performance_score(measurements.score.fcp)'].data),
-    cls: multiplyBy100(result.data['performance_score(measurements.score.cls)'].data),
-    ttfb: multiplyBy100(result.data['performance_score(measurements.score.ttfb)'].data),
-    inp: multiplyBy100(result.data['performance_score(measurements.score.inp)'].data),
-    total: result.data['count()'].data,
+    lcp: multiplyBy100(getSeriesData('performance_score(measurements.score.lcp)')),
+    fcp: multiplyBy100(getSeriesData('performance_score(measurements.score.fcp)')),
+    cls: multiplyBy100(getSeriesData('performance_score(measurements.score.cls)')),
+    ttfb: multiplyBy100(getSeriesData('performance_score(measurements.score.ttfb)')),
+    inp: multiplyBy100(getSeriesData('performance_score(measurements.score.inp)')),
+    total: getSeriesData('count()'),
   };
 
   return {...result, data};

@@ -24,21 +24,21 @@ class ProjectKeyService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_project_key(
-        self, *, organization_id: int, project_id: str, role: ProjectKeyRole
+        self, *, organization_id: int, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_default_project_key(
-        self, *, organization_id: int, project_id: str
+        self, *, organization_id: int, project_id: int
     ) -> RpcProjectKey | None:
         pass
 
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_project_key_by_region(
-        self, *, region_name: str, project_id: str, role: ProjectKeyRole
+        self, *, region_name: str, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         pass
 
@@ -48,7 +48,7 @@ class ProjectKeyService(RpcService):
         self,
         *,
         region_name: str,
-        project_ids: list[str],
+        project_ids: list[int],
         role: ProjectKeyRole,
     ) -> list[RpcProjectKey]:
         pass

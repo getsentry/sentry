@@ -9,7 +9,6 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -22,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_SIDEBAR_WIDTH,
+  SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';

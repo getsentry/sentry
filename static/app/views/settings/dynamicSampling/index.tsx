@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,9 +34,9 @@ export default function DynamicSamplingSettings() {
             'Custom Sample Rates for Dynamic Sampling are not available on your current plan. Check our [documentation] for information about how to set Sampling Priorities.',
             {
               documentation: (
-                <Link to="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities">
+                <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities">
                   {t('documentation')}
-                </Link>
+                </ExternalLink>
               ),
             }
           )}
@@ -53,9 +53,9 @@ export default function DynamicSamplingSettings() {
             'Dynamic Sampling is not available on your current plan. Check our [documentation] for more information about Dynamic Sampling.',
             {
               documentation: (
-                <Link to="https://docs.sentry.io/organization/dynamic-sampling/">
+                <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/">
                   {t('documentation')}
-                </Link>
+                </ExternalLink>
               ),
             }
           )}

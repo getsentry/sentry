@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {WebVital} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
@@ -51,6 +52,7 @@ export default function WebVitalMetersWithIssues({
   onClick,
   projectData,
   projectScore,
+  transaction,
   showTooltip = true,
 }: Props) {
   const theme = useTheme();
@@ -79,6 +81,7 @@ export default function WebVitalMetersWithIssues({
           meterValue={meterValue}
           color={colors[index]!}
           onClick={onClick}
+          transaction={transaction}
         />
       );
     });
@@ -99,6 +102,7 @@ type VitalMeterProps = {
   webVital: WebVitals;
   isAggregateMode?: boolean;
   onClick?: (webVital: WebVitals) => void;
+  transaction?: string;
 };
 
 function VitalMeter({
@@ -106,6 +110,7 @@ function VitalMeter({
   score,
   meterValue,
   onClick,
+  transaction,
   isAggregateMode = true,
   showTooltip = true,
 }: VitalMeterProps) {
@@ -120,47 +125,16 @@ function VitalMeter({
       <NoValue />
     );
 
-  const webVitalKey = `measurements.${webVital}`;
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
+  const webVitalKey = `measurements.${webVital}` as WebVital;
+  const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey]!;
 
   const headerText = WEB_VITALS_METERS_CONFIG[webVital].name;
   const issueTypes = WEB_VITAL_PERFORMANCE_ISSUES[webVital];
-  const {data: issues} = useWebVitalsIssuesQuery({issueTypes});
+  const {data: issues} = useWebVitalsIssuesQuery({transaction, issueTypes, webVital});
   const hasIssues = issues && issues.length > 0;
   const meterBody = (
     <Fragment>
       <MeterBarBody>
-        <StyledIssuesButton
-          to={getIssuesUrl({organization, webVital, selection})}
-          aria-label={t('View Performance Issues')}
-          icon={<IconIssues />}
-          size="xs"
-          onClick={event => {
-            event.stopPropagation();
-          }}
-          disabled={!hasIssues}
-          title={
-            issues &&
-            issues.length > 0 &&
-            (issues.length === 1
-              ? tct('There is 1 performance issue potentially affecting [webVital].', {
-                  webVital: webVital.toUpperCase(),
-                })
-              : tct(
-                  'There are [count] performance issues potentially affecting [webVital].',
-                  {
-                    count: issues.length > 5 ? '5+' : issues.length,
-                    webVital: webVital.toUpperCase(),
-                  }
-                ))
-          }
-          tooltipProps={{
-            isHoverable: true,
-          }}
-        >
-          {hasIssues ? (issues.length > 5 ? '5+' : issues.length) : '—'}
-        </StyledIssuesButton>
         <MeterHeader>
           {headerText}
 
@@ -183,6 +157,36 @@ function VitalMeter({
         <MeterValueText>
           {formattedMeterValueText}
           {score && <PerformanceBadge score={score} />}
+          <StyledIssuesButton
+            to={getIssuesUrl({organization, webVital, selection, transaction})}
+            aria-label={t('View Performance Issues')}
+            icon={<IconIssues />}
+            size="xs"
+            onClick={event => {
+              event.stopPropagation();
+            }}
+            disabled={!hasIssues}
+            title={
+              issues &&
+              issues.length > 0 &&
+              (issues.length === 1
+                ? tct('There is 1 performance issue potentially affecting [webVital].', {
+                    webVital: webVital.toUpperCase(),
+                  })
+                : tct(
+                    'There are [count] performance issues potentially affecting [webVital].',
+                    {
+                      count: issues.length > 5 ? '5+' : issues.length,
+                      webVital: webVital.toUpperCase(),
+                    }
+                  ))
+            }
+            tooltipProps={{
+              isHoverable: true,
+            }}
+          >
+            {hasIssues ? (issues.length > 5 ? '5+' : issues.length) : '—'}
+          </StyledIssuesButton>
         </MeterValueText>
       </MeterBarBody>
     </Fragment>
@@ -240,13 +244,17 @@ const getIssuesUrl = ({
   organization,
   webVital,
   selection,
+  transaction,
 }: {
   organization: Organization;
   selection: PageFilters;
   webVital: WebVitals;
+  transaction?: string;
 }) => {
   const query = getIssueQueryFilter({
     issueTypes: WEB_VITAL_PERFORMANCE_ISSUES[webVital],
+    webVital,
+    transaction,
   });
   return `/organizations/${organization.slug}/issues/?${qs.stringify({
     query,

@@ -1,0 +1,79 @@
+---
+title: Layering & Elevation
+layout: document
+description: Guidelines for creating visual hierarchy through layering, shadows, and elevation in Sentry's interface design.
+---
+
+import backgroundElevationColors from './background-elevation-colors.png';
+import chonkyBordersPerspective from './chonky-borders-perspective.png';
+import floatingElementsShadows from './floating-elements-shadows.png';
+import objectModelDiagram from './object-model-diagram.png';
+
+Layering refers to the way we "stack" elements on top of one another in the user interface. Think of UI elements — buttons, panels, overlays — as layers existing in a three-dimensional world with a depth axis that's orthogonal to the display's two real axes.
+
+A UI element's elevation is its position on the depth axis. Higher elevation values correspond to further separation from the main content layer (the "ground") and closer proximity to the user. Modals and overlays that "float" above the main content therefore have higher elevation values than any element on the page. In that sense, elevation is analogous to the z-index in CSS.
+
+Layering and elevation are effective visual levers to:
+
+- Establish and reinforce the information hierarchy (primarily through the [principle of common region](https://www.nngroup.com/articles/common-region/))
+- Direct the user's focus to certain elements on the page (a change in elevation makes an element stand out visually)
+
+## Signifiers
+
+In addition to the stacking order (`z-index`), elevation is further visually expressed in the following ways.
+
+### Background color
+
+Background colors should be dynamically defined to conform to the element's elevation value. Use the `background` tokens for this. Higher elevation means a lighter background color in both light and dark mode (except for when the outer background color is already white). The physical metaphor for this is a light source in front of the display illuminating elements closer to it more than those further away.
+
+<img
+  src={backgroundElevationColors}
+  alt="Background elevation colors showing how elevation affects background color values"
+/>
+
+### Borders
+
+**Borders** establish and accentuate the depth effect. Chonky borders, which are thicker at the top/bottom (depending on whether the element is indented or raised), are the result of isometric perspective.
+
+Chonky buttons, for example, are analogous to keys protruding from a physical keyboard if you were looking at it from slightly below&mdash;the keys' bottom edges are expressed as thicker bottom borders.
+
+<img
+  src={chonkyBordersPerspective}
+  alt="Chonky borders shown in isometric perspective demonstrating 3D depth effect"
+/>
+
+### Shadows
+
+**Shadows** apply to "floating" elements such as overlays and modals. These elements cast a shadow on the content behind them, extending the metaphor of a light source in front of the display. They do not need to have Chonky borders.
+
+<img
+  src={floatingElementsShadows}
+  alt="Floating elements with shadows demonstrating how overlays and modals cast shadows"
+/>
+
+## Model
+
+The universe of UI elements can be broken down to nested sets in terms of how they respond to elevation.
+
+Apply elevation in a manner consistent with the model outlined below.
+
+<img
+  src={objectModelDiagram}
+  alt="Object model diagram showing the hierarchy of UI elements and their elevation properties"
+/>
+
+### Layers
+
+**Layers** include all elements that can be stacked together to compose a view. This includes a wide range of elements such as buttons, text fields, segmented controls, overlays, as well as those with zero or minimal surface area, like text, icons, dividers. The latter group should never have any background fill, chonky borders, or shadows.
+
+### Sheets
+
+**Sheets** are layers that have background fills either darker than their surroundings to indicate lower elevation, or lighter to indicate higher elevation. Think of them as tinted sheets of paper with negligible thickness. Sheets are useful for grouping elements together into contained, clearly demarcated information areas, such as a query sheet composed of various fields that together form a single query object.
+
+### Slabs and Wells
+
+**Slabs and wells** are sheets with an expressed thickness dimension, i.e. those with increased bottom borders (embossed slabs) or top borders (debossed wells). The border thickness corresponds to the element's thickness/depth. Larger buttons, for example, are thicker and therefore have more Chonky borders. Use slabs and wells for interactive elements to help make them stand out.
+
+### Floating Elements
+
+**Floating elements** are sheets that hover above the main content (as opposed to slabs and wells, which are still attached to the content) and therefore cast a shadow on the content underneath. This group includes tooltips, overlays, modals, and toasts. They do not need to have a thickness dimension — no Chonky border.

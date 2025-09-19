@@ -13,6 +13,7 @@ export enum UptimeMonitorMode {
 
 export interface UptimeRule {
   body: string | null;
+  downtimeThreshold: number;
   environment: string | null;
   headers: Array<[key: string, value: string]>;
   id: string;
@@ -22,6 +23,7 @@ export interface UptimeRule {
   name: string;
   owner: Actor;
   projectSlug: string;
+  recoveryThreshold: number;
   status: ObjectStatus;
   timeoutMs: number;
   traceSampling: boolean;

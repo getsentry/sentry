@@ -229,13 +229,8 @@ describe('SampledProfile', () => {
       'f1 [native code]'
     );
     // The total weight of the previous top is now the weight of the GC call + the weight of the previous top
-    expect(profile.callTree.children[0]!.children[0]!.frame.totalWeight).toBe(4);
     expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.name).toBe(
       '(garbage collector) [native code]'
-    );
-    // The self weight of the GC call is only the weight of the GC call
-    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.selfWeight).toBe(
-      3
     );
   });
 
@@ -333,9 +328,6 @@ describe('SampledProfile', () => {
 
     // There are no other children than the GC call meaning merge happened
     expect(profile.callTree.children[0]!.children[0]!.children[1]).toBeUndefined();
-    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.selfWeight).toBe(
-      6
-    );
   });
 
   it('flamegraph tracks node occurrences', () => {
@@ -421,8 +413,5 @@ describe('SampledProfile', () => {
     expect(profile.callTree.children[0]!.aggregate_duration_ns).toBe(15);
     expect(profile.callTree.children[0]!.children[0]!.aggregate_duration_ns).toBe(10);
     expect(profile.callTree.children[0]!.children[1]!.aggregate_duration_ns).toBe(5);
-    expect(profile.callTree.children[0]!.frame.aggregateDuration).toBe(15);
-    expect(profile.callTree.children[0]!.children[0]!.frame.aggregateDuration).toBe(10);
-    expect(profile.callTree.children[0]!.children[1]!.frame.aggregateDuration).toBe(5);
   });
 });

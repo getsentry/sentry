@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Callable
 from unittest import mock
 
 import pytest
@@ -115,7 +116,9 @@ def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @pytest.mark.parametrize("should_sample,expected_calls", [(lambda: True, 1), (lambda: False, 0)])
-def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expected_calls) -> None:
+def test_log_multiclick_events(
+    mock_logger: mock.MagicMock, should_sample: Callable[[], bool], expected_calls: int
+) -> None:
     """Test that multiclick events are logged correctly based on sampling."""
     multiclick_events = [
         MultiClickEvent(
@@ -157,7 +160,9 @@ def test_log_multiclick_events(mock_logger: mock.MagicMock, should_sample, expec
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @pytest.mark.parametrize("should_sample", [lambda: False, lambda: True])
-def test_log_multiclick_events_empty(mock_logger: mock.MagicMock, should_sample) -> None:
+def test_log_multiclick_events_empty(
+    mock_logger: mock.MagicMock, should_sample: Callable[[], bool]
+) -> None:
     """Test that multiclick events logger is not called if there are no multiclick events."""
     meta = ParsedEventMeta([], [], [], [], [], [], [])
     log_multiclick_events(
@@ -168,7 +173,9 @@ def test_log_multiclick_events_empty(mock_logger: mock.MagicMock, should_sample)
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 @pytest.mark.parametrize("should_sample,expected_calls", [(lambda: True, 2), (lambda: False, 0)])
-def test_log_rage_click_events(mock_logger: mock.MagicMock, should_sample, expected_calls) -> None:
+def test_log_rage_click_events(
+    mock_logger: mock.MagicMock, should_sample: Callable[[], bool], expected_calls: int
+) -> None:
     """Test that rage click events are logged correctly based on sampling."""
     click_events = [
         ClickEvent(

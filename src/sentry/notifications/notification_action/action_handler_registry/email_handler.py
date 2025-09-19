@@ -1,5 +1,6 @@
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
+from sentry.notifications.types import FallthroughChoiceType
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
@@ -29,6 +30,7 @@ class EmailActionHandler(ActionHandler):
             "fallthroughType": {
                 "type": "string",
                 "description": "The fallthrough type for issue owners email notifications",
+                "enum": [*FallthroughChoiceType],
             },
         },
         "additionalProperties": False,

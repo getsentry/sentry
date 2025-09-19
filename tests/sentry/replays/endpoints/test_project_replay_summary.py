@@ -2,7 +2,7 @@ import uuid
 import zlib
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import requests
 from django.conf import settings
@@ -24,12 +24,12 @@ from sentry.utils import json
 
 
 class MockSeerResponse:
-    def __init__(self, status: int, json_data: dict):
+    def __init__(self, status: int, json_data: dict[str, str]):
         self.status = status
         self.json_data = json_data
         self.data = json.dumps(json_data)
 
-    def json(self):
+    def json(self) -> dict[str, str]:
         return self.json_data
 
 
@@ -63,7 +63,7 @@ class ProjectReplaySummaryTestCase(
         self.mock_has_seer_access_patcher.stop()
         super().tearDown()
 
-    def store_replay(self, dt: datetime | None = None, **kwargs) -> None:
+    def store_replay(self, dt: datetime | None = None, **kwargs: Any) -> None:
         replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
@@ -221,7 +221,7 @@ class ProjectReplaySummaryTestCase(
         trace_id = uuid.uuid4().hex
         span_id = "1" + uuid.uuid4().hex[:15]
 
-        # Create a direct error event that is also trace connected.
+        # Create a direct error event that is not trace connected.
         direct_event_id = uuid.uuid4().hex
         direct_error_timestamp = now.timestamp() - 2
         self.store_event(
@@ -240,7 +240,7 @@ class ProjectReplaySummaryTestCase(
                     "replay": {"replay_id": self.replay_id},
                     "trace": {
                         "type": "trace",
-                        "trace_id": trace_id,
+                        "trace_id": uuid.uuid4().hex,
                         "span_id": span_id,
                     },
                 },
@@ -372,7 +372,9 @@ class ProjectReplaySummaryTestCase(
         assert "User submitted feedback: 'Great website!'" in logs[0]
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
-    def test_post_with_trace_errors_both_datasets(self, mock_make_seer_api_request):
+    def test_post_with_trace_errors_both_datasets(
+        self, mock_make_seer_api_request: MagicMock
+    ) -> None:
         """Test that trace connected error snuba query works correctly with both datasets."""
         mock_response = MockSeerResponse(200, {"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
@@ -479,8 +481,8 @@ class ProjectReplaySummaryTestCase(
     @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_with_trace_errors_duplicate_feedback(
-        self, mock_make_seer_api_request, mock_fetch_feedback_details
-    ):
+        self, mock_make_seer_api_request: MagicMock, mock_fetch_feedback_details: MagicMock
+    ) -> None:
         """Test that duplicate feedback events are filtered.
         Duplicates may happen when the replay has a feedback breadcrumb,
         and the feedback is also returned from the Snuba query for trace-connected errors."""

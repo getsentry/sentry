@@ -354,6 +354,12 @@ export default typescript.config([
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
         },
+        // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
+        {
+          selector:
+            "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
+          message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',

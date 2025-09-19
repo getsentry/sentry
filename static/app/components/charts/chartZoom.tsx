@@ -76,6 +76,8 @@ type Props = {
  *
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
+ *
+ * @deprecated use useChartZoom instead
  */
 class ChartZoom extends Component<Props> {
   constructor(props: Props) {
@@ -374,4 +376,7 @@ class ChartZoom extends Component<Props> {
   }
 }
 
+/**
+ * @deprecated use useChartZoom instead
+ */
 export default withSentryRouter(ChartZoom);

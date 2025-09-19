@@ -34,7 +34,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
-from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator

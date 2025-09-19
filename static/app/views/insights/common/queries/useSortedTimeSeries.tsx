@@ -39,6 +39,7 @@ import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
+  disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
   interval?: string;
@@ -70,6 +71,7 @@ export const useSortedTimeSeries = <
     overriddenRoute,
     enabled,
     samplingMode,
+    disableAggregateExtrapolation,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -114,6 +116,7 @@ export const useSortedTimeSeries = <
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       sampling: samplingMode,
+      disableAggregateExtrapolation,
       // Timeseries requests do not support cursors, overwrite it to undefined so
       // pagination does not cause extra requests
       cursor: undefined,

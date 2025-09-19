@@ -1,7 +1,7 @@
 import type {PageFilters} from 'sentry/types/core';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SearchHook} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -43,9 +43,9 @@ export function useResourceSummarySeriesSearch(groupId?: string): SearchHook {
 export function useResourceSummarySeries(props: Props) {
   const {search, pageFilters, enabled, referrer} = props;
 
-  return useSpanSeries(
+  return useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: [
         `epm()`,
         `avg(${SPAN_SELF_TIME})`,
@@ -54,9 +54,8 @@ export function useResourceSummarySeries(props: Props) {
         `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
       ],
       enabled,
-      transformAliasToInputFormat: true,
+      pageFilters,
     },
-    referrer,
-    pageFilters
+    referrer
   );
 }

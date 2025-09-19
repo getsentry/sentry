@@ -31,7 +31,6 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -75,8 +74,6 @@ export default function ProjectDetail({router, location, organization}: Props) {
     organization.slug,
     false
   );
-  const prefersStackedNav = usePrefersStackedNav();
-
   const visibleCharts = useMemo(() => {
     if (hasTransactions || hasSessions) {
       return ['chart1', 'chart2'];
@@ -153,8 +150,8 @@ export default function ProjectDetail({router, location, organization}: Props) {
       >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
-            <Layout.Header unified={prefersStackedNav}>
-              <Layout.HeaderContent unified={prefersStackedNav}>
+            <Layout.Header unified>
+              <Layout.HeaderContent unified>
                 <Breadcrumbs
                   crumbs={[
                     {

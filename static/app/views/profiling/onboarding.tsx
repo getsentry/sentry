@@ -6,6 +6,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,
@@ -14,7 +15,6 @@ import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
   ProductSolution,
-  StepType,
   type Configuration,
   type DocsParams,
   type OnboardingStep,
@@ -131,7 +131,11 @@ function StepRenderer({
 
   return (
     <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
-      <ConfigurationRenderer configuration={step} />
+      {step.content ? (
+        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      ) : (
+        <ConfigurationRenderer configuration={step} />
+      )}
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -315,13 +319,7 @@ export function Onboarding() {
   const steps = [
     ...profilingDocs.install(docParams),
     ...profilingDocs.configure(docParams),
-    // TODO(aknaus): Move into snippets once all have profiling docs
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
-    },
+    ...profilingDocs.verify(docParams),
   ];
 
   return (

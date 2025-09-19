@@ -65,8 +65,6 @@ function DetailsHeader({
     },
   };
 
-  const isSnoozed = rule?.snooze ?? false;
-
   const ruleType =
     rule &&
     getAlertTypeFromAggregateDataset({
@@ -118,7 +116,7 @@ function DetailsHeader({
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert
-                  isSnoozed={isSnoozed}
+                  isSnoozed={rule?.snoozeForEveryone ?? false}
                   onSnooze={onSnooze}
                   ruleId={rule.id}
                   projectSlug={project.slug}

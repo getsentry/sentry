@@ -1,32 +1,44 @@
-import type {EventId} from 'sentry/views/settings/components/dataScrubbing/types';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import type {
+  EventId,
+  SourceSuggestion,
+} from 'sentry/views/settings/components/dataScrubbing/types';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
 
-import {fetchFromStorage, saveToStorage} from './localStorage';
+const ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY = 'advanced-data-scrubbing';
 
-function fetchSourceGroupData() {
-  const fetchedSourceGroupData = fetchFromStorage();
-  if (!fetchedSourceGroupData) {
-    const sourceGroupData: Parameters<typeof saveToStorage>[0] = {
+type StorageValue = {
+  eventId: string;
+  sourceSuggestions: SourceSuggestion[];
+};
+
+export function useSourceGroupData() {
+  const [sourceGroupData, setSourceGroupData] = useLocalStorageState<StorageValue>(
+    ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY,
+    {
       eventId: '',
       sourceSuggestions: valueSuggestions,
-    };
-    saveToStorage(sourceGroupData);
-    return sourceGroupData;
-  }
-  return fetchedSourceGroupData;
-}
+    }
+  );
 
-function saveToSourceGroupData(eventId: EventId, sourceSuggestions = valueSuggestions) {
-  switch (eventId.status) {
-    case EventIdStatus.LOADING:
-      break;
-    case EventIdStatus.LOADED:
-      saveToStorage({eventId: eventId.value, sourceSuggestions});
-      break;
-    default:
-      saveToStorage({eventId: '', sourceSuggestions});
-  }
-}
+  const saveToSourceGroupData = (
+    eventId: EventId,
+    sourceSuggestions = valueSuggestions
+  ) => {
+    switch (eventId.status) {
+      case EventIdStatus.LOADING:
+        break;
+      case EventIdStatus.LOADED:
+        setSourceGroupData({eventId: eventId.value, sourceSuggestions});
+        break;
+      default:
+        setSourceGroupData({eventId: '', sourceSuggestions});
+    }
+  };
 
-export {fetchSourceGroupData, saveToSourceGroupData};
+  return {
+    sourceGroupData,
+    saveToSourceGroupData,
+  };
+}

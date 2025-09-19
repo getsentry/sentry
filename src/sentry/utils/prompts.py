@@ -36,6 +36,7 @@ DEFAULT_PROMPTS: dict[str, _PromptConfig] = {
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
     "suggest_mobile_project": {"required_fields": ["organization_id"]},
     "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
+    "user_snooze_deprecation": {"required_fields": ["organization_id", "project_id"]},
     "vitals_alert": {"required_fields": ["organization_id"]},
 }
 

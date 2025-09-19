@@ -8,12 +8,11 @@ import {usePreventContext} from 'sentry/components/prevent/context/preventContex
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 
 import {useInfiniteRepositoryTokens} from './repoTokenTable/hooks/useInfiniteRepositoryTokens';
 import RepoTokenTable, {isAValidSort} from './repoTokenTable/repoTokenTable';
@@ -22,13 +21,7 @@ export default function TokensPage() {
   const {integratedOrgId} = usePreventContext();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {data: integrations = []} = useApiQuery<Integration[]>(
-    [
-      `/organizations/${organization.slug}/integrations/`,
-      {query: {includeConfig: 0, provider_key: 'github'}},
-    ],
-    {staleTime: 0}
-  );
+  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
   const location = useLocation();
 
   const sort = decodeSorts(location.query?.sort).find(isAValidSort);

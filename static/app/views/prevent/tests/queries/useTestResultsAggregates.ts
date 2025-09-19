@@ -29,7 +29,15 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 export function useTestResultsAggregates() {
   const api = useApi();
   const organization = useOrganization();
-  const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
+  const {
+    integratedOrgId,
+    repository,
+    branch: rawBranch,
+    preventPeriod,
+  } = usePreventContext();
+
+  // Normalize branch to undefined when falsy for consistent caching
+  const branch = rawBranch || undefined;
 
   const {data, ...rest} = useQuery<
     TestResultAggregate,
@@ -53,6 +61,7 @@ export function useTestResultsAggregates() {
 
       return result as TestResultAggregate;
     },
+    enabled: !!(integratedOrgId && repository && preventPeriod),
   });
 
   const memoizedData = useMemo(() => {

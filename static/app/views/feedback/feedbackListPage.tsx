@@ -26,13 +26,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export default function FeedbackListPage() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const pageFilters = usePageFilters();
-  const prefersStackedNav = usePrefersStackedNav();
 
   const feedbackId = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackId);
@@ -135,8 +133,8 @@ export default function FeedbackListPage() {
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
         <FeedbackQueryKeys organization={organization}>
-          <Layout.Header unified={prefersStackedNav}>
-            <Layout.HeaderContent unified={prefersStackedNav}>
+          <Layout.Header unified>
+            <Layout.HeaderContent unified>
               <Layout.Title>
                 {t('User Feedback')}
                 <PageHeadingQuestionTooltip

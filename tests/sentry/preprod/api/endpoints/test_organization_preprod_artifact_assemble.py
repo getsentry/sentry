@@ -236,6 +236,16 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
+    def test_assemble_json_schema_invalid_provider(self) -> None:
+        """Test that invalid provider is rejected."""
+        response = self.client.post(
+            self.url,
+            data={"checksum": "a" * 40, "chunks": [], "provider": "invalid"},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["error"] == "Unsupported provider"
+
     def test_assemble_json_schema_missing_checksum(self) -> None:
         """Test that missing checksum field is rejected."""
         response = self.client.post(

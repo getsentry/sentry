@@ -6,7 +6,7 @@ from sentry.projects.services.project_key.serial import serialize_project_key
 
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
-    def _get_project_key(self, project_id: str, role: ProjectKeyRole) -> RpcProjectKey | None:
+    def _get_project_key(self, project_id: int, role: ProjectKeyRole) -> RpcProjectKey | None:
         from sentry.models.projectkey import ProjectKey
 
         project_keys = ProjectKey.objects.filter(
@@ -21,12 +21,12 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         return None
 
     def get_project_key(
-        self, organization_id: int, project_id: str, role: ProjectKeyRole
+        self, organization_id: int, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         return self._get_project_key(project_id=project_id, role=role)
 
     def get_default_project_key(
-        self, *, organization_id: int, project_id: str
+        self, *, organization_id: int, project_id: int
     ) -> RpcProjectKey | None:
         from sentry.models.project import Project
         from sentry.models.projectkey import ProjectKey
@@ -40,7 +40,7 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         return serialize_project_key(key) if key else None
 
     def get_project_key_by_region(
-        self, *, region_name: str, project_id: str, role: ProjectKeyRole
+        self, *, region_name: str, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         return self._get_project_key(project_id=project_id, role=role)
 
@@ -48,7 +48,7 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         self,
         *,
         region_name: str,
-        project_ids: list[str],
+        project_ids: list[int],
         role: ProjectKeyRole,
     ) -> list[RpcProjectKey]:
         # TODO: This query is unbounded and will need to be addressed in the future.

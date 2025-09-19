@@ -129,6 +129,7 @@ function folderOrSearchScoreFirst(
 
 const order: StoryCategory[] = [
   'foundations',
+  'principles',
   'typography',
   'layout',
   'core',
@@ -173,6 +174,7 @@ function normalizeFilename(filename: string) {
 
 export type StoryCategory =
   | 'foundations'
+  | 'principles'
   | 'core'
   | 'product'
   | 'typography'
@@ -182,6 +184,10 @@ export type StoryCategory =
 export function inferFileCategory(path: string): StoryCategory {
   if (isFoundationFile(path)) {
     return 'foundations';
+  }
+
+  if (isPrinciplesFile(path)) {
+    return 'principles';
   }
 
   if (isTypographyFile(path)) {
@@ -218,6 +224,10 @@ function isTypographyFile(file: string) {
 
 function isLayoutFile(file: string) {
   return file.includes('components/core/layout');
+}
+
+function isPrinciplesFile(file: string) {
+  return file.includes('components/core/principles');
 }
 
 function isProductFile(path: string): boolean {
@@ -333,7 +343,7 @@ export function useStoryTree(
           }
 
           if (i === parts.length - 1) {
-            parent.children[name] = new StoryTreeNode(name, type, file);
+            parent.children[name] = new StoryTreeNode(formatName(name), type, file);
             break;
           }
 
@@ -449,6 +459,7 @@ export function useStoryTree(
 
     return Object.values(root.children);
   }, [tree, options.query, options.representation]);
+
   const result = useMemo(() => {
     if (options.type === 'flat') {
       return nodes.flatMap(node => node.flat(), 1);
@@ -457,6 +468,17 @@ export function useStoryTree(
   }, [nodes, options.type]);
 
   return result;
+}
+
+function formatName(name: string) {
+  return name
+    .split('-')
+    .map(word =>
+      word === 'and' || word === 'or'
+        ? word
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(' ');
 }
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {

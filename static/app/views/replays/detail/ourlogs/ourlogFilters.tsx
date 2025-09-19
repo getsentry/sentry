@@ -10,12 +10,12 @@ import type useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLog
 
 type Props = {
   logItems: OurLogsResponseItem[];
-  traceIds?: string[];
+  replayId?: string;
 } & ReturnType<typeof useOurLogFilters>;
 
 export function OurLogFilters({
   logItems,
-  traceIds,
+  replayId,
   getSeverityLevels,
   searchTerm,
   selectValues,
@@ -43,7 +43,7 @@ export function OurLogFilters({
         query={searchTerm}
         disabled={!logItems?.length}
       />
-      <OpenInLogsButton searchTerm={searchTerm} traceIds={traceIds} />
+      <OpenInLogsButton searchTerm={searchTerm} replayId={replayId} />
     </StyledFiltersGrid>
   );
 }

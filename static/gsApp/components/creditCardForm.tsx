@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {CardElement, Elements, useElements, useStripe} from '@stripe/react-stripe-js';
+import {CardElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import {type Stripe, type StripeCardElement} from '@stripe/stripe-js';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -15,8 +15,8 @@ import {NODE_ENV} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
-import type {FTCConsentLocation} from 'getsentry/types';
+import StripeWrapper from 'getsentry/components/stripeWrapper';
+import {FTCConsentLocation} from 'getsentry/types';
 
 export type SubmitData = {
   /**
@@ -93,12 +93,10 @@ type Props = {
  * and classic card flows.
  */
 function CreditCardForm(props: Props) {
-  const stripe = useStripeInstance();
-
   return (
-    <Elements stripe={stripe}>
+    <StripeWrapper>
       <CreditCardFormInner {...props} />
-    </Elements>
+    </StripeWrapper>
   );
 }
 

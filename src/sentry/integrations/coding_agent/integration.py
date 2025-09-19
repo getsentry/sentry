@@ -4,6 +4,7 @@ import abc
 
 from django.utils.translation import gettext_lazy as _
 
+from sentry.api.utils import generate_region_url
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -57,9 +58,10 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
 
     def get_webhook_url(self) -> str:
         """Generate webhook URL for this integration."""
-        provider = self.model.provider
-
-        return absolute_uri(f"/extensions/{provider}/webhook/")
+        return absolute_uri(
+            f"/extensions/{self.model.provider}/organizations/{self.organization_id}/webhook/",
+            url_prefix=generate_region_url(),
+        )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback URL."""

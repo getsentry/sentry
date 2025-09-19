@@ -13,7 +13,6 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedPositiveIntegerField, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -35,7 +34,7 @@ class AuthProvider(ReplicatedControlModel):
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)
     provider = models.CharField(max_length=128)
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    config = models.JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
     sync_time = BoundedPositiveIntegerField(null=True)

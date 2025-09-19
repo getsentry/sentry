@@ -15,9 +15,10 @@ import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
@@ -207,7 +208,7 @@ function ActionButtons({
         closeModal();
         addSuccessMessage(t('Subscription Updated!'));
 
-        SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
+        OnboardingDrawerStore.open(OnboardingDrawerKey.PROFILING_ONBOARDING);
 
         trackGetsentryAnalytics('upgrade_now.modal.update_now', {
           organization,

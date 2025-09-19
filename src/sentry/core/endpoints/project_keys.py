@@ -81,6 +81,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             request=request,
             queryset=queryset,
             order_by="-id",
+            default_per_page=10,
             on_results=lambda x: serialize(x, request.user, request=request),
         )
 

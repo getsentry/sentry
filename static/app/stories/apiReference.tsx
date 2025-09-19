@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
@@ -109,7 +110,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
     <Fragment>
       <tr>
         <StoryTypesTableDefinitionCell colSpan={2}>
-          <StoryTypesTableDefinitionCellContent>
+          <Flex align="center">
             <Button
               borderless
               icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
@@ -122,7 +123,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
             />{' '}
             <span>{props.node.prop.parent?.name}</span> (
             {stripNodeModulesPrefix(props.node.prop.definitionFilePath)})
-          </StoryTypesTableDefinitionCellContent>
+          </Flex>
         </StoryTypesTableDefinitionCell>
       </tr>
       {expanded ? (
@@ -410,11 +411,6 @@ const StoryTypesTableDefinitionCell = styled('td')`
     font-weight: ${p => p.theme.fontWeight.bold};
     margin-right: ${space(0.5)};
   }
-`;
-
-const StoryTypesTableDefinitionCellContent = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const StoryType = styled('div')`

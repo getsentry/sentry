@@ -20,6 +20,7 @@ from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.environment import Environment
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -33,13 +34,15 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
 
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
-            RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
+                RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+            }
         }
-    }
+    )
 
     @extend_schema(
         operation_id="Retrieve Tag Details",

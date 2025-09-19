@@ -81,6 +81,15 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
     }
   }, [selectionString, previousSelection, setAutorefresh]);
 
+  const sortBysAreTimeBasedDescending = checkSortIsTimeBasedDescending(sortBys);
+
+  // Changing the sort should also disable autorefresh as there is only one sort (and direction) currently allowed.
+  useEffect(() => {
+    if (!sortBysAreTimeBasedDescending && autoRefresh !== 'idle') {
+      setAutorefresh('idle');
+    }
+  }, [setAutorefresh, sortBysAreTimeBasedDescending, autoRefresh]);
+
   const hasAbsoluteDates = Boolean(selection.datetime.start && selection.datetime.end);
 
   const preFlightDisableReason = getPreFlightDisableReason({

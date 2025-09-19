@@ -126,7 +126,6 @@ export function DatasetSelectorTabs(props: Props) {
     {
       value: SavedQueryDatasets.TRANSACTIONS,
       label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
-      disabled: deprecatingTransactionsDataset,
       tooltip: deprecatingTransactionsDataset
         ? {
             title: getTransactionDeprecationMessage(tracesUrl),
@@ -171,11 +170,7 @@ export function DatasetSelectorTabs(props: Props) {
     >
       <TabList hideBorder>
         {options.map(option => (
-          <TabList.Item
-            key={option.value}
-            disabled={option.disabled}
-            tooltip={option.tooltip}
-          >
+          <TabList.Item key={option.value} tooltip={option.tooltip}>
             {option.label}
           </TabList.Item>
         ))}

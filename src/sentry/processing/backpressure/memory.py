@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Any, Union
 
 import rb
-import requests
 from redis import StrictRedis
 from rediscluster import RedisCluster
 
@@ -28,21 +27,6 @@ class ServiceMemory:
 class NodeInfo:
     host: str | None
     port: int | None
-
-
-def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
-    """Returns the currently used memory and the memory limit of a
-    RabbitMQ host.
-    """
-
-    if not host.endswith("/"):
-        host += "/"
-    url = f"{host}api/nodes"
-
-    response = requests.get(url, timeout=3)
-    response.raise_for_status()
-    json = response.json()
-    return ServiceMemory(host, json[0]["mem_used"], json[0]["mem_limit"])
 
 
 # Based on configuration, this could be:

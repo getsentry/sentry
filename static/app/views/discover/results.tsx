@@ -1033,9 +1033,7 @@ export default function ResultsContainer(
         organization.features.includes('discover-query') &&
         !!(props.savedQuery || props.location.query.id)
       }
-      skipLoadLastUsed={
-        organization.features.includes('global-views') && !!props.savedQuery
-      }
+      skipLoadLastUsed={!!props.savedQuery}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams

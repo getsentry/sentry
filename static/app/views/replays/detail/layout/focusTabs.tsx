@@ -31,7 +31,7 @@ function getReplayTabs({
       areAiFeaturesAllowed &&
       !isVideoReplay ? (
         <Flex align="center" gap="sm">
-          {t('Summary')}
+          {t('AI Summary')}
           <Tooltip
             title={t(
               'This feature is experimental! Try it out and let us know what you think. No promises!'

@@ -1,11 +1,15 @@
 import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 
-import PreferencesStore from 'sentry/stores/preferencesStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+  SECONDARY_SIDEBAR_WIDTH,
+} from 'sentry/views/nav/constants';
+import {useNavContext} from 'sentry/views/nav/context';
 import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 
 export enum LayoutKey {
@@ -69,8 +73,13 @@ function isLayout(val: string): val is LayoutKey {
 
 function useReplayLayout() {
   const theme = useTheme();
-  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
-  const defaultLayout = getDefaultLayout(collapsed, theme);
+  const {isCollapsed} = useNavContext();
+  const [secondarySidebarWidth] = useSyncedLocalStorageState(
+    NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+    SECONDARY_SIDEBAR_WIDTH
+  );
+  const defaultLayout = getDefaultLayout(isCollapsed, theme, secondarySidebarWidth);
+
   const organization = useOrganization();
 
   const {getParamValue, setParamValue} = useUrlParams('l_page', defaultLayout);

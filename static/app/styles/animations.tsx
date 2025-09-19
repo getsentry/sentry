@@ -41,18 +41,6 @@ export const pulse = (size: number) => keyframes`
   }
 `;
 
-export const slideInLeft = keyframes`
-  0% {
-    transform: translateX(-20px);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-`;
-
 export const makeShake = (distance = 3) => keyframes`
 ${new Array(50)
   .fill(0)

@@ -40,7 +40,6 @@ interface RelatedIssuesSectionProps {
 function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) {
   const organization = useOrganization();
   // Fetch the list of related issues
-  const hasGlobalViewsFeature = organization.features.includes('global-views');
   const {
     isPending,
     isError,
@@ -51,7 +50,6 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
       `/issues/${group.id}/related-issues/`,
       {
         query: {
-          ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),
           type: relationType,
         },
       },
@@ -70,8 +68,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
   if (relationType === 'trace_connected' && traceMeta) {
     ({title, extraInfo, openIssuesButton} = getTraceConnectedContent(
       traceMeta,
-      organization,
-      group
+      organization
     ));
   } else {
     title = t('Issues with similar titles');
@@ -84,7 +81,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
         query: {
           // project=-1 allows ensuring that the query will show issues from any projects for the org
           // This is important for traces since issues can be for any project in the org
-          ...(hasGlobalViewsFeature ? {project: '-1'} : {project: group.project.id}),
+          project: '-1',
           query: `issue.id:[${group.id},${issues}]`,
         },
       },
@@ -114,7 +111,6 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
           <GroupList
             queryParams={{
               query,
-              ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),
             }}
             source="similar-issues-tab"
             canSelectGroups={false}
@@ -130,10 +126,8 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
 
 const getTraceConnectedContent = (
   traceMeta: RelatedIssuesResponse['meta'],
-  organization: Organization,
-  group: Group
+  organization: Organization
 ) => {
-  const hasGlobalViewsFeature = organization.features.includes('global-views');
   const title = t('Issues in the same trace');
   const url = `/organizations/${organization.slug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`;
   const extraInfo = (
@@ -149,7 +143,7 @@ const getTraceConnectedContent = (
       query: {
         // project=-1 allows ensuring that the query will show issues from any projects for the org
         // This is important for traces since issues can be for any project in the org
-        ...(hasGlobalViewsFeature ? {project: '-1'} : {project: group.project.id}),
+        project: '-1',
         query: `trace:${traceMeta.trace_id}`,
       },
     },

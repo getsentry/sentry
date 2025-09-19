@@ -1513,6 +1513,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
 
     def test_cleanup_redis(self) -> None:
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
+
         rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
         rules_to_groups[self.rule.id].add(self.group.id)
 

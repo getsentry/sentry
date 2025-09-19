@@ -4,8 +4,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry.buffer.base import Buffer
-from sentry.buffer.redis import RedisBuffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
@@ -19,6 +17,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine import buffer as workflow_buffer
+from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -27,6 +26,10 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.contexts.workflow_event_context import (
+    WorkflowEventContext,
+    WorkflowEventContextData,
+)
 from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
     DelayedWorkflowItem,
@@ -341,7 +344,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
 
 def mock_workflows_buffer():
-    return patch("sentry.workflow_engine.buffer.get_backend", new=lambda: RedisBuffer())
+    return patch(
+        "sentry.workflow_engine.buffer.get_backend", new=lambda: RedisHashSortedSetBuffer()
+    )
 
 
 @mock_workflows_buffer()
@@ -370,6 +375,11 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
+        WorkflowEventContext.set(
+            WorkflowEventContextData(
+                detector=self.detector,
+            )
+        )
         evaluate_workflow_triggers({self.workflow}, self.event_data, self.event_start_time)
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_workflows.workflow_triggered",
@@ -949,7 +959,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
         self, mock_randchoice, mock_get_backend
     ) -> None:
-        mock_buffer = MagicMock(spec=Buffer)
+        mock_buffer = MagicMock(spec=RedisHashSortedSetBuffer)
         mock_get_backend.return_value = mock_buffer
         mock_randchoice.return_value = f"{DelayedWorkflow.buffer_key}:{5}"
         enqueue_workflows(
@@ -974,7 +984,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_get_backend: MagicMock
     ) -> None:
-        mock_buffer = MagicMock(spec=Buffer)
+        mock_buffer = MagicMock(spec=RedisHashSortedSetBuffer)
         mock_get_backend.return_value = mock_buffer
         current_time = timezone.now()
         workflow_filter_group_2 = self.create_data_condition_group()

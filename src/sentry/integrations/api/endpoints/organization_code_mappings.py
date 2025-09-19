@@ -196,7 +196,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             return self.respond("Missing param: integrationId", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            project = Project.objects.get(id=request.data.get("projectId"))
+            project = Project.objects.get(id=request.data["projectId"])
         except ValueError as exc:
             if "invalid literal for int() with base 10" in str(exc):
                 return self.respond(
@@ -205,7 +205,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
                 )
             else:
                 raise
-        except Project.DoesNotExist:
+        except (Project.DoesNotExist, KeyError):
             return self.respond("Could not find project", status=status.HTTP_404_NOT_FOUND)
 
         if not request.access.has_project_access(project):

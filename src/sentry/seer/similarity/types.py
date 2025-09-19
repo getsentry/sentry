@@ -58,7 +58,7 @@ class SeerSimilarIssueData:
         "should_group",
         "parent_hash",
     }
-    optional_incoming_keys: ClassVar = {}
+    optional_incoming_keys: ClassVar[set[str]] = set()
     expected_incoming_keys: ClassVar = {*required_incoming_keys, *optional_incoming_keys}
 
     @classmethod

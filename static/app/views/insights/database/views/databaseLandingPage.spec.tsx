@@ -110,7 +110,7 @@ describe('DatabaseLandingPage', () => {
     });
 
     spanChartsRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
         'epm()': {
@@ -134,56 +134,50 @@ describe('DatabaseLandingPage', () => {
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
+          sort: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
           referrer: 'api.insights.database.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'epm()',
-          transformAliasToInputFormat: '1',
+          yAxis: ['epm()'],
         },
       })
     );
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       2,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
+          sort: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
           referrer: 'api.insights.database.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'avg(span.self_time)',
-          transformAliasToInputFormat: '1',
+          yAxis: ['avg(span.self_time)'],
         },
       })
     );
@@ -255,56 +249,50 @@ describe('DatabaseLandingPage', () => {
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
+          sort: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
           referrer: 'api.insights.database.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'epm()',
-          transformAliasToInputFormat: '1',
+          yAxis: ['epm()'],
         },
       })
     );
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       2,
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
+          sort: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
           referrer: 'api.insights.database.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'avg(span.self_time)',
-          transformAliasToInputFormat: '1',
+          yAxis: ['avg(span.self_time)'],
         },
       })
     );

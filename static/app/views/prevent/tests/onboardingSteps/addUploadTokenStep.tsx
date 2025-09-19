@@ -8,14 +8,13 @@ import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 
 interface AddUploadTokenStepProps {
   step: string;
@@ -32,23 +31,20 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
 
-  const {data: integrations = []} = useApiQuery<Integration[]>(
-    [
-      `/organizations/${organization.slug}/integrations/`,
-      {query: {includeConfig: 0, provider_key: 'github'}},
-    ],
-    {staleTime: 0}
-  );
+  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
   const githubOrgDomain = integratedOrgIdToDomainName(integratedOrgId, integrations);
   const githubUrl =
     githubOrgDomain && repository
       ? `https://${githubOrgDomain}/${repository}/settings/secrets/actions`
       : '#';
 
-  const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
-    step,
-    repositorySecret: <Link to={githubUrl}>{t('repository secret')}</Link>,
-  });
+  const headerText = tct(
+    `Step [step]: Add token as [repositorySecret:repository secret]`,
+    {
+      step,
+      repositorySecret: <ExternalLink href={githubUrl} />,
+    }
+  );
 
   const handleGenerateClick = () => {
     setShowTokenDetails(true);

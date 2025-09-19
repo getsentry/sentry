@@ -6,17 +6,17 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry_sdk import set_tag
-
-from sentry import models
+from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
+GROUP_HASH_ITERATIONS = 10000
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -163,22 +164,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             return True
 
         self.mark_deletion_in_progress(instance_list)
-
-        error_group_ids = []
-        # XXX: If a group type has been removed, we shouldn't error here.
-        # Ideally, we should refactor `issue_category` to return None if the type is
-        # unregistered.
-        for group in instance_list:
-            try:
-                if group.issue_category == GroupCategory.ERROR:
-                    error_group_ids.append(group.id)
-            except InvalidGroupTypeError:
-                pass
-        # Tell seer to delete grouping records with these group hashes
-        may_schedule_task_to_delete_hashes_from_seer(error_group_ids)
-
         self._delete_children(instance_list)
-
         # Remove group objects with children removed.
         self.delete_instance_bulk(instance_list)
 
@@ -192,6 +178,11 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
+        error_group_ids = [group.id for group in error_groups]
+        issue_platform_group_ids = [group.id for group in issue_platform_groups]
+
+        delete_group_hashes(instance_list[0].project_id, error_group_ids, seer_deletion=True)
+        delete_group_hashes(instance_list[0].project_id, issue_platform_group_ids)
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
@@ -200,9 +191,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
                 child_relations.append(BaseRelation(params=params, task=ErrorEventsDeletionTask))
 
             if issue_platform_groups:
-                # This helps creating custom Sentry alerts;
-                # remove when #proj-snuba-lightweight_delets is done
-                set_tag("issue_platform_deletion", True)
                 params = {"groups": issue_platform_groups}
                 child_relations.append(
                     BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
@@ -224,10 +212,62 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
+def delete_project_group_hashes(project_id: int) -> None:
+    groups = []
+    for group in RangeQuerySetWrapper(
+        Group.objects.filter(project_id=project_id), step=GROUP_CHUNK_SIZE
+    ):
+        groups.append(group)
+
+    error_groups, issue_platform_groups = separate_by_group_category(groups)
+    error_group_ids = [group.id for group in error_groups]
+    delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
+
+    issue_platform_group_ids = [group.id for group in issue_platform_groups]
+    delete_group_hashes(project_id, issue_platform_group_ids)
+
+
+def delete_group_hashes(
+    project_id: int,
+    group_ids: Sequence[int],
+    seer_deletion: bool = False,
+) -> None:
+    # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
+    hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
+
+    # Set a reasonable upper bound on iterations to prevent infinite loops.
+    # The loop will naturally terminate when no more hashes are found.
+    iterations = 0
+    while iterations < GROUP_HASH_ITERATIONS:
+        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
+            "id", "hash"
+        )[:hashes_batch_size]
+        hashes_chunk = list(qs)
+        if not hashes_chunk:
+            break
+        try:
+            if seer_deletion:
+                # Tell seer to delete grouping records for these groups
+                # It's low priority to delete the hashes from seer, so we don't want
+                # any network errors to block the deletion of the groups
+                hash_values = [gh[1] for gh in hashes_chunk]
+                may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
+        except Exception:
+            logger.warning("Error scheduling task to delete hashes from seer")
+        finally:
+            hash_ids = [gh[0] for gh in hashes_chunk]
+            GroupHash.objects.filter(id__in=hash_ids).delete()
+
+        iterations += 1
+
+
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:
     error_groups = []
     issue_platform_groups = []
     for group in instance_list:
+        # XXX: If a group type has been removed, we shouldn't error here.
+        # Ideally, we should refactor `issue_category` to return None if the type is
+        # unregistered.
         try:
             if group.issue_category == GroupCategory.ERROR:
                 error_groups.append(group)
