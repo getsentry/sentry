@@ -16,8 +16,8 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -75,46 +75,58 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:starlette] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[starlette]'}),
+          type: 'text',
+          text: tct(
+            'Install [code:sentry-sdk] from PyPI with the [code:starlette] extra:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[starlette]'}),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'If you have the [codeStarlette:starlette] package in your dependencies, the Starlette integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+      content: [
         {
-          codeStarlette: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'If you have the [codeStarlette:starlette] package in your dependencies, the Starlette integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+            {
+              codeStarlette: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
 app = Starlette(routes=[...])
 `,
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
-
           code: `
 from starlette.routing import Route
 ${getSdkSetupSnippet(params)}
@@ -126,25 +138,22 @@ app = Starlette(routes=[
 ])
 `,
         },
-      ],
-      additionalInfo: (
-        <div>
-          <p>
-            {tct(
+        {
+          type: 'text',
+          text: [
+            tct(
               'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
               {
                 link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
-            )}
-          </p>
-          <p>
-            {t(
+            ),
+            t(
               'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </div>
-      ),
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
+        },
+      ],
     },
   ],
   nextSteps: (params: Params) => {
