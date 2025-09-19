@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 
-from django.db import router
+from django.db import router, transaction
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_SUCCESS,
@@ -120,8 +120,11 @@ def create_uptime_subscription(
             mode=region_config.mode,
         )
 
-    create_remote_uptime_subscription.delay(subscription.id)
-    fetch_subscription_rdap_info.delay(subscription.id)
+    def commit_tasks():
+        create_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
+
+    transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
     return subscription
 
 
@@ -162,8 +165,12 @@ def update_uptime_subscription(
 
     # Associate active regions with this subscription
     check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
-    update_remote_uptime_subscription.delay(subscription.id)
-    fetch_subscription_rdap_info.delay(subscription.id)
+
+    def commit_tasks():
+        update_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
+
+    transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
 
 
 def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
@@ -172,7 +179,10 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
     deletion to the external system and remove the row once successful.
     """
     uptime_subscription.update(status=UptimeSubscription.Status.DELETING.value)
-    delete_remote_uptime_subscription.delay(uptime_subscription.id)
+    transaction.on_commit(
+        lambda: delete_remote_uptime_subscription.delay(uptime_subscription.id),
+        using=router.db_for_write(UptimeSubscription),
+    )
 
 
 def create_uptime_detector(
@@ -329,6 +339,7 @@ def update_uptime_detector(
     """
     Updates a uptime detector and its associated uptime subscription.
     """
+
     with atomic_transaction(
         using=(
             router.db_for_write(UptimeSubscription),
@@ -336,7 +347,6 @@ def update_uptime_detector(
         )
     ):
         uptime_subscription = get_uptime_subscription(detector)
-
         update_uptime_subscription(
             uptime_subscription,
             url=url,
@@ -479,7 +489,11 @@ def enable_uptime_detector(
     # The subscription was disabled, it can be re-activated now
     if uptime_subscription.status == UptimeSubscription.Status.DISABLED.value:
         uptime_subscription.update(status=UptimeSubscription.Status.CREATING.value)
-        create_remote_uptime_subscription.delay(uptime_subscription.id)
+
+        transaction.on_commit(
+            lambda: create_remote_uptime_subscription.delay(uptime_subscription.id),
+            using=router.db_for_write(UptimeSubscription),
+        )
 
 
 def delete_uptime_detector(detector: Detector):
