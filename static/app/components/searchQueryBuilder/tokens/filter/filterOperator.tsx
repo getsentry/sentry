@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
@@ -255,10 +248,6 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
     }
   }, [autoFocus]);
 
-  const resetState = useCallback(() => {
-    setAutoFocus(false);
-  }, []);
-
   return (
     <CompactSelect
       disabled={disabled}
@@ -303,11 +292,11 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
             : undefined,
         });
         initialOpSetting.current = false;
-        resetState();
+        setAutoFocus(false);
       }}
       offset={MENU_OFFSET}
       onInteractOutside={() => {
-        resetState();
+        setAutoFocus(false);
       }}
     />
   );
