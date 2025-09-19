@@ -12,6 +12,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
@@ -188,8 +189,27 @@ def merge_groups(
                     times_seen=F("times_seen") + group.times_seen,
                     num_comments=F("num_comments") + group.num_comments,
                 )
-            except DataError:
-                pass
+            except DataError as e:
+                logger.warning(
+                    "tasks.merge.times_seen_update_failure",
+                    extra={
+                        "new_group_id": new_group.id,
+                        "old_group_id": group.id,
+                        "new_times_seen": new_group.times_seen,
+                        "old_times_seen": group.times_seen,
+                        "attempted_times_seen": new_group.times_seen + group.times_seen,
+                        "error_message": str(e),
+                    },
+                )
+                metrics.incr(
+                    "tasks.merge.times_seen_update_failure",
+                    tags={
+                        "project_id": new_group.project_id,
+                        "new_group_id": new_group.id,
+                        "old_group_id": group.id,
+                    },
+                    sample_rate=1.0,
+                )
 
     if from_object_ids:
         # This task is recursed until `from_object_ids` is empty and all
