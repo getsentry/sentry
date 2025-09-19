@@ -11,9 +11,13 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-export function getAttributeValue(
+// TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
+function getAttributeValue(
   attribute: TraceItemResponseAttribute
 ): string | number | boolean {
+  if (!attribute.name.startsWith('tags[')) {
+    return attribute.value;
+  }
   if (attribute.type === 'int') {
     return Number(attribute.value);
   }
@@ -21,7 +25,8 @@ export function getAttributeValue(
     return Number(attribute.value);
   }
   if (attribute.type === 'bool') {
-    return Boolean(attribute.value);
+    /* @ts-expect-error - tags are always returned as strings */
+    return attribute.value === 'true';
   }
   return attribute.value;
 }
