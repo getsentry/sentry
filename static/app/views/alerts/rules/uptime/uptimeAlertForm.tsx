@@ -298,6 +298,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <UptimeHeadersField
               name="headers"
               label={t('Headers')}
+              showHelpInTooltip={{isHoverable: true}}
+              help={t(
+                'Avoid storing sensitive credentials in headers as they are stored unencrypted.'
+              )}
               flexibleControlStateSize
             />
             <TextareaField
