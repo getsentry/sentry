@@ -204,6 +204,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0085_crons_link_detectors_to_all_workflows"),
+        ("monitors", "0010_delete_orphaned_detectors"),
     ]
 
     operations = [
