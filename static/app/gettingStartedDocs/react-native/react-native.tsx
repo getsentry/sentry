@@ -192,7 +192,6 @@ const getReactNativeProfilingOnboarding = (): OnboardingConfig => ({
               installationMode: InstallationMode.MANUAL,
             },
             isProfilingSelected: true,
-            isLogsSelected: true,
           }),
         },
       ],
