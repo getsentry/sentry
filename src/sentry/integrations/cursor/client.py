@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import logging
 
-import orjson
-import requests
-
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.cursor.models import (
@@ -26,6 +23,7 @@ class CursorAgentClient(CodingAgentClient):
     api_key: str
 
     def __init__(self, api_key: str, webhook_secret: str):
+        super().__init__()
         self.api_key = api_key
         self.webhook_secret = webhook_secret
 
@@ -56,21 +54,18 @@ class CursorAgentClient(CodingAgentClient):
             },
         )
 
-        body = orjson.dumps(payload.dict(exclude_none=True))
-        url = f"{self.base_url}/v0/agents"
-
-        response = requests.post(
-            url,
-            data=body,
+        # Use shared ApiClient to get consistent error handling with body surfaced
+        api_response = self.post(
+            "/v0/agents",
             headers={
                 "content-type": "application/json;charset=utf-8",
                 **self._get_auth_headers(),
             },
+            data=payload.dict(exclude_none=True),
+            json=True,
         )
 
-        response.raise_for_status()
-
-        launch_response = CursorAgentLaunchResponse.validate(response.json())
+        launch_response = CursorAgentLaunchResponse.validate(api_response.json)
 
         return CodingAgentState(
             id=launch_response.id,
