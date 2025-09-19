@@ -458,7 +458,7 @@ def set_default_project_seer_scanner_automation(
 
 def report_token_count_metric(
     event: Event | GroupEvent,
-    variants: dict[str, BaseVariant] | None,
+    variants: dict[str, BaseVariant],
     outcome: str,
 ) -> None:
     """
@@ -476,13 +476,6 @@ def report_token_count_metric(
         return
 
     platform = event.platform or "unknown"
-
-    # Calculate variants if not provided
-    if variants is None:
-        from sentry.grouping.api import get_default_grouping_config_dict
-
-        grouping_config = get_default_grouping_config_dict()
-        variants = event.get_grouping_variants(grouping_config)
 
     token_count = get_token_count(event, variants, platform)
 

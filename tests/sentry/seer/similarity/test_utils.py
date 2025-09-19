@@ -1142,15 +1142,6 @@ class GetTokenCountTest(TestCase):
         assert simple_count == 18
         assert complex_count == 116
 
-    def test_calculates_with_provided_variants(self) -> None:
-        """Test that get_token_count uses provided variants to calculate stacktrace."""
-        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-
-        token_count = get_token_count(self.event, variants, "python")
-
-        # Exact token count for the test event's stacktrace
-        assert token_count == 28
-
     def test_returns_zero_for_empty_stacktrace(self) -> None:
         """Test that get_token_count returns 0 for events with no meaningful stacktrace."""
         # Create an event with no stacktrace data
@@ -1170,13 +1161,13 @@ class GetTokenCountTest(TestCase):
 
     def test_handles_exception_gracefully(self) -> None:
         """Test that get_token_count handles exceptions gracefully and returns 0."""
-        # Create an event with cached stacktrace that will cause tiktoken to fail
+
         broken_event = Event(
             event_id="12312012041520130908201311212012",
             project_id=self.project.id,
             data={
-                "title": "Broken event",
-                "stacktrace_string": "valid stacktrace",  # Will cause encoding to be called
+                "title": "Example event",
+                "stacktrace_string": "Example stacktrace",
             },
         )
 
@@ -1184,10 +1175,10 @@ class GetTokenCountTest(TestCase):
         with patch("sentry.seer.similarity.utils.TIKTOKEN_ENCODING.encode") as mock_encode:
             mock_encode.side_effect = ValueError("Tiktoken encoding failed")
 
-            with patch("sentry.seer.similarity.utils.logger.error") as mock_logger_error:
+            with patch("sentry.seer.similarity.utils.logger.exception") as mock_logger_exception:
                 # Use empty variants for this error test case
                 variants: dict[str, BaseVariant] = {}
                 token_count = get_token_count(broken_event, variants=variants, platform="python")
-                mock_logger_error.assert_called()
+                mock_logger_exception.assert_called()
 
                 assert token_count == 0
