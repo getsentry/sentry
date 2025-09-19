@@ -19,10 +19,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {
-  MEPSetting,
-  MEPState,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -530,8 +526,6 @@ describe('Performance > TransactionSummary', () => {
         count: 0,
       },
     });
-
-    jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
   });
 
   afterEach(() => {
