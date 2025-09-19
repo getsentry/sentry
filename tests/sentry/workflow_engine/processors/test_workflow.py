@@ -16,6 +16,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -37,7 +38,6 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     process_workflows,
 )
-from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest

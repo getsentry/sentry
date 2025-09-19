@@ -13,6 +13,7 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -32,7 +33,6 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflowClient
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr

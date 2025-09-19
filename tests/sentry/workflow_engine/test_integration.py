@@ -18,14 +18,12 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.utils.cache import cache_key_for_event
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_source import process_data_source
 from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.tasks.delayed_workflows import (
-    DelayedWorkflowClient,
-    process_delayed_workflows,
-)
+from sentry.workflow_engine.tasks.delayed_workflows import process_delayed_workflows
 from sentry.workflow_engine.tasks.workflows import schedule_delayed_workflows
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
