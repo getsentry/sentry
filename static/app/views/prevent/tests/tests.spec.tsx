@@ -69,8 +69,8 @@ const mockBranches = [
 ];
 
 const mockIntegrations = [
-  {name: 'integration-1', id: '1'},
-  {name: 'integration-2', id: '2'},
+  {name: 'integration-1', id: '1', status: 'active'},
+  {name: 'integration-2', id: '2', status: 'active'},
 ];
 
 const mockApiCall = () => {
