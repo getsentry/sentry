@@ -711,9 +711,11 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.f
 );
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  'javascript-astro',
   'javascript-nextjs',
-  'javascript-remix',
+  'javascript-nuxt',
   'javascript-react-router',
+  'javascript-remix',
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',

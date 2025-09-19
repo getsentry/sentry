@@ -10,7 +10,7 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -303,7 +303,7 @@ try {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,

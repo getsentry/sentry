@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,33 +12,24 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
+import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
+import {useRegenerateRepositoryToken} from 'sentry/views/prevent/tokens/repoTokenTable/hooks/useRegenerateRepositoryToken';
 
 interface AddUploadTokenStepProps {
   step: string;
 }
 
-// HARDCODED VALUES FOR TESTING
-const FULL_TOKEN = '91b57316-b1ff-4884-8d55-92b9936a05a3';
-
 export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
-  const [showTokenDetails, setShowTokenDetails] = useState(false);
   const organization = useOrganization();
-  const {repository, integratedOrgId} = usePreventContext();
-
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
+  const {integratedOrgId, repository} = usePreventContext();
+  const {data: repoData} = useRepo();
 
-  const {data: integrations = []} = useApiQuery<Integration[]>(
-    [
-      `/organizations/${organization.slug}/integrations/`,
-      {query: {includeConfig: 0, provider_key: 'github'}},
-    ],
-    {staleTime: 0}
-  );
+  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
   const githubOrgDomain = integratedOrgIdToDomainName(integratedOrgId, integrations);
   const githubUrl =
     githubOrgDomain && repository
@@ -53,9 +44,7 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
     }
   );
 
-  const handleGenerateClick = () => {
-    setShowTokenDetails(true);
-  };
+  const {mutate: regenerateToken} = useRegenerateRepositoryToken();
 
   return (
     <OnboardingStep.Container>
@@ -70,25 +59,47 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
               }
             )}
           </p>
-          {showTokenDetails ? (
+          {repoData?.uploadToken ? (
             <Fragment>
               <Flex justify="between" gap="md">
                 <Flex justify="between" gap="md">
                   <RightPaddedCodeSnippet dark>
                     SENTRY_PREVENT_TOKEN
                   </RightPaddedCodeSnippet>
-                  <RightPaddedCodeSnippet dark>{FULL_TOKEN}</RightPaddedCodeSnippet>
+                  <RightPaddedCodeSnippet dark>
+                    {repoData.uploadToken}
+                  </RightPaddedCodeSnippet>
                 </Flex>
-                <Button priority="default" onClick={handleGenerateClick}>
-                  {t('Regenerate')}
-                </Button>
+                {integratedOrgId && repository ? (
+                  <Button
+                    priority="default"
+                    onClick={() => {
+                      regenerateToken({
+                        orgSlug: organization.slug,
+                        integratedOrgId,
+                        repository,
+                      });
+                    }}
+                  >
+                    {t('Regenerate')}
+                  </Button>
+                ) : null}
               </Flex>
             </Fragment>
-          ) : (
-            <Button priority="primary" onClick={handleGenerateClick}>
+          ) : integratedOrgId && repository ? (
+            <Button
+              priority="primary"
+              onClick={() => {
+                regenerateToken({
+                  orgSlug: organization.slug,
+                  integratedOrgId,
+                  repository,
+                });
+              }}
+            >
               {t('Generate Repository Token')}
             </Button>
-          )}
+          ) : null}
         </OnboardingStep.Content>
       </OnboardingStep.Body>
       <OnboardingStep.ExpandableDropdown

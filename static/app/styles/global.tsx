@@ -268,10 +268,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
         }
 
-        ul.crumbs li .table.key-value pre {
-          color: ${theme.subText};
-        }
-
         .exception {
           border-color: ${theme.innerBorder};
         }
@@ -329,11 +325,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
           .secondary {
             border-left-color: ${theme.border};
           }
-        }
-        /* Group Details - User context */
-        .user-widget .avatar {
-          box-shadow: 0 0 0 5px ${theme.background};
-          background: ${theme.background};
         }
         .nav-header a.help-link,
         .nav-header span.help-link a {

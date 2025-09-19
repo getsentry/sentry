@@ -11,7 +11,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
@@ -216,7 +216,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -247,7 +247,10 @@ const docs: Docs = {
   crashReportOnboarding,
   featureFlagOnboarding,
   profilingOnboarding,
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'sveltekit',
+    configFileName: 'instrumentation.server.js',
+  }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'sveltekit',
     sdkPackage: '@sentry/sveltekit',

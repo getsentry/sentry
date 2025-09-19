@@ -9,4 +9,4 @@ class InternalQueueTasksListTest(APITestCase):
         url = "/api/0/internal/queue/tasks/"
         response = self.client.get(url)
         assert response.status_code == 200
-        assert "celery.chord" in response.data
+        assert "sentry.tasks.send_beacon" in response.data

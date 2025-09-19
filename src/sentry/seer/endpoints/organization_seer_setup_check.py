@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -25,13 +26,17 @@ class OrganizationSeerSetupCheck(OrganizationEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
-            RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60, concurrent_limit=100),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
+                RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=1000, window=60, concurrent_limit=100
+                ),
+            }
         }
-    }
+    )
 
     def get(self, request: Request, organization: Organization) -> Response:
         """

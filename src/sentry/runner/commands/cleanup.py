@@ -581,7 +581,7 @@ def prepare_deletes_by_project(
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
         debug_output("Preparing DELETES_BY_PROJECT context")
         project_deletion_query = Project.objects.filter(status=ObjectStatus.ACTIVE)
-        if project:
+        if project_id is not None:
             project_deletion_query = Project.objects.filter(id=project_id)
 
         for model_tp_tup in DELETES_BY_PROJECT:
@@ -612,7 +612,7 @@ def prepare_deletes_by_organization(
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
         debug_output("Preparing DELETES_BY_ORGANIZATION context")
         organization_deletion_query = Organization.objects.filter(status=ObjectStatus.ACTIVE)
-        if organization:
+        if organization_id is not None:
             organization_deletion_query = Organization.objects.filter(id=organization_id)
 
         for model_tp_tup in DELETES_BY_ORGANIZATION:

@@ -32,6 +32,12 @@ export function useRegenerateRepositoryToken() {
           `/organizations/${variables.orgSlug}/prevent/owner/${variables.integratedOrgId}/repositories/tokens/`,
         ],
       });
+      // Invalidate the specific repository query
+      queryClient.invalidateQueries({
+        queryKey: [
+          `/organizations/${variables.orgSlug}/prevent/owner/${variables.integratedOrgId}/repository/${variables.repository}/`,
+        ],
+      });
     },
     onError: () => {
       addErrorMessage('Failed to regenerate token.');

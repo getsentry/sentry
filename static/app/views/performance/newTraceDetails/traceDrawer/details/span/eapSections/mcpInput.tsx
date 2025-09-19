@@ -2,16 +2,12 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ensureAttributeObject} from 'sentry/views/insights/agents/utils/aiTraceNodes';
 import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
@@ -28,26 +24,16 @@ function getInputAttributes(
   node: TraceTreeNode<TraceTree.NodeValue>,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
-): Array<[string, string]> {
-  if (isEAPSpanNode(node) && attributes) {
-    return attributes
-      .filter(attribute => isArgumentsKey(attribute.name))
-      .map(attribute => [shortenKey(attribute.name), attribute.value.toString()]);
+): Array<[string, string | number | boolean]> {
+  const attributeObject = ensureAttributeObject(node, event, attributes);
+
+  if (!attributeObject) {
+    return [];
   }
 
-  if (isTransactionNode(node) && event?.contexts.trace?.data) {
-    return Object.entries(event.contexts.trace.data)
-      .filter(([key]) => isArgumentsKey(key))
-      .map(([key, value]) => [shortenKey(key), value]);
-  }
-
-  if (isSpanNode(node) && node.value.data) {
-    return Object.entries(node.value.data)
-      .filter(([key]) => isArgumentsKey(key))
-      .map(([key, value]) => [shortenKey(key), value]);
-  }
-
-  return [];
+  return Object.entries(attributeObject)
+    .filter(([key]) => isArgumentsKey(key))
+    .map(([key, value]) => [shortenKey(key), value]);
 }
 
 export function MCPInputSection({

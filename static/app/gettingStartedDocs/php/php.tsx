@@ -9,7 +9,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
-  getCrashReportPHPInstallStep,
+  getCrashReportPHPInstallSteps,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -144,7 +144,7 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportPHPInstallStep(params),
+  install: (params: Params) => getCrashReportPHPInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,

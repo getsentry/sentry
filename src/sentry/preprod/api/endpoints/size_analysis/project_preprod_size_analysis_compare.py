@@ -13,6 +13,9 @@ from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisComparePostEvent,
 )
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
+from sentry.preprod.api.models.project_preprod_build_details_models import (
+    transform_preprod_artifact_to_build_details,
+)
 from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compare_models import (
     SizeAnalysisCompareGETResponse,
     SizeAnalysisComparePOSTResponse,
@@ -222,9 +225,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 "comparisons": len(comparisons),
             },
         )
+        head_build_details = transform_preprod_artifact_to_build_details(head_artifact)
+        base_build_details = transform_preprod_artifact_to_build_details(base_artifact)
         response = SizeAnalysisCompareGETResponse(
-            head_artifact_id=int(head_artifact_id),
-            base_artifact_id=int(base_artifact_id),
+            head_build_details=head_build_details,
+            base_build_details=base_build_details,
             comparisons=comparisons,
         )
         return Response(response.dict())

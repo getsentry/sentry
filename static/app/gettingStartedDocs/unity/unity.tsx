@@ -155,13 +155,16 @@ export const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'C#',
-              value: 'csharp',
               language: 'csharp',
               code: `var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
 
@@ -169,7 +172,6 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
             },
             {
               label: 'F#',
-              value: 'fsharp',
               language: 'fsharp',
               code: `let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
 

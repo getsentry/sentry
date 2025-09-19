@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -116,18 +117,20 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=25, window=60),
-            RateLimitCategory.USER: RateLimit(limit=25, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),
-        },
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=100, window=60),
-            RateLimitCategory.USER: RateLimit(limit=100, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=25, window=60),
+                RateLimitCategory.USER: RateLimit(limit=25, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),
+            },
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=100, window=60),
+                RateLimitCategory.USER: RateLimit(limit=100, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60),
+            },
+        }
+    )
     permission_classes = (OrganizationSeerExplorerChatPermission,)
 
     def get(

@@ -1,5 +1,5 @@
 {% load sentry_helpers %}
-{% with type=group.get_event_type metadata=group.get_event_metadata transaction=group.culprit extra_params=link_params_for_rule %}
+{% with type=group.get_event_type metadata=group.get_event_metadata culprit=group.culprit extra_params=link_params_for_rule %}
 <div class="issue {% if group.is_resolved %}resolved{% endif %}">
   {% if type == "error" %}
     <div class="event-type error">
@@ -10,8 +10,8 @@
           {% else %}
             <a href="{{group.get_absolute_url}}">{{metadata.type|truncatechars:40}}</a>
           {% endif %}
-          {% if transaction %}
-            <span class="event-subtitle">{{ transaction }}</span>
+          {% if culprit %}
+            &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:35 }}</span>
           {% endif %}
           <br />
           {% if metadata.value %}
@@ -24,8 +24,8 @@
             <a href="{{group.get_absolute_url}}">{{metadata.value|truncatechars:40}}</a>
           {% endif %}
           <br />
-          {% if transaction %}
-          <span class="event-subtitle">{{ transaction }}</span>
+          {% if culprit %}
+          &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:35 }}</span>
           {% endif %}
         {% endif %}
       </h3>
@@ -40,7 +40,7 @@
         {% endif %}
         <br />
         {% if metadata.uri %}
-          <span class="event-subtitle">{{ metadata.uri }}</span>
+          &nbsp;<span class="event-subtitle">{{ metadata.uri }}</span>
         {% endif %}
       </h3>
     </div>
@@ -52,8 +52,8 @@
         {% else %}
           <a href="{{group.get_absolute_url}}">{{group.title|truncatechars:40}}</a>
         {% endif %}
-        {% if transaction %}
-          <span class="event-subtitle">{{ transaction }}</span>
+        {% if culprit %}
+          &nbsp;<span class="event-subtitle">{{ culprit|truncatechars:35 }}</span>
         {% endif %}
         <br />
         {% if metadata.value %}
