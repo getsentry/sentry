@@ -5,7 +5,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.serializers import ValidationError
 
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
     Action,

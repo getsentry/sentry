@@ -237,7 +237,7 @@ export const DEFAULT_RELATIVE_PERIODS = {
 const DEFAULT_STATS_INFO = {
   showExternalStats: false,
   showInternalStats: true,
-  yAxisMinInterval: 100,
+  yAxisMinInterval: 10,
 };
 const GIGABYTE = 10 ** 9;
 const KILOBYTE = 10 ** 3;
@@ -587,7 +587,6 @@ export const DATA_CATEGORY_INFO = {
 
 // Special Search characters
 export const NEGATION_OPERATOR = '!';
-export const SEARCH_WILDCARD = '*';
 
 // SmartSearchBar settings
 export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;

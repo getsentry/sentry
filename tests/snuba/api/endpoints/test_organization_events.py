@@ -7399,3 +7399,15 @@ class OrganizationEventsUptimeDatasetEndpointTest(
                 "trace_id": trace_id,
             }
         ]
+
+    def test_project_slug_converter(self) -> None:
+        self.store_event(self.transaction_data, self.project.id)
+        response = self.do_request(
+            {
+                "field": ["project.name"],
+                "query": "project:ba*",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project.name"] == self.project.slug

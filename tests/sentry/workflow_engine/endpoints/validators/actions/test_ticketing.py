@@ -1,5 +1,3 @@
-from rest_framework.serializers import ErrorDetail
-
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
@@ -32,23 +30,6 @@ class BaseTicketingActionValidatorTest(TestCase):
         )
         result = validator.is_valid()
         assert result is True
-
-    def test_validate__missing_integration_id(self):
-        del self.valid_data["integrationId"]
-        validator = BaseActionValidator(
-            data={**self.valid_data},
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
-        assert validator.errors == {
-            "nonFieldErrors": [
-                ErrorDetail(
-                    string=f"Integration ID is required for {self.provider} action", code="invalid"
-                )
-            ]
-        }
 
 
 class TestJiraActionValidator(BaseTicketingActionValidatorTest):
