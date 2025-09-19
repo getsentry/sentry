@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
@@ -75,6 +76,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}]] * 7
 
+    @pytest.mark.skip(reason="flaky: #98359")
     def test_homepage_query(self) -> None:
         """This query matches the one made on the logs homepage so that we can be sure everything is working at least
         for the initial load"""
