@@ -26,7 +26,6 @@ import {
   type FieldDefinitionGetter,
   type FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {
@@ -35,7 +34,6 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import localStorageWrapper from 'sentry/utils/localStorage';
 import {getHasTag} from 'sentry/utils/tag';
 import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 
@@ -317,13 +315,6 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('plain text interface', () => {
-    beforeEach(() => {
-      localStorageWrapper.setItem(
-        INTERFACE_TYPE_LOCALSTORAGE_KEY,
-        JSON.stringify(QueryInterfaceType.TEXT)
-      );
-    });
-
     it('can change the query by typing', async () => {
       const mockOnChange = jest.fn();
       render(
