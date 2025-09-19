@@ -7,5 +7,5 @@ seer_summarization_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
     timeout=None,
     retries=0,
-    maxsize=100,  # Number of open connections. If the number of concurrent requests exceeds this, temporary connections are created.
+    maxsize=100,  # Max persisted connections. If the number of concurrent requests exceeds this, temporary connections are created.
 )
