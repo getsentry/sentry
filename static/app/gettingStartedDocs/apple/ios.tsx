@@ -333,7 +333,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     code: getManualInstallSnippet(params),
                   },
                 ],
-                partialLoading: params.sourcePackageRegistries.isLoading,
               },
             ],
           },
