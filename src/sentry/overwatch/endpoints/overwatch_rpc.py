@@ -21,37 +21,39 @@ logger = logging.getLogger(__name__)
 
 
 def _signature_input_from_request(request: Request) -> bytes:
-    """Build message to sign as: path + query + body.
+    """Build message to sign: raw request body bytes.
 
-    The exact concatenation is the raw result of request.get_full_path() encoded as UTF-8,
-    immediately followed by the raw request.body bytes (or empty bytes if none).
-    This makes signing consistent across HTTP methods.
+    We sign only the raw request.body bytes, matching the Rpcsignature rpc0
+    scheme used by service clients. For GET or empty bodies, clients send
+    an empty JSON array, so we treat an empty body as b"[]".
     """
-    path_and_query = request.get_full_path().encode("utf-8")
-    body_bytes = request.body or b""
-    return path_and_query + body_bytes
+    body_bytes = request.body if request.body not in (None, b"") else b"[]"
+    return body_bytes
 
 
 def compare_signature(request: Request, signature: str) -> bool:
     """Validate HMAC signature using OVERWATCH_RPC_SHARED_SECRET.
 
-    - Header format: `Authorization: rpcauth rpcAuth:<hex>`
-    - Input: path+query concatenated with raw body bytes
+    - Header format: `Authorization: Rpcsignature rpc0:<hex>`
+    - Input: raw body bytes
     - Secret is base64-encoded in settings.OVERWATCH_RPC_SHARED_SECRET
     """
     if not settings.OVERWATCH_RPC_SHARED_SECRET:
         raise AuthenticationFailed("Missing OVERWATCH shared secret")
 
-    if not signature.startswith("rpcAuth:"):
+    if not signature.startswith("rpc0:"):
         logger.error("Overwatch signature validation failed: invalid signature prefix")
         return False
 
     try:
         _, signature_data = signature.split(":", 2)
-        secret_bytes = base64.b64decode(settings.OVERWATCH_RPC_SHARED_SECRET)
         message = _signature_input_from_request(request)
-        computed = hmac.new(secret_bytes, message, hashlib.sha256).hexdigest()
-        return hmac.compare_digest(computed.encode(), signature_data.encode())
+        for b64_secret in settings.OVERWATCH_RPC_SHARED_SECRET:
+            secret_bytes = base64.b64decode(b64_secret)
+            computed = hmac.new(secret_bytes, message, hashlib.sha256).hexdigest()
+            if hmac.compare_digest(computed.encode(), signature_data.encode()):
+                return True
+        return False
     except Exception:
         logger.exception("Overwatch signature validation failed")
         return False
@@ -61,7 +63,7 @@ def compare_signature(request: Request, signature: str) -> bool:
 class OverwatchRpcSignatureAuthentication(StandardAuthentication):
     """Authentication for Overwatch-style HMAC signed requests."""
 
-    token_name = b"rpcauth"
+    token_name = b"rpcsignature"
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not auth or len(auth) < 2:

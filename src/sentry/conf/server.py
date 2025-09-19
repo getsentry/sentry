@@ -3753,10 +3753,9 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
 # Used to validate RPC requests from the Overwatch service
-# TODO: Update to list[str] for key rotation support like other RPC secrets
-OVERWATCH_RPC_SHARED_SECRET: str | None = None
+OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("OVERWATCH_RPC_SHARED_SECRET")) is not None:
-    OVERWATCH_RPC_SHARED_SECRET = val
+    OVERWATCH_RPC_SHARED_SECRET = [val]
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")

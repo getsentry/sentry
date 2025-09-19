@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 from unittest.mock import patch
-from urllib.parse import urlencode
 
 from django.urls import reverse
 
@@ -12,16 +11,14 @@ from sentry.testutils.cases import APITestCase
 class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
     def _auth_header_for_get(self, url: str, params: dict[str, str], b64_secret: str) -> str:
         secret_bytes = base64.b64decode(b64_secret)
-        full_path = url
-        if params:
-            full_path = f"{url}?{urlencode(params)}"
-        message = full_path.encode("utf-8") + b""
+        # For GET we sign an empty JSON array body per Rpcsignature rpc0
+        message = b"[]"
         signature = hmac.new(secret_bytes, message, hashlib.sha256).hexdigest()
-        return f"rpcauth rpcAuth:{signature}"
+        return f"Rpcsignature rpc0:{signature}"
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        base64.b64encode(b"test-secret").decode(),
+        [base64.b64encode(b"test-secret").decode()],
     )
     def test_requires_auth(self):
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
@@ -31,7 +28,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        base64.b64encode(b"test-secret").decode(),
+        [base64.b64encode(b"test-secret").decode()],
     )
     def test_missing_required_params_returns_400(self):
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
@@ -42,7 +39,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
-        base64.b64encode(b"test-secret").decode(),
+        [base64.b64encode(b"test-secret").decode()],
     )
     def test_success_returns_empty_config_dict(self):
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
