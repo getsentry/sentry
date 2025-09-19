@@ -189,13 +189,42 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
                     "value": "monitor-orphan",
                 },
             ],
-            frequency=5,
+            frequency=999,  # Unique frequency so this has a unique hash
         )
         Rule.objects.filter(id=self.orphan_rule.id).update(source=RuleSource.CRON_MONITOR)
         # Don't create a workflow for this rule - simulates an error state
 
         self.monitor_orphan, self.detector_orphan = self._create_monitor_with_detector(
             self.org, self.project, self.orphan_rule, "monitor-orphan"
+        )
+
+        # Scenario 6: Monitor with rule that should share deduped workflow but doesn't have one
+        # Create a rule with same config as cron_rule1/cron_rule2 but NO workflow
+        self.cron_rule6 = self.create_project_rule(
+            project=self.project,
+            action_data=[
+                {
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": 12345,
+                    "targetType": "Team",
+                }
+            ],
+            condition_data=[
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": "monitor-6",
+                },
+            ],
+            frequency=5,  # Same frequency as monitor1 and monitor2
+        )
+        Rule.objects.filter(id=self.cron_rule6.id).update(source=RuleSource.CRON_MONITOR)
+        # NO workflow created for rule6 (simulating dedupe from 0084)
+
+        self.monitor6, self.detector6 = self._create_monitor_with_detector(
+            self.org, self.project, self.cron_rule6, "monitor-6"
         )
 
         # === Simulate the over-linking from migration 0085 ===
@@ -207,6 +236,7 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
             self.detector4,
             self.detector5,
             self.detector_orphan,
+            self.detector6,
         ]
         all_workflows = [
             self.issue_workflow1,
@@ -329,3 +359,16 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
         assert (
             self.cron_workflow3.id not in detector4_workflow_ids
         ), "detector4 should not be linked to monitor3's workflow"
+
+        # === Test detector6 (rule without workflow but same hash as monitor1/2) ===
+        # Should be linked ONLY to cron_workflow1 (the primary workflow of its dedupe group)
+        detector6_workflows = DetectorWorkflow.objects.filter(detector=self.detector6)
+        detector6_workflow_ids = set(detector6_workflows.values_list("workflow_id", flat=True))
+
+        expected_detector6_workflows = {
+            self.cron_workflow1.id,  # Should get the primary workflow from the dedupe group
+        }
+        assert detector6_workflow_ids == expected_detector6_workflows, (
+            f"detector6 (rule without workflow) should be linked to primary workflow of dedupe group, "
+            f"expected {expected_detector6_workflows}, got {detector6_workflow_ids}"
+        )
