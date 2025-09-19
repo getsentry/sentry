@@ -8,19 +8,17 @@ interface SideBySideProps extends Omit<FlexProps, 'direction'> {
   vertical?: boolean;
 }
 
-export const SideBySide = styled(
-  ({children, vertical, ...rest}: SideBySideProps) => (
-    <Flex
-      direction={vertical ? 'column' : 'row'}
-      gap="xl"
-      wrap="wrap"
-      align="start"
-      {...rest}
-    >
-      {children}
-    </Flex>
-  )
-)<SideBySideProps>``;
+export const SideBySide = styled(({children, vertical, ...rest}: SideBySideProps) => (
+  <Flex
+    direction={vertical ? 'column' : 'row'}
+    gap="xl"
+    wrap="wrap"
+    align="start"
+    {...rest}
+  >
+    {children}
+  </Flex>
+))<SideBySideProps>``;
 
 export const Grid = styled('div')<{columns?: number}>`
   display: grid;
