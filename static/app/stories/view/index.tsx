@@ -240,6 +240,12 @@ const StoryMainContainer = styled('div')`
       }
     }
 
+    td:first-child {
+      white-space: nowrap;
+      word-break: break-all;
+      hyphens: none;
+    }
+
     td {
       padding-inline: ${space(2)};
       padding-block: ${space(1.5)};
