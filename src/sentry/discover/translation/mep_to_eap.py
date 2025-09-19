@@ -34,6 +34,8 @@ COLUMNS_TO_DROP = (
     "total.count",
 )
 
+FIELDS_TO_DROP = ("total.count",)
+
 
 def format_percentile_term(term):
     function, args, alias = fields.parse_function(term)
@@ -75,7 +77,15 @@ def drop_unsupported_columns(columns):
         if column.startswith(COLUMNS_TO_DROP):
             dropped_columns.append(column)
         else:
-            final_columns.append(column)
+            should_drop = False
+            # fields can be within the columns if the column is a function (like in count_if)
+            for field in FIELDS_TO_DROP:
+                if field in column:
+                    dropped_columns.append(column)
+                    should_drop = True
+                    break
+            if not should_drop:
+                final_columns.append(column)
     # if no columns are left, leave the original columns but keep track of the "dropped" columns
     if len(final_columns) == 0:
         return columns, dropped_columns
@@ -87,6 +97,19 @@ def apply_is_segment_condition(query: str) -> str:
     if query:
         return f"({query}) AND is_transaction:1"
     return "is_transaction:1"
+
+
+def switch_arguments(function_match):
+    """swaps out arguments of a function"""
+    raw_function = function_match.group("function")
+    arguments = fields.parse_arguments(raw_function, function_match.group("columns"))
+    translated_arguments = []
+
+    for argument in arguments:
+        translated_arguments.append(column_switcheroo(argument)[0])
+
+    new_arg = ",".join(translated_arguments)
+    return f"{raw_function}({new_arg})"
 
 
 def column_switcheroo(term):
@@ -117,21 +140,38 @@ def column_switcheroo(term):
     return swapped_term, swapped_term != term
 
 
-def function_switcheroo(term):
+def function_switcheroo(term, need_equation=True):
     """Swaps out the entire function, including args."""
     swapped_term = term
     if term == "count()":
         swapped_term = "count(span.duration)"
     elif term.startswith("percentile("):
         swapped_term = format_percentile_term(term)
+    # certain functions are now only supported in equation notation
+    # (unless they already are then henced we would pass need_equation=False)
+    elif term.startswith("count_if("):
+        new_count_if = switch_arguments(fields.is_function(term))
+        if need_equation:
+            swapped_term = f"equation|{new_count_if}"
+        else:
+            swapped_term = new_count_if
     elif term == "apdex()":
-        swapped_term = "apdex(span.duration,300)"
+        if need_equation:
+            swapped_term = "equation|apdex(span.duration,300)"
+        else:
+            swapped_term = "apdex(span.duration,300)"
     elif term == "user_misery()":
-        swapped_term = "user_misery(span.duration,300)"
+        if need_equation:
+            swapped_term = "equation|user_misery(span.duration,300)"
+        else:
+            swapped_term = "user_misery(span.duration,300)"
 
     match = re.match(APDEX_USER_MISERY_PATTERN, term)
     if match:
-        swapped_term = f"{match.group(1)}(span.duration,{match.group(2)})"
+        if need_equation:
+            swapped_term = f"equation|{match.group(1)}(span.duration,{match.group(2)})"
+        else:
+            swapped_term = f"{match.group(1)}(span.duration,{match.group(2)})"
 
     return swapped_term, swapped_term != term
 
@@ -153,7 +193,7 @@ class TranslationVisitor(NodeVisitor):
         return column_switcheroo(node.text)[0]
 
     def visit_aggregate_key(self, node, children):
-        term, did_update = function_switcheroo(node.text)
+        term, did_update = function_switcheroo(node.text, need_equation=False)
         if did_update:
             return term
 
@@ -188,7 +228,7 @@ class ArithmeticTranslationVisitor(NodeVisitor):
         return column_switcheroo(node.text)[0]
 
     def visit_function_value(self, node, children):
-        new_functions, dropped_functions = translate_columns([node.text])
+        new_functions, dropped_functions = translate_columns([node.text], need_equation=False)
         self.dropped_fields.extend(dropped_functions)
         return new_functions[0]
 
@@ -213,7 +253,12 @@ def translate_query(query: str):
     return apply_is_segment_condition("".join(flattened_query))
 
 
-def translate_columns(columns):
+def translate_columns(columns, need_equation=True):
+    """
+    @param columns: list of columns to translate
+    @param need_equation: whether to translate some of the functions to equation notation (usually if
+    the function is being used in a field/orderby)
+    """
     translated_columns = []
 
     for column in columns:
@@ -223,20 +268,13 @@ def translate_columns(columns):
             translated_columns.append(column_switcheroo(column)[0])
             continue
 
-        translated_func, did_update = function_switcheroo(column)
+        translated_func, did_update = function_switcheroo(column, need_equation)
         if did_update:
             translated_columns.append(translated_func)
             continue
 
-        raw_function = match.group("function")
-        arguments = fields.parse_arguments(raw_function, match.group("columns"))
-        translated_arguments = []
-
-        for argument in arguments:
-            translated_arguments.append(column_switcheroo(argument)[0])
-
-        new_arg = ",".join(translated_arguments)
-        translated_columns.append(f"{raw_function}({new_arg})")
+        new_function = switch_arguments(match)
+        translated_columns.append(new_function)
 
     # need to drop columns after they have been translated to avoid issues with percentile()
     final_columns, dropped_columns = drop_unsupported_columns(translated_columns)
@@ -362,7 +400,9 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
 
         # if orderby is a field/function
         else:
-            translated_orderby, dropped_orderby = translate_columns([orderby_without_neg])
+            translated_orderby, dropped_orderby = translate_columns(
+                [orderby_without_neg], need_equation=True
+            )
             if len(dropped_orderby) > 0:
                 dropped_orderby_reason = "fields were dropped: " + ", ".join(dropped_orderby)
 
