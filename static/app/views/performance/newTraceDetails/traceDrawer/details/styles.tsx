@@ -1327,7 +1327,16 @@ function MultilineJSON({
   const json = tryParseJson(value);
   return (
     <MultilineTextWrapperMonospace>
-      <StructuredData value={json} maxDefaultDepth={maxDefaultDepth} withAnnotatedText />
+      <StructuredData
+        config={{
+          isString: v => typeof v === 'string',
+          isBoolean: v => typeof v === 'boolean',
+          isNumber: v => typeof v === 'number',
+        }}
+        value={json}
+        maxDefaultDepth={maxDefaultDepth}
+        withAnnotatedText
+      />
     </MultilineTextWrapperMonospace>
   );
 }
