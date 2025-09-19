@@ -74,13 +74,17 @@ def sanitize_branch_name(branch_name: str) -> str:
     return f"{sanitized}-{random_suffix}" if sanitized else f"branch-{random_suffix}"
 
 
-def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgentState) -> None:
-    """Store coding agent state via Seer API."""
-    path = "/v1/automation/autofix/coding-agent/state"
+def store_coding_agent_states_to_seer(
+    run_id: int, coding_agent_states: list[CodingAgentState]
+) -> None:
+    """Store multiple coding agent states via Seer batch API."""
+    if not coding_agent_states:
+        return
+    path = "/v1/automation/autofix/coding-agent/state/set"
     body = orjson.dumps(
         {
             "run_id": run_id,
-            "coding_agent_state": coding_agent_state.dict(),
+            "coding_agent_states": [state.dict() for state in coding_agent_states],
         }
     )
 
@@ -96,10 +100,11 @@ def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgen
         raise SeerApiError(response.data.decode("utf-8"), response.status)
 
     logger.info(
-        "coding_agent.state_stored_to_seer",
+        "coding_agent.states_stored_to_seer",
         extra={
             "run_id": run_id,
             "status_code": response.status,
+            "num_states": len(coding_agent_states),
         },
     )
 
@@ -338,6 +343,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             raise APIException("No prompt to send to agents.")
 
         results = []
+        states_to_store: list[CodingAgentState] = []
 
         for repo_name in repos_to_launch:
             repo = next(
@@ -379,26 +385,25 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                 )
                 continue
 
-            try:
-                store_coding_agent_state_to_seer(
-                    run_id=run_id,
-                    coding_agent_state=coding_agent_state,
-                )
-            except SeerApiError:
-                logger.exception(
-                    "coding_agent.seer_storage_error",
-                    extra={
-                        "organization_id": organization.id,
-                        "run_id": run_id,
-                        "repo_name": repo_name,
-                    },
-                )
+            states_to_store.append(coding_agent_state)
 
             results.append(
                 {
                     "repo_name": repo_name,
                     "coding_agent_state": coding_agent_state,
                 }
+            )
+
+        try:
+            store_coding_agent_states_to_seer(run_id=run_id, coding_agent_states=states_to_store)
+        except SeerApiError:
+            logger.exception(
+                "coding_agent.seer_storage_error",
+                extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
+                    "repos": list(repos_to_launch),
+                },
             )
 
         return results
