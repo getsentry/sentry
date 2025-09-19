@@ -214,7 +214,8 @@ function NPlusOneAPICallsSpanEvidence({
   const evidenceData = occurrence?.evidenceData ?? {};
   const baseURL = requestEntry?.data?.url;
 
-  const queryParameters = formatChangingQueryParameters(offendingSpans, baseURL);
+  const queryParameters =
+    evidenceData.parameters ?? formatChangingQueryParameters(offendingSpans, baseURL);
   const pathParameters = evidenceData.pathParameters ?? [];
   const commonPathPrefix =
     occurrence?.subtitle ?? formatBasePath(offendingSpans[0]!, baseURL);
