@@ -63,6 +63,12 @@ enum EventGraphSeries {
 interface EventGraphProps {
   event: Event | undefined;
   group: Group;
+  /**
+   * Configures showing releases on the chart as bubbles or lines. This is used
+   * when showing the chart inside of the flyout drawer. Bubbles are shown when
+   * this prop is anything besides "line".
+   */
+  showReleasesAs: 'line' | 'bubble';
   className?: string;
   /**
    * Disables navigation via router when the chart is zoomed. This is so the
@@ -73,12 +79,6 @@ interface EventGraphProps {
   disableZoomNavigation?: boolean;
   eventView?: EventView;
   ref?: React.Ref<ReactEchartsRef>;
-  /**
-   * Configures showing releases on the chart as bubbles or lines. This is used
-   * when showing the chart inside of the flyout drawer. Bubbles are shown when
-   * this prop is anything besides "line".
-   */
-  showReleasesAs?: 'line' | 'bubble';
   /**
    * Enable/disables showing the event and user summary
    */
@@ -301,9 +301,10 @@ export function EventGraph({
     onReleaseClick: handleReleaseLineClick,
   });
 
+  // always show flag lines regardless of release line/bubble display
   const flagSeries = useFlagSeries({
     event,
-    flags: shouldShowBubbles ? [] : flags,
+    flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
