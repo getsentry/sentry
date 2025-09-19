@@ -24,8 +24,8 @@ from snuba_sdk import (
 
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
 from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
@@ -55,10 +55,6 @@ SNUBA_RETRY_EXCEPTIONS = (
 )
 
 SEER_DELETE_SUMMARIES_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/delete"
-
-seer_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
 
 logger = logging.getLogger(__name__)
 
@@ -209,9 +205,11 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
 
     try:
         response = make_signed_seer_api_request(
-            connection_pool=seer_connection_pool,
+            connection_pool=seer_summarization_connection_pool,
             path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
             body=json.dumps(seer_request).encode("utf-8"),
+            timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+            retries=None,  # Default behavior of 3 retries.
         )
     except Exception:
         logger.exception(

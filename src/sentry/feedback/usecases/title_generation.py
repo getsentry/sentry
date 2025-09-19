@@ -3,18 +3,14 @@ from __future__ import annotations
 import logging
 from typing import TypedDict
 
-from django.conf import settings
-
-from sentry.net.http import connection_from_url
+from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
 SEER_TITLE_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/title"
-
-seer_connection_pool = connection_from_url(settings.SEER_SUMMARIZATION_URL, timeout=10)
-fallback_connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL, timeout=10)
+SEER_TIMEOUT_S = 10
 
 
 class GenerateFeedbackTitleRequest(TypedDict):
@@ -74,31 +70,15 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
 
     try:
         response = make_signed_seer_api_request(
-            connection_pool=seer_connection_pool,
+            connection_pool=seer_summarization_connection_pool,
             path=SEER_TITLE_GENERATION_ENDPOINT_PATH,
             body=json.dumps(seer_request).encode("utf-8"),
+            timeout=SEER_TIMEOUT_S,
+            retries=0,  # Do not retry since this is called in ingest.
         )
         response_data = response.json()
     except Exception:
-        # If summarization pod fails, fall back to autofix pod
-        logger.warning(
-            "Summarization pod connection failed for title generation, falling back to autofix",
-            exc_info=True,
-        )
-        try:
-            response = make_signed_seer_api_request(
-                connection_pool=fallback_connection_pool,
-                path=SEER_TITLE_GENERATION_ENDPOINT_PATH,
-                body=json.dumps(seer_request).encode("utf-8"),
-            )
-            response_data = response.json()
-        except Exception:
-            logger.exception("Seer title generation endpoint failed on both pods")
-            metrics.incr(
-                "feedback.ai_title_generation.error",
-                tags={"reason": "seer_response_failed"},
-            )
-            return None
+        return None
 
     if response.status < 200 or response.status >= 300:
         logger.error(
