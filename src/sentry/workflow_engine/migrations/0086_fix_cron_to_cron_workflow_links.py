@@ -10,7 +10,6 @@ from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 BATCH_SIZE = 1000
@@ -30,13 +29,7 @@ def unlink_monitors_without_alert_rules(apps: StateApps) -> None:
     data_sources = list(DataSource.objects.filter(type="cron_monitor"))
     monitor_id_to_data_source = {int(ds.source_id): ds for ds in data_sources}
 
-    for monitor_batch in chunked(
-        RangeQuerySetWrapper(
-            Monitor.objects.all(),
-            step=BATCH_SIZE,
-        ),
-        BATCH_SIZE,
-    ):
+    for monitor_batch in chunked(Monitor.objects.all(), BATCH_SIZE):
         monitor_ids_to_unlink = []
         for monitor in monitor_batch:
             if "alert_rule_id" not in monitor.config:
@@ -72,6 +65,9 @@ def fix_cron_to_cron_workflow_links(
     AlertRuleWorkflow = apps.get_model("workflow_engine", "AlertRuleWorkflow")
     DataSourceDetector = apps.get_model("workflow_engine", "DataSourceDetector")
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
+
+    # Handle all monitors without alert_rule_id - they should have no workflows
+    unlink_monitors_without_alert_rules(apps)
 
     # Handle monitors with alert_rule_id based on their deduped workflows
     rules_by_org = defaultdict(list)
@@ -182,9 +178,6 @@ def fix_cron_to_cron_workflow_links(
                         "alert_rule_id": alert_rule_id,
                     },
                 )
-
-    # Handle ALL monitors without alert_rule_id - they should have no workflows
-    unlink_monitors_without_alert_rules(apps)
 
 
 class Migration(CheckedMigration):
