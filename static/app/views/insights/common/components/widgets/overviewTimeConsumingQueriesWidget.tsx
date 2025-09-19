@@ -7,10 +7,12 @@ import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -23,8 +25,6 @@ import {SpanDescriptionCell} from 'sentry/views/insights/common/components/table
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
@@ -86,12 +86,12 @@ export default function OverviewTimeConsumingQueriesWidget(
     data: queriesSeriesData,
     isLoading: isQueriesSeriesLoading,
     error: queriesSeriesError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search: `${SpanFields.SPAN_GROUP}:[${queriesListData?.map(item => `"${item[SpanFields.SPAN_GROUP]}"`).join(',')}]`,
-      fields: [groupBy, yAxes],
+      query: `${SpanFields.SPAN_GROUP}:[${queriesListData?.map(item => `"${item[SpanFields.SPAN_GROUP]}"`).join(',')}]`,
+      groupBy: [groupBy, yAxes],
       yAxis: [yAxes],
-      topN: 3,
+      topEvents: 3,
       enabled: queriesListData?.length > 0,
       interval,
     },
@@ -100,17 +100,25 @@ export default function OverviewTimeConsumingQueriesWidget(
 
   const isLoading = isQueriesSeriesLoading || isQueriesListLoading;
   const error = queriesSeriesError || queriesListError;
+  const dataLength = queriesSeriesData?.timeSeries?.length ?? 0;
 
-  const hasData =
-    queriesListData && queriesListData.length > 0 && queriesSeriesData.length > 0;
+  const hasData = queriesListData && queriesListData.length > 0 && dataLength > 0;
 
-  const colorPalette = theme.chart.getColorPalette(queriesSeriesData.length - 1);
+  const colorPalette = theme.chart.getColorPalette(dataLength - 1);
 
   const aliases: Record<string, string> = {};
 
   queriesListData.forEach(item => {
     aliases[item[groupBy]] = `${yAxes}, ${ellipsize(item[groupBy], 50)}`;
   });
+
+  const plottables =
+    queriesSeriesData?.timeSeries.map(
+      (ts, index) =>
+        new Line(ts, {
+          color: colorPalette[index],
+        })
+    ) ?? [];
 
   const visualization = (
     <WidgetVisualizationStates
@@ -122,13 +130,7 @@ export default function OverviewTimeConsumingQueriesWidget(
       visualizationProps={{
         id: 'overviewTimeConsumingQueriesWidget',
         showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
-        plottables: queriesSeriesData.map(
-          (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
-              alias: aliases[ts.seriesName],
-            })
-        ),
+        plottables,
         ...props,
         ...releaseBubbleProps,
       }}
@@ -198,16 +200,16 @@ export default function OverviewTimeConsumingQueriesWidget(
                 key="time consuming queries widget"
                 exploreUrl={exploreUrl}
                 referrer={referrer}
-                alertMenuOptions={queriesSeriesData.map(series => ({
-                  key: series.seriesName,
-                  label: aliases[series.seriesName],
+                alertMenuOptions={plottables.map(plottable => ({
+                  key: plottable.name,
+                  label: ellipsize(plottable.name, 90),
                   to: getAlertsUrl({
                     project,
                     aggregate: yAxes,
                     organization,
                     pageFilters: selection,
                     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-                    query: `${SpanFields.NORMALIZED_DESCRIPTION}:"${series.seriesName}"`,
+                    query: `${plottable.timeSeries.groupBy?.[0]?.key}:"${plottable.timeSeries.groupBy?.[0]?.value}"`,
                     referrer,
                   }),
                 }))}
