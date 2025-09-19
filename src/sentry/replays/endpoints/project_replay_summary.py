@@ -6,7 +6,6 @@ from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
-from urllib3.util.retry import Retry
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -92,7 +91,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 connection_pool=seer_connection_pool,
                 path=path,
                 body=data.encode("utf-8"),
-                retries=Retry(total=1, backoff_factor=3),  # 1 retry with 3 second delay
+                # Uses default urllib3 retry behavior of 3 retries
             )
         except Exception:
             logger.exception(

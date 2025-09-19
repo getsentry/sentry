@@ -59,9 +59,6 @@ SEER_DELETE_SUMMARIES_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrum
 seer_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
-fallback_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
 
 logger = logging.getLogger(__name__)
 
@@ -219,21 +216,9 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
     except Exception:
         # If summarization pod fails, fall back to autofix pod
         logger.warning(
-            "Summarization pod connection failed for delete replay, falling back to autofix",
+            "Summarization pod connection failed for delete replay after retries",
             exc_info=True,
         )
-        try:
-            response = make_signed_seer_api_request(
-                connection_pool=fallback_connection_pool,
-                path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
-                body=json.dumps(seer_request).encode("utf-8"),
-            )
-        except Exception:
-            logger.exception(
-                "Failed to delete replay data from Seer on both pods",
-                extra={"project_id": project_id, "replay_ids": replay_ids},
-            )
-            return False
 
     response_status_ok = response.status >= 200 and response.status < 300
     if not response_status_ok:
