@@ -105,6 +105,7 @@ const server: Set<PlatformKey> = new Set([
   'python-fastapi',
   'python-flask',
   'python-pyramid',
+  'python-pymongo',
   'python-quart',
   'python-rq',
   'python-sanic',
