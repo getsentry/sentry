@@ -517,7 +517,7 @@ function InnerSpendLimitSettings({
   return (
     <Flex direction="column" gap="xl">
       <Container>
-        <Subtitle>
+        <Heading as="h2" size="md">
           {tct('Monthly spending [limitTerm]', {
             budgetMode: formattedBudgetMode,
             limitTerm:
@@ -525,7 +525,7 @@ function InnerSpendLimitSettings({
                 ? 'limits'
                 : 'limit',
           })}
-        </Subtitle>
+        </Heading>
       </Container>
       {inputs}
     </Flex>
@@ -646,11 +646,6 @@ export default SpendLimitSettings;
 
 const RadioMarker = styled(Container)<{isSelected: boolean}>`
   border-width: ${p => (p.isSelected ? '4px' : '1px')};
-`;
-
-const Subtitle = styled('h2')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const InnerContainer = styled(Flex)`
