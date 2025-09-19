@@ -233,7 +233,7 @@ def get_or_create_grouphashes(
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
-        if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
+        if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
                 # We don't expect this to throw any errors, but collecting this metadata
                 # shouldn't ever derail ingestion, so better to be safe
