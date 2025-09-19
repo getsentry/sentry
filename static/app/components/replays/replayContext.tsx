@@ -243,13 +243,12 @@ export function Provider({
         return;
       }
 
-      const skipInactive = replayer.config.skipInactive;
-
-      if (skipInactive) {
-        // If the replayer is set to skip inactive, we should turn it off before
-        // manually scrubbing, so when the player resumes playing it's not stuck
-        // fast-forwarding even through sections with activity
-        replayer.setConfig({skipInactive: false});
+      // Stop any active fast-forwarding when scrubbing
+      if (
+        replayer.config.skipInactive &&
+        replayer.speedService.state.matches('skipping')
+      ) {
+        replayer.resetFastForward();
       }
 
       const time = clamp(requestedTimeMs, 0, startTimeOffsetMs + durationMs);
@@ -264,13 +263,17 @@ export function Provider({
         window.clearTimeout(playTimer.current);
       }
 
-      replayer.setConfig({skipInactive});
-
       if (isPlaying) {
-        playTimer.current = window.setTimeout(() => replayer.play(time), 0);
+        playTimer.current = window.setTimeout(() => {
+          replayer.play(time);
+          replayer.reevaluateFastForward();
+        }, 0);
         setIsPlaying(true);
       } else {
-        playTimer.current = window.setTimeout(() => replayer.pause(time), 0);
+        playTimer.current = window.setTimeout(() => {
+          replayer.pause(time);
+          replayer.reevaluateFastForward();
+        }, 0);
         setIsPlaying(false);
       }
     },
@@ -486,6 +489,11 @@ export function Provider({
 
       if (play) {
         replayer.play(getCurrentPlayerTime());
+        // Re-evaluate fast-forward opportunities when starting playback
+        // Add small delay to ensure play() has finished setting up
+        window.setTimeout(() => {
+          replayer.reevaluateFastForward();
+        }, 10);
       } else {
         replayer.pause(getCurrentPlayerTime());
       }
