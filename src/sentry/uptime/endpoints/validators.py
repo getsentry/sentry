@@ -373,17 +373,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         default="active",
         help_text="Status of the uptime monitor. Disabled uptime monitors will not perform checks and do not count against the uptime monitor quota.",
     )
-    owner = ActorField(
-        required=False,
-        allow_null=True,
-        help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
-    )
-    environment = serializers.CharField(
-        max_length=64,
-        required=False,
-        allow_null=True,
-        help_text="Name of the environment to create uptime issues in.",
-    )
     url = URLField(required=True, max_length=255)
     interval_seconds = serializers.ChoiceField(
         required=True,

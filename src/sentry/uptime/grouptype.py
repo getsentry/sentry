@@ -47,22 +47,6 @@ class UptimePacketValue:
     metric_tags: dict[str, str]
 
 
-def get_active_failure_threshold() -> int:
-    """
-    When in active monitoring mode, overrides how many failures in a row we
-    need to see to mark the monitor as down
-    """
-    return options.get("uptime.active-failure-threshold")
-
-
-def get_active_recovery_threshold() -> int:
-    """
-    When in active monitoring mode, how many successes in a row do we need to
-    mark it as up
-    """
-    return options.get("uptime.active-recovery-threshold")
-
-
 def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
     evidence_display: list[IssueEvidence] = []
 
