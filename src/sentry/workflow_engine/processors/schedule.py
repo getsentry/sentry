@@ -9,6 +9,7 @@ from sentry import options
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.utils import metrics
+from sentry.utils.iterators import chunked
 from sentry.workflow_engine.buffer import get_backend
 from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.tasks.delayed_workflows import (
@@ -135,8 +136,45 @@ def process_buffered_workflows() -> None:
         for project_id in project_ids:
             process_in_batches(buffer, project_id)
 
-        buffer.delete_keys(
-            buffer_keys,
-            min=0,
-            max=fetch_time,
-        )
+        if options.get("workflow_engine.scheduler.use_conditional_delete"):
+            member_maxes = [
+                (project_id, max(timestamps))
+                for project_id, timestamps in all_project_ids_and_timestamps.items()
+            ]
+            try:
+                deleted_project_ids = set[int]()
+                with metrics.timer(
+                    "workflow_engine.conditional_delete_from_sorted_sets.total_duration"
+                ):
+                    # The conditional delete can be slow, so we break it into chunks that probably
+                    # aren't big enough to hold onto the main redis thread for too long.
+                    for chunk in chunked(member_maxes, 500):
+                        with metrics.timer(
+                            "workflow_engine.conditional_delete_from_sorted_sets.chunk_duration"
+                        ):
+                            deleted = buffer.conditional_delete_from_sorted_sets(buffer_keys, chunk)
+                            deleted_project_ids.update(*deleted.values())
+
+                logger.info(
+                    "process_buffered_workflows.project_ids_deleted",
+                    extra={
+                        "deleted_project_ids": sorted(deleted_project_ids),
+                        "processed_project_ids": sorted(project_ids),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "process_buffered_workflows.conditional_delete_from_sorted_sets_error"
+                )
+                # Fallback.
+                buffer.delete_keys(
+                    buffer_keys,
+                    min=0,
+                    max=fetch_time,
+                )
+        else:
+            buffer.delete_keys(
+                buffer_keys,
+                min=0,
+                max=fetch_time,
+            )
