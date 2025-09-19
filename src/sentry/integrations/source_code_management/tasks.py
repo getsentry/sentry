@@ -20,12 +20,13 @@ from sentry.integrations.source_code_management.metrics import (
     CommitContextIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import CommentType, PullRequest
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -278,11 +279,16 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         provider_key=integration_name,
         repository=repo,
         pull_request_id=pull_request.id,
-    ).capture():
-        # fetch the files in the PR and determine if it is safe to comment
-        pullrequest_files = open_pr_comment_workflow.get_pr_files_safe_for_comment(
-            repo=repo, pr=pull_request
-        )
+    ).capture() as lifecycle:
+        try:
+            # fetch the files in the PR and determine if it is safe to comment
+            pullrequest_files = open_pr_comment_workflow.get_pr_files_safe_for_comment(
+                repo=repo, pr=pull_request
+            )
+        except ApiInvalidRequestError as e:
+            if not e.text and integration_name == IntegrationProviderSlug.GITLAB.value:
+                lifecycle.record_halt(e)
+            raise
 
     issue_table_contents = {}
     top_issues_per_file = []

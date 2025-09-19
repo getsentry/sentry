@@ -215,15 +215,15 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                 # Preserve path separators and query params etc.
                 return urlunparse(parsed._replace(path=encoded_path))
 
-            if version:
-                scope.set_tag("stacktrace_link.tried_version", True)
-                source_url = self.check_file(repo, filepath, version)
-                if source_url:
-                    scope.set_tag("stacktrace_link.used_version", True)
-                    return encode_url(source_url)
-
-            scope.set_tag("stacktrace_link.used_version", False)
             try:
+                if version:
+                    scope.set_tag("stacktrace_link.tried_version", True)
+                    source_url = self.check_file(repo, filepath, version)
+                    if source_url:
+                        scope.set_tag("stacktrace_link.used_version", True)
+                        return encode_url(source_url)
+
+                scope.set_tag("stacktrace_link.used_version", False)
                 source_url = self.check_file(repo, filepath, default)
             except ApiForbiddenError as e:
                 # Similar to the `check_file` implementation, we need to re-raise
