@@ -1,5 +1,4 @@
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from 'sentry/components/core/alert';
