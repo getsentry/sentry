@@ -28,6 +28,7 @@ import {
   getJavascriptLogsFullStackOnboarding,
   getJavascriptProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -279,6 +280,10 @@ const docs: Docs = {
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'nuxt',
     sdkPackage: '@sentry/nuxt',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'nuxt',
+    configFileName: 'sentry.server.config.ts',
   }),
 };
 
