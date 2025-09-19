@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import importlib
 import logging
 import queue
 import signal
@@ -26,7 +25,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_sdk.consts import OP, SPANDATA, SPANSTATUS
 from sentry_sdk.crons import MonitorStatus, capture_checkin
 
-from sentry.taskworker.app import TaskworkerApp
+from sentry.taskworker.app import import_app
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import CompressionType
@@ -92,12 +91,6 @@ def status_name(status: TaskActivationStatus.ValueType) -> str:
     if status == TASK_ACTIVATION_STATUS_RETRY:
         return "retry"
     return f"unknown-{status}"
-
-
-def import_app(app_module: str) -> TaskworkerApp:
-    module_name, name = app_module.split(":")
-    module = importlib.import_module(module_name)
-    return getattr(module, name)
 
 
 def child_process(

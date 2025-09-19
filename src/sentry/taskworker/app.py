@@ -1,3 +1,4 @@
+import importlib
 from collections.abc import Iterable
 from typing import Any, Protocol
 
@@ -19,6 +20,7 @@ class TaskworkerApp:
         self._config = {
             "rpc_secret": None,
             "at_most_once_timeout": None,
+            "grpc_config": None,
         }
         self._modules: Iterable[str] = []
         self._taskregistry = taskregistry or TaskRegistry()
@@ -74,3 +76,13 @@ class TaskworkerApp:
 def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
     # tw:amo -> taskworker:at_most_once
     return f"tw:amo:{namespace}:{taskname}:{task_id}"
+
+
+def import_app(app_module: str) -> TaskworkerApp:
+    """
+    Resolve an application path like `acme.worker.runtime:app`
+    into the `app` symbol defined in the module.
+    """
+    module_name, name = app_module.split(":")
+    module = importlib.import_module(module_name)
+    return getattr(module, name)

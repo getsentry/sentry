@@ -16,6 +16,7 @@ import grpc
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
 from sentry import options
+from sentry.taskworker.app import import_app
 from sentry.taskworker.client.client import (
     HealthCheckSettings,
     HostTemporarilyUnavailable,
@@ -69,14 +70,17 @@ class TaskWorker:
         self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
+        app = import_app(app_module)
+
         self.client = TaskworkerClient(
-            broker_hosts,
-            rebalance_after,
+            hosts=broker_hosts,
+            max_tasks_before_rebalance=rebalance_after,
             health_check_settings=(
                 None
                 if health_check_file_path is None
                 else HealthCheckSettings(Path(health_check_file_path), health_check_sec_per_touch)
             ),
+            rpc_secret=app.config["rpc_secret"],
         )
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")
