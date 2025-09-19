@@ -20,7 +20,7 @@ _JAVA_CLASS_IN_TEXT_RE = re.compile(
     (
         (?:[A-Za-z_$][\w$]*\.){1,}[A-Za-z_$][\w$]*(?:\$[A-Za-z_$][\w$]*)*
         |
-        ['\"][A-Za-z_$][\w$]*['\"]
+        ['"][A-Za-z_$][\w$]*['"]
     )
     """,
     re.X,
@@ -48,7 +48,7 @@ class Exceptions:
         Returns a flattened list of all class names found in the exception values.
         """
         return [
-            class_name
+            _strip_quotes(class_name)
             for _, class_names in self._processable_exceptions_with_values
             for class_name in class_names
         ]
@@ -73,7 +73,25 @@ class Exceptions:
         for exc, class_names in self._processable_exceptions_with_values:
             value = exc["value"]
             for class_name in class_names:
-                mapped_class_name = classes.get(class_name)
+                mapped_class_name = classes.get(class_name) or classes.get(
+                    _strip_quotes(class_name)
+                )
                 if mapped_class_name:
                     exc["raw_value"] = value
-                    exc["value"] = exc["value"].replace(class_name, mapped_class_name)
+                    replacement = _wrap_with_same_quotes(class_name, mapped_class_name)
+                    exc["value"] = exc["value"].replace(class_name, replacement)
+
+
+def _is_quoted(token: str) -> bool:
+    return len(token) >= 2 and ((token[0] == token[-1] == "'") or (token[0] == token[-1] == '"'))
+
+
+def _strip_quotes(token: str) -> str:
+    return token[1:-1] if _is_quoted(token) else token
+
+
+def _wrap_with_same_quotes(original_token: str, replacement: str) -> str:
+    if _is_quoted(original_token):
+        quote = original_token[0]
+        return f"{quote}{replacement}{quote}"
+    return replacement

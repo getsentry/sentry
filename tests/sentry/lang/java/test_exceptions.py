@@ -26,7 +26,9 @@ def test_get_processable_exceptions_filters_by_module_and_type():
 def test_value_class_names_matches_fqcn_inner_and_quoted_multiple_values():
     data = build_event(
         [
-            {"value": "Serializer for subclass 'o' is not found in the polymorphic scope of 'j4'"},
+            {
+                "value": "Serializer for subclass 'o' is not found in the polymorphic scope of \"j4\""
+            },
             {"value": "Caused by com.example.myapp.MainActivity"},
             {"value": "Happened inside a.b$c$1"},
             {"value": "Cannot cast com.mycompany.myclass to Tf.k"},
@@ -37,8 +39,8 @@ def test_value_class_names_matches_fqcn_inner_and_quoted_multiple_values():
     class_names = excs.get_value_class_names()
 
     # Expect quoted single-segment and FQCN and inner class patterns across values
-    assert "'o'" in class_names
-    assert "'j4'" in class_names
+    assert "o" in class_names
+    assert "j4" in class_names
     assert "com.example.myapp.MainActivity" in class_names
     assert "a.b$c$1" in class_names
     assert "com.mycompany.myclass" in class_names
@@ -49,7 +51,7 @@ def test_deobfuscate_and_save_deobfuscates_types_and_values_multiple_values():
     # First exception is processable by type/module mapping
     exc1 = {"type": "g$a", "module": "org.a.b", "value": "something with org.a.b.g$a"}
     # Next exceptions only have value matches, spread across multiple exceptions
-    exc2 = {"value": "Serializer for subclass 'o' is not found in the polymorphic scope of 'j4'"}
+    exc2 = {"value": "Serializer for subclass 'o' is not found in the polymorphic scope of \"j4\""}
     exc3 = {"value": "Caused by com.example.myapp.MainActivity in a.b$c$1"}
     data = build_event([exc1, exc2, exc3])
 
@@ -62,8 +64,8 @@ def test_deobfuscate_and_save_deobfuscates_types_and_values_multiple_values():
 
     # Class name mapping for replacements in values; note quoted keys
     classes = {
-        "'o'": "org.example.ObfO",
-        "'j4'": "org.example.ObfJ4",
+        "o": "org.example.ObfO",
+        "j4": "org.example.ObfJ4",
         "com.example.myapp.MainActivity": "io.sample.MainActivity",
         "a.b$c$1": "alpha.beta.C$1",
         # also test that unmapped occurrences (like org.a.b.g$a in value) are ignored safely
