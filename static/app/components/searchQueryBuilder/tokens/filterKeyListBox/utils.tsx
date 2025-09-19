@@ -228,9 +228,9 @@ export function createAskSeerItem(): AskSeerItem {
   return {
     key: getEscapedKey(ASK_SEER_ITEM_KEY),
     value: ASK_SEER_ITEM_KEY,
-    textValue: 'Ask Seer',
+    textValue: 'Ask Seer to build your query',
     type: 'ask-seer' as const,
-    label: t('Ask Seer'),
+    label: t('Ask Seer to build your query'),
     hideCheck: true,
   };
 }
