@@ -16,10 +16,11 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -77,43 +78,52 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:quart] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[quart]'}),
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:quart] extra:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[quart]'}),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
 app = Quart(__name__)
 `,
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
-
           code: `
 ${getSdkSetupSnippet(params)}
 app = Quart(__name__)
@@ -126,56 +136,23 @@ async def hello():
 app.run()
 `,
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                description: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                description: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
-      ],
-      additionalInfo: (
-        <span>
-          <p>
-            {tct(
+        getVerifyLogsContent(params),
+        {
+          type: 'text',
+          text: [
+            tct(
               'When you point your browser to [link:http://localhost:5000/] a trace will be created.',
               {
                 link: <ExternalLink href="http://localhost:5000/" />,
               }
-            )}
-          </p>
-          <p>
-            {t(
+            ),
+            t(
               'Additionally, an error event will be sent to Sentry and will be connected to the trace.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </span>
-      ),
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
+        },
+      ],
     },
   ],
   nextSteps: (params: Params) => {

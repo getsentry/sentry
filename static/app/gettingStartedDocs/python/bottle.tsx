@@ -16,10 +16,11 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  AlternativeConfiguration,
-  getPythonInstallConfig,
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -74,49 +75,53 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:bottle] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[bottle]'}),
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:bottle] extra:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[bottle]'}),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'If you have the [code:bottle] package in your dependencies, the Bottle integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'If you have the [code:bottle] package in your dependencies, the Bottle integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'python',
           code: `from bottle import Bottle
 ${getSdkSetupSnippet(params)}
 app = Bottle()
 `,
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: params.isProfilingSelected &&
-        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-          <AlternativeConfiguration />
-        ),
     },
   ],
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'To verify that everything is working, trigger an error on purpose:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('To verify that everything is working, trigger an error on purpose:'),
+        },
+        {
+          type: 'code',
           language: 'python',
-
           code: `from bottle import Bottle, run
 ${getSdkSetupSnippet(params)}
 app = Bottle()
@@ -129,56 +134,23 @@ def hello():
 run(app, host='localhost', port=8000)
 `,
         },
-        ...(params.isLogsSelected
-          ? [
-              {
-                description: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                description: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ]
-          : []),
-      ],
-      additionalInfo: (
-        <span>
-          <p>
-            {tct(
+        getVerifyLogsContent(params),
+        {
+          type: 'text',
+          text: [
+            tct(
               'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
               {
                 link: <ExternalLink href="http://localhost:8000/" />,
               }
-            )}
-          </p>
-          <p>
-            {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </span>
-      ),
+            ),
+            t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction. '
+            ),
+            t('It takes a couple of moments for the data to appear in Sentry.'),
+          ],
+        },
+      ],
     },
   ],
   nextSteps: (params: Params) => {
