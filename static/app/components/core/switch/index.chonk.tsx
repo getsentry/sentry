@@ -54,7 +54,7 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
       top: 0;
       left: 0;
       transform: translateY(-1px);
-      transition: all 100ms ease-in-out, transform 400ms linear(0, 0.877 9.4%, 1.08 14.6%, 0.993 30.8%, 1);
+      transition: all ${p => p.theme.motion.smooth.moderate}, transform ${p => p.theme.motion.exit.slow};
 
       &:after {
         /** The icon is not clickable */
@@ -68,7 +68,7 @@ export const ChonkNativeHiddenCheckbox = chonkStyled('input')<{
         left: ${p => toggleButtonSize[p.nativeSize].iconOffset}px;
         background-repeat: no-repeat;
         background-size: ${p => toggleButtonSize[p.nativeSize].icon}px ${p => toggleButtonSize[p.nativeSize].icon}px;
-        transition: transform 500ms linear(0, 0.877 9.4%, 1.08 14.6%, 0.993 30.8%, 1);
+        transition: transform ${p => p.theme.motion.snap.slow};
         background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p => urlEscapeHex(p.theme.colors.content.muted)}" d="M5.03 3.97a.75.75 0 0 0-1.06 1.06L6.94 8l-2.97 2.97a.75.75 0 1 0 1.06 1.06L8 9.06l2.97 2.97a.75.75 0 1 0 1.06-1.06L9.06 8l2.97-2.97a.75.75 0 0 0-1.06-1.06L8 6.94 5.03 3.97Z" clip-rule="evenodd"/></svg>');
       }
     }
