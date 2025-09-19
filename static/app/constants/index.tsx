@@ -237,7 +237,7 @@ export const DEFAULT_RELATIVE_PERIODS = {
 const DEFAULT_STATS_INFO = {
   showExternalStats: false,
   showInternalStats: true,
-  yAxisMinInterval: 100,
+  yAxisMinInterval: 10,
 };
 const GIGABYTE = 10 ** 9;
 const KILOBYTE = 10 ** 3;
