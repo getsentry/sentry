@@ -52,7 +52,7 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'enablePrReviewTestGeneration',
         type: 'boolean',
-        label: tct('Enable Prevent AI [badge]', {
+        label: tct('Enable AI Code Review [badge]', {
           badge: <FeatureBadge type="beta" style={{marginBottom: '2px'}} />,
         }),
         help: tct(
