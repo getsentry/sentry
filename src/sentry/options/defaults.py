@@ -1105,7 +1105,7 @@ register(
 register(
     "seer.similarity.token_count_metrics_enabled",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL,
 )
 
