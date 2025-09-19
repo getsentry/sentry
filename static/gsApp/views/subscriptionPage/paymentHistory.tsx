@@ -20,7 +20,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {InvoiceBase, Subscription} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 
@@ -60,11 +59,10 @@ function PaymentHistory({organization, subscription}: Props) {
   );
 
   const paymentsPageLinks = getResponseHeader?.('Link');
-  const isNewBillingUI = hasNewBillingUI(organization);
 
   if (isPending) {
     return (
-      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+      <Container>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
       </Container>
@@ -81,7 +79,7 @@ function PaymentHistory({organization, subscription}: Props) {
   }
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
+    <Container>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div className="ref-payment-list" data-test-id="payment-list">
         <PanelTable
