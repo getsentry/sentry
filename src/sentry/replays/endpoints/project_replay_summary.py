@@ -86,19 +86,12 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 },
             )
 
-        try:
-            response = make_signed_seer_api_request(
-                connection_pool=seer_connection_pool,
-                path=path,
-                body=data.encode("utf-8"),
-                # Uses default urllib3 retry behavior of 3 retries
-            )
-        except Exception:
-            logger.exception(
-                "Seer replay breadcrumbs summary endpoint failed after retries",
-                extra={"path": path},
-            )
-            return self.respond("Internal Server Error", status=500)
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=path,
+            body=data.encode("utf-8"),
+            # Uses default urllib3 retry behavior of 3 retries
+        )
 
         if response.status < 200 or response.status >= 300:
             logger.error(
