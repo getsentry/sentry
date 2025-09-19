@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from base64 import b64encode
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime as dt
 from typing import Any, ClassVar, Self, cast, dataclass_transform, overload
