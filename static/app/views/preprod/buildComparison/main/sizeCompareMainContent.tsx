@@ -5,6 +5,8 @@ import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
+import Placeholder from 'sentry/components/placeholder';
+import Placeholder from 'sentry/components/placeholder';
 import {IconCode, IconDownload, IconFile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -43,12 +45,17 @@ export function SizeCompareMainContent() {
       }
     );
 
-  const successfulComparison = sizeComparisonQuery.data?.comparisons.find(
-    comp =>
-      comp.state === SizeAnalysisComparisonState.SUCCESS &&
-      // TODO: Allow user to select artifact type
-      comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  const mainArtifactComparison = sizeComparisonQuery.data?.comparisons.find(
+    comp => comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
   );
+
+  let successfulComparison = null;
+  if (
+    mainArtifactComparison &&
+    mainArtifactComparison.state === SizeAnalysisComparisonState.SUCCESS
+  ) {
+    successfulComparison = mainArtifactComparison;
+  }
 
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
@@ -122,7 +129,46 @@ export function SizeCompareMainContent() {
   }, [comparisonDataQuery.data]);
 
   if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading) {
-    return <LoadingIndicator />;
+    return (
+      <Flex direction="column" gap="lg" minHeight="700px">
+        <Grid columns="repeat(3, 1fr)" gap="lg">
+          <Placeholder width="100%" height="100px" />
+          <Placeholder width="100%" height="100px" />
+          <Placeholder width="100%" height="100px" />
+        </Grid>
+        {/* Main visualization skeleton */}
+        <Flex
+          align="center"
+          justify="center"
+          style={{position: 'relative', height: '508px'}}
+          data-testid="comparison-loading-skeleton"
+        >
+          <Container
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '508px',
+              zIndex: 0,
+            }}
+          >
+            <Placeholder width="100%" height="508px" />
+          </Container>
+          <LoadingIndicator size={60} style={{zIndex: 1}} />
+        </Flex>
+      </Flex>
+    );
+  }
+
+  if (mainArtifactComparison?.state === SizeAnalysisComparisonState.PROCESSING) {
+    return (
+      <Flex direction="column" gap="lg" minHeight="700px">
+        <LoadingIndicator size={60} style={{zIndex: 1}}>
+          {t('Your comparison is still being processed...')}
+        </LoadingIndicator>
+      </Flex>
+    );
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
