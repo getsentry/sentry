@@ -8,7 +8,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
-  getCrashReportSDKInstallFirstStepRails,
+  getCrashReportSDKInstallFirstBlocksRails,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -166,31 +166,35 @@ const crashReportOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        "In Rails, being able to serve dynamic pages in response to errors is required to pass the needed [codeEvent:event_id] to the JavaScript SDK. [link:Read our docs] to learn more. Once you're able to serve dynamic exception pages, you can support user feedback.",
+      content: [
         {
-          codeEvent: <code />,
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/#integration" />
+          type: 'text',
+          text: tct(
+            "In Rails, being able to serve dynamic pages in response to errors is required to pass the needed [codeEvent:event_id] to the JavaScript SDK. [link:Read our docs] to learn more. Once you're able to serve dynamic exception pages, you can support user feedback.",
+            {
+              codeEvent: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/#integration" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
-        getCrashReportSDKInstallFirstStepRails(params),
+        },
+        ...getCrashReportSDKInstallFirstBlocksRails(params),
         {
-          description: t(
-            'Additionally, you need the template that brings up the dialog:'
-          ),
-          code: [
+          type: 'text',
+          text: t('Additionally, you need the template that brings up the dialog:'),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'ERB',
-              value: 'erb',
               language: 'erb',
               code: `<% sentry_id = request.env["sentry.error_event_id"] %>
 <% if sentry_id.present? %>
 <script>
-  Sentry.init({ dsn: "${params.dsn.public}" });
-  Sentry.showReportDialog({ eventId: "<%= sentry_id %>" });
+Sentry.init({ dsn: "${params.dsn.public}" });
+Sentry.showReportDialog({ eventId: "<%= sentry_id %>" });
 </script>
 <% end %>`,
             },
@@ -202,9 +206,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/ruby/guides/rails/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
