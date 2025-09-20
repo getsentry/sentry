@@ -20,7 +20,6 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
-from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     EventFrequencyQueryHandler,
@@ -65,12 +64,6 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
-
-
-def mock_workflows_buffer():
-    return patch(
-        "sentry.workflow_engine.buffer.get_backend", new=lambda: RedisHashSortedSetBuffer()
-    )
 
 
 class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
