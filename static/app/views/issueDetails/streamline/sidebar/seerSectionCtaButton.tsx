@@ -175,7 +175,10 @@ export function SeerSectionCtaButton({
     }
 
     if (isAutofixCompleted) {
-      if (lastStep.type === AutofixStepType.SOLUTION) {
+      if (
+        lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS ||
+        lastStep.type === AutofixStepType.SOLUTION
+      ) {
         return t('Fix with Seer');
       }
       return t('Open Seer');

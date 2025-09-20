@@ -712,7 +712,7 @@ const VerticalLine = styled('div')`
   top: 0;
   bottom: 0;
   width: 1px;
-  background-color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.border};
   transition: background-color 0.2s ease;
   z-index: 0;
 `;
@@ -765,7 +765,7 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background: ${p => p.theme.pink400}05;
+  background: ${p => p.theme.alert.info.backgroundLight};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
@@ -796,9 +796,6 @@ const AnimationWrapper = styled(motion.div)`
 
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.subText};
-  &:hover {
-    color: ${p => p.theme.pink400};
-  }
 `;
 
 const RightSection = styled('div')`
@@ -826,9 +823,6 @@ const EditInput = styled(TextArea)`
 
 const EditButton = styled(Button)`
   color: ${p => p.theme.subText};
-  &:hover {
-    color: ${p => p.theme.pink400};
-  }
 `;
 
 const CollapseButton = styled(Button)`
@@ -862,9 +856,6 @@ const DiffContainer = styled('div')`
 
 const AddButton = styled(Button)`
   color: ${p => p.theme.subText};
-  &:hover {
-    color: ${p => p.theme.pink400};
-  }
 `;
 
 export function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
