@@ -7,6 +7,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -201,13 +202,17 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...columnOrder],
+    location,
+  });
 
   return (
     <Fragment>
       <GridEditable
         data={data}
         isLoading={isPending}
-        columnOrder={columnOrder}
+        columnOrder={columns}
         columnSortBy={[
           {
             key: sort.field,
@@ -222,6 +227,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
               sort,
             }),
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination
