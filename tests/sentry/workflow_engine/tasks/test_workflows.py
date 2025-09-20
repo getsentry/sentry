@@ -25,19 +25,7 @@ class ScheduleDelayedWorkflowsTest(TestCase):
         with self.assertNoLogs("sentry.workflow_engine.tasks.workflows", level="WARNING"):
             schedule_delayed_workflows()
             assert len(mock_process_buffered_workflows.mock_calls) == 1
-            mock_process_buffered_workflows.assert_called_with()
-
-    @mock.patch("sentry.workflow_engine.processors.schedule.process_buffered_workflows")
-    def test_schedule_delayed_workflows_config_option_false(
-        self,
-        mock_process_buffered_workflows: mock.MagicMock,
-    ) -> None:
-        with self.assertLogs("sentry.workflow_engine.tasks.workflows", level="INFO") as logger:
-            schedule_delayed_workflows()
-            assert len(mock_process_buffered_workflows.mock_calls) == 0
-            assert any(
-                "Configured to use process_pending_batch" in output for output in logger.output
-            )
+            mock_process_buffered_workflows.assert_called_with(mock.ANY)
 
     @mock.patch("sentry.workflow_engine.processors.schedule.process_buffered_workflows")
     def test_schedule_delayed_workflows_normal_operation(
@@ -47,4 +35,4 @@ class ScheduleDelayedWorkflowsTest(TestCase):
         schedule_delayed_workflows()
 
         assert len(mock_process_buffered_workflows.mock_calls) == 1
-        mock_process_buffered_workflows.assert_called_once_with()
+        mock_process_buffered_workflows.assert_called_once_with(mock.ANY)
