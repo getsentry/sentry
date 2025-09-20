@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import Hook from 'sentry/components/hook';
-import {TOPBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -15,6 +14,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
+import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/nav/constants';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondaryMobile} from 'sentry/views/nav/secondary/secondaryMobile';
@@ -26,6 +26,7 @@ function MobileTopbar() {
   const location = useLocation();
   const organization = useOrganization();
   const activeGroup = useActiveNavGroup();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ActiveView>('closed');
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {
@@ -55,6 +56,7 @@ function MobileTopbar() {
         )}
       </Left>
       <Button
+        ref={closeButtonRef}
         onClick={handleClick}
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
@@ -65,6 +67,7 @@ function MobileTopbar() {
         <NavigationOverlayPortal
           label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
           setView={setView}
+          closeButtonRef={closeButtonRef}
         >
           {view === 'primary' ? <PrimaryNavigationItems /> : null}
           {view === 'secondary' ? (
@@ -100,13 +103,21 @@ function NavigationOverlayPortal({
   children,
   label,
   setView,
+  closeButtonRef,
 }: {
   children: React.ReactNode;
+  closeButtonRef: React.RefObject<HTMLButtonElement | null>;
   label: string;
   setView: (view: ActiveView) => void;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  useOnClickOutside(ref, () => setView('closed'));
+  useOnClickOutside(ref, e => {
+    // Without this check the menu will reopen when the click event triggers
+    if (closeButtonRef.current?.contains(e.target as Node)) {
+      return;
+    }
+    setView('closed');
+  });
   return createPortal(
     <NavigationOverlay ref={ref} aria-label={label}>
       {children}
@@ -116,7 +127,7 @@ function NavigationOverlayPortal({
 }
 
 const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
-  height: ${TOPBAR_MOBILE_HEIGHT};
+  height: ${NAV_MOBILE_TOPBAR_HEIGHT}px;
   width: 100vw;
   padding-left: ${space(1.5)};
   padding-right: ${space(1.5)};

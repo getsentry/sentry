@@ -63,7 +63,7 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
             return None
 
 
-def deobfuscate_exception_type(data: MutableMapping[str, Any]):
+def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
     """
     Deobfuscates exception types and certain values in-place.
 
@@ -77,16 +77,16 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
 
     debug_ids = get_debug_meta_image_ids(dict(data))
     if len(debug_ids) == 0:
-        return
+        return None
 
     exceptions = data.get("exception", {}).get("values", [])
     if not exceptions:
-        return
+        return None
 
     with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
         symbol_map = generate_dart_symbols_map(list(debug_ids), project)
         if symbol_map is None:
-            return
+            return None
 
         for exception in exceptions:
             exception_type = exception.get("type")
@@ -109,46 +109,3 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
                 new_value = re.sub(INSTANCE_OF_VALUE_RE, replace_symbol, exception_value)
                 if new_value != exception_value:
                     exception["value"] = new_value
-
-
-# TODO(buenaflor): Add this back in when we decide to deobfuscate view hierarchies
-#
-# def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, view_hierarchy):
-#     """
-#     Deobfuscates a view hierarchy in-place.
-
-#     If we're unable to fetch a dart symbols uuid, then the view hierarchy remains unmodified.
-#     """
-#     dart_symbols_uuids = get_debug_meta_image_ids(event_data)
-#     if len(dart_symbols_uuids) == 0:
-#         return
-
-#     with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_view_hierarchy_data"):
-#         for dart_symbols_uuid in dart_symbols_uuids:
-#             map = generate_dart_symbols_map(dart_symbols_uuid, project)
-#             if map is None:
-#                 return
-
-#             windows_to_deobfuscate = [*view_hierarchy.get("windows")]
-#             while windows_to_deobfuscate:
-#                 window = windows_to_deobfuscate.pop()
-
-#                 if window.get("type") is None:
-#                     # If there is no type, then skip this window
-#                     continue
-
-#                 matcher = re.match(VIEW_HIERARCHY_TYPE_REGEX, window.get("type"))
-#                 if not matcher:
-#                     continue
-#                 obfuscated_values = matcher.groups()
-#                 for obfuscated_value in obfuscated_values:
-#                     if obfuscated_value is not None and obfuscated_value in map:
-#                         window["type"] = window["type"].replace(
-#                             obfuscated_value, map[obfuscated_value]
-#                         )
-
-#                 if children := window.get("children"):
-#                     windows_to_deobfuscate.extend(children)
-
-# def deobfuscate_view_hierarchy(data):
-#     return deobfuscation_template(data, "dartsymbolmap", _deobfuscate_view_hierarchy)

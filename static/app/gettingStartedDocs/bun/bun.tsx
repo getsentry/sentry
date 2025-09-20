@@ -6,7 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -15,6 +15,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t} from 'sentry/locale';
+import {getNodeLogsOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -31,16 +32,16 @@ import * as Sentry from "@sentry/bun";
 
 Sentry.init({
   dsn: "${params.dsn.public}",${
-    params.isPerformanceSelected
-      ? `
-  // Tracing
-  tracesSampleRate: 1.0, // Capture 100% of the transactions`
-      : ''
-  }${
     params.isLogsSelected
       ? `
   // Send structured logs to Sentry
   enableLogs: true,`
+      : ''
+  }${
+    params.isPerformanceSelected
+      ? `
+  // Tracing
+  tracesSampleRate: 1.0, // Capture 100% of the transactions`
       : ''
   }
 });`;
@@ -109,7 +110,7 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -130,6 +131,10 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'bun',
+    sdkPackage: '@sentry/bun',
+  }),
 };
 
 export default docs;

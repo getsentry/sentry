@@ -114,7 +114,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
-  trace_item_logs: <FeatureBadge type="beta" />,
+  trace_item_logs: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
@@ -356,7 +356,7 @@ const ERROR_SUPPORTED_TAGS = [
 
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
-export function datasetSupportedTags(
+function datasetSupportedTags(
   dataset: Dataset,
   org: Organization
 ): TagCollection | undefined {

@@ -132,7 +132,7 @@ function BaseExploreFieldRenderer({
 
   if (field === 'timestamp') {
     const date = new Date(data.timestamp);
-    rendered = <StyledTimeSince unitStyle="extraShort" date={date} tooltipShowSeconds />;
+    rendered = <StyledTimeSince unitStyle="short" date={date} tooltipShowSeconds />;
   }
 
   if (field === 'trace') {
@@ -162,6 +162,10 @@ function BaseExploreFieldRenderer({
     });
 
     rendered = <Link to={target}>{rendered}</Link>;
+
+    if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
+      return rendered;
+    }
   }
 
   if (field === 'profile.id') {

@@ -860,7 +860,7 @@ const QueryField = withTheme(_QueryField);
 
 export {QueryField};
 
-export function appendFieldIfUnknown(
+function appendFieldIfUnknown(
   fieldOptions: FieldOptions,
   field: FieldValue | null
 ): FieldOptions {

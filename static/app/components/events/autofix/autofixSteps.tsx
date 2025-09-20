@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
@@ -10,19 +10,23 @@ import {
   replaceHeadersWithBold,
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
+import CodingAgentCard from 'sentry/components/events/autofix/codingAgentCard';
 import {
   AutofixStepType,
   type AutofixData,
   type AutofixProgressItem,
   type AutofixStep,
+  type SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
+import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const animationProps: AnimationProps = {
+const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
@@ -35,6 +39,7 @@ interface StepProps {
   hasStepBelow: boolean;
   runId: string;
   step: AutofixStep;
+  event?: Event;
   isAutoTriggeredRun?: boolean;
   isChangesFirstAppearance?: boolean;
   isRootCauseFirstAppearance?: boolean;
@@ -48,6 +53,7 @@ interface AutofixStepsProps {
   data: AutofixData;
   groupId: string;
   runId: string;
+  event?: Event;
 }
 
 function isProgressLog(
@@ -69,6 +75,7 @@ function Step({
   isSolutionFirstAppearance,
   isChangesFirstAppearance,
   isAutoTriggeredRun,
+  event,
 }: StepProps) {
   return (
     <StepCard id={`autofix-step-${step.id}`} data-step-type={step.type}>
@@ -103,6 +110,7 @@ function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   isRootCauseFirstAppearance={isRootCauseFirstAppearance}
+                  event={event}
                 />
               )}
               {step.type === AutofixStepType.SOLUTION && (
@@ -117,6 +125,7 @@ function Step({
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
                   isSolutionFirstAppearance={isSolutionFirstAppearance}
+                  event={event}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
@@ -138,12 +147,31 @@ function Step({
   );
 }
 
-export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
+export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
   const organization = useOrganization();
   const codingDisabled =
     organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
   const steps = data.steps;
   const isMountedRef = useRef<boolean>(false);
+  const {repos} = useAutofixRepos(groupId);
+
+  const codingAgentData = Object.values(data.coding_agents || {}).map(agent => {
+    let repo: SeerRepoDefinition | undefined;
+    if (agent.results && agent.results.length > 0) {
+      const result = agent.results[0];
+      if (result) {
+        repo = repos?.find(
+          r =>
+            result.repo_provider === r.provider &&
+            `${r.owner}/${r.name}` === result.repo_full_name
+        );
+      }
+    }
+    return {
+      codingAgentState: agent,
+      repo,
+    };
+  });
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -245,10 +273,18 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 step.type === AutofixStepType.CHANGES && !isInitialMount
               }
               isAutoTriggeredRun={isAutoTriggeredRun}
+              event={event}
             />
           </div>
         );
       })}
+      {codingAgentData.map(({codingAgentState, repo}) => (
+        <CodingAgentCard
+          key={`coding-agent-${codingAgentState.id}`}
+          codingAgentState={codingAgentState}
+          repo={repo}
+        />
+      ))}
       {shouldShowOutputStream && (
         <AutofixOutputStream
           stream={lastStep!.output_stream ?? ''}

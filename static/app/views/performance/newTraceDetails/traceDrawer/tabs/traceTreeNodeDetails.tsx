@@ -5,6 +5,7 @@ import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTra
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/index';
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/index';
 import {UptimeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptime/index';
+import {UptimeTimingDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptime/timing';
 import {
   isAutogroupedNode,
   isEAPErrorNode,
@@ -14,6 +15,7 @@ import {
   isTraceErrorNode,
   isTransactionNode,
   isUptimeCheckNode,
+  isUptimeCheckTimingNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
@@ -29,6 +31,7 @@ export interface TraceTreeNodeDetailsProps<T> {
   replay: ReplayRecord | null;
   traceId: string;
   hideNodeActions?: boolean;
+  tree?: TraceTree;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
@@ -38,6 +41,10 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
 
   if (isUptimeCheckNode(props.node)) {
     return <UptimeNodeDetails {...props} />;
+  }
+
+  if (isUptimeCheckTimingNode(props.node)) {
+    return <UptimeTimingDetails {...props} />;
   }
 
   if (isSpanNode(props.node) || isEAPSpanNode(props.node)) {

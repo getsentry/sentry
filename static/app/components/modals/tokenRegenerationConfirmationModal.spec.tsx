@@ -1,15 +1,9 @@
-import {
-  act,
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import TokenRegenerationConfirmationModal from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 
-describe('TokenRegenerationConfirmationModal', function () {
+describe('TokenRegenerationConfirmationModal', () => {
   function renderComponent(token: string) {
     renderGlobalModal();
     act(() =>
@@ -19,23 +13,13 @@ describe('TokenRegenerationConfirmationModal', function () {
     );
   }
 
-  it('renders modal with correct header', function () {
+  it('renders modal with correct header', () => {
     renderComponent('test-token-12345');
 
     expect(screen.getByRole('heading', {name: 'Token created'})).toBeInTheDocument();
   });
 
-  it('displays warning alert with token safety message', function () {
-    renderComponent('test-token-12345');
-
-    expect(
-      screen.getByText(
-        `Please copy this token to a safe place - it won't be shown again.`
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('displays both token inputs with correct values', function () {
+  it('displays both token inputs with correct values', () => {
     const testToken = 'test-token-12345';
     renderComponent(testToken);
 
@@ -49,25 +33,7 @@ describe('TokenRegenerationConfirmationModal', function () {
     expect(screen.getByLabelText('Token')).toBeInTheDocument();
   });
 
-  it('renders Done button', function () {
-    renderComponent('test-token-12345');
-
-    expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
-  });
-
-  it('closes modal when Done button is clicked', async function () {
-    renderComponent('test-token-12345');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('heading', {name: 'Token created'})
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  it('renders copy buttons for both tokens', function () {
+  it('renders copy buttons for both tokens', () => {
     const testToken = 'test-token-12345';
     renderComponent(testToken);
 

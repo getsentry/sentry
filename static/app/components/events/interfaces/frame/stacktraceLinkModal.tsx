@@ -79,21 +79,10 @@ function StacktraceLinkModal({
     }
   );
 
-  const suggestions = uniq(
-    Array.isArray(suggestedCodeMappings)
-      ? suggestedCodeMappings.map(suggestion => {
-          return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
-        })
-      : []
-  ).slice(0, 2);
-
-  const onHandleChange = (input: string) => {
-    setSourceCodeInput(input);
-  };
-
   const sourceCodeProviders = integrations.filter(integration =>
-    ['github', 'gitlab'].includes(integration.provider?.key)
+    ['github', 'gitlab', 'bitbucket'].includes(integration.provider?.key)
   );
+
   // If they have more than one, they'll have to navigate themselves
   const hasOneSourceCodeIntegration = sourceCodeProviders.length === 1;
   const sourceUrl = hasOneSourceCodeIntegration
@@ -102,6 +91,46 @@ function StacktraceLinkModal({
   const providerName = hasOneSourceCodeIntegration
     ? sourceCodeProviders[0]!.name
     : t('source code');
+
+  const suggestions = uniq(
+    Array.isArray(suggestedCodeMappings)
+      ? suggestedCodeMappings.map(suggestion => {
+          if (hasOneSourceCodeIntegration) {
+            const provider = sourceCodeProviders[0];
+            if (provider?.provider?.key === 'bitbucket') {
+              return `https://bitbucket.org/${suggestion.repo_name}/src/${suggestion.repo_branch}/${suggestion.filename}`;
+            }
+            if (provider?.provider?.key === 'gitlab') {
+              return `https://gitlab.com/${suggestion.repo_name}/-/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+            }
+          }
+          return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+        })
+      : []
+  ).slice(0, 2);
+
+  const getPlaceholderUrl = () => {
+    if (hasOneSourceCodeIntegration) {
+      const provider = sourceCodeProviders[0];
+      if (provider?.provider?.key === 'bitbucket') {
+        return `https://bitbucket.org/workspace/repo/src/branch${
+          filename.startsWith('/') ? '' : '/'
+        }${filename}`;
+      }
+      if (provider?.provider?.key === 'gitlab') {
+        return `https://gitlab.com/group/project/-/blob/branch${
+          filename.startsWith('/') ? '' : '/'
+        }${filename}`;
+      }
+    }
+    return `https://github.com/helloworld/Hello-World/blob/master${
+      filename.startsWith('/') ? '' : '/'
+    }${filename}`;
+  };
+
+  const onHandleChange = (input: string) => {
+    setSourceCodeInput(input);
+  };
 
   const onManualSetup = () => {
     trackAnalytics('integrations.stacktrace_manual_option_clicked', {
@@ -240,12 +269,7 @@ function StacktraceLinkModal({
                       return (
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
-                          <CopyToClipboardButton
-                            borderless
-                            text={suggestion}
-                            size="xs"
-                            iconSize="xs"
-                          />
+                          <CopyToClipboardButton borderless text={suggestion} size="xs" />
                         </div>
                       );
                     })}
@@ -259,9 +283,7 @@ function StacktraceLinkModal({
                   name="source-code-input"
                   value={sourceCodeInput}
                   onChange={onHandleChange}
-                  placeholder={`https://github.com/helloworld/Hello-World/blob/master${
-                    filename.startsWith('/') ? '' : '/'
-                  }${filename}`}
+                  placeholder={getPlaceholderUrl()}
                 />
               </ItemContainer>
             </li>

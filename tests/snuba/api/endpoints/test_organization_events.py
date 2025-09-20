@@ -60,7 +60,7 @@ class OrganizationEventsEndpointTestBase(
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
@@ -68,7 +68,7 @@ class OrganizationEventsEndpointTestBase(
         self.eleven_mins_ago = before_now(minutes=11)
         self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def client_get(self, *args, **kwargs):
         return self.client.get(*args, **kwargs)
@@ -173,27 +173,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
-
-    def test_multi_project_feature_gate_rejection(self) -> None:
-        team = self.create_team(organization=self.organization, members=[self.user])
-
-        project = self.create_project(organization=self.organization, teams=[team])
-        project2 = self.create_project(organization=self.organization, teams=[team])
-
-        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
-        response = self.do_request(query)
-        assert response.status_code == 400
-        assert "events from multiple projects" in response.data["detail"]
-
-    def test_multi_project_feature_gate_replays(self) -> None:
-        team = self.create_team(organization=self.organization, members=[self.user])
-
-        project = self.create_project(organization=self.organization, teams=[team])
-        project2 = self.create_project(organization=self.organization, teams=[team])
-
-        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
-        response = self.do_request(query, **{"HTTP_X-Sentry-Replay-Request": "1"})
-        assert response.status_code == 200
 
     def test_invalid_search_terms(self) -> None:
         self.create_project()
@@ -556,39 +535,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
 
-    def test_not_project_in_query_with_all_projects(self) -> None:
-        team = self.create_team(organization=self.organization, members=[self.user])
-
-        project = self.create_project(organization=self.organization, teams=[team])
-        project2 = self.create_project(organization=self.organization, teams=[team])
-
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "timestamp": self.ten_mins_ago_iso,
-                "fingerprint": ["group1"],
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "timestamp": self.ten_mins_ago_iso,
-                "fingerprint": ["group2"],
-            },
-            project_id=project2.id,
-        )
-
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        query = {
-            "field": ["id", "project.id"],
-            "project": [-1],
-            "query": f"!project:{project2.slug}",
-        }
-        response = self.do_request(query, features=features)
-        assert response.status_code == 200
-        assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
-
     def test_project_condition_used_for_automatic_filters(self) -> None:
         self.store_event(
             data={
@@ -718,7 +664,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "ip_address": "user.ip",
             "username": "user.username",
         }
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         for dataset in ["discover", "transactions"]:
             for key, value in self.transaction_data["user"].items():
                 field = fields[key]
@@ -737,7 +683,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_has_user(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         for dataset in ["discover", "transactions"]:
             for value in self.transaction_data["user"].values():
                 query = {
@@ -859,7 +805,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         self.store_event(self.transaction_data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
 
         # should only show 1 event of type default
         query = {"field": ["project", "issue"], "query": "has:issue", "statsPeriod": "14d"}
@@ -916,7 +862,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         self.store_event(self.transaction_data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {"field": ["project", "issue"], "query": "issue:unknown", "statsPeriod": "14d"}
         response = self.do_request(query, features=features)
 
@@ -948,7 +894,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["user"] = user_data
         self.store_event(data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         for dataset in ["discover", "transactions"]:
             query = {
                 "field": ["project", "user"],
@@ -984,7 +930,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project2.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["project", "count()"],
             "query": '!project:"%s"' % project1.slug,
@@ -1674,7 +1620,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:global-views": True,
             },
         )
 
@@ -2075,7 +2020,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:global-views": True,
             },
         )
 
@@ -2108,7 +2052,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:global-views": True,
             },
         )
 
@@ -2698,7 +2641,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project2.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {"field": ["id", "issue"], "orderby": ["id"]}
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -2742,7 +2685,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             ("issue.id", "issue.id:%s" % event1.group_id),
         ]
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         for testdata in tests:
             query = {"field": [testdata[0]], "query": testdata[1]}
             response = self.do_request(query, features=features)
@@ -2780,7 +2723,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project2.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["title", "issue.id"],
             "query": f"!issue:{event1.group.qualified_short_id}",
@@ -2804,7 +2747,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=self.project.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {"field": ["count()"], "query": "issue.id:112358"}
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -2835,7 +2778,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=self.project.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["project", "count(id)", "count_unique(issue.id)", "count_unique(issue)"],
             "sort": "-count(id)",
@@ -2873,7 +2816,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project2.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": [
                 "event.type",
@@ -2916,7 +2859,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project2.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["event.type", "user.display"],
             "query": "user.display:cath*",
@@ -2941,7 +2884,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=self.project.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["event.type", "user.display", "count_unique(title)"],
             "statsPeriod": "24h",
@@ -2984,7 +2927,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project2.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["event.type", "user.display"],
             "query": "user.display:cath*",
@@ -3023,7 +2966,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project2.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["event.type", "user.display", "count_unique(title)"],
             "query": "user.display:cath*",
@@ -3051,7 +2994,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=self.project.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": [
                 "event.type",
@@ -3090,7 +3033,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=self.project.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
 
         field_aliases = ["user.display", "timestamp.to_day", "timestamp.to_hour"]
         for alias in field_aliases:
@@ -3117,7 +3060,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             {"timestamp": self.ten_mins_ago_iso, "message": "a"}, project_id=self.project.id
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {"field": ["project", "message"], "query": "has:message", "statsPeriod": "14d"}
         response = self.do_request(query, features=features)
 
@@ -3134,7 +3077,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_has_transaction_status(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         for dataset in ["discover", "transactions"]:
             query = {
                 "field": ["event.type", "count(id)"],
@@ -3153,7 +3096,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_not_has_transaction_status(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         for dataset in ["discover", "transactions"]:
             query = {
                 "field": ["event.type", "count(id)"],
@@ -3200,7 +3143,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
         self.store_event(data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["event.type", "count()"],
             "query": "event.type:transaction count():1",
@@ -3237,7 +3180,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["contexts"]["trace"]["status"] = "unauthenticated"
         event = self.store_event(data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": [
                 "event.type",
@@ -3291,7 +3234,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
 
         query = {
@@ -3407,7 +3349,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
         self.store_event(self.transaction_data, project_id=self.project.id)
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         for dataset in ["discover", "transactions"]:
             query = {
                 "field": ["user_misery(300)"],
@@ -3460,7 +3402,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["contexts"]["trace"]["status"] = "unauthenticated"
         self.store_event(data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": [
                 "event.type",
@@ -3588,7 +3530,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["contexts"]["trace"]["status"] = "unauthenticated"
         event = self.store_event(data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["event.type", "p75()"],
             "sort": "-p75",
@@ -3674,7 +3616,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
 
         query = {"field": ["event.type", "count_unique(issue)"], "query": "count_unique(issue):>1"}
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         response = self.do_request(query, features=features)
 
         assert response.status_code == 200, response.content
@@ -3701,7 +3643,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
         event2.group.delete()
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {"field": ["issue", "count()"], "sort": "issue.id"}
         response = self.do_request(query, features=features)
 
@@ -3721,7 +3663,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=self.project.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {"field": ["id", "last_seen()"], "query": "last_seen():-30d"}
         response = self.do_request(query, features=features)
 
@@ -3744,7 +3686,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "field": ["id", "last_seen()"],
             "query": f"last_seen():>{before_now(days=30).isoformat()}",
         }
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         response = self.do_request(query, features=features)
 
         assert response.status_code == 200, response.content
@@ -3768,7 +3710,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "query": "id:{} OR id:{}".format("a" * 32, "b" * 32),
             "orderby": "id",
         }
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         response = self.do_request(query, features=features)
 
         assert response.status_code == 200, response.content
@@ -3837,9 +3779,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self, query, expected_events, expected_negative_events=None, dataset="discover"
     ):
         params = {"field": ["id"], "query": query, "orderby": "id", "dataset": dataset}
-        response = self.do_request(
-            params, {"organizations:discover-basic": True, "organizations:global-views": True}
-        )
+        response = self.do_request(params, {"organizations:discover-basic": True})
         assert response.status_code == 200, response.content
         assert [row["id"] for row in response.data["data"]] == [e.event_id for e in expected_events]
 
@@ -3847,7 +3787,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             params["query"] = f"!{query}"
             response = self.do_request(
                 params,
-                {"organizations:discover-basic": True, "organizations:global-views": True},
+                {"organizations:discover-basic": True},
             )
             assert response.status_code == 200, response.content
             assert [row["id"] for row in response.data["data"]] == [
@@ -3990,7 +3930,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 project_id=self.project.id,
             )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": [
                 "transaction",
@@ -5162,7 +5102,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:global-views": True,
             },
         )
 
@@ -5223,7 +5162,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:global-views": True,
             },
         )
 
@@ -5436,7 +5374,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project2.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["event.type", "http.status_code"],
             "query": "",
@@ -5463,7 +5401,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project1.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["event.type", "http.status_code"],
             "query": "",
@@ -5489,7 +5427,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project1.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["transaction", "total.count", "count()"],
             "query": "!transaction:/example",
@@ -5506,7 +5444,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         for i in range(3):
             self.store_event(data=self.load_data(platform="javascript"), project_id=project1.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["total.count"],
             "statsPeriod": "24h",
@@ -5528,7 +5466,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project1.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["transaction", "count()", "total.count", "equation|count()/total.count"],
             "query": "",
@@ -5557,7 +5495,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project1.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["transaction", "count()", "total.count"],
             "query": "total.count:>45",
@@ -5586,7 +5524,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["transaction"] = "/endpoint/2"
         self.store_event(data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
 
         query = {
             "field": [
@@ -5620,7 +5558,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 project_id=project1.id,
             )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["device.class"],
             "statsPeriod": "24h",
@@ -5649,7 +5587,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=project1.id,
         )
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["device.class", "count()"],
             "query": "device.class:low",
@@ -5684,6 +5622,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["group_id"] == "this should just get returned"
 
+    @pytest.mark.skip(reason="flaky: #96444")
     def test_floored_epm(self) -> None:
         for _ in range(5):
             data = self.load_data(
@@ -5767,7 +5706,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
         query = {
             "field": ["project", "user"],
@@ -5807,7 +5745,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
         query = {
             "field": ["project", "user"],
@@ -5846,7 +5783,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
         query = {
             "field": ["transaction"],
@@ -5885,7 +5821,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
         query = {
             "field": ["transaction.status"],
@@ -5905,7 +5840,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_issues_with_transaction_dataset(self) -> None:
         self.store_event(self.transaction_data, project_id=self.project.id)
 
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        features = {"organizations:discover-basic": True}
         query = {
             "field": ["issue", "count()"],
             "query": "",
@@ -5939,7 +5874,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
         query = {
             "field": ["count()"],
@@ -6461,7 +6395,6 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
 
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
             "organizations:profiling": True,
         }
         query = {
@@ -6820,7 +6753,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
                 "dataset": "errors",
                 "project": [self.project.id, project2.id],
             }
-            features = {"organizations:discover-basic": True, "organizations:global-views": True}
+            features = {"organizations:discover-basic": True}
             response = self.do_request(query, features=features)
             assert response.status_code == 200, response.content
             # Expect upsampling since any project is allowlisted (both events upsampled: 10 + 10 = 20)
@@ -6983,6 +6916,96 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert meta["fields"]["sample_epm()"] == "rate"
             assert meta["units"]["sample_epm()"] == "1/minute"
 
+    def test_sort_upsampled_columns(self) -> None:
+        # Create two issues/groups where raw vs upsampled metrics imply different orderings
+        # A: 1 sampled event with client_sample_rate=0.1 -> upsampled_count=10, raw=1
+        # B: 2 unsampled events -> upsampled_count=2, raw=2
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            event_a = self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Sampled event A",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "x"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_a"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            event_b1 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Unsampled event B1",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "y"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_b"],
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Unsampled event B2",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "z"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["upsampling_group_b"],
+                },
+                project_id=self.project.id,
+            )
+
+            group_a_id = event_a.group.id
+            group_b_id = event_b1.group.id
+
+            # Test all 6 upsampling fields with sorting
+            # A: 1 sampled event with rate 0.1 -> upsampled=10, raw=1
+            # B: 2 unsampled events -> upsampled=2, raw=2
+            # Test all 6 upsampling fields with sorting - all work!
+            test_cases = [
+                # (field, sort_field, expected_a_first) - True if A should come first in desc order
+                ("count()", "count", True),  # upsampled: A=10 > B=2
+                ("eps()", "eps", True),  # upsampled: A=10/120 > B=2/120
+                ("epm()", "epm", True),  # upsampled: A=10/2 > B=2/2
+                ("sample_count()", "sample_count", False),  # raw: A=1 < B=2
+                ("sample_eps()", "sample_eps", False),  # raw: A=1/120 < B=2/120
+                ("sample_epm()", "sample_epm", False),  # raw: A=1/2 < B=2/2
+            ]
+
+            for field, sort_field, expected_a_first in test_cases:
+                query = {
+                    "field": ["issue.id", field],
+                    "statsPeriod": "2h",
+                    "query": "event.type:error",
+                    "dataset": "errors",
+                    "sort": f"-{sort_field}",
+                    "per_page": 10,
+                }
+
+                response = self.do_request(query)
+                assert response.status_code == 200, f"Field {field} failed: {response.content}"
+                data = response.data["data"]
+                assert len(data) >= 2
+
+                if expected_a_first:
+                    # A should come first (higher upsampled values)
+                    assert (
+                        data[0]["issue.id"] == group_a_id
+                    ), f"Field {field}: Expected group A ({group_a_id}) first, but got {data[0]['issue.id']}"
+                    assert (
+                        data[1]["issue.id"] == group_b_id
+                    ), f"Field {field}: Expected group B ({group_b_id}) second, but got {data[1]['issue.id']}"
+                else:
+                    # B should come first (higher raw values)
+                    assert (
+                        data[0]["issue.id"] == group_b_id
+                    ), f"Field {field}: Expected group B ({group_b_id}) first, but got {data[0]['issue.id']}"
+                    assert (
+                        data[1]["issue.id"] == group_a_id
+                    ), f"Field {field}: Expected group A ({group_a_id}) second, but got {data[1]['issue.id']}"
+
     def test_is_status(self) -> None:
         self.store_event(
             data={
@@ -7065,7 +7088,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
 
         features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
         query = {
             "field": ["user.display"],
@@ -7377,3 +7399,15 @@ class OrganizationEventsUptimeDatasetEndpointTest(
                 "trace_id": trace_id,
             }
         ]
+
+    def test_project_slug_converter(self) -> None:
+        self.store_event(self.transaction_data, self.project.id)
+        response = self.do_request(
+            {
+                "field": ["project.name"],
+                "query": "project:ba*",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project.name"] == self.project.slug

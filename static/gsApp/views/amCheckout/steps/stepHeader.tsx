@@ -12,6 +12,8 @@ import type {PlanTier} from 'getsentry/types';
 import LegacyPlanToggle from 'getsentry/views/amCheckout/legacyPlanToggle';
 import {getToggleTier} from 'getsentry/views/amCheckout/utils';
 
+// TODO(checkout v3): Remove isActive/isCompleted/onEdit/canSkip
+// these were only necessary when steps were shown one by one
 type Props = {
   isActive: boolean;
   isCompleted: boolean;
@@ -24,7 +26,15 @@ type Props = {
   canSkip?: boolean;
   checkoutTier?: PlanTier;
   isNewCheckout?: boolean;
+  /**
+   * For checkout v3, whether the step is toggled open or closed
+   */
+  isOpen?: boolean;
   onToggleLegacy?: (tier: string) => void;
+  /**
+   * For checkout v3, called when toggling the step open or closed
+   */
+  onToggleStep?: (isOpen: boolean) => void;
   organization?: Organization;
   trailingItems?: React.ReactNode;
 };
@@ -41,6 +51,8 @@ function StepHeader({
   checkoutTier,
   organization,
   isNewCheckout,
+  isOpen,
+  onToggleStep,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
   const toggleTier = getToggleTier(checkoutTier);
@@ -49,10 +61,19 @@ function StepHeader({
 
   if (isNewCheckout) {
     return (
-      <Flex justify="between">
-        <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
-          {title}
-        </NewCheckoutStepTitle>
+      <Flex justify="between" align="center">
+        <Flex justify="start" align="center" gap="sm" width="100%">
+          <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
+            {title}
+          </NewCheckoutStepTitle>
+          <Button
+            borderless
+            size="zero"
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
+            aria-label={isOpen ? t('Collapse section') : t('Expand section')}
+            onClick={() => onToggleStep?.(!isOpen)}
+          />
+        </Flex>
         {trailingItems && <div>{trailingItems}</div>}
       </Flex>
     );
@@ -135,6 +156,7 @@ const EditStep = styled('div')`
 `;
 
 const NewCheckoutStepTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize['2xl']};
+  font-size: 28px;
+  letter-spacing: -0.02em;
   font-weight: ${p => p.theme.fontWeight.bold};
 `;

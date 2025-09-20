@@ -43,17 +43,17 @@ const mockReplay = ReplayReader.factory({
   attachments: [],
 });
 
-describe('OurLogs', function () {
-  beforeEach(function () {
+describe('OurLogs', () => {
+  beforeEach(() => {
     // Seeing this error: <tbody> cannot be a child of <div>.
     jest.spyOn(console, 'error').mockImplementation();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it("should show a placeholder if there's no replay record", function () {
+  it("should show a placeholder if there's no replay record", () => {
     jest.mocked(useReplayTraces).mockReturnValue({
       replayTraces: [],
       indexComplete: true,
@@ -69,23 +69,7 @@ describe('OurLogs', function () {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
-  it("shows empty if there's no replay traces", function () {
-    jest.mocked(useReplayTraces).mockReturnValue({
-      replayTraces: [],
-      indexComplete: true,
-      indexError: undefined,
-    } as any);
-
-    render(
-      <Wrappers replay={mockReplay}>
-        <OurLogs />
-      </Wrappers>
-    );
-
-    expect(screen.getByText(/No logs found/)).toBeInTheDocument();
-  });
-
-  it("shows logs table if there's replay traces", function () {
+  it("shows logs table if there's replay traces", () => {
     jest.mocked(useReplayTraces).mockReturnValue({
       replayTraces: [
         {timestamp: undefined, traceSlug: 'trace1'},

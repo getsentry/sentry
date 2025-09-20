@@ -28,7 +28,6 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   getAnalyticsDataForEvent,
   getAnalyticsDataForGroup,
@@ -314,22 +313,6 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
             label: `JSON (${formatBytesBase2(event.size)})`,
             onAction: downloadJson,
             hidden: xlargeViewport,
-          },
-          {
-            key: 'full-event-discover',
-            label: t('Full Event Details'),
-            hidden: !organization.features.includes('discover-basic'),
-            to: eventDetailsRoute({
-              eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-              organization,
-            }),
-            onAction: () => {
-              trackAnalytics('issue_details.event_details_clicked', {
-                organization,
-                ...getAnalyticsDataForGroup(group),
-                ...getAnalyticsDataForEvent(event),
-              });
-            },
           },
           {
             key: 'replay',

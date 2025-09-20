@@ -50,8 +50,7 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
-  const organization = useOrganization();
-  const hasWildcardOperators = organization.features.includes(
+  const hasWildcardOperators = useOrganization().features.includes(
     'search-query-builder-wildcard-operators'
   );
   const label = useMemo(

@@ -1,15 +1,35 @@
 """Tests for thread leak Sentry integration."""
 
 from collections.abc import Iterable
+from threading import Thread
 from traceback import FrameSummary
 from typing import Any
+from unittest.mock import Mock
 
 from sentry.testutils.thread_leaks.sentry import event_from_stack
 
 
-def dict_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> dict[str, Any]:
+def dict_from_stack(
+    value: str, stack: Iterable[FrameSummary], strict: bool, allowlisted: bool = False
+) -> dict[str, Any]:
     """Create Sentry event dict from stack (type-checker friendly wrapper)."""
-    return dict(event_from_stack(value, stack, strict))
+    # Create mock thread with the desired repr and no target
+    mock_thread = Mock(spec=Thread)
+    mock_thread.configure_mock(__repr__=Mock(return_value=value))
+    mock_thread.configure_mock(_target=None)
+
+    # Create mock pytest.Mark if allowlisted is True (for backwards compat)
+    if allowlisted is True:
+        _allowlisted = Mock()
+        _allowlisted.kwargs = {"issue": 12345, "reason": "Test reason"}
+    elif allowlisted is False:
+        _allowlisted = None
+
+    return dict(
+        event_from_stack(
+            mock_thread, stack, strict, _allowlisted, pytest_nodeid="path/to/mytest.py::mytest[123]"
+        )
+    )
 
 
 class TestEventFromStack:
@@ -18,10 +38,10 @@ class TestEventFromStack:
             FrameSummary("/app/test_xyz.py", 1, "func"),  # app code - in_app
             FrameSummary("/usr/lib/python3.13/threading.py", 100, "start"),  # stdlib - not in_app
         ]
-        event = dict_from_stack("test", stack, strict=True)
+        event = dict_from_stack("test", stack, strict=True, allowlisted=True)
 
         assert event == {
-            "level": "error",
+            "level": "info",  # allowlisted=True
             "message": "Thread leak detected",
             "exception": {
                 "values": [
@@ -30,6 +50,11 @@ class TestEventFromStack:
                             "type": "sentry.testutils.thread_leaks.sentry",
                             "handled": False,
                             "help_link": "https://www.notion.so/sentry/How-To-Thread-Leaks-2488b10e4b5d8049965cc057b5fb5f6b",
+                            "data": {
+                                "version": "3",
+                                "strict": True,
+                                "allowlisted": True,
+                            },
                         },
                         "type": "ThreadLeakAssertionError",
                         "value": "test",
@@ -55,6 +80,21 @@ class TestEventFromStack:
                         },
                     }
                 ]
+            },
+            "tags": {
+                "thread.target": "None",
+                "pytest.file": "path/to/mytest.py",
+                "thread_leak_allowlist.issue": "12345",
+                "mechanism.version": '"3"',
+                "mechanism.strict": "true",
+                "mechanism.allowlisted": "true",
+            },
+            "contexts": {
+                "pytest": {"nodeid": "path/to/mytest.py::mytest[123]", "file": "path/to/mytest.py"},
+                "thread_leak_allowlist": {
+                    "reason": "Test reason",
+                    "issue": 12345,
+                },
             },
         }
 

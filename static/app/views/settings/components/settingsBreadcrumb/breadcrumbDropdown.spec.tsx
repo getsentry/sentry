@@ -1,63 +1,107 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {Fragment} from 'react';
+
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 
 describe('Settings Breadcrumb Dropdown', () => {
   const selectMock = jest.fn();
-  const items = [
-    {index: 0, value: '1', label: 'foo'},
-    {index: 1, value: '2', label: 'bar'},
-  ];
 
   const createWrapper = () => {
     return render(
       <BreadcrumbDropdown
         route={{path: '/', name: 'root'}}
-        items={items}
-        name="Test"
+        options={[
+          {value: '1', label: 'foo'},
+          {value: '2', label: 'bar'},
+        ]}
+        name="The Crumb"
         hasMenu
-        onSelect={selectMock}
+        onCrumbSelect={selectMock}
       />
     );
   };
 
   it('opens when hovered over crumb', async () => {
     createWrapper();
-    expect(screen.getByText('Test')).toBeInTheDocument();
-    await userEvent.hover(screen.getByText('Test'));
+    expect(screen.getByText('The Crumb')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('The Crumb'));
     expect(screen.getByText('foo')).toBeInTheDocument();
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
   it('closes immediately after selecting an item', async () => {
     createWrapper();
-    await userEvent.hover(screen.getByText('Test'));
+    await userEvent.hover(screen.getByText('The Crumb'));
     expect(screen.getByText('foo')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('foo'));
-    expect(selectMock).toHaveBeenCalled();
+    expect(selectMock).toHaveBeenCalledWith('1');
 
     expect(screen.queryByText('foo')).not.toBeInTheDocument();
   });
 
   it('stays open when hovered over crumb and then into dropdown menu', async () => {
     createWrapper();
-    await userEvent.hover(screen.getByText('Test'));
+    await userEvent.hover(screen.getByText('The Crumb'));
     expect(screen.getByText('foo')).toBeInTheDocument();
 
     await userEvent.hover(screen.getByText('foo'));
     expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
-  it('closes after entering dropdown and then leaving dropdown', async () => {
+  it('closes after entering dropdown and then leaving after timeout', async () => {
+    jest.useFakeTimers();
     createWrapper();
-    await userEvent.hover(screen.getByText('Test'));
+
+    await userEvent.hover(screen.getByText('The Crumb'), {delay: null});
     expect(screen.getByText('foo')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getByText('foo'));
+    await userEvent.hover(screen.getByText('foo'), {delay: null});
     expect(screen.getByText('foo')).toBeInTheDocument();
-    await userEvent.unhover(screen.getByText('foo'));
 
+    await userEvent.unhover(screen.getByText('foo'), {delay: null});
+
+    // The menu will not disappear until after a timeout
+    expect(screen.getByText('foo')).toBeInTheDocument();
+
+    // Menu disappears after timeout
+    await act(() => jest.runAllTimersAsync());
     expect(screen.queryByText('foo')).not.toBeInTheDocument();
+  });
+
+  it('closes other breadcrumbs upon hover immediately', async () => {
+    render(
+      <Fragment>
+        <BreadcrumbDropdown
+          route={{path: '/', name: 'root'}}
+          options={[
+            {value: '1', label: 'foo'},
+            {value: '2', label: 'bar'},
+          ]}
+          name="Crumb One"
+          hasMenu
+          onCrumbSelect={selectMock}
+        />
+        <BreadcrumbDropdown
+          route={{path: '/', name: 'root'}}
+          options={[
+            {value: '1', label: 'baz'},
+            {value: '2', label: 'buzz'},
+          ]}
+          name="Crumb Two"
+          hasMenu
+          onCrumbSelect={selectMock}
+        />
+      </Fragment>
+    );
+
+    await userEvent.hover(screen.getByText('Crumb One'), {delay: null});
+    expect(screen.getByText('foo')).toBeInTheDocument();
+
+    // One menu closes and the other immediately opens
+    await userEvent.hover(screen.getByText('Crumb Two'), {delay: null});
+    expect(screen.queryByText('foo')).not.toBeInTheDocument();
+    expect(screen.getByText('baz')).toBeInTheDocument();
   });
 });

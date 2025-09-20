@@ -1,19 +1,18 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs, {ModuleFormat} from './awslambda';
+import docs, {InstallationMethod} from './awslambda';
 
-describe('awslambda onboarding docs', function () {
-  describe('CJS: Lambda Layer', () => {
+describe('awslambda onboarding docs', () => {
+  describe('Lambda Layer', () => {
     it('renders onboarding docs correctly', () => {
       renderWithOnboardingLayout(docs);
 
       expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+      expect(screen.getByText(textWithMarkupMatcher('ARN'))).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
       expect(
         screen.getByRole('heading', {name: /Upload Source Maps/i})
@@ -22,7 +21,9 @@ describe('awslambda onboarding docs', function () {
 
       expect(
         screen.getByText(
-          textWithMarkupMatcher('NODE_OPTIONS="-r @sentry/aws-serverless/awslambda-auto"')
+          textWithMarkupMatcher(
+            'NODE_OPTIONS="--import @sentry/aws-serverless/awslambda-auto"'
+          )
         )
       ).toBeInTheDocument();
     });
@@ -45,14 +46,6 @@ describe('awslambda onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('enables logs', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
-  });
-
   it('enables performance setting the sample rate set to 1', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
@@ -66,80 +59,64 @@ describe('awslambda onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  describe('ESM: NPM Package', () => {
-    let esmDocs: typeof docs;
+  describe('NPM Package', () => {
+    let npmDocs: typeof docs;
     beforeAll(() => {
-      esmDocs = {
+      npmDocs = {
         ...docs,
         platformOptions: {
           ...docs.platformOptions,
-          moduleFormat: {
-            ...docs.platformOptions!.moduleFormat,
-            defaultValue: ModuleFormat.ESM,
+          installationMethod: {
+            ...docs.platformOptions!.installationMethod,
+            defaultValue: InstallationMethod.NPM_PACKAGE,
           },
         },
       };
     });
 
     it('renders onboarding docs correctly', () => {
-      renderWithOnboardingLayout(esmDocs);
+      renderWithOnboardingLayout(npmDocs);
 
       expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-      const allMatches = screen.getAllByText(
-        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/aws-serverless"/)
-      );
-      allMatches.forEach(match => {
-        expect(match).toBeInTheDocument();
-      });
-    });
-
-    it('enables profiling by setting profiling samplerates', () => {
-      renderWithOnboardingLayout(esmDocs, {
-        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
-      });
-
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
+            'NODE_OPTIONS="--import @sentry/aws-serverless/awslambda-auto"'
           )
         )
-      ).toBeInTheDocument();
-
-      expect(
-        screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
       ).toBeInTheDocument();
     });
 
-    it('continuous profiling', () => {
-      const organization = OrganizationFixture({
-        features: ['continuous-profiling'],
+    it('displays sample rates by default', () => {
+      renderWithOnboardingLayout(npmDocs, {
+        selectedProducts: [
+          ProductSolution.ERROR_MONITORING,
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.PROFILING,
+        ],
       });
 
-      renderWithOnboardingLayout(
-        esmDocs,
-        {},
-        {
-          organization,
-        }
-      );
-
       expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
-          )
-        )
-      ).toBeInTheDocument();
-
-      expect(
-        screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
+        screen.getByText(textWithMarkupMatcher(/SENTRY_TRACES_SAMPLE_RATE/))
       ).toBeInTheDocument();
       expect(
-        screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+        screen.getByText(textWithMarkupMatcher(/SENTRY_TRACES_SAMPLE_RATE=1\.0/))
+      ).toBeInTheDocument();
+    });
+
+    it('enables performance setting the sample rate set to 1', () => {
+      renderWithOnboardingLayout(npmDocs, {
+        selectedProducts: [
+          ProductSolution.ERROR_MONITORING,
+          ProductSolution.PERFORMANCE_MONITORING,
+        ],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/SENTRY_TRACES_SAMPLE_RATE=1\.0/))
       ).toBeInTheDocument();
     });
   });

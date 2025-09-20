@@ -11,14 +11,17 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
     emit_request_response_metrics,
     emit_trace_items_to_eap,
     log_canvas_size,
+    log_multiclick_events,
     log_mutation_events,
     log_option_events,
+    log_rage_click_events,
     report_hydration_error,
     report_rage_click,
 )
@@ -47,6 +50,7 @@ class EventContext(TypedDict):
     replay_id: str
     retention_days: int
     segment_id: int
+    should_publish_replay_event: bool | None
 
 
 class Event(TypedDict):
@@ -176,6 +180,20 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
             recording.context["received"],
         )
 
+    metrics.incr(
+        "replays.should_publish_replay_event",
+        tags={"value": recording.context["should_publish_replay_event"]},
+    )
+    if recording.context["should_publish_replay_event"] and recording.replay_event:
+        replay_event_kafka_message = {
+            "start_time": recording.context["received"],
+            "replay_id": recording.context["replay_id"],
+            "project_id": recording.context["project_id"],
+            "retention_days": recording.context["retention_days"],
+            "payload": recording.replay_event,
+        }
+        publish_replay_event(json.dumps(replay_event_kafka_message))
+
     # Write to replay-event consumer.
     if recording.actions_event:
         emit_replay_events(
@@ -199,13 +217,7 @@ def emit_replay_events(
     retention_days: int,
     replay_event: dict[str, Any] | None,
 ) -> None:
-    environment = None
-    if replay_event and replay_event.get("payload"):
-        payload = replay_event["payload"]
-        if isinstance(payload, dict):
-            environment = payload.get("environment")
-        else:
-            environment = json.loads(bytes(payload)).get("environment")
+    environment = replay_event.get("environment") if replay_event else None
 
     emit_click_events(
         event_meta.click_events,
@@ -219,6 +231,8 @@ def emit_replay_events(
     log_canvas_size(event_meta, org_id, project.id, replay_id)
     log_mutation_events(event_meta, project.id, replay_id)
     log_option_events(event_meta, project.id, replay_id)
+    log_multiclick_events(event_meta, project.id, replay_id)
+    log_rage_click_events(event_meta, project.id, replay_id)
     report_hydration_error(event_meta, project, replay_id, replay_event)
     report_rage_click(event_meta, project, replay_id, replay_event)
 

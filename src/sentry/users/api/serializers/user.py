@@ -74,7 +74,6 @@ class _UserOptions(TypedDict):
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
     prefersNextjsInsightsOverview: bool
-    prefersStackedNavigation: bool | None
     prefersChonkUI: bool
 
 
@@ -195,7 +194,7 @@ class UserSerializer(Serializer):
             d = cast(UserSerializerResponseSelf, d)
             options = {
                 o.key: o.value
-                for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
+                for o in UserOption.objects.filter(user_id=obj.id, project_id__isnull=True)
                 if o.value is not None
             }
 
@@ -220,7 +219,6 @@ class UserSerializer(Serializer):
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui"
                 ),
-                "prefersStackedNavigation": options.get("prefers_stacked_navigation"),
                 "prefersChonkUI": options.get("prefers_chonk_ui", False),
             }
 

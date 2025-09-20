@@ -27,11 +27,11 @@ from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
@@ -126,7 +126,7 @@ class ProjectDebugFile(Model):
     project_id = BoundedBigIntegerField(null=True, db_index=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
-    data: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    data = LegacyTextJSONField(default=dict, null=True)
     date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
 
     objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()

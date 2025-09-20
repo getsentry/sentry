@@ -1,18 +1,18 @@
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 
-describe('utils/removeAtArrayIndex', function () {
-  it('removes simple value at index', function () {
+describe('utils/removeAtArrayIndex', () => {
+  it('removes simple value at index', () => {
     const arr = [1, 2, 3];
     expect(removeAtArrayIndex(arr, 1)).toEqual([1, 3]);
   });
 
-  it('does not mutate array', function () {
+  it('does not mutate array', () => {
     const arr = [1, 2, 3];
     expect(removeAtArrayIndex(arr, 0)).toEqual([2, 3]);
     expect(arr).toEqual([1, 2, 3]);
   });
 
-  it('removes at boundaries of array', function () {
+  it('removes at boundaries of array', () => {
     const arr = [1, 2, 3];
     expect(removeAtArrayIndex(arr, 0)).toEqual([2, 3]);
     const arr2 = [1, 2, 3];

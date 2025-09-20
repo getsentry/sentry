@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import pickle
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from enum import Enum
@@ -40,6 +40,24 @@ Pipeline = Any
 
 def _get_model_key(model: type[models.Model]) -> str:
     return str(model._meta)
+
+
+def _coerce_val(value: BufferField) -> bytes:
+    """Convert a buffer field value to bytes."""
+    if isinstance(value, models.Model):
+        value = value.pk
+    return force_bytes(value, errors="replace")
+
+
+def make_key(model: type[models.Model], filters: Mapping[str, Any]) -> str:
+    """
+    Returns a Redis-compatible key for the model given filters.
+    """
+    md5 = md5_text(
+        "&".join(f"{k}={_coerce_val(v)!r}" for k, v in sorted(filters.items()))
+    ).hexdigest()
+    model_key = _get_model_key(model=model)
+    return f"b:k:{model_key}:{md5}"
 
 
 def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -> None:
@@ -220,7 +238,7 @@ class RedisBuffer(Buffer):
         Returns a Redis-compatible key for the model given filters.
         """
         md5 = md5_text(
-            "&".join(f"{k}={self._coerce_val(v)!r}" for k, v in sorted(filters.items()))
+            "&".join(f"{k}={_coerce_val(v)!r}" for k, v in sorted(filters.items()))
         ).hexdigest()
         model_key = _get_model_key(model=model)
         return f"b:k:{model_key}:{md5}"
@@ -310,7 +328,7 @@ class RedisBuffer(Buffer):
         """
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
         """
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         pipe = self.get_redis_connection(key, transaction=False)
 
         for col in columns:
@@ -332,12 +350,12 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline(transaction=transaction)
         return pipe
 
-    def _execute_redis_operation(
+    def _execute_redis_operation_no_txn(
         self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
     ) -> Any:
         metrics_str = f"redis_buffer.{operation.value}"
         metrics.incr(metrics_str)
-        pipe = self.get_redis_connection(self.pending_key)
+        pipe = self.get_redis_connection(self.pending_key, transaction=False)
         getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:
             pipe.expire(key, self.key_expire)
@@ -356,7 +374,7 @@ class RedisBuffer(Buffer):
 
         metrics_str = f"redis_buffer.{operation.value}"
         metrics.incr(metrics_str, amount=len(keys))
-        pipe = self.get_redis_connection(self.pending_key)
+        pipe = self.get_redis_connection(self.pending_key, transaction=False)
         for key in keys:
             getattr(pipe, operation.value)(key, *args, **kwargs)
             if args:
@@ -369,10 +387,10 @@ class RedisBuffer(Buffer):
             value_dict = {v: now for v in value}
         else:
             value_dict = {value: now}
-        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
+        self._execute_redis_operation_no_txn(key, RedisOperation.SORTED_SET_ADD, value_dict)
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
-        redis_set = self._execute_redis_operation(
+        redis_set = self._execute_redis_operation_no_txn(
             key,
             RedisOperation.SORTED_SET_GET_RANGE,
             min=min,
@@ -410,7 +428,9 @@ class RedisBuffer(Buffer):
         return data_to_timestamps
 
     def delete_key(self, key: str, min: float, max: float) -> None:
-        self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
+        self._execute_redis_operation_no_txn(
+            key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max
+        )
 
     def delete_keys(self, keys: list[str], min: float, max: float) -> None:
         self._execute_sharded_redis_operation(
@@ -426,8 +446,8 @@ class RedisBuffer(Buffer):
         filters: dict[str, BufferField],
         fields: list[str],
     ) -> None:
-        key = self._make_key(model, filters)
-        pipe = self.get_redis_connection(self.pending_key)
+        key = make_key(model, filters)
+        pipe = self.get_redis_connection(self.pending_key, transaction=False)
         for field in fields:
             getattr(pipe, RedisOperation.HASH_DELETE.value)(key, field)
         pipe.expire(key, self.key_expire)
@@ -440,8 +460,8 @@ class RedisBuffer(Buffer):
         field: str,
         value: str,
     ) -> None:
-        key = self._make_key(model, filters)
-        self._execute_redis_operation(key, RedisOperation.HASH_ADD, field, value)
+        key = make_key(model, filters)
+        self._execute_redis_operation_no_txn(key, RedisOperation.HASH_ADD, field, value)
 
     def push_to_hash_bulk(
         self,
@@ -449,12 +469,12 @@ class RedisBuffer(Buffer):
         filters: dict[str, BufferField],
         data: dict[str, str],
     ) -> None:
-        key = self._make_key(model, filters)
-        self._execute_redis_operation(key, RedisOperation.HASH_ADD_BULK, data)
+        key = make_key(model, filters)
+        self._execute_redis_operation_no_txn(key, RedisOperation.HASH_ADD_BULK, data)
 
     def get_hash(self, model: type[models.Model], field: dict[str, BufferField]) -> dict[str, str]:
-        key = self._make_key(model, field)
-        redis_hash = self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+        key = make_key(model, field)
+        redis_hash = self._execute_redis_operation_no_txn(key, RedisOperation.HASH_GET_ALL)
         decoded_hash = {}
         for k, v in redis_hash.items():
             if isinstance(k, bytes):
@@ -466,8 +486,8 @@ class RedisBuffer(Buffer):
         return decoded_hash
 
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
-        key = self._make_key(model, field)
-        return self._execute_redis_operation(key, RedisOperation.HASH_LENGTH)
+        key = make_key(model, field)
+        return self._execute_redis_operation_no_txn(key, RedisOperation.HASH_LENGTH)
 
     def incr(
         self,
@@ -486,7 +506,7 @@ class RedisBuffer(Buffer):
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
-        key = self._make_key(model, filters)
+        key = make_key(model, filters)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
         pipe = self.get_redis_connection(key)
@@ -496,7 +516,7 @@ class RedisBuffer(Buffer):
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             pipe.hsetnx(key, "f", json.dumps(self._dump_values(filters)))
         else:
-            pipe.hsetnx(key, "f", pickle.dumps(filters))
+            pipe.hsetnx(key, "f", pickle.dumps(filters, protocol=5))
 
         for column, amount in columns.items():
             pipe.hincrby(key, "i+" + column, amount)
@@ -510,7 +530,7 @@ class RedisBuffer(Buffer):
                 if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
                     pipe.hset(key, "e+" + column, json.dumps(self._dump_value(value)))
                 else:
-                    pipe.hset(key, "e+" + column, pickle.dumps(value))
+                    pipe.hset(key, "e+" + column, pickle.dumps(value, protocol=5))
 
         if signal_only is True:
             pipe.hset(key, "s", "1")

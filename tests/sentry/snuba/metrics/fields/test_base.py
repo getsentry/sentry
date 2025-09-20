@@ -661,5 +661,5 @@ class DerivedMetricAliasTestCase(TestCase):
         ("foo:foo:foo", None),
     ],
 )
-def test_known_entity_of_metric_mri(metric_mri, expected_entity) -> None:
+def test_known_entity_of_metric_mri(metric_mri: str, expected_entity: str | None) -> None:
     assert _get_known_entity_of_metric_mri(metric_mri) == expected_entity

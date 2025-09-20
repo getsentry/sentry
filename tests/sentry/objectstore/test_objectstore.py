@@ -12,11 +12,9 @@ class Testserver:
     secret = ""
 
 
-def test_stores_uncompressed():
+def test_stores_uncompressed() -> None:
     server = Testserver()
-    client = ClientBuilder(
-        "test", {"base_url": server.url, "jwt_secret": server.secret}
-    ).for_organization(12345)
+    client = ClientBuilder("test", {"base_url": server.url}).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo", compression="none")
@@ -28,11 +26,9 @@ def test_stores_uncompressed():
     assert result.payload.read() == b"oh hai!"
 
 
-def test_uses_zstd_by_default():
+def test_uses_zstd_by_default() -> None:
     server = Testserver()
-    client = ClientBuilder(
-        "test", {"base_url": server.url, "jwt_secret": server.secret}
-    ).for_organization(12345)
+    client = ClientBuilder("test", {"base_url": server.url}).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo")
@@ -51,11 +47,9 @@ def test_uses_zstd_by_default():
     assert result.payload.read() == b"oh hai!"
 
 
-def test_deletes_stored_stuff():
+def test_deletes_stored_stuff() -> None:
     server = Testserver()
-    client = ClientBuilder(
-        "test", {"base_url": server.url, "jwt_secret": server.secret}
-    ).for_organization(12345)
+    client = ClientBuilder("test", {"base_url": server.url}).for_organization(12345)
 
     body = b"oh hai!"
     stored_id = client.put(body, "foo")

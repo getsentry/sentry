@@ -43,7 +43,7 @@ class AssignedToFilter(EventFilter):
 
             if target_type == AssigneeTargetType.TEAM:
                 for assignee in self.get_assignees(event.group):
-                    if assignee.team and assignee.team_id == target_id:
+                    if assignee.team_id and assignee.team_id == target_id:
                         return True
             elif target_type == AssigneeTargetType.MEMBER:
                 for assignee in self.get_assignees(event.group):

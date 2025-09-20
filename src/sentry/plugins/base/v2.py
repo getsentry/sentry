@@ -78,10 +78,10 @@ class IPlugin2(local, PluginConfigMixin):
     # used by queries to determine if the plugin is configured
     required_field: str | None = None
 
-    def _get_option_key(self, key):
+    def _get_option_key(self, key) -> str:
         return f"{self.get_conf_key()}:{key}"
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "default"
 
     def is_enabled(self, project=None):
@@ -144,18 +144,6 @@ class IPlugin2(local, PluginConfigMixin):
         from sentry.plugins.helpers import set_option
 
         set_option(self._get_option_key(key), value, project, user)
-
-    def unset_option(self, key, project=None, user=None) -> None:
-        """
-        Removes an option in your plugins keyspace.
-
-        If ``project`` is passed, it will limit the scope to that project's keyspace.
-
-        >>> plugin.unset_option('my_option')
-        """
-        from sentry.plugins.helpers import unset_option
-
-        unset_option(self._get_option_key(key), project, user)
 
     def enable(self, project=None, user=None):
         """Enable the plugin."""

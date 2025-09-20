@@ -36,14 +36,13 @@ describe('AlertWizard', () => {
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
     await userEvent.click(screen.getByText('Set Conditions'));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/alerts/new/metric/',
+      pathname: '/organizations/org-slug/issues/alerts/new/metric/',
       query: {
         aggregate:
           'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
         dataset: 'metrics',
         eventTypes: 'session',
         project: 'project-slug',
-        referrer: undefined,
       },
     });
   });
@@ -56,7 +55,7 @@ describe('AlertWizard', () => {
           'incidents',
           'performance-view',
           'crash-rate-alerts',
-          'insights-addon-modules',
+          'insight-modules',
           'uptime',
         ],
         access: ['org:write', 'alerts:write'],
@@ -221,7 +220,6 @@ describe('AlertWizard', () => {
           'incidents',
           'performance-view',
           'visibility-explore-view',
-          'ourlogs-alerts',
           'ourlogs-enabled',
         ],
         access: ['org:write', 'alerts:write'],

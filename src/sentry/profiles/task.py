@@ -15,7 +15,7 @@ import msgpack
 import sentry_sdk
 import vroomrs
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
 from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
@@ -58,8 +58,8 @@ from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
-from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
@@ -76,12 +76,11 @@ UNSAMPLED_PROFILE_ID = "00000000000000000000000000000000"
 
 
 def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
-    cluster_name = get_topic_definition(topic)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    producer_config["client.id"] = "sentry.profiles.task"
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+    return get_arroyo_producer(
+        name="sentry.profiles.task",
+        topic=topic,
+        exclude_config_keys=["compression.type", "message.max.bytes"],
+    )
 
 
 processed_profiles_producer = SingletonProducer(
@@ -1430,6 +1429,22 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
                     )
                     processed_profiles_producer.produce(topic, payload)
+            # temporary: collect metrics about rate of functions metrics to be written into EAP
+            # should we loosen the constraints on the number and type of functions to be extracted.
+            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
+                eap_functions = prof.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                )
+                if eap_functions is not None and len(eap_functions) > 0:
+                    tot = 0
+                    for f in eap_functions:
+                        tot += len(f.get_self_times_ns())
+                    metrics.incr(
+                        "process_profile.eap_functions_metrics.count",
+                        tot,
+                        tags={"type": "profile"},
+                        sample_rate=1.0,
+                    )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1478,6 +1493,22 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
                     profile_functions_producer.produce(topic, payload)
+            # temporary: collect metrics about rate of functions metrics to be written into EAP
+            # should we loosen the constraints on the number and type of functions to be extracted.
+            if options.get("profiling.track_functions_metrics_write_rate.eap.enabled"):
+                eap_functions = chunk.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, filter_non_leaf_functions=False
+                )
+                if eap_functions is not None and len(eap_functions) > 0:
+                    tot = 0
+                    for f in eap_functions:
+                        tot += len(f.get_self_times_ns())
+                    metrics.incr(
+                        "process_profile.eap_functions_metrics.count",
+                        tot,
+                        tags={"type": "chunk"},
+                        sample_rate=1.0,
+                    )
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)

@@ -1,28 +1,38 @@
-import React, {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration/duration';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import Version from 'sentry/components/version';
+import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
   type RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {parseFunction, type ColumnValueType} from 'sentry/utils/discover/fields';
-import {NumberContainer, VersionContainer} from 'sentry/utils/discover/styles';
+import {type ColumnValueType} from 'sentry/utils/discover/fields';
+import {VersionContainer} from 'sentry/utils/discover/styles';
+import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {getShortEventId} from 'sentry/utils/events';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
@@ -35,21 +45,21 @@ import {
   WrappingText,
   type getLogColors,
 } from 'sentry/views/explore/logs/styles';
-import {
-  OurLogKnownFieldKey,
-  type LogAttributeItem,
-  type LogRowItem,
-  type OurLogFieldKey,
-} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
 import {
   adjustLogTraceID,
   getLogSeverityLevel,
+  logOnceFactory,
   logsFieldAlignment,
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+
+const {fmt} = Sentry.logger;
 
 interface LogFieldRendererProps extends AttributesFieldRendererProps<RendererExtra> {}
 
@@ -62,8 +72,13 @@ export interface RendererExtra extends RenderFunctionBaggage {
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
+  meta?: EventsMetaType;
+  onReplayTimeClick?: (fieldName: string) => void;
+  project?: Project;
   projectSlug?: string;
   shouldRenderHoverElements?: boolean;
+  timestampRelativeTo?: number;
+  traceItemMeta?: TraceItemDetailsResponse['meta'];
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -141,6 +156,54 @@ function TimestampRenderer(props: LogFieldRendererProps) {
         shouldRender={props.extra.shouldRenderHoverElements}
       >
         <DateTime seconds milliseconds date={timestampToUse} />
+      </LogsTimestampTooltip>
+    </LogDate>
+  );
+}
+
+function RelativeTimestampRenderer(props: LogFieldRendererProps) {
+  const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+  const startTimestampMs = props.extra.timestampRelativeTo!;
+
+  const timestampToUse = preciseTimestamp
+    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    : props.item.value;
+
+  const timestampMs = timestampToUse ? new Date(timestampToUse).getTime() : 0;
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (props.extra.onReplayTimeClick && timestampMs > 0) {
+        event.stopPropagation();
+        // Pass the offset time instead of just the field name
+        const offsetMs = timestampMs - startTimestampMs;
+        props.extra.onReplayTimeClick(String(offsetMs));
+      }
+    },
+    [props.extra, timestampMs, startTimestampMs]
+  );
+
+  if (!timestampToUse) {
+    return <LogDate align={props.extra.align}>--</LogDate>;
+  }
+
+  const relativeTimestampMs = timestampMs - startTimestampMs;
+
+  return (
+    <LogDate align={props.extra.align}>
+      <LogsTimestampTooltip
+        timestamp={props.item.value as string | number}
+        attributes={props.extra.attributes}
+        shouldRender={props.extra.shouldRenderHoverElements}
+        relativeTimeToReplay={relativeTimestampMs}
+      >
+        <ClickableTimestamp
+          onClick={props.extra.onReplayTimeClick ? handleClick : undefined}
+          role={props.extra.onReplayTimeClick ? 'button' : undefined}
+        >
+          <IconPlay size="xs" />
+          <Duration duration={[Math.abs(relativeTimestampMs), 'ms']} precision="ms" />
+        </ClickableTimestamp>
       </LogsTimestampTooltip>
     </LogDate>
   );
@@ -250,6 +313,11 @@ function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRender
   };
 }
 
+/**
+ * This should only wrap the 'body' attribute as it is the only 'field' that is not returned by the trace-items endpoint (since it is not an attribute but rather a field).
+ *
+ * Once the trace-items endpoint returns 'body', we can remove this component.
+ */
 function FilteredTooltip({
   value,
   children,
@@ -346,18 +414,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
 
 function LogTemplateRenderer(props: LogFieldRendererProps) {
   return (
-    <FilteredTooltip value={props.item.value} extra={props.extra}>
-      <span>
-        {typeof props.item.value === 'string'
-          ? stripAnsi(props.item.value)
-          : props.basicRendered}
-      </span>
-    </FilteredTooltip>
+    <span>
+      {typeof props.item.value === 'string'
+        ? stripAnsi(props.item.value)
+        : props.basicRendered}
+    </span>
   );
-}
-
-function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
-  return 'metaFieldType' in item;
 }
 
 export function LogFieldRenderer(props: LogFieldRendererProps) {
@@ -370,24 +432,6 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
       ? adjustLogTraceID(props.item.value as string)
       : props.item.value;
 
-  if (parseFunction(adjustedFieldKey)) {
-    // in the aggregates table, render sum(blah)
-    return (
-      <NumberContainer>
-        {typeof adjustedValue === 'number' ? (
-          <Count value={adjustedValue} />
-        ) : (
-          adjustedValue
-        )}
-      </NumberContainer>
-    );
-  }
-
-  if (!isLogRowItem(props.item) || !defined(adjustedValue) || !type) {
-    // Rendering inside attribute tree.
-    return <Fragment>{adjustedValue}</Fragment>;
-  }
-
   const basicRenderer = getFieldRenderer(adjustedFieldKey, props.meta ?? {}, false);
   const basicRendered = basicRenderer(
     {...props, [adjustedFieldKey]: adjustedValue},
@@ -399,14 +443,63 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   const align = logsFieldAlignment(adjustedFieldKey, type);
 
   if (!customRenderer) {
-    return <Fragment>{basicRendered}</Fragment>;
+    return (
+      <AnnotatedAttributeWrapper extra={props.extra} fieldKey={props.item.fieldKey}>
+        {basicRendered}
+      </AnnotatedAttributeWrapper>
+    );
   }
 
   return (
-    <AlignedCellContent align={align}>
-      {customRenderer({...props, basicRendered})}
-    </AlignedCellContent>
+    <AnnotatedAttributeWrapper extra={props.extra} fieldKey={props.item.fieldKey}>
+      <AlignedCellContent align={align}>
+        {customRenderer({...props, basicRendered})}
+      </AlignedCellContent>
+    </AnnotatedAttributeWrapper>
   );
+}
+
+const logInfoOnceHasRemarks = logOnceFactory('info');
+
+function AnnotatedAttributeWrapper(props: {
+  children: React.ReactNode;
+  extra: RendererExtra;
+  fieldKey: string;
+}) {
+  if (props.extra.traceItemMeta) {
+    const metaInfo = new TraceItemMetaInfo(props.extra.traceItemMeta);
+    if (metaInfo.hasRemarks(props.fieldKey)) {
+      try {
+        const remarks = metaInfo.getRemarks(props.fieldKey);
+        const remark = remarks[0];
+        if (remark) {
+          const remarkType = remark.type;
+          const remarkRuleId = remark.ruleId;
+          logInfoOnceHasRemarks(
+            fmt`AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
+            {
+              organizationId: props.extra.organization.id,
+              projectId: props.extra.projectSlug,
+              remarkType,
+              remarkRuleId,
+            }
+          );
+        }
+      } catch {
+        // defensive
+      }
+      return (
+        <AnnotatedAttributeTooltip extra={props.extra} fieldKey={props.fieldKey}>
+          {props.children}
+        </AnnotatedAttributeTooltip>
+      );
+    }
+  }
+  return props.children;
+}
+
+function ProjectRenderer(props: LogFieldRendererProps) {
+  return <span>{props.item.value}</span>;
 }
 
 /**
@@ -453,11 +546,38 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function ReplayIDRenderer(props: LogFieldRendererProps) {
+  const replayId = props.item.value;
+
+  const hasFeature = props.extra.organization.features.includes('ourlogs-replay-ui');
+
+  if (typeof replayId !== 'string' || !replayId || !hasFeature) {
+    return props.basicRendered;
+  }
+
+  const target = makeReplaysPathname({
+    path: `/${replayId}/`,
+    organization: props.extra.organization,
+  });
+
+  return (
+    <Container>
+      <ViewReplayLink replayId={replayId} to={target}>
+        {getShortEventId(replayId)}
+      </ViewReplayLink>
+    </Container>
+  );
+}
+
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: LogFieldRendererProps) => React.ReactNode
 > = {
   [OurLogKnownFieldKey.TIMESTAMP]: props => {
+    if (props.extra.timestampRelativeTo) {
+      // Check if we should use relative timestamps (eg. in replay)
+      return RelativeTimestampRenderer(props);
+    }
     return TimestampRenderer(props);
   },
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
@@ -466,7 +586,9 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
   [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
   [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,
+  [OurLogKnownFieldKey.PROJECT]: ProjectRenderer,
   [OurLogKnownFieldKey.PAYLOAD_SIZE]: BasicDiscoverRenderer,
+  [OurLogKnownFieldKey.REPLAY_ID]: ReplayIDRenderer,
 };
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
@@ -482,3 +604,17 @@ const logFieldBasicMetas: EventsMetaType = {
     [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'byte', // SIZE_UNITS
   },
 };
+
+const ClickableTimestamp = styled('span')`
+  display: flex;
+  align-items: flex-start;
+  align-self: baseline;
+  gap: ${space(0.25)};
+  font-variant-numeric: tabular-nums;
+  line-height: 1em;
+`;
+
+const Container = styled('div')`
+  display: flex;
+  align-items: center;
+`;

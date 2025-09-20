@@ -16,8 +16,10 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonInstallConfig,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -30,7 +32,13 @@ sentry_sdk.init(
     dsn="${params.dsn.public}",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }
 )
 `;
 
@@ -42,23 +50,32 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock(),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'If you have the [codePyramid:pyramid] package in your dependencies, the Pyramid integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+      content: [
         {
-          codePyramid: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'If you have the [codePyramid:pyramid] package in your dependencies, the Pyramid integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+            {
+              codePyramid: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
@@ -72,13 +89,16 @@ with Configurator() as config:
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
-
           code: `from wsgiref.simple_server import make_server
 from pyramid.response import Response${getSdkSetupSnippet(params)}
 def hello_world(request):
@@ -95,17 +115,36 @@ if __name__ == '__main__':
     server.serve_forever()
               `,
         },
-      ],
-      additionalInfo: tct(
-        'When you point your browser to [link:http://localhost:6543/] an error event will be sent to Sentry.',
+        getVerifyLogsContent(params),
         {
-          link: <ExternalLink href="http://localhost:6543/" />,
-        }
-      ),
+          type: 'text',
+          text: tct(
+            'When you point your browser to [link:http://localhost:6543/] an error event will be sent to Sentry.',
+            {
+              link: <ExternalLink href="http://localhost:6543/" />,
+            }
+          ),
+        },
+      ],
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -115,6 +154,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding(),
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

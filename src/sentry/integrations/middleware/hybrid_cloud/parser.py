@@ -5,15 +5,17 @@ from abc import ABC
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
+import sentry.options as options
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
-from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
@@ -30,6 +32,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
+from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -164,7 +167,7 @@ class BaseRequestParser(ABC):
         regions: list[Region],
         identifier: int | str | None = None,
         integration_id: int | None = None,
-    ):
+    ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
@@ -175,6 +178,7 @@ class BaseRequestParser(ABC):
         shard_identifier = identifier or self.webhook_identifier.value
         for region in regions:
             WebhookPayload.create_from_request(
+                destination_type=DestinationType.SENTRY_REGION,
                 region=region.name,
                 provider=self.provider,
                 identifier=shard_identifier,
@@ -349,3 +353,42 @@ class BaseRequestParser(ABC):
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
+
+    # Forwarding Helpers
+
+    def forward_to_codecov(
+        self,
+        external_id: str | None = None,
+    ):
+        rollout_rate = options.get("codecov.forward-webhooks.rollout")
+
+        # we don't want to emit metrics unless we've started to roll this out
+        if not rollout_rate:
+            return
+
+        if not settings.CODECOV_API_BASE_URL:
+            metrics.incr("codecov.forward-webhooks.no-base-url")
+            return
+
+        if not external_id:
+            metrics.incr("codecov.forward-webhooks.missing-external")
+            return
+
+        try:
+            installation_id = int(external_id)
+        except ValueError:
+            metrics.incr("codecov.forward-webhooks.installation-id-not-integer")
+            return
+
+        if sample_modulo("codecov.forward-webhooks.rollout", installation_id, granularity=100000):
+            shard_identifier = f"codecov:{external_id}"
+
+            # create webhookpayloads for each service
+            WebhookPayload.create_from_request(
+                destination_type=DestinationType.CODECOV,
+                region=None,
+                provider=self.provider,
+                identifier=shard_identifier,
+                integration_id=None,
+                request=self.request,
+            )

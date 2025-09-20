@@ -4,10 +4,12 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './starlette';
 
-describe('starlette onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('starlette onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -16,7 +18,7 @@ describe('starlette onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('renders without tracing', function () {
+  it('renders without tracing', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
@@ -32,7 +34,7 @@ describe('starlette onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders transaction profiling', function () {
+  it('renders transaction profiling', () => {
     renderWithOnboardingLayout(docs);
 
     // Does not render continuous profiling config
@@ -51,7 +53,7 @@ describe('starlette onboarding docs', function () {
     matches.forEach(match => expect(match).toBeInTheDocument());
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });
@@ -80,5 +82,25 @@ describe('starlette onboarding docs', function () {
     );
     expect(lifecycleMatches.length).toBeGreaterThan(0);
     lifecycleMatches.forEach(match => expect(match).toBeInTheDocument());
+  });
+
+  it('renders with logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    const logMatches = screen.getAllByText(textWithMarkupMatcher(/enable_logs=True,/));
+    expect(logMatches.length).toBeGreaterThan(0);
+    logMatches.forEach(match => expect(match).toBeInTheDocument());
+  });
+
+  it('renders without logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).not.toBeInTheDocument();
   });
 });

@@ -264,7 +264,7 @@ function AddToDashboardModal({
           value: 'new',
           disabled: hasReachedDashboardLimit || isLoading,
           tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
-          tooltipOptions: {position: 'right'},
+          tooltipOptions: {position: 'right', isHoverable: true},
         },
         ...dashboards
           .filter(dashboard =>

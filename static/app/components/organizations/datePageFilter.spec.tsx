@@ -16,7 +16,7 @@ const {organization, router} = initializeOrg({
   },
 });
 
-describe('DatePageFilter', function () {
+describe('DatePageFilter', () => {
   beforeEach(() => {
     PageFiltersStore.init();
     OrganizationStore.init();
@@ -37,7 +37,7 @@ describe('DatePageFilter', function () {
     );
   });
 
-  it('can change period', async function () {
+  it('can change period', async () => {
     render(<DatePageFilter />, {
       router,
       organization,
@@ -75,7 +75,7 @@ describe('DatePageFilter', function () {
     });
   });
 
-  it('can change absolute range', async function () {
+  it('can change absolute range', async () => {
     render(<DatePageFilter />, {
       router,
       organization,
@@ -131,7 +131,7 @@ describe('DatePageFilter', function () {
     );
   });
 
-  it('displays a desynced state message', async function () {
+  it('displays a desynced state message', async () => {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       router: {
         location: {

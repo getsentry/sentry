@@ -3,26 +3,28 @@ import abc
 from sentry import analytics
 
 
+@analytics.eventclass()
 class CommentEvent(analytics.Event, abc.ABC):
-    attributes = (
-        analytics.Attribute("user_id", type=int, required=False),
-        analytics.Attribute("group_id", type=int),
-        analytics.Attribute("project_slug", type=str),
-        analytics.Attribute("installation_id", type=int),
-        analytics.Attribute("comment_id", type=int),
-    )
+    user_id: int | None = None
+    group_id: int
+    project_slug: str
+    installation_id: int
+    comment_id: int
 
 
+@analytics.eventclass("comment.created")
 class CommentCreatedEvent(CommentEvent):
-    type = "comment.created"
+    pass
 
 
+@analytics.eventclass("comment.updated")
 class CommentUpdatedEvent(CommentEvent):
-    type = "comment.updated"
+    pass
 
 
+@analytics.eventclass("comment.deleted")
 class CommentDeletedEvent(CommentEvent):
-    type = "comment.deleted"
+    pass
 
 
 analytics.register(CommentCreatedEvent)

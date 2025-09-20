@@ -4,7 +4,7 @@ import type {Column} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 
-describe('ArithmeticInput', function () {
+describe('ArithmeticInput', () => {
   const operators = ['+', '-', '*', '/', '(', ')'];
 
   const numericColumns: Column[] = [
@@ -28,7 +28,7 @@ describe('ArithmeticInput', function () {
     {kind: 'equation', field: 'transaction.duration+measurements.lcp'},
   ];
 
-  it('can toggle autocomplete dropdown on focus and blur', async function () {
+  it('can toggle autocomplete dropdown on focus and blur', async () => {
     render(
       <ArithmeticInput
         name="refinement"
@@ -53,7 +53,7 @@ describe('ArithmeticInput', function () {
     expect(screen.queryByText('Fields')).not.toBeInTheDocument();
   });
 
-  it('renders only numeric options in autocomplete', async function () {
+  it('renders only numeric options in autocomplete', async () => {
     render(
       <ArithmeticInput
         name="refinement"
@@ -86,7 +86,7 @@ describe('ArithmeticInput', function () {
     });
   });
 
-  it('can use keyboard to select an option', async function () {
+  it('can use keyboard to select an option', async () => {
     render(
       <ArithmeticInput
         name="refinement"
@@ -143,7 +143,7 @@ describe('ArithmeticInput', function () {
     );
   });
 
-  it('can use mouse to select an option', async function () {
+  it('can use mouse to select an option', async () => {
     render(
       <ArithmeticInput
         name="refinement"
@@ -164,7 +164,7 @@ describe('ArithmeticInput', function () {
     );
   });
 
-  it('autocompletes the current term when it is in the front', async function () {
+  it('autocompletes the current term when it is in the front', async () => {
     render(
       <ArithmeticInput
         name="refinement"
@@ -187,7 +187,7 @@ describe('ArithmeticInput', function () {
     );
   });
 
-  it('autocompletes the current term when it is in the end', async function () {
+  it('autocompletes the current term when it is in the end', async () => {
     render(
       <ArithmeticInput
         name="refinement"
@@ -208,7 +208,7 @@ describe('ArithmeticInput', function () {
     );
   });
 
-  it('handles autocomplete on invalid term', async function () {
+  it('handles autocomplete on invalid term', async () => {
     render(
       <ArithmeticInput
         name="refinement"
@@ -227,7 +227,7 @@ describe('ArithmeticInput', function () {
     expect(screen.getAllByText('No items found')).toHaveLength(2);
   });
 
-  it('can hide Fields options', async function () {
+  it('can hide Fields options', async () => {
     render(
       <ArithmeticInput
         name="refinement"

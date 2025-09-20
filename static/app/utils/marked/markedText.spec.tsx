@@ -7,12 +7,12 @@ import {loadPrismLanguage} from 'sentry/utils/prism';
 
 jest.unmock('prismjs');
 
-describe('MarkedText', function () {
+describe('MarkedText', () => {
   beforeAll(async () => {
     await loadPrismLanguage('javascript', {});
   });
 
-  it('renders markdown as HTML', async function () {
+  it('renders markdown as HTML', async () => {
     render(<MarkedText text="**Bold text**" />);
 
     await waitFor(() => {
@@ -25,7 +25,7 @@ describe('MarkedText', function () {
     expect(element.parentElement?.tagName).toBe('P');
   });
 
-  it('renders with different HTML elements using "as" prop', async function () {
+  it('renders with different HTML elements using "as" prop', async () => {
     render(<MarkedText as="span" text="**Bold text**" />);
 
     await waitFor(() => {
@@ -38,7 +38,7 @@ describe('MarkedText', function () {
     expect(screen.getByText('Bold text').tagName).toBe('STRONG');
   });
 
-  it('renders inline markdown without paragraph tags when inline=true', async function () {
+  it('renders inline markdown without paragraph tags when inline=true', async () => {
     render(<MarkedText text="**Bold text**" inline />);
 
     const element = await screen.findByText('Bold text');
@@ -52,7 +52,7 @@ describe('MarkedText', function () {
     expect(screen.getByText('Bold text').tagName).toBe('STRONG');
   });
 
-  it('renders links properly and safely', async function () {
+  it('renders links properly and safely', async () => {
     render(<MarkedText text="[Link](https://example.com)" />);
 
     await waitFor(() => {
@@ -65,14 +65,14 @@ describe('MarkedText', function () {
     expect(link).toHaveAttribute('href', 'https://example.com');
   });
 
-  it('sanitizes dangerous links', async function () {
+  it('sanitizes dangerous links', async () => {
     render(<MarkedText text="[Bad Link](javascript:alert('xss'))" />);
 
     expect(await screen.findByText('Bad Link')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('forwards refs correctly', async function () {
+  it('forwards refs correctly', async () => {
     const ref = React.createRef<HTMLDivElement>();
     render(<MarkedText text="Reference test" ref={ref} />);
 
@@ -83,7 +83,7 @@ describe('MarkedText', function () {
     expect(ref.current?.textContent?.trim()).toBe('Reference test');
   });
 
-  it('passes additional props to the rendered element', async function () {
+  it('passes additional props to the rendered element', async () => {
     render(
       <MarkedText
         text="Custom class"
@@ -99,7 +99,7 @@ describe('MarkedText', function () {
     expect(element.textContent?.trim()).toBe('Custom class');
   });
 
-  it('renders syntax highlighting', async function () {
+  it('renders syntax highlighting', async () => {
     render(
       <MarkedText
         text={`\`\`\`javascript

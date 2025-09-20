@@ -6,9 +6,9 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.suspect_tags import get_suspect_tag_scores
 from sentry.models.group import Group
 

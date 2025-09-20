@@ -12,23 +12,23 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {
-  BooleanOperator,
-  ParseResult,
-  SearchConfig,
-  TermOperator,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
 import {
   FilterType,
   InvalidReason,
   parseSearch,
+  TermOperator,
   Token,
+  wildcardOperators,
+  type BooleanOperator,
+  type ParseResult,
+  type SearchConfig,
+  type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
   getKeyName,
   isOperator,
+  isWildcardOperator,
   isWithinToken,
   treeResultLocator,
 } from 'sentry/components/searchSyntax/utils';
@@ -92,7 +92,10 @@ const generateOpAutocompleteGroup = (
   tagName: string
 ): AutocompleteGroup => {
   const operatorMap = generateOperatorEntryMap(tagName);
-  const operatorItems = validOps.map(op => operatorMap[op]);
+  const operatorItems = validOps
+    .filter(op => !(isWildcardOperator(op) && wildcardOperators.includes(op)))
+    .map(op => operatorMap[op])
+    .filter(defined);
   return {
     searchItems: operatorItems,
     recentSearchItems: undefined,
@@ -2221,7 +2224,6 @@ class SmartSearchBarContainer extends Component<Props, ContainerState> {
 
 export default withApi(withSentryRouter(withOrganization(SmartSearchBarContainer)));
 
-export type {Props as SmartSearchBarProps};
 export {DeprecatedSmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`

@@ -122,9 +122,7 @@ def child_process(
     child_worker_init(process_type)
 
     from django.core.cache import cache
-    from usageaccountant import UsageUnit
 
-    from sentry import usage_accountant
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.retry import NoRetriesRemainingError
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
@@ -338,6 +336,7 @@ def child_process(
                 execution_start_time,
                 execution_complete_time,
                 processing_pool_name,
+                inflight.host,
             )
 
     def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
@@ -407,6 +406,7 @@ def child_process(
         start_time: float,
         completion_time: float,
         processing_pool_name: str,
+        taskbroker_host: str,
     ) -> None:
         task_added_time = activation.received_at.ToDatetime().timestamp()
         execution_duration = completion_time - start_time
@@ -428,6 +428,7 @@ def child_process(
                 "taskname": activation.taskname,
                 "status": status_name(status),
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
         metrics.distribution(
@@ -437,6 +438,7 @@ def child_process(
                 "namespace": activation.namespace,
                 "taskname": activation.taskname,
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
         metrics.distribution(
@@ -446,15 +448,15 @@ def child_process(
                 "namespace": activation.namespace,
                 "taskname": activation.taskname,
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
 
         namespace = taskregistry.get(activation.namespace)
-        usage_accountant.record(
-            resource_id="taskworker",
-            app_feature=namespace.app_feature,
+        metrics.incr(
+            "taskworker.cogs.usage",
             amount=int(execution_duration * 1000),
-            usage_type=UsageUnit.MILLISECONDS,
+            tags={"feature": namespace.app_feature},
         )
 
         if (

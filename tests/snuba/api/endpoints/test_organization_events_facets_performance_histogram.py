@@ -14,11 +14,10 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
 ):
     feature_list = (
         "organizations:discover-basic",
-        "organizations:global-views",
         "organizations:performance-view",
     )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self._transaction_count = 0

@@ -94,8 +94,8 @@ const mockSeries: UsageSeries = {
   ],
 };
 
-describe('mapSeriesToChart func', function () {
-  it("should return correct chart tooltip's reasons", function () {
+describe('mapSeriesToChart func', () => {
+  it("should return correct chart tooltip's reasons", () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: mockSeries,
       chartDateInterval: '1h',
@@ -153,7 +153,7 @@ describe('mapSeriesToChart func', function () {
     ]);
   });
 
-  it('should correctly sum up the rate limited count', function () {
+  it('should correctly sum up the rate limited count', () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: {
         start: '2021-01-01T00:00:00Z',
@@ -220,7 +220,7 @@ describe('mapSeriesToChart func', function () {
     expect(mappedSeries.cardStats.rateLimited).toBe('11');
   });
 
-  it('should correctly format client discard data', function () {
+  it('should correctly format client discard data', () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: {
         start: '2021-01-01T00:00:00Z',
@@ -252,7 +252,7 @@ describe('mapSeriesToChart func', function () {
     expect(mappedSeries.cardStats.clientDiscard).toBe('1.5K');
   });
 
-  it('should correctly sum up the profile chunks', function () {
+  it('should correctly sum up the profile chunks', () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: {
         start: '2021-01-01T00:00:00Z',
@@ -319,7 +319,7 @@ describe('mapSeriesToChart func', function () {
     ]);
   });
 
-  it('should correctly sum up the profiles', function () {
+  it('should correctly sum up the profiles', () => {
     const groups = [
       {
         by: {

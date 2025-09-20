@@ -7,11 +7,14 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
-import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  alternativeProfilingConfiguration,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -25,6 +28,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -79,58 +88,84 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {
-        code: <code />,
-      }),
-      configurations: getPythonInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock(),
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'wsgi.py',
-              value: 'wsgi.py',
               language: 'python',
               code: getSdkSetupSnippet(params),
             },
           ],
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
           ),
-          language: 'python',
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'wsgi.py',
-              value: 'wsgi.py',
               language: 'python',
               code: getErrorHandlerSnippet(),
             },
           ],
         },
+        alternativeProfilingConfiguration(params),
       ],
-      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: () => [],
 };
 
+const logsOnboarding = getPythonLogsOnboarding();
+
+const profilingOnboarding: OnboardingConfig = {
+  install: onboarding.install,
+  configure: onboarding.configure,
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: onboarding,
+  profilingOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

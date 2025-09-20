@@ -8,7 +8,7 @@ import ProjectCard from 'sentry/views/projectsDashboard/projectCard';
 // NOTE: Unmocking debounce so that the actionCreator never fires
 jest.unmock('lodash/debounce');
 
-describe('ProjectCard', function () {
+describe('ProjectCard', () => {
   const createWrapper = () =>
     render(
       <ProjectCard
@@ -27,15 +27,15 @@ describe('ProjectCard', function () {
       />
     );
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     createWrapper();
   });
 
-  it('renders latest 2 deploys', function () {
+  it('renders latest 2 deploys', () => {
     const latestDeploys = {
       beta: {
         dateFinished: '2018-05-10T20:56:40.092Z',
@@ -71,13 +71,13 @@ describe('ProjectCard', function () {
     expect(screen.queryByText('staging')).not.toBeInTheDocument();
   });
 
-  it('renders empty state if no deploys', function () {
+  it('renders empty state if no deploys', () => {
     createWrapper();
 
     expect(screen.getByRole('button', {name: 'Track Deploys'})).toBeInTheDocument();
   });
 
-  it('renders with platform', function () {
+  it('renders with platform', () => {
     createWrapper();
 
     // @TODO(jonasbadalic): is testing for image and the platform icon both required?
@@ -85,7 +85,7 @@ describe('ProjectCard', function () {
     expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
 
-  it('renders header link for errors', function () {
+  it('renders header link for errors', () => {
     render(
       <ProjectCard
         project={ProjectFixture({
@@ -106,7 +106,7 @@ describe('ProjectCard', function () {
     expect(screen.queryByTestId('project-transactions')).not.toBeInTheDocument();
   });
 
-  it('renders header link for transactions', function () {
+  it('renders header link for transactions', () => {
     const organization = OrganizationFixture({features: ['performance-view']});
 
     render(
@@ -132,7 +132,7 @@ describe('ProjectCard', function () {
     expect(screen.getByText('Transactions: 8')).toBeInTheDocument();
   });
 
-  it('renders loading placeholder card if there are no stats', function () {
+  it('renders loading placeholder card if there are no stats', () => {
     render(<ProjectCard project={ProjectFixture()} hasProjectAccess={false} />);
 
     const chartContainer = screen.getByTestId('chart-container');

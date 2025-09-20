@@ -15,7 +15,7 @@ import {
 
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
-describe('Organization Developer Settings', function () {
+describe('Organization Developer Settings', () => {
   const {organization: org} = initializeOrg();
   const sentryApp = SentryAppFixture({
     scopes: [

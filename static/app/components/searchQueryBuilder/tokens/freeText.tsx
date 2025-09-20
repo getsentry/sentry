@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -265,14 +265,13 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
-    setCurrentInputValue,
+    currentInputValueRef,
   } = useSearchQueryBuilder();
 
   const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
-    setCurrentInputValue(trimmedTokenValue);
     updateSelectionIndex();
-  }, [trimmedTokenValue, updateSelectionIndex, setCurrentInputValue]);
+  }, [trimmedTokenValue, updateSelectionIndex]);
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
@@ -292,6 +291,11 @@ function SearchQueryBuilderInputInternal({
     setPrevValue(trimmedTokenValue);
     setInputValue(trimmedTokenValue);
   }
+
+  // Update the ref when inputValue changes for ask seer
+  useEffect(() => {
+    currentInputValueRef.current = inputValue;
+  }, [inputValue, currentInputValueRef]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -433,11 +437,7 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (
-            (option.type === 'raw-search-filter-is-value' ||
-              option.type === 'raw-search-filter-has-value') &&
-            option.textValue
-          ) {
+          if (option.type === 'raw-search-filter-is-value' && option.textValue) {
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
@@ -582,10 +582,11 @@ function SearchQueryBuilderInputInternal({
           }
 
           if (
-            parsedText?.some(
-              textToken =>
-                textToken.type === Token.FILTER && textToken.key.text === filterValue
-            )
+            parsedText?.some(textToken => {
+              if (textToken.type !== Token.FILTER) return false;
+              if (textToken.negated) return `!${textToken.key.text}` === filterValue;
+              return textToken.key.text === filterValue;
+            })
           ) {
             const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];
@@ -619,7 +620,6 @@ function SearchQueryBuilderInputInternal({
           }
 
           setInputValue(e.target.value);
-          setCurrentInputValue(e.target.value);
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}

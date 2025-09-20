@@ -7,12 +7,12 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PolicyRow} from 'getsentry/views/legalAndCompliance/policyRow';
 
-describe('PolicyRow', function () {
+describe('PolicyRow', () => {
   const {organization} = initializeOrg({});
   const subscription = SubscriptionFixture({organization});
   const policies = PoliciesFixture();
 
-  it('renders with consent, requires signature, and version match', function () {
+  it('renders with consent, requires signature, and version match', () => {
     const policy = policies.terms!;
     render(
       <PolicyRow
@@ -33,7 +33,7 @@ describe('PolicyRow', function () {
     );
   });
 
-  it('does not require signature', function () {
+  it('does not require signature', () => {
     const policy = policies.pentest!;
     render(
       <PolicyRow
@@ -52,7 +52,7 @@ describe('PolicyRow', function () {
     expect(screen.getByRole('button', {name: 'Review'})).toBeInTheDocument();
   });
 
-  it('does not require signature and show updated', function () {
+  it('does not require signature and show updated', () => {
     const policy = policies.pentest!;
     render(
       <PolicyRow
@@ -71,7 +71,7 @@ describe('PolicyRow', function () {
     expect(screen.getByRole('button', {name: 'Review'})).toBeInTheDocument();
   });
 
-  it('allows org members to view policies', function () {
+  it('allows org members to view policies', () => {
     const policy = policies['soc-2-bridge-letter']!;
     const modifiedOrganization = OrganizationFixture({
       access: [],
@@ -95,7 +95,7 @@ describe('PolicyRow', function () {
     expect(screen.queryByText(/New version available/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Review'})).toBeInTheDocument();
   });
-  it('allows those with org write to accept policies', function () {
+  it('allows those with org write to accept policies', () => {
     const policy = policies['soc-2-bridge-letter']!;
     const modifiedOrganization = OrganizationFixture({
       access: ['org:billing'],

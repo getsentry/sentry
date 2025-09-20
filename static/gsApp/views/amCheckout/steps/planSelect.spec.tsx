@@ -13,13 +13,12 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
-describe('PlanSelect', function () {
+describe('PlanSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
-  const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
@@ -47,9 +46,16 @@ describe('PlanSelect', function () {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
+    });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const freeSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_f',
@@ -60,7 +66,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -72,51 +78,7 @@ describe('PlanSelect', function () {
     expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
   });
 
-  it('renders for checkout v3', async function () {
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      method: 'GET',
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
-    const newCheckoutOrg = OrganizationFixture({
-      features: ['checkout-v3'],
-    });
-    const freeSubscription = SubscriptionFixture({
-      organization: newCheckoutOrg,
-      plan: 'am3_f',
-      isFree: true,
-    });
-    SubscriptionStore.set(newCheckoutOrg.slug, freeSubscription);
-
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        params={params}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM3}
-      />,
-      {organization: newCheckoutOrg}
-    );
-
-    expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
-    expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
-
-    const teamPlan = await screen.findByTestId('plan-option-am3_team');
-    const businessPlan = screen.getByTestId('plan-option-am3_business');
-
-    // no longer use lightning icon for business plan
-    expect(within(teamPlan).getAllByTestId('icon-check-mark').length).toBeGreaterThan(0);
-    expect(within(businessPlan).getAllByTestId('icon-check-mark').length).toBeGreaterThan(
-      0
-    );
-
-    // new excess usage pricing warning
-    expect(within(teamPlan).queryByText(/Excess usage/)).not.toBeInTheDocument();
-    expect(within(businessPlan).getByText(/Excess usage/)).toBeInTheDocument();
-  });
-
-  it('renders checkmarks on team plan', async function () {
+  it('renders checkmarks on team plan', async () => {
     const org = OrganizationFixture();
     const teamSubscription = SubscriptionFixture({
       organization: org,
@@ -128,7 +90,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -145,7 +107,7 @@ describe('PlanSelect', function () {
     expect(within(businessPlan).queryByTestId('icon-check-mark')).not.toBeInTheDocument();
   });
 
-  it('marks business as the current plan', async function () {
+  it('marks business as the current plan', async () => {
     const org = OrganizationFixture();
     const businessSubscription = SubscriptionFixture({
       organization: org,
@@ -157,7 +119,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -183,7 +145,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -221,11 +183,11 @@ describe('PlanSelect', function () {
     expect(screen.getByText(warningText)).toBeInTheDocument();
   });
 
-  it('renders with correct default prices and errors on-demand pricing', async function () {
+  it('renders with correct default prices and errors on-demand pricing', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -245,7 +207,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).not.toHaveTextContent(/\/ span/);
   });
 
-  it('renders with correct default prices and errors and spans on-demand pricing', async function () {
+  it('renders with correct default prices and errors and spans on-demand pricing', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
@@ -254,7 +216,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
@@ -275,11 +237,11 @@ describe('PlanSelect', function () {
     expect(businessPlan).toHaveTextContent('$0.000004 / span');
   });
 
-  it('renders with default plan selected', async function () {
+  it('renders with default plan selected', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -294,11 +256,11 @@ describe('PlanSelect', function () {
     expect(within(businessPlan).getByRole('radio')).toBeChecked();
   });
 
-  it('can select plan', async function () {
+  it('can select plan', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -318,11 +280,11 @@ describe('PlanSelect', function () {
     expect(within(businessPlan).getByRole('radio')).not.toBeChecked();
   });
 
-  it('can continue', async function () {
+  it('can continue', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -336,11 +298,11 @@ describe('PlanSelect', function () {
     expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
   });
 
-  it('can edit', async function () {
+  it('can edit', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -358,7 +320,7 @@ describe('PlanSelect', function () {
     expect(screen.getByTestId('body-choose-your-plan')).toBeInTheDocument();
   });
 
-  it('selects business for am2 monthly plans', async function () {
+  it('selects business for am2 monthly plans', async () => {
     const teamOrganization = OrganizationFixture();
     const teamSubscription = SubscriptionFixture({
       organization: teamOrganization,
@@ -370,7 +332,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -392,7 +354,7 @@ describe('PlanSelect', function () {
     expect(teamPlan).toHaveTextContent('Current plan');
   });
 
-  it('selects business for am2 annual plans', async function () {
+  it('selects business for am2 annual plans', async () => {
     const teamOrganization = OrganizationFixture();
     const teamSubscription = SubscriptionFixture({
       organization: teamOrganization,
@@ -405,7 +367,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -427,7 +389,7 @@ describe('PlanSelect', function () {
     expect(teamPlan).toHaveTextContent('Current plan');
   });
 
-  it('selects team for non upsell referrers', async function () {
+  it('selects team for non upsell referrers', async () => {
     const teamOrganization = OrganizationFixture();
     const teamSubscription = SubscriptionFixture({
       organization: teamOrganization,
@@ -439,7 +401,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -461,7 +423,7 @@ describe('PlanSelect', function () {
     expect(teamPlan).toHaveTextContent('Current plan');
   });
 
-  it('shows plan hint', async function () {
+  it('shows plan hint', async () => {
     const teamOrganization = OrganizationFixture();
 
     const teamSubscription = SubscriptionFixture({
@@ -476,7 +438,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -498,7 +460,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).toHaveTextContent('You trialed this plan');
   });
 
-  it('shows trial expires', async function () {
+  it('shows trial expires', async () => {
     const teamOrganization = OrganizationFixture();
 
     const teamSubscription = SubscriptionFixture({
@@ -514,7 +476,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -532,7 +494,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).toHaveTextContent('Trial expires in 2 days');
   });
 
-  it('shows plan trialed', async function () {
+  it('shows plan trialed', async () => {
     const teamOrganization = OrganizationFixture();
 
     const teamSubscription = SubscriptionFixture({
@@ -548,7 +510,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -566,7 +528,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).toHaveTextContent('You trialed this plan');
   });
 
-  it('calls prompts activity when business to team downgrade', async function () {
+  it('calls prompts activity when business to team downgrade', async () => {
     const mockPromptUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       method: 'PUT',
@@ -588,7 +550,7 @@ describe('PlanSelect', function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
-        params={params}
+        navigate={jest.fn()}
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
@@ -602,5 +564,45 @@ describe('PlanSelect', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
     expect(mockPromptUpdate).toHaveBeenCalled();
+  });
+
+  it('shows correct features for AM2 business plan', async () => {
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization}
+    );
+
+    const businessPlan = await screen.findByLabelText('Business');
+    expect(businessPlan).toHaveTextContent('Unlimited custom dashboards');
+    expect(businessPlan).not.toHaveTextContent('Application Insights');
+  });
+
+  it('shows Application Insights for AM3 business plan only', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        navigate={jest.fn()}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    const businessPlan = await screen.findByLabelText('Business');
+    expect(businessPlan).toHaveTextContent('Application Insights');
+    expect(businessPlan).toHaveTextContent('Unlimited custom dashboards');
   });
 });

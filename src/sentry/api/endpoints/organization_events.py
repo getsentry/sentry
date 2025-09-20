@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
+    transform_orderby_for_error_upsampling,
     transform_query_columns_for_error_upsampling,
 )
 from sentry.api.paginator import GenericOffsetPaginator
@@ -47,7 +48,7 @@ from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
-METRICS_ENHANCED_REFERRERS = {Referrer.API_PERFORMANCE_LANDING_TABLE.value}
+METRICS_ENHANCED_REFERRERS = {Referrer.API_INSIGHTS_LANDING_TABLE.value}
 SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("transactions"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
@@ -249,12 +250,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params = self.get_snuba_params(
                 request,
                 organization,
-                # This is only temporary until we come to a decision on global views
-                # checking for referrer for an allowlist is a brittle check since referrer
-                # can easily be set by the caller
-                check_global_views=not (
-                    referrer in GLOBAL_VIEW_ALLOWLIST and bool(organization.flags.allow_joinleave)
-                ),
             )
         except NoProjects:
             return Response(
@@ -321,19 +316,22 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             query: str | None,
         ):
             selected_columns = self.get_field_list(organization, request)
+            orderby = self.get_orderby(request)
             if is_errors_query_for_error_upsampled_projects(
                 snuba_params, organization, dataset, request
             ):
                 selected_columns = transform_query_columns_for_error_upsampling(
                     selected_columns, False
                 )
+                if orderby:
+                    orderby = transform_orderby_for_error_upsampling(orderby)
             query_source = self.get_request_source(request)
             return dataset_query(
                 selected_columns=selected_columns,
                 query=query or "",
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
-                orderby=self.get_orderby(request),
+                orderby=orderby,
                 offset=offset,
                 limit=limit,
                 referrer=referrer,

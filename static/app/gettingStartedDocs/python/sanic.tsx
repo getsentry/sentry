@@ -16,8 +16,9 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
-  getPythonAiocontextvarsConfig,
-  getPythonInstallConfig,
+  getPythonAiocontextvarsCodeBlocks,
+  getPythonInstallCodeBlock,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -30,7 +31,13 @@ sentry_sdk.init(
     dsn="${params.dsn.public}",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }
 )
 `;
 
@@ -42,29 +49,33 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:sanic] extra:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        ...getPythonInstallConfig({packageName: 'sentry-sdk[sanic]'}),
-        ...getPythonAiocontextvarsConfig(),
+          type: 'text',
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:sanic] extra:', {
+            code: <code />,
+          }),
+        },
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[sanic]'}),
+        ...getPythonAiocontextvarsCodeBlocks(),
       ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'If you have the [codeSanic:sanic] package in your dependencies, the Sanic integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+      content: [
         {
-          codeSanic: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'If you have the [codeSanic:sanic] package in your dependencies, the Sanic integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+            {
+              codeSanic: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'python',
           code: `${getSdkSetupSnippet(params)}
 app = Sanic(__name__)
@@ -76,13 +87,16 @@ app = Sanic(__name__)
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'You can easily verify your Sentry installation by creating a route that triggers an error:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'python',
-
           code: `from sanic.response import text
 ${getSdkSetupSnippet(params)}
 app = Sanic(__name__)
@@ -93,17 +107,37 @@ async def hello_world(request):
     return text("Hello, world.")
         `,
         },
-      ],
-      additionalInfo: tct(
-        'When you point your browser to [link:http://localhost:8000/] an error will be sent to Sentry.',
         {
-          link: <ExternalLink href="http://localhost:8000/" />,
-        }
-      ),
+          type: 'text',
+          text: tct(
+            'When you point your browser to [link:http://localhost:8000/] an error will be sent to Sentry.',
+            {
+              link: <ExternalLink href="http://localhost:8000/" />,
+            }
+          ),
+        },
+      ],
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [] as any[];
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+    return steps;
+  },
 };
+
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[sanic]',
+});
 
 const docs: Docs = {
   onboarding,
@@ -113,6 +147,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[sanic]'}),
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

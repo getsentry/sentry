@@ -9,7 +9,7 @@ import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStart
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -18,6 +18,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -57,9 +58,17 @@ import { AppService } from './app.service';
 export class AppModule {}
 `;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => `
 @Get("/debug-sentry")
-getError() {
+getError() {${
+  params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_endpoint',
+  });`
+    : ''
+}
   throw new Error("My first Sentry error!");
 }
 `;
@@ -211,7 +220,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -220,7 +229,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
@@ -282,7 +291,7 @@ Sentry.captureUserFeedback(userFeedback);
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -301,6 +310,10 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/nestjs',
+  }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'nestjs',
+    sdkPackage: '@sentry/nestjs',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'nestjs',

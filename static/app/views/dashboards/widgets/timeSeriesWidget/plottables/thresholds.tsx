@@ -1,5 +1,8 @@
-import type {SeriesOption} from 'echarts';
-import type {ItemStyleOption} from 'echarts/types/src/util/types';
+import type {
+  MarkAreaComponentOption,
+  MarkLineComponentOption,
+  SeriesOption,
+} from 'echarts';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -40,7 +43,7 @@ export class Thresholds implements Plottable {
     this.isEmpty = !this.thresholds.max_values.max1 && !this.thresholds.max_values.max2;
   }
 
-  toMarkArea(yAxisRange: [number, number], style?: ItemStyleOption) {
+  toMarkArea(yAxisRange: [number, number], style: MarkAreaComponentOption['itemStyle']) {
     const max = yAxisRange[1] === Infinity ? {y: this.maxOffset} : {yAxis: yAxisRange[1]};
     const min = {yAxis: yAxisRange[0]};
 
@@ -82,7 +85,7 @@ export class Thresholds implements Plottable {
     return markAreas;
   }
 
-  toMarkLine(yAxis: number, label: string, style?: ItemStyleOption) {
+  toMarkLine(yAxis: number, label: string, style: MarkLineComponentOption['lineStyle']) {
     return MarkLine({
       animation: false,
       silent: true,

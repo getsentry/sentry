@@ -16,7 +16,7 @@ const TimestampRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TIMESTAMP
 
 type LogFieldRendererProps = AttributesFieldRendererProps<RendererExtra>;
 
-describe('Logs Field Renderers', function () {
+describe('Logs Field Renderers', () => {
   const organization = OrganizationFixture();
 
   const makeRendererProps = (
@@ -57,10 +57,10 @@ describe('Logs Field Renderers', function () {
     ConfigStore.set('user', UserFixture());
   });
 
-  describe('TimestampRenderer', function () {
+  describe('TimestampRenderer', () => {
     const timestamp = '2024-01-15T14:30:45.123Z';
 
-    it('renders timestamp in 12h format by default', function () {
+    it('renders timestamp in 12h format by default', () => {
       expect(TimestampRenderer).toBeDefined();
       const props = makeRendererProps(timestamp);
       const result = TimestampRenderer!(props);
@@ -73,7 +73,7 @@ describe('Logs Field Renderers', function () {
       expect(screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/)).toBeInTheDocument();
     });
 
-    it('renders timestamp in 24h format when user preference is set', function () {
+    it('renders timestamp in 24h format when user preference is set', () => {
       expect(TimestampRenderer).toBeDefined();
       const user = UserFixture();
       user.options.clock24Hours = true;
@@ -91,7 +91,7 @@ describe('Logs Field Renderers', function () {
       expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument();
     });
 
-    it('renders milliseconds when present', function () {
+    it('renders milliseconds when present', () => {
       expect(TimestampRenderer).toBeDefined();
       const props = makeRendererProps(timestamp);
       const result = TimestampRenderer!(props);
@@ -104,7 +104,7 @@ describe('Logs Field Renderers', function () {
       expect(screen.getByText(/\.123/)).toBeInTheDocument();
     });
 
-    it('uses precise timestamp when available', function () {
+    it('uses precise timestamp when available', () => {
       expect(TimestampRenderer).toBeDefined();
       const preciseTimestamp = '1705329045123456789';
       const props = makeRendererProps(timestamp, {
@@ -120,7 +120,7 @@ describe('Logs Field Renderers', function () {
       expect(screen.getByText(/2:30:45\.123/)).toBeInTheDocument();
     });
 
-    it('renders in different timezone', function () {
+    it('renders in different timezone', () => {
       expect(TimestampRenderer).toBeDefined();
       const user = UserFixture();
       user.options.timezone = 'Europe/London';
@@ -137,7 +137,7 @@ describe('Logs Field Renderers', function () {
       expect(screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/)).toBeInTheDocument();
     });
 
-    it('renders in 24h format with different timezone', function () {
+    it('renders in 24h format with different timezone', () => {
       expect(TimestampRenderer).toBeDefined();
       const user = UserFixture();
       user.options.timezone = 'Asia/Tokyo';
@@ -156,7 +156,7 @@ describe('Logs Field Renderers', function () {
       expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument();
     });
 
-    it('renders tooltip on hover', async function () {
+    it('renders tooltip on hover', async () => {
       expect(TimestampRenderer).toBeDefined();
       const props = makeRendererProps(timestamp, {}, true);
       const result = TimestampRenderer!(props);

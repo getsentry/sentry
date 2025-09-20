@@ -4,6 +4,8 @@ import {PlatformIcon} from 'platformicons';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -43,10 +45,6 @@ const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
 
-const PlatformWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
@@ -81,10 +79,10 @@ export const fields = {
     options: platforms.map(({id, name}) => ({
       value: id,
       label: (
-        <PlatformWrapper key={id}>
+        <Flex align="center" key={id}>
           <StyledPlatformIcon platform={id} />
           {name}
-        </PlatformWrapper>
+        </Flex>
       ),
     })),
     help: t('The primary platform for this project'),
@@ -200,5 +198,48 @@ export const fields = {
     type: 'boolean',
     label: t('Verify TLS/SSL'),
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
+  },
+  debugFilesRole: {
+    name: 'debugFilesRole',
+    type: 'select',
+    label: t('Debug Files Access'),
+    help: ({organization}) =>
+      tct(
+        'Role required to download debug information files, proguard mappings and source maps. Overrides [organizationSettingsLink: organization settings].',
+        {
+          organizationSettingsLink: (
+            <Link to={`/settings/${organization.slug}/#debugFilesRole`} />
+          ),
+        }
+      ),
+    placeholder: ({organization, name, model}) => {
+      const value = model.getValue(name);
+      // empty value means that this project should inherit organization settings
+      if (value === null || value === undefined) {
+        const orgRoleName =
+          organization.orgRoleList?.find(
+            (r: {id: string; name: string}) => r.id === organization.debugFilesRole
+          )?.name || organization.debugFilesRole;
+        return tct('Inherit organization setting ([organizationValue])', {
+          organizationValue: orgRoleName,
+        });
+      }
+      return value;
+    },
+    choices: ({organization}) => [
+      [
+        null,
+        tct('Inherit organization setting ([organizationValue])', {
+          organizationValue:
+            organization.orgRoleList?.find(
+              (r: {id: string; name: string}) => r.id === organization.debugFilesRole
+            )?.name || organization.debugFilesRole,
+        }),
+      ],
+      ...(organization?.orgRoleList?.map((r: {id: string; name: string}) => [
+        r.id,
+        r.name,
+      ]) ?? []),
+    ],
   },
 } satisfies Record<string, Field>;

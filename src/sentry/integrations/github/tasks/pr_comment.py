@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
         namespace=integrations_tasks,
     ),
 )
-def github_comment_workflow(pullrequest_id: int, project_id: int):
+def github_comment_workflow(pullrequest_id: int, project_id: int) -> None:
     # TODO(jianyuan): Using `sentry.integrations.source_code_management.tasks.pr_comment_workflow` now.
     # Keep this task temporarily to avoid breaking changes.
     pr_comment_workflow(pr_id=pullrequest_id, project_id=project_id)
@@ -41,14 +41,18 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=1800,  # 30 minutes
+        at_most_once=True,
     ),
 )
-def github_comment_reactions():
+def github_comment_reactions() -> None:
     logger.info("github.pr_comment.reactions_task")
 
     comments = PullRequestComment.objects.filter(
-        created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
+        created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7),
     ).select_related("pull_request")
+
+    logger.info("pr_comment.comment_reactions.count", extra={"count": comments.count()})
 
     comment_count = 0
 
@@ -87,9 +91,9 @@ def github_comment_reactions():
 
         try:
             reactions = client.get_comment_reactions(repo=repo.name, comment_id=comment.external_id)
-
-            comment.reactions = reactions
-            comment.save()
+            if reactions or comment.reactions:
+                comment.reactions = reactions
+                comment.save()
         except ApiError as e:
             if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
                 metrics.incr("pr_comment.comment_reactions.rate_limited_error")
@@ -103,7 +107,6 @@ def github_comment_reactions():
             continue
 
         comment_count += 1
-
         metrics.incr("pr_comment.comment_reactions.success")
 
     logger.info("pr_comment.comment_reactions.total_collected", extra={"count": comment_count})

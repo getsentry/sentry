@@ -12,7 +12,7 @@ interface Props extends SVGIconProps {
   isCircled?: boolean;
 }
 
-function IconClose({
+export function IconClose({
   ['data-test-id']: dataTestId = 'icon-close',
   isCircled = false,
   ...props
@@ -43,7 +43,3 @@ function IconClose({
     </SvgIcon>
   );
 }
-
-IconClose.displayName = 'IconClose';
-
-export {IconClose};

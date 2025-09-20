@@ -11,7 +11,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
@@ -24,7 +24,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -213,7 +216,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -244,7 +247,14 @@ const docs: Docs = {
   crashReportOnboarding,
   featureFlagOnboarding,
   profilingOnboarding,
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'sveltekit',
+    configFileName: 'instrumentation.server.js',
+  }),
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'sveltekit',
+    sdkPackage: '@sentry/sveltekit',
+  }),
 };
 
 export default docs;

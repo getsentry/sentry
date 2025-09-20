@@ -286,7 +286,7 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
         },
         DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS: {
             "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
-            "concurrency_threshold": 10,  # ms
+            "concurrency_threshold": 15,  # ms
             "count": 5,
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
@@ -402,6 +402,7 @@ def _detect_performance_problems(
             detectors,
             sdk_span,
             organization,
+            project,
             standalone=standalone,
         )
 
@@ -506,6 +507,7 @@ def report_metrics_for_detectors(
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
     organization: Organization,
+    project: Project,
     standalone: bool = False,
 ) -> None:
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
@@ -593,7 +595,15 @@ def report_metrics_for_detectors(
 
         set_tag(f"_pi_{detector_key}", span_id)
 
-        op_tags = {"is_standalone_spans": standalone}
+        op_tags = {
+            "is_standalone_spans": standalone,
+            "is_creation_allowed": all(
+                [
+                    detector.is_creation_allowed_for_organization(organization),
+                    detector.is_creation_allowed_for_project(project),
+                ]
+            ),
+        }
         for problem in detected_problems.values():
             op = problem.op
             op_tags[f"op_{op}"] = True

@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +18,7 @@ jest.mock('sentry/utils/useReleaseStats');
 
 describe('destinationSummaryPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules'],
+    features: ['insight-modules'],
   });
   const project = ProjectFixture({firstTransactionEvent: true});
 
@@ -54,20 +55,19 @@ describe('destinationSummaryPage', () => {
     });
 
     latencyEventsStatsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        'avg(span.duration)': {
-          data: [[1739378162, [{count: 1}]]],
-          meta: {
-            fields: {'avg(span.duration)': 'duration'},
-            units: {'avg(span.duration)': 'millisecond'},
-          },
-        },
-        'avg(messaging.message.receive.latency)': {
-          data: [[1739378162, [{count: 1}]]],
-          meta: {fields: {epm: 'rate'}, units: {epm: '1/second'}},
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'avg(messaging.message.receive.latency)',
+            values: [{value: 1, timestamp: 1739378162000}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'avg(span.duration)',
+            values: [{value: 1, timestamp: 1739378162000}],
+          }),
+        ],
       },
       match: [
         MockApiClient.matchQuery({
@@ -76,6 +76,7 @@ describe('destinationSummaryPage', () => {
       ],
     });
 
+    // Mock for unchanged throughput chart that still uses events-stats
     throughputEventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',

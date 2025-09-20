@@ -23,6 +23,9 @@ from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildCl
 from sentry_sdk import capture_exception
 
 from sentry import analytics
+from sentry.analytics.events.relocation_organization_imported import (
+    RelocationOrganizationImportedEvent,
+)
 from sentry.api.helpers.slugs import validate_sentry_slug
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.backup.crypto import (
@@ -306,7 +309,8 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
             # reasonable amount of time, go ahead and fail the relocation.
             cross_region_export_timeout_check.apply_async(
                 args=[uuid],
-                countdown=int(CROSS_REGION_EXPORT_TIMEOUT.total_seconds()),
+                # In tests we mock this timeout to be a negative value.
+                countdown=max(int(CROSS_REGION_EXPORT_TIMEOUT.total_seconds()), 0),
             )
             return
 
@@ -1610,11 +1614,12 @@ def postprocessing(uuid: str) -> None:
         for org in imported_orgs:
             try:
                 analytics.record(
-                    "relocation.organization_imported",
-                    organization_id=org.id,
-                    relocation_uuid=uuid,
-                    slug=org.slug,
-                    owner_id=relocation.owner_id,
+                    RelocationOrganizationImportedEvent(
+                        organization_id=org.id,
+                        relocation_uuid=uuid,
+                        slug=org.slug,
+                        owner_id=relocation.owner_id,
+                    )
                 )
             except Exception as e:
                 capture_exception(e)

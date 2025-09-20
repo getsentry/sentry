@@ -5,8 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationAuthList} from 'sentry/views/settings/organizationAuth/organizationAuthList';
 
-describe('OrganizationAuthList', function () {
-  it('renders with no providers', function () {
+describe('OrganizationAuthList', () => {
+  it('renders with no providers', () => {
     render(<OrganizationAuthList providerList={[]} />);
 
     expect(
@@ -14,7 +14,7 @@ describe('OrganizationAuthList', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(<OrganizationAuthList providerList={AuthProvidersFixture()} />);
 
     expect(screen.getAllByLabelText('Configure')).toHaveLength(2);
@@ -22,7 +22,7 @@ describe('OrganizationAuthList', function () {
     expect(screen.getByText('Dummy SAML')).toBeInTheDocument();
   });
 
-  it('renders for members', function () {
+  it('renders for members', () => {
     const organization = OrganizationFixture({access: ['org:read']});
 
     render(
@@ -36,12 +36,12 @@ describe('OrganizationAuthList', function () {
     expect(screen.getByText('Active')).toBeInTheDocument();
   });
 
-  describe('with 2fa warning', function () {
+  describe('with 2fa warning', () => {
     const require2fa = {require2FA: true};
     const withSSO = {features: ['sso-basic']};
     const withSAML = {features: ['sso-saml2']};
 
-    it('renders', function () {
+    it('renders', () => {
       const organization = OrganizationFixture({...require2fa, ...withSSO});
 
       render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
@@ -53,7 +53,7 @@ describe('OrganizationAuthList', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders with saml available', function () {
+    it('renders with saml available', () => {
       const organization = OrganizationFixture({...require2fa, ...withSAML});
 
       render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
@@ -65,7 +65,7 @@ describe('OrganizationAuthList', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not render without sso available', function () {
+    it('does not render without sso available', () => {
       const organization = OrganizationFixture({...require2fa});
 
       render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
@@ -77,7 +77,7 @@ describe('OrganizationAuthList', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('does not render with sso and require 2fa disabled', function () {
+    it('does not render with sso and require 2fa disabled', () => {
       const organization = OrganizationFixture({...withSSO});
 
       render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {
@@ -89,7 +89,7 @@ describe('OrganizationAuthList', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('does not render with saml and require 2fa disabled', function () {
+    it('does not render with saml and require 2fa disabled', () => {
       const organization = OrganizationFixture({...withSAML});
 
       render(<OrganizationAuthList providerList={AuthProvidersFixture()} />, {

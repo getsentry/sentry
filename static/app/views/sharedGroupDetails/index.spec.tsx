@@ -10,13 +10,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
-describe('SharedGroupDetails', function () {
+describe('SharedGroupDetails', () => {
   const eventEntry = EventEntryFixture();
   const exception = EventStacktraceExceptionFixture().entries[0];
   const params = {shareId: 'a'};
   const router = RouterFixture({params});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/test-org/projects/`,
       method: 'GET',
@@ -54,11 +54,11 @@ describe('SharedGroupDetails', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <SharedGroupDetails
         params={params}
@@ -72,7 +72,7 @@ describe('SharedGroupDetails', function () {
     await screen.findByText('Details');
   });
 
-  it('renders with org slug in path', async function () {
+  it('renders with org slug in path', async () => {
     const params_with_slug = {shareId: 'a', orgId: 'test-org'};
     const router_with_slug = RouterFixture({params_with_slug});
     render(

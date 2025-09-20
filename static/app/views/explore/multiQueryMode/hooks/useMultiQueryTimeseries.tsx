@@ -34,14 +34,14 @@ export function useMultiQueryTimeseries({
     (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
       const hasData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
-          return series.sampleCount?.some(({value}) => {
-            return value > 0;
+          return series.values.some(value => {
+            return (value.sampleCount ?? 0) > 0;
           });
         });
       });
       const canGetMoreData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
-          return series.dataScanned === 'partial';
+          return series.meta.dataScanned === 'partial';
         });
       });
 

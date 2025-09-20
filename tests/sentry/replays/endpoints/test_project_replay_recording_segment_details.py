@@ -74,7 +74,7 @@ class EnvironmentBase(APITestCase):
 
 
 class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
-    def init_environment(self):
+    def init_environment(self) -> None:
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
             replay_id=self.replay_id,
@@ -87,7 +87,7 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
 
 
 class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
-    def init_environment(self):
+    def init_environment(self) -> None:
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
             replay_id=self.replay_id,
@@ -110,7 +110,7 @@ class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnuba
 
 
 class PackedStorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
-    def init_environment(self):
+    def init_environment(self) -> None:
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
             replay_id=self.replay_id,

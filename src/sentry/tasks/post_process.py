@@ -657,6 +657,12 @@ def post_process_group(
             )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
+        track_event_since_received(
+            step="end_post_process",
+            event_data=event.data,
+            tags=metric_tags,
+        )
+
         if not is_reprocessed:
             received_at = event.data.get("received")
             saved_at = event.data.get("nodestore_insert")
@@ -677,12 +683,6 @@ def post_process_group(
                     "events.time-to-post-process",
                     post_processed_at - received_at,
                     instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-
-                track_event_since_received(
-                    step="end_post_process",
-                    event_data=event.data,
                     tags=metric_tags,
                 )
 
@@ -904,7 +904,11 @@ def process_snoozes(job: PostProcessJob) -> None:
 
         if not snooze_condition_still_applies:
             snooze_details: InboxReasonDetails = {
-                "until": snooze.until,
+                "until": (
+                    snooze.until.replace(microsecond=0).isoformat()
+                    if snooze.until is not None
+                    else None
+                ),
                 "count": snooze.count,
                 "window": snooze.window,
                 "user_count": snooze.user_count,
@@ -1008,6 +1012,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
                 group_state=job["group_state"],
                 has_reappeared=job["has_reappeared"],
                 has_escalated=job["has_escalated"],
+                start_timestamp_seconds=time(),
             ),
             headers={"sentry-propagate-traces": False},
         )
@@ -1062,6 +1067,10 @@ def process_rules(job: PostProcessJob) -> None:
     ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
         # we are only processing through the workflow engine
         return
+
+    metrics.incr(
+        "post_process.rules_processor_events", tags={"group_type": job["event"].group.type}
+    )
 
     from sentry.rules.processing.processor import RuleProcessor
 
@@ -1417,49 +1426,6 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     return False
 
 
-def check_has_high_priority_alerts(job: PostProcessJob) -> None:
-    """
-    Determine if we should fire a task to check if the new issue
-    threshold has been met to enable high priority alerts.
-    """
-    try:
-        event = job["event"]
-        if event.project.flags.has_high_priority_alerts:
-            return
-
-        from sentry.tasks.check_new_issue_threshold_met import (
-            check_new_issue_threshold_met,
-            new_issue_threshold_key,
-        )
-
-        # If the new issue volume has already been checked today, don't recalculate regardless of the value
-        project_key = new_issue_threshold_key(event.project_id)
-        threshold_met = cache.get(project_key)
-        if threshold_met is not None:
-            return
-
-        try:
-            lock = locks.get(project_key, duration=10)
-            with lock.acquire():
-                # If the threshold has already been calculated today, don't recalculate regardless of the value
-                task_scheduled = cache.get(project_key)
-                if task_scheduled is not None:
-                    return
-
-                check_new_issue_threshold_met.delay(event.project.id)
-
-                # Add the key to cache for 24 hours
-                cache.set(project_key, True, 60 * 60 * 24)
-        except UnableToAcquireLock:
-            pass
-    except Exception as e:
-        logger.warning(
-            "Failed to check new issue threshold met",
-            repr(e),
-            extra={"project_id": event.project_id},
-        )
-
-
 def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.lib.utils import FeedbackCreationSource
     from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
@@ -1639,7 +1605,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         return
 
     project = group.project
-    if not project.get_option("sentry:seer_scanner_automation"):
+    if (
+        not project.get_option("sentry:seer_scanner_automation")
+        and not group.issue_type.always_trigger_seer_automation
+    ):
         return
 
     # Don't run if there's already a task in progress for this issue
@@ -1674,7 +1643,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
-        check_has_high_priority_alerts,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,

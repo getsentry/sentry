@@ -117,10 +117,28 @@ class SnubaEventStorage(EventStorage):
                     resolved_order_by.append(
                         OrderBy(
                             Function(
-                                "if", [Function("isNull", [Column(resolved_column_or_none)]), 0, 1]
+                                "if",
+                                [
+                                    Function("isNull", [Column(resolved_column_or_none)]),
+                                    0,
+                                    1,
+                                ],
                             ),
                             direction=direction,
                         )
+                    )
+                elif order_field_alias == Columns.TIMESTAMP.value.alias:
+                    resolved_order_by.extend(
+                        [
+                            OrderBy(
+                                Function("toStartOfDay", [Column("timestamp")]),
+                                direction=direction,
+                            ),
+                            OrderBy(
+                                Column("timestamp"),
+                                direction=direction,
+                            ),
+                        ]
                     )
                 else:
                     resolved_order_by.append(
@@ -427,7 +445,11 @@ class SnubaEventStorage(EventStorage):
                 # we cache an empty result, since this can result in us failing to fetch new events
                 # in some cases.
                 raw_query_kwargs["conditions"] = [
-                    ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
+                    [
+                        "timestamp",
+                        ">",
+                        datetime.fromtimestamp(random.randint(0, 1000000000)),
+                    ]
                 ]
             dataset = (
                 Dataset.IssuePlatform
@@ -535,7 +557,9 @@ class SnubaEventStorage(EventStorage):
         lower_bound = start or (event.datetime - timedelta(days=100))
         upper_bound = end or (event.datetime + timedelta(days=100))
 
-        def make_prev_timestamp_conditions(event: Event | GroupEvent) -> list[Condition | Or]:
+        def make_prev_timestamp_conditions(
+            event: Event | GroupEvent,
+        ) -> list[Condition | Or]:
             return [
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
@@ -559,7 +583,9 @@ class SnubaEventStorage(EventStorage):
                 ),
             ]
 
-        def make_next_timestamp_conditions(event: Event | GroupEvent) -> list[Condition | Or]:
+        def make_next_timestamp_conditions(
+            event: Event | GroupEvent,
+        ) -> list[Condition | Or]:
             return [
                 Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),

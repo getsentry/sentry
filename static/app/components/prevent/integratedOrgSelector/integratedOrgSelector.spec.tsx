@@ -4,8 +4,8 @@ import PreventQueryParamsProvider from 'sentry/components/prevent/container/prev
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 
 const mockIntegrations = [
-  {name: 'my-other-org-with-a-super-long-name', id: '1'},
-  {name: 'my-other-org-with-a-super-long-name', id: '2'},
+  {name: 'my-other-org-with-a-super-long-name', id: '1', status: 'active'},
+  {name: 'my-other-org-with-a-super-long-name', id: '2', status: 'active'},
 ];
 
 const mockApiCall = () => {
@@ -16,8 +16,8 @@ const mockApiCall = () => {
   });
 };
 
-describe('IntegratedOrgSelector', function () {
-  it('renders when given integrated org', async function () {
+describe('IntegratedOrgSelector', () => {
+  it('renders when given integrated org', async () => {
     mockApiCall();
     render(
       <PreventQueryParamsProvider>
@@ -37,7 +37,7 @@ describe('IntegratedOrgSelector', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders the chosen org as the first option', async function () {
+  it('renders the chosen org as the first option', async () => {
     mockApiCall();
     render(
       <PreventQueryParamsProvider>

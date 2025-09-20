@@ -22,7 +22,6 @@ const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
 
 type Props = {
   params: Record<string, string | undefined>;
-  route: any;
   routes: RouteWithName[];
   className?: string;
 };

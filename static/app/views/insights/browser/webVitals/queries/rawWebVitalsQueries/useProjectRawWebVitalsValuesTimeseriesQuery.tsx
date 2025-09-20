@@ -1,9 +1,10 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
@@ -30,9 +31,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
-  const result = useSpanSeries(
+  const result = useFetchSpanTimeSeries(
     {
-      search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
+      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       interval: getInterval(pageFilters.selection.datetime, 'spans-low'),
       yAxis: [
         'p75(measurements.lcp)',
@@ -44,7 +45,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'count_scores(measurements.score.inp)',
       ],
     },
-    'api.performance.browser.web-vitals.timeseries'
+    Referrer.WEB_VITAL_TIMESERIES
   );
 
   return result;

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.http import QueryDict
 
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
@@ -49,11 +50,13 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         validate_search_filter_permissions(self.organization, parse_search_query(query), self.user)
 
     def assert_analytics_recorded(self, mock_record: Mock) -> None:
-        mock_record.assert_called_with(
-            "advanced_search.feature_gated",
-            user_id=self.user.id,
-            default_user_id=self.user.id,
-            organization_id=self.organization.id,
+        assert_last_analytics_event(
+            mock_record,
+            AdvancedSearchFeatureGateEvent(
+                user_id=self.user.id,
+                default_user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -1258,7 +1261,8 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
+        with self.tasks():
+            schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
@@ -1276,7 +1280,7 @@ class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
     def test_delete_groups_deletes_seer_records_by_hash(
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
-    ):
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         groups = [self.create_group(), self.create_group()]
@@ -1289,7 +1293,8 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
+        with self.tasks():
+            schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())

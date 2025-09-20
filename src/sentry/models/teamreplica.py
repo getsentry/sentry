@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -27,7 +29,7 @@ class TeamReplica(Model):
 
     __repr__ = sane_repr("name", "slug")
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "slug": self.slug,

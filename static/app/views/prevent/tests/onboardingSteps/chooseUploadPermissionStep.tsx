@@ -1,7 +1,12 @@
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
+
+export enum UploadPermission {
+  OIDC = 'oidc',
+  UPLOAD_TOKEN = 'token',
+}
 
 interface ChooseUploadPermissionStepProps {
   selectedUploadPermission: UploadPermission;
@@ -9,27 +14,25 @@ interface ChooseUploadPermissionStepProps {
   step: string;
 }
 
-export type UploadPermission = 'oidc' | 'token';
-
 const CHOICE_OPTIONS: Array<
   [UploadPermission, string | React.ReactNode, string | React.ReactNode]
 > = [
   [
-    'oidc',
+    UploadPermission.OIDC,
     t('Use OpenID Connect (OIDC)'),
     tct(
       'Recommended option, it does not require repo admin privileges to get started. Learn more about [OIDC].',
       {
         OIDC: (
-          <Link to="https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect">
+          <ExternalLink href="https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect">
             OIDC
-          </Link>
+          </ExternalLink>
         ),
       }
     ),
   ],
   [
-    'token',
+    UploadPermission.UPLOAD_TOKEN,
     t('Use Sentry Prevent Upload Token'),
     t(
       'You will need to generate an upload token, and store it securely in your GitHub repository secret.'

@@ -11,7 +11,7 @@ from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
 
-def maybe_renew_releasefiles(releasefiles: list[ReleaseFile]):
+def maybe_renew_releasefiles(releasefiles: list[ReleaseFile]) -> None:
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
@@ -22,12 +22,12 @@ def maybe_renew_releasefiles(releasefiles: list[ReleaseFile]):
     # We first check if any file needs renewal, before going to the database.
     needs_bump = [rf.id for rf in releasefiles if rf.date_accessed <= threshold_date]
     if not needs_bump:
-        return
+        return None
 
     renew_releasefiles_by_id(needs_bump)
 
 
-def renew_releasefiles_by_id(releasefile_ids: list[int]):
+def renew_releasefiles_by_id(releasefile_ids: list[int]) -> None:
     now = timezone.now()
     threshold_date = now - timedelta(
         days=options.get("system.debug-files-renewal-age-threshold-days")

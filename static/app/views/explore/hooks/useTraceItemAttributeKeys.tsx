@@ -61,3 +61,13 @@ export function useTraceItemAttributeKeys({
     isLoading: isFetching,
   };
 }
+
+/**
+ * We want to remove attributes that have tag wrapper in some cases (eg. datascrubbing attribute field)
+ * As they are not valid in some contexts (eg. relay event selectors).
+ */
+export function elideTagBasedAttributes(attributes: TagCollection) {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(([key]) => !key.startsWith('tags['))
+  );
+}

@@ -1,7 +1,13 @@
 import type {LocationRange} from 'peggy';
 
-import type {TermOperator, TokenResult} from './parser';
-import {allOperators, Token} from './parser';
+import type {
+  BasicOperator,
+  ComparisonOperator,
+  TermOperator,
+  TokenResult,
+  WildcardOperator,
+} from './parser';
+import {basicOperators, comparisonOperators, Token, wildcardOperators} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -326,8 +332,25 @@ export function isWithinToken(
   return position >= node.location.start.offset && position <= node.location.end.offset;
 }
 
+function isBasicOperator(value: string): value is BasicOperator {
+  // @ts-expect-error - Expected error as basicOperators is a const object
+  return basicOperators.includes(value);
+}
+
+function isComparisonOperator(value: string): value is ComparisonOperator {
+  // @ts-expect-error - Expected error as comparisonOperators is a const object
+  return comparisonOperators.includes(value);
+}
+
+export function isWildcardOperator(value: string): value is WildcardOperator {
+  // @ts-expect-error - Expected error as wildcardOperators is a const object
+  return wildcardOperators.includes(value);
+}
+
 export function isOperator(value: string): value is TermOperator {
-  return allOperators.includes(value as TermOperator);
+  return (
+    isBasicOperator(value) || isComparisonOperator(value) || isWildcardOperator(value)
+  );
 }
 
 function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
@@ -339,6 +362,7 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
 
   stringifiedToken += stringifyToken(token.key);
   stringifiedToken += ':';
+
   stringifiedToken += token.operator;
   stringifiedToken += stringifyToken(token.value);
 

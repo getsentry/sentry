@@ -3,8 +3,8 @@ import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import {scheduleAsText} from './scheduleAsText';
 
-describe('scheduleAsText', function () {
-  it('uses crontabAsText', function () {
+describe('scheduleAsText', () => {
+  it('uses crontabAsText', () => {
     const config: MonitorConfig = {
       checkin_margin: 0,
       max_runtime: 0,
@@ -15,7 +15,7 @@ describe('scheduleAsText', function () {
     expect(scheduleAsText(config)).toBe('At 10 minutes past the hour');
   });
 
-  it('translates interval conigs', function () {
+  it('translates interval conigs', () => {
     const config: MonitorConfig = {
       checkin_margin: 0,
       max_runtime: 0,

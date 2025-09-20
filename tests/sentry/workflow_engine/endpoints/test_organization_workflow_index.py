@@ -19,6 +19,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
+from tests.sentry.workflow_engine.test_base import MockActionValidatorTranslator
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -427,6 +428,9 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            provider="slack", organization=self.organization, user=self.user
+        )
         self.valid_workflow = {
             "name": "Test Workflow",
             "enabled": True,
@@ -489,7 +493,11 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
             "id"
         )
 
-    def test_create_workflow__with_actions(self) -> None:
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_create_workflow__with_actions(self, mock_action_validator: mock.MagicMock) -> None:
         self.valid_workflow["actionFilters"] = [
             {
                 "logicType": "any",
@@ -509,7 +517,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
                             "targetType": 0,
                         },
                         "data": {},
-                        "integrationId": 1,
+                        "integrationId": self.integration.id,
                     },
                 ],
             }
@@ -670,7 +678,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Third Workflow", enabled=False
         )
 
-    def test_bulk_enable_workflows_by_ids_success(self):
+    def test_bulk_enable_workflows_by_ids_success(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             qs_params=[("id", str(self.workflow.id)), ("id", str(self.workflow_two.id))],
@@ -693,7 +701,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         self.workflow_three.refresh_from_db()
         assert self.workflow_three.enabled is False
 
-    def test_bulk_disable_workflows_by_ids_success(self):
+    def test_bulk_disable_workflows_by_ids_success(self) -> None:
         self.workflow.update(enabled=True)
         self.workflow_two.update(enabled=True)
         self.workflow_three.update(enabled=True)
@@ -718,7 +726,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         self.workflow_three.refresh_from_db()
         assert self.workflow_three.enabled is True
 
-    def test_bulk_enable_workflows_by_query_success(self):
+    def test_bulk_enable_workflows_by_query_success(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"query": "test"},
@@ -740,7 +748,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         assert self.workflow_two.enabled is False
         assert self.workflow_three.enabled is False
 
-    def test_bulk_update_workflows_no_parameters_error(self):
+    def test_bulk_update_workflows_no_parameters_error(self) -> None:
         """Test error when no filtering parameters are provided"""
         response = self.get_error_response(
             self.organization.slug,
@@ -760,7 +768,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         assert self.workflow_two.enabled is False
         assert self.workflow_three.enabled is False
 
-    def test_bulk_update_workflows_missing_enabled_field_error(self):
+    def test_bulk_update_workflows_missing_enabled_field_error(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             qs_params={"id": str(self.workflow.id)},
@@ -774,7 +782,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         self.workflow.refresh_from_db()
         assert self.workflow.enabled is False
 
-    def test_bulk_update_no_matching_workflows(self):
+    def test_bulk_update_no_matching_workflows(self) -> None:
         # Test with non-existent ID
         response = self.get_success_response(
             self.organization.slug,

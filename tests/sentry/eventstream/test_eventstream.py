@@ -253,10 +253,15 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert payload1["occurrence_id"] == occurrence_data["id"]
         assert payload1["occurrence_data"] == occurrence_data_no_evidence
         assert payload1["group_id"] == self.group.id
+        assert payload1["group_first_seen"] == json.datetime_to_str(self.group.first_seen)
 
         query = Query(
             match=Entity(EntityKey.IssuePlatform.value),
-            select=[Column("event_id"), Column("group_id"), Column("occurrence_id")],
+            select=[
+                Column("event_id"),
+                Column("group_id"),
+                Column("occurrence_id"),
+            ],
             where=[
                 Condition(Column("timestamp"), Op.GTE, now - timedelta(days=1)),
                 Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),

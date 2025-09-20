@@ -28,29 +28,6 @@ EVENTS_MSG = json.dumps(
     {
         "backpressure.checking.enabled": True,
         "backpressure.checking.interval": 5,
-        "backpressure.monitoring.enabled": True,
-        "backpressure.status_ttl": 60,
-    }
-)
-def test_backpressure_unhealthy_profiles() -> None:
-    record_consumer_health(
-        {
-            "celery": Exception("Couldn't check celery"),
-            "attachments-store": [],
-            "processing-store": [],
-            "processing-store-transactions": [],
-            "processing-locks": [],
-            "post-process-locks": [],
-        }
-    )
-    with raises(MessageRejected):
-        process_one_message(consumer_type="profiles", topic="profiles", payload=PROFILES_MSG)
-
-
-@override_options(
-    {
-        "backpressure.checking.enabled": True,
-        "backpressure.checking.interval": 5,
         "backpressure.monitoring.enabled": False,
         "backpressure.status_ttl": 60,
     }
@@ -72,7 +49,6 @@ def test_bad_config() -> None:
 def test_backpressure_healthy_profiles(process_profile_task: MagicMock) -> None:
     record_consumer_health(
         {
-            "celery": [],
             "attachments-store": [],
             "processing-store": [],
             "processing-store-transactions": [],
@@ -96,8 +72,7 @@ def test_backpressure_healthy_profiles(process_profile_task: MagicMock) -> None:
 def test_backpressure_unhealthy_events() -> None:
     record_consumer_health(
         {
-            "celery": Exception("Couldn't check celery"),
-            "attachments-store": [],
+            "attachments-store": Exception("Couldn't check attachments-store"),
             "processing-store": [],
             "processing-store-transactions": [],
             "processing-locks": [],
@@ -120,7 +95,6 @@ def test_backpressure_unhealthy_events() -> None:
 def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
     record_consumer_health(
         {
-            "celery": [],
             "attachments-store": [],
             "processing-store": [],
             "processing-store-transactions": [],
@@ -146,7 +120,7 @@ def test_backpressure_not_enabled(process_profile_task: MagicMock) -> None:
     process_profile_task.assert_called_once()
 
 
-def process_one_message(consumer_type: str, topic: str, payload: str):
+def process_one_message(consumer_type: str, topic: str, payload: str) -> None:
     if consumer_type == "profiles":
         processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
             commit=Mock(), partitions={}

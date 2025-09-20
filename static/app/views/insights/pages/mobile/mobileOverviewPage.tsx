@@ -4,7 +4,6 @@ import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -22,6 +21,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -38,6 +38,7 @@ import {
   type ValidSort,
 } from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {Referrer} from 'sentry/views/insights/pages/mobile/referrers';
 import {
   DEFAULT_SORT,
   MOBILE_LANDING_TITLE,
@@ -130,7 +131,7 @@ function EAPMobileOverviewPage() {
       ]
     );
   }
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
   if (organization.features.includes('starfish-mobile-appstart')) {
@@ -140,7 +141,7 @@ function EAPMobileOverviewPage() {
     );
   }
 
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
   }
 
@@ -208,7 +209,7 @@ function EAPMobileOverviewPage() {
         'sum(span.duration)',
       ],
     },
-    'api.performance.landing-table'
+    Referrer.MOBILE_LANDING_TABLE
   );
 
   const searchBarProjectsIds = [...selectedMobileProjects, ...selectedOtherProjects].map(
@@ -229,7 +230,7 @@ function EAPMobileOverviewPage() {
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
-                  <EnvironmentPageFilter />
+                  <InsightsEnvironmentSelector />
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (

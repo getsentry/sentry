@@ -24,7 +24,7 @@ const defaultOptions = {
   tags: {},
 };
 
-describe('useFeedbackForm', function () {
+describe('useFeedbackForm', () => {
   beforeEach(() => {
     jest
       .spyOn(useFeedback, 'useFeedback')
@@ -32,7 +32,7 @@ describe('useFeedbackForm', function () {
     jest.clearAllMocks();
   });
 
-  it('can open the form using useFeedbackForm', async function () {
+  it('can open the form using useFeedbackForm', async () => {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 
@@ -46,7 +46,7 @@ describe('useFeedbackForm', function () {
     expect(mockForm.open).toHaveBeenCalledTimes(1);
   });
 
-  it('reuses the old form instance if same options are provided', async function () {
+  it('reuses the old form instance if same options are provided', async () => {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 
@@ -73,7 +73,7 @@ describe('useFeedbackForm', function () {
     expect(mockForm.open).toHaveBeenCalledTimes(2);
   });
 
-  it('creates a new form instance if different options are provided', async function () {
+  it('creates a new form instance if different options are provided', async () => {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 
@@ -96,7 +96,7 @@ describe('useFeedbackForm', function () {
     expect(mockForm.open).toHaveBeenCalledTimes(2);
   });
 
-  it('cleans up on unmount', async function () {
+  it('cleans up on unmount', async () => {
     const {result, unmount} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 

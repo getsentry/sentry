@@ -48,7 +48,7 @@ function renderedComponent(
     />
   );
 }
-describe('Native StackTrace', function () {
+describe('Native StackTrace', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     const promptResponse = {
@@ -65,7 +65,7 @@ describe('Native StackTrace', function () {
     });
     ProjectsStore.loadInitialData([project]);
   });
-  it('does not render non in app tags', function () {
+  it('does not render non in app tags', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: false};
 
@@ -81,7 +81,7 @@ describe('Native StackTrace', function () {
     expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
 
-  it('displays a toggle button when there is more than one non-inapp frame', function () {
+  it('displays a toggle button when there is more than one non-inapp frame', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: true};
 
@@ -98,7 +98,7 @@ describe('Native StackTrace', function () {
     expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
   });
 
-  it('shows/hides frames when toggle button clicked', async function () {
+  it('shows/hides frames when toggle button clicked', async () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: true};
     dataFrames[1] = {...dataFrames[1]!, function: 'non-in-app-frame'};
@@ -121,7 +121,7 @@ describe('Native StackTrace', function () {
     expect(screen.getByText('non-in-app-frame')).toBeInTheDocument();
   });
 
-  it('does not display a toggle button when there is only one non-inapp frame', function () {
+  it('does not display a toggle button when there is only one non-inapp frame', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: true};
     dataFrames[2] = {...dataFrames[2]!, inApp: true};
@@ -140,7 +140,7 @@ describe('Native StackTrace', function () {
     expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
   });
 
-  it('displays correct icons from frame symbolicatorStatus when image does not exist', function () {
+  it('displays correct icons from frame symbolicatorStatus when image does not exist', () => {
     const newData = {
       ...data,
       frames: [
@@ -180,7 +180,7 @@ describe('Native StackTrace', function () {
     expect(within(frames[2]!).queryByTestId(/symbolication/)).not.toBeInTheDocument();
   });
 
-  it('expands the first in app frame', function () {
+  it('expands the first in app frame', () => {
     const newData = {
       ...data,
       frames: [

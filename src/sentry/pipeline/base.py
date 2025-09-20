@@ -19,7 +19,7 @@ from sentry.web.helpers import render_to_response
 from ..models import Organization
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
-from .types import PipelineAnalyticsEntry, PipelineRequestState
+from .types import PipelineRequestState
 from .views.base import PipelineView
 from .views.nested import NestedPipelineView
 
@@ -213,21 +213,12 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         """Render the next step."""
         self.state.step_index = self.step_index + step_size
 
-        analytics_entry = self.get_analytics_entry()
-        if analytics_entry and self.organization:
-            analytics.record(
-                analytics_entry.event_type,
-                user_id=self.request.user.id,
-                organization_id=self.organization.id,
-                integration=self.provider.key,
-                step_index=self.step_index,
-                pipeline_type=analytics_entry.pipeline_type,
-            )
+        if self.organization and (event := self.get_analytics_event()):
+            analytics.record(event)
 
         return self.current_step()
 
-    def get_analytics_entry(self) -> PipelineAnalyticsEntry | None:
-        """Return analytics attributes for this pipeline."""
+    def get_analytics_event(self) -> analytics.Event | None:
         return None
 
     @abc.abstractmethod

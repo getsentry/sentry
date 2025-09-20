@@ -15,7 +15,6 @@ const mockTestResultsData = [
     name: 'tests.symbolicator.test_unreal_full.SymbolicatorUnrealIntegrationTest::test_unreal_crash_with_attachments',
     avgDuration: 4,
     flakeRate: 0.4,
-    commitsFailed: 1,
     lastRun: '2025-04-17T22:26:19.486793+00:00',
     totalFailCount: 1,
     totalFlakyFailCount: 2,
@@ -70,9 +69,14 @@ const mockBranches = [
 ];
 
 const mockIntegrations = [
-  {name: 'integration-1', id: '1'},
-  {name: 'integration-2', id: '2'},
+  {name: 'integration-1', id: '1', status: 'active'},
+  {name: 'integration-2', id: '2', status: 'active'},
 ];
+
+const mockRepoData = {
+  testAnalyticsEnabled: true,
+  uploadToken: 'test-token',
+};
 
 const mockApiCall = () => {
   MockApiClient.addMockResponse({
@@ -115,6 +119,18 @@ const mockApiCall = () => {
     url: `/organizations/org-slug/integrations/`,
     method: 'GET',
     body: mockIntegrations,
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/prevent/owner/123/repositories/sync/',
+    method: 'GET',
+    body: {
+      isSyncing: false,
+    },
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/prevent/owner/123/repository/some-repository/',
+    method: 'GET',
+    body: mockRepoData,
   });
 };
 

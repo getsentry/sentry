@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
-import {InlineCodeSnippet} from 'sentry/views/prevent/styles';
 import {GHAWorkflowExpandable} from 'sentry/views/prevent/tests/onboardingSteps/GHAWorkflowExpandable';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
@@ -10,11 +10,11 @@ interface AddScriptToYamlStepProps {
   step: string;
 }
 
-const SNIPPET = `- name: Upload test results to Codecov
+const SNIPPET = `- name: Upload test results to Sentry Prevent
   if: \${{ !cancelled() }}
-  uses: codecov/test-results-action@v1
+  uses: getsentry/prevent-action@latest
   with:
-    token: \${{ secrets.CODECOV_TOKEN }}
+    token: \${{ secrets.SENTRY_PREVENT_TOKEN }}
 `;
 
 export function AddScriptToYamlStep({step}: AddScriptToYamlStepProps) {
@@ -22,7 +22,11 @@ export function AddScriptToYamlStep({step}: AddScriptToYamlStepProps) {
     'Step [step]: Add the script [actionName] to your CI YAML file',
     {
       step,
-      actionName: <InlineCodeSnippet>{t('permissions')}</InlineCodeSnippet>,
+      actionName: (
+        <Text size="xl" variant="promotion">
+          {t('permissions')}
+        </Text>
+      ),
     }
   );
 

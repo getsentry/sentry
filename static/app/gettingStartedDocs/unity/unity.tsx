@@ -3,6 +3,7 @@ import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStart
 import type {
   Docs,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
@@ -131,7 +132,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    getConsoleExtensions(params),
+    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
     {
       title: t('Further Settings'),
       content: [
@@ -154,13 +155,16 @@ export const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'C#',
-              value: 'csharp',
               language: 'csharp',
               code: `var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
 
@@ -168,7 +172,6 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
             },
             {
               label: 'F#',
-              value: 'fsharp',
               language: 'fsharp',
               code: `let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
 

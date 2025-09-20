@@ -70,7 +70,7 @@ class ResolveSyncAction(enum.Enum):
 
 
 class IssueBasicIntegration(IntegrationInstallation, ABC):
-    def should_sync(self, attribute, sync_source: AssignmentSource | None = None):
+    def should_sync(self, attribute, sync_source: AssignmentSource | None = None) -> bool:
         return False
 
     def get_group_title(self, group, event, **kwargs):

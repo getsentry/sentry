@@ -68,6 +68,7 @@ export interface DropdownMenuProps
       | 'preventOverflowOptions'
       | 'flipOptions'
       | 'shouldApplyMinWidth'
+      | 'strategy'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -129,6 +130,8 @@ export interface DropdownMenuProps
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
    * scrollable container that messes with the menu's position. Some features, namely
    * submenus, will not work correctly inside portals.
+   *
+   * Consider passing `strategy` as `'fixed'` before using `usePortal`
    */
   usePortal?: boolean;
 }
@@ -163,6 +166,8 @@ function DropdownMenu({
   portalContainerRef,
   shouldApplyMinWidth,
   minMenuWidth,
+  // This prop is from popperJS and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
+  strategy,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -188,6 +193,7 @@ function DropdownMenu({
     flipOptions,
     onOpenChange,
     shouldApplyMinWidth,
+    strategy,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(

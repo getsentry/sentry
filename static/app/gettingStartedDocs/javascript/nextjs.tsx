@@ -14,7 +14,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getAIRulesForCodeEditorStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
@@ -28,7 +28,10 @@ import {
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -162,7 +165,7 @@ Sentry offers a consoleLoggingIntegration that can be used to log specific conso
 
 ## Configuration
 
-In NextJS the client side Sentry initialization is in \`instrumentation-client.ts\`, the server initialization is in \`sentry.edge.config.ts\` and the edge initialization is in \`sentry.server.config.ts\`
+In NextJS the client side Sentry initialization is in \`instrumentation-client.ts\`, the server initialization is in \`sentry.server.config.ts\` and the edge initialization is in \`sentry.edge.config.ts\`
 Initialization does not need to be repeated in other files, it only needs to happen the files mentioned above. You should use \`import * as Sentry from "@sentry/nextjs"\` to reference Sentry functionality
 
 ### Baseline
@@ -367,7 +370,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -585,8 +588,13 @@ const docs: Docs = {
   crashReportOnboarding,
   featureFlagOnboarding,
   profilingOnboarding,
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'nextjs',
+    sdkPackage: '@sentry/nextjs',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'nextjs',
+    configFileName: 'sentry.server.config.ts',
   }),
 };
 

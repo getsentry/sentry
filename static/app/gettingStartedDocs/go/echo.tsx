@@ -9,7 +9,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportGenericInstallStep,
+  getCrashReportGenericInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -18,6 +18,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+import {getGoLogsOnboarding} from 'sentry/utils/gettingStartedDocs/go';
 
 type Params = DocsParams;
 
@@ -35,18 +36,18 @@ import (
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",${
+    params.isLogsSelected
+      ? `
+  // Enable structured logs to Sentry
+  EnableLogs: true,`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
   // Set TracesSampleRate to 1.0 to capture 100%
   // of transactions for tracing.
   // We recommend adjusting this value in production,
   TracesSampleRate: 1.0,`
-      : ''
-  }${
-    params.isLogsSelected
-      ? `
-  // Enable structured logs to Sentry
-  EnableLogs: true,`
       : ''
   }
 }); err != nil {
@@ -239,7 +240,7 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  install: (params: Params) => getCrashReportGenericInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -257,6 +258,9 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding: getGoLogsOnboarding({
+    docsPlatform: 'echo',
+  }),
 };
 
 export default docs;

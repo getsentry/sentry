@@ -38,8 +38,8 @@ function renderMockRequests({
   });
 }
 
-describe('Renders SDK Documentation corretly based on platform id and language', function () {
-  it('Native QT', async function () {
+describe('Renders SDK Documentation corretly based on platform id and language', () => {
+  it('Native QT', async () => {
     const {organization, project} = initializeOrg({
       projects: [
         {
@@ -78,7 +78,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('JavaScript', async function () {
+  it('JavaScript', async () => {
     const {organization, project, router} = initializeOrg({
       projects: [
         {

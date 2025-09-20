@@ -7,14 +7,14 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 
-describe('TransactionsConfig', function () {
-  describe('getEventsRequest', function () {
+describe('TransactionsConfig', () => {
+  describe('getEventsRequest', () => {
     let api!: Client;
     let organization!: ReturnType<typeof OrganizationFixture>;
     let mockEventsRequest!: jest.Mock;
     let mockEventsStatsRequest!: jest.Mock;
 
-    beforeEach(function () {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
 
       api = new MockApiClient();
@@ -37,7 +37,7 @@ describe('TransactionsConfig', function () {
       });
     });
 
-    it('makes table request to the transactions dataset', function () {
+    it('makes table request to the transactions dataset', () => {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture();
 
@@ -67,7 +67,7 @@ describe('TransactionsConfig', function () {
       );
     });
 
-    it('makes table request to the metrics enhanced dataset with the correct mep state', function () {
+    it('makes table request to the metrics enhanced dataset with the correct mep state', () => {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture();
 
@@ -102,7 +102,7 @@ describe('TransactionsConfig', function () {
       );
     });
 
-    it('makes table request with on demand', function () {
+    it('makes table request with on demand', () => {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture();
 
@@ -142,7 +142,7 @@ describe('TransactionsConfig', function () {
       );
     });
 
-    it('makes series request to the transactions dataset', function () {
+    it('makes series request to the transactions dataset', () => {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture();
 
@@ -158,7 +158,7 @@ describe('TransactionsConfig', function () {
       );
     });
 
-    it('makes series request to the metrics enhanced dataset', function () {
+    it('makes series request to the metrics enhanced dataset', () => {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture();
 
@@ -183,7 +183,7 @@ describe('TransactionsConfig', function () {
       );
     });
 
-    it('makes series request with on demand', function () {
+    it('makes series request with on demand', () => {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture();
 

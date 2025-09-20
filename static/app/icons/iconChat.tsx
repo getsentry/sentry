@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconChat(props: SVGIconProps) {
+export function IconChat(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -15,7 +15,3 @@ function IconChat(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconChat.displayName = 'IconChat';
-
-export {IconChat};

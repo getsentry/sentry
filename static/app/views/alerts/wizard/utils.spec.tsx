@@ -1,8 +1,8 @@
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-describe('Wizard utils', function () {
-  it('extracts lcp alert', function () {
+describe('Wizard utils', () => {
+  it('extracts lcp alert', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'p95(measurements.lcp)',
@@ -23,7 +23,7 @@ describe('Wizard utils', function () {
     ).toBe('lcp');
   });
 
-  it('extracts duration alert', function () {
+  it('extracts duration alert', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'p95(transaction.duration)',
@@ -44,7 +44,7 @@ describe('Wizard utils', function () {
     ).toBe('trans_duration');
   });
 
-  it('extracts throughput alert', function () {
+  it('extracts throughput alert', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'count()',
@@ -53,7 +53,7 @@ describe('Wizard utils', function () {
     ).toBe('throughput');
   });
 
-  it('extracts user error alert', function () {
+  it('extracts user error alert', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'count_unique(user)',
@@ -62,7 +62,7 @@ describe('Wizard utils', function () {
     ).toBe('users_experiencing_errors');
   });
 
-  it('extracts error count alert', function () {
+  it('extracts error count alert', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'count()',
@@ -71,7 +71,7 @@ describe('Wizard utils', function () {
     ).toBe('num_errors');
   });
 
-  it('extracts crash free sessions alert', function () {
+  it('extracts crash free sessions alert', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
@@ -80,7 +80,7 @@ describe('Wizard utils', function () {
     ).toBe('crash_free_sessions');
   });
 
-  it('extracts crash free users alert', function () {
+  it('extracts crash free users alert', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_USERS,
@@ -89,7 +89,7 @@ describe('Wizard utils', function () {
     ).toBe('crash_free_users');
   });
 
-  it('extracts crash free users alert from metrics', function () {
+  it('extracts crash free users alert from metrics', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_USERS,
@@ -98,7 +98,7 @@ describe('Wizard utils', function () {
     ).toBe('crash_free_users');
   });
 
-  it('defaults to custom', function () {
+  it('defaults to custom', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'count_unique(tags[sentry:user])',
@@ -128,7 +128,7 @@ describe('Wizard utils', function () {
     ).toBe('custom_transactions');
   });
 
-  it('extracts eap metric alerts', function () {
+  it('extracts eap metric alerts', () => {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'count(span.duration)',

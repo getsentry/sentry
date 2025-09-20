@@ -30,7 +30,7 @@ class Chartcuterie(ChartRenderer):
         return options.get("chart-rendering.chartcuterie", {}).get("url")
 
     @property
-    def storage_options(self):
+    def storage_options(self) -> dict[str, Any] | None:
         backend = options.get("chart-rendering.storage.backend")
         opts = options.get("chart-rendering.storage.options")
 

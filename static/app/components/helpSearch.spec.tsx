@@ -72,8 +72,8 @@ jest.mock('@sentry-internal/global-search', () => {
   };
 });
 
-describe('HelpSearch', function () {
-  it('produces search results', async function () {
+describe('HelpSearch', () => {
+  it('produces search results', async () => {
     render(
       <HelpSearch
         entryPoint="sidebar_help"

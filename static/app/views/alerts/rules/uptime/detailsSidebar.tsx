@@ -10,38 +10,39 @@ import {Text} from 'sentry/components/core/text';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
-import {
-  CheckStatus,
-  type UptimeRule,
-  type UptimeSummary,
-} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckStatus, type UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 
 interface UptimeDetailsSidebarProps {
   showMissedLegend: boolean;
-  uptimeRule: UptimeRule;
+  uptimeDetector: UptimeDetector;
   summary?: UptimeSummary;
 }
 
 export function UptimeDetailsSidebar({
   summary,
-  uptimeRule,
+  uptimeDetector,
   showMissedLegend,
 }: UptimeDetailsSidebarProps) {
+  const uptimeSub = uptimeDetector.dataSources[0].queryObj;
+
   return (
     <Fragment>
       <MonitorUrlContainer>
         <SectionHeading>{t('Checked URL')}</SectionHeading>
-        <CodeSnippet
-          hideCopyButton
-        >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
+        <CodeSnippet hideCopyButton>{`${uptimeSub.method} ${uptimeSub.url}`}</CodeSnippet>
       </MonitorUrlContainer>
-      <Grid columns="1fr 1fr" gap="md">
+      <Grid
+        columns={summary && summary.avgDurationUs !== null ? '2fr 1fr 1fr' : '1fr 1fr'}
+        gap="2xl"
+      >
         <div>
           <SectionHeading>{t('Legend')}</SectionHeading>
           <CheckLegend>
@@ -121,8 +122,22 @@ export function UptimeDetailsSidebar({
             )}
           </CheckLegend>
         </div>
+        {summary?.avgDurationUs !== null && (
+          <div>
+            <SectionHeading>{t('Duration')}</SectionHeading>
+            <UptimeContainer>
+              {summary ? (
+                <UptimeDuration size="xl" summary={summary} />
+              ) : (
+                <Text size="xl">
+                  <Placeholder width="60px" height="1lh" />
+                </Text>
+              )}
+            </UptimeContainer>
+          </div>
+        )}
         <div>
-          <SectionHeading>{t('Monitor Uptime')}</SectionHeading>
+          <SectionHeading>{t('Uptime')}</SectionHeading>
           <UptimeContainer>
             {summary ? (
               <UptimePercent
@@ -144,17 +159,40 @@ export function UptimeDetailsSidebar({
       <KeyValueTable>
         <KeyValueTableRow
           keyName={t('Check Interval')}
-          value={t('Every %s', getDuration(uptimeRule.intervalSeconds))}
+          value={t('Every %s', getDuration(uptimeSub.intervalSeconds))}
         />
         <KeyValueTableRow
           keyName={t('Timeout')}
-          value={t('After %s', getDuration(uptimeRule.timeoutMs / 1000, 2))}
+          value={t('After %s', getDuration(uptimeSub.timeoutMs / 1000, 2))}
         />
-        <KeyValueTableRow keyName={t('Environment')} value={uptimeRule.environment} />
+        <KeyValueTableRow
+          keyName={t('Failure tolerance')}
+          value={tn(
+            '%s failure check',
+            '%s failure checks',
+            uptimeDetector.config.downtimeThreshold
+          )}
+        />
+        <KeyValueTableRow
+          keyName={t('Recovery tolerance')}
+          value={tn(
+            '%s up check',
+            '%s up checks',
+            uptimeDetector.config.recoveryThreshold
+          )}
+        />
+        <KeyValueTableRow
+          keyName={t('Environment')}
+          value={uptimeDetector.config.environment}
+        />
         <KeyValueTableRow
           keyName={t('Owner')}
           value={
-            uptimeRule.owner ? <ActorAvatar actor={uptimeRule.owner} /> : t('Unassigned')
+            uptimeDetector.owner ? (
+              <ActorAvatar actor={uptimeDetector.owner} />
+            ) : (
+              t('Unassigned')
+            )
           }
         />
       </KeyValueTable>

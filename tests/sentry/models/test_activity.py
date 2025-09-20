@@ -325,7 +325,7 @@ class ActivityTest(TestCase):
     @patch("sentry.tasks.activity.send_activity_notifications.delay")
     def test_skips_status_change_notifications_if_disabled(
         self, mock_send_activity_notifications: MagicMock
-    ):
+    ) -> None:
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
 
@@ -351,7 +351,7 @@ class ActivityTest(TestCase):
     @patch("sentry.tasks.activity.send_activity_notifications.delay")
     def test_skips_workflow_notifications_if_disabled(
         self, mock_send_activity_notifications: MagicMock
-    ):
+    ) -> None:
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
 

@@ -35,6 +35,8 @@ const testingEntryPoints = [
 const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storybook.tsx',
+  'static/**/*.stories.{js,mjs,ts,tsx}',
+  'static/**/*.mdx',
 ];
 
 const config: KnipConfig = {
@@ -43,7 +45,6 @@ const config: KnipConfig = {
     ...testingEntryPoints,
     ...storyBookEntryPoints,
   ],
-  storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
     'config/**/*.ts',
@@ -59,6 +60,10 @@ const config: KnipConfig = {
   compilers: {
     mdx: async text => String(await compile(text)),
   },
+  ignore: [
+    // will be removed in the next PR
+    'static/app/components/deprecatedSmartSearchBar/**',
+  ],
   ignoreDependencies: [
     'core-js',
     'eslint-import-resolver-typescript', // used in eslint config
@@ -68,7 +73,6 @@ const config: KnipConfig = {
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
     '@types/webpack-env', // needed to make require.context work
-    '@types/stripe-v3', // needed for global `stripe` namespace typings
     '@types/gtag.js', // needed for global `gtag` namespace typings
     '@babel/preset-env', // Still used in jest
     '@babel/preset-react', // Still used in jest

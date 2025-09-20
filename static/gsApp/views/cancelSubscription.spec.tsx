@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import CancelSubscription from 'getsentry/views/cancelSubscription';
 
-describe('CancelSubscription', function () {
+describe('CancelSubscription', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
@@ -15,7 +15,7 @@ describe('CancelSubscription', function () {
     canSelfServe: true,
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
@@ -39,7 +39,7 @@ describe('CancelSubscription', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<CancelSubscription />);
     expect(
       await screen.findByRole('heading', {name: 'Cancel Subscription'})
@@ -49,7 +49,7 @@ describe('CancelSubscription', function () {
     ).toBeInTheDocument();
   });
 
-  it('can not cancel free plans', async function () {
+  it('can not cancel free plans', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'GET',
@@ -62,7 +62,7 @@ describe('CancelSubscription', function () {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
-  it('displays followup textarea when option is selected', async function () {
+  it('displays followup textarea when option is selected', async () => {
     render(<CancelSubscription />);
 
     const radio = await screen.findByText(
@@ -75,7 +75,7 @@ describe('CancelSubscription', function () {
     expect(screen.getByRole('textbox', {name: /Sorry to hear that/})).toBeInTheDocument();
   });
 
-  it('calls cancel API', async function () {
+  it('calls cancel API', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'DELETE',
@@ -100,7 +100,7 @@ describe('CancelSubscription', function () {
     );
   });
 
-  it('calls cancel API with checkboxes', async function () {
+  it('calls cancel API with checkboxes', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'DELETE',

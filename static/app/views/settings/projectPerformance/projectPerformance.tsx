@@ -972,7 +972,7 @@ function ProjectPerformance() {
       <ProjectPermissionAlert project={project} />
       <Access access={requiredScopes} project={project}>
         {({hasAccess}) => (
-          <Feature features="organizations:insights-initial-modules">
+          <Feature features="organizations:insight-modules">
             <Form
               initialData={general}
               saveOnBlur

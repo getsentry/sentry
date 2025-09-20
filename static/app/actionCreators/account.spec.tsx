@@ -5,7 +5,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {logout} from './account';
 
 describe('logout', () => {
-  it('has can logout', async function () {
+  it('has can logout', async () => {
     const mockApi = new MockApiClient();
     const mockApiDelete = MockApiClient.addMockResponse({
       url: '/auth/',

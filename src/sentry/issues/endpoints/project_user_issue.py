@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +10,8 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.apidocs.parameters import GlobalParams
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import GroupType, WebVitalsGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -92,7 +94,10 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
     def create_fingerprint(self) -> list[str]:
         vital = self.data.get("vital", "")
         transaction = self.data.get("transaction", "")
-        return [f"insights-web-vitals-{vital}-{transaction}"]
+        # We add a uuid to force uniqueness on the fingerprint
+        # This is because we do not want historic autofix runs to be connected to new issue events
+        uuid = uuid4().hex
+        return [f"insights-web-vitals-{vital}-{transaction}-{uuid}"]
 
     def get_tags(self) -> dict:
         vital = self.data.get("vital", "")
@@ -100,18 +105,22 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
         return {
             "transaction": transaction,
             "web_vital": vital,
-            "score": self.data.get("score"),
+            "score": str(self.data.get("score")),
+            vital: str(self.data.get("value", "")),
         }
 
     def get_evidence(self) -> tuple[dict, list[IssueEvidence]]:
         vital = self.data.get("vital", "")
         score = self.data.get("score")
         transaction = self.data.get("transaction", "")
+        trace_id = self.data.get("traceId")
+        vital_value = self.data.get("value")
 
         evidence_data = {
             "transaction": transaction,
             "vital": vital,
             "score": score,
+            vital: vital_value,
         }
 
         evidence_display = [
@@ -130,7 +139,22 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
                 value=str(score),
                 important=True,
             ),
+            IssueEvidence(
+                name=vital.upper(),
+                value=str(vital_value),
+                important=True,
+            ),
         ]
+
+        if trace_id:
+            evidence_data["trace_id"] = trace_id
+            evidence_display.append(
+                IssueEvidence(
+                    name="Trace ID",
+                    value=trace_id,
+                    important=False,
+                )
+            )
 
         return (evidence_data, evidence_display)
 
@@ -143,15 +167,32 @@ ISSUE_TYPE_CHOICES = [
 class ProjectUserIssueRequestSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True)
     issueType = serializers.ChoiceField(required=True, choices=ISSUE_TYPE_CHOICES)
+    traceId = serializers.CharField(required=False)
+    timestamp = serializers.DateTimeField(required=False)
 
 
 class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
     score = serializers.IntegerField(required=True, min_value=0, max_value=100)
     vital = serializers.ChoiceField(required=True, choices=["lcp", "fcp", "cls", "inp", "ttfb"])
+    value = serializers.IntegerField(required=True)
+
+
+class ProjectUserIssuePermission(ProjectPermission):
+    scope_map = {
+        "GET": [],
+        "POST": ["event:read", "event:write", "event:admin"],
+        "PUT": [],
+        "DELETE": [],
+    }
+
+
+class ProjectUserIssueResponseSerializer(serializers.Serializer):
+    event_id = serializers.CharField(required=True)
 
 
 @region_silo_endpoint
 class ProjectUserIssueEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectUserIssuePermission,)
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -176,6 +217,14 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             "organizations:issue-web-vitals-ingest", organization, actor=request.user
         )
 
+    @extend_schema(
+        operation_id="Create a user defined issue",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=ProjectUserIssueRequestSerializer,
+        responses={
+            200: ProjectUserIssueResponseSerializer,
+        },
+    )
     def post(self, request: Request, project: Project) -> Response:
         """
         Create a user defined issue.
@@ -214,6 +263,17 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             "tags": formatter.get_tags(),
         }
 
+        if validated_data.get("timestamp"):
+            event_data["timestamp"] = validated_data["timestamp"].isoformat()
+
+        if validated_data.get("traceId"):
+            event_data["contexts"] = {
+                "trace": {
+                    "trace_id": validated_data["traceId"],
+                    "type": "trace",
+                }
+            }
+
         (evidence_data, evidence_display) = formatter.get_evidence()
 
         occurence = IssueOccurrence(
@@ -236,4 +296,4 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
             payload_type=PayloadType.OCCURRENCE, occurrence=occurence, event_data=event_data
         )
 
-        return Response(status=200)
+        return Response({"event_id": event_id}, status=200)

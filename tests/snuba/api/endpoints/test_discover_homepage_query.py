@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse("sentry-api-0-discover-homepage-query", args=[self.org.slug])
         self.query = {"fields": ["test"], "conditions": [], "limit": 10}

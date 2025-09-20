@@ -390,6 +390,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
             <ContentWrapper>
               {traceState.tabs.current_tab ? (
                 <TraceTreeNodeDetails
+                  tree={props.trace}
                   replay={props.replay}
                   manager={props.manager}
                   organization={organization}

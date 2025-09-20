@@ -62,11 +62,11 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-def raiseStatusFalse():
+def raiseStatusFalse() -> bool:
     return False
 
 
-def raiseStatusTrue():
+def raiseStatusTrue() -> bool:
     return True
 
 

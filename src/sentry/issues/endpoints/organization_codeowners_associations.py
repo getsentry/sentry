@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -8,7 +9,7 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
 )
-from sentry.api.validators.project_codeowners import validate_codeowners_associations
+from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
@@ -24,7 +25,7 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def get(self, request: Request, organization: Organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns all ProjectCodeOwners associations for an organization as a dict with projects as keys
         e.g. {"projectSlug": {associations: {...}, errors: {...}}, ...]
@@ -47,6 +48,6 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
             )
         result = {}
         for pco in project_code_owners:
-            associations, errors = validate_codeowners_associations(pco.raw, pco.project)
+            associations, errors = build_codeowners_associations(pco.raw, pco.project)
             result[pco.project.slug] = {"associations": associations, "errors": errors}
         return self.respond(result, status=status.HTTP_200_OK)

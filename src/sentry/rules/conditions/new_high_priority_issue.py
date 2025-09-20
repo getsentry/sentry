@@ -21,9 +21,6 @@ class NewHighPriorityIssueCondition(EventCondition):
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         is_new = self.is_new(state)
-        if not event.project.flags.has_high_priority_alerts:
-            return is_new
-
         return is_new and event.group.priority == PriorityLevel.HIGH
 
     def get_activity(

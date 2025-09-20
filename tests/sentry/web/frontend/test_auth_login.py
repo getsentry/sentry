@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import newsletter
+from sentry.analytics.events.user_signup import UserSignUpEvent
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authprovider import AuthProvider
@@ -21,6 +22,7 @@ from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -33,7 +35,7 @@ from sentry.utils import json
 @control_silo_test
 class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-login")
 
     def allow_registration(self):
@@ -227,16 +229,15 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
-        signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
-        assert signup_record == [
-            mock.call(
-                "user.signup",
+        assert_last_analytics_event(
+            mock_record,
+            UserSignUpEvent(
                 user_id=user.id,
                 source="register-form",
                 provider=None,
                 referrer="in-app",
-            )
-        ]
+            ),
+        )
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     def test_registration_single_org(self) -> None:
@@ -553,7 +554,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 @control_silo_test
 class AuthLoginNewsletterTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-login")
 
     @pytest.fixture(autouse=True)
@@ -625,7 +626,7 @@ class AuthLoginNewsletterTest(TestCase):
 @control_silo_test
 class AuthLoginCustomerDomainTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-login")
 
     def setUp(self) -> None:

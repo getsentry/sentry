@@ -63,6 +63,14 @@ class Columns(Enum):
         issue_platform_name="occurrence_id",
         alias="occurrence_id",
     )
+    OCCURRENCE_TYPE_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="occurrence_type_id",
+        alias="occurrence_type_id",
+    )
     PROJECT_ID = Column(
         group_name="events.project_id",
         event_name="project_id",
@@ -149,6 +157,14 @@ class Columns(Enum):
         discover_name="title",
         issue_platform_name="search_title",
         alias="title",
+    )
+    SUBTITLE = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="subtitle",
+        alias="subtitle",
     )
     TYPE = Column(
         group_name="events.type",
@@ -860,6 +876,15 @@ class Columns(Enum):
         event_name="timestamp_ms",
         transaction_name=None,
         discover_name="timestamp_ms",
-        issue_platform_name=None,
+        issue_platform_name="timestamp_ms",
         alias="timestamp_ms",
+    )
+
+    GROUP_FIRST_SEEN = Column(
+        group_name="events.group_first_seen",
+        event_name="group_first_seen",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="group_first_seen",
+        alias="group_first_seen",
     )

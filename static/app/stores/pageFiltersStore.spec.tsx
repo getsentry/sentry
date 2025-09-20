@@ -1,7 +1,6 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
-  pinFilter,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
@@ -14,15 +13,15 @@ jest.mock('sentry/utils/localStorage', () => ({
   setItem: jest.fn(),
 }));
 
-describe('PageFiltersStore', function () {
+describe('PageFiltersStore', () => {
   beforeEach(() => {
     PageFiltersStore.init();
   });
-  afterEach(function () {
+  afterEach(() => {
     PageFiltersStore.reset();
   });
 
-  it('getState()', function () {
+  it('getState()', () => {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: false,
       shouldPersist: true,
@@ -42,14 +41,14 @@ describe('PageFiltersStore', function () {
     expect(Object.is(state, PageFiltersStore.getState())).toBe(true);
   });
 
-  it('updateProjects()', async function () {
+  it('updateProjects()', async () => {
     expect(PageFiltersStore.getState().selection.projects).toEqual([]);
     updateProjects([1]);
     await tick();
     expect(PageFiltersStore.getState().selection.projects).toEqual([1]);
   });
 
-  it('does not update if projects has same value', async function () {
+  it('does not update if projects has same value', async () => {
     const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
     PageFiltersStore.updateProjects([1], []);
 
@@ -59,7 +58,7 @@ describe('PageFiltersStore', function () {
     expect(triggerSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('updateDateTime()', async function () {
+  it('updateDateTime()', async () => {
     expect(PageFiltersStore.getState().selection.datetime).toEqual({
       period: '14d',
       start: null,
@@ -104,7 +103,7 @@ describe('PageFiltersStore', function () {
     });
   });
 
-  it('does not update if datetime has same value', async function () {
+  it('does not update if datetime has same value', async () => {
     const now = Date.now();
     const start = new Date(now);
     const end = new Date(now + 1000);
@@ -125,14 +124,14 @@ describe('PageFiltersStore', function () {
     expect(triggerSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('updateEnvironments()', async function () {
+  it('updateEnvironments()', async () => {
     expect(PageFiltersStore.getState().selection.environments).toEqual([]);
     updateEnvironments(['alpha']);
     await tick();
     expect(PageFiltersStore.getState().selection.environments).toEqual(['alpha']);
   });
 
-  it('does not update if environments has same value', async function () {
+  it('does not update if environments has same value', async () => {
     PageFiltersStore.updateEnvironments(['alpha']);
     const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
     await waitFor(
@@ -144,27 +143,10 @@ describe('PageFiltersStore', function () {
     expect(triggerSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('updatePersistence()', async function () {
+  it('updatePersistence()', async () => {
     expect(PageFiltersStore.getState().shouldPersist).toBe(true);
     updatePersistence(false);
     await tick();
     expect(PageFiltersStore.getState().shouldPersist).toBe(false);
-  });
-
-  it('can mark filters as pinned', async function () {
-    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set());
-    pinFilter('projects', true);
-    await tick();
-    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['projects']));
-
-    pinFilter('environments', true);
-    await tick();
-    expect(PageFiltersStore.getState().pinnedFilters).toEqual(
-      new Set(['projects', 'environments'])
-    );
-
-    pinFilter('projects', false);
-    await tick();
-    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['environments']));
   });
 });

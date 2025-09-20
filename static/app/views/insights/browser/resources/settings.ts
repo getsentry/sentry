@@ -24,4 +24,4 @@ export const FIELD_ALIASES = {
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/frontend/assets/';
 
-export const MODULE_FEATURES = ['insights-initial-modules'];
+export const MODULE_FEATURES = ['insight-modules'];

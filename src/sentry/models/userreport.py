@@ -31,7 +31,7 @@ class UserReport(Model):
 
     __repr__ = sane_repr("event_id", "name", "email")
 
-    def notify(self):
+    def notify(self) -> None:
         from sentry.tasks.user_report import user_report
 
         user_report.delay(

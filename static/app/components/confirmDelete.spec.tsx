@@ -6,14 +6,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import ModalStore from 'sentry/stores/modalStore';
 
-describe('ConfirmDelete', function () {
-  afterEach(() => {
-    ModalStore.reset();
-  });
-
-  it('renders', async function () {
+describe('ConfirmDelete', () => {
+  it('renders', async () => {
     const mock = jest.fn();
     render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -24,7 +19,7 @@ describe('ConfirmDelete', function () {
     await userEvent.click(screen.getByRole('button'));
   });
 
-  it('confirm button is disabled and bypass prop is false when modal opens', async function () {
+  it('confirm button is disabled and bypass prop is false when modal opens', async () => {
     const mock = jest.fn();
     render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -37,7 +32,7 @@ describe('ConfirmDelete', function () {
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
   });
 
-  it('confirm button stays disabled with non-matching input', async function () {
+  it('confirm button stays disabled with non-matching input', async () => {
     const mock = jest.fn();
     render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -51,7 +46,7 @@ describe('ConfirmDelete', function () {
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
   });
 
-  it('confirm button is enabled when confirm input matches', async function () {
+  it('confirm button is enabled when confirm input matches', async () => {
     const mock = jest.fn();
     render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">

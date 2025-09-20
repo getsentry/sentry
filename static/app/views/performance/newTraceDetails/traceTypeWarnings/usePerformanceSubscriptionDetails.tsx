@@ -14,6 +14,11 @@ type Subscription = {
         spans: {
           usageExceeded: boolean;
         };
+      }
+    | {
+        logBytes: {
+          usageExceeded: boolean;
+        };
       };
   planDetails: {
     billingInterval: 'monthly' | 'annual';
@@ -25,7 +30,13 @@ type Subscription = {
   };
 };
 
-export function usePerformanceSubscriptionDetails() {
+export function usePerformanceSubscriptionDetails({
+  traceItemDataset,
+}: {
+  // Default refers to the existing behaviour for either spans or transactions.
+  // Otherwise used to discern exactly which usage limit was exceeded in explore pages.
+  traceItemDataset: 'logs' | 'default';
+}) {
   const organization = useOrganization();
 
   const {data: subscription, ...rest} = useApiQuery<Subscription>(
@@ -35,17 +46,10 @@ export function usePerformanceSubscriptionDetails() {
     }
   );
 
-  let hasExceededPerformanceUsageLimit: boolean | null = null;
-
-  const dataCategories = subscription?.categories;
-  if (dataCategories) {
-    if ('transactions' in dataCategories) {
-      hasExceededPerformanceUsageLimit =
-        dataCategories.transactions.usageExceeded || false;
-    } else if ('spans' in dataCategories) {
-      hasExceededPerformanceUsageLimit = dataCategories.spans.usageExceeded || false;
-    }
-  }
+  const hasExceededPerformanceUsageLimit = subscriptionHasExceededPerformanceUsageLimit(
+    subscription,
+    traceItemDataset
+  );
 
   return {
     ...rest,
@@ -54,4 +58,28 @@ export function usePerformanceSubscriptionDetails() {
       subscription,
     },
   };
+}
+
+function subscriptionHasExceededPerformanceUsageLimit(
+  subscription: Subscription | undefined,
+  traceItemDataset: 'logs' | 'default'
+) {
+  let hasExceededExploreItemUsageLimit = false;
+  const dataCategories = subscription?.categories;
+  if (dataCategories) {
+    if (traceItemDataset === 'logs') {
+      if ('logBytes' in dataCategories) {
+        hasExceededExploreItemUsageLimit =
+          dataCategories.logBytes?.usageExceeded || false;
+      }
+    } else if (traceItemDataset === 'default') {
+      if ('transactions' in dataCategories) {
+        hasExceededExploreItemUsageLimit =
+          dataCategories.transactions?.usageExceeded || false;
+      } else if ('spans' in dataCategories) {
+        hasExceededExploreItemUsageLimit = dataCategories.spans?.usageExceeded || false;
+      }
+    }
+  }
+  return hasExceededExploreItemUsageLimit;
 }

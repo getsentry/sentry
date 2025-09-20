@@ -127,7 +127,7 @@ describe('add to dashboard modal', () => {
     jest.clearAllMocks();
   });
 
-  it('renders with the widget title and description', async function () {
+  it('renders with the widget title and description', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -158,7 +158,7 @@ describe('add to dashboard modal', () => {
     expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeDisabled();
   });
 
-  it('enables the buttons when a dashboard is selected', async function () {
+  it('enables the buttons when a dashboard is selected', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -187,7 +187,7 @@ describe('add to dashboard modal', () => {
     expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeEnabled();
   });
 
-  it('includes a New Dashboard option in the selector with saved dashboards', async function () {
+  it('includes a New Dashboard option in the selector with saved dashboards', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -212,7 +212,7 @@ describe('add to dashboard modal', () => {
     expect(screen.getByText('Test Dashboard')).toBeInTheDocument();
   });
 
-  it('applies dashboard saved filters to visualization', async function () {
+  it('applies dashboard saved filters to visualization', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -265,7 +265,7 @@ describe('add to dashboard modal', () => {
     );
   });
 
-  it('calls the events stats endpoint with the query and selection values', async function () {
+  it('calls the events stats endpoint with the query and selection values', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}

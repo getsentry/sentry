@@ -8,8 +8,8 @@ import type {
 
 import {transformEventsResponseToSeries} from './transformEventsResponseToSeries';
 
-describe('transformEventsResponseToSeries', function () {
-  it('converts a single series response to an array', function () {
+describe('transformEventsResponseToSeries', () => {
+  it('converts a single series response to an array', () => {
     const rawData: EventsStats = {
       data: [
         [1737731713, [{count: 17}]],
@@ -40,7 +40,7 @@ describe('transformEventsResponseToSeries', function () {
     ]);
   });
 
-  it('converts a multi series response to an array', function () {
+  it('converts a multi series response to an array', () => {
     const rawData: MultiSeriesEventsStats = {
       'count()': {
         data: [
@@ -94,7 +94,7 @@ describe('transformEventsResponseToSeries', function () {
     ]);
   });
 
-  it('converts a grouped series response to an array', function () {
+  it('converts a grouped series response to an array', () => {
     const rawData: GroupedMultiSeriesEventsStats = {
       prod: {
         'count()': {
