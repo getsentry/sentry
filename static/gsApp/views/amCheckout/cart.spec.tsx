@@ -99,7 +99,7 @@ describe('Cart', () => {
     );
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
-    expect(cart).toHaveTextContent('Pay-as-you-go spend cap$0-$300/mo');
+    expect(cart).toHaveTextContent('Pay-as-you-go spend limit$0-$300/mo');
     expect(cart).toHaveTextContent('Plan Total$89/mo');
     expect(cart).toHaveTextContent('Default Amount');
     expect(within(cart).getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
@@ -150,13 +150,13 @@ describe('Cart', () => {
     expect(seerItem).toHaveTextContent('Seer AI Agent');
     expect(seerItem).toHaveTextContent('$216/yr');
 
-    const spendCapItem = screen.getByTestId('summary-item-spend-cap');
+    const spendCapItem = screen.getByTestId('summary-item-spend-limit');
     expect(spendCapItem).toHaveTextContent('$0-$50/mo');
 
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument(); // changes aren't shown for free plan
   });
 
-  it('renders per-category spend caps', async () => {
+  it('renders per-category spend limits', async () => {
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {
@@ -194,18 +194,18 @@ describe('Cart', () => {
       />
     );
 
-    const spendCapItems = await screen.findAllByTestId(/summary-item-spend-cap/);
+    const spendCapItems = await screen.findAllByTestId(/summary-item-spend-limit/);
     expect(spendCapItems).toHaveLength(4);
-    expect(screen.getByTestId('summary-item-spend-cap-errors')).toHaveTextContent(
+    expect(screen.getByTestId('summary-item-spend-limit-errors')).toHaveTextContent(
       '$0-$10/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-transactions')).toHaveTextContent(
+    expect(screen.getByTestId('summary-item-spend-limit-transactions')).toHaveTextContent(
       '$0-$5/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-attachments')).toHaveTextContent(
+    expect(screen.getByTestId('summary-item-spend-limit-attachments')).toHaveTextContent(
       '$0-$20/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-replays')).toHaveTextContent(
+    expect(screen.getByTestId('summary-item-spend-limit-replays')).toHaveTextContent(
       '$0-$15/mo'
     );
   });
@@ -431,8 +431,8 @@ describe('Cart', () => {
     const reservedChanges = within(changes).getByTestId('reserved-diff');
     expect(reservedChanges).toHaveTextContent('Reserved volume');
 
-    const sharedSpendCapChanges = within(changes).getByTestId('shared-spend-cap-diff');
-    expect(sharedSpendCapChanges).toHaveTextContent('Shared spend cap');
+    const sharedSpendCapChanges = within(changes).getByTestId('shared-spend-limit-diff');
+    expect(sharedSpendCapChanges).toHaveTextContent('Shared spend limit');
   });
 
   it('can toggle changes and plan summary', async () => {

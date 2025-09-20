@@ -287,10 +287,10 @@ function SubtotalSummary({
     <SummarySection>
       {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
         !!formData.onDemandMaxSpend && (
-          <Item data-test-id="summary-item-spend-cap">
+          <Item data-test-id="summary-item-spend-limit">
             <ItemFlex>
               <div>
-                {tct('[budgetTerm] spend cap', {
+                {tct('[budgetTerm] spend limit', {
                   budgetTerm: capitalize(activePlan.budgetTerm),
                 })}
               </div>
@@ -329,10 +329,10 @@ function SubtotalSummary({
           .filter(([_, budget]) => budget > 0)
           .map(([category, budget]) => {
             return (
-              <Item key={category} data-test-id={`summary-item-spend-cap-${category}`}>
+              <Item key={category} data-test-id={`summary-item-spend-limit-${category}`}>
                 <ItemFlex>
                   <div>
-                    {tct('[categoryName] [budgetTerm] spend cap', {
+                    {tct('[categoryName] [budgetTerm] spend limit', {
                       categoryName: getPlanCategoryName({
                         plan: activePlan,
                         category: category as DataCategory,
