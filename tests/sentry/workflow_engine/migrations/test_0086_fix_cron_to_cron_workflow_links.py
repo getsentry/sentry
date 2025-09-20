@@ -227,6 +227,15 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
             self.org, self.project, self.cron_rule6, "monitor-6"
         )
 
+        # Scenario 7: Monitor without alert_rule_id in a DIFFERENT org with NO cron rules
+        # This tests that unlink_monitors_without_alert_rules processes ALL orgs
+        self.org2 = self.create_organization(name="test-org-no-cron-rules")
+        self.project2 = self.create_project(organization=self.org2)
+
+        self.monitor7, self.detector7 = self._create_monitor_with_detector_no_alert_rule(
+            self.org2, self.project2, "monitor-7-no-rule-diff-org"
+        )
+
         # === Simulate the over-linking from migration 0085 ===
         # Migration 0085 linked ALL cron detectors to ALL workflows in the project
         all_cron_detectors = [
@@ -237,6 +246,7 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
             self.detector5,
             self.detector_orphan,
             self.detector6,
+            self.detector7,  # Added detector in org with no cron rules
         ]
         all_workflows = [
             self.issue_workflow1,
@@ -247,14 +257,26 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
             self.cron_workflow4,
         ]
 
-        for detector in all_cron_detectors:
+        for detector in all_cron_detectors[:-1]:  # All except detector7
             for workflow in all_workflows:
                 DetectorWorkflow.objects.get_or_create(
                     detector=detector,
                     workflow=workflow,
                 )
 
+        # For detector7 in org2, create and link to workflows in that org
+        rule_org2 = self.create_project_rule(project=self.project2)
+        self.issue_workflow_org2 = IssueAlertMigrator(rule_org2).run()
+        Rule.objects.filter(id=rule_org2.id).update(source=RuleSource.ISSUE)
+
+        # Link detector7 to org2's workflow (simulating over-linking)
+        DetectorWorkflow.objects.create(
+            detector=self.detector7,
+            workflow=self.issue_workflow_org2,
+        )
+
     def test_migration(self) -> None:
+        # This tests both the unlink_monitors_without_alert_rules and the main migration logic
         # === Test detector1 and detector2 (deduped monitors) ===
         # Both should ONLY be linked to cron_workflow1 (their deduped workflow)
 
@@ -371,4 +393,15 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
         assert detector6_workflow_ids == expected_detector6_workflows, (
             f"detector6 (rule without workflow) should be linked to primary workflow of dedupe group, "
             f"expected {expected_detector6_workflows}, got {detector6_workflow_ids}"
+        )
+
+        # === Test detector7 (monitor without alert_rule_id in org with NO cron rules) ===
+        # Should have NO workflow links after migration
+        # This tests that unlink_monitors_without_alert_rules processes ALL orgs
+        detector7_workflows = DetectorWorkflow.objects.filter(detector=self.detector7)
+        detector7_workflow_ids = set(detector7_workflows.values_list("workflow_id", flat=True))
+
+        assert not detector7_workflow_ids, (
+            f"detector7 (no alert_rule_id in org with no cron rules) should have no workflow links, "
+            f"got {detector7_workflow_ids}"
         )

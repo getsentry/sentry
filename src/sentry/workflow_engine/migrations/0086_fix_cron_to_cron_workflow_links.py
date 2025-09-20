@@ -9,8 +9,47 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
+BATCH_SIZE = 1000
+
+
+def unlink_monitors_without_alert_rules(apps: StateApps) -> None:
+    """
+    Unlink all workflows from monitors that don't have alert_rule_id.
+    These monitors shouldn't be linked to any workflows.
+    """
+
+    Monitor = apps.get_model("monitors", "Monitor")
+    DataSource = apps.get_model("workflow_engine", "DataSource")
+    DataSourceDetector = apps.get_model("workflow_engine", "DataSourceDetector")
+    DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
+
+    data_sources = list(DataSource.objects.filter(type="cron_monitor"))
+    if not data_sources:
+        return
+    monitor_id_to_data_source = {int(ds.source_id): ds for ds in data_sources}
+
+    for monitor_batch in chunked(RangeQuerySetWrapper(Monitor.objects.all()), BATCH_SIZE):
+        monitor_ids_to_unlink = []
+        for monitor in monitor_batch:
+            if "alert_rule_id" not in monitor.config:
+                monitor_ids_to_unlink.append(monitor.id)
+
+        if monitor_ids_to_unlink:
+            data_source_ids = []
+            for monitor_id in monitor_ids_to_unlink:
+                if monitor_id in monitor_id_to_data_source:
+                    data_source_ids.append(monitor_id_to_data_source[monitor_id].id)
+
+            if data_source_ids:
+                detector_ids = DataSourceDetector.objects.filter(
+                    data_source_id__in=data_source_ids
+                ).values_list("detector_id", flat=True)
+                if detector_ids:
+                    DetectorWorkflow.objects.filter(detector_id__in=detector_ids).delete()
 
 
 def fix_cron_to_cron_workflow_links(
@@ -30,6 +69,10 @@ def fix_cron_to_cron_workflow_links(
     DataSourceDetector = apps.get_model("workflow_engine", "DataSourceDetector")
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
 
+    # Handle all monitors without alert_rule_id - they should have no workflows
+    unlink_monitors_without_alert_rules(apps)
+
+    # Handle monitors with alert_rule_id based on their deduped workflows
     rules_by_org = defaultdict(list)
     for rule in Rule.objects.filter(source=1):
         rules_by_org[rule.project.organization_id].append(rule)
@@ -107,6 +150,10 @@ def fix_cron_to_cron_workflow_links(
 
         monitors = list(Monitor.objects.filter(organization_id=organization_id))
         for monitor in monitors:
+            # Skip monitors without alert_rule_id - they were already handled above
+            if "alert_rule_id" not in monitor.config:
+                continue
+
             if monitor.id not in monitor_id_to_detector:
                 logger.error(
                     "fix_cron_to_cron_workflow_links.monitor_missing_detector",
@@ -118,11 +165,6 @@ def fix_cron_to_cron_workflow_links(
                 continue
 
             detector = monitor_id_to_detector[monitor.id]
-
-            if "alert_rule_id" not in monitor.config:
-                DetectorWorkflow.objects.filter(detector=detector).delete()
-                continue
-
             alert_rule_id = int(monitor.config["alert_rule_id"])
 
             if alert_rule_id in rule_to_primary_workflow:
@@ -158,6 +200,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0085_crons_link_detectors_to_all_workflows"),
+        ("monitors", "0010_delete_orphaned_detectors"),
     ]
 
     operations = [
