@@ -125,6 +125,7 @@ export function Drawer({boxSelectOptions, chartInfo}: Props) {
               <Charts
                 rankedAttributes={filteredRankedAttributes}
                 searchQuery={debouncedSearchQuery}
+                totals={data?.totals}
               />
             ) : (
               <NoAttributesMessage>

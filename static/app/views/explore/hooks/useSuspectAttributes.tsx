@@ -29,6 +29,10 @@ export type SuspectAttributesResult = {
       rrr: number | null;
     };
   }>;
+  totals?: {
+    baseline: number;
+    selected: number;
+  };
 };
 
 function useSuspectAttributes({

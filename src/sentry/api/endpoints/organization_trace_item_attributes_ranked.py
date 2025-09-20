@@ -252,6 +252,10 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 "value": function_value if function_value else "N/A",
                 "above": above,
             },
+            "totals": {
+                "baseline": total_baseline,
+                "selected": total_outliers,
+            },
         }
 
         for i, (attr, _) in enumerate(scored_attrs_rrf):

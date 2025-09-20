@@ -10,6 +10,7 @@ import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {NullValuesPieCharts} from 'sentry/views/explore/components/suspectTags/nullValuesPieCharts';
 import type {SuspectAttributesResult} from 'sentry/views/explore/hooks/useSuspectAttributes';
 
 const MAX_BAR_WIDTH = 20;
@@ -20,17 +21,18 @@ const BASELINE_SERIES_NAME = 'baseline';
 type Props = {
   rankedAttributes: SuspectAttributesResult['rankedAttributes'];
   searchQuery: string;
+  totals?: SuspectAttributesResult['totals'];
 };
 
 // TODO Abdullah Khan: Add virtualization and search to the list of charts
-export function Charts({rankedAttributes, searchQuery}: Props) {
+export function Charts({rankedAttributes, searchQuery, totals}: Props) {
   const theme = useTheme();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: rankedAttributes.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 200,
+    estimateSize: () => 420, // Always show pie charts with increased height
     overscan: 5,
   });
 
@@ -47,6 +49,7 @@ export function Charts({rankedAttributes, searchQuery}: Props) {
               virtualizer={virtualizer}
               attribute={rankedAttributes[item.index]!}
               theme={theme}
+              totals={totals}
             />
           </VirtualOffset>
         ))}
@@ -142,11 +145,13 @@ function Chart({
   theme,
   index,
   virtualizer,
+  totals,
 }: {
   attribute: SuspectAttributesResult['rankedAttributes'][number];
   index: number;
   theme: Theme;
   virtualizer: Virtualizer<HTMLDivElement, Element>;
+  totals?: SuspectAttributesResult['totals'];
 }) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const [hideLabels, setHideLabels] = useState(false);
@@ -263,6 +268,11 @@ function Chart({
     <div ref={virtualizer.measureElement} data-index={index}>
       <ChartWrapper>
         <ChartTitle>{attribute.attributeName}</ChartTitle>
+        <NullValuesPieCharts
+          attribute={attribute}
+          totalSelected={totals?.selected ?? 10000}
+          totalBaseline={totals?.baseline ?? 10000}
+        />
         <BaseChart
           ref={chartRef}
           autoHeightResize
@@ -348,7 +358,7 @@ const VirtualOffset = styled('div')<{offset: number}>`
 const ChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  height: 200px;
+  min-height: 200px;
   padding-top: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.border};
 `;
