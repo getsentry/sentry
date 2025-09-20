@@ -10,6 +10,15 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {useThemeSwitcher} from 'sentry/utils/theme/useThemeSwitcher';
 
+const SentryComponentInspector =
+  NODE_ENV === 'development'
+    ? lazy(() =>
+        import('sentry/components/core/inspector').then(module => ({
+          default: module.SentryComponentInspector,
+        }))
+      )
+    : null;
+
 type Props = {
   children: React.ReactNode;
 };
@@ -43,7 +52,10 @@ export function ThemeAndStyleProvider({children}: Props) {
         </Fragment>,
         document.head
       )}
-      <SentryComponentInspector />
+      {/* Only render the inspector in development */}
+      {NODE_ENV === 'development' && SentryComponentInspector ? (
+        <SentryComponentInspector />
+      ) : null}
     </ThemeProvider>
   );
 }
