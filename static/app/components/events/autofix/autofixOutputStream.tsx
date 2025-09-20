@@ -381,12 +381,13 @@ const Container = styled(motion.div)<{required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => (p.required ? p.theme.pink400 : p.theme.active)}20,
+      ${p => (p.required ? p.theme.pink400 : p.theme.active)}10,
       transparent
     );
     background-size: 2000px 100%;
-    animation: ${shimmer} 2s infinite linear;
+    animation: ${shimmer} 1s infinite linear;
     pointer-events: none;
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
@@ -421,7 +422,7 @@ const ActiveLog = styled('div')`
 const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
-  border-left: 1px dashed ${p => p.theme.subText};
+  border-left: 1px dashed ${p => p.theme.border};
   margin-left: 16.5px;
   margin-bottom: -1px;
 `;
@@ -434,8 +435,6 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  background: ${p => p.theme.background}
-    linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
   padding-right: ${space(4)};
   resize: none;

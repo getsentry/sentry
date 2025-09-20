@@ -127,10 +127,7 @@ export default function SeerSection({
   const titleComponent = onlyHasResources ? (
     <HeaderContainer>{t('Resources')}</HeaderContainer>
   ) : (
-    <HeaderContainer>
-      {t('Seer')}
-      <IconSeer />
-    </HeaderContainer>
+    <HeaderContainer>{t('Seer')}</HeaderContainer>
   );
 
   return (

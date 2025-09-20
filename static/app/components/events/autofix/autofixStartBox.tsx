@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
@@ -28,40 +28,41 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
         <StyledArrow direction="down" size="sm" />
         <Container>
           <AutofixStartText>
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '20px',
-                height: '20px',
-                right: '5%',
-                top: '20%',
-                transform: 'rotate(15deg)',
-              }}
-            />
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '16px',
-                height: '16px',
-                right: '35%',
-                top: '40%',
-                transform: 'rotate(45deg)',
-              }}
-            />
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '14px',
-                height: '14px',
-                right: '25%',
-                top: '60%',
-                transform: 'rotate(30deg)',
-              }}
-            />
-            <StartTextRow>
-              <IconSeer variant="waiting" color="textColor" size="lg" />
-              <Fragment>{t('Need help digging deeper?')}</Fragment>
-            </StartTextRow>
+            <SeerIconWrapper>
+              <IconSeer variant="waiting" color="textColor" size="xl" />
+
+              <BackgroundStar
+                src={starImage}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  top: '-4px',
+                  right: '-56px',
+                  transform: 'rotate(15deg)',
+                }}
+              />
+              <BackgroundStar
+                src={starImage}
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  top: '-12px',
+                  left: '-64px',
+                  transform: 'rotate(45deg)',
+                }}
+              />
+              <BackgroundStar
+                src={starImage}
+                style={{
+                  width: '14px',
+                  height: '14px',
+                  bottom: '-4px',
+                  right: '-24px',
+                  transform: 'rotate(30deg)',
+                }}
+              />
+            </SeerIconWrapper>
+            <StartTextRow />
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
             <StyledInput
@@ -94,7 +95,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }
               analyticsParams={{group_id: groupId}}
             >
-              {t('Start Seer')}
+              {t('Start Root Cause Analysis')}
             </StyledButton>
           </InputWrapper>
         </Container>
@@ -123,19 +124,16 @@ const Container = styled('div')`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background}
-    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
   overflow: hidden;
   padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
 `;
 
 const AutofixStartText = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0;
   padding: ${space(1)};
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: ${p => p.theme.fontSize.lg};
   position: relative;
 `;
 
@@ -153,6 +151,13 @@ const BackgroundStar = styled('img')`
   z-index: 0;
 `;
 
+const SeerIconWrapper = styled('div')`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 const StyledArrow = styled(IconArrow)`
   color: ${p => p.theme.subText};
   opacity: 0.5;
@@ -160,13 +165,19 @@ const StyledArrow = styled(IconArrow)`
 
 const InputWrapper = styled('form')`
   display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.25)};
+  flex-direction: column;
+  gap: ${p => p.theme.formSpacing.md};
+  padding: ${space(0.5)} ${space(0.5)};
+  align-items: center;
+  width: 100%;
+  justify-content: center;
 `;
 
 const StyledInput = styled(TextArea)`
   resize: none;
   background: ${p => p.theme.background};
+  width: 50%;
+  min-width: 250px;
 
   border-color: ${p => p.theme.innerBorder};
   &:hover {
@@ -176,4 +187,6 @@ const StyledInput = styled(TextArea)`
 
 const StyledButton = styled(Button)`
   flex-shrink: 0;
+  width: 50%;
+  min-width: 250px;
 `;
