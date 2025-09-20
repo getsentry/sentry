@@ -120,12 +120,12 @@ def generate_normalized_output(response: list[dict[str, Any]]) -> Generator[Repl
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         ret_item: ReplayDetailsResponse = {}
-        if item["isArchived"]:
-            yield _archived_row(item["replay_id"], item["agg_project_id"])
+        if item.get("isArchived"):
+            yield _archived_row(item["replay_id"], item.get("agg_project_id", -1))
             continue
 
         ret_item["id"] = _strip_dashes(item.pop("replay_id", None))
-        ret_item["project_id"] = str(item["agg_project_id"])
+        ret_item["project_id"] = str(item.get("agg_project_id", -1))
         ret_item["trace_ids"] = item.pop("traceIds", [])
         ret_item["error_ids"] = item.pop("errorIds", [])
         ret_item["environment"] = item.pop("agg_environment", None)
