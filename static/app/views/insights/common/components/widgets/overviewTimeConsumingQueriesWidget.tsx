@@ -105,12 +105,6 @@ export default function OverviewTimeConsumingQueriesWidget(
 
   const colorPalette = theme.chart.getColorPalette(dataLength - 1);
 
-  const aliases: Record<string, string> = {};
-
-  queriesListData.forEach(item => {
-    aliases[item[groupBy]] = `${yAxes}, ${ellipsize(item[groupBy], 50)}`;
-  });
-
   const plottables =
     queriesSeriesData?.timeSeries.map(
       (ts, index) =>
