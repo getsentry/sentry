@@ -1,11 +1,11 @@
-import {useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {keepPreviousData} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
-import {Container} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,14 +14,15 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {openEditBillingDetails, openEditCreditCard} from 'getsentry/actionCreators/modal';
+import BillingDetailsForm from 'getsentry/components/billingDetailsForm';
 import withSubscription from 'getsentry/components/withSubscription';
+import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {BillingDetails as BillingDetailsType, Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
@@ -140,31 +141,21 @@ function BillingDetailsPanel({
   organization,
   subscription,
   title,
+  isNewBillingUI,
 }: {
   organization: Organization;
   subscription: Subscription;
+  isNewBillingUI?: boolean;
   title?: string;
 }) {
   const {
     data: billingDetails,
-    isPending: isLoading,
+    isLoading,
     isError: hasLoadError,
     error: loadError,
     refetch: fetchBillingDetails,
-  } = useApiQuery<BillingDetailsType>(
-    [`/customers/${organization.slug}/billing-details/`],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-      retry: (failureCount, error: any) => {
-        // Don't retry on auth errors
-        if (error.status === 401 || error.status === 403) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-    }
-  );
+  } = useBillingDetails();
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (loadError && loadError.status !== 401 && loadError.status !== 403) {
@@ -187,6 +178,65 @@ function BillingDetailsPanel({
           credits: formatCurrency(0 - subscription.accountBalance),
         })
       : `${formatCurrency(subscription.accountBalance)}`;
+
+  if (isNewBillingUI) {
+    return (
+      <Flex
+        justify={isEditing ? 'start' : 'between'}
+        align="start"
+        gap="3xl"
+        padding="xl"
+        background="primary"
+        border="primary"
+        radius="md"
+      >
+        <Flex direction="column" gap="lg">
+          <Heading as="h2" size="lg">
+            {t('Invoice Address')}
+          </Heading>
+          {isEditing ? (
+            <BillingDetailsForm
+              organization={organization}
+              initialData={billingDetails}
+              onSubmitSuccess={fetchBillingDetails}
+            />
+          ) : billingDetails ? (
+            <Fragment>
+              {billingDetails.billingEmail && <Text>{billingDetails.billingEmail}</Text>}
+              {billingDetails.companyName && <Text>{billingDetails.companyName}</Text>}
+              {billingDetails.addressLine1 && (
+                <Text>
+                  {billingDetails.addressLine1} {billingDetails.addressLine2 ?? ''}
+                </Text>
+              )}
+              {(billingDetails.city ||
+                billingDetails.region ||
+                billingDetails.postalCode) && (
+                <Text>
+                  {`${billingDetails.city}${billingDetails.region ? `, ${billingDetails.region}` : ''}${billingDetails.postalCode ? ` ${billingDetails.postalCode}` : ''}`}
+                </Text>
+              )}
+              {billingDetails.countryCode && (
+                <Text>{getCountryByCode(billingDetails.countryCode)?.name}</Text>
+              )}
+              {billingDetails.taxNumber && (
+                <Text>
+                  {taxFieldInfo.label}: {billingDetails.taxNumber}
+                </Text>
+              )}
+            </Fragment>
+          ) : (
+            <Text>{t('No invoice address on file')}</Text>
+          )}
+        </Flex>
+        {!isEditing && (
+          <Button priority="default" size="sm" onClick={() => setIsEditing(true)}>
+            {t('Edit')}
+          </Button>
+        )}
+      </Flex>
+    );
+  }
 
   return (
     <Panel className="ref-billing-details">
