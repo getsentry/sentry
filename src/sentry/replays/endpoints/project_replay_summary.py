@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
-from sentry.net.http import connection_from_url
+from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
@@ -35,10 +35,6 @@ SEER_REQUEST_SIZE_LOG_THRESHOLD = 1e5  # Threshold for logging large Seer reques
 
 SEER_START_TASK_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/start"
 SEER_POLL_STATE_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/state"
-
-seer_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
 
 
 class ReplaySummaryPermission(ProjectPermission):
@@ -88,10 +84,11 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         try:
             response = make_signed_seer_api_request(
-                connection_pool=seer_connection_pool,
+                connection_pool=seer_summarization_connection_pool,
                 path=path,
                 body=data.encode("utf-8"),
-                # Uses default urllib3 retry behavior of 3 retries
+                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+                retries=0,
             )
         except Exception:
             logger.exception(
