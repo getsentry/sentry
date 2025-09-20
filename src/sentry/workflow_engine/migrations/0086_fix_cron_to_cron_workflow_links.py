@@ -70,9 +70,7 @@ def fix_cron_to_cron_workflow_links(
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
 
     # Handle all monitors without alert_rule_id - they should have no workflows
-    unlink_monitors_without_alert_rules(
-        Monitor,
-    )
+    unlink_monitors_without_alert_rules(apps)
 
     # Handle monitors with alert_rule_id based on their deduped workflows
     rules_by_org = defaultdict(list)
