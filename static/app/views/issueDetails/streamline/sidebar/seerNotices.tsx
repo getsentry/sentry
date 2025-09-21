@@ -171,7 +171,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               <IconSeer variant="waiting" size="xl" />
               Debug Faster with Seer
             </StepsHeader>
-            <GuidedSteps>
+            <StyledGuidedSteps>
               {/* Step 1: GitHub Integration */}
               <GuidedSteps.Step
                 key="github-setup"
@@ -359,7 +359,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   </CustomStepButtons>
                 </GuidedSteps.Step>
               )}
-            </GuidedSteps>
+            </StyledGuidedSteps>
             <StepsDivider />
           </motion.div>
         </AnimatePresence>
@@ -497,4 +497,8 @@ const CollapsedSummaryCard = styled('div')`
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
   }
+`;
+
+const StyledGuidedSteps = styled(GuidedSteps)`
+  max-width: 600px;
 `;
