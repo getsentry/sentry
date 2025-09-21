@@ -12,7 +12,7 @@ import {traceChronologicalSort} from './utils';
 
 export class TraceNode extends BaseNode<TraceTree.Trace> {
   // We want to enforce the parent to only be a RootNode or null
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+
   constructor(
     parent: RootNode | null,
     value: TraceTree.Trace,
