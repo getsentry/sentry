@@ -2,36 +2,26 @@ import {Fragment, useState} from 'react';
 
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
 
-import type {Subscription} from 'getsentry/types';
+import {FTCConsentLocation} from 'getsentry/types';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {CheckoutV3StepProps} from 'getsentry/views/amCheckout/types';
-import {BillingDetailsPanel} from 'getsentry/views/subscriptionPage/billingDetails';
-
-function InvoiceAddress({
-  subscription,
-  organization,
-}: {
-  organization: Organization;
-  subscription: Subscription;
-}) {
-  return (
-    <BillingDetailsPanel
-      organization={organization}
-      subscription={subscription}
-      isNewBillingUI
-    />
-  );
-}
+import {
+  BillingDetailsPanel,
+  PaymentMethodPanel,
+} from 'getsentry/views/subscriptionPage/billingDetails';
 
 function AddBillingInformation({
   subscription,
   onEdit,
   stepNumber,
   organization,
+  activePlan,
 }: CheckoutV3StepProps) {
   const [isOpen, setIsOpen] = useState(true);
+  const location = useLocation();
+
   return (
     <Flex direction="column" gap="xl">
       <StepHeader
@@ -41,12 +31,24 @@ function AddBillingInformation({
         onToggleStep={setIsOpen}
         isOpen={isOpen}
         stepNumber={stepNumber}
-        title={t('Add billing information')}
+        title={t('Add or edit billing information')}
         isNewCheckout
       />
       {isOpen && (
         <Fragment>
-          <InvoiceAddress organization={organization} subscription={subscription} />
+          <BillingDetailsPanel
+            organization={organization}
+            subscription={subscription}
+            isNewBillingUI
+          />
+          <PaymentMethodPanel
+            organization={organization}
+            subscription={subscription}
+            isNewBillingUI
+            location={location}
+            ftcLocation={FTCConsentLocation.CHECKOUT}
+            budgetTerm={activePlan.budgetTerm}
+          />
         </Fragment>
       )}
     </Flex>

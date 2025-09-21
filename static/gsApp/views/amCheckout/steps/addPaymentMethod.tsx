@@ -45,10 +45,10 @@ function AddPaymentMethod({
     const cardComponent = (
       <AddCardSetup
         organization={organization}
-        onSuccess={onPaymentAccepted}
+        onSuccessWithSubscription={onPaymentAccepted}
         buttonText="Continue"
         location={FTCConsentLocation.CHECKOUT}
-        budgetModeText={subscription.planDetails.budgetTerm}
+        budgetTerm={subscription.planDetails.budgetTerm}
       />
     );
 

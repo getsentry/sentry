@@ -23,6 +23,11 @@ type AddEventCTA = HasSub & {
   source: string;
   event_types?: string;
 };
+type BillingInfoUpdateEvent = {
+  isStripeComponent?: boolean;
+  referrer?: string;
+};
+type ManualPaymentEvent = BillingInfoUpdateEvent;
 
 type OnDemandBudgetStrategy = 'per_category' | 'shared';
 
@@ -44,10 +49,8 @@ export type ProductUnavailableUpsellAlert = {
 type GetsentryEventParameters = {
   'add_event_cta.clicked_cta': AddEventCTA;
   'am_checkout.viewed': HasSub;
-  'billing_details.updated_cc': {
-    isStripeComponent?: boolean;
-    referrer?: string;
-  };
+  'billing_details.updated_billing_details': BillingInfoUpdateEvent;
+  'billing_details.updated_cc': BillingInfoUpdateEvent;
   'billing_failure.button_clicked': {
     has_link?: boolean;
     has_permissions?: boolean;
@@ -57,13 +60,8 @@ type GetsentryEventParameters = {
     has_permissions?: boolean;
     referrer?: string;
   };
-  'billing_failure.paid_now': {
-    isStripeComponent?: boolean;
-    referrer?: string;
-  };
-  'billing_failure.updated_cc': {
-    referrer?: string;
-  };
+  'billing_failure.paid_now': ManualPaymentEvent;
+  'billing_failure.updated_cc': BillingInfoUpdateEvent;
   'business_landing.clicked': BusinessLanding & {type: string};
   'business_landing.clicked_compare': BusinessLanding;
   'business_landing.clicked_maybe_later': BusinessLanding & {closing_feature: string};
@@ -98,6 +96,8 @@ type GetsentryEventParameters = {
     previous_transactions: number;
     transactions: number;
   } & Checkout;
+  'checkout.updated_billing_details': BillingInfoUpdateEvent;
+  'checkout.updated_cc': BillingInfoUpdateEvent;
   // no sub here
   'checkout.upgrade': Partial<
     Record<DataCategory | `previous_${DataCategory}`, number | undefined>
@@ -279,8 +279,11 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'checkout.data_slider_changed': 'Checkout: Data Slider Changed',
   'checkout.data_sliders_viewed': 'Checkout: Data Slider Viewed',
   'checkout.upgrade': 'Application: Upgrade',
+  'checkout.updated_cc': 'Checkout: Updated CC',
+  'checkout.updated_billing_details': 'Checkout: Updated billing details',
   'checkout.transactions_upgrade': 'Application: Transactions Upgrade',
   'billing_details.updated_cc': 'Billing Details: Updated CC',
+  'billing_details.updated_billing_details': 'Billing Details: Updated billing details',
   'billing_failure.displayed_banner': 'Billing Failure: Displayed Banner',
   'billing_failure.button_clicked': 'Billing Failure: Button Clicked',
   'billing_failure.paid_now': 'Billing Failure: Paid Now',

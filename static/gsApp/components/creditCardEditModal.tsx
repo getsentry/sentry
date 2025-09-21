@@ -7,11 +7,8 @@ import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import CreditCardSetup from 'getsentry/components/creditCardSetup';
-import StripeCreditCardSetup from 'getsentry/components/stripeCreditCardSetup';
 import type {Subscription} from 'getsentry/types';
 import {FTCConsentLocation} from 'getsentry/types';
-import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = ModalRenderProps & {
   onSuccess: (data: Subscription) => void;
@@ -30,50 +27,24 @@ function CreditCardEditModal({
   subscription,
 }: Props) {
   const referrer = decodeScalar(location?.query?.referrer);
-  const budgetModeText = subscription.planDetails.budgetTerm;
-  const shouldUseStripe = hasStripeComponentsFeature(organization);
-
-  const commonProps = {
-    organization,
-    location: FTCConsentLocation.BILLING_DETAILS,
-    referrer,
-    budgetModeText,
-    buttonText: t('Save Changes'),
-  };
+  const budgetTerm = subscription.planDetails.budgetTerm;
 
   return (
     <Fragment>
       <Header>{t('Update Credit Card')}</Header>
       <Body>
-        {shouldUseStripe ? (
-          <StripeCreditCardSetup
-            onCancel={closeModal}
-            onSuccessWithSubscription={onSuccess}
-            onSuccess={() => {
-              closeModal();
-              trackGetsentryAnalytics('billing_details.updated_cc', {
-                organization,
-                referrer: decodeScalar(referrer),
-                isStripeComponent: true,
-              });
-            }}
-            {...commonProps}
-          />
-        ) : (
-          <CreditCardSetup
-            isModal
-            onCancel={closeModal}
-            onSuccess={data => {
-              onSuccess(data);
-              closeModal();
-              trackGetsentryAnalytics('billing_details.updated_cc', {
-                organization,
-                referrer: decodeScalar(referrer),
-              });
-            }}
-            {...commonProps}
-          />
-        )}
+        <CreditCardSetup
+          isModal
+          onCancel={closeModal}
+          onSuccessWithSubscription={onSuccess}
+          onSuccess={closeModal}
+          analyticsEvent="billing_details.updated_cc"
+          organization={organization}
+          location={FTCConsentLocation.BILLING_DETAILS}
+          referrer={referrer}
+          budgetTerm={budgetTerm}
+          buttonText={t('Save Changes')}
+        />
       </Body>
     </Fragment>
   );

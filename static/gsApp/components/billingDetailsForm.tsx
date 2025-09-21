@@ -33,6 +33,10 @@ type Props = {
   onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void;
   organization: Organization;
   /**
+   * Extra button to render in the form footer.
+   */
+  extraButton?: React.ReactNode;
+  /**
    * Additional form field props for custom components.
    */
   fieldProps?: FieldGroupProps;
@@ -126,6 +130,7 @@ function BillingDetailsForm({
   isDetailed = true,
   wrapper = DefaultWrapper,
   fieldProps,
+  extraButton,
 }: Props) {
   const transformData = (data: Record<string, any>) => {
     // Clear tax number if not applicable to country code.
@@ -240,6 +245,7 @@ function BillingDetailsForm({
       onSubmitError={onSubmitError}
       initialData={transformedInitialData}
       footerStyle={footerStyle}
+      extraButton={extraButton}
     >
       <FieldWrapper>
         <Flex direction="column" gap="xl">

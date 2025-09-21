@@ -76,7 +76,7 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
           isStripeComponent: true,
         });
         addSuccessMessage(t('Payment sent successfully.'));
-        onSuccess();
+        onSuccess?.();
         setIsSubmitting(false);
       });
   };

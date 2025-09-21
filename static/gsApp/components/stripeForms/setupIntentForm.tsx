@@ -45,7 +45,7 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
     onSuccess: (data: Subscription) => {
       addSuccessMessage(t('Updated payment method.'));
       onSuccessWithSubscription?.(data);
-      onSuccess();
+      onSuccess?.();
       setIsSubmitting(false);
     },
     onError: () => {

@@ -14,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NODE_ENV} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import {FTCConsentLocation} from 'getsentry/types';
@@ -41,13 +42,13 @@ export type SubmitData = {
 
 type Props = {
   /**
+   * budget term to use for fine print.
+   */
+  budgetTerm: string;
+  /**
    * Handle the card form submission.
    */
   onSubmit: (data: SubmitData) => void;
-  /**
-   * budget mode text for fine print, if any.
-   */
-  budgetModeText?: string;
   /**
    * Text for the submit button.
    */
@@ -111,7 +112,7 @@ function CreditCardFormInner({
   footerClassName = 'form-actions',
   referrer,
   location,
-  budgetModeText,
+  budgetTerm,
 }: Props) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
@@ -232,14 +233,13 @@ function CreditCardFormInner({
               stripe: <ExternalLink href="https://stripe.com/" />,
             })}
           </small>
-          {/* location is 0 on the checkout page which is why this isn't location && */}
-          {location !== null && location !== undefined && (
+          {defined(location) && (
             <FinePrint>
               {tct(
-                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetModeText] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetModeText] fees. You may cancel your subscription at any time [here:here].',
+                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetTerm] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
                 {
                   buttonText: <b>{buttonText}</b>,
-                  budgetModeText,
+                  budgetTerm,
                   here: (
                     <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
                   ),
