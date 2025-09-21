@@ -98,7 +98,7 @@ export type AutofixData = {
   users?: Record<number, User>;
 };
 
-export type AutofixChatMessage = {
+type AutofixChatMessage = {
   content: string;
   role: 'user' | 'assistant' | 'tool' | 'tool_use';
 };

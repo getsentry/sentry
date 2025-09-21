@@ -14,7 +14,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
-import SeerLeftPanel from 'sentry/components/events/autofix/seerLeftPanel';
+import {SeerLeftPanel} from 'sentry/components/events/autofix/seerLeftPanel';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import useDrawer from 'sentry/components/globalDrawer';

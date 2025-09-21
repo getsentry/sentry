@@ -858,7 +858,7 @@ const AddButton = styled(Button)`
   color: ${p => p.theme.subText};
 `;
 
-export function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
+function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
   return <CheckpointIcon {...props}>{'\u21A9'}</CheckpointIcon>;
 }
 

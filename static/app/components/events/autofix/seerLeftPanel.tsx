@@ -413,8 +413,6 @@ const StyledButton = styled(Button)`
   z-index: 2;
 `;
 
-export default SeerLeftPanel;
-
 const PreviewContainer = styled('div')`
   display: flex;
   align-items: center;
