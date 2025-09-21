@@ -13,7 +13,7 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
   constructor(
     parent: BaseNode,
     value: TraceTree.CollapsedNode,
-    extra: TraceTreeNodeExtra
+    extra: TraceTreeNodeExtra | null
   ) {
     super(parent, value, extra);
 

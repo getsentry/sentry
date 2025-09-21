@@ -402,7 +402,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     _tree: TraceTree,
     _options: {
       api: Client;
-      preferences: TracePreferencesState;
+      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): Promise<any> {
     return Promise.resolve(null);
