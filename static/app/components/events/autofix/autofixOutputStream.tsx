@@ -1,28 +1,22 @@
-import {startTransition, useEffect, useRef, useState, type FormEvent} from 'react';
+import {startTransition, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
 
 function StreamContentText({stream}: {stream: string}) {
   const [displayedText, setDisplayedText] = useState('');
@@ -211,45 +205,9 @@ export function AutofixOutputStream({
   autofixData,
   responseRequired = false,
 }: Props) {
-  const api = useApi({persistInFlight: true});
-  const queryClient = useQueryClient();
-
-  const [message, setMessage] = useState('');
   const seerIconRef = useRef<HTMLDivElement>(null);
 
   const isInitializingRun = activeLog === 'Ingesting Sentry data...';
-
-  const orgSlug = useOrganization().slug;
-
-  const {mutate: send} = useMutation({
-    mutationFn: (params: {message: string}) => {
-      return api.requestPromise(
-        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
-        {
-          method: 'POST',
-          data: {
-            run_id: runId,
-            payload: {
-              type: 'user_message',
-              text: params.message,
-            },
-          },
-        }
-      );
-    },
-    onSuccess: _ => {
-      queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
-      });
-      queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
-      });
-      addSuccessMessage(t('Thanks for the input.'));
-    },
-    onError: () => {
-      addErrorMessage(t('Something went wrong when sending Seer your message.'));
-    },
-  });
 
   return (
     <AnimatePresence mode="wait">
@@ -386,34 +344,6 @@ const VerticalLine = styled('div')`
   border-left: 1px dashed ${p => p.theme.border};
   margin-left: 16.5px;
   margin-bottom: -1px;
-`;
-
-const InputWrapper = styled('form')`
-  display: flex;
-  padding: ${space(0.5)};
-  position: relative;
-`;
-
-const StyledInput = styled(TextArea)`
-  flex-grow: 1;
-  border-color: ${p => p.theme.innerBorder};
-  padding-right: ${space(4)};
-  resize: none;
-
-  &:hover {
-    border-color: ${p => p.theme.border};
-  }
-`;
-
-const StyledButton = styled(Button)`
-  position: absolute;
-  right: ${space(1)};
-  top: 50%;
-  transform: translateY(-50%);
-  height: 24px;
-  width: 24px;
-  margin-right: 0;
-  color: ${p => p.theme.subText};
 `;
 
 const SeerIconContainer = styled('div')`
