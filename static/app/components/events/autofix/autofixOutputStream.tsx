@@ -251,18 +251,6 @@ export function AutofixOutputStream({
     },
   });
 
-  const handleSend = (e: FormEvent) => {
-    e.preventDefault();
-    if (isInitializingRun) {
-      // don't send message during loading state
-      return;
-    }
-    if (message.trim() !== '') {
-      send({message});
-      setMessage('');
-    }
-  };
-
   return (
     <AnimatePresence mode="wait">
       <Wrapper
@@ -308,33 +296,6 @@ export function AutofixOutputStream({
               </ProgressBarWrapper>
             )}
             {!responseRequired && stream && <StreamContentText stream={stream} />}
-            <InputWrapper onSubmit={handleSend}>
-              <StyledInput
-                autosize
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                maxLength={4096}
-                placeholder={
-                  responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
-                }
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend(e);
-                  }
-                }}
-                maxRows={5}
-                size="sm"
-              />
-              <StyledButton
-                type="submit"
-                borderless
-                aria-label={t('Submit Comment')}
-                size="zero"
-              >
-                {'\u23CE'}
-              </StyledButton>
-            </InputWrapper>
           </Container>
         </ScaleContainer>
       </Wrapper>

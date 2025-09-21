@@ -15,7 +15,6 @@ import {
   AutofixStatus,
   AutofixStepType,
   type AutofixSolutionTimelineEvent,
-  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
@@ -25,7 +24,7 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatSolutionWithEvent} from 'sentry/components/events/autofix/utils';
 import {Timeline} from 'sentry/components/timeline';
-import {IconAdd, IconChat, IconCopy, IconFix} from 'sentry/icons';
+import {IconAdd, IconCopy, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -38,8 +37,6 @@ import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-
-import AutofixHighlightPopup from './autofixHighlightPopup';
 
 function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
@@ -118,7 +115,6 @@ type AutofixSolutionProps = {
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
-  agentCommentThread?: CommentThread;
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
@@ -345,7 +341,6 @@ function AutofixSolutionDisplay({
   previousInsightCount,
   customSolution,
   solutionSelected,
-  agentCommentThread,
   event,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const organization = useOrganization();
@@ -374,18 +369,6 @@ function AutofixSolutionDisplay({
   const containerRef = useRef<HTMLDivElement>(null);
   const iconFixRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
-
-  const handleSelectDescription = () => {
-    if (descriptionRef.current) {
-      // Simulate a click on the description to trigger the text selection
-      const clickEvent = new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-      });
-      descriptionRef.current.dispatchEvent(clickEvent);
-    }
-  };
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
@@ -543,36 +526,9 @@ function AutofixSolutionDisplay({
             <IconFix size="md" color="green400" />
           </HeaderIconWrapper>
           {t('Solution')}
-          <Button
-            size="zero"
-            borderless
-            title={t('Chat with Seer')}
-            onClick={handleSelectDescription}
-            analyticsEventName="Autofix: Solution Chat"
-            analyticsEventKey="autofix.solution.chat"
-          >
-            <IconChat />
-          </Button>
         </HeaderText>
       </HeaderWrapper>
-      <AnimatePresence>
-        {agentCommentThread && iconFixRef.current && (
-          <AutofixHighlightPopup
-            selectedText=""
-            referenceElement={iconFixRef.current}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={previousDefaultStepIndex ?? 0}
-            retainInsightCardIndex={
-              previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount
-                : null
-            }
-            isAgentComment
-            blockName={t('Seer is uncertain of the solution...')}
-          />
-        )}
-      </AnimatePresence>
+      {/* Highlight popup removed; clicking chat triggers left panel selection */}
       <Content>
         <SolutionDescription
           solution={solutionItems}

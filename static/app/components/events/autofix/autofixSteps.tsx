@@ -106,7 +106,6 @@ function Step({
                   causes={step.causes}
                   rootCauseSelection={step.selection}
                   terminationReason={step.termination_reason}
-                  agentCommentThread={step.agent_comment_thread ?? undefined}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   isRootCauseFirstAppearance={isRootCauseFirstAppearance}
@@ -123,7 +122,6 @@ function Step({
                   customSolution={step.custom_solution}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
-                  agentCommentThread={step.agent_comment_thread ?? undefined}
                   isSolutionFirstAppearance={isSolutionFirstAppearance}
                   event={event}
                 />
@@ -135,7 +133,6 @@ function Step({
                   runId={runId}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
-                  agentCommentThread={step.agent_comment_thread ?? undefined}
                   isChangesFirstAppearance={isChangesFirstAppearance}
                 />
               )}

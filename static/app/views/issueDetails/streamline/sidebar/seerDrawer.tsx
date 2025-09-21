@@ -14,6 +14,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
+import SeerLeftPanel from 'sentry/components/events/autofix/seerLeftPanel';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -288,7 +289,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         </SeerDrawerNavigator>
       )}
 
-      <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
+      <SeerDrawerBody>
         {aiConfig.isAutofixSetupLoading ? (
           <PlaceholderStack data-test-id="ai-setup-loading-indicator">
             <Placeholder height="10rem" />
@@ -298,42 +299,47 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         ) : showWelcomeScreen ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
-          <Fragment>
-            <SeerNotices
-              groupId={group.id}
-              hasGithubIntegration={aiConfig.hasGithubIntegration}
-              project={project}
-            />
-            {aiConfig.hasSummary && (
-              <StyledCard>
-                <GroupSummary
-                  group={group}
-                  event={event}
+          <SeerDrawerContentGrid>
+            <SeerLeftPanel autofixData={autofixData ?? undefined} groupId={group.id} />
+            <RightColumn>
+              <RightColumnScroll ref={scrollContainerRef} onScroll={handleScroll}>
+                <SeerNotices
+                  groupId={group.id}
+                  hasGithubIntegration={aiConfig.hasGithubIntegration}
                   project={project}
-                  collapsed={!!autofixData}
                 />
-              </StyledCard>
-            )}
-            {aiConfig.hasAutofix && (
-              <Fragment>
-                {autofixData ? (
-                  <AutofixSteps
-                    data={autofixData}
-                    groupId={group.id}
-                    runId={autofixData.run_id}
-                    event={event}
-                  />
-                ) : autofixDataPending ? (
-                  <PlaceholderStack>
-                    <Placeholder height="15rem" />
-                    <Placeholder height="15rem" />
-                  </PlaceholderStack>
-                ) : (
-                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
+                {aiConfig.hasSummary && (
+                  <StyledCard>
+                    <GroupSummary
+                      group={group}
+                      event={event}
+                      project={project}
+                      collapsed={!!autofixData}
+                    />
+                  </StyledCard>
                 )}
-              </Fragment>
-            )}
-          </Fragment>
+                {aiConfig.hasAutofix && (
+                  <Fragment>
+                    {autofixData ? (
+                      <AutofixSteps
+                        data={autofixData}
+                        groupId={group.id}
+                        runId={autofixData.run_id}
+                        event={event}
+                      />
+                    ) : autofixDataPending ? (
+                      <PlaceholderStack>
+                        <Placeholder height="15rem" />
+                        <Placeholder height="15rem" />
+                      </PlaceholderStack>
+                    ) : (
+                      <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
+                    )}
+                  </Fragment>
+                )}
+              </RightColumnScroll>
+            </RightColumn>
+          </SeerDrawerContentGrid>
         )}
       </SeerDrawerBody>
     </SeerDrawerContainer>
@@ -366,7 +372,8 @@ export const useOpenSeerDrawer = ({
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
-      drawerKey: 'seer-autofix-drawer',
+      resizable: false,
+      drawerWidth: '100dvw',
       drawerCss: css`
         height: fit-content;
         max-height: 100%;
@@ -431,7 +438,7 @@ const SeerDrawerNavigator = styled('div')`
 `;
 
 const SeerDrawerBody = styled(DrawerBody)`
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   /* Move the scrollbar to the left edge */
@@ -440,7 +447,9 @@ const SeerDrawerBody = styled(DrawerBody)`
   * {
     direction: ltr;
   }
-  padding-bottom: 80px;
+  padding: 0;
+  height: calc(100vh - ${MIN_NAV_HEIGHT}px - ${MIN_NAV_HEIGHT}px);
+  max-height: calc(100vh - ${MIN_NAV_HEIGHT}px - ${MIN_NAV_HEIGHT}px);
 `;
 
 const Header = styled('h3')`
@@ -473,4 +482,30 @@ const ButtonBarWrapper = styled('div')`
 const FeedbackWrapper = styled('div')`
   margin-left: auto;
   margin-right: ${p => p.theme.space.md};
+`;
+
+const SeerDrawerContentGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 25% 1fr;
+  grid-template-rows: 1fr;
+  gap: ${space(2)};
+  height: 100%;
+  min-height: 0;
+`;
+
+const RightColumn = styled('div')`
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const RightColumnScroll = styled('div')`
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-top: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.xl};
+  padding-right: ${p => p.theme.space.xl};
 `;

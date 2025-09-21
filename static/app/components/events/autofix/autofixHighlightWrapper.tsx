@@ -1,11 +1,6 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence} from 'framer-motion';
-
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
-import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
-import {t} from 'sentry/locale';
 
 interface AutofixHighlightWrapperProps {
   children: React.ReactNode;
@@ -36,45 +31,44 @@ export function AutofixHighlightWrapper({
 }: AutofixHighlightWrapperProps) {
   const internalRef = useRef<HTMLDivElement>(null);
   const containerRef = ref || internalRef;
-  const selection = useTextSelection(containerRef);
 
-  const [shouldPersist, setShouldPersist] = useState(false);
-  const lastSelectedText = useRef<string | null>(null);
-  const lastReferenceElement = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (selection) {
-      lastSelectedText.current = selection.selectedText;
-      lastReferenceElement.current = selection.referenceElement;
+  const handleClick = useCallback(() => {
+    const text = containerRef.current?.textContent?.trim() || '';
+    if (!text) {
+      return;
     }
-  }, [selection]);
+
+    const detail = {
+      selectedText: text,
+      displayName,
+      groupId,
+      runId,
+      stepIndex,
+      retainInsightCardIndex,
+      isAgentComment,
+    } as const;
+
+    window.dispatchEvent(new CustomEvent('autofix:selected', {detail}));
+  }, [
+    containerRef,
+    displayName,
+    groupId,
+    runId,
+    stepIndex,
+    retainInsightCardIndex,
+    isAgentComment,
+  ]);
 
   return (
     <React.Fragment>
       <Wrapper
         ref={containerRef}
         className={className}
-        isSelected={!!selection}
-        title={selection ? undefined : t('Click to chat about this with Seer')}
+        onClick={handleClick}
+        isSelected={false}
       >
         {children}
       </Wrapper>
-
-      <AnimatePresence>
-        {(selection || shouldPersist) && (
-          <AutofixHighlightPopup
-            selectedText={selection?.selectedText ?? lastSelectedText.current ?? ''}
-            referenceElement={selection?.referenceElement ?? lastReferenceElement.current}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={stepIndex}
-            retainInsightCardIndex={retainInsightCardIndex}
-            isAgentComment={isAgentComment}
-            blockName={displayName}
-            onShouldPersistChange={setShouldPersist}
-          />
-        )}
-      </AnimatePresence>
     </React.Fragment>
   );
 }

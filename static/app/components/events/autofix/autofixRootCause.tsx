@@ -12,7 +12,6 @@ import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixH
 import {
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
-  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
@@ -20,14 +19,7 @@ import {
   useLaunchCodingAgent,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
-import {
-  IconArrow,
-  IconChat,
-  IconChevron,
-  IconClose,
-  IconCopy,
-  IconFocus,
-} from 'sentry/icons';
+import {IconArrow, IconChevron, IconClose, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -39,7 +31,6 @@ import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
 
 function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) {
@@ -84,7 +75,6 @@ type AutofixRootCauseProps = {
   groupId: string;
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
-  agentCommentThread?: CommentThread;
   event?: Event;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
@@ -255,7 +245,6 @@ function AutofixRootCauseDisplay({
   rootCauseSelection,
   previousDefaultStepIndex,
   previousInsightCount,
-  agentCommentThread,
   event,
 }: AutofixRootCauseProps) {
   const cause = causes[0];
@@ -275,18 +264,6 @@ function AutofixRootCauseDisplay({
     groupId,
     runId
   );
-
-  const handleSelectDescription = () => {
-    if (descriptionRef.current) {
-      // Simulate a click on the description to trigger the text selection
-      const clickEvent = new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-      });
-      descriptionRef.current.dispatchEvent(clickEvent);
-    }
-  };
 
   const handleSelectRootCause = () => {
     if (cause?.id !== undefined && cause.id !== null) {
@@ -399,36 +376,9 @@ function AutofixRootCauseDisplay({
             <IconFocus size="md" color="pink400" />
           </IconWrapper>
           {t('Root Cause')}
-          <Button
-            size="zero"
-            borderless
-            title={t('Chat with Seer')}
-            onClick={handleSelectDescription}
-            analyticsEventName="Autofix: Root Cause Chat"
-            analyticsEventKey="autofix.root_cause.chat"
-          >
-            <IconChat />
-          </Button>
         </HeaderText>
       </HeaderWrapper>
-      <AnimatePresence>
-        {agentCommentThread && iconFocusRef.current && (
-          <AutofixHighlightPopup
-            selectedText=""
-            referenceElement={iconFocusRef.current}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={previousDefaultStepIndex ?? 0}
-            retainInsightCardIndex={
-              previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount
-                : null
-            }
-            isAgentComment
-            blockName={t('Seer is uncertain of the root cause...')}
-          />
-        )}
-      </AnimatePresence>
+      {/* Highlight popup removed; clicking chat triggers left panel selection */}
       <Content>
         <Fragment>
           <RootCauseDescription

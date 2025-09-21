@@ -109,13 +109,6 @@ const isPolling = (
     return true;
   }
 
-  // Check if there's any active comment thread that hasn't been completed
-  const hasActiveCommentThread = autofixData.steps.some(
-    step =>
-      (step.active_comment_thread && !step.active_comment_thread.is_completed) ||
-      (step.agent_comment_thread && !step.agent_comment_thread.is_completed)
-  );
-
   const hasSolutionStep = autofixData.steps.some(
     step => step.type === AutofixStepType.SOLUTION
   );
@@ -129,8 +122,8 @@ const isPolling = (
     return true;
   }
 
-  // Continue polling if there's an active comment thread, even if the run is completed
-  if (!isSidebar && hasActiveCommentThread) {
+  // Continue polling if the flyout is open since the user may be chatting
+  if (!isSidebar) {
     return true;
   }
 

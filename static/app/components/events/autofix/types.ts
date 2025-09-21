@@ -86,6 +86,7 @@ export type AutofixData = {
   run_id: string;
   status: AutofixStatus;
   actor_ids?: number[];
+  chat?: AutofixChatMessage[];
   codebase_indexing?: {
     status: 'COMPLETED';
   };
@@ -95,6 +96,11 @@ export type AutofixData = {
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
+};
+
+export type AutofixChatMessage = {
+  content: string;
+  role: 'user' | 'assistant' | 'tool' | 'tool_use';
 };
 
 export type AutofixProgressItem = {
@@ -117,23 +123,9 @@ interface BaseStep {
   status: AutofixStatus;
   title: string;
   type: AutofixStepType;
-  active_comment_thread?: CommentThread | null;
-  agent_comment_thread?: CommentThread | null;
   completedMessage?: string;
   key?: string;
   output_stream?: string | null;
-}
-
-export type CommentThread = {
-  id: string;
-  is_completed: boolean;
-  messages: CommentThreadMessage[];
-};
-
-export interface CommentThreadMessage {
-  content: string;
-  role: 'user' | 'assistant';
-  isLoading?: boolean;
 }
 
 export type AutofixInsight = {

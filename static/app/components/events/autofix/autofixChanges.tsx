@@ -10,7 +10,6 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
@@ -18,7 +17,6 @@ import {
   AutofixStatus,
   type AutofixChangesStep,
   type AutofixCodebaseChange,
-  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
@@ -27,7 +25,7 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {IconChat, IconCode, IconCopy, IconOpen} from 'sentry/icons';
+import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -42,7 +40,6 @@ type AutofixChangesProps = {
   groupId: string;
   runId: string;
   step: AutofixChangesStep;
-  agentCommentThread?: CommentThread;
   isChangesFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -184,7 +181,6 @@ export function AutofixChanges({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
-  agentCommentThread,
   isChangesFirstAppearance,
 }: AutofixChangesProps) {
   const {data} = useAutofixData({groupId});
@@ -193,18 +189,6 @@ export function AutofixChanges({
   const firstChangeRef = useRef<HTMLDivElement | null>(null);
   const [isPrProcessing, setIsPrProcessing] = useState(false);
   const [isBranchProcessing, setIsBranchProcessing] = useState(false);
-
-  const handleSelectFirstChange = () => {
-    if (firstChangeRef.current) {
-      // Simulate a click on the first change to trigger the text selection
-      const clickEvent = new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-      });
-      firstChangeRef.current.dispatchEvent(clickEvent);
-    }
-  };
 
   useEffect(() => {
     if (step.status === AutofixStatus.COMPLETED) {
@@ -279,36 +263,9 @@ export function AutofixChanges({
                 <IconCode size="md" color="blue400" />
               </HeaderIconWrapper>
               {t('Code Changes')}
-              <Button
-                size="zero"
-                borderless
-                title={t('Chat with Seer')}
-                onClick={handleSelectFirstChange}
-                analyticsEventName="Autofix: Changes Chat"
-                analyticsEventKey="autofix.changes.chat"
-              >
-                <IconChat />
-              </Button>
             </HeaderText>
           </HeaderWrapper>
-          <AnimatePresence>
-            {agentCommentThread && iconCodeRef.current && (
-              <AutofixHighlightPopup
-                selectedText=""
-                referenceElement={iconCodeRef.current}
-                groupId={groupId}
-                runId={runId}
-                stepIndex={previousDefaultStepIndex ?? 0}
-                retainInsightCardIndex={
-                  previousInsightCount !== undefined && previousInsightCount >= 0
-                    ? previousInsightCount
-                    : null
-                }
-                isAgentComment
-                blockName={t('Seer is uncertain of the code changes...')}
-              />
-            )}
-          </AnimatePresence>
+          {/* Highlight popup removed; clicking chat triggers left panel selection */}
           <ClippedBox clipHeight={408}>
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
