@@ -10,6 +10,7 @@ import {TraceErrorRow} from 'sentry/views/performance/newTraceDetails/traceRow/t
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
+import {traceChronologicalSort} from './utils';
 
 export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   constructor(
@@ -27,6 +28,10 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
       // For error nodes, its value is the only associated issue.
       this.errors.add(value);
     }
+
+    this.parent?.children.push(this);
+    // Sort the children of the parent since we altered space
+    this.parent?.children.sort(traceChronologicalSort);
   }
 
   get description(): string | undefined {

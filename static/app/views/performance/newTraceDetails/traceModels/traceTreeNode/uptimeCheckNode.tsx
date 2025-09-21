@@ -12,6 +12,7 @@ import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/tr
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
+import {traceChronologicalSort} from './utils';
 
 export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   constructor(
@@ -22,6 +23,9 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     super(parent, value, extra);
     const timingNodes = this._createTimingNodes();
     timingNodes.forEach(timingNode => this.children.push(timingNode));
+
+    this.parent?.children.push(this);
+    this.parent?.children.sort(traceChronologicalSort);
   }
 
   _createTimingNodes(): UptimeCheckTimingNode[] {
@@ -104,7 +108,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   }
 
   get description(): string | undefined {
-    const otelFriendlyUi = this.extra.organization.features.includes(
+    const otelFriendlyUi = this.extra?.organization.features.includes(
       'performance-otel-friendly-ui'
     );
     return otelFriendlyUi ? this.value.name : this.value.description;

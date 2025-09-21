@@ -5,10 +5,20 @@ import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/trace
 import {TraceCollapsedRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceCollapsedRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
-import {BaseNode} from './baseNode';
+import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
   readonly expanded: boolean = false;
+
+  constructor(
+    parent: BaseNode,
+    value: TraceTree.CollapsedNode,
+    extra: TraceTreeNodeExtra
+  ) {
+    super(parent, value, extra);
+
+    this.parent?.children.push(this);
+  }
 
   printNode(): string {
     return 'collapsed';

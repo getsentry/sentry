@@ -27,12 +27,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     value: TraceTree.EAPSpan,
     extra: TraceTreeNodeExtra
   ) {
-    super(parent, value, extra);
+    const parentNode = value.is_transaction
+      ? (parent?.findParent(p => isEAPTransaction(p.value)) ?? parent)
+      : parent;
+    super(parentNode, value, extra);
 
-    if (value.is_transaction) {
-      const closestEAPTransaction = this.findParent(p => isEAPTransaction(p.value));
-      this.parent = (closestEAPTransaction as any) ?? parent;
-    }
+    this.expanded = !value.is_transaction;
+    this.canAutogroup = !value.is_transaction;
+    this.allowNoInstrumentationNodes = !value.is_transaction;
 
     if (!value.is_transaction) {
       if (this.parent) {
@@ -50,11 +52,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       }
     }
 
-    this.expanded = !value.is_transaction;
-    this.canAutogroup = !value.is_transaction;
-    this.allowNoInstrumentationNodes = !value.is_transaction;
-
     this._updateAncestorOpsBreakdown(this, value.op);
+
+    parentNode?.children.push(this);
+    parentNode?.children.sort(traceChronologicalSort);
   }
 
   private _updateAncestorOpsBreakdown(node: EapSpanNode, op: string) {
@@ -145,24 +146,24 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     // Find all embedded eap-transactions, excluding the node itself
     const eapTransactions = findEAPTransactions(this);
 
-    for (const trace of eapTransactions) {
-      if (isEAPTransaction(trace.value)) {
-        const newParent = findNewParent(trace);
+    for (const txn of eapTransactions) {
+      if (isEAPTransaction(txn.value)) {
+        const newParent = findNewParent(txn);
 
         // If the transaction already has the correct parent, we can continue
-        if (newParent === trace.parent) {
+        if (newParent === txn.parent) {
           continue;
         }
 
         // If we have found a new parent to reparent the transaction under,
         // remove it from its current parent's children and add it to the new parent
         if (newParent) {
-          if (trace.parent) {
-            trace.parent.children = trace.parent.children.filter(c => c !== trace);
+          if (txn.parent) {
+            txn.parent.children = txn.parent.children.filter(c => c !== txn);
           }
-          newParent.children.push(trace);
-          trace.parent = newParent;
-          trace.parent.children.sort(traceChronologicalSort);
+          newParent.children.push(txn);
+          txn.parent = newParent;
+          txn.parent.children.sort(traceChronologicalSort);
         }
       }
     }
@@ -210,7 +211,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
         this._reparentEAPTransactions(
           root => root.children.filter(c => isEAPTransaction(c.value)) as EapSpanNode[],
           root =>
-            root.findChild(n => {
+            this.findChild(n => {
               if (isEAPSpan(n.value)) {
                 return n.value.event_id === root.value.parent_span_id;
               }
@@ -273,7 +274,12 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   printNode(): string {
-    return this.op + (this.description ? ' - ' + this.description : '');
+    return (
+      (this.op || 'unknown span') +
+      ' - ' +
+      (this.description || 'unknown description') +
+      (this.value.is_transaction ? ` (eap-transaction)` : '')
+    );
   }
 
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(

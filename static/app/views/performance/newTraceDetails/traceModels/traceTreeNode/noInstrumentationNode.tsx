@@ -4,7 +4,10 @@ import {uuid4} from '@sentry/core';
 import {t} from 'sentry/locale';
 import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/missingInstrumentation';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isMissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
+  isMissingInstrumentationNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceMissingInstrumentationRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceMissingInstrumentationRow';
@@ -21,7 +24,7 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     next: BaseNode,
     parent: BaseNode | null,
     value: TraceTree.MissingInstrumentationSpan,
-    extra: TraceTreeNodeExtra
+    extra: TraceTreeNodeExtra | null
   ) {
     super(parent, value, extra);
 
@@ -54,7 +57,16 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   }
 
   pathToNode(): TraceTree.NodePath[] {
-    return [`ms-${this.id}`];
+    const path: TraceTree.NodePath[] = [];
+    const closestTransaction = this.findParent(p => isTransactionNode(p as any));
+
+    path.push(`ms-${this.id}`);
+
+    if (closestTransaction) {
+      path.push(`txn-${closestTransaction.id}`);
+    }
+
+    return path;
   }
 
   analyticsName(): string {

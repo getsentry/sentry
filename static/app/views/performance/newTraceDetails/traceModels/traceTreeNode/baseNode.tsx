@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types/organization';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
@@ -11,6 +12,7 @@ import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetai
 
 export interface TraceTreeNodeExtra {
   organization: Organization;
+  meta?: TraceMetaQueryResults['data'] | null;
   // This is used to track the traceslug associated with a trace in a replay.
   // This is necessary because a replay has multiple traces and the current ui requires
   // us to merge them into one trace. We still need to keep track of the original traceSlug
@@ -104,10 +106,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   /**
    * The extra options for the node. Examples include the organization to check for enabled features.
    */
-  extra: TraceTreeNodeExtra;
+  extra: TraceTreeNodeExtra | null;
 
   // TODO Abdullah Khan: Replace the type of traceNode with TraceNode type once we have it
-  constructor(parent: BaseNode | null, value: T, extra: TraceTreeNodeExtra) {
+  constructor(parent: BaseNode | null, value: T, extra: TraceTreeNodeExtra | null) {
     this.parent = parent;
     this.value = value;
     this.extra = extra;
@@ -241,8 +243,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     const queue: BaseNode[] = [];
     const visibleChildren: BaseNode[] = [];
     if (this.expanded) {
-      for (let i = this.children.length - 1; i >= 0; i--) {
-        queue.push(this.children[i]!);
+      for (let i = this.directChildren.length - 1; i >= 0; i--) {
+        queue.push(this.directChildren[i]!);
       }
     }
 
@@ -252,9 +254,9 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       visibleChildren.push(node);
 
       // iterate in reverse to ensure nodes are processed in order
-      if (node.expanded) {
-        for (let i = node.children.length - 1; i >= 0; i--) {
-          queue.push(node.children[i]!);
+      if (node.expanded || node.visibleChildren.length > 0) {
+        for (let i = node.directChildren.length - 1; i >= 0; i--) {
+          queue.push(node.directChildren[i]!);
         }
       }
     }
@@ -264,6 +266,19 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   get directChildren(): BaseNode[] {
     return this.children;
+  }
+
+  isLastChild(): boolean {
+    if (!this.parent) {
+      return false;
+    }
+
+    const visibleChildren = this.parent.visibleChildren;
+    return visibleChildren[visibleChildren.length - 1] === this;
+  }
+
+  hasVisibleChildren(): boolean {
+    return this.visibleChildren.length > 0;
   }
 
   matchById(id: string): boolean {
@@ -286,7 +301,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   findChild(predicate: (child: BaseNode) => boolean): BaseNode | null {
-    const queue: BaseNode[] = [this];
+    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
@@ -295,14 +310,17 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
         return next;
       }
 
-      queue.push(...next.getNextTraversalNodes());
+      const children = next.getNextTraversalNodes();
+      for (let i = children.length - 1; i >= 0; i--) {
+        queue.push(children[i]!);
+      }
     }
 
     return null;
   }
 
   findAllChildren(predicate: (child: BaseNode) => boolean): BaseNode[] {
-    const queue: BaseNode[] = [this];
+    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
     const results: BaseNode[] = [];
 
     while (queue.length > 0) {
@@ -312,21 +330,27 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
         results.push(next);
       }
 
-      queue.push(...next.getNextTraversalNodes());
+      const children = next.getNextTraversalNodes();
+      for (let i = children.length - 1; i >= 0; i--) {
+        queue.push(children[i]!);
+      }
     }
 
     return results;
   }
 
   forEachChild(callback: (child: BaseNode) => void) {
-    const queue: BaseNode[] = [this];
+    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
       callback(next);
 
-      queue.push(...next.getNextTraversalNodes());
+      const children = next.getNextTraversalNodes();
+      for (let i = children.length - 1; i >= 0; i--) {
+        queue.push(children[i]!);
+      }
     }
   }
 

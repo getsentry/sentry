@@ -26,6 +26,8 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   private _fromSpans: typeof TraceTree.FromSpans;
   private _applyPreferences: typeof TraceTree.ApplyPreferences;
 
+  extra: TraceTreeNodeExtra;
+
   constructor(
     parent: BaseNode | null,
     value: TraceTree.Transaction,
@@ -34,9 +36,16 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     applyPreferences: typeof TraceTree.ApplyPreferences
   ) {
     super(parent, value, extra);
-    this.canFetchChildren = true;
+
+    this.extra = extra;
     this._fromSpans = fromSpans;
     this._applyPreferences = applyPreferences;
+
+    const spanChildrenCount = extra.meta?.transaction_child_count_map[this.id];
+
+    // We check for >1 events, as the first one is the transaction node itself
+    this.canFetchChildren =
+      spanChildrenCount === undefined ? true : spanChildrenCount > 1;
 
     if (value) {
       this.space = [
@@ -48,6 +57,9 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         value.performance_issues.forEach(issue => this.occurrences.add(issue));
       }
     }
+
+    this.parent?.children.push(this);
+    this.parent?.children.sort(traceChronologicalSort);
   }
 
   get id(): string {
@@ -192,7 +204,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   fetchChildren(
     fetching: boolean,
     tree: TraceTree,
-    options: {api: Client; preferences: TracePreferencesState}
+    options: {
+      api: Client;
+      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+    }
   ): Promise<EventTransaction | null> {
     if (fetching === this.hasFetchedChildren || !this.canFetchChildren) {
       return Promise.resolve(null);
@@ -285,7 +300,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
           data
         );
 
-        root.zoomedIn = true;
+        root.hasFetchedChildren = true;
         // Spans contain millisecond precision, which means that it is possible for the
         // children spans of a transaction to extend beyond the start and end of the transaction
         // through ns precision. To account for this, we need to adjust the space of the transaction node and the space

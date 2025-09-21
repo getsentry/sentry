@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {ParentAutogroupNode as LegacyParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
@@ -22,7 +23,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   constructor(
     parent: BaseNode | null,
     node: TraceTree.ChildrenAutogroup,
-    extra: TraceTreeNodeExtra,
+    extra: TraceTreeNodeExtra | null,
     head: BaseNode,
     tail: BaseNode
   ) {
@@ -68,7 +69,16 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   }
 
   pathToNode(): TraceTree.NodePath[] {
-    return [`ag-${this.id}`];
+    const path: TraceTree.NodePath[] = [];
+    const closestTransaction = this.findParent(p => isTransactionNode(p as any));
+
+    path.push(`ag-${this.id}`);
+
+    if (closestTransaction) {
+      path.push(`txn-${closestTransaction.id}`);
+    }
+
+    return path;
   }
 
   analyticsName(): string {
@@ -195,7 +205,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
           index + 1,
           0,
           this.head as any,
-          ...(this.visibleChildren as any)
+          ...(this.head.visibleChildren as any)
         );
       }
     } else {
@@ -204,13 +214,16 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
       // When we collapse the autogroup, we need to point the tail children
       // back to the tail autogroup node.
       for (const c of this.tail.children) {
-        c.parent = this.tail;
+        c.parent = this;
       }
 
-      tree.list.splice(index + 1, 0, ...(this.visibleChildren as any));
+      tree.list.splice(index + 1, 0, ...(this.tail.visibleChildren as any));
     }
 
-    TraceTree.invalidate(this as any, true);
+    this.invalidate();
+    this.forEachChild(child => {
+      child.invalidate();
+    });
     this.expanded = expanding;
     return true;
   }

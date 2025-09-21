@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {SiblingAutogroupNode as LegacySiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
@@ -62,10 +63,6 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     return this._autogroupedSegments;
   }
 
-  pathToNode(): TraceTree.NodePath[] {
-    return [`ag-${this.id}`];
-  }
-
   analyticsName(): string {
     return 'sibling autogroup';
   }
@@ -80,6 +77,19 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     return (
       <TraceAutogroupedRow {...props} node={props.node as LegacySiblingAutogroupNode} />
     );
+  }
+
+  pathToNode(): TraceTree.NodePath[] {
+    const path: TraceTree.NodePath[] = [];
+    const closestTransaction = this.findParent(p => isTransactionNode(p as any));
+
+    path.push(`ag-${this.id}`);
+
+    if (closestTransaction) {
+      path.push(`txn-${closestTransaction.id}`);
+    }
+
+    return path;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(

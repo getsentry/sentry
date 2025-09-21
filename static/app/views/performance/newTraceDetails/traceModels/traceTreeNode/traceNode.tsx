@@ -8,6 +8,7 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import type {RootNode} from './rootNode';
+import {traceChronologicalSort} from './utils';
 
 export class TraceNode extends BaseNode<TraceTree.Trace> {
   // We want to enforce the parent to only be a RootNode or null
@@ -18,6 +19,9 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
     extra: TraceTreeNodeExtra
   ) {
     super(parent, value, extra);
+
+    this.parent?.children.push(this);
+    this.parent?.children.sort(traceChronologicalSort);
   }
 
   get drawerTabsTitle(): string {
@@ -38,6 +42,10 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
 
   printNode(): string {
     return isTraceSplitResult(this.value) ? 'trace root' : 'eap trace root';
+  }
+
+  matchById(_id: string): boolean {
+    return false;
   }
 
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
