@@ -318,7 +318,7 @@ class Strategy(Generic[ConcreteInterface]):
 
 
 class StrategyConfiguration:
-    id: str | None
+    id: str | None = None
     base: type[StrategyConfiguration] | None = None
     strategies: dict[str, Strategy[Any]] = {}
     delegates: dict[str, Strategy[Any]] = {}
