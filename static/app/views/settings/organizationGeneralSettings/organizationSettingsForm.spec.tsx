@@ -335,4 +335,50 @@ describe('OrganizationSettingsForm', () => {
     // PR Review field should be hidden again
     expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
   });
+
+  describe('AI Code Review field', () => {
+    it('is enabled when US region', () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.de.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeEnabled();
+    });
+
+    it('is disabled when non US region', () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'de',
+        displayName: 'Europe (Frankfurt)',
+        url: 'https://sentry.de.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeDisabled();
+    });
+  });
 });
