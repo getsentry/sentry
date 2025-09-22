@@ -231,12 +231,16 @@ def get_or_create_grouphashes(
         )
         hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
 
+    do_not_associate_with_group = features.has(
+        "organizations:group-deletion-in-progress", project.organization
+    )
+
     for hash_value in hashes:
         # Fetching the group with the grouphash is necessary to avoid N+1 queries
         grouphash, created = GroupHash.objects.select_related("group").get_or_create(
             project=project, hash=hash_value
         )
-        if features.has("organizations:group-deletion-in-progress", project.organization):
+        if do_not_associate_with_group:
             # If the group a group hash is associated with is in deletion in progress, we don't
             # want to associate the group hash with it so we can create a new group for the event
             if grouphash.group and grouphash.group.status in [
