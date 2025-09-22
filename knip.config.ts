@@ -35,6 +35,8 @@ const storyBookEntryPoints = [
   'static/app/stories/storybook.tsx',
   'static/**/*.stories.{js,mjs,ts,tsx}',
   'static/**/*.mdx',
+  // used but not detected
+  'static/app/components/core/principles/motion/playground.tsx',
 ];
 
 const config: KnipConfig = {
