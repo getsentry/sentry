@@ -43,9 +43,12 @@ from sentry.uptime.detectors.result_handler import (
     build_onboarding_failure_key,
 )
 from sentry.uptime.detectors.tasks import is_failed_url
-from sentry.uptime.grouptype import UptimeDomainCheckFailure, build_detector_fingerprint_component
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
-from sentry.uptime.subscriptions.subscriptions import UptimeMonitorNoSeatAvailable
+from sentry.uptime.subscriptions.subscriptions import (
+    UptimeMonitorNoSeatAvailable,
+    build_detector_fingerprint_component,
+)
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
