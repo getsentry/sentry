@@ -6,6 +6,7 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
+from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
 
@@ -66,7 +67,7 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
     )
     def test_requires_auth(self):
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
-        resp = self.client.get(url, {"ghOrgId": "123", "repoId": "456"})
+        resp = self.client.get(url, {"fullRepoName": "org/repo", "repoId": "456"})
         assert resp.status_code == 403
 
     @patch(
@@ -81,7 +82,7 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         resp = self.client.get(url, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 400
 
-        resp = self.client.get(url, {"ghOrgId": "123"}, HTTP_AUTHORIZATION=auth)
+        resp = self.client.get(url, {"fullRepoName": "org/repo"}, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 400
 
         resp = self.client.get(url, {"repoId": "456"}, HTTP_AUTHORIZATION=auth)
@@ -93,7 +94,7 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
     )
     def test_returns_empty_list_when_no_repos_found(self):
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
-        params = {"ghOrgId": "123", "repoId": "456"}
+        params = {"fullRepoName": "org/repo", "repoId": "456"}
         b64_secret = base64.b64encode(b"test-secret").decode()
         auth = self._auth_header_for_get(url, params, b64_secret)
 
@@ -115,21 +116,23 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         org_without_consent.update_option("sentry:hide_ai_features", True)
 
         repo_id = "12345"
-        self.create_repository(
-            organization=org_with_consent,
+        Repository.objects.create(
+            organization_id=org_with_consent.id,
             external_id=repo_id,
+            name="org/repo",
             provider="integrations:github",
             status=ObjectStatus.ACTIVE,
         )
-        self.create_repository(
-            organization=org_without_consent,
+        Repository.objects.create(
+            organization_id=org_without_consent.id,
             external_id=repo_id,
+            name="org/repo",
             provider="integrations:github",
             status=ObjectStatus.ACTIVE,
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
-        params = {"ghOrgId": "123", "repoId": repo_id}
+        params = {"fullRepoName": "org/repo", "repoId": repo_id}
         b64_secret = base64.b64encode(b"test-secret").decode()
         auth = self._auth_header_for_get(url, params, b64_secret)
 
@@ -149,15 +152,16 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
 
         repo_id = "12345"
 
-        self.create_repository(
-            organization=org,
+        Repository.objects.create(
+            organization_id=org.id,
             external_id=repo_id,
+            name="org/repo",
             provider="integrations:github",
             status=ObjectStatus.DISABLED,
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
-        params = {"ghOrgId": "123", "repoId": repo_id}
+        params = {"fullRepoName": "org/repo", "repoId": repo_id}
         b64_secret = base64.b64encode(b"test-secret").decode()
         auth = self._auth_header_for_get(url, params, b64_secret)
 
