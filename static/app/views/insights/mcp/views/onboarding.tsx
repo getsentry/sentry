@@ -217,7 +217,7 @@ function OnboardingPanel({
               <Preview>
                 <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
                 <Arcade
-                  src="https://demo.arcade.software/RzvM3ZsrBsLysP0Js6Sr?embed"
+                  src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
                   loading="lazy"
                   allowFullScreen
                 />
