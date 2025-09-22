@@ -194,6 +194,10 @@ def update_group_open_period(
     is unresolved manually without a regression. If the group is unresolved due to a regression, the
     open periods will be updated during ingestion.
     """
+    # if the group does not track open periods, this is a no-op
+    if not get_group_type_by_type_id(group.type).track_open_periods:
+        return
+
     # If a group was missed during backfill, we can create a new open period for it on unresolve.
     if not has_any_open_period(group) and new_status == GroupStatus.UNRESOLVED:
         create_open_period(group, timezone.now())

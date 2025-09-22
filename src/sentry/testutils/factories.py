@@ -1171,7 +1171,7 @@ class Factories:
             kwargs["substatus"] = GroupSubStatus.NEW
 
         group = Group.objects.create(project=project, **kwargs)
-        if create_open_period:
+        if create_open_period and get_group_type_by_type_id(group.type).track_open_periods:
             open_period = GroupOpenPeriod.objects.create(
                 group=group,
                 project=project,
