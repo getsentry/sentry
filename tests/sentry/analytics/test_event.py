@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.analytics import Event, eventclass
-from sentry.analytics.attribute import Attribute
 from sentry.analytics.event import EventEnvelope
 from sentry.testutils.cases import TestCase
 
@@ -21,15 +20,6 @@ class ExampleEvent(Event):
     id: int
     map: dict | DummyType
     optional: bool | None = None
-
-
-class ExampleEventOldStyle(Event):
-    type = "example-old-style"
-    attributes = [
-        Attribute("id", int),
-        Attribute("map", dict),
-        Attribute("optional", bool),
-    ]
 
 
 class EventTest(TestCase):
@@ -80,31 +70,6 @@ class EventTest(TestCase):
                 "optional": False,
             },
             "type": "example",
-            "timestamp": 987552000,
-            "uuid": b"AAEC",
-        }
-
-    @patch("sentry.analytics.event.uuid1")
-    def test_simple_old_style(self, mock_uuid1: MagicMock) -> None:
-        mock_uuid1.return_value = self.get_mock_uuid()
-
-        result = EventEnvelope(
-            ExampleEventOldStyle.from_instance(
-                None,
-                id=1,
-                map={"key": "value"},
-                optional=False,
-            )
-        )
-        result.datetime = datetime(2001, 4, 18, tzinfo=timezone.utc)
-
-        assert result.serialize() == {
-            "data": {
-                "id": 1,
-                "map": {"key": "value"},
-                "optional": False,
-            },
-            "type": "example-old-style",
             "timestamp": 987552000,
             "uuid": b"AAEC",
         }
