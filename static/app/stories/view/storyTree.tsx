@@ -531,7 +531,30 @@ function Folder(props: {node: StoryTreeNode}) {
 
   return (
     <li>
-      <FolderName
+      <Flex
+        align="center"
+        gap="sm"
+        padding="md xl md md"
+        css={{
+          color: 'var(--color-content-muted)',
+          cursor: 'pointer',
+          position: 'relative',
+          '&:before': {
+            background: 'var(--color-gray-100)',
+            content: '""',
+            inset: '0 var(--space-2xs) 0 calc(-1 * var(--space-2xs))',
+            position: 'absolute',
+            zIndex: -1,
+            borderRadius: 'var(--border-radius)',
+            opacity: 0,
+          },
+          '&:hover': {
+            color: 'var(--color-content-primary)',
+            '&:before': {
+              opacity: 1,
+            },
+          },
+        }}
         onClick={() => {
           props.node.expanded = !props.node.expanded;
           if (props.node.expanded) {
@@ -544,7 +567,7 @@ function Folder(props: {node: StoryTreeNode}) {
       >
         <Flex flex={1}>{normalizeFilename(props.node.name)}</Flex>
         <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-      </FolderName>
+      </Flex>
       {expanded && Object.keys(props.node.children).length > 0 && (
         <StoryList>
           {Object.values(props.node.children).map(child => {
@@ -592,33 +615,6 @@ const StoryList = styled('ul')`
   }
 `;
 
-const FolderName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.md}
-    ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.muted};
-  cursor: pointer;
-  position: relative;
-
-  &:before {
-    background: ${p => p.theme.gray100};
-    content: '';
-    inset: 0 ${p => p.theme.space['2xs']} 0 -${p => p.theme.space['2xs']};
-    position: absolute;
-    z-index: -1;
-    border-radius: ${p => p.theme.borderRadius};
-    opacity: 0;
-  }
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
-    &:before {
-      opacity: 1;
-    }
-  }
-`;
 
 const FolderLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'active',

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Heading} from 'sentry/components/core/text';
 import {IconGithub, IconLink} from 'sentry/icons';
@@ -30,7 +31,22 @@ function ScrapsLogo(props: React.SVGProps<SVGSVGElement>) {
 
 export function StoryHeader() {
   return (
-    <HeaderGrid>
+    <Grid
+      columns="256px minmax(auto, 820px) auto"
+      gap="md"
+      align="center"
+      padding="0 md"
+      css={{
+        height: '53px',
+        borderBottom: '1px solid var(--color-border-primary)',
+        position: 'sticky',
+        top: 0,
+        '& input:is(input)': {
+          height: '32px',
+          minHeight: '32px',
+        },
+      }}
+    >
       <Link to="/stories">
         <Heading as="h1" variant="accent">
           <Flex align="center" gap="md">
@@ -55,26 +71,10 @@ export function StoryHeader() {
         <span />
         <Storybook.ThemeSwitcher />
       </Flex>
-    </HeaderGrid>
+    </Grid>
   );
 }
 
-const HeaderGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 256px minmax(auto, 820px) auto;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  padding: 0 ${p => p.theme.space.md};
-  height: 53px;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  position: sticky;
-  top: 0;
-
-  input:is(input) {
-    height: 32px;
-    min-height: 32px;
-  }
-`;
 
 const StyledScrapsLogo = styled(ScrapsLogo)`
   width: 36px;

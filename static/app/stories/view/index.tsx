@@ -3,6 +3,7 @@ import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Grid} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
@@ -46,27 +47,134 @@ function StoryDetail() {
   return (
     <StoriesLayout>
       {story.isLoading ? (
-        <VerticalScroll>
+        <main
+          css={{
+            overflowX: 'visible',
+            overflowY: 'auto',
+            gridRow: 1,
+            gridColumn: 2,
+            padding: 'var(--space-xl)',
+          }}
+        >
           <LoadingIndicator />
-        </VerticalScroll>
+        </main>
       ) : story.isError ? (
-        <VerticalScroll>
+        <main
+          css={{
+            overflowX: 'visible',
+            overflowY: 'auto',
+            gridRow: 1,
+            gridColumn: 2,
+            padding: 'var(--space-xl)',
+          }}
+        >
           <Alert.Container>
             <Alert type="error">
               <strong>{story.error.name}:</strong> {story.error.message}
             </Alert>
           </Alert.Container>
-        </VerticalScroll>
+        </main>
       ) : story.isSuccess ? (
-        <StoryMainContainer>
+        <div
+          css={{
+            gridRow: 1,
+            gridColumn: 2,
+            color: 'var(--color-content-primary)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-xl)',
+            '& h1, h2, h3, h4, h5, h6': {
+              scrollMarginTop: '80px',
+              margin: 0,
+            },
+            '& p, pre': {
+              margin: 0,
+            },
+            '& code:not(pre > code)': {
+              background: 'var(--color-background-secondary)',
+              color: 'var(--color-content-primary)',
+            },
+            '& table:not([class])': {
+              margin: '1px',
+              padding: 0,
+              width: 'calc(100% - 2px)',
+              tableLayout: 'auto',
+              border: 0,
+              borderCollapse: 'collapse',
+              borderRadius: 'var(--border-radius)',
+              boxShadow: '0 0 0 1px var(--color-border-primary)',
+              marginBottom: 'var(--space-3xl)',
+              '& thead': {
+                height: '36px',
+                borderRadius: 'var(--border-radius) var(--border-radius) 0 0',
+                background: 'var(--color-background-tertiary)',
+                borderBottom: '4px solid var(--color-border-primary)',
+              },
+              '& th': {
+                paddingInline: 'var(--space-xl)',
+                paddingBlock: 'var(--space-sm)',
+                '&:first-of-type': {
+                  borderRadius: 'var(--border-radius) 0 0 0',
+                },
+                '&:last-of-type': {
+                  borderRadius: '0 var(--border-radius) 0 0',
+                },
+              },
+              '& tr:last-child td:first-of-type': {
+                borderRadius: '0 0 0 var(--border-radius)',
+              },
+              '& tr:last-child td:last-of-type': {
+                borderRadius: '0 0 var(--border-radius) 0',
+              },
+              '& tbody': {
+                background: 'var(--color-background-primary)',
+                borderRadius: '0 0 var(--border-radius) var(--border-radius)',
+              },
+              '& tr': {
+                borderBottom: '1px solid var(--color-border-muted)',
+                verticalAlign: 'baseline',
+                '&:last-child': {
+                  borderBottom: 0,
+                },
+              },
+              '& td': {
+                paddingInline: 'var(--space-xl)',
+                paddingBlock: 'var(--space-lg)',
+              },
+            },
+            '& div + .expressive-code .frame': {
+              borderRadius: '0 0 var(--border-radius) var(--border-radius)',
+              '& pre': {
+                borderRadius: '0 0 var(--border-radius) var(--border-radius)',
+              },
+            },
+            '& .expressive-code .frame': {
+              marginBottom: 'var(--space-3xl)',
+              boxShadow: 'none',
+              border: '1px solid #000000',
+              '& pre': {
+                background: 'hsla(254, 18%, 15%, 1)',
+                border: 0,
+              },
+            },
+          }}
+        >
           {story.data.map(s => {
             return <StoryExports key={s.filename} story={s} />;
           })}
-        </StoryMainContainer>
+        </div>
       ) : (
-        <VerticalScroll>
+        <main
+          css={{
+            overflowX: 'visible',
+            overflowY: 'auto',
+            gridRow: 1,
+            gridColumn: 2,
+            padding: 'var(--space-xl)',
+          }}
+        >
           <strong>The file you selected does not export a story.</strong>
-        </VerticalScroll>
+        </main>
       )}
     </StoriesLayout>
   );
@@ -78,13 +186,36 @@ function StoriesLayout(props: PropsWithChildren) {
       <GlobalStoryStyles key="global-story-styles" />
       <RouteAnalyticsContextProvider>
         <OrganizationContainer>
-          <Layout>
-            <HeaderContainer>
+          <Grid
+            columns="256px minmax(auto, 1fr)"
+            css={{
+              background: 'var(--color-background-primary)',
+              '--stories-grid-space': '0',
+              gridTemplateRows: '1fr',
+              placeItems: 'stretch',
+              minHeight: 'calc(100dvh - 52px)',
+              paddingBottom: 'var(--space-3xl)',
+              position: 'absolute',
+              top: '52px',
+              left: 0,
+              right: 0,
+            }}
+          >
+            <header
+              css={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 'var(--z-index-header)',
+                background: 'var(--color-background-primary)',
+              }}
+            >
               <StoryHeader />
-            </HeaderContainer>
+            </header>
             <StorySidebar />
             {props.children}
-          </Layout>
+          </Grid>
         </OrganizationContainer>
       </RouteAnalyticsContextProvider>
     </Fragment>
@@ -126,139 +257,6 @@ function GlobalStoryStyles() {
   return <Global styles={styles} />;
 }
 
-const Layout = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  --stories-grid-space: 0;
 
-  display: grid;
-  grid-template-rows: 1fr;
-  grid-template-columns: 256px minmax(auto, 1fr);
-  place-items: stretch;
-  min-height: calc(100dvh - 52px);
-  padding-bottom: ${p => p.theme.space['3xl']};
-  position: absolute;
-  top: 52px;
-  left: 0;
-  right: 0;
-`;
 
-const HeaderContainer = styled('header')`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: ${p => p.theme.zIndex.header};
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
-const VerticalScroll = styled('main')`
-  overflow-x: visible;
-  overflow-y: auto;
-
-  grid-row: 1;
-  grid-column: 2;
-  padding: ${p => p.theme.space.xl};
-`;
-
-const StoryMainContainer = styled('div')`
-  grid-row: 1;
-  grid-column: 2;
-  color: ${p => p.theme.tokens.content.primary};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    scroll-margin-top: 80px;
-    margin: 0;
-  }
-
-  p,
-  pre {
-    margin: 0;
-  }
-
-  code:not(pre > code) {
-    background: ${p => p.theme.tokens.background.secondary};
-    color: ${p => p.theme.tokens.content.primary};
-  }
-
-  table:not([class]) {
-    margin: 1px;
-    padding: 0;
-    width: calc(100% - 2px);
-    table-layout: auto;
-    border: 0;
-    border-collapse: collapse;
-    border-radius: ${p => p.theme.borderRadius};
-    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
-    margin-bottom: ${p => p.theme.space['3xl']};
-
-    & thead {
-      height: 36px;
-      border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-      background: ${p => p.theme.tokens.background.tertiary};
-      border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
-    }
-
-    & th {
-      padding-inline: ${p => p.theme.space.xl};
-      padding-block: ${p => p.theme.space.sm};
-
-      &:first-of-type {
-        border-radius: ${p => p.theme.borderRadius} 0 0 0;
-      }
-      &:last-of-type {
-        border-radius: 0 ${p => p.theme.borderRadius} 0 0;
-      }
-    }
-
-    tr:last-child td:first-of-type {
-      border-radius: 0 0 0 ${p => p.theme.borderRadius};
-    }
-    tr:last-child td:last-of-type {
-      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
-    }
-
-    tbody {
-      background: ${p => p.theme.tokens.background.primary};
-      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-    }
-
-    tr {
-      border-bottom: 1px solid ${p => p.theme.tokens.border.muted};
-      vertical-align: baseline;
-
-      &:last-child {
-        border-bottom: 0;
-      }
-    }
-
-    td {
-      padding-inline: ${p => p.theme.space.xl};
-      padding-block: ${p => p.theme.space.lg};
-    }
-  }
-
-  div + .expressive-code .frame {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-    pre {
-      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-    }
-  }
-
-  .expressive-code .frame {
-    margin-bottom: ${p => p.theme.space['3xl']};
-    box-shadow: none;
-    border: 1px solid #000000;
-    pre {
-      background: hsla(254, 18%, 15%, 1);
-      border: 0;
-    }
-  }
-`;
