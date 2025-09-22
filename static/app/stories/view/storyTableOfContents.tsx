@@ -179,9 +179,7 @@ export function StoryTableOfContents() {
 
   return (
     <StoryIndexContainer>
-      <Flex align="center" css={{height: '28px'}}>
-        <Text size="md">On this page</Text>
-      </Flex>
+      <StoryIndexTitle>On this page</StoryIndexTitle>
       <StoryIndexList>
         {nestedEntries.map(entry => (
           <StoryContentsList
@@ -270,6 +268,16 @@ const StoryIndexContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: block;
   }
+`;
+
+const StoryIndexTitle = styled('div')`
+  line-height: 1.25;
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.primary};
+  height: 28px;
+  display: flex;
+  align-items: center;
 `;
 
 const StoryIndexList = styled('ul')`

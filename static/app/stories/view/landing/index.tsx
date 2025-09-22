@@ -8,9 +8,8 @@ import heroImg from 'sentry-images/stories/landing/robopigeon.png';
 
 import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import {IconOpen} from 'sentry/icons';
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
@@ -47,61 +46,15 @@ export function StoryLanding() {
   return (
     <Fragment>
       <StoryDarkModeProvider>
-        <Flex
-          align="center"
-          gap="3xl"
-          padding="48px 0"
-          css={{
-            background: 'var(--color-background-secondary)',
-            color: 'var(--color-content-primary)',
-            borderBottom: '1px solid var(--color-border-primary)',
-            '& h1': {
-              fontSize: '36px',
-              marginTop: 'var(--space-md)',
-            },
-            '& p': {
-              fontSize: 'var(--font-size-lg)',
-              textWrap: 'balance',
-              color: 'var(--color-content-muted)',
-            },
-            '& img': {
-              minWidth: '320px',
-              height: 'auto',
-            },
-          }}
-        >
-          <Flex
-            direction={{xs: 'column', md: 'row'}}
-            gap="3xl"
-            padding="3xl xl"
-            align="center"
-            justify="center"
-            css={{
-              maxWidth: '1080px',
-              width: '100%',
-              flexGrow: 1,
-              flexShrink: 1,
-              marginInline: 'auto',
-            }}
-          >
+        <Hero>
+          <Container>
             <Flex direction="column" gap="2xl">
               <Flex direction="column" gap="md">
                 <Border />
-                <Heading as="h1">
-                  Welcome to{' '}
-                  <Text
-                    as="em"
-                    variant="accent"
-                    css={{
-                      fontStyle: 'normal',
-                      display: 'inline-block',
-                      transform: 'rotate(-3deg) translate(1px, -2px)',
-                    }}
-                  >
-                    Scraps
-                  </Text>
-                </Heading>
-                <Text as="p">{frontmatter.hero.tagline}</Text>
+                <h1>
+                  Welcome to <TitleEmphasis>Scraps</TitleEmphasis>
+                </h1>
+                <p>{frontmatter.hero.tagline}</p>
               </Flex>
               <Flex gap="md">
                 {frontmatter.hero.actions.map(props => (
@@ -115,50 +68,24 @@ export function StoryLanding() {
               height={320}
               src={frontmatter.hero.image.file}
             />
-          </Flex>
-        </Flex>
+          </Container>
+        </Hero>
       </StoryDarkModeProvider>
 
-      <Flex
-        direction="column"
-        gap="3xl"
-        padding="3xl xl"
-        align="center"
-        justify="center"
-        css={{
-          maxWidth: '1080px',
-          width: '100%',
-          flexGrow: 1,
-          flexShrink: 1,
-          marginInline: 'auto',
-        }}
-      >
+      <Container>
         <Acronym />
-      </Flex>
+      </Container>
 
-      <Flex
-        direction="column"
-        gap="3xl"
-        padding="3xl xl"
-        align="center"
-        justify="center"
-        css={{
-          maxWidth: '1080px',
-          width: '100%',
-          flexGrow: 1,
-          flexShrink: 1,
-          marginInline: 'auto',
-        }}
-      >
+      <Container>
         <Flex as="section" direction="column" gap="3xl" flex={1}>
           <Flex direction="column" gap="md">
-            <Heading as="h2">Learn the Foundations</Heading>
-            <Text as="p">
+            <h2>Learn the Foundations</h2>
+            <p>
               The following guides will help you understand Sentry's foundational design
               principles.
-            </Text>
+            </p>
           </Flex>
-          <Flex wrap gap="xl">
+          <CardGrid>
             <Card href="/stories?name=app/styles/colors.mdx" title="Color">
               <CardFigure>
                 <Colors />
@@ -182,9 +109,9 @@ export function StoryLanding() {
                 <img src={performanceWaitingForSpan} />
               </CardFigure>
             </Card>
-          </Flex>
+          </CardGrid>
         </Flex>
-      </Flex>
+      </Container>
     </Fragment>
   );
 }
@@ -205,6 +132,64 @@ function Border() {
   );
 }
 
+const TitleEmphasis = styled('em')`
+  font-style: normal;
+  display: inline-block;
+  transform: rotate(-3deg) translate(1px, -2px);
+  color: ${p => p.theme.tokens.content.accent};
+`;
+
+const Hero = styled('div')`
+  padding: 48px 0;
+  gap: ${p => p.theme.space['3xl']};
+  display: flex;
+  align-items: center;
+  background: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+  h1 {
+    font-size: 36px;
+    margin-top: ${p => p.theme.space.md};
+  }
+
+  p {
+    font-size: ${p => p.theme.fontSize.lg};
+    text-wrap: balance;
+    color: ${p => p.theme.tokens.content.muted};
+  }
+
+  img {
+    min-width: 320px;
+    height: auto;
+  }
+`;
+
+const Container = styled('div')`
+  max-width: 1080px;
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space['3xl']};
+  padding-inline: ${p => p.theme.space.xl};
+  padding-block: ${p => p.theme.space['3xl']};
+  align-items: center;
+  justify-content: center;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    flex-direction: row;
+  }
+`;
+
+const CardGrid = styled('div')`
+  display: flex;
+  flex-flow: row wrap;
+  gap: ${p => p.theme.space.xl};
+`;
+
 interface CardProps {
   children: React.ReactNode;
   href: string;
@@ -214,22 +199,7 @@ function Card(props: CardProps) {
   return (
     <CardLink to={props.href}>
       {props.children}
-      <Text
-        as="span"
-        size="xl"
-        bold
-        css={{
-          margin: 0,
-          marginTop: 'auto',
-          marginBottom: 'var(--space-xl)',
-          padding: 'var(--space-md) var(--space-xl)',
-          width: '100%',
-          height: '24px',
-          fontSize: '24px',
-        }}
-      >
-        {props.title}
-      </Text>
+      <CardTitle>{props.title}</CardTitle>
     </CardLink>
   );
 }
@@ -263,6 +233,18 @@ const CardLink = styled(Link)`
   @media screen and (min-width: ${p => p.theme.breakpoints.md}) {
     max-width: calc(50% - 32px);
   }
+`;
+
+const CardTitle = styled('span')`
+  margin: 0;
+  margin-top: auto;
+  margin-bottom: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  width: 100%;
+  height: 24px;
+  font-size: 24px;
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: currentColor;
 `;
 
 function CardFigure(props: PropsWithChildren) {

@@ -9,8 +9,6 @@ import type {CollectionChildren} from '@react-types/shared';
 import {Badge} from 'sentry/components/core/badge';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
@@ -120,14 +118,7 @@ export function StorySearch() {
       {item => {
         if (isStorySection(item)) {
           return (
-            <Section
-              key={item.key}
-              title={
-                <Text bold uppercase>
-                  {item.label}
-                </Text>
-              }
-            >
+            <Section key={item.key} title={<SectionTitle>{item.label}</SectionTitle>}>
               {item.options.map(storyItem => (
                 <Item
                   key={storyItem.filesystemPath}
@@ -226,19 +217,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
   );
 
   return (
-    <Flex
-      direction="column"
-      gap="md"
-      css={{
-        position: 'relative',
-        width: '320px',
-        flexGrow: 1,
-        zIndex: 'var(--z-index-header)',
-        padding: 'var(--space-md)',
-        paddingRight: 0,
-        marginLeft: 'calc(-1 * var(--space-2xl))',
-      }}
-    >
+    <StorySearchContainer>
       <label {...labelProps} className="sr-only">
         {props.label}
       </label>
@@ -258,9 +237,22 @@ function SearchComboBox(props: SearchComboBoxProps) {
           </ListBox>
         </StyledOverlay>
       )}
-    </Flex>
+    </StorySearchContainer>
   );
 }
+
+const StorySearchContainer = styled('div')`
+  position: relative;
+  width: 320px;
+  flex-grow: 1;
+  z-index: ${p => p.theme.zIndex.header};
+  padding: ${p => p.theme.space.md};
+  padding-right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+  margin-left: -${p => p.theme.space['2xl']};
+`;
 
 const StyledOverlay = styled(Overlay)`
   position: fixed;
@@ -274,6 +266,12 @@ const StyledOverlay = styled(Overlay)`
   p[id][aria-hidden='true'] {
     color: ${p => p.theme.textColor};
   }
+`;
+
+const SectionTitle = styled('span')`
+  color: ${p => p.theme.textColor};
+  font-weight: 600;
+  text-transform: uppercase;
 `;
 
 function getStoryTreeNodeFromKey(

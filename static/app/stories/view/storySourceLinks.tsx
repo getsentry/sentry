@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -43,10 +42,15 @@ export function StorySourceLinks() {
       </LinkButton>
 
       {committerDate ? (
-        <Text as="span" size="sm" variant="muted">
+        <LastEdited>
           Last Edited: <DateTime date={committerDate} />
-        </Text>
+        </LastEdited>
       ) : null}
     </Flex>
   );
 }
+
+const LastEdited = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.muted};
+`;

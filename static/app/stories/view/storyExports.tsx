@@ -5,7 +5,7 @@ import {ErrorBoundary} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {Heading, Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
@@ -41,27 +41,15 @@ function StoryLayout() {
     <Tabs>
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
-        <Flex
-          direction="column"
-          gap="3xl"
-          padding={{xs: '0 xl', md: '0 xl'}}
-          css={{
-            maxWidth: '580px',
-            width: '100%',
-            '@media (min-width: 992px)': {
-              maxWidth: '832px',
-              marginInline: 'auto',
-            },
-          }}
-        >
-          <main style={{flexGrow: 1}}>
+        <StoryContainer>
+          <StoryContent>
             <StoryTabPanels />
-          </main>
+          </StoryContent>
           <ErrorBoundary>
             <StorySourceLinks />
           </ErrorBoundary>
           <StoryFooter />
-        </Flex>
+        </StoryContainer>
         <StoryTableOfContents />
       </StoryGrid>
     </Tabs>
@@ -82,15 +70,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
   }, [title]);
 
   return (
-    <Container
-      as="header"
-      padding="3xl 0 0 0"
-      border="bottom"
-      css={{
-        background: 'var(--color-background-secondary)',
-        gridArea: 'story-head',
-      }}
-    >
+    <StoryHeader>
       <StoryGrid>
         <StoryContainer style={{gap: theme.space['2xl']}}>
           <Flex
@@ -131,7 +111,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
         </StoryContainer>
         <StoryTableOfContentsPlaceholder />
       </StoryGrid>
-    </Container>
+    </StoryHeader>
   );
 }
 
@@ -252,6 +232,13 @@ function StoryAPI() {
   );
 }
 
+const StoryHeader = styled('header')`
+  background: ${p => p.theme.tokens.background.secondary};
+  padding: ${p => p.theme.space['3xl']} 0 0 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  grid-area: story-head;
+`;
+
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {
   return (
     <Grid
@@ -261,3 +248,21 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
     />
   );
 }
+
+const StoryContainer = styled('div')`
+  max-width: 580px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space['3xl']};
+  padding-inline: ${p => p.theme.space.xl};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    max-width: 832px;
+    margin-inline: auto;
+  }
+`;
+
+const StoryContent = styled('main')`
+  flex-grow: 1;
+`;
