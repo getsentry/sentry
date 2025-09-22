@@ -1,5 +1,4 @@
 import type {Layout} from 'react-grid-layout';
-// @ts-expect-error TS(7016): Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import {compact} from 'react-grid-layout/build/utils';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
@@ -22,10 +21,6 @@ const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 export type Position = Pick<Layout, 'x' | 'y'>;
 
 type NextPosition = [position: Position, columnDepths: number[]];
-
-export function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
-}
 
 export function constructGridItemKey(widget: {id?: string; tempId?: string}) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
@@ -182,24 +177,6 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
     };
   });
   return newWidgets;
-}
-
-export function enforceWidgetHeightValues(widget: Widget): Widget {
-  const {displayType, layout} = widget;
-  const nextWidget = {
-    ...widget,
-  };
-  if (!defined(layout)) {
-    return nextWidget;
-  }
-
-  const minH = getDefaultWidgetHeight(displayType);
-  const nextLayout = {
-    ...layout,
-    h: Math.max(layout?.h ?? minH, minH),
-    minH,
-  };
-  return {...nextWidget, layout: nextLayout};
 }
 
 export function generateWidgetsAfterCompaction(widgets: Widget[]) {
