@@ -74,8 +74,6 @@ export function getMessage(
       return '';
     case EventOrGroupType.GENERIC:
       return metadata.value;
-    case EventOrGroupType.DEFAULT:
-      return metadata.title;
     default:
       return culprit || '';
   }

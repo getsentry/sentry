@@ -6,7 +6,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
@@ -156,12 +156,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
                 style={{marginLeft: space(1)}}
               />
               <EventDetails>
-                <EventOrGroupHeader
-                  data={latestEvent}
-                  hideIcons
-                  hideLevel
-                  source="merged-item"
-                />
+                <EventOrGroupTitle data={latestEvent} />
               </EventDetails>
             </Flex>
           ) : null}
