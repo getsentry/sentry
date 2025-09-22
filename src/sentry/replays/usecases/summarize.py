@@ -62,7 +62,7 @@ def get_replay_range(
     response = execute_query(
         query,
         tenant_id={"organization_id": organization_id},
-        referrer="replay.breadcrumbs.range",
+        referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
     )
     rows = response.get("data", [])
     if not rows:
