@@ -474,3 +474,55 @@ class TestRedisHashSortedSetBuffer:
         for key in keys:
             remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
             assert len(remaining) == 0
+
+    def test_get_parsed_key_put_parsed_key(self):
+        """Test storing and retrieving pydantic models using get_parsed_key/put_parsed_key."""
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            name: str
+            value: int
+            enabled: bool
+
+        # Test putting and getting a parsed model
+        test_data = TestModel(name="test", value=42, enabled=True)
+        self.buf.put_parsed_key("test_key", test_data)
+
+        retrieved_data = self.buf.get_parsed_key("test_key", TestModel)
+
+        assert retrieved_data is not None
+        assert retrieved_data.name == "test"
+        assert retrieved_data.value == 42
+        assert retrieved_data.enabled is True
+        assert isinstance(retrieved_data, TestModel)
+
+    def test_get_parsed_key_put_parsed_key_complex_model(self):
+        """Test with more complex pydantic model containing nested data."""
+        from pydantic import BaseModel
+
+        class NestedModel(BaseModel):
+            items: list[int]
+            metadata: dict[str, str]
+
+        test_data = NestedModel(
+            items=[1, 2, 3, 4, 5], metadata={"source": "test", "version": "1.0"}
+        )
+
+        self.buf.put_parsed_key("complex_key", test_data)
+        retrieved_data = self.buf.get_parsed_key("complex_key", NestedModel)
+
+        assert retrieved_data is not None
+        assert retrieved_data.items == [1, 2, 3, 4, 5]
+        assert retrieved_data.metadata == {"source": "test", "version": "1.0"}
+        assert isinstance(retrieved_data, NestedModel)
+
+    def test_get_parsed_key_missing_key(self):
+        """Test get_parsed_key returns None for missing key."""
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            name: str
+
+        # Try to get a key that doesn't exist
+        retrieved_data = self.buf.get_parsed_key("nonexistent_key", TestModel)
+        assert retrieved_data is None

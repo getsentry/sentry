@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from itertools import chain, islice
 from collections.abc import Generator
 from contextlib import contextmanager
-from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from itertools import islice
 
