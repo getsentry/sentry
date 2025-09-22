@@ -81,7 +81,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          {renderAIResponse(responseText)}
+          {renderAIResponse(responseText.toString())}
         </Fragment>
       )}
       {responseObject && (
@@ -89,7 +89,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          {renderAIResponse(responseObject)}
+          {renderAIResponse(responseObject.toString())}
         </Fragment>
       )}
       {toolCalls && (
