@@ -110,9 +110,9 @@ class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
         return IntegrationProviderSlug.SLACK.value
 
     def unpack_payload(self, response: Response) -> Any:
-        if response.content:
+        if response.content != b"":
             return orjson.loads(response.content)
-        return {}
+        return None
 
 
 @instrumented_task(
