@@ -218,21 +218,40 @@ def get_or_create_grouphashes(
     grouping_config_id: str,
 ) -> list[GroupHash]:
     is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
-    grouphashes: list[GroupHash] = []
+    hashes_list = list(hashes)
 
     if is_secondary:
         # The only utility of secondary hashes is to link new primary hashes to an existing group
         # via an existing grouphash. Secondary hashes which are new are therefore of no value, so
         # filter them out before creating grouphash records.
         existing_hashes = set(
-            GroupHash.objects.filter(project=project, hash__in=hashes).values_list(
+            GroupHash.objects.filter(project=project, hash__in=hashes_list).values_list(
                 "hash", flat=True
             )
         )
-        hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
+        hashes_list = [hash_value for hash_value in hashes_list if hash_value in existing_hashes]
 
-    for hash_value in hashes:
+    # First, fetch existing grouphashes with their groups to avoid N+1 queries
+    existing_grouphashes = {
+        gh.hash: gh
+        for gh in GroupHash.objects.filter(project=project, hash__in=hashes_list).select_related(
+            "group"
+        )
+    }
+
+    # Create grouphashes for missing hashes
+    missing_hashes = [h for h in hashes_list if h not in existing_grouphashes]
+    new_grouphashes = {}
+    for hash_value in missing_hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        new_grouphashes[hash_value] = grouphash
+
+    # Combine existing and new grouphashes, maintaining order
+    grouphashes: list[GroupHash] = []
+    for hash_value in hashes_list:
+        grouphash = existing_grouphashes.get(hash_value) or new_grouphashes[hash_value]
+        created = hash_value in new_grouphashes
+
         if features.has("organizations:group-deletion-in-progress", project.organization):
             # If the group a group hash is associated with is in deletion in progress, we don't
             # want to associate the group hash with it so we can create a new group for the event
