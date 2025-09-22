@@ -68,8 +68,13 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 }
 
 export function RepoSelector() {
-  const {repository, integratedOrgId, preventPeriod, changeContextValue} =
-    usePreventContext();
+  const {
+    repository,
+    integratedOrgId,
+    integratedOrgName,
+    preventPeriod,
+    changeContextValue,
+  } = usePreventContext();
   const organization = useOrganization();
 
   const [searchValue, setSearchValue] = useState<string | undefined>();
@@ -101,11 +106,12 @@ export function RepoSelector() {
     (selectedOption: SelectOption<string>) => {
       changeContextValue({
         integratedOrgId,
+        integratedOrgName,
         preventPeriod,
         repository: selectedOption.value,
       });
     },
-    [changeContextValue, integratedOrgId, preventPeriod]
+    [changeContextValue, integratedOrgName, integratedOrgId, preventPeriod]
   );
 
   const handleOnSearch = useMemo(
