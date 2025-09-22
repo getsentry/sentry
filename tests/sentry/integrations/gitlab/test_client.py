@@ -20,7 +20,12 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiRetryError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiRateLimitedError,
+    ApiRetryError,
+)
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
 from sentry.utils.cache import cache
@@ -237,10 +242,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    @mock.patch(
-        "sentry.integrations.gitlab.client.GitLabApiClient.check_file",
-        side_effect=RestrictedIPAddress,
-    )
+    @mock.patch("sentry.integrations.gitlab.client.GitLabApiClient.check_file")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_stacktrace_link_restricted_ip_address(
         self, mock_record: mock.MagicMock, mock_check_file: mock.MagicMock
@@ -252,8 +254,11 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             json={"text": 200},
         )
+        error = ApiHostError("Unable to reach host")
+        error.__cause__ = RestrictedIPAddress
+        mock_check_file.side_effect = error
 
-        with pytest.raises(RestrictedIPAddress):
+        with pytest.raises(ApiHostError):
             self.installation.get_stacktrace_link(self.repo, path, "master", None)
 
         assert (
