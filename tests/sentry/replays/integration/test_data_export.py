@@ -34,20 +34,18 @@ def test_export_clickhouse_rows(replay_store):
     replay2_id = uuid.uuid4().hex
     replay3_id = uuid.uuid4().hex
     replay4_id = uuid.uuid4().hex
+    replay5_id = uuid.uuid4().hex
 
     t0 = datetime.datetime.now()
     t1 = t0 + datetime.timedelta(minutes=1)
     t2 = t0 + datetime.timedelta(minutes=2)
     t3 = t0 + datetime.timedelta(minutes=3)
-    t4 = t0 + datetime.timedelta(minutes=4)
 
     replay_store.save(mock_replay(t1, 1, replay1_id, segment_id=0))
     replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
     replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=1))
     replay_store.save(mock_replay(t3, 1, replay4_id, segment_id=0))
+    replay_store.save(mock_replay(t2, 2, replay5_id, segment_id=0))
 
-    start = t0
-    end = t4
-
-    rows = list(export_clickhouse_rows([1], start, end, limit=1, num_pages=10))
-    assert len(rows) == 4
+    rows = list(export_clickhouse_rows([1], t0, t3, limit=1, num_pages=10))
+    assert len(rows) == 3
