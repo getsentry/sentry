@@ -11,6 +11,7 @@ import responses
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
 from sentry.integrations.source_code_management.commit_context import (
@@ -234,6 +235,35 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
         assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.gitlab.client.GitLabApiClient.check_file",
+        side_effect=RestrictedIPAddress,
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_stacktrace_link_restricted_ip_address(
+        self, mock_record: mock.MagicMock, mock_check_file: mock.MagicMock
+    ) -> None:
+        path = "/src/file.py"
+        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
+        responses.add(
+            responses.HEAD,
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
+            json={"text": 200},
+        )
+
+        with pytest.raises(RestrictedIPAddress):
+            self.installation.get_stacktrace_link(self.repo, path, "master", None)
+
+        assert (
+            len(mock_record.mock_calls) == 4
+        )  # get_stacktrace_link calls check_file, which also has metrics
+        start1, start2, halt1, halt2 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
+        assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
+        assert halt2.args[0] == EventLifecycleOutcome.HALTED
 
     @mock.patch(
         "sentry.integrations.gitlab.integration.GitlabIntegration.check_file",

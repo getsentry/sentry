@@ -9,6 +9,7 @@ from typing import Any, Self
 
 import sentry_sdk
 
+from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
@@ -313,8 +314,9 @@ class EventLifecycle:
             # The context called record_success or record_failure being closing,
             # so we can just exit quietly.
             return
-
-        if exc_value is not None:
+        if isinstance(exc_value, RestrictedIPAddress):
+            self._terminate(EventLifecycleOutcome.HALTED, exc_value)
+        elif exc_value is not None:
             # We were forced to exit the context by a raised exception.
             # Default to creating a Sentry issue for unhandled exceptions
             self.record_failure(exc_value, create_issue=True)
