@@ -197,8 +197,6 @@ const NameHeader = styled('div')`
   gap: ${p => p.theme.space.md};
 `;
 
-//
-
 const DetectorListSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
 
