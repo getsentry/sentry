@@ -128,6 +128,7 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
     Get Sentry organization IDs for a GitHub repository.
 
     GET /prevent/pr-review/github/sentry-org?repoId={repoId}
+
     """
 
     publish_status = {

@@ -6,6 +6,7 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
+
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
