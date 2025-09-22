@@ -1,11 +1,14 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {main} from 'knip';
 
+import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconCode, IconDownload, IconFile} from 'sentry/icons';
+import {IconCode, IconDownload, IconFile, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -17,6 +20,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
   MetricsArtifactType,
   SizeAnalysisComparisonState,
@@ -29,6 +33,7 @@ import type {
 export function SizeCompareMainContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const theme = useTheme();
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -46,23 +51,20 @@ export function SizeCompareMainContent() {
       }
     );
 
-  const successfulComparison = sizeComparisonQuery.data?.comparisons.find(
-    comp =>
-      comp.state === SizeAnalysisComparisonState.SUCCESS &&
-      // TODO: Allow user to select artifact type
-      comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  const mainArtifactComparison = sizeComparisonQuery.data?.comparisons.find(
+    comp => comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
   );
 
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${successfulComparison?.head_size_metric_id}/${successfulComparison?.base_size_metric_id}/download/`,
+      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
     ],
     {
       staleTime: 0,
       enabled:
-        !!successfulComparison?.head_size_metric_id &&
-        !!successfulComparison?.base_size_metric_id &&
+        !!mainArtifactComparison?.head_size_metric_id &&
+        !!mainArtifactComparison?.base_size_metric_id &&
         !!organization.slug &&
         !!baseArtifactId,
     }
@@ -125,7 +127,16 @@ export function SizeCompareMainContent() {
   }, [comparisonDataQuery.data]);
 
   if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading) {
-    return <LoadingIndicator />;
+    return (
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        style={{minHeight: '60vh', padding: theme.space.md}}
+      >
+        <LoadingIndicator />
+      </Flex>
+    );
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
@@ -135,6 +146,50 @@ export function SizeCompareMainContent() {
         message={
           sizeComparisonQuery.error?.message || t('Failed to load size comparison data')
         }
+      />
+    );
+  }
+
+  if (!mainArtifactComparison) {
+    return (
+      <BuildError
+        title={t('Main artifact comparison not found')}
+        message={t(
+          'Something went wrong and we weren’t able to find the correct comparison.'
+        )}
+      >
+        <Flex gap="sm">
+          <Button
+            priority="default"
+            onClick={() => {
+              navigate(
+                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
+              );
+            }}
+          >
+            {t('Back')}
+          </Button>
+          <Button
+            priority="primary"
+            onClick={() => {
+              navigate(0);
+            }}
+          >
+            <Flex gap="sm">
+              <IconRefresh size="sm" />
+              {t('Retry')}
+            </Flex>
+          </Button>
+        </Flex>
+      </BuildError>
+    );
+  }
+
+  if (mainArtifactComparison.state === SizeAnalysisComparisonState.PROCESSING) {
+    return (
+      <BuildProcessing
+        title={t('Running diff engine')}
+        message={t('Hang tight, this may take a few minutes...')}
       />
     );
   }

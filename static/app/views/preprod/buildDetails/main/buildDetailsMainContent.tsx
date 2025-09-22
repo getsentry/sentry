@@ -15,6 +15,8 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
+import {BuildError} from 'sentry/views/preprod/components/buildError';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
@@ -62,7 +64,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const isSizeNotStarted = sizeInfo === undefined;
   const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
 
-  const showLoading = isLoadingRequests || isSizePending || isSizeProcessing;
+  const showLoading = isLoadingRequests;
   const showNoSizeRequested = !isLoadingRequests && isSizeNotStarted;
 
   if (showLoading) {
@@ -106,6 +108,15 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
+  if (isSizePending || isSizeProcessing) {
+    return (
+      <BuildProcessing
+        title={t('Running size analysis')}
+        message={t('Hang tight, this may take a few minutes...')}
+      />
+    );
+  }
+
   // TODO(): It would be good to have a call-to-action here. e.g.
   // click to run size analysis.
   if (showNoSizeRequested) {
@@ -136,11 +147,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   if (isSizeFailed) {
     return (
-      <Flex direction="column" gap="lg" minHeight="700px">
-        <Alert type="error">
-          {t('Size analysis failed "%s"', sizeInfo.error_message)}
-        </Alert>
-      </Flex>
+      <BuildError title={t('Size analysis failed')} message={sizeInfo.error_message} />
     );
   }
 
@@ -155,18 +162,20 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   // If the main data fetch fails, this component will not be rendered.
   if (isAppSizeError) {
     return (
-      <Flex direction="column" gap="lg" minHeight="700px">
-        <Alert type="error">
-          {appSizeError?.message ?? t('The treemap data could not be loaded')}
-        </Alert>
-      </Flex>
+      <BuildError
+        title={t('Size analysis failed')}
+        message={appSizeError?.message ?? t('The treemap data could not be loaded')}
+      />
     );
   }
 
   if (!appSizeData) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
-        <Alert type="error">{t('The treemap data could not be loaded')}</Alert>
+        <BuildError
+          title={t('Size analysis failed')}
+          message={t('The treemap data could not be loaded')}
+        />
       </Flex>
     );
   }
