@@ -4,11 +4,20 @@ import random
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
+import pydantic
+
 import sentry.workflow_engine.buffer as buffer
 from sentry.workflow_engine.models import Workflow
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
+
+
+class CohortUpdates(pydantic.BaseModel):
+    values: dict[int, float]
+
+    def get_last_cohort_run(self, cohort_id: int) -> float:
+        return self.values.get(cohort_id, 0)
 
 
 class DelayedWorkflowClient:
@@ -68,6 +77,16 @@ class DelayedWorkflowClient:
             f"{cls._BUFFER_KEY}:{shard}" if shard > 0 else cls._BUFFER_KEY
             for shard in range(cls._BUFFER_SHARDS)
         ]
+
+    _COHORT_UPDATES_KEY = "WORKFLOW_ENGINE_COHORT_UPDATES"
+
+    def fetch_updates(self) -> CohortUpdates:
+        return self._buffer.get_parsed_key(
+            self._COHORT_UPDATES_KEY, CohortUpdates
+        ) or CohortUpdates(values={})
+
+    def persist_updates(self, cohort_updates: CohortUpdates) -> None:
+        self._buffer.put_parsed_key(self._COHORT_UPDATES_KEY, cohort_updates)
 
     def for_project(self, project_id: int) -> ProjectDelayedWorkflowClient:
         """Create a project-specific client for workflow operations."""
