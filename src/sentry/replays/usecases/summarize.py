@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Generator, Iterator
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -52,8 +52,8 @@ def get_replay_range(
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("replay_id"), Op.EQ, replay_id),
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
-            Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
-            Condition(Column("timestamp"), Op.LT, datetime.now()),
+            Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
+            Condition(Column("timestamp"), Op.LT, datetime.now(UTC)),
         ],
         groupby=[Column("replay_id")],
         limit=Limit(1),
@@ -544,6 +544,9 @@ def rpc_get_replay_summary_logs(
     )
     if result:
         start, end = result
+    else:
+        # Fallback to default date range if replay range cannot be determined
+        start, end = default_start_end_dates()
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(
