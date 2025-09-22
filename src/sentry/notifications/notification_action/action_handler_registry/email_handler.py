@@ -17,17 +17,28 @@ class EmailActionHandler(ActionHandler):
             "target_display": {"type": ["null"]},
             "target_type": {
                 "type": ["integer"],
-                "enum": [*ActionTarget],
+                "enum": [ActionTarget.USER, ActionTarget.TEAM, ActionTarget.ISSUE_OWNERS],
             },
         },
         "required": ["target_type"],
         "additionalProperties": False,
+        "allOf": [
+            {
+                "if": {
+                    "properties": {"target_type": {"enum": [ActionTarget.USER, ActionTarget.TEAM]}}
+                },
+                "then": {
+                    "properties": {"target_identifier": {"type": "string"}},
+                    "required": ["target_type", "target_identifier"],
+                },
+            },
+        ],
     }
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-            "fallthroughType": {
+            "fallthroughType": {  # TODO: migrate to snake_case
                 "type": "string",
                 "description": "The fallthrough type for issue owners email notifications",
                 "enum": [*FallthroughChoiceType],
