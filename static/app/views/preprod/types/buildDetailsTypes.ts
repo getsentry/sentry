@@ -9,16 +9,16 @@ export interface BuildDetailsApiResponse {
 }
 
 export interface BuildDetailsAppInfo {
-  app_id: string | null;
-  artifact_type: BuildDetailsArtifactType | null;
-  build_configuration: string | null;
-  build_number: string | null;
+  app_id: string | null | undefined;
+  artifact_type: BuildDetailsArtifactType | null | undefined;
+  build_configuration: string | null | undefined;
+  build_number: string | null | undefined;
   date_added: string; // Always present based on your example
-  date_built: string | null;
+  date_built: string | null | undefined;
   is_installable: boolean; // Always present based on your example
-  name: string | null;
-  platform: Platform | null;
-  version: string | null;
+  name: string | null | undefined;
+  platform: Platform | null | undefined;
+  version: string | null | undefined;
 }
 
 interface BuildDetailsVcsInfo {
