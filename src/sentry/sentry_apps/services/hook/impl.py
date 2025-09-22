@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import sentry_sdk
 from django.db import router, transaction
 
@@ -10,6 +12,8 @@ from sentry.sentry_apps.services.hook import HookService, RpcServiceHook
 from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPair
 from sentry.sentry_apps.services.hook.serial import serialize_service_hook
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedHookService(HookService):
@@ -99,6 +103,17 @@ class DatabaseBackedHookService(HookService):
                         "installation_id": installation_id,
                         "url": webhook_url,
                         "events": expand_events(events),
+                    },
+                )
+                logger.info(
+                    "create_or_update_webhook_and_events_for_installation.created_or_updated_hook",
+                    extra={
+                        "hook_id": hook.id,
+                        "created_hook": created,
+                        "organization_id": organization_id,
+                        "installation_id": installation_id,
+                        "application_id": application_id,
+                        "events": events,
                     },
                 )
                 return [serialize_service_hook(hook)]

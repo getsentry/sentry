@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from collections.abc import Iterable, Mapping
 from dataclasses import field
 from typing import Any
@@ -54,6 +55,8 @@ from sentry.utils.sentry_apps.service_hook_manager import (
 )
 
 Schema = Mapping[str, Any]
+
+logger = logging.getLogger(__name__)
 
 
 def _get_schema_types(schema: Schema | None) -> set[str]:
@@ -250,6 +253,18 @@ class SentryAppUpdater:
                             installation.organization_id
                         ],
                     ).save()
+                    logger.info(
+                        "_update_service_hooks_via_outbox.created_outbox_entry",
+                        extra={
+                            "installation_id": installation.id,
+                            "sentry_app_id": self.sentry_app.id,
+                            "events": self.sentry_app.events,
+                            "application_id": self.sentry_app.application_id,
+                            "region_name": installation_org_id_to_region_name[
+                                installation.organization_id
+                            ],
+                        },
+                    )
 
     def _update_service_hooks_via_task(self) -> None:
         if self.sentry_app.is_published:
