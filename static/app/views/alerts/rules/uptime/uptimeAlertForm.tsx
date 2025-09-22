@@ -391,7 +391,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
                   DEFAULT_RECOVERY_THRESHOLD;
                 const upDuration = intervalSeconds * threshold;
                 return tct(
-                  'Issue resolved after [threshold] consecutive successes in a row (after [uptime] of recovered uptime).',
+                  'Issue resolved after [threshold] consecutive successes (after [uptime] of recovered uptime).',
                   {
                     threshold: <strong>{threshold}</strong>,
                     uptime: <strong>{getDuration(upDuration)}</strong>,
