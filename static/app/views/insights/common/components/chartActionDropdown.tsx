@@ -129,7 +129,7 @@ export function BaseChartActionDropdown({
 }: BaseProps) {
   const organization = useOrganization();
   const hasDashboardEdit = organization.features.includes('dashboards-edit');
-  const {addToDashboard} = useAddToDashboard();
+  const {addToSpanDashboard} = useAddToSpanDashboard();
 
   const menuOptions: MenuItemProps[] = [
     {
@@ -177,7 +177,7 @@ export function BaseChartActionDropdown({
       ),
       textValue: t('Add to Dashboard'),
       onAction: () => {
-        addToDashboard(addToDashboardOptions);
+        addToSpanDashboard(addToDashboardOptions);
       },
       isSubmenu: false,
       disabled: !hasDashboardEdit,
@@ -207,13 +207,13 @@ type AddToDashboardOptions = {
   search?: MutableSearch;
 };
 
-const useAddToDashboard = () => {
+const useAddToSpanDashboard = () => {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
   const router = useRouter();
 
-  const addToDashboard = useCallback(
+  const addToSpanDashboard = useCallback(
     ({
       yAxes,
       groupBy = [],
@@ -252,7 +252,7 @@ const useAddToDashboard = () => {
   );
 
   return {
-    addToDashboard,
+    addToSpanDashboard,
   };
 };
 
