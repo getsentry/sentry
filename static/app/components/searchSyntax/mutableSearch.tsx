@@ -75,12 +75,13 @@ function isOp(t: Token): t is OperatorToken {
   return t.type === TokenType.OPERATOR;
 }
 
-function isBooleanOp(value: string) {
-  return value === 'OR' || value === 'AND';
+const BOOLEAN_OPS = ['OR', 'AND'];
+function isBooleanOp(token: Token, value: string | undefined) {
+  return isOp(token) && value && BOOLEAN_OPS.includes(value);
 }
 
-function isParen(token: Token | undefined, character: '(' | ')') {
-  return !!token && isOp(token) && token.value === character;
+function isParen(token: Token, character: '(' | ')') {
+  return isOp(token) && token.value === character;
 }
 
 function isSpaceOnly(s: string) {
@@ -255,9 +256,9 @@ function consolidateUnquotedValues(tokens: Token[]): Token[] {
       while (j < tokens.length && tokens[j]!.type === TokenType.FREE_TEXT) {
         const freeText = tokens[j]! as FreeTextToken;
         if (
-          !isBooleanOp(freeText.value) &&
           freeText.value !== '(' &&
-          freeText.value !== ')'
+          freeText.value !== ')' &&
+          !BOOLEAN_OPS.includes(freeText.value)
         ) {
           freeTextTokens.push(freeText);
           j++;
@@ -544,7 +545,7 @@ export class MutableSearch {
           const token = this.tokens[i]!;
           const prev = this.tokens[i - 1];
           const next = this.tokens[i + 1];
-          if (isOp(token) && isBooleanOp(token.value)) {
+          if (isBooleanOp(token, token.value)) {
             if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
               if (
                 prev &&
