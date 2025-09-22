@@ -317,7 +317,7 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
         content: '';
         display: block;
         position: absolute;
-        left: -${p => p.theme.space.md};
+        left: -${p.theme.space.md};
         width: 4px;
         height: 16px;
         border-radius: 4px;
