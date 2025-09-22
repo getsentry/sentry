@@ -73,7 +73,9 @@ function CreditCardPanel({
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)
     setReferrer(decodeScalar(location.query?.referrer));
+  }, [location.query?.referrer]);
 
+  useEffect(() => {
     // There are multiple billing failure referrals and each should have analytics tracking
     if (referrer?.includes('billing-failure')) {
       setFromBillingFailure(true);
