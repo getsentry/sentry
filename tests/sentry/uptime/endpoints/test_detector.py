@@ -78,6 +78,7 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         }
 
     def test_update(self) -> None:
+        assert self.detector.workflow_condition_group
         valid_data = {
             "id": self.detector.id,
             "projectId": self.project.id,
@@ -109,6 +110,8 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         assert updated_sub.timeout_ms == 15000
 
     def test_update_invalid(self) -> None:
+        assert self.detector.workflow_condition_group
+
         valid_data = {
             "id": self.detector.id,
             "projectId": self.project.id,
