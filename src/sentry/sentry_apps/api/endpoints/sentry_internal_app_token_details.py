@@ -65,13 +65,14 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
             deletions.exec_sync(install_token)
 
-        analytics.record(
-            SentryAppInstallationTokenDeleted(
-                user_id=request.user.id,
-                organization_id=sentry_app_installation.organization_id,
-                sentry_app_installation_id=sentry_app_installation.id,
-                sentry_app=sentry_app.slug,
+        if request.user.is_authenticated:
+            analytics.record(
+                SentryAppInstallationTokenDeleted(
+                    user_id=request.user.id,
+                    organization_id=sentry_app_installation.organization_id,
+                    sentry_app_installation_id=sentry_app_installation.id,
+                    sentry_app=sentry_app.slug,
+                )
             )
-        )
 
         return Response(status=204)

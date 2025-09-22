@@ -64,13 +64,14 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                 event=audit_log.get_event_id("SENTRY_APP_UNINSTALL"),
                 data={"sentry_app": sentry_app_installation.sentry_app.name},
             )
-        analytics.record(
-            SentryAppUninstalledEvent(
-                user_id=request.user.id,
-                organization_id=sentry_app_installation.organization_id,
-                sentry_app=sentry_app_installation.sentry_app.slug,
-            ),
-        )
+        if request.user.is_authenticated:
+            analytics.record(
+                SentryAppUninstalledEvent(
+                    user_id=request.user.id,
+                    organization_id=sentry_app_installation.organization_id,
+                    sentry_app=sentry_app_installation.sentry_app.slug,
+                ),
+            )
         return Response(status=204)
 
     def put(self, request: Request, installation) -> Response:
