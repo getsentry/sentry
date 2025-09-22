@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 
@@ -9,10 +10,12 @@ from google.cloud.storage_transfer_v1 import (
     Schedule,
     TransferJob,
     TransferSpec,
+    UpdateTransferJobRequest,
 )
 from google.type import date_pb2
 
-from sentry.replays.usecases.data_export import export_blob_data
+from sentry.replays.usecases.data_export import export_blob_data, retry_export_blob_data
+from sentry.utils import json
 
 
 def test_export_blob_data():
@@ -97,6 +100,67 @@ def test_request_schedule_transfer_job():
         job_duration=job_duration,
         schedule_transfer_job=request_schedule_transfer_job,
         get_current_datetime=lambda: start_date,
+    )
+
+    # Assert we made it to the RPC call. We've done everything correctly. Its up to GCS to
+    # execute now.
+    assert mock_rpc.call_count == 1
+    mock_rpc.reset_mock()
+
+
+def test_retry_export_blob_data():
+    job_name = "job-name"
+    job_project_id = "project-name"
+
+    transfer_operation = {
+        "transferOperation": {
+            "status": "FAILED",
+            "transferJobName": job_name,
+            "projectId": job_project_id,
+        }
+    }
+
+    result = retry_export_blob_data(
+        {"data": base64.b64encode(json.dumps(transfer_operation).encode()).decode("utf-8")},
+        lambda request: request,
+    )
+
+    assert result == UpdateTransferJobRequest(
+        job_name=job_name,
+        project_id=job_project_id,
+        transfer_job=TransferJob(status=storage_transfer_v1.TransferJob.Status.ENABLED),
+    )
+
+
+def test_request_retry_transfer_job():
+    """
+    Test "request_retry_transfer_job" by proxy.
+
+    We don't actually pass the function to our export function. Instead we pass a nearly identical
+    function with the client defined in the local scope so we can mock that client and assert its
+    running correctly.
+    """
+    job_name = "job-name"
+    job_project_id = "project-name"
+    client = storage_transfer_v1.StorageTransferServiceClient()
+
+    def request_retry_transfer_job(transfer_job):
+        return client.update_transfer_job(transfer_job)
+
+    mock_rpc = Mock()
+    client._transport._wrapped_methods[client._transport.update_transfer_job] = mock_rpc
+
+    transfer_operation = {
+        "transferOperation": {
+            "status": "FAILED",
+            "transferJobName": job_name,
+            "projectId": job_project_id,
+        }
+    }
+
+    retry_export_blob_data(
+        {"data": base64.b64encode(json.dumps(transfer_operation).encode()).decode("utf-8")},
+        request_retry_transfer_job,
     )
 
     # Assert we made it to the RPC call. We've done everything correctly. Its up to GCS to

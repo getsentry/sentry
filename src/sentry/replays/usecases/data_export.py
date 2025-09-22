@@ -25,6 +25,7 @@ def export_clickhouse_rows(
     project_ids: list[int],
     start: datetime,
     end: datetime,
+    limit: int = 1000,
     cursor: Cursor | None = None,
 ) -> dict[str, Any]:
     where = []
@@ -126,7 +127,7 @@ def export_clickhouse_rows(
             hash_(Column("replay_id")),
             Column("event_hash"),
         ],
-        limit=Limit(1000),
+        limit=Limit(limit),
     )
 
     return execute_query(query, {}, "replays.compliance_data_export")["data"]
@@ -157,7 +158,7 @@ from google.cloud.storage_transfer_v1 import (
     Schedule,
     TransferJob,
     TransferSpec,
-    types,
+    UpdateTransferJobRequest,
 )
 from google.type import date_pb2
 
@@ -249,18 +250,21 @@ def export_blob_data[T](
     return schedule_transfer_job(request)
 
 
-def retry_export_blob_data(
-    event: dict[str, Any], retry_transfer_job: Callable[[str], None] | None = None
-):
+def request_retry_transfer_job(request: UpdateTransferJobRequest) -> None:
+    client = storage_transfer_v1.StorageTransferServiceClient()
+    client.update_transfer_job(request)
+
+
+def retry_export_blob_data[T](
+    event: dict[str, Any],
+    retry_transfer_job: Callable[[UpdateTransferJobRequest], T] = request_retry_transfer_job,
+) -> T:
     """
     Retry data export.
 
     :param event:
     :param retry_transfer_job:
     """
-    # If not specified default to the pre-defined function.
-    do_retry_transfer_job = retry_transfer_job or request_retry_transfer_job
-
     if "data" not in event:
         return
 
@@ -270,13 +274,12 @@ def retry_export_blob_data(
 
     # Check for a failed transfer operation
     if "transferOperation" in payload and payload["transferOperation"]["status"] == "FAILED":
-        job_name = payload["transferOperation"]["name"].split("/operations")[0]
-        do_retry_transfer_job(job_name)
+        job_name = payload["transferOperation"]["transferJobName"]
+        project_id = payload["transferOperation"]["projectId"]
 
-
-def request_retry_transfer_job(job_name: str) -> None:
-    client = storage_transfer_v1.StorageTransferServiceClient()
-    client.update_transfer_job(
-        job_name=job_name,
-        update_transfer_job_request={"status": types.TransferJob.Status.ENABLED},
-    )
+        request = UpdateTransferJobRequest(
+            job_name=job_name,
+            project_id=project_id,
+            transfer_job=TransferJob(status=storage_transfer_v1.TransferJob.Status.ENABLED),
+        )
+        return retry_transfer_job(request)
