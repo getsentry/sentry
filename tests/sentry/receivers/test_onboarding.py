@@ -26,6 +26,7 @@ from sentry.models.organizationonboardingtask import (
 )
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.receivers.onboarding import record_release_received
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.signals import (
     alert_rule_created,
@@ -841,6 +842,20 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
+
+    def test_release_received_skips_when_already_complete(self):
+        """Test that record_release_received returns early when task is already complete."""
+        project = self.create_project()
+
+        OrganizationOnboardingTask.objects.create(
+            organization=project.organization,
+            task=OnboardingTask.RELEASE_TRACKING,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+
+        with patch("sentry.analytics.record") as mock_analytics:
+            record_release_received(project, "test-release")
+            mock_analytics.assert_not_called()
 
     def test_issue_alert_received_through_project_creation(self) -> None:
         now = timezone.now()

@@ -373,6 +373,9 @@ def record_release_received(project, release, **kwargs):
     if not release:
         return
 
+    if has_completed_onboarding_task(project.organization, OnboardingTask.RELEASE_TRACKING):
+        return
+
     completed = complete_onboarding_task(
         organization=project.organization,
         task=OnboardingTask.RELEASE_TRACKING,
