@@ -181,24 +181,11 @@ class FetchGroupToEventDataTest(CreateEventTestCase):
         assert data["event_id"] == "event-456"
 
 
-class TestCohortUpdates:
-    def test_get_last_cohort_run_existing(self):
-        """Test getting last run time for existing cohort."""
-        updates = CohortUpdates(values={1: 100.5, 2: 200.3})
-        assert updates.get_last_cohort_run(1) == 100.5
-        assert updates.get_last_cohort_run(2) == 200.3
-
-    def test_get_last_cohort_run_missing(self):
-        """Test getting last run time for non-existent cohort returns 0."""
-        updates = CohortUpdates(values={1: 100.5})
-        assert updates.get_last_cohort_run(999) == 0
-
-
 class TestProjectChooser:
     @pytest.fixture
     def mock_buffer(self):
         """Create a mock buffer for testing."""
-        mock_buffer = Mock()
+        mock_buffer = Mock(spec=DelayedWorkflowClient)
         return mock_buffer
 
     @pytest.fixture
@@ -209,40 +196,6 @@ class TestProjectChooser:
     def test_init_default_cohorts(self, mock_buffer):
         chooser = ProjectChooser(mock_buffer)
         assert chooser.num_cohorts == NUM_COHORTS
-
-    def test_fetch_updates(self, project_chooser, mock_buffer):
-        """Test fetching cohort updates from buffer."""
-        expected_updates = CohortUpdates(values={1: 100.0})
-        mock_buffer.get_parsed_key.return_value = expected_updates
-
-        result = project_chooser.fetch_updates()
-
-        mock_buffer.get_parsed_key.assert_called_once_with(
-            "WORKFLOW_ENGINE_COHORT_UPDATES", CohortUpdates
-        )
-        assert result == expected_updates
-
-    def test_persist_updates(self, project_chooser, mock_buffer):
-        """Test persisting cohort updates to buffer."""
-        updates = CohortUpdates(values={1: 100.0, 2: 200.0})
-
-        project_chooser.persist_updates(updates)
-
-        mock_buffer.put_parsed_key.assert_called_once_with(
-            "WORKFLOW_ENGINE_COHORT_UPDATES", updates
-        )
-
-    def test_fetch_updates_missing_key(self, project_chooser, mock_buffer):
-        """Test fetching cohort updates when key doesn't exist (returns None)."""
-        mock_buffer.get_parsed_key.return_value = None
-
-        result = project_chooser.fetch_updates()
-
-        mock_buffer.get_parsed_key.assert_called_once_with(
-            "WORKFLOW_ENGINE_COHORT_UPDATES", CohortUpdates
-        )
-        assert isinstance(result, CohortUpdates)
-        assert result.values == {}  # Should be default empty dict
 
     def test_project_id_to_cohort_distribution(self, project_chooser):
         """Test that project IDs are distributed across cohorts."""
@@ -429,24 +382,28 @@ class TestChosenProjects:
     @pytest.fixture
     def mock_project_chooser(self):
         """Create a mock ProjectChooser."""
-        return Mock()
+        return Mock(spec=ProjectChooser)
 
     def test_chosen_projects_context_manager(self, mock_project_chooser):
         """Test chosen_projects as a context manager."""
         # Setup mocks
-        mock_cohort_updates = Mock()
-        mock_project_chooser.fetch_updates.return_value = mock_cohort_updates
-        mock_project_chooser.project_ids_to_process.return_value = [1, 2, 3]
+        mock_cohort_updates = Mock(spec=CohortUpdates)
+        mock_buffer_client = Mock(spec=DelayedWorkflowClient)
+        mock_project_chooser.client = mock_buffer_client
+        mock_buffer_client.fetch_updates.return_value = mock_cohort_updates
 
         fetch_time = 1000.0
         all_project_ids = [1, 2, 3, 4, 5]
+        expected_result = [1, 2, 3]
+
+        mock_project_chooser.project_ids_to_process.return_value = expected_result
 
         # Use context manager
         with chosen_projects(mock_project_chooser, fetch_time, all_project_ids) as result:
             project_ids_to_process = result
 
-            # Verify fetch_updates was called
-            mock_project_chooser.fetch_updates.assert_called_once()
+            # Verify fetch_updates was called on project_chooser.client
+            mock_buffer_client.fetch_updates.assert_called_once()
 
             # Verify project_ids_to_process was called with correct args
             mock_project_chooser.project_ids_to_process.assert_called_once_with(
@@ -454,15 +411,18 @@ class TestChosenProjects:
             )
 
             # Verify the result
-            assert project_ids_to_process == [1, 2, 3]
+            assert project_ids_to_process == expected_result
 
         # Verify persist_updates was called after context exit
-        mock_project_chooser.persist_updates.assert_called_once_with(mock_cohort_updates)
+        mock_buffer_client.persist_updates.assert_called_once_with(mock_cohort_updates)
 
     def test_chosen_projects_fetch_updates_exception(self, mock_project_chooser):
         """Test that exception during fetch_updates is properly handled."""
+        # Setup mocks
+        mock_buffer_client = Mock(spec=DelayedWorkflowClient)
+        mock_project_chooser.client = mock_buffer_client
         # Make fetch_updates raise an exception (e.g. key doesn't exist)
-        mock_project_chooser.fetch_updates.side_effect = Exception("Key not found")
+        mock_buffer_client.fetch_updates.side_effect = Exception("Key not found")
 
         fetch_time = 1000.0
         all_project_ids = [1, 2, 3, 4, 5]
@@ -473,4 +433,4 @@ class TestChosenProjects:
                 pass
 
         # persist_updates should not be called if fetch_updates fails
-        mock_project_chooser.persist_updates.assert_not_called()
+        mock_buffer_client.persist_updates.assert_not_called()
