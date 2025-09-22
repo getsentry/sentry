@@ -40,15 +40,17 @@ class ComputeHttpRequestSizeTest(UptimeTestCase):
 
 
 class UptimeMonitorDataSourceValidatorTest(TestCase):
-    def get_valid_data(self):
+    def get_valid_data(self, **kwargs):
         return {
-            "url": "https://www.google.com",
-            "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
-            "timeout_ms": 30000,
-            "method": UptimeSubscription.SupportedHTTPMethods.GET,
-            "headers": [],
-            "trace_sampling": False,
-            "body": None,
+            "url": kwargs.get("url", "https://www.google.com"),
+            "interval_seconds": kwargs.get(
+                "interval_seconds", UptimeSubscription.IntervalSeconds.ONE_MINUTE
+            ),
+            "timeout_ms": kwargs.get("timeout_ms", 30000),
+            "method": kwargs.get("method", UptimeSubscription.SupportedHTTPMethods.GET),
+            "headers": kwargs.get("headers", []),
+            "trace_sampling": kwargs.get("trace_sampling", False),
+            "body": kwargs.get("body", None),
         }
 
     def setUp(self):
@@ -65,30 +67,26 @@ class UptimeMonitorDataSourceValidatorTest(TestCase):
         assert validator.is_valid()
 
     def test_bad_interval(self):
-        data = self.get_valid_data()
-        data["interval_seconds"] = 3700
+        data = self.get_valid_data(interval_seconds=3700)
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
 
     def test_bad_method(self):
-        data = self.get_valid_data()
-        data["method"] = "GOT"
+        data = self.get_valid_data(method="GOT")
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
 
     def test_too_many_urls(self):
         for _ in range(0, 100):
-            UptimeSubscription.objects.create(
+            self.create_uptime_subscription(
                 url="https://www.google.com",
                 interval_seconds=3600,
                 timeout_ms=30000,
-                status=UptimeSubscription.Status.CREATING.value,
                 url_domain="google",
                 url_domain_suffix="com",
             )
 
-        data = self.get_valid_data()
-        data["url"] = "https://www.google.com"
+        data = self.get_valid_data(url="https://www.google.com")
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert "You cannot create any additional alerts for this domain" in str(
@@ -96,7 +94,6 @@ class UptimeMonitorDataSourceValidatorTest(TestCase):
         )
 
     def test_too_big_request(self):
-        data = self.get_valid_data()
-        data["body"] = "0" * 1000
+        data = self.get_valid_data(body="0" * 1000)
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
