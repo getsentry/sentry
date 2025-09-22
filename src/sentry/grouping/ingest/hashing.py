@@ -217,21 +217,44 @@ def get_or_create_grouphashes(
     grouping_config_id: str,
 ) -> list[GroupHash]:
     is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
-    grouphashes: list[GroupHash] = []
+    hash_list = list(hashes)
 
     if is_secondary:
         # The only utility of secondary hashes is to link new primary hashes to an existing group
         # via an existing grouphash. Secondary hashes which are new are therefore of no value, so
         # filter them out before creating grouphash records.
         existing_hashes = set(
-            GroupHash.objects.filter(project=project, hash__in=hashes).values_list(
+            GroupHash.objects.filter(project=project, hash__in=hash_list).values_list(
                 "hash", flat=True
             )
         )
-        hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
+        hash_list = [hash_value for hash_value in hash_list if hash_value in existing_hashes]
 
-    for hash_value in hashes:
-        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+    # Bulk fetch existing GroupHash objects
+    existing_grouphashes = {
+        gh.hash: gh for gh in GroupHash.objects.filter(project=project, hash__in=hash_list)
+    }
+
+    # Identify which hashes need to be created
+    existing_hash_set = set(existing_grouphashes.keys())
+    new_hashes = [h for h in hash_list if h not in existing_hash_set]
+
+    # Bulk create new GroupHash objects
+    if new_hashes:
+        new_grouphashes = [GroupHash(project=project, hash=hash_value) for hash_value in new_hashes]
+        GroupHash.objects.bulk_create(new_grouphashes, ignore_conflicts=True)
+
+        # Fetch the newly created objects (needed for metadata processing)
+        newly_created = {
+            gh.hash: gh for gh in GroupHash.objects.filter(project=project, hash__in=new_hashes)
+        }
+        existing_grouphashes.update(newly_created)
+
+    # Build result list in original order and handle metadata
+    grouphashes: list[GroupHash] = []
+    for hash_value in hash_list:
+        grouphash = existing_grouphashes[hash_value]
+        created = hash_value in new_hashes
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
