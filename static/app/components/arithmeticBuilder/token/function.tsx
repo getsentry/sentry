@@ -65,9 +65,7 @@ export function ArithmeticTokenFunction({
       state={'valid'}
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
-      {'('}
       <ArgumentsGrid rowRef={ref} item={item} state={state} token={token} />
-      {')'}
       <BaseGridCell {...gridCellProps}>
         <DeleteFunction token={token} />
       </BaseGridCell>
@@ -175,9 +173,11 @@ function ArgumentsGridList({
         if (!defined(attribute)) {
           return null;
         }
+
         const argument = {label: attribute.attribute, value: attribute.text};
         return (
           <BaseGridCell key={`${attribute.key}-${attribute.attribute}`}>
+            {index === 0 ? '(' : null}
             <InternalInput
               functionItem={functionItem}
               functionListState={functionListState}
@@ -192,6 +192,7 @@ function ArgumentsGridList({
               onArgumentsChange={onArgumentsChange}
             />
             {index < functionToken.attributes.length - 1 && ','}
+            {index === state.collection.size - 1 ? ')' : null}
           </BaseGridCell>
         );
       })}
