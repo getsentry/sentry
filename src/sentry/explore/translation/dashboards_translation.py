@@ -61,6 +61,9 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
             )
         )
 
+        dropped_cols = dropped_fields["selected_columns"]
+        dropped_equations = [dropped["equation"] for dropped in dropped_fields["equations"]]
+
         new_conditions = eap_query_parts["query"] or ""
         new_orderby = eap_query_parts["orderby"][0] if eap_query_parts["orderby"] else ""
 
@@ -77,7 +80,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
         equation_index = 0
         for old_index, field in enumerate(original_fields):
             is_selected_aggregate = selected_aggregate_field == field
-            if field in dropped_fields["selected_columns"] or field in dropped_fields["equations"]:
+            if field in dropped_cols or field in dropped_equations:
                 if is_selected_aggregate:
                     new_selected_aggregate = 0
                 continue
@@ -128,7 +131,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
         DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
         DashboardWidgetQuery.objects.bulk_create(new_widget_queries)
 
-    widget.changed_reason = {"reason": dropped_fields_info}
+    widget.changed_reason = dropped_fields_info
     widget.save()
 
     return widget

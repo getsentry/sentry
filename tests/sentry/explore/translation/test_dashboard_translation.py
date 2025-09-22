@@ -62,7 +62,12 @@ class DashboardTranslationTestCase(TestCase):
 
         assert transaction_widget.widget_snapshot
         assert transaction_widget.changed_reason is not None
-        assert "reason" in transaction_widget.changed_reason
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert dropped_fields["selected_columns"] == []
+        assert dropped_fields["equations"] == []
+        assert dropped_fields["orderby"] is None
 
         snapshot_queries = transaction_widget.widget_snapshot["queries"]
         assert len(snapshot_queries) == 1
@@ -112,7 +117,13 @@ class DashboardTranslationTestCase(TestCase):
 
         assert transaction_widget.widget_snapshot
         assert transaction_widget.changed_reason is not None
-        assert "reason" in transaction_widget.changed_reason
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert "total.count" in dropped_fields["selected_columns"]
+        assert dropped_fields["equations"] == []
+        assert len(dropped_fields["orderby"]) == 1
+        assert dropped_fields["orderby"][0]["orderby"] == "total.count"
 
         snapshot_queries = transaction_widget.widget_snapshot["queries"]
         assert len(snapshot_queries) == 1
@@ -186,7 +197,12 @@ class DashboardTranslationTestCase(TestCase):
 
         assert transaction_widget.widget_snapshot
         assert transaction_widget.changed_reason is not None
-        assert "reason" in transaction_widget.changed_reason
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert dropped_fields["selected_columns"] == []
+        assert dropped_fields["equations"] == []
+        assert dropped_fields["orderby"] == []
 
         snapshot_queries = transaction_widget.widget_snapshot["queries"]
         assert len(snapshot_queries) == 1
@@ -273,30 +289,16 @@ class DashboardTranslationTestCase(TestCase):
 
         assert transaction_widget.widget_snapshot
         assert transaction_widget.changed_reason is not None
-        assert "reason" in transaction_widget.changed_reason
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert dropped_fields["selected_columns"] == []
+        assert dropped_fields["equations"] == []
+        assert dropped_fields["orderby"] == []
 
         snapshot_queries = transaction_widget.widget_snapshot["queries"]
         assert len(snapshot_queries) == 1
         original_snapshot_query = snapshot_queries[0]
-        assert original_snapshot_query["fields"] == [
-            "transaction",
-            "equation|count_if(transaction.duration,less,300)",
-            "equation|count_if(transaction.duration,greater,300)",
-            "count_unique(user)",
-        ]
-        assert original_snapshot_query["conditions"] == ""
-        assert original_snapshot_query["aggregates"] == [
-            "equation|count_if(transaction.duration,less,300)",
-            "equation|count_if(transaction.duration,greater,300)",
-            "count_unique(user)",
-        ]
-        assert original_snapshot_query["columns"] == ["transaction"]
-        assert original_snapshot_query["fieldAliases"] == [
-            "Txn",
-            "Count Fast Txn",
-            "Count Slow Txn",
-            "Unique User",
-        ]
         assert original_snapshot_query["orderby"] == "-equation|count() / 100"
 
         new_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
@@ -306,22 +308,73 @@ class DashboardTranslationTestCase(TestCase):
         assert new_query is not None
         assert new_query.widget_id == transaction_widget.id
         assert new_query.order == 0
-
         assert new_query.fields == [
             "transaction",
             "equation|count_if(span.duration,less,300)",
             "equation|count_if(span.duration,greater,300)",
             "count_unique(user)",
         ]
-        assert new_query.conditions == "is_transaction:1"
-        assert new_query.aggregates == [
-            "equation|count_if(span.duration,less,300)",
-            "equation|count_if(span.duration,greater,300)",
-            "count_unique(user)",
-        ]
-        assert new_query.columns == ["transaction"]
-        assert new_query.field_aliases == ["Txn", "Count Fast Txn", "Count Slow Txn", "Unique User"]
         assert new_query.orderby == "-equation|count(span.duration) / 100"
+
+        assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
+
+    def test_drop_equations_alias_notation_orderby(self) -> None:
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        query = DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            fields=[
+                "transaction",
+                "equation|count_if(transaction.duration,less,300)",
+                "equation|count_if(transaction.duration,greater,300)",
+                "count_unique(user)",
+            ],
+            columns=["transaction"],
+            field_aliases=["Txn", "Count Fast Txn", "Count Slow Txn", "Unique User"],
+            aggregates=[
+                "equation|count_if(transaction.duration,less,300)",
+                "equation|count_if(transaction.duration,greater,300)",
+                "count_unique(user)",
+            ],
+            conditions="",
+            orderby="-equation|count() / total.count",
+            order=0,
+        )
+
+        translate_dashboard_widget(transaction_widget)
+        transaction_widget.refresh_from_db()
+
+        assert transaction_widget.widget_snapshot
+        assert transaction_widget.changed_reason is not None
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert dropped_fields["selected_columns"] == []
+        assert dropped_fields["equations"] == []
+        assert len(dropped_fields["orderby"]) == 1
+        assert "total.count" in dropped_fields["orderby"][0]["reason"]
+        assert dropped_fields["orderby"][0]["orderby"] == "-equation|count() / total.count"
+
+        snapshot_queries = transaction_widget.widget_snapshot["queries"]
+        assert len(snapshot_queries) == 1
+        original_snapshot_query = snapshot_queries[0]
+        assert original_snapshot_query["orderby"] == "-equation|count() / total.count"
+
+        new_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
+        assert new_queries.count() == 1
+
+        new_query = new_queries.first()
+        assert new_query is not None
+        assert new_query.widget_id == transaction_widget.id
+        assert new_query.order == 0
+        assert new_query.orderby == ""
 
         assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
 
@@ -350,7 +403,12 @@ class DashboardTranslationTestCase(TestCase):
 
         assert transaction_widget.widget_snapshot
         assert transaction_widget.changed_reason is not None
-        assert "reason" in transaction_widget.changed_reason
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert "count_web_vitals(lcp,300)" in dropped_fields["selected_columns"]
+        assert dropped_fields["equations"] == []
+        assert dropped_fields["orderby"] is None
 
         snapshot_queries = transaction_widget.widget_snapshot["queries"]
         assert len(snapshot_queries) == 1
@@ -381,5 +439,100 @@ class DashboardTranslationTestCase(TestCase):
         assert new_query.aggregates == ["count(span.duration)", "count_unique(user)"]
         assert new_query.columns == []
         assert new_query.selected_aggregate == 0
+
+        assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
+
+    def test_equations_dropped(self) -> None:
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        query = DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            fields=[
+                "equation|count_if(transaction.duration,less,300)",
+                "equation|count_if(transaction.duration,greater,300)",
+                "equation|count_if(transaction.duration,greater,300) / total.count",
+            ],
+            columns=[],
+            field_aliases=["Count Fast Txn", "Count Slow Txn", "Pct"],
+            aggregates=[
+                "equation|count_if(transaction.duration,less,300)",
+                "equation|count_if(transaction.duration,greater,300)",
+                "equation|count_if(transaction.duration,greater,300) / total.count",
+            ],
+            conditions="",
+            orderby="-equation[2]",
+            order=0,
+        )
+
+        translate_dashboard_widget(transaction_widget)
+        transaction_widget.refresh_from_db()
+
+        assert transaction_widget.widget_snapshot
+        assert transaction_widget.changed_reason is not None
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert dropped_fields["selected_columns"] == []
+        assert len(dropped_fields["equations"]) == 1
+        assert (
+            dropped_fields["equations"][0]["equation"]
+            == "equation|count_if(transaction.duration,greater,300) / total.count"
+        )
+        assert "total.count" in dropped_fields["equations"][0]["reason"]
+        assert len(dropped_fields["orderby"]) == 1
+        assert (
+            dropped_fields["orderby"][0]["orderby"]
+            == "-equation|count_if(transaction.duration,greater,300) / total.count"
+        )
+
+        snapshot_queries = transaction_widget.widget_snapshot["queries"]
+        assert len(snapshot_queries) == 1
+        original_snapshot_query = snapshot_queries[0]
+        assert original_snapshot_query["fields"] == [
+            "equation|count_if(transaction.duration,less,300)",
+            "equation|count_if(transaction.duration,greater,300)",
+            "equation|count_if(transaction.duration,greater,300) / total.count",
+        ]
+        assert original_snapshot_query["conditions"] == ""
+        assert original_snapshot_query["aggregates"] == [
+            "equation|count_if(transaction.duration,less,300)",
+            "equation|count_if(transaction.duration,greater,300)",
+            "equation|count_if(transaction.duration,greater,300) / total.count",
+        ]
+        assert original_snapshot_query["columns"] == []
+        assert original_snapshot_query["fieldAliases"] == [
+            "Count Fast Txn",
+            "Count Slow Txn",
+            "Pct",
+        ]
+        assert original_snapshot_query["orderby"] == "-equation[2]"
+
+        new_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
+        assert new_queries.count() == 1
+
+        new_query = new_queries.first()
+        assert new_query is not None
+        assert new_query.widget_id == transaction_widget.id
+        assert new_query.order == 0
+
+        assert new_query.fields == [
+            "equation|count_if(span.duration,less,300)",
+            "equation|count_if(span.duration,greater,300)",
+        ]
+        assert new_query.conditions == "is_transaction:1"
+        assert new_query.aggregates == [
+            "equation|count_if(span.duration,less,300)",
+            "equation|count_if(span.duration,greater,300)",
+        ]
+        assert new_query.columns == []
+        assert new_query.field_aliases == ["Count Fast Txn", "Count Slow Txn"]
+        assert new_query.orderby == ""
 
         assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
