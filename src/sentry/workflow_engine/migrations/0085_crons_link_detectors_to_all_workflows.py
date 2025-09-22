@@ -59,6 +59,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0084_crons_dedupe_workflows"),
+        ("monitors", "0009_backfill_monitor_detectors"),
     ]
 
     operations = [

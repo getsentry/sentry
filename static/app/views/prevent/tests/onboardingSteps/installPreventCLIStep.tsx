@@ -2,12 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface InstallPreventCLIStepProps {
@@ -16,23 +15,38 @@ interface InstallPreventCLIStepProps {
 
 type Method = 'pip' | 'binary';
 
-// TODO: confirm these platform choices
-type Platform = 'macOS' | 'Linux' | 'Windows';
+const PLATFORMS = {
+  macos: {label: 'MacOS', value: 'macos'},
+  windows: {label: 'Windows', value: 'windows.exe'},
+  linux_x86_64: {label: 'Linux x86_64', value: 'linux_x86_64'},
+  linux_arm64: {label: 'Linux Arm64', value: 'linux_arm64'},
+  alpine_arm64: {label: 'Alpine Linux Arm64', value: 'alpine_arm64'},
+  alpine_x86_64: {label: 'Alpine Linux x86_64', value: 'alpine_x86_64'},
+} as const;
+type Platform = keyof typeof PLATFORMS;
+const PLATFORM_OPTIONS = Object.values(PLATFORMS);
 
-const SNIPPET = `snippet still tbd`;
+const PIP_SNIPPET = `pip install sentry-prevent-cli
+sentry-prevent-cli upload --report-type test-results --token <SENTRY_PREVENT_TOKEN>`;
+
+const getBinarySnippet = (
+  platformSuffix: string
+) => `curl -LOs https://github.com/getsentry/prevent-cli/releases/latest/download/sentry-prevent-cli_${platformSuffix}
+chmod u+x sentry-prevent-cli_${platformSuffix}
+./sentry-prevent-cli_${platformSuffix} -v upload --report-type test-results --token <SENTRY_PREVENT_TOKEN>`;
 
 export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
   const [method, setMethod] = useState<Method>('pip');
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform>('macOS');
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform>('linux_arm64');
 
   const headerText = tct(
     'Step [step]: Install the [preventLink] to your CI environment',
     {
       step,
       preventLink: (
-        <Link to="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
+        <ExternalLink href="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
           {t('Sentry Prevent CLI')}
-        </Link>
+        </ExternalLink>
       ),
     }
   );
@@ -59,7 +73,7 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
                 )}
               </Paragraph>
               <CodeSnippet dark language="bash">
-                {SNIPPET}
+                {PIP_SNIPPET}
               </CodeSnippet>
               {CLILink}
             </Fragment>
@@ -73,18 +87,14 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
               </Paragraph>
               <StyledSelectControl
                 size="md"
-                options={[
-                  {label: 'macOS', value: 'macOS'},
-                  {label: 'Linux', value: 'linux'},
-                  {label: 'Windows', value: 'windows'},
-                ]}
+                options={PLATFORM_OPTIONS}
                 value={selectedPlatform}
                 onChange={(option: {value: Platform}) =>
                   setSelectedPlatform(option.value)
                 }
               />
               <CodeSnippet dark language="bash">
-                {SNIPPET}
+                {getBinarySnippet(selectedPlatform)}
               </CodeSnippet>
               {CLILink}
             </Fragment>
@@ -96,26 +106,26 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
 }
 
 const StyledSelectControl = styled(Select)`
-  width: 110px;
-  margin-bottom: ${space(1.5)};
+  width: 200px;
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const Paragraph = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const BottomParagraph = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const CLILink = (
   <BottomParagraph>
     {tct('Learn more about the [cliLink].', {
       cliLink: (
-        <Link to="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
+        <ExternalLink href="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
           {t('Sentry Prevent CLI')} <IconOpen size="xs" />
-        </Link>
+        </ExternalLink>
       ),
     })}
   </BottomParagraph>

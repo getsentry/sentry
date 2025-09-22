@@ -12,6 +12,7 @@ import {Text} from 'sentry/components/core/text';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -50,6 +51,9 @@ const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
 
 const MINUTE = 60;
 
+const DEFAULT_DOWNTIME_THRESHOLD = 3;
+const DEFAULT_RECOVERY_THRESHOLD = 1;
+
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
   MINUTE * 5,
@@ -76,6 +80,8 @@ function getFormDataFromRule(rule: UptimeRule) {
     timeoutMs: rule.timeoutMs,
     traceSampling: rule.traceSampling,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
+    recoveryThreshold: rule.recoveryThreshold,
+    downtimeThreshold: rule.downtimeThreshold,
   };
 }
 
@@ -295,6 +301,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <UptimeHeadersField
               name="headers"
               label={t('Headers')}
+              showHelpInTooltip={{isHoverable: true}}
+              help={t(
+                'Avoid adding sensitive credentials to headers as they are stored in plain text.'
+              )}
               flexibleControlStateSize
             />
             <TextareaField
@@ -346,6 +356,56 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               />
             )}
           </Observer>
+        </Configuration>
+        <AlertListItem>{t('Set thresholds')}</AlertListItem>
+        <ListItemSubText>
+          {t('Configure when an issue is created or resolved.')}
+        </ListItemSubText>
+        <Configuration>
+          <ConfigurationPanel>
+            <NumberField
+              name="downtimeThreshold"
+              min={1}
+              placeholder={t('Defaults to 3')}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('downtimeThreshold')) ||
+                  DEFAULT_DOWNTIME_THRESHOLD;
+                const downDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    downtime: <strong>{getDuration(downDuration)}</strong>,
+                  }
+                );
+              }}
+              label={t('Failure Tolerance')}
+              flexibleControlStateSize
+            />
+            <NumberField
+              name="recoveryThreshold"
+              min={1}
+              placeholder={t('Defaults to 1')}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('recoveryThreshold')) ||
+                  DEFAULT_RECOVERY_THRESHOLD;
+                const upDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue resolved after [threshold] consecutive successes (after [uptime] of recovered uptime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    uptime: <strong>{getDuration(upDuration)}</strong>,
+                  }
+                );
+              }}
+              label={t('Recovery Tolerance')}
+              flexibleControlStateSize
+            />
+          </ConfigurationPanel>
         </Configuration>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
         <ListItemSubText>
@@ -424,7 +484,7 @@ const Configuration = styled('div')`
 const ConfigurationPanel = styled(Panel)`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: fit-content(325px) 1fr;
   align-items: center;
 
   ${FieldWrapper} {

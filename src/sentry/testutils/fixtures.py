@@ -815,8 +815,8 @@ class Fixtures:
         uptime_status=UptimeStatus.OK,
         uptime_status_update_date: datetime | None = None,
         id: int | None = None,
-        recovery_threshold: int | None = None,
-        downtime_threshold: int | None = None,
+        recovery_threshold: int = DEFAULT_RECOVERY_THRESHOLD,
+        downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
     ) -> Detector:
         if project is None:
             project = self.project
@@ -871,16 +871,8 @@ class Fixtures:
             config={
                 "environment": env_name,
                 "mode": mode,
-                "recovery_threshold": (
-                    recovery_threshold
-                    if recovery_threshold is not None
-                    else DEFAULT_RECOVERY_THRESHOLD
-                ),
-                "downtime_threshold": (
-                    downtime_threshold
-                    if downtime_threshold is not None
-                    else DEFAULT_DOWNTIME_THRESHOLD
-                ),
+                "recovery_threshold": recovery_threshold,
+                "downtime_threshold": downtime_threshold,
             },
             workflow_condition_group=condition_group,
         )
