@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
-import {space} from 'sentry/styles/space';
 
 type Entry = {
   ref: HTMLElement;

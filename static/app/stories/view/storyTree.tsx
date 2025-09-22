@@ -6,7 +6,6 @@ import kebabCase from 'lodash/kebabCase';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -586,7 +585,7 @@ function File(props: {node: StoryTreeNode}) {
 
 const StoryList = styled('ul')`
   list-style-type: none;
-  padding-left: 16px;
+  padding-left: ${p => p.theme.space.xl};
 
   &:first-child {
     padding-left: 0;

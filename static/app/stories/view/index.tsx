@@ -6,7 +6,6 @@ import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -198,7 +197,7 @@ const StoryMainContainer = styled('div')`
     border-collapse: collapse;
     border-radius: ${p => p.theme.borderRadius};
     box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
-    margin-bottom: 32px;
+    margin-bottom: ${p => p.theme.space['3xl']};
 
     & thead {
       height: 36px;
@@ -254,7 +253,7 @@ const StoryMainContainer = styled('div')`
   }
 
   .expressive-code .frame {
-    margin-bottom: 32px;
+    margin-bottom: ${p => p.theme.space['3xl']};
     box-shadow: none;
     border: 1px solid #000000;
     pre {

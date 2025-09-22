@@ -6,7 +6,6 @@ import {Link} from 'sentry/components/core/link';
 import {Heading} from 'sentry/components/core/text';
 import {IconGithub, IconLink} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 import {StorySearch} from './storySearch';
 

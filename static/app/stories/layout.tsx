@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {Flex} from 'sentry/components/core/layout';
-import {space} from 'sentry/styles/space';
 
 export const SideBySide = styled(
   (props: {children: React.ReactNode; vertical?: boolean}) => {

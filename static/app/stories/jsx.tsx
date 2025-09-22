@@ -2,8 +2,6 @@ import type {ReactNode} from 'react';
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 interface JSXNodeProps {
   name: string;
   children?: ReactNode;

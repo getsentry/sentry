@@ -1,8 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 import type {StoryTreeNode} from './storyTree';
 import {inferFileCategory, StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';

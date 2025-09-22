@@ -9,7 +9,6 @@ import {IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 // eslint-disable-next-line no-restricted-imports -- We need to import theme as we want to locally scope the change
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {

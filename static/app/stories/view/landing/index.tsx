@@ -13,7 +13,6 @@ import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
-import {space} from 'sentry/styles/space';
 
 import {Colors, Icons, Typography} from './figures';
 
