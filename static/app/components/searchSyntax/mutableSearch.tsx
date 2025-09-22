@@ -9,7 +9,6 @@ import {
 } from './parser';
 import {getKeyName} from './utils';
 
-// TODO: Export when being used
 const EMPTY_OPTION_VALUE = '(empty)';
 
 // Hoisted regular expressions to avoid recompilation in hot paths
@@ -29,7 +28,6 @@ const ALLOWED_WILDCARD_FIELDS = new Set<string>([
   'transaction',
 ]);
 
-// TODO: Export when being used
 enum TokenType {
   OPERATOR = 0,
   FILTER = 1,
@@ -226,28 +224,21 @@ function parseToFlatTokens(query: string): Token[] {
   return consolidateUnquotedValues(tokens);
 }
 
+const KEY_TOKENS = [
+  ParserToken.KEY_SIMPLE,
+  ParserToken.KEY_EXPLICIT_TAG,
+  ParserToken.KEY_AGGREGATE,
+  ParserToken.KEY_EXPLICIT_NUMBER_TAG,
+  ParserToken.KEY_EXPLICIT_STRING_TAG,
+  ParserToken.KEY_EXPLICIT_FLAG,
+  ParserToken.KEY_EXPLICIT_NUMBER_FLAG,
+  ParserToken.KEY_EXPLICIT_STRING_FLAG,
+] as const;
+
 function isKeyToken(
   token: TokenResult<ParserToken>
-): token is TokenResult<
-  | ParserToken.KEY_SIMPLE
-  | ParserToken.KEY_EXPLICIT_TAG
-  | ParserToken.KEY_AGGREGATE
-  | ParserToken.KEY_EXPLICIT_NUMBER_TAG
-  | ParserToken.KEY_EXPLICIT_STRING_TAG
-  | ParserToken.KEY_EXPLICIT_FLAG
-  | ParserToken.KEY_EXPLICIT_NUMBER_FLAG
-  | ParserToken.KEY_EXPLICIT_STRING_FLAG
-> {
-  return (
-    token.type === ParserToken.KEY_SIMPLE ||
-    token.type === ParserToken.KEY_EXPLICIT_TAG ||
-    token.type === ParserToken.KEY_AGGREGATE ||
-    token.type === ParserToken.KEY_EXPLICIT_NUMBER_TAG ||
-    token.type === ParserToken.KEY_EXPLICIT_STRING_TAG ||
-    token.type === ParserToken.KEY_EXPLICIT_FLAG ||
-    token.type === ParserToken.KEY_EXPLICIT_NUMBER_FLAG ||
-    token.type === ParserToken.KEY_EXPLICIT_STRING_FLAG
-  );
+): token is TokenResult<(typeof KEY_TOKENS)[number]> {
+  return KEY_TOKENS.includes(token.type as (typeof KEY_TOKENS)[number]);
 }
 
 function consolidateUnquotedValues(tokens: Token[]): Token[] {
