@@ -498,10 +498,8 @@ def rpc_get_replay_summary_logs(
 
     project = Project.objects.get(id=project_id)
 
-    (result) = get_replay_range(
-        organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
-    )
-    (start, end) = default_start_end_dates() if not result else result
+    # Last 90 days. We don't support date filters in /summarize/.
+    start, end = default_start_end_dates()
 
     # Fetch the replay's error and trace IDs from the replay_id.
     snuba_response = query_replay_instance(
@@ -524,6 +522,12 @@ def rpc_get_replay_summary_logs(
 
     error_ids = processed_response[0].get("error_ids", [])
     trace_ids = processed_response[0].get("trace_ids", [])
+
+    (result) = get_replay_range(
+        organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
+    )
+    if result:
+        start, end = result
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(
