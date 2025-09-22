@@ -152,7 +152,7 @@ export function SizeCompareMainContent() {
   if (!mainArtifactComparison) {
     return (
       <BuildError
-        title={t('Main artifact comparison not found')}
+        title={t('Comparison data not found')}
         message={t(
           'Something went wrong and we weren’t able to find the correct comparison.'
         )}
