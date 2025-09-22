@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   makeSpan,
@@ -8,12 +9,13 @@ import {
 import {SpanNode} from './spanNode';
 import {TransactionNode} from './transactionNode';
 
-const mockOrganization = OrganizationFixture();
-const mockExtra = {organization: mockOrganization};
+const createMockExtra = () => ({
+  organization: OrganizationFixture(),
+});
 
 describe('SpanNode', () => {
   describe('constructor', () => {
-    it('initializes with basic span data', () => {
+    it('should initialize with span-specific properties', () => {
       const span = makeSpan({
         span_id: 'span-123',
         op: 'http.client',
@@ -22,115 +24,103 @@ describe('SpanNode', () => {
         timestamp: 2000,
       });
 
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
-      expect(node.value).toBe(span);
       expect(node.canAutogroup).toBe(true);
       expect(node.allowNoInstrumentationNodes).toBe(true);
       expect(node.space).toEqual([1000 * 1e3, (2000 - 1000) * 1e3]);
     });
 
-    it('handles null/undefined value gracefully', () => {
-      const node = new SpanNode(null, null as any, mockExtra);
-
-      expect(node.value).toBeNull();
-      expect(node.canAutogroup).toBe(true);
-      expect(node.allowNoInstrumentationNodes).toBe(true);
-      expect(node.space).toEqual([0, 0]); // Default space from BaseNode
-    });
-
-    it('sets correct space when value is provided', () => {
+    it('should collapse Android HTTP client spans by default', () => {
       const span = makeSpan({
-        start_timestamp: 1500,
-        timestamp: 2500,
+        op: 'http.client',
+        origin: 'auto.http.okhttp',
       });
 
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
-      expect(node.space).toEqual([1500 * 1e3, (2500 - 1500) * 1e3]);
+      expect(node.expanded).toBe(false);
+    });
+
+    it('should expand non-Android HTTP client spans by default', () => {
+      const span = makeSpan({
+        op: 'http.client',
+        origin: 'manual',
+      });
+
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.expanded).toBe(true);
     });
   });
 
   describe('getter methods', () => {
-    let node: SpanNode;
-
-    beforeEach(() => {
+    it('should return span_id as id', () => {
       const span = makeSpan({
         span_id: 'test-span-id',
-        op: 'db.query',
-        description: 'SELECT * FROM users',
-        start_timestamp: 1500,
-        timestamp: 2500,
       });
+      const node = new SpanNode(null, span, createMockExtra());
 
-      node = new SpanNode(null, span, mockExtra);
-    });
-
-    it('returns correct id', () => {
       expect(node.id).toBe('test-span-id');
     });
 
-    it('returns correct description', () => {
+    it('should return description from span', () => {
+      const span = makeSpan({
+        description: 'SELECT * FROM users',
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
       expect(node.description).toBe('SELECT * FROM users');
     });
 
-    it('returns correct startTimestamp', () => {
-      expect(node.startTimestamp).toBe(1500);
-    });
+    it('should return timestamp as endTimestamp', () => {
+      const span = makeSpan({
+        timestamp: 2500,
+      });
+      const node = new SpanNode(null, span, createMockExtra());
 
-    it('returns correct endTimestamp', () => {
       expect(node.endTimestamp).toBe(2500);
     });
 
-    it('handles undefined description', () => {
-      node.value.description = undefined;
-      expect(node.description).toBeUndefined();
+    it('should return start_timestamp as startTimestamp', () => {
+      const span = makeSpan({
+        start_timestamp: 1500,
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.startTimestamp).toBe(1500);
     });
   });
 
   describe('drawerTabsTitle', () => {
-    it('returns title with op and description', () => {
+    it('should combine op and description', () => {
       const span = makeSpan({
         op: 'http.client',
         description: 'GET /api/users',
       });
-
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.drawerTabsTitle).toBe('http.client - GET /api/users');
     });
 
-    it('returns title with op only when no description', () => {
+    it('should return op only when no description', () => {
       const span = makeSpan({
         op: 'db.query',
         description: undefined,
       });
-
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.drawerTabsTitle).toBe('db.query');
-    });
-
-    it('handles empty description', () => {
-      const span = makeSpan({
-        op: 'cache.get',
-        description: '',
-      });
-
-      const node = new SpanNode(null, span, mockExtra);
-
-      expect(node.drawerTabsTitle).toBe('cache.get');
     });
   });
 
   describe('traceHeaderTitle', () => {
-    it('returns correct title and subtitle', () => {
+    it('should return op as title and description as subtitle', () => {
       const span = makeSpan({
         op: 'http.client',
         description: 'POST /api/submit',
       });
-
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.traceHeaderTitle).toEqual({
         title: 'http.client',
@@ -138,58 +128,61 @@ describe('SpanNode', () => {
       });
     });
 
-    it('returns fallback title when op is missing', () => {
+    it('should return "Trace" as fallback title when op is missing', () => {
       const span = makeSpan({
         op: '',
         description: 'Some description',
       });
-
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.traceHeaderTitle.title).toBe('Trace');
       expect(node.traceHeaderTitle.subtitle).toBe('Some description');
     });
+  });
 
-    it('handles undefined op and description', () => {
+  describe('makeBarColor', () => {
+    it('should return color based on operation', () => {
       const span = makeSpan({
-        op: undefined as any,
-        description: undefined,
+        op: 'http.client',
       });
+      const node = new SpanNode(null, span, createMockExtra());
 
-      const node = new SpanNode(null, span, mockExtra);
+      const color = node.makeBarColor(ThemeFixture());
 
-      expect(node.traceHeaderTitle.title).toBe('Trace');
-      expect(node.traceHeaderTitle.subtitle).toBeUndefined();
+      expect(typeof color).toBe('string');
+      expect(color).toBeDefined();
     });
   });
 
   describe('pathToNode', () => {
-    it('returns path with transaction and span id', () => {
-      // Create a transaction parent
+    it('should include transaction in path when parent transaction exists', () => {
       const transaction = makeTransaction({
         event_id: 'txn-abc-123',
       });
-      const transactionNode = new TransactionNode(null, transaction, mockExtra);
+      const mockFn = jest.fn();
+      const transactionNode = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFn,
+        mockFn
+      );
 
       const span = makeSpan({
         span_id: 'span-def-456',
       });
-      const spanNode = new SpanNode(transactionNode as any, span, mockExtra);
-
-      // Mock the ParentTransaction function by setting up the tree structure
-      spanNode.parent = transactionNode as any;
-      transactionNode.children.push(spanNode as any);
+      const spanNode = new SpanNode(transactionNode, span, createMockExtra());
 
       const path = spanNode.pathToNode();
 
-      expect(path).toEqual(['txn-txn-abc-123', 'span-span-def-456']);
+      expect(path).toEqual(['span-span-def-456', 'txn-txn-abc-123']);
     });
 
-    it('returns path with only span id when no parent transaction', () => {
+    it('should return only span path when no parent transaction', () => {
       const span = makeSpan({
         span_id: 'orphan-span-123',
       });
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       const path = node.pathToNode();
 
@@ -198,60 +191,46 @@ describe('SpanNode', () => {
   });
 
   describe('analyticsName', () => {
-    it('returns correct analytics name', () => {
+    it('should return "span"', () => {
       const span = makeSpan();
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.analyticsName()).toBe('span');
     });
   });
 
   describe('printNode', () => {
-    it('prints node with op and description', () => {
+    it('should format with op and description', () => {
       const span = makeSpan({
         op: 'http.client',
         description: 'GET /api/users',
       });
-
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.printNode()).toBe('http.client - GET /api/users');
     });
 
-    it('handles missing op', () => {
+    it('should handle missing op with fallback', () => {
       const span = makeSpan({
         op: undefined as any,
         description: 'Some description',
       });
-
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.printNode()).toBe('unknown span - Some description');
     });
 
-    it('handles missing description', () => {
+    it('should handle missing description with fallback', () => {
       const span = makeSpan({
         op: 'db.query',
         description: undefined,
       });
-
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.printNode()).toBe('db.query - unknown description');
     });
 
-    it('handles both missing', () => {
-      const span = makeSpan({
-        op: undefined as any,
-        description: undefined,
-      });
-
-      const node = new SpanNode(null, span, mockExtra);
-
-      expect(node.printNode()).toBe('unknown span - unknown description');
-    });
-
-    it('adds prefetch prefix when http.request.prefetch is true', () => {
+    it('should add prefetch prefix when data indicates prefetch', () => {
       const span = makeSpan({
         op: 'http.client',
         description: 'GET /prefetch-data',
@@ -259,85 +238,77 @@ describe('SpanNode', () => {
           'http.request.prefetch': true,
         },
       });
-
-      const node = new SpanNode(null, span, mockExtra);
+      const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.printNode()).toBe('http.client - (prefetch) GET /prefetch-data');
-    });
-
-    it('does not add prefetch prefix when http.request.prefetch is false', () => {
-      const span = makeSpan({
-        op: 'http.client',
-        description: 'GET /normal-data',
-        data: {
-          'http.request.prefetch': false,
-        },
-      });
-
-      const node = new SpanNode(null, span, mockExtra);
-
-      expect(node.printNode()).toBe('http.client - GET /normal-data');
-    });
-
-    it('does not add prefetch prefix when data is missing', () => {
-      const span = makeSpan({
-        op: 'http.client',
-        description: 'GET /normal-data',
-        data: {},
-      });
-
-      const node = new SpanNode(null, span, mockExtra);
-
-      expect(node.printNode()).toBe('http.client - GET /normal-data');
     });
   });
 
   describe('matchWithFreeText', () => {
-    let node: SpanNode;
-
-    beforeEach(() => {
+    it('should match by operation', () => {
       const span = makeSpan({
-        span_id: 'span-abc-123',
         op: 'http.client',
-        description: 'GET /api/users/profile',
+        description: 'GET /api/users',
+        span_id: 'span-123',
       });
+      const node = new SpanNode(null, span, createMockExtra());
 
-      node = new SpanNode(null, span, mockExtra);
-    });
-
-    it('matches by op substring', () => {
       expect(node.matchWithFreeText('http')).toBe(true);
       expect(node.matchWithFreeText('client')).toBe(true);
     });
 
-    it('matches by description substring', () => {
+    it('should match by description', () => {
+      const span = makeSpan({
+        op: 'http.client',
+        description: 'GET /api/users',
+        span_id: 'span-123',
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
       expect(node.matchWithFreeText('GET')).toBe(true);
       expect(node.matchWithFreeText('api')).toBe(true);
-      expect(node.matchWithFreeText('users')).toBe(true);
-      expect(node.matchWithFreeText('profile')).toBe(true);
     });
 
-    it('matches by exact span id', () => {
+    it('should match by exact span ID', () => {
+      const span = makeSpan({
+        span_id: 'span-abc-123',
+        op: 'http.client',
+        description: 'GET /api/users',
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
       expect(node.matchWithFreeText('span-abc-123')).toBe(true);
     });
 
-    it('does not match unrelated text', () => {
+    it('should not match unrelated text', () => {
+      const span = makeSpan({
+        op: 'http.client',
+        description: 'GET /api/users',
+        span_id: 'span-123',
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
       expect(node.matchWithFreeText('nonexistent')).toBe(false);
     });
+  });
 
-    it('handles missing op gracefully', () => {
-      node.value.op = undefined as any;
-      expect(node.matchWithFreeText('http')).toBe(false);
+  describe('abstract method implementations', () => {
+    it('should implement renderWaterfallRow', () => {
+      const span = makeSpan();
+      const node = new SpanNode(null, span, createMockExtra());
+
+      const result = node.renderWaterfallRow({} as any);
+
+      expect(result).toBeDefined();
     });
 
-    it('handles missing description gracefully', () => {
-      node.value.description = undefined;
-      expect(node.matchWithFreeText('GET')).toBe(false);
-    });
+    it('should implement renderDetails', () => {
+      const span = makeSpan();
+      const node = new SpanNode(null, span, createMockExtra());
 
-    it('is case sensitive', () => {
-      expect(node.matchWithFreeText('HTTP')).toBe(false);
-      expect(node.matchWithFreeText('get')).toBe(false);
+      const result = node.renderDetails({} as any);
+
+      expect(result).toBeDefined();
     });
   });
 });

@@ -4,10 +4,8 @@ import {uuid4} from '@sentry/core';
 import {t} from 'sentry/locale';
 import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/missingInstrumentation';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isMissingInstrumentationNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceMissingInstrumentationRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceMissingInstrumentationRow';
@@ -58,7 +56,7 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
 
   pathToNode(): TraceTree.NodePath[] {
     const path: TraceTree.NodePath[] = [];
-    const closestTransaction = this.findParent(p => isTransactionNode(p as any));
+    const closestTransaction = this.findParent(p => isTransactionNode(p));
 
     path.push(`ms-${this.id}`);
 
@@ -83,7 +81,10 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     return (
       <TraceMissingInstrumentationRow
         {...props}
-        node={props.node as TraceTreeNode<TraceTree.MissingInstrumentationSpan>}
+        // Won't need this cast once we use BaseNode type for props.node
+        node={
+          props.node as unknown as TraceTreeNode<TraceTree.MissingInstrumentationSpan>
+        }
       />
     );
   }
@@ -91,11 +92,13 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    if (!isMissingInstrumentationNode(props.node)) {
-      return null;
-    }
-
-    return <MissingInstrumentationNodeDetails {...props} node={props.node} />;
+    // Won't need this cast once we use BaseNode type for props.node
+    return (
+      <MissingInstrumentationNodeDetails
+        {...props}
+        node={props.node as unknown as MissingInstrumentationNode}
+      />
+    );
   }
 
   matchById(id: string): boolean {

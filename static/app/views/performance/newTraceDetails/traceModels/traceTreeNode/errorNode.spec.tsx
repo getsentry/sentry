@@ -57,6 +57,62 @@ describe('ErrorNode', () => {
       expect(node.errors.has(value)).toBe(true);
     });
 
+    it('should add itself to parent children and sort chronologically', () => {
+      const extra = createMockExtra();
+      const parentValue = makeTraceError({
+        event_id: 'parent',
+        title: 'Parent Error',
+        timestamp: 1000,
+      });
+      const error1Value = makeTraceError({
+        event_id: 'error1',
+        title: 'Error 1',
+        timestamp: 1002,
+      });
+      const error2Value = makeTraceError({
+        event_id: 'error2',
+        title: 'Error 2',
+        timestamp: 1001,
+      });
+
+      const parent = new ErrorNode(null, parentValue, extra);
+      const error1 = new ErrorNode(parent, error1Value, extra);
+      const error2 = new ErrorNode(parent, error2Value, extra);
+
+      // Children should be sorted by timestamp (chronological order)
+      expect(parent.children).toHaveLength(2);
+      expect(parent.children[0]).toBe(error2); // Earlier timestamp (1001)
+      expect(parent.children[1]).toBe(error1); // Later timestamp (1002)
+    });
+
+    it('should handle different timestamp formats', () => {
+      const extra = createMockExtra();
+      const parentValue = makeTraceError({
+        event_id: 'parent',
+        title: 'Parent Error',
+        timestamp: 1000,
+      });
+      const errorValue1 = makeTraceError({
+        event_id: 'error1',
+        title: 'Error with timestamp',
+        timestamp: 1500,
+      });
+      const errorValue2 = makeTraceError({
+        event_id: 'error2',
+        title: 'Error without timestamp',
+        timestamp: undefined,
+      });
+
+      const parent = new ErrorNode(null, parentValue, extra);
+      const error1 = new ErrorNode(parent, errorValue1, extra);
+      const error2 = new ErrorNode(parent, errorValue2, extra);
+
+      expect(error1.space).toEqual([1500000, 0]);
+      expect(error2.space).toEqual([0, 0]);
+      expect(parent.children).toContain(error1);
+      expect(parent.children).toContain(error2);
+    });
+
     it('should handle TraceError without timestamp', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
@@ -70,6 +126,20 @@ describe('ErrorNode', () => {
       expect(node.space).toEqual([0, 0]); // default space when no timestamp
     });
 
+    it('should handle EAPError space calculation', () => {
+      const extra = createMockExtra();
+      const value = makeEAPError({
+        event_id: 'test-eap-error',
+        description: 'EAP Error Description',
+        level: 'warning',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      // EAPError doesn't have timestamp, so should use base space calculation
+      expect(node.space).toEqual([0, 0]);
+    });
+
     it('should handle null value gracefully', () => {
       const extra = createMockExtra();
 
@@ -78,6 +148,7 @@ describe('ErrorNode', () => {
       expect(node.parent).toBeNull();
       expect(node.value).toBeNull();
       expect(node.extra).toBe(extra);
+      expect(node.errors.size).toBe(0);
     });
 
     it('should add error to errors set', () => {
@@ -92,10 +163,38 @@ describe('ErrorNode', () => {
       expect(node.errors.size).toBe(1);
       expect(Array.from(node.errors)).toContain(value);
     });
+
+    it('should handle parent with existing children', () => {
+      const extra = createMockExtra();
+      const parentValue = makeTraceError({
+        event_id: 'parent',
+        title: 'Parent Error',
+        timestamp: 1000,
+      });
+      const existingChildValue = makeTraceError({
+        event_id: 'existing',
+        title: 'Existing Child',
+        timestamp: 1100,
+      });
+      const newChildValue = makeTraceError({
+        event_id: 'new',
+        title: 'New Child',
+        timestamp: 1050,
+      });
+
+      const parent = new ErrorNode(null, parentValue, extra);
+      const existingChild = new ErrorNode(parent, existingChildValue, extra);
+      const newChild = new ErrorNode(parent, newChildValue, extra);
+
+      // New child should be inserted in correct chronological position
+      expect(parent.children).toHaveLength(2);
+      expect(parent.children[0]).toBe(newChild); // Earlier timestamp (1050)
+      expect(parent.children[1]).toBe(existingChild); // Later timestamp (1100)
+    });
   });
 
-  describe('getter methods', () => {
-    it('should return correct description for TraceError with title', () => {
+  describe('description getter', () => {
+    it('should prioritize title over message for TraceError', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Database Connection Error',
@@ -108,7 +207,7 @@ describe('ErrorNode', () => {
       expect(node.description).toBe('Database Connection Error');
     });
 
-    it('should return correct description for TraceError with message fallback', () => {
+    it('should fallback to message when title is undefined for TraceError', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: undefined,
@@ -121,7 +220,46 @@ describe('ErrorNode', () => {
       expect(node.description).toBe('Could not connect to database');
     });
 
-    it('should return correct description for EAPError', () => {
+    it('should fallback to message when title is empty string for TraceError', () => {
+      const extra = createMockExtra();
+      const value = makeTraceError({
+        title: '',
+        message: 'Could not connect to database',
+        level: 'error',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.description).toBe('Could not connect to database');
+    });
+
+    it('should return empty string when both title and message are empty for TraceError', () => {
+      const extra = createMockExtra();
+      const value = makeTraceError({
+        title: '',
+        message: '',
+        level: 'error',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.description).toBe('');
+    });
+
+    it('should return undefined when both title and message are undefined for TraceError', () => {
+      const extra = createMockExtra();
+      const value = makeTraceError({
+        title: undefined,
+        message: undefined,
+        level: 'error',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.description).toBeUndefined();
+    });
+
+    it('should return description for EAPError', () => {
       const extra = createMockExtra();
       const value = makeEAPError({
         description: 'EAP Error Description',
@@ -133,6 +271,32 @@ describe('ErrorNode', () => {
       expect(node.description).toBe('EAP Error Description');
     });
 
+    it('should handle empty description for EAPError', () => {
+      const extra = createMockExtra();
+      const value = makeEAPError({
+        description: '',
+        level: 'warning',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.description).toBe('');
+    });
+
+    it('should handle undefined description for EAPError', () => {
+      const extra = createMockExtra();
+      const value = makeEAPError({
+        description: undefined,
+        level: 'warning',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.description).toBeUndefined();
+    });
+  });
+
+  describe('getter methods', () => {
     it('should return correct traceHeaderTitle', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
@@ -145,6 +309,22 @@ describe('ErrorNode', () => {
       expect(node.traceHeaderTitle).toEqual({
         title: 'Trace',
         subtitle: 'Test Error',
+      });
+    });
+
+    it('should return correct traceHeaderTitle with undefined description', () => {
+      const extra = createMockExtra();
+      const value = makeTraceError({
+        title: undefined,
+        message: undefined,
+        level: 'error',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.traceHeaderTitle).toEqual({
+        title: 'Trace',
+        subtitle: undefined,
       });
     });
 
@@ -165,6 +345,19 @@ describe('ErrorNode', () => {
       const value = makeTraceError({
         title: undefined,
         message: undefined,
+        level: 'error',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.drawerTabsTitle).toBe('Error');
+    });
+
+    it('should return fallback drawerTabsTitle with empty description', () => {
+      const extra = createMockExtra();
+      const value = makeTraceError({
+        title: '',
+        message: '',
         level: 'error',
       });
 
@@ -381,7 +574,7 @@ describe('ErrorNode', () => {
       },
     };
 
-    it('should return red for error level', () => {
+    it('should return red300 for error level (overriding theme.level.error)', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Test Error',
@@ -390,10 +583,11 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
+      // ErrorNode specifically returns red300 for errors, not theme.level.error
       expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
     });
 
-    it('should return red for fatal level', () => {
+    it('should return red300 for fatal level (overriding theme.level.fatal)', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Test Error',
@@ -402,6 +596,7 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
+      // ErrorNode specifically returns red300 for fatal, not theme.level.fatal
       expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
     });
 
@@ -429,11 +624,23 @@ describe('ErrorNode', () => {
       expect(node.makeBarColor(mockTheme as Theme)).toBe('#3742fa');
     });
 
-    it('should return red fallback for unknown level', () => {
+    it('should return theme level color for sample', () => {
+      const extra = createMockExtra();
+      const value = makeTraceError({
+        title: 'Test Sample',
+        level: 'sample',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+    });
+
+    it('should return red fallback for level not in theme.level', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Test Error',
-        level: 'unknown' as any,
+        level: 'custom-level' as any,
       });
 
       const node = new ErrorNode(null, value, extra);
@@ -453,86 +660,49 @@ describe('ErrorNode', () => {
       expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
     });
 
-    it('should handle EAPError levels', () => {
+    it('should handle EAPError levels correctly', () => {
       const extra = createMockExtra();
-      const value = makeEAPError({
+      const warningValue = makeEAPError({
         description: 'EAP Warning',
         level: 'warning',
       });
-
-      const node = new ErrorNode(null, value, extra);
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ffa502');
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should handle TraceError with empty strings', () => {
-      const extra = createMockExtra();
-      const value = makeTraceError({
-        title: '',
-        message: '',
+      const errorValue = makeEAPError({
+        description: 'EAP Error',
         level: 'error',
       });
 
-      const node = new ErrorNode(null, value, extra);
+      const warningNode = new ErrorNode(null, warningValue, extra);
+      const errorNode = new ErrorNode(null, errorValue, extra);
 
-      expect(node.description).toBe('');
-      expect(node.drawerTabsTitle).toBe('Error'); // fallback
+      expect(warningNode.makeBarColor(mockTheme as Theme)).toBe('#ffa502');
+      expect(errorNode.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b'); // red300 for error
     });
 
-    it('should handle EAPError with empty description', () => {
+    it('should prioritize red300 over theme.level for error/fatal', () => {
+      const themeWithDifferentColors = {
+        red300: '#custom-red',
+        level: {
+          error: '#different-error-color',
+          fatal: '#different-fatal-color',
+        },
+      } as Theme;
+
       const extra = createMockExtra();
-      const value = makeEAPError({
-        description: '',
-        level: 'warning',
-      });
-
-      const node = new ErrorNode(null, value, extra);
-
-      expect(node.description).toBe('');
-      expect(node.drawerTabsTitle).toBe('Error'); // fallback
-    });
-
-    it('should handle missing event_id gracefully', () => {
-      const extra = createMockExtra();
-      const value = makeTraceError({
-        event_id: undefined,
+      const errorValue = makeTraceError({
         title: 'Test Error',
         level: 'error',
       });
-
-      const node = new ErrorNode(null, value, extra);
-
-      expect(node.pathToNode()).toEqual(['error-undefined']);
-      expect(node.printNode()).toBe('error'); // falls back to level
-    });
-
-    it('should handle TraceError with only message', () => {
-      const extra = createMockExtra();
-      const value = makeTraceError({
-        title: undefined,
-        message: 'Only message available',
-        level: 'info',
+      const fatalValue = makeTraceError({
+        title: 'Test Fatal',
+        level: 'fatal',
       });
 
-      const node = new ErrorNode(null, value, extra);
+      const errorNode = new ErrorNode(null, errorValue, extra);
+      const fatalNode = new ErrorNode(null, fatalValue, extra);
 
-      expect(node.description).toBe('Only message available');
-      expect(node.drawerTabsTitle).toBe('Only message available');
-    });
-
-    it('should handle space calculation with zero timestamp', () => {
-      const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-        timestamp: 0,
-      });
-
-      const node = new ErrorNode(null, value, extra);
-
-      expect(node.space).toEqual([0, 0]);
+      // Should use red300, not theme.level colors
+      expect(errorNode.makeBarColor(themeWithDifferentColors)).toBe('#custom-red');
+      expect(fatalNode.makeBarColor(themeWithDifferentColors)).toBe('#custom-red');
     });
   });
 });

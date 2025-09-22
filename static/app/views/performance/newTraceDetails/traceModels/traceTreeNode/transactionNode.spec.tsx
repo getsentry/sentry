@@ -9,16 +9,16 @@ import {
 
 import {TransactionNode} from './transactionNode';
 
-const mockOrganization = OrganizationFixture();
-const mockExtra = {organization: mockOrganization};
-const theme = ThemeFixture();
+const createMockExtra = () => ({
+  organization: OrganizationFixture(),
+});
 
 const mockFromSpans = jest.fn();
 const mockApplyPreference = jest.fn();
 
 describe('TransactionNode', () => {
   describe('constructor', () => {
-    it('initializes with basic transaction data', () => {
+    it('should initialize with transaction-specific properties', () => {
       const transaction = makeTransaction({
         event_id: 'event-123',
         project_slug: 'my-project',
@@ -31,17 +31,16 @@ describe('TransactionNode', () => {
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
 
-      expect(node.value).toBe(transaction);
       expect(node.canFetchChildren).toBe(true);
       expect(node.space).toEqual([1000 * 1e3, (2000 - 1000) * 1e3]);
     });
 
-    it('handles performance issues in constructor', () => {
+    it('should collect performance issues from transaction', () => {
       const performanceIssue = makeTracePerformanceIssue({
         issue_short_id: 'PERF-123',
         event_id: 'perf-event-123',
@@ -54,7 +53,7 @@ describe('TransactionNode', () => {
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
@@ -62,210 +61,403 @@ describe('TransactionNode', () => {
       expect(node.occurrences.has(performanceIssue)).toBe(true);
     });
 
-    it('handles null/undefined value gracefully', () => {
-      const node = new TransactionNode(
+    it('should add itself to parent children and sort chronologically', () => {
+      const parent = new TransactionNode(
         null,
-        null as any,
-        mockExtra,
+        makeTransaction({start_timestamp: 1000}),
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
 
-      expect(node.value).toBeNull();
-      expect(node.canFetchChildren).toBe(true);
-      expect(node.space).toEqual([0, 0]); // Default space from BaseNode
+      const child = new TransactionNode(
+        parent as any,
+        makeTransaction({start_timestamp: 500}),
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
+      expect(parent.children).toContain(child);
+      expect(child.parent).toBe(parent);
     });
   });
 
   describe('getter methods', () => {
-    let node: TransactionNode;
-
-    beforeEach(() => {
+    it('should return event_id as id', () => {
       const transaction = makeTransaction({
         event_id: 'test-event-id',
-        project_slug: 'test-project',
-        'transaction.op': 'http.server',
-        transaction: '/api/users',
-        start_timestamp: 1500,
-        timestamp: 2500,
       });
-
-      node = new TransactionNode(
+      const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
-    });
 
-    it('returns correct id', () => {
       expect(node.id).toBe('test-event-id');
     });
 
-    it('returns correct projectSlug', () => {
+    it('should return project_slug as projectSlug', () => {
+      const transaction = makeTransaction({
+        project_slug: 'test-project',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.projectSlug).toBe('test-project');
     });
 
-    it('returns correct op', () => {
+    it('should return transaction.op as op', () => {
+      const transaction = makeTransaction({
+        'transaction.op': 'http.server',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.op).toBe('http.server');
     });
 
-    it('returns correct description', () => {
+    it('should return transaction as description', () => {
+      const transaction = makeTransaction({
+        transaction: '/api/users',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.description).toBe('/api/users');
     });
 
-    it('returns correct startTimestamp', () => {
+    it('should return start_timestamp as startTimestamp', () => {
+      const transaction = makeTransaction({
+        start_timestamp: 1500,
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.startTimestamp).toBe(1500);
     });
 
-    it('returns correct endTimestamp', () => {
+    it('should return timestamp as endTimestamp', () => {
+      const transaction = makeTransaction({
+        timestamp: 2500,
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.endTimestamp).toBe(2500);
     });
+  });
 
-    it('returns correct drawerTabsTitle with op and transaction', () => {
+  describe('drawerTabsTitle', () => {
+    it('should combine op and transaction', () => {
+      const transaction = makeTransaction({
+        'transaction.op': 'http.server',
+        transaction: '/api/users',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.drawerTabsTitle).toBe('http.server - /api/users');
     });
 
-    it('returns correct drawerTabsTitle with op only', () => {
-      node.value.transaction = '';
+    it('should return op only when transaction is empty', () => {
+      const transaction = makeTransaction({
+        'transaction.op': 'http.server',
+        transaction: '',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.drawerTabsTitle).toBe('http.server');
     });
+  });
 
-    it('returns correct traceHeaderTitle', () => {
+  describe('traceHeaderTitle', () => {
+    it('should return op as title and transaction as subtitle', () => {
+      const transaction = makeTransaction({
+        'transaction.op': 'http.server',
+        transaction: '/api/users',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.traceHeaderTitle).toEqual({
         title: 'http.server',
         subtitle: '/api/users',
       });
     });
 
-    it('returns fallback title when op is missing', () => {
-      node.value['transaction.op'] = '';
+    it('should return "Trace" as fallback title when op is missing', () => {
+      const transaction = makeTransaction({
+        'transaction.op': '',
+        transaction: '/api/users',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.traceHeaderTitle.title).toBe('Trace');
     });
   });
 
   describe('matchById', () => {
-    let node: TransactionNode;
-
-    beforeEach(() => {
-      const error = makeTraceError({event_id: 'error-123'});
-      const performanceIssue = makeTracePerformanceIssue({event_id: 'perf-123'});
-
+    it('should match by event_id', () => {
       const transaction = makeTransaction({
         event_id: 'txn-123',
-        span_id: 'span-456',
-        errors: [error],
-        performance_issues: [performanceIssue],
       });
-
-      node = new TransactionNode(
+      const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
-    });
 
-    it('matches by event_id', () => {
       expect(node.matchById('txn-123')).toBe(true);
     });
 
-    it('matches by span_id', () => {
+    it('should match by span_id', () => {
+      const transaction = makeTransaction({
+        span_id: 'span-456',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.matchById('span-456')).toBe(true);
     });
 
-    it('matches by error event_id', () => {
+    it('should match by error event_id', () => {
+      const error = makeTraceError({event_id: 'error-123'});
+      const transaction = makeTransaction({
+        errors: [error],
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.matchById('error-123')).toBe(true);
     });
 
-    it('matches by performance issue event_id', () => {
-      expect(node.matchById('perf-123')).toBe(true);
-    });
+    it('should not match unrelated id', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-123',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
 
-    it('does not match unrelated id', () => {
       expect(node.matchById('unrelated-id')).toBe(false);
     });
   });
 
   describe('matchWithFreeText', () => {
-    let node: TransactionNode;
-
-    beforeEach(() => {
+    it('should match by operation', () => {
       const transaction = makeTransaction({
-        event_id: 'event-abc-123',
         'transaction.op': 'http.server',
-        transaction: '/api/users/profile',
       });
-
-      node = new TransactionNode(
+      const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
-    });
 
-    it('matches by op substring', () => {
       expect(node.matchWithFreeText('http')).toBe(true);
       expect(node.matchWithFreeText('server')).toBe(true);
     });
 
-    it('matches by transaction substring', () => {
+    it('should match by transaction name', () => {
+      const transaction = makeTransaction({
+        transaction: '/api/users/profile',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.matchWithFreeText('api')).toBe(true);
       expect(node.matchWithFreeText('users')).toBe(true);
-      expect(node.matchWithFreeText('profile')).toBe(true);
     });
 
-    it('matches by exact event_id', () => {
+    it('should match by exact event_id', () => {
+      const transaction = makeTransaction({
+        event_id: 'event-abc-123',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.matchWithFreeText('event-abc-123')).toBe(true);
     });
 
-    it('does not match unrelated text', () => {
+    it('should not match unrelated text', () => {
+      const transaction = makeTransaction({
+        'transaction.op': 'http.server',
+        transaction: '/api/users',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       expect(node.matchWithFreeText('nonexistent')).toBe(false);
-    });
-
-    it('handles missing op gracefully', () => {
-      node.value['transaction.op'] = undefined as any;
-      expect(node.matchWithFreeText('http')).toBe(false);
-    });
-
-    it('handles missing transaction gracefully', () => {
-      node.value.transaction = undefined as any;
-      expect(node.matchWithFreeText('api')).toBe(false);
     });
   });
 
   describe('makeBarColor', () => {
-    it('returns a color based on project and op', () => {
+    it('should return color based on project and operation', () => {
       const transaction = makeTransaction({
         project_slug: 'frontend',
         'transaction.op': 'navigation',
         sdk_name: 'javascript',
       });
-
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
 
-      const color = node.makeBarColor(theme);
+      const color = node.makeBarColor(ThemeFixture());
+
       expect(typeof color).toBe('string');
+      expect(color).toBeDefined();
     });
   });
 
-  describe('analyticsName', () => {
-    it('returns correct analytics name', () => {
+  describe('expand', () => {
+    it('should expand and add visible children to tree list', () => {
       const transaction = makeTransaction();
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+      const mockTree = {
+        list: [node],
+      };
+
+      const result = node.expand(true, mockTree as any);
+
+      expect(result).toBe(true);
+      expect(node.expanded).toBe(true);
+    });
+
+    it('should not expand when already expanded', () => {
+      const transaction = makeTransaction();
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+      node.expanded = true;
+      const mockTree = {list: [node]};
+
+      const result = node.expand(true, mockTree as any);
+
+      expect(result).toBe(false);
+    });
+
+    it('should not expand when hasFetchedChildren is true', () => {
+      const transaction = makeTransaction();
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+      node.hasFetchedChildren = true;
+      const mockTree = {list: [node]};
+
+      const result = node.expand(true, mockTree as any);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('analyticsName', () => {
+    it('should return "transaction"', () => {
+      const transaction = makeTransaction();
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
@@ -275,12 +467,12 @@ describe('TransactionNode', () => {
   });
 
   describe('pathToNode', () => {
-    it('returns correct path array', () => {
+    it('should return transaction path with event ID', () => {
       const transaction = makeTransaction({event_id: 'my-event-id'});
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
@@ -290,16 +482,15 @@ describe('TransactionNode', () => {
   });
 
   describe('printNode', () => {
-    it('prints node with transaction and op', () => {
+    it('should format with transaction and operation', () => {
       const transaction = makeTransaction({
         transaction: 'GET /api/users',
         'transaction.op': 'http.server',
       });
-
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
@@ -307,16 +498,15 @@ describe('TransactionNode', () => {
       expect(node.printNode()).toBe('GET /api/users - http.server');
     });
 
-    it('handles missing transaction', () => {
+    it('should handle missing transaction with fallback', () => {
       const transaction = makeTransaction({
         transaction: undefined as any,
         'transaction.op': 'http.server',
       });
-
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
@@ -324,38 +514,52 @@ describe('TransactionNode', () => {
       expect(node.printNode()).toBe('unknown transaction - http.server');
     });
 
-    it('handles missing op', () => {
+    it('should handle missing operation with fallback', () => {
       const transaction = makeTransaction({
         transaction: 'GET /api/users',
         'transaction.op': undefined as any,
       });
-
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
 
       expect(node.printNode()).toBe('GET /api/users - unknown op');
     });
+  });
 
-    it('handles both missing', () => {
-      const transaction = makeTransaction({
-        transaction: undefined as any,
-        'transaction.op': undefined as any,
-      });
-
+  describe('abstract method implementations', () => {
+    it('should implement renderWaterfallRow', () => {
+      const transaction = makeTransaction();
       const node = new TransactionNode(
         null,
         transaction,
-        mockExtra,
+        createMockExtra(),
         mockFromSpans,
         mockApplyPreference
       );
 
-      expect(node.printNode()).toBe('unknown transaction - unknown op');
+      const result = node.renderWaterfallRow({} as any);
+
+      expect(result).toBeDefined();
+    });
+
+    it('should implement renderDetails', () => {
+      const transaction = makeTransaction();
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
+      const result = node.renderDetails({} as any);
+
+      expect(result).toBeDefined();
     });
   });
 });

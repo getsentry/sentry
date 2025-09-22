@@ -1,5 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -176,15 +177,6 @@ describe('BaseNode', () => {
       const node = new TestNode(null, value, extra);
 
       expect(node.id).toBe('test-event-id');
-    });
-
-    it('should return undefined for id if not present', () => {
-      const extra = createMockExtra();
-      const value = createMockValue({event_id: undefined});
-
-      const node = new TestNode(null, value, extra);
-
-      expect(node.id).toBeUndefined();
     });
 
     it('should return correct op from value', () => {
@@ -364,6 +356,95 @@ describe('BaseNode', () => {
         event_id: 'occurrence-1',
       } as TraceTree.TraceOccurrence);
       expect(nodeWithOccurrences.hasIssues).toBe(true);
+    });
+
+    it('should return correct maxIssueSeverity based on error levels', () => {
+      const extra = createMockExtra();
+
+      // Node with no errors should return 'default'
+      const nodeWithoutErrors = new TestNode(
+        null,
+        createMockValue({event_id: 'test-id'}),
+        extra
+      );
+      expect(nodeWithoutErrors.maxIssueSeverity).toBe('default');
+
+      // Node with error level should return 'error'
+      const nodeWithError = new TestNode(
+        null,
+        createMockValue({event_id: 'test-id'}),
+        extra
+      );
+      nodeWithError.errors.add({
+        issue_id: 1,
+        event_id: 'error-1',
+        level: 'error',
+      } as TraceTree.TraceErrorIssue);
+      expect(nodeWithError.maxIssueSeverity).toBe('error');
+
+      // Node with fatal level should return 'fatal'
+      const nodeWithFatal = new TestNode(
+        null,
+        createMockValue({event_id: 'test-id'}),
+        extra
+      );
+      nodeWithFatal.errors.add({
+        issue_id: 1,
+        event_id: 'fatal-1',
+        level: 'fatal',
+      } as TraceTree.TraceErrorIssue);
+      expect(nodeWithFatal.maxIssueSeverity).toBe('fatal');
+
+      // Node with warning level should return 'default' (warning not prioritized)
+      const nodeWithWarning = new TestNode(
+        null,
+        createMockValue({event_id: 'test-id'}),
+        extra
+      );
+      nodeWithWarning.errors.add({
+        issue_id: 1,
+        event_id: 'warning-1',
+        level: 'warning',
+      } as TraceTree.TraceErrorIssue);
+      expect(nodeWithWarning.maxIssueSeverity).toBe('default');
+
+      // Node with mixed levels should prioritize error/fatal
+      const nodeWithMixed = new TestNode(
+        null,
+        createMockValue({event_id: 'test-id'}),
+        extra
+      );
+      nodeWithMixed.errors.add({
+        issue_id: 1,
+        event_id: 'warning-1',
+        level: 'warning',
+      } as TraceTree.TraceErrorIssue);
+      nodeWithMixed.errors.add({
+        issue_id: 2,
+        event_id: 'error-1',
+        level: 'error',
+      } as TraceTree.TraceErrorIssue);
+      expect(nodeWithMixed.maxIssueSeverity).toBe('error');
+    });
+
+    it('should cache maxIssueSeverity result', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test-id'}), extra);
+
+      node.errors.add({
+        issue_id: 1,
+        event_id: 'error-1',
+        level: 'fatal',
+      } as TraceTree.TraceErrorIssue);
+
+      // First call should compute and cache the result
+      const firstCall = node.maxIssueSeverity;
+      expect(firstCall).toBe('fatal');
+
+      // Second call should return cached result
+      const secondCall = node.maxIssueSeverity;
+      expect(secondCall).toBe('fatal');
+      expect(secondCall).toBe(firstCall); // Should be the same reference
     });
   });
 
@@ -565,7 +646,7 @@ describe('BaseNode', () => {
         title: 'Trace Header Title',
         subtitle: 'GET /api/users',
       });
-      expect(node.makeBarColor({blue300: '#blue'} as any)).toBe('#blue');
+      expect(node.makeBarColor(ThemeFixture())).toBe(ThemeFixture().blue300);
       expect(node.printNode()).toBe('Print Node(test-id)');
       expect(node.analyticsName()).toBe('test');
 
@@ -616,14 +697,6 @@ describe('BaseNode', () => {
         expect(found).toBe(child2);
       });
 
-      it('should find self when matching predicate', () => {
-        const extra = createMockExtra();
-        const node = new TestNode(null, createMockValue({event_id: 'target'}), extra);
-
-        const found = node.findChild(n => n.id === 'target');
-        expect(found).toBe(node);
-      });
-
       it('should find deeply nested child', () => {
         const extra = createMockExtra();
         const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
@@ -649,26 +722,6 @@ describe('BaseNode', () => {
 
         const found = parent.findChild(node => node.id === 'nonexistent');
         expect(found).toBeNull();
-      });
-
-      it('should find first matching child when multiple matches exist', () => {
-        const extra = createMockExtra();
-        const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
-        const child1 = new TestNode(
-          parent,
-          createMockValue({event_id: 'child1', op: 'http.request'}),
-          extra
-        );
-        const child2 = new TestNode(
-          parent,
-          createMockValue({event_id: 'child2', op: 'http.request'}),
-          extra
-        );
-
-        parent.children = [child1, child2];
-
-        const found = parent.findChild(node => node.op === 'http.request');
-        expect(found).toBe(parent); // Should find self first since traversal starts with self
       });
 
       it('should handle complex tree with multiple branches', () => {
@@ -723,26 +776,6 @@ describe('BaseNode', () => {
         expect(found).toContain(child1);
         expect(found).toContain(child3);
         expect(found).not.toContain(child2);
-      });
-
-      it('should include self when matching predicate', () => {
-        const extra = createMockExtra();
-        const node = new TestNode(
-          null,
-          createMockValue({event_id: 'target', op: 'http.request'}),
-          extra
-        );
-        const child = new TestNode(
-          node,
-          createMockValue({event_id: 'child', op: 'db.query'}),
-          extra
-        );
-
-        node.children = [child];
-
-        const found = node.findAllChildren(n => n.op === 'http.request');
-        expect(found).toHaveLength(1);
-        expect(found).toContain(node);
       });
 
       it('should find all nodes in complex tree structure', () => {
@@ -805,7 +838,7 @@ describe('BaseNode', () => {
     });
 
     describe('forEachChild', () => {
-      it('should visit all nodes including self', () => {
+      it('should visit all nodes', () => {
         const extra = createMockExtra();
         const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
         const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
@@ -818,8 +851,7 @@ describe('BaseNode', () => {
           if (node.id) visitedIds.push(node.id);
         });
 
-        expect(visitedIds).toHaveLength(3);
-        expect(visitedIds).toContain('parent');
+        expect(visitedIds).toHaveLength(2);
         expect(visitedIds).toContain('child1');
         expect(visitedIds).toContain('child2');
       });
@@ -839,7 +871,7 @@ describe('BaseNode', () => {
           if (node.id) visitedIds.push(node.id);
         });
 
-        expect(visitedIds).toEqual(['root', 'sibling', 'level1', 'level2']);
+        expect(visitedIds).toEqual(['sibling', 'level1', 'level2']);
       });
 
       it('should handle callback that modifies state', () => {
@@ -849,6 +881,8 @@ describe('BaseNode', () => {
         const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
 
         parent.children = [child1, child2];
+        child1.parent = parent;
+        child2.parent = parent;
 
         let visitCount = 0;
         const nodeDepths: number[] = [];
@@ -860,23 +894,11 @@ describe('BaseNode', () => {
           nodeDepths.push(node.depth);
         });
 
-        expect(visitCount).toBe(3);
-        expect(nodeDepths).toEqual([1, 2, 3]);
-        expect(parent.depth).toBe(1);
-        expect(child2.depth).toBe(2);
-        expect(child1.depth).toBe(3);
-      });
-
-      it('should work with empty tree', () => {
-        const extra = createMockExtra();
-        const node = new TestNode(null, createMockValue({event_id: 'lonely'}), extra);
-
-        let visitCount = 0;
-        node.forEachChild(() => {
-          visitCount++;
-        });
-
-        expect(visitCount).toBe(1); // Should visit self
+        expect(visitCount).toBe(2);
+        expect(nodeDepths).toEqual([1, 2]);
+        expect(parent.depth).toBeUndefined();
+        expect(child2.depth).toBe(1);
+        expect(child1.depth).toBe(2);
       });
     });
 
@@ -1083,6 +1105,435 @@ describe('BaseNode', () => {
     });
   });
 
+  describe('isLastChild', () => {
+    it('should return false when node has no parent', () => {
+      const extra = createMockExtra();
+      const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+
+      expect(root.isLastChild()).toBe(false);
+    });
+
+    it('should return true when node is the last visible child', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+      const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
+      const lastChild = new TestNode(parent, createMockValue({event_id: 'last'}), extra);
+
+      parent.children = [child1, child2, lastChild];
+      parent.expanded = true;
+
+      expect(lastChild.isLastChild()).toBe(true);
+      expect(child1.isLastChild()).toBe(false);
+      expect(child2.isLastChild()).toBe(false);
+    });
+
+    it('should return false when node is not the last visible child', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+      const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
+
+      parent.children = [child1, child2];
+      parent.expanded = true;
+
+      expect(child1.isLastChild()).toBe(false);
+      expect(child2.isLastChild()).toBe(true);
+    });
+
+    it('should consider nested visible children when determining last child', () => {
+      const extra = createMockExtra();
+      const grandparent = new TestNode(
+        null,
+        createMockValue({event_id: 'grandparent'}),
+        extra
+      );
+      const parent1 = new TestNode(
+        grandparent,
+        createMockValue({event_id: 'parent1'}),
+        extra
+      );
+      const parent2 = new TestNode(
+        grandparent,
+        createMockValue({event_id: 'parent2'}),
+        extra
+      );
+      const child = new TestNode(parent2, createMockValue({event_id: 'child'}), extra);
+
+      grandparent.children = [parent1, parent2];
+      parent2.children = [child];
+      grandparent.expanded = true;
+      parent2.expanded = true;
+
+      // child should be the last visible child of grandparent's visible children
+      expect(child.isLastChild()).toBe(true);
+      expect(parent2.isLastChild()).toBe(false);
+      expect(parent1.isLastChild()).toBe(false);
+    });
+  });
+
+  describe('hasVisibleChildren', () => {
+    it('should return false when node has no children', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'leaf'}), extra);
+
+      expect(node.hasVisibleChildren()).toBe(false);
+    });
+
+    it('should return false when node is collapsed', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child = new TestNode(parent, createMockValue({event_id: 'child'}), extra);
+
+      parent.children = [child];
+      parent.expanded = false;
+
+      expect(parent.hasVisibleChildren()).toBe(false);
+    });
+
+    it('should return true when node is expanded and has children', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child = new TestNode(parent, createMockValue({event_id: 'child'}), extra);
+
+      parent.children = [child];
+      parent.expanded = true;
+
+      expect(parent.hasVisibleChildren()).toBe(true);
+    });
+
+    it('should return true when node has nested visible children', () => {
+      const extra = createMockExtra();
+      const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+      const parent = new TestNode(root, createMockValue({event_id: 'parent'}), extra);
+      const child = new TestNode(parent, createMockValue({event_id: 'child'}), extra);
+
+      root.children = [parent];
+      parent.children = [child];
+      root.expanded = true;
+      parent.expanded = true;
+
+      expect(root.hasVisibleChildren()).toBe(true);
+      expect(parent.hasVisibleChildren()).toBe(true);
+      expect(child.hasVisibleChildren()).toBe(false);
+    });
+  });
+
+  describe('expand method', () => {
+    const createMockTraceTree = () => ({
+      list: [] as TestNode[],
+    });
+
+    it('should expand node and add visible children to tree list', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+      const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
+
+      parent.children = [child1, child2];
+      parent.expanded = false;
+
+      const tree = createMockTraceTree();
+      tree.list = [parent];
+
+      const result = parent.expand(true, tree as any);
+
+      expect(result).toBe(true);
+      expect(parent.expanded).toBe(true);
+      expect(tree.list).toHaveLength(3);
+      expect(tree.list).toContain(child1);
+      expect(tree.list).toContain(child2);
+    });
+
+    it('should collapse node and remove visible children from tree list', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child1 = new TestNode(parent, createMockValue({event_id: 'child1'}), extra);
+      const child2 = new TestNode(parent, createMockValue({event_id: 'child2'}), extra);
+
+      parent.children = [child1, child2];
+      parent.expanded = true;
+
+      const tree = createMockTraceTree();
+      tree.list = [parent, child1, child2];
+
+      const result = parent.expand(false, tree as any);
+
+      expect(result).toBe(true);
+      expect(parent.expanded).toBe(false);
+      expect(tree.list).toHaveLength(1);
+      expect(tree.list).toContain(parent);
+      expect(tree.list).not.toContain(child1);
+      expect(tree.list).not.toContain(child2);
+    });
+
+    it('should return false when trying to expand already expanded node', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      parent.expanded = true;
+
+      const tree = createMockTraceTree();
+      tree.list = [parent];
+
+      const result = parent.expand(true, tree as any);
+
+      expect(result).toBe(false);
+      expect(parent.expanded).toBe(true);
+    });
+
+    it('should return false when trying to collapse already collapsed node', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      parent.expanded = false;
+
+      const tree = createMockTraceTree();
+      tree.list = [parent];
+
+      const result = parent.expand(false, tree as any);
+
+      expect(result).toBe(false);
+      expect(parent.expanded).toBe(false);
+    });
+
+    it('should return false when node has already fetched children', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      parent.expanded = false;
+      parent.hasFetchedChildren = true;
+
+      const tree = createMockTraceTree();
+      tree.list = [parent];
+
+      const result = parent.expand(true, tree as any);
+
+      expect(result).toBe(false);
+      expect(parent.expanded).toBe(false);
+    });
+
+    it('should invalidate node and children after expansion', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child = new TestNode(parent, createMockValue({event_id: 'child'}), extra);
+
+      parent.children = [child];
+      parent.expanded = false;
+      parent.depth = 1;
+      parent.connectors = [1, 2];
+      child.depth = 2;
+      child.connectors = [2, 3];
+
+      const tree = createMockTraceTree();
+      tree.list = [parent];
+
+      parent.expand(true, tree as any);
+
+      expect(parent.depth).toBeUndefined();
+      expect(parent.connectors).toBeUndefined();
+      expect(child.depth).toBeUndefined();
+      expect(child.connectors).toBeUndefined();
+    });
+
+    it('should handle nested expansion correctly', () => {
+      const extra = createMockExtra();
+      const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+      const parent = new TestNode(root, createMockValue({event_id: 'parent'}), extra);
+      const child = new TestNode(parent, createMockValue({event_id: 'child'}), extra);
+
+      root.children = [parent];
+      parent.children = [child];
+      root.expanded = false;
+      parent.expanded = true;
+
+      const tree = createMockTraceTree();
+      tree.list = [root];
+
+      root.expand(true, tree as any);
+
+      // Should include parent and child since parent is expanded
+      expect(tree.list).toHaveLength(3);
+      expect(tree.list).toContain(root);
+      expect(tree.list).toContain(parent);
+      expect(tree.list).toContain(child);
+    });
+  });
+
+  describe('reparent functionality', () => {
+    it('should initialize reparent_reason as null by default', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.reparent_reason).toBeNull();
+    });
+
+    it('should allow setting reparent_reason', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.reparent_reason = 'pageload server handler';
+
+      expect(node.reparent_reason).toBe('pageload server handler');
+    });
+
+    it('should handle reparent_reason in parent-child relationships', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child = new TestNode(parent, createMockValue({event_id: 'child'}), extra);
+
+      child.reparent_reason = 'pageload server handler';
+
+      expect(child.parent).toBe(parent);
+      expect(child.reparent_reason).toBe('pageload server handler');
+      expect(parent.reparent_reason).toBeNull();
+    });
+  });
+
+  describe('boolean flags and properties', () => {
+    it('should initialize boolean flags with correct defaults', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.canFetchChildren).toBe(false);
+      expect(node.hasFetchedChildren).toBe(false);
+      expect(node.expanded).toBe(true);
+      expect(node.allowNoInstrumentationNodes).toBe(false);
+      expect(node.canAutogroup).toBe(false);
+    });
+
+    it('should allow modifying boolean flags', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.canFetchChildren = true;
+      node.hasFetchedChildren = true;
+      node.expanded = false;
+      node.allowNoInstrumentationNodes = true;
+      node.canAutogroup = true;
+
+      expect(node.canFetchChildren).toBe(true);
+      expect(node.hasFetchedChildren).toBe(true);
+      expect(node.expanded).toBe(false);
+      expect(node.allowNoInstrumentationNodes).toBe(true);
+      expect(node.canAutogroup).toBe(true);
+    });
+
+    it('should correctly track fetchStatus states', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.fetchStatus).toBe('idle');
+
+      node.fetchStatus = 'loading';
+      expect(node.fetchStatus).toBe('loading');
+
+      node.fetchStatus = 'resolved';
+      expect(node.fetchStatus).toBe('resolved');
+
+      node.fetchStatus = 'error';
+      expect(node.fetchStatus).toBe('error');
+    });
+  });
+
+  describe('complex tree visibility scenarios', () => {
+    it('should handle deep nesting with mixed expansion states', () => {
+      const extra = createMockExtra();
+      const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+      const level1 = new TestNode(root, createMockValue({event_id: 'level1'}), extra);
+      const level2a = new TestNode(level1, createMockValue({event_id: 'level2a'}), extra);
+      const level2b = new TestNode(level1, createMockValue({event_id: 'level2b'}), extra);
+      const level3 = new TestNode(level2a, createMockValue({event_id: 'level3'}), extra);
+
+      root.children = [level1];
+      level1.children = [level2a, level2b];
+      level2a.children = [level3];
+
+      // Mixed expansion states
+      root.expanded = true;
+      level1.expanded = true;
+      level2a.expanded = false; // This should hide level3
+      level2b.expanded = true;
+
+      const visibleChildren = root.visibleChildren;
+      expect(visibleChildren).toContain(level1);
+      expect(visibleChildren).toContain(level2a);
+      expect(visibleChildren).toContain(level2b);
+      expect(visibleChildren).not.toContain(level3); // Hidden due to level2a being collapsed
+    });
+
+    it('should handle circular reference prevention in visible children calculation', () => {
+      const extra = createMockExtra();
+      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
+      const child = new TestNode(parent, createMockValue({event_id: 'child'}), extra);
+
+      parent.children = [child];
+      parent.expanded = true;
+
+      // This should not cause infinite recursion
+      const visibleChildren = parent.visibleChildren;
+      expect(visibleChildren).toHaveLength(1);
+      expect(visibleChildren[0]).toBe(child);
+    });
+
+    it('should correctly calculate visible children with multiple branches', () => {
+      const extra = createMockExtra();
+      const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+      const branch1 = new TestNode(root, createMockValue({event_id: 'branch1'}), extra);
+      const branch2 = new TestNode(root, createMockValue({event_id: 'branch2'}), extra);
+      const leaf1a = new TestNode(branch1, createMockValue({event_id: 'leaf1a'}), extra);
+      const leaf1b = new TestNode(branch1, createMockValue({event_id: 'leaf1b'}), extra);
+      const leaf2 = new TestNode(branch2, createMockValue({event_id: 'leaf2'}), extra);
+
+      root.children = [branch1, branch2];
+      branch1.children = [leaf1a, leaf1b];
+      branch2.children = [leaf2];
+
+      root.expanded = true;
+      branch1.expanded = true;
+      branch2.expanded = false; // leaf2 should be hidden
+
+      const visibleChildren = root.visibleChildren;
+      expect(visibleChildren).toHaveLength(4); // branch1, leaf1a, leaf1b, branch2
+      expect(visibleChildren).toContain(branch1);
+      expect(visibleChildren).toContain(branch2);
+      expect(visibleChildren).toContain(leaf1a);
+      expect(visibleChildren).toContain(leaf1b);
+      expect(visibleChildren).not.toContain(leaf2);
+    });
+  });
+
+  describe('connector and depth management', () => {
+    it('should initialize depth and connectors as undefined', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.depth).toBeUndefined();
+      expect(node.connectors).toBeUndefined();
+    });
+
+    it('should allow setting depth and connectors', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.depth = 5;
+      node.connectors = [1, 2, 3, 4];
+
+      expect(node.depth).toBe(5);
+      expect(node.connectors).toEqual([1, 2, 3, 4]);
+    });
+
+    it('should clear depth and connectors when invalidated', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.depth = 10;
+      node.connectors = [5, 6, 7];
+
+      node.invalidate();
+
+      expect(node.depth).toBeUndefined();
+      expect(node.connectors).toBeUndefined();
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle null/undefined values gracefully', () => {
       const extra = createMockExtra();
@@ -1124,6 +1575,44 @@ describe('BaseNode', () => {
 
       expect(node.errors.size).toBe(0);
       expect(node.occurrences.size).toBe(0);
+    });
+
+    it('should handle malformed timestamp values', () => {
+      const extra = createMockExtra();
+      const value = createMockValue({
+        event_id: 'test-id',
+        start_timestamp: 'invalid' as any,
+        end_timestamp: 'invalid' as any,
+      });
+
+      const node = new TestNode(null, value, extra);
+
+      expect(node.space).toEqual([0, 0]);
+    });
+
+    it('should handle extremely large trees without performance issues', () => {
+      const extra = createMockExtra();
+      const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+
+      // Create a tree with many children
+      const children: TestNode[] = [];
+      for (let i = 0; i < 1000; i++) {
+        const child = new TestNode(
+          root,
+          createMockValue({event_id: `child-${i}`}),
+          extra
+        );
+        children.push(child);
+      }
+      root.children = children;
+      root.expanded = true;
+
+      const start = performance.now();
+      const visibleChildren = root.visibleChildren;
+      const end = performance.now();
+
+      expect(visibleChildren).toHaveLength(1000);
+      expect(end - start).toBeLessThan(100); // Should complete within 100ms
     });
   });
 });

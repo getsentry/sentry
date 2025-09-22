@@ -37,6 +37,7 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
     return (
       <TraceSpanRow
         {...props}
+        // Won't need this cast once we use BaseNode type for props.node
         node={this as unknown as TraceTreeNode<TraceTree.UptimeCheckTiming>}
       />
     );
@@ -48,21 +49,18 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
     return (
       <UptimeTimingDetails
         {...props}
+        // Won't need this cast once we use BaseNode type for props.node
         node={this as unknown as TraceTreeNode<TraceTree.UptimeCheckTiming>}
       />
     );
   }
 
   matchWithFreeText(query: string): boolean {
-    if (this.value.description?.toLowerCase().includes(query.toLowerCase())) {
-      return true;
-    }
-
-    if (this.value.op && this.value.op.toLowerCase().includes(query.toLowerCase())) {
-      return true;
-    }
-
-    return false;
+    return (
+      this.value.description?.includes(query) ||
+      this.op?.includes(query) ||
+      this.id === query
+    );
   }
 
   makeBarColor(theme: Theme): string {

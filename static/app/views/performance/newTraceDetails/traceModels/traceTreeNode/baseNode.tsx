@@ -108,7 +108,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
    */
   extra: TraceTreeNodeExtra | null;
 
-  // TODO Abdullah Khan: Replace the type of traceNode with TraceNode type once we have it
+  /**
+   * The maximum severity of the node's issues.
+   */
+  private _max_severity: keyof Theme['level'] | undefined;
+
   constructor(parent: BaseNode | null, value: T, extra: TraceTreeNodeExtra | null) {
     this.parent = parent;
     this.value = value;
@@ -182,9 +186,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.value && 'description' in this.value ? this.value.description : undefined;
   }
 
-  /**
-   * The start timestamp of the node in seconds.
-   */
   get startTimestamp(): number | undefined {
     return this.value && 'start_timestamp' in this.value
       ? this.value.start_timestamp
@@ -266,6 +267,21 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   get directChildren(): BaseNode[] {
     return this.children;
+  }
+
+  get maxIssueSeverity(): keyof Theme['level'] {
+    if (this._max_severity) {
+      return this._max_severity;
+    }
+
+    for (const error of this.errors) {
+      if (error.level === 'error' || error.level === 'fatal') {
+        this._max_severity = error.level;
+        return this.maxIssueSeverity;
+      }
+    }
+
+    return 'default';
   }
 
   isLastChild(): boolean {

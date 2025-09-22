@@ -37,6 +37,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   ) {
     super(parent, value, extra);
 
+    this.expanded = false;
     this.extra = extra;
     this._fromSpans = fromSpans;
     this._applyPreferences = applyPreferences;
@@ -153,6 +154,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return (
       <TraceTransactionRow
         {...props}
+        // Won't need this cast once we use BaseNode type for props.node
         node={props.node as TraceTreeNode<TraceTree.Transaction>}
       />
     );
@@ -164,6 +166,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return (
       <TransactionNodeDetails
         {...props}
+        // Won't need this cast once we use BaseNode type for props.node
         node={props.node as TraceTreeNode<TraceTree.Transaction>}
       />
     );

@@ -12,7 +12,6 @@ import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/tr
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
-import {traceChronologicalSort} from './utils';
 
 export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   constructor(
@@ -25,7 +24,6 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     timingNodes.forEach(timingNode => this.children.push(timingNode));
 
     this.parent?.children.push(this);
-    this.parent?.children.sort(traceChronologicalSort);
   }
 
   _createTimingNodes(): UptimeCheckTimingNode[] {
@@ -143,7 +141,8 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     return (
       <TraceSpanRow
         {...props}
-        node={props.node as TraceTreeNode<TraceTree.UptimeCheck>}
+        // Won't need this cast once we use BaseNode type for props.node
+        node={props.node as unknown as TraceTreeNode<TraceTree.UptimeCheck>}
       />
     );
   }
@@ -160,18 +159,9 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   }
 
   matchWithFreeText(query: string): boolean {
-    if (this.op?.includes(query)) {
-      return true;
-    }
-    if (this.description?.includes(query)) {
-      return true;
-    }
-
-    if (this.id === query) {
-      return true;
-    }
-
-    return false;
+    return (
+      this.op?.includes(query) || this.description?.includes(query) || this.id === query
+    );
   }
 
   makeBarColor(theme: Theme): string {

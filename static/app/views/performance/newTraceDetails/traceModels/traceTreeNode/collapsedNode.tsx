@@ -20,6 +20,14 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
     this.parent?.children.push(this);
   }
 
+  get drawerTabsTitle(): string {
+    return 'Collapsed';
+  }
+
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
+    return {title: 'Collapsed'};
+  }
+
   printNode(): string {
     return 'collapsed';
   }
@@ -46,13 +54,5 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
 
   matchWithFreeText(_key: string): boolean {
     return false;
-  }
-
-  get drawerTabsTitle(): string {
-    return 'Collapsed';
-  }
-
-  get traceHeaderTitle(): {title: string; subtitle?: string} {
-    return {title: 'Collapsed'};
   }
 }

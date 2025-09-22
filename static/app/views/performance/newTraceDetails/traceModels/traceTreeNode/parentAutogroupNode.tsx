@@ -89,7 +89,11 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
     return (
-      <TraceAutogroupedRow {...props} node={props.node as LegacyParentAutogroupNode} />
+      // Won't need this cast once we use BaseNode type for props.node
+      <TraceAutogroupedRow
+        {...props}
+        node={props.node as unknown as LegacyParentAutogroupNode}
+      />
     );
   }
 

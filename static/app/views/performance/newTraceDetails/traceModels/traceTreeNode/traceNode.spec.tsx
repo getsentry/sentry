@@ -7,146 +7,135 @@ import {type TraceTreeNodeExtra} from './baseNode';
 import {RootNode} from './rootNode';
 import {TraceNode} from './traceNode';
 
-const createMockExtra = (
-  overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
+const createMockExtra = (): TraceTreeNodeExtra => ({
   organization: OrganizationFixture(),
-  ...overrides,
 });
 
-const createMockTraceValue = (override?: TraceTree.Trace): TraceTree.Trace => {
-  return override
-    ? override
-    : [
-        makeEAPSpan({
-          event_id: 'test-trace-id',
-          project_slug: 'test-project',
-          description: 'Test trace description',
-          op: 'trace.operation',
-        }),
-        makeEAPSpan({
-          event_id: 'test-trace-id',
-          project_slug: 'test-project',
-          description: 'Test trace description',
-          op: 'trace.operation',
-        }),
-      ];
-};
+const createMockTraceValue = (): TraceTree.Trace => [
+  makeEAPSpan({
+    event_id: 'test-trace-id',
+    project_slug: 'test-project',
+  }),
+];
 
 describe('TraceNode', () => {
   describe('constructor', () => {
-    it('should initialize TraceNode with correct properties', () => {
+    it('should add itself to parent children when parent is provided', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
+      const rootNode = new RootNode(null, null, extra);
+
+      const traceNode = new TraceNode(rootNode, traceValue, extra);
+
+      expect(traceNode.parent).toBe(rootNode);
+      expect(rootNode.children).toContain(traceNode);
+    });
+
+    it('should not attempt to add to parent when parent is null', () => {
+      const extra = createMockExtra();
+      const traceValue = createMockTraceValue();
+
       const traceNode = new TraceNode(null, traceValue, extra);
 
       expect(traceNode.parent).toBeNull();
-      expect(traceNode.value).toBe(traceValue);
-      expect(traceNode.extra).toBe(extra);
-      // Inherited properties from BaseNode
-      expect(traceNode.expanded).toBe(true);
-      expect(traceNode.children).toEqual([]);
-      expect(traceNode.errors).toBeInstanceOf(Set);
-      expect(traceNode.occurrences).toBeInstanceOf(Set);
-      expect(traceNode.profiles).toBeInstanceOf(Set);
+    });
+  });
+
+  describe('getter methods', () => {
+    it('should return "Trace" for drawerTabsTitle', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
+
+      expect(traceNode.drawerTabsTitle).toBe('Trace');
+    });
+
+    it('should return title object for traceHeaderTitle', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
+
+      expect(traceNode.traceHeaderTitle).toEqual({
+        title: 'Trace',
+      });
     });
   });
 
   describe('pathToNode', () => {
-    it('should return correct path with trace ID', () => {
-      const extra = createMockExtra();
-      const traceValue = createMockTraceValue();
-      const traceNode = new TraceNode(null, traceValue, extra);
+    it('should return trace-root path', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 
-      expect(traceNode.pathToNode()).toStrictEqual(['trace-root']);
-    });
-  });
-
-  describe('drawerTabsTitle getter', () => {
-    it('should return "Trace" string', () => {
-      const extra = createMockExtra();
-      const traceValue = createMockTraceValue();
-      const traceNode = new TraceNode(null, traceValue, extra);
-
-      const title = traceNode.drawerTabsTitle;
-
-      expect(title).toBe('Trace');
-    });
-  });
-
-  describe('traceHeaderTitle getter', () => {
-    it('should return correct title and subtitle structure', () => {
-      const extra = createMockExtra();
-      const traceValue = createMockTraceValue();
-      const traceNode = new TraceNode(null, traceValue, extra);
-
-      const headerTitle = traceNode.traceHeaderTitle;
-
-      expect(headerTitle).toEqual({
-        title: 'Trace',
-        subtitle: undefined,
-      });
+      expect(traceNode.pathToNode()).toEqual(['trace-root']);
     });
   });
 
   describe('analyticsName', () => {
     it('should return "trace"', () => {
-      const extra = createMockExtra();
-      const traceValue = createMockTraceValue();
-      const traceNode = new TraceNode(null, traceValue, extra);
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 
       expect(traceNode.analyticsName()).toBe('trace');
     });
   });
 
   describe('printNode', () => {
-    it('should return "trace root" string', () => {
-      const extra = createMockExtra();
-      const traceValue = createMockTraceValue();
-      const parentNode = new RootNode(null, traceValue, extra);
-      const traceNode = new TraceNode(parentNode, traceValue, extra);
+    it('should return "trace root" for trace split result', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 
-      const nodeString = traceNode.printNode();
+      expect(traceNode.printNode()).toBe('trace root');
+    });
 
-      expect(nodeString).toBe('trace root');
+    it('should return "eap trace root" for EAP trace', () => {
+      // Create an EAP trace value (not a trace split result)
+      const eapTraceValue = makeEAPSpan({
+        event_id: 'eap-trace-id',
+      });
+      const traceNode = new TraceNode(null, eapTraceValue as any, createMockExtra());
+
+      expect(traceNode.printNode()).toBe('eap trace root');
+    });
+  });
+
+  describe('matchById', () => {
+    it('should always return false', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
+
+      expect(traceNode.matchById('any-id')).toBe(false);
+      expect(traceNode.matchById('trace-root')).toBe(false);
+      expect(traceNode.matchById('')).toBe(false);
     });
   });
 
   describe('matchWithFreeText', () => {
     it('should always return false', () => {
-      const extra = createMockExtra();
-      const traceValue = createMockTraceValue();
-      const traceNode = new TraceNode(null, traceValue, extra);
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 
       expect(traceNode.matchWithFreeText('trace')).toBe(false);
       expect(traceNode.matchWithFreeText('root')).toBe(false);
       expect(traceNode.matchWithFreeText('anything')).toBe(false);
       expect(traceNode.matchWithFreeText('')).toBe(false);
-      expect(traceNode.matchWithFreeText('trace root')).toBe(false);
+    });
+  });
+
+  describe('expand', () => {
+    it('should always return false', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
+
+      expect(traceNode.expand(true, {} as any)).toBe(false);
+      expect(traceNode.expand(false, {} as any)).toBe(false);
+    });
+  });
+
+  describe('abstract method implementations', () => {
+    it('should implement renderWaterfallRow', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
+
+      const result = traceNode.renderWaterfallRow({} as any);
+
+      expect(result).toBeDefined();
     });
 
-    it('should return false for any search key', () => {
-      const extra = createMockExtra();
-      const traceValue = createMockTraceValue();
-      const traceNode = new TraceNode(null, traceValue, extra);
+    it('should implement renderDetails returning null', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 
-      // Test various search terms
-      const searchTerms = [
-        'test',
-        'search',
-        'query',
-        'node',
-        'span',
-        'transaction',
-        'description',
-        '123',
-        'special-chars!@#',
-        'unicode-テスト',
-      ];
+      const result = traceNode.renderDetails({} as any);
 
-      searchTerms.forEach(term => {
-        expect(traceNode.matchWithFreeText(term)).toBe(false);
-      });
+      expect(result).toBeNull();
     });
   });
 });

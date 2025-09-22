@@ -1,4 +1,3 @@
-import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -8,7 +7,6 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import type {RootNode} from './rootNode';
-import {traceChronologicalSort} from './utils';
 
 export class TraceNode extends BaseNode<TraceTree.Trace> {
   // We want to enforce the parent to only be a RootNode or null
@@ -21,7 +19,6 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
     super(parent, value, extra);
 
     this.parent?.children.push(this);
-    this.parent?.children.sort(traceChronologicalSort);
   }
 
   get drawerTabsTitle(): string {
@@ -52,19 +49,18 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
     props: TraceRowProps<T>
   ): React.ReactNode {
     return (
-      <TraceRootRow {...props} node={props.node as TraceTreeNode<TraceTree.Trace>} />
+      // Won't need this cast once we use BaseNode type for props.node
+      <TraceRootRow
+        {...props}
+        node={props.node as unknown as TraceTreeNode<TraceTree.Trace>}
+      />
     );
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
-    props: TraceTreeNodeDetailsProps<T>
+    _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return (
-      <TransactionNodeDetails
-        {...props}
-        node={props.node as TraceTreeNode<TraceTree.Transaction>}
-      />
-    );
+    return null;
   }
 
   matchWithFreeText(_key: string): boolean {

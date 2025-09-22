@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
@@ -58,6 +59,62 @@ describe('EapSpanNode', () => {
       expect(node.canAutogroup).toBe(true);
       expect(node.allowNoInstrumentationNodes).toBe(true);
       expect(node.opsBreakdown).toEqual([]);
+    });
+
+    it('should reparent transaction under closest EAP transaction parent', () => {
+      const extra = createMockExtra();
+      const rootTransactionValue = makeEAPSpan({
+        event_id: 'root-transaction',
+        is_transaction: true,
+        op: 'http.server',
+      });
+      const spanValue = makeEAPSpan({
+        event_id: 'span-1',
+        is_transaction: false,
+        op: 'middleware',
+      });
+      const childTransactionValue = makeEAPSpan({
+        event_id: 'child-transaction',
+        is_transaction: true,
+        op: 'rpc.call',
+      });
+
+      const rootTransaction = new EapSpanNode(null, rootTransactionValue, extra);
+      const span = new EapSpanNode(rootTransaction, spanValue, extra);
+
+      // Child transaction should be reparented under root transaction, not the span
+      const childTransaction = new EapSpanNode(span, childTransactionValue, extra);
+
+      expect(childTransaction.parent).toBe(rootTransaction);
+      expect(rootTransaction.children).toContain(childTransaction);
+    });
+
+    it('should add itself to parent children and sort chronologically', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({
+        event_id: 'parent',
+        is_transaction: true,
+        start_timestamp: 1000,
+      });
+      const child1Value = makeEAPSpan({
+        event_id: 'child1',
+        is_transaction: false,
+        start_timestamp: 1002,
+      });
+      const child2Value = makeEAPSpan({
+        event_id: 'child2',
+        is_transaction: false,
+        start_timestamp: 1001,
+      });
+
+      const parent = new EapSpanNode(null, parentValue, extra);
+      const child1 = new EapSpanNode(parent, child1Value, extra);
+      const child2 = new EapSpanNode(parent, child2Value, extra);
+
+      // Children should be sorted by start timestamp
+      expect(parent.children).toHaveLength(2);
+      expect(parent.children[0]).toBe(child2); // Earlier timestamp
+      expect(parent.children[1]).toBe(child1); // Later timestamp
     });
 
     it('should reparent span under closest EAP transaction', () => {
@@ -127,6 +184,35 @@ describe('EapSpanNode', () => {
       expect(transaction.occurrences.size).toBe(2);
       expect(span.occurrences.size).toBe(2);
     });
+
+    it('should not propagate errors/occurrences from transactions', () => {
+      const extra = createMockExtra();
+      const parentTransactionValue = makeEAPSpan({
+        event_id: 'parent-transaction',
+        is_transaction: true,
+        errors: [],
+        occurrences: [],
+      });
+      const childTransactionValue = makeEAPSpan({
+        event_id: 'child-transaction',
+        is_transaction: true,
+        errors: [makeEAPError({issue_id: 1, event_id: 'error-1'})],
+        occurrences: [makeEAPOccurrence({issue_id: 1, event_id: 'occurrence-1'})],
+      });
+
+      const parentTransaction = new EapSpanNode(null, parentTransactionValue, extra);
+      const childTransaction = new EapSpanNode(
+        parentTransaction,
+        childTransactionValue,
+        extra
+      );
+
+      // Transactions don't propagate their errors/occurrences to parent
+      expect(parentTransaction.errors.size).toBe(0);
+      expect(parentTransaction.occurrences.size).toBe(0);
+      expect(childTransaction.errors.size).toBe(1);
+      expect(childTransaction.occurrences.size).toBe(1);
+    });
   });
 
   describe('_updateAncestorOpsBreakdown', () => {
@@ -187,6 +273,50 @@ describe('EapSpanNode', () => {
       // Should have one entry with count 2
       expect(parent.opsBreakdown).toHaveLength(1);
       expect(parent.opsBreakdown[0]).toEqual({op: 'db.query', count: 2});
+    });
+  });
+
+  describe('description getter', () => {
+    it('should return description when OTEL-friendly UI is disabled', () => {
+      const extra = createMockExtra({
+        organization: OrganizationFixture({features: []}),
+      });
+      const value = makeEAPSpan({
+        description: 'GET /api/users',
+        name: 'request-span',
+      });
+
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.description).toBe('GET /api/users');
+    });
+
+    it('should return name when OTEL-friendly UI is enabled', () => {
+      const extra = createMockExtra({
+        organization: OrganizationFixture({features: ['performance-otel-friendly-ui']}),
+      });
+      const value = makeEAPSpan({
+        description: 'GET /api/users',
+        name: 'request-span',
+      });
+
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.description).toBe('request-span');
+    });
+
+    it('should handle undefined name with OTEL-friendly UI enabled', () => {
+      const extra = createMockExtra({
+        organization: OrganizationFixture({features: ['performance-otel-friendly-ui']}),
+      });
+      const value = makeEAPSpan({
+        description: 'GET /api/users',
+        name: undefined,
+      });
+
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.description).toBeUndefined();
     });
   });
 
@@ -313,6 +443,225 @@ describe('EapSpanNode', () => {
     });
   });
 
+  describe('visibleChildren override', () => {
+    it('should show children for expanded spans', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({
+        event_id: 'parent',
+        is_transaction: false,
+      });
+      const childValue = makeEAPSpan({
+        event_id: 'child',
+        is_transaction: false,
+      });
+
+      const parent = new EapSpanNode(null, parentValue, extra);
+      const child = new EapSpanNode(parent, childValue, extra);
+      parent.children = [child];
+      parent.expanded = true;
+
+      expect(parent.visibleChildren).toContain(child);
+    });
+
+    it('should show children for EAP transactions even when collapsed', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeEAPSpan({
+        event_id: 'transaction',
+        is_transaction: true,
+      });
+      const childValue = makeEAPSpan({
+        event_id: 'child',
+        is_transaction: true,
+      });
+
+      const transaction = new EapSpanNode(null, transactionValue, extra);
+      const child = new EapSpanNode(transaction, childValue, extra);
+      transaction.children = [child];
+      transaction.expanded = false;
+
+      // EAP transactions show children even when collapsed
+      expect(transaction.visibleChildren).toContain(child);
+    });
+
+    it('should handle nested visible children correctly', () => {
+      const extra = createMockExtra();
+      const rootValue = makeEAPSpan({
+        event_id: 'root',
+        is_transaction: true,
+      });
+      const level1Value = makeEAPSpan({
+        event_id: 'level1',
+        is_transaction: true,
+      });
+      const level2Value = makeEAPSpan({
+        event_id: 'level2',
+        is_transaction: false,
+      });
+
+      const root = new EapSpanNode(null, rootValue, extra);
+      const level1 = new EapSpanNode(root, level1Value, extra);
+      const level2 = new EapSpanNode(level1, level2Value, extra);
+
+      root.children = [level1];
+      level1.children = [level2];
+      root.expanded = false;
+      level1.expanded = true;
+
+      const visibleChildren = root.visibleChildren;
+      expect(visibleChildren).toContain(level1);
+      expect(visibleChildren).toContain(level2);
+    });
+  });
+
+  describe('expand method', () => {
+    const createMockTraceTree = () => ({
+      list: [] as EapSpanNode[],
+    });
+
+    it('should handle expanding transaction with reparenting', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeEAPSpan({
+        event_id: 'transaction',
+        is_transaction: true,
+        op: 'http.server',
+      });
+      const spanValue = makeEAPSpan({
+        event_id: 'span',
+        is_transaction: false,
+        op: 'db.query',
+      });
+      const childTransactionValue = makeEAPSpan({
+        event_id: 'child-transaction',
+        is_transaction: true,
+        parent_span_id: 'span',
+      });
+
+      const transaction = new EapSpanNode(null, transactionValue, extra);
+      const span = new EapSpanNode(transaction, spanValue, extra);
+      const childTransaction = new EapSpanNode(transaction, childTransactionValue, extra);
+
+      transaction.children = [span, childTransaction];
+      transaction.expanded = false;
+
+      const tree = createMockTraceTree();
+      tree.list = [transaction];
+
+      const result = transaction.expand(true, tree as any);
+
+      expect(result).toBe(true);
+      expect(transaction.expanded).toBe(true);
+
+      // Test that tree.list is updated to include visible children after expansion
+      expect(tree.list).toContain(transaction);
+      for (const child of transaction.visibleChildren) {
+        expect(tree.list).toContain(child);
+      }
+      // The expanded node should be followed by its visible children in the list
+      const transactionIndex = tree.list.indexOf(transaction);
+      expect(
+        tree.list.slice(
+          transactionIndex + 1,
+          transactionIndex + 1 + transaction.visibleChildren.length
+        )
+      ).toEqual(transaction.visibleChildren);
+    });
+
+    it('should handle collapsing transaction with reparenting', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeEAPSpan({
+        event_id: 'transaction',
+        is_transaction: true,
+        op: 'http.server',
+      });
+      const spanValue = makeEAPSpan({
+        event_id: 'span',
+        is_transaction: false,
+        op: 'db.query',
+      });
+
+      const transaction = new EapSpanNode(null, transactionValue, extra);
+      const span = new EapSpanNode(transaction, spanValue, extra);
+
+      transaction.children = [span];
+      transaction.expanded = true;
+
+      const tree = createMockTraceTree();
+      tree.list = [transaction, span];
+
+      const result = transaction.expand(false, tree as any);
+
+      expect(result).toBe(true);
+      expect(transaction.expanded).toBe(false);
+
+      // Test that tree.list is updated to include visible children after collapse
+      expect(tree.list).toContain(transaction);
+      for (const child of transaction.visibleChildren) {
+        expect(tree.list).toContain(child);
+      }
+      // The collapsed node should be followed by its visible children in the list
+      const transactionIndex = tree.list.indexOf(transaction);
+      expect(
+        tree.list.slice(
+          transactionIndex + 1,
+          transactionIndex + 1 + transaction.visibleChildren.length
+        )
+      ).toEqual(transaction.visibleChildren);
+    });
+
+    it('should return false when already in target state', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeEAPSpan({
+        event_id: 'transaction',
+        is_transaction: true,
+      });
+
+      const transaction = new EapSpanNode(null, transactionValue, extra);
+      transaction.expanded = true;
+
+      const tree = createMockTraceTree();
+      tree.list = [transaction];
+
+      // Try to expand already expanded node
+      const result = transaction.expand(true, tree as any);
+
+      expect(result).toBe(false);
+      expect(transaction.expanded).toBe(true);
+
+      // tree.list should remain unchanged
+      expect(tree.list).toEqual([transaction]);
+    });
+  });
+
+  describe('makeBarColor', () => {
+    it('should return operation-specific color', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        op: 'http.request',
+      });
+
+      const node = new EapSpanNode(null, value, extra);
+      const mockTheme = ThemeFixture();
+
+      const color = node.makeBarColor(mockTheme);
+      expect(typeof color).toBe('string');
+      expect(color).toBeDefined();
+    });
+
+    it('should handle undefined operation', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        op: undefined,
+      });
+
+      const node = new EapSpanNode(null, value, extra);
+      const mockTheme = ThemeFixture();
+
+      const color = node.makeBarColor(mockTheme);
+      expect(typeof color).toBe('string');
+      expect(color).toBeDefined();
+    });
+  });
+
   describe('abstract method implementations', () => {
     it('should return correct pathToNode', () => {
       const extra = createMockExtra();
@@ -349,7 +698,30 @@ describe('EapSpanNode', () => {
       });
       const node = new EapSpanNode(null, value, extra);
 
-      expect(node.printNode()).toBe('http.request');
+      expect(node.printNode()).toBe('http.request - unknown description');
+    });
+
+    it('should return correct printNode for transaction', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        op: 'http.server',
+        description: 'GET /api/users',
+        is_transaction: true,
+      });
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.printNode()).toBe('http.server - GET /api/users (eap-transaction)');
+    });
+
+    it('should return correct printNode with undefined op', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        op: undefined,
+        description: 'Some description',
+      });
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.printNode()).toBe('unknown span - Some description');
     });
 
     it('should render waterfall row', () => {
@@ -417,7 +789,9 @@ describe('EapSpanNode', () => {
     });
 
     it('should match by name', () => {
-      const extra = createMockExtra();
+      const extra = createMockExtra({
+        organization: OrganizationFixture({features: ['performance-otel-friendly-ui']}),
+      });
       const value = makeEAPSpan({
         op: 'custom.op',
         description: 'Custom description',

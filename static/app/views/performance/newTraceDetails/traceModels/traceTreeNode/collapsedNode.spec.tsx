@@ -42,6 +42,24 @@ describe('CollapsedNode', () => {
       expect(node.expanded).toBe(false);
     });
 
+    it('should automatically add itself to parent children', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({
+        event_id: 'parent',
+        is_transaction: true,
+      });
+      const collapsedValue = createCollapsedNodeValue();
+
+      const parentNode = new EapSpanNode(null, parentValue, extra);
+      const initialChildrenCount = parentNode.children.length;
+
+      const node = new CollapsedNode(parentNode, collapsedValue, extra);
+
+      expect(parentNode.children).toHaveLength(initialChildrenCount + 1);
+      expect(parentNode.children).toContain(node);
+      expect(parentNode.children[parentNode.children.length - 1]).toBe(node);
+    });
+
     it('should handle different parent types', () => {
       const extra = createMockExtra();
       const parentValue = makeEAPSpan({
@@ -55,6 +73,27 @@ describe('CollapsedNode', () => {
 
       expect(node.parent).toBe(parentNode);
       expect(node.value.type).toBe('collapsed');
+      expect(parentNode.children).toContain(node);
+    });
+
+    it('should call parent constructor with correct parameters', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({
+        event_id: 'parent',
+        is_transaction: true,
+      });
+      const collapsedValue = createCollapsedNodeValue();
+
+      const parentNode = new EapSpanNode(null, parentValue, extra);
+      const node = new CollapsedNode(parentNode, collapsedValue, extra);
+
+      // Should inherit BaseNode properties
+      expect(node.children).toEqual([]);
+      expect(node.errors).toBeInstanceOf(Set);
+      expect(node.occurrences).toBeInstanceOf(Set);
+      expect(node.profiles).toBeInstanceOf(Set);
+      expect(node.canFetchChildren).toBe(false);
+      expect(node.fetchStatus).toBe('idle');
     });
   });
 
@@ -83,6 +122,25 @@ describe('CollapsedNode', () => {
         subtitle: undefined,
       });
     });
+
+    it('should return consistent results across multiple calls', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({event_id: 'parent'});
+      const collapsedValue = createCollapsedNodeValue();
+
+      const parentNode = new EapSpanNode(null, parentValue, extra);
+      const node = new CollapsedNode(parentNode, collapsedValue, extra);
+
+      // Multiple calls should return the same results
+      expect(node.drawerTabsTitle).toBe('Collapsed');
+      expect(node.drawerTabsTitle).toBe('Collapsed');
+
+      const title1 = node.traceHeaderTitle;
+      const title2 = node.traceHeaderTitle;
+      expect(title1).toEqual(title2);
+      expect(title1.title).toBe('Collapsed');
+      expect(title2.title).toBe('Collapsed');
+    });
   });
 
   describe('abstract method implementations', () => {
@@ -98,6 +156,23 @@ describe('CollapsedNode', () => {
       expect(path).toEqual([]);
       expect(Array.isArray(path)).toBe(true);
       expect(path).toHaveLength(0);
+    });
+
+    it('should return same empty array on multiple calls', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({event_id: 'parent'});
+      const collapsedValue = createCollapsedNodeValue();
+
+      const parentNode = new EapSpanNode(null, parentValue, extra);
+      const node = new CollapsedNode(parentNode, collapsedValue, extra);
+
+      const path1 = node.pathToNode();
+      const path2 = node.pathToNode();
+
+      expect(path1).toEqual([]);
+      expect(path2).toEqual([]);
+      // Each call should return a new array instance
+      expect(path1).not.toBe(path2);
     });
 
     it('should return correct analyticsName', () => {
@@ -122,7 +197,7 @@ describe('CollapsedNode', () => {
       expect(node.printNode()).toBe('collapsed');
     });
 
-    it('should render waterfall row', () => {
+    it('should render TraceCollapsedRow component', () => {
       const extra = createMockExtra();
       const parentValue = makeEAPSpan({event_id: 'parent'});
       const collapsedValue = createCollapsedNodeValue();
@@ -136,13 +211,49 @@ describe('CollapsedNode', () => {
         organization: OrganizationFixture(),
         manager: {} as any,
         projects: [],
+        index: 0,
+        style: {},
+        traceSlug: 'test-slug',
       } as unknown as TraceRowProps<any>;
 
       const result = node.renderWaterfallRow(mockProps);
       expect(result).toBeDefined();
+      expect(result).not.toBeNull();
+
+      // Should be a React element (TraceCollapsedRow)
+      expect(typeof result).toBe('object');
+      expect(result).toHaveProperty('type');
     });
 
-    it('should render null for details', () => {
+    it('should pass correct props to TraceCollapsedRow', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({event_id: 'parent'});
+      const collapsedValue = createCollapsedNodeValue();
+
+      const parentNode = new EapSpanNode(null, parentValue, extra);
+      const node = new CollapsedNode(parentNode, collapsedValue, extra);
+
+      const mockProps = {
+        node: node as any,
+        theme: {blue300: '#blue'} as any,
+        organization: OrganizationFixture(),
+        manager: {get: jest.fn()} as any,
+        projects: [{id: '1', name: 'test'}],
+        index: 5,
+        style: {height: 24},
+        traceSlug: 'test-trace-slug',
+      } as unknown as TraceRowProps<any>;
+
+      const result = node.renderWaterfallRow(mockProps);
+
+      // Should receive all props plus the node cast to LegacyCollapsedNode
+      expect(result).toBeDefined();
+      const props = (result as any).props;
+      expect(props.node).toBe(node);
+      expect(props.theme).toBe(mockProps.theme);
+    });
+
+    it('should render null for details consistently', () => {
       const extra = createMockExtra();
       const parentValue = makeEAPSpan({event_id: 'parent'});
       const collapsedValue = createCollapsedNodeValue();
@@ -157,8 +268,26 @@ describe('CollapsedNode', () => {
         onTabScrollToNode: jest.fn(),
       } as unknown as TraceTreeNodeDetailsProps<any>;
 
-      const result = node.renderDetails(mockProps);
-      expect(result).toBeNull();
+      const result1 = node.renderDetails(mockProps);
+      const result2 = node.renderDetails(mockProps);
+
+      expect(result1).toBeNull();
+      expect(result2).toBeNull();
+      expect(result1).toBe(result2);
+    });
+
+    it('should ignore details props since it returns null', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({event_id: 'parent'});
+      const collapsedValue = createCollapsedNodeValue();
+
+      const parentNode = new EapSpanNode(null, parentValue, extra);
+      const node = new CollapsedNode(parentNode, collapsedValue, extra);
+
+      // Test with various props - should always return null
+      expect(node.renderDetails({} as any)).toBeNull();
+      expect(node.renderDetails(null as any)).toBeNull();
+      expect(node.renderDetails(undefined as any)).toBeNull();
     });
   });
 
@@ -176,145 +305,6 @@ describe('CollapsedNode', () => {
       expect(node.matchWithFreeText('anything')).toBe(false);
       expect(node.matchWithFreeText('')).toBe(false);
       expect(node.matchWithFreeText('test query')).toBe(false);
-    });
-  });
-
-  describe('node behavior', () => {
-    it('should inherit base node properties', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      // Should have inherited properties from BaseNode
-      expect(node.children).toEqual([]);
-      expect(node.errors).toBeInstanceOf(Set);
-      expect(node.occurrences).toBeInstanceOf(Set);
-      expect(node.profiles).toBeInstanceOf(Set);
-      expect(node.canFetchChildren).toBe(false);
-      expect(node.fetchStatus).toBe('idle');
-      expect(node.hasFetchedChildren).toBe(false);
-      expect(node.canAutogroup).toBe(false);
-      expect(node.allowNoInstrumentationNodes).toBe(false);
-    });
-
-    it('should handle space calculation from base node', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      // CollapsedNode doesn't override space calculation, so should use base implementation
-      expect(node.space).toEqual([0, 0]); // Default space from BaseNode
-    });
-
-    it('should handle children management', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-      const childValue = makeEAPSpan({event_id: 'child'});
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-      const childNode = new EapSpanNode(node, childValue, extra);
-
-      // Can add children
-      node.children.push(childNode);
-      expect(node.children).toHaveLength(1);
-      expect(node.children[0]).toBe(childNode);
-
-      // Should inherit directChildren and visibleChildren behavior
-      expect(node.directChildren).toEqual([childNode]);
-
-      // Since expanded is false, visibleChildren should be empty
-      expect(node.visibleChildren).toEqual([]);
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should handle null parent', () => {
-      const extra = createMockExtra();
-      const collapsedValue = createCollapsedNodeValue();
-
-      // This should not typically happen, but test edge case
-      const node = new CollapsedNode(null as any, collapsedValue, extra);
-
-      expect(node.parent).toBeNull();
-      expect(node.value).toBe(collapsedValue);
-      expect(node.expanded).toBe(false);
-    });
-
-    it('should handle empty extra object', () => {
-      const extra = createMockExtra({});
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      expect(node.extra).toBe(extra);
-      expect(node.extra.organization).toBeDefined();
-    });
-
-    it('should handle modified collapsed value', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue({
-        type: 'collapsed',
-        // Add any additional properties that might be on CollapsedNode
-      });
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      expect(node.value.type).toBe('collapsed');
-    });
-
-    it('should maintain consistent behavior across method calls', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      // Multiple calls should return consistent results
-      expect(node.printNode()).toBe('collapsed');
-      expect(node.printNode()).toBe('collapsed');
-
-      expect(node.analyticsName()).toBe('collapsed');
-      expect(node.analyticsName()).toBe('collapsed');
-
-      expect(node.drawerTabsTitle).toBe('Collapsed');
-      expect(node.drawerTabsTitle).toBe('Collapsed');
-
-      expect(node.pathToNode()).toEqual([]);
-      expect(node.pathToNode()).toEqual([]);
-
-      expect(node.matchWithFreeText('test')).toBe(false);
-      expect(node.matchWithFreeText('test')).toBe(false);
-    });
-
-    it('should handle various input types for matchWithFreeText', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      // Test various input types - should always return false
-      expect(node.matchWithFreeText('a')).toBe(false);
-      expect(node.matchWithFreeText('123')).toBe(false);
-      expect(node.matchWithFreeText('special!@#$%^&*()characters')).toBe(false);
-      expect(node.matchWithFreeText('very long search query with multiple words')).toBe(
-        false
-      );
-      expect(node.matchWithFreeText('Unicode: 测试 中文')).toBe(false);
     });
   });
 });

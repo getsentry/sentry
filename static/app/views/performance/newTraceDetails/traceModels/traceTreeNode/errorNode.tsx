@@ -30,7 +30,8 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     }
 
     this.parent?.children.push(this);
-    // Sort the children of the parent since we altered space
+
+    // Sorting the children of the parent since we altered space
     this.parent?.children.sort(traceChronologicalSort);
   }
 
@@ -72,8 +73,9 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     return (
       <TraceErrorRow
         {...props}
+        // Won't need this cast once we use BaseNode type for props.node
         node={
-          props.node as
+          props.node as unknown as
             | TraceTreeNode<TraceTree.TraceError>
             | TraceTreeNode<TraceTree.EAPError>
         }
@@ -97,11 +99,11 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   }
 
   matchWithFreeText(query: string): boolean {
-    if (this.value.level === query) {
-      return true;
-    }
-
-    return this.description?.includes(query) || false;
+    const matchesLevel = this.value.level === query;
+    const matchesDescription = this.description
+      ? this.description.includes(query)
+      : false;
+    return matchesLevel || matchesDescription;
   }
 
   makeBarColor(theme: Theme): string {

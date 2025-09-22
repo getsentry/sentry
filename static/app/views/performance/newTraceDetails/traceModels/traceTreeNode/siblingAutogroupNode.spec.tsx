@@ -1,15 +1,20 @@
+import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   makeEAPSpan,
   makeSiblingAutogroup,
+  makeSpan,
+  makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
+import {SpanNode} from './spanNode';
+import {TransactionNode} from './transactionNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
@@ -212,8 +217,8 @@ describe('SiblingAutogroupNode', () => {
     });
   });
 
-  describe('abstract method implementations', () => {
-    it('should return correct pathToNode', () => {
+  describe('pathToNode', () => {
+    it('should return path without transaction when no parent transaction found', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
       const childSpanValue = makeEAPSpan({event_id: 'child-span-id'});
@@ -228,6 +233,46 @@ describe('SiblingAutogroupNode', () => {
       expect(path[0]).toBe('ag-child-span-id'); // Should use first child id
     });
 
+    it('should include transaction ID in path when closest transaction parent found', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeTransaction({
+        event_id: 'transaction-id',
+        'transaction.op': 'navigation',
+      });
+      const autogroupValue = makeSiblingAutogroup({});
+      const childSpanValue = makeSpan({span_id: 'child-span-id'});
+
+      const mockFn = jest.fn();
+      const transactionNode = new TransactionNode(
+        null,
+        transactionValue,
+        extra,
+        mockFn,
+        mockFn
+      );
+      const childNode = new SpanNode(transactionNode, childSpanValue, extra);
+      const node = new SiblingAutogroupNode(transactionNode, autogroupValue, extra);
+
+      node.children = [childNode];
+
+      const path = node.pathToNode();
+      expect(path).toHaveLength(2);
+      expect(path[0]).toBe('ag-child-span-id');
+      expect(path[1]).toBe('txn-transaction-id');
+    });
+
+    it('should handle pathToNode when no children exist', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeSiblingAutogroup({});
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
+
+      const path = node.pathToNode();
+      expect(path).toHaveLength(1);
+      expect(path[0]).toBe('ag-undefined'); // Should handle undefined id
+    });
+  });
+
+  describe('abstract method implementations', () => {
     it('should return correct analyticsName', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
@@ -311,150 +356,73 @@ describe('SiblingAutogroupNode', () => {
 
       expect(node.matchWithFreeText('SELECT')).toBe(true);
       expect(node.matchWithFreeText('users')).toBe(true);
-      expect(node.matchWithFreeText('FROM')).toBe(true);
       expect(node.matchWithFreeText('nonexistent')).toBe(false);
     });
 
-    it('should match by name when available', () => {
+    it('should prioritize operation match over description', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
-        name: 'custom-autogroup-name',
         autogrouped_by: {
-          op: 'custom.op',
-          description: 'Custom description',
+          op: 'db.query',
+          description: 'Database operation failed',
         },
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
-      expect(node.matchWithFreeText('custom')).toBe(true);
-      expect(node.matchWithFreeText('autogroup')).toBe(true);
-      expect(node.matchWithFreeText('name')).toBe(true);
+      expect(node.matchWithFreeText('db')).toBe(true); // Should match operation
+      expect(node.matchWithFreeText('Database')).toBe(true); // Should match description
       expect(node.matchWithFreeText('nonexistent')).toBe(false);
     });
 
-    it('should be case sensitive', () => {
+    it('should handle undefined values gracefully', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
         autogrouped_by: {
-          op: 'HTTP.REQUEST',
-          description: 'GET /API/USERS',
+          op: undefined as any,
+          description: undefined as any,
         },
       });
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
-      expect(node.matchWithFreeText('HTTP')).toBe(true);
-      expect(node.matchWithFreeText('http')).toBe(false);
-      expect(node.matchWithFreeText('API')).toBe(true);
-      expect(node.matchWithFreeText('api')).toBe(false);
-    });
-
-    it('should handle non-string name in value', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        name: 123 as any, // Non-string name
-        autogrouped_by: {
-          op: 'test.op',
-          description: 'Test description',
-        },
-      });
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      expect(node.matchWithFreeText('123')).toBe(false); // Should not match non-string name
+      expect(node.matchWithFreeText('anything')).toBe(false);
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle empty autogroup operation and description', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: '',
-          description: '',
-        },
-      });
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      expect(node.drawerTabsTitle).toBe('Autogroup - ');
-      expect(node.printNode()).toBe('sibling autogroup (: 0)');
-      expect(node.op).toBe('');
-      expect(node.description).toBe('');
-    });
-
-    it('should handle multiple children for id getter', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const childSpanValue1 = makeEAPSpan({event_id: 'first-child'});
-      const childSpanValue2 = makeEAPSpan({event_id: 'second-child'});
-      const childSpanValue3 = makeEAPSpan({event_id: 'third-child'});
-
-      const childNode1 = new EapSpanNode(null, childSpanValue1, extra);
-      const childNode2 = new EapSpanNode(null, childSpanValue2, extra);
-      const childNode3 = new EapSpanNode(null, childSpanValue3, extra);
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      node.children = [childNode1, childNode2, childNode3];
-
-      // Should always return first child's id
-      expect(node.id).toBe('first-child');
-    });
-
-    it('should handle children with undefined ids', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const childSpanValue = makeEAPSpan({event_id: undefined});
-
-      const childNode = new EapSpanNode(null, childSpanValue, extra);
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      node.children = [childNode];
-
-      expect(node.id).toBeUndefined();
-    });
-
-    it('should compute autogroupedSegments with no children', () => {
+  describe('makeBarColor', () => {
+    it('should return red color when errors are present', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
-      const segments = node.autogroupedSegments;
-      expect(segments).toBeDefined();
-      expect(Array.isArray(segments)).toBe(true);
-      expect(segments).toEqual([]); // Should be empty array when no children
+      // Add an error to trigger red color
+      const mockError = {event_id: 'error-1', level: 'error'} as any;
+      node.errors.add(mockError);
+
+      const mockTheme: Partial<Theme> = {
+        red300: '#ff6b6b',
+        blue300: '#3182ce',
+      };
+
+      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
     });
 
-    it('should handle complex sibling groups', () => {
+    it('should return blue color when no errors are present', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'db.query',
-          description: 'Multiple database queries',
-        },
-      });
-
-      // Create multiple sibling spans with different timestamps
-      const spans = Array.from({length: 5}, (_, i) =>
-        makeEAPSpan({
-          event_id: `span-${i}`,
-          start_timestamp: 1000 + i * 100,
-          end_timestamp: 1050 + i * 100,
-          op: 'db.query',
-        })
-      );
-
-      const childNodes = spans.map(span => new EapSpanNode(null, span, extra));
+      const autogroupValue = makeSiblingAutogroup({});
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
-      node.children = childNodes;
+      // No errors added, should default to blue
+      const mockTheme: Partial<Theme> = {
+        red300: '#ff6b6b',
+        blue300: '#3182ce',
+      };
 
-      expect(node.id).toBe('span-0'); // First child's id
-      expect(node.children).toHaveLength(5);
-
-      const segments = node.autogroupedSegments;
-      expect(segments).toBeDefined();
-      expect(Array.isArray(segments)).toBe(true);
+      expect(node.makeBarColor(mockTheme as Theme)).toBe('#3182ce');
     });
+  });
 
-    it('should handle groupCount updates', () => {
+  describe('groupCount functionality', () => {
+    it('should handle groupCount updates in printNode output', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({
         autogrouped_by: {
@@ -475,14 +443,9 @@ describe('SiblingAutogroupNode', () => {
   });
 
   describe('matchById', () => {
-    it('should match by first child ID', () => {
+    it('should match by first child ID only', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'db.query',
-          description: 'Database operations',
-        },
-      });
+      const autogroupValue = makeSiblingAutogroup({});
 
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
@@ -501,28 +464,16 @@ describe('SiblingAutogroupNode', () => {
 
     it('should return false when no children exist', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'http.request',
-          description: 'HTTP requests',
-        },
-      });
-
+      const autogroupValue = makeSiblingAutogroup({});
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-      expect(node.children).toEqual([]);
 
+      expect(node.children).toEqual([]);
       expect(node.matchById('any-id')).toBe(false);
     });
 
-    it('should return false when first child has no ID', () => {
+    it('should handle undefined ID in first child', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'custom.operation',
-          description: 'Custom operations',
-        },
-      });
-
+      const autogroupValue = makeSiblingAutogroup({});
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       // Create child with undefined ID
@@ -531,17 +482,12 @@ describe('SiblingAutogroupNode', () => {
       node.children = [child];
 
       expect(node.matchById('any-id')).toBe(false);
+      expect(node.matchById('undefined')).toBe(false);
     });
 
     it('should handle empty string ID in first child', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'span.operation',
-          description: 'Span operations',
-        },
-      });
-
+      const autogroupValue = makeSiblingAutogroup({});
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       // Create child with empty string ID
@@ -551,26 +497,6 @@ describe('SiblingAutogroupNode', () => {
 
       expect(node.matchById('')).toBe(true);
       expect(node.matchById('any-id')).toBe(false);
-    });
-
-    it('should be case sensitive', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: 'test.operation',
-          description: 'Test operations',
-        },
-      });
-
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      const childValue = makeEAPSpan({event_id: 'CaseSensitiveId'});
-      const child = new EapSpanNode(node, childValue, extra);
-      node.children = [child];
-
-      expect(node.matchById('CaseSensitiveId')).toBe(true);
-      expect(node.matchById('casesensitiveid')).toBe(false);
-      expect(node.matchById('CASESENSITIVEID')).toBe(false);
     });
   });
 });

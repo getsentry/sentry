@@ -6,6 +6,7 @@ import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDra
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   isEAPSpan,
+  isEAPSpanNode,
   isEAPTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -27,9 +28,12 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     value: TraceTree.EAPSpan,
     extra: TraceTreeNodeExtra
   ) {
+    // For eap transactions, on load we only display the embedded transactions children.
+    // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
     const parentNode = value.is_transaction
       ? (parent?.findParent(p => isEAPTransaction(p.value)) ?? parent)
       : parent;
+
     super(parentNode, value, extra);
 
     this.expanded = !value.is_transaction;
@@ -61,8 +65,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   private _updateAncestorOpsBreakdown(node: EapSpanNode, op: string) {
     let current = node.parent;
     while (current) {
-      // TODO: Replace with isEAPSpanNode guard once we have it accept BaseNode
-      if (current instanceof EapSpanNode) {
+      if (isEAPSpanNode(current)) {
         const existing = current.opsBreakdown.find(b => b.op === op);
         if (existing) {
           existing.count++;
@@ -75,7 +78,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get description(): string | undefined {
-    const isOtelFriendlyUi = this.extra.organization.features.includes(
+    const isOtelFriendlyUi = this.extra?.organization.features.includes(
       'performance-otel-friendly-ui'
     );
     return isOtelFriendlyUi ? this.value.name : this.value.description;
@@ -286,7 +289,11 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     props: TraceRowProps<T>
   ): React.ReactNode {
     return (
-      <TraceSpanRow {...props} node={props.node as TraceTreeNode<TraceTree.EAPSpan>} />
+      // Won't need this cast once we use BaseNode type for props.node
+      <TraceSpanRow
+        {...props}
+        node={props.node as unknown as TraceTreeNode<TraceTree.EAPSpan>}
+      />
     );
   }
 
@@ -299,18 +306,8 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   matchWithFreeText(query: string): boolean {
-    if (this.op?.includes(query)) {
-      return true;
-    }
-
-    if (this.description?.includes(query)) {
-      return true;
-    }
-
-    if (this.id === query) {
-      return true;
-    }
-
-    return false;
+    return (
+      this.op?.includes(query) || this.description?.includes(query) || this.id === query
+    );
   }
 }

@@ -31,6 +31,12 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
         (value.timestamp - value.start_timestamp) * 1e3,
       ];
     }
+
+    // Android creates TCP connection spans which are noisy and not useful in most cases.
+    // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
+    this.expanded = !(
+      this.value.op === 'http.client' && this.value.origin === 'auto.http.okhttp'
+    );
   }
 
   get id(): string {
@@ -53,15 +59,15 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return this.op + (this.value.description ? ' - ' + this.value.description : '');
   }
 
-  makeBarColor(theme: Theme): string {
-    return pickBarColor(this.op, theme);
-  }
-
   get traceHeaderTitle(): {title: string; subtitle?: string} {
     return {
       title: this.op || t('Trace'),
       subtitle: this.value.description,
     };
+  }
+
+  makeBarColor(theme: Theme): string {
+    return pickBarColor(this.op, theme);
   }
 
   pathToNode(): TraceTree.NodePath[] {
@@ -95,7 +101,13 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={props.node as TraceTreeNode<TraceTree.Span>} />;
+    // Won't need this cast once we use BaseNode type for props.node
+    return (
+      <TraceSpanRow
+        {...props}
+        node={props.node as unknown as TraceTreeNode<TraceTree.Span>}
+      />
+    );
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
@@ -107,17 +119,8 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   }
 
   matchWithFreeText(query: string): boolean {
-    if (this.op?.includes(query)) {
-      return true;
-    }
-    if (this.description?.includes(query)) {
-      return true;
-    }
-
-    if (this.id === query) {
-      return true;
-    }
-
-    return false;
+    return (
+      this.op?.includes(query) || this.description?.includes(query) || this.id === query
+    );
   }
 }

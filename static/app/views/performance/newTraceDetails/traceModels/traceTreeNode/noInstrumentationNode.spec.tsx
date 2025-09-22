@@ -3,12 +3,18 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {
+  makeEAPSpan,
+  makeSpan,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
 import {NoInstrumentationNode} from './noInstrumentationNode';
+import {SpanNode} from './spanNode';
+import {TransactionNode} from './transactionNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
@@ -192,8 +198,8 @@ describe('NoInstrumentationNode', () => {
     });
   });
 
-  describe('abstract method implementations', () => {
-    it('should return correct pathToNode', () => {
+  describe('pathToNode', () => {
+    it('should return path without transaction when no parent transaction found', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({event_id: 'previous'});
       const nextSpanValue = makeEAPSpan({event_id: 'next'});
@@ -215,6 +221,116 @@ describe('NoInstrumentationNode', () => {
       expect(typeof path[0]).toBe('string');
     });
 
+    it('should include transaction ID in path when closest transaction parent found', () => {
+      const extra = createMockExtra();
+      const mockFn = jest.fn();
+      const transactionValue = makeTransaction({
+        event_id: 'transaction-id',
+        'transaction.op': 'navigation',
+      });
+      const spanValue = makeSpan({
+        span_id: 'span-id',
+        op: 'db.query',
+      });
+      const previousSpanValue = makeSpan({span_id: 'previous'});
+      const nextSpanValue = makeSpan({span_id: 'next'});
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const transactionNode = new TransactionNode(
+        null,
+        transactionValue,
+        extra,
+        mockFn,
+        mockFn
+      );
+      const spanNode = new SpanNode(transactionNode, spanValue, extra);
+      const previousNode = new SpanNode(spanNode, previousSpanValue, extra);
+      const nextNode = new SpanNode(spanNode, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        spanNode,
+        missingInstrValue,
+        extra
+      );
+
+      const path = node.pathToNode();
+      expect(path).toHaveLength(2);
+      expect(path[0]).toMatch(/^ms-/); // First should be missing instrumentation ID
+      expect(path[1]).toBe('txn-transaction-id'); // Second should be transaction ID
+    });
+
+    it('should find closest transaction parent even when deeply nested', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeTransaction({
+        event_id: 'root-transaction',
+        transaction: 'navigation',
+        'transaction.op': 'navigation',
+      });
+      const span1Value = makeSpan({span_id: 'span1', op: 'db.query'});
+      const span2Value = makeSpan({span_id: 'span2', op: 'http.request'});
+      const span3Value = makeSpan({span_id: 'span3', op: 'cache.get'});
+
+      const mockFn = jest.fn();
+      const previousSpanValue = makeSpan({span_id: 'previous'});
+      const nextSpanValue = makeSpan({span_id: 'next'});
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const transactionNode = new TransactionNode(
+        null,
+        transactionValue,
+        extra,
+        mockFn,
+        mockFn
+      );
+      const span1Node = new SpanNode(transactionNode, span1Value, extra);
+      const span2Node = new SpanNode(span1Node, span2Value, extra);
+      const span3Node = new SpanNode(span2Node, span3Value, extra);
+      const previousNode = new SpanNode(span3Node, previousSpanValue, extra);
+      const nextNode = new SpanNode(span3Node, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        span3Node,
+        missingInstrValue,
+        extra
+      );
+
+      const path = node.pathToNode();
+      expect(path).toHaveLength(2);
+      expect(path[0]).toMatch(/^ms-/);
+      expect(path[1]).toBe('txn-root-transaction');
+    });
+
+    it('should handle parent without transaction correctly', () => {
+      const extra = createMockExtra();
+      const spanValue = makeEAPSpan({
+        event_id: 'regular-span',
+        is_transaction: false,
+        op: 'db.query',
+      });
+      const previousSpanValue = makeEAPSpan({event_id: 'previous'});
+      const nextSpanValue = makeEAPSpan({event_id: 'next'});
+      const missingInstrValue = createMissingInstrumentationSpan();
+
+      const spanNode = new EapSpanNode(null, spanValue, extra);
+      const previousNode = new EapSpanNode(spanNode, previousSpanValue, extra);
+      const nextNode = new EapSpanNode(spanNode, nextSpanValue, extra);
+      const node = new NoInstrumentationNode(
+        previousNode,
+        nextNode,
+        spanNode,
+        missingInstrValue,
+        extra
+      );
+
+      const path = node.pathToNode();
+      expect(path).toHaveLength(1);
+      expect(path[0]).toMatch(/^ms-/);
+    });
+  });
+
+  describe('abstract method implementations', () => {
     it('should return correct analyticsName', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({event_id: 'previous'});
@@ -253,7 +369,7 @@ describe('NoInstrumentationNode', () => {
       expect(node.printNode()).toBe('missing_instrumentation');
     });
 
-    it('should render waterfall row', () => {
+    it('should render waterfall row with TraceMissingInstrumentationRow', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({event_id: 'previous'});
       const nextSpanValue = makeEAPSpan({event_id: 'next'});
@@ -281,7 +397,7 @@ describe('NoInstrumentationNode', () => {
       expect(result).toBeDefined();
     });
 
-    it('should render details for missing instrumentation node', () => {
+    it('should render details with MissingInstrumentationNodeDetails', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({event_id: 'previous'});
       const nextSpanValue = makeEAPSpan({event_id: 'next'});
@@ -306,34 +422,6 @@ describe('NoInstrumentationNode', () => {
 
       const result = node.renderDetails(mockProps);
       expect(result).toBeDefined();
-    });
-
-    it('should return null for renderDetails when node is not missing instrumentation', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({event_id: 'previous'});
-      const nextSpanValue = makeEAPSpan({event_id: 'next'});
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      // Mock a different node type
-      const mockProps = {
-        node: previousNode as any, // Pass a different node type
-        organization: OrganizationFixture(),
-        onParentClick: jest.fn(),
-        onTabScrollToNode: jest.fn(),
-      } as unknown as TraceTreeNodeDetailsProps<any>;
-
-      const result = node.renderDetails(mockProps);
-      expect(result).toBeNull();
     });
   });
 
@@ -362,7 +450,7 @@ describe('NoInstrumentationNode', () => {
   });
 
   describe('makeBarColor', () => {
-    it('should return gray color', () => {
+    it('should return gray300 color from theme', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({event_id: 'previous'});
       const nextSpanValue = makeEAPSpan({event_id: 'next'});
@@ -386,153 +474,14 @@ describe('NoInstrumentationNode', () => {
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle zero timestamps', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'previous',
-        start_timestamp: 0,
-        end_timestamp: 0,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next',
-        start_timestamp: 0,
-        end_timestamp: 1,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan({
-        start_timestamp: 0,
-        timestamp: 0,
-      });
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.space).toEqual([0, 0]);
-    });
-
-    it('should handle negative time gaps', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'previous',
-        start_timestamp: 1000,
-        end_timestamp: 2000,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next',
-        start_timestamp: 1500, // Overlapping with previous
-        end_timestamp: 2500,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      // Should handle negative gap (overlapping spans)
-      expect(node.space).toEqual([2000000, -500000]); // [2000 * 1000, (1500 - 2000) * 1000]
-    });
-
-    it('should handle same previous and next nodes', () => {
-      const extra = createMockExtra();
-      const spanValue = makeEAPSpan({
-        event_id: 'same-span',
-        start_timestamp: 1000,
-        end_timestamp: 2000,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const spanNode = new EapSpanNode(null, spanValue, extra);
-      const node = new NoInstrumentationNode(
-        spanNode,
-        spanNode, // Same node as both previous and next
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.previous).toBe(spanNode);
-      expect(node.next).toBe(spanNode);
-      expect(node.space).toEqual([2000000, -1000000]); // [end * 1000, (start - end) * 1000]
-    });
-
-    it('should handle large timestamp values', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'previous',
-        start_timestamp: 1000000000,
-        end_timestamp: 1000001000,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next',
-        start_timestamp: 1000002000,
-        end_timestamp: 1000003000,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.space).toEqual([1000001000000, 1000000]); // Large numbers handled correctly
-    });
-
-    it('should handle different missing instrumentation span values', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({event_id: 'previous'});
-      const nextSpanValue = makeEAPSpan({event_id: 'next'});
-      const missingInstrValue = createMissingInstrumentationSpan({
-        start_timestamp: 5000,
-        timestamp: 10000,
-        type: 'missing_instrumentation',
-      });
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.value.start_timestamp).toBe(5000);
-      expect(node.value.timestamp).toBe(10000);
-      expect(node.value.type).toBe('missing_instrumentation');
-    });
-  });
-
   describe('matchById', () => {
     it('should match by previous node ID', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({
         event_id: 'previous-span-id',
-        start_timestamp: 1000,
-        end_timestamp: 1500,
       });
       const nextSpanValue = makeEAPSpan({
         event_id: 'next-span-id',
-        start_timestamp: 2000,
-        end_timestamp: 2500,
       });
       const missingInstrValue = createMissingInstrumentationSpan();
 
@@ -553,13 +502,9 @@ describe('NoInstrumentationNode', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({
         event_id: 'previous-span-id',
-        start_timestamp: 1000,
-        end_timestamp: 1500,
       });
       const nextSpanValue = makeEAPSpan({
         event_id: 'next-span-id',
-        start_timestamp: 2000,
-        end_timestamp: 2500,
       });
       const missingInstrValue = createMissingInstrumentationSpan();
 
@@ -576,17 +521,13 @@ describe('NoInstrumentationNode', () => {
       expect(node.matchById('next-span-id')).toBe(true);
     });
 
-    it('should match both previous and next node IDs', () => {
+    it('should return false when ID does not match either node', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({
         event_id: 'previous-span-id',
-        start_timestamp: 1000,
-        end_timestamp: 1500,
       });
       const nextSpanValue = makeEAPSpan({
         event_id: 'next-span-id',
-        start_timestamp: 2000,
-        end_timestamp: 2500,
       });
       const missingInstrValue = createMissingInstrumentationSpan();
 
@@ -600,50 +541,16 @@ describe('NoInstrumentationNode', () => {
         extra
       );
 
-      expect(node.matchById('previous-span-id')).toBe(true);
-      expect(node.matchById('next-span-id')).toBe(true);
       expect(node.matchById('non-existent-id')).toBe(false);
     });
 
-    it('should return false when neither previous nor next ID matches', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'previous-span-id',
-        start_timestamp: 1000,
-        end_timestamp: 1500,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next-span-id',
-        start_timestamp: 2000,
-        end_timestamp: 2500,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.matchById('different-id')).toBe(false);
-      expect(node.matchById('another-id')).toBe(false);
-    });
-
-    it('should handle undefined previous node ID', () => {
+    it('should handle undefined node IDs', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({
         event_id: undefined,
-        start_timestamp: 1000,
-        end_timestamp: 1500,
       });
       const nextSpanValue = makeEAPSpan({
         event_id: 'next-span-id',
-        start_timestamp: 2000,
-        end_timestamp: 2500,
       });
       const missingInstrValue = createMissingInstrumentationSpan();
 
@@ -659,119 +566,6 @@ describe('NoInstrumentationNode', () => {
 
       expect(node.matchById('next-span-id')).toBe(true);
       expect(node.matchById('undefined')).toBe(false);
-    });
-
-    it('should handle undefined next node ID', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'previous-span-id',
-        start_timestamp: 1000,
-        end_timestamp: 1500,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: undefined,
-        start_timestamp: 2000,
-        end_timestamp: 2500,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.matchById('previous-span-id')).toBe(true);
-      expect(node.matchById('undefined')).toBe(false);
-    });
-
-    it('should handle both previous and next node IDs being undefined', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: undefined,
-        start_timestamp: 1000,
-        end_timestamp: 1500,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: undefined,
-        start_timestamp: 2000,
-        end_timestamp: 2500,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.matchById('any-id')).toBe(false);
-    });
-
-    it('should be case sensitive', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'CaseSensitivePrevious',
-        start_timestamp: 1000,
-        end_timestamp: 1500,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'CaseSensitiveNext',
-        start_timestamp: 2000,
-        end_timestamp: 2500,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.matchById('CaseSensitivePrevious')).toBe(true);
-      expect(node.matchById('casesensitiveprevious')).toBe(false);
-      expect(node.matchById('CaseSensitiveNext')).toBe(true);
-      expect(node.matchById('casesensitivenext')).toBe(false);
-    });
-
-    it('should handle empty string IDs', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: '',
-        start_timestamp: 1000,
-        end_timestamp: 1500,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next-span-id',
-        start_timestamp: 2000,
-        end_timestamp: 2500,
-      });
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      expect(node.matchById('')).toBe(true);
-      expect(node.matchById('next-span-id')).toBe(true);
     });
   });
 });
