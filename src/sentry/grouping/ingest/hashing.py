@@ -240,7 +240,7 @@ def get_or_create_grouphashes(
         grouphash, created = GroupHash.objects.select_related("group").get_or_create(
             project=project, hash=hash_value
         )
-        if do_not_associate_with_group:
+        if detach_in_deletion_groups:
             # If the group a group hash is associated with is in deletion in progress, we don't
             # want to associate the group hash with it so we can create a new group for the event
             if grouphash.group and grouphash.group.status in [
