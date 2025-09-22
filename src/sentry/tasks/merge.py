@@ -9,6 +9,7 @@ from django.db.models import F
 from sentry import eventstream, similarity, tsdb
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
+from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
@@ -184,19 +185,19 @@ def merge_groups(
                 last_seen=max(group.last_seen, new_group.last_seen),
             )
             try:
+                fetch_buffered_group_stats(new_group)
+                fetch_buffered_group_stats(group)
+                total_times_seen = new_group.times_seen_with_pending + group.times_seen_with_pending
+
                 # it's possible to hit an out of range value for counters
                 new_group.update(
-                    times_seen=F("times_seen") + group.times_seen,
+                    times_seen=total_times_seen,
                     num_comments=F("num_comments") + group.num_comments,
                 )
             except DataError as e:
                 with sentry_sdk.push_scope() as scope:
                     scope.set_extra("new_group_id", new_group.id)
                     scope.set_extra("old_group_id", group.id)
-                    scope.set_extra("new_times_seen", new_group.times_seen)
-                    scope.set_extra("old_times_seen", group.times_seen)
-                    scope.set_extra("attempted_times_seen", new_group.times_seen + group.times_seen)
-                    scope.set_extra("project_id", new_group.project_id)
                     sentry_sdk.capture_exception(e, level="warning")
 
     if from_object_ids:
