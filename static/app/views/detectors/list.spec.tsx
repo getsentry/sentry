@@ -305,7 +305,7 @@ describe('DetectorsList', () => {
       expect(rows).toHaveLength(3);
 
       // Initially no checkboxes should be checked
-      const checkboxes = screen.getAllByRole('checkbox');
+      let checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).not.toBeChecked();
       });
@@ -331,6 +331,7 @@ describe('DetectorsList', () => {
       expect(masterCheckbox).toBeChecked();
 
       // // All checkboxes should be checked
+      checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).toBeChecked();
       });

@@ -2,6 +2,7 @@ import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Flex} from 'sentry/components/core/layout';
 import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
@@ -127,13 +128,13 @@ function AutomationListTable({
       {canEditAutomations && selected.size === 0 ? (
         <SimpleTable.Header key="header">
           <HeaderCell sort={sort} sortKey="name">
-            <NameHeader>
+            <Flex gap="md" align="center">
               <SelectAllHeaderCheckbox
                 checked={pageSelected || (anySelected ? 'indeterminate' : false)}
                 onChange={checked => togglePageSelected(checked)}
               />
               <span>{t('Name')}</span>
-            </NameHeader>
+            </Flex>
           </HeaderCell>
           <HeaderCell
             data-column-name="last-triggered"
@@ -229,12 +230,6 @@ const AutomationsSimpleTable = styled(SimpleTable)`
       display: flex;
     }
   }
-`;
-
-const NameHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
 `;
 
 export default AutomationListTable;

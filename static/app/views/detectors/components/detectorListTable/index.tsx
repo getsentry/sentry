@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {t} from 'sentry/locale';
@@ -123,13 +124,13 @@ function DetectorListTable({
         {selected.size === 0 ? (
           <SimpleTable.Header>
             <HeaderCell sortKey="name" sort={sort}>
-              <NameHeader>
+              <Flex gap="md" align="center">
                 <SelectAllHeaderCheckbox
                   checked={pageSelected || (anySelected ? 'indeterminate' : false)}
                   onChange={checked => togglePageSelected(checked)}
                 />
                 <span>{t('Name')}</span>
-              </NameHeader>
+              </Flex>
             </HeaderCell>
             <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
               {t('Type')}
@@ -189,12 +190,6 @@ function DetectorListTable({
 
 const Container = styled('div')`
   container-type: inline-size;
-`;
-
-const NameHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
 `;
 
 const DetectorListSimpleTable = styled(SimpleTable)`
