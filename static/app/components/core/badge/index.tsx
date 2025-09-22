@@ -80,9 +80,7 @@ const StyledBadge = styled('span')<BadgeProps>`
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.xs};
   padding: 0 ${space(0.75)};
-
-  /* @TODO(jonasbadalic) can we standardize this transition? */
-  transition: background 100ms linear;
+  transition: background ${p => p.theme.motion.snap.fast};
 
   /* @TODO(jonasbadalic) why are these needed? */
   margin-left: ${space(0.5)};
