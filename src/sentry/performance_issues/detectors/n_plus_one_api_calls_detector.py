@@ -132,7 +132,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not url:
             return False
 
-        # Check if any spans have filtered URLs
         if is_filtered_url(url):
             return False
 
@@ -318,6 +317,9 @@ def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None
     method, url_str = parts
     method = method.upper()
     if method not in HTTP_METHODS:
+        return None
+
+    if is_filtered_url(url_str):
         return None
 
     url = urlparse(url_str)
