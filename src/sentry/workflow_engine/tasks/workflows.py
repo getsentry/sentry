@@ -25,6 +25,7 @@ from sentry.workflow_engine.tasks.utils import (
 )
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context, scopedstats
+from sentry.workflow_engine.utils.sentry_level_utils import quiet_redis_noise
 
 logger = log_context.get_logger(__name__)
 
@@ -75,8 +76,8 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         event=activity,
         group=group,
     )
-
-    process_workflows(event_data, event_start_time=activity.datetime, detector=detector)
+    with quiet_redis_noise():
+        process_workflows(event_data, event_start_time=activity.datetime, detector=detector)
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type, "detector_type": detector.type},
@@ -136,7 +137,8 @@ def process_workflows_event(
             if start_timestamp_seconds
             else datetime.now(tz=UTC)
         )
-        process_workflows(event_data, event_start_time=event_start_time)
+        with quiet_redis_noise():
+            process_workflows(event_data, event_start_time=event_start_time)
     duration = time.time() - start_time
     is_slow = duration > 1.0
     # We want full coverage for particularly slow cases, plus a random sampling.
@@ -166,8 +168,7 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
     """
     Schedule delayed workflow buffers in a batch.
     """
-    from sentry.rules.processing.buffer_processing import process_buffer_for_type
-    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+    from sentry.workflow_engine.processors.schedule import process_buffered_workflows
 
     lock_name = "schedule_delayed_workflows"
     lock = locks.get(f"workflow_engine:{lock_name}", duration=60, name=lock_name)
@@ -181,6 +182,7 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
                     "Configured to use process_pending_batch for delayed_workflow; exiting."
                 )
                 return
-            process_buffer_for_type("delayed_workflow", DelayedWorkflow)
+            with quiet_redis_noise():
+                process_buffered_workflows()
     except UnableToAcquireLock as error:
         logger.warning("schedule_delayed_workflows.fail", extra={"error": error})

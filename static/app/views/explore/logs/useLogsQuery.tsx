@@ -206,7 +206,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     query: {
       ...eventViewPayload,
       ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
-      ...(frozenReplayInfo ? {replayId: frozenReplayInfo.replayId} : {}),
+      ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
       cursor,
       orderby: eventViewPayload.sort,
       per_page: limit ? limit : undefined,

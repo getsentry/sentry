@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Select} from 'sentry/components/core/select';
@@ -30,6 +31,7 @@ import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
 export default function AutomationBuilder() {
   const {state, actions} = useAutomationBuilderContext();
+  const {mutationErrors} = useAutomationBuilderErrorContext();
   const organization = useOrganization();
   const api = useApi();
 
@@ -89,6 +91,11 @@ export default function AutomationBuilder() {
             actions.updateWhenCondition(id, comparison)
           }
         />
+        {(mutationErrors as any)?.actionFilters?.all && (
+          <StyledAlert type="error">
+            {(mutationErrors as any).actionFilters.all}
+          </StyledAlert>
+        )}
         {state.actionFilters.map(actionFilter => (
           <ActionFilterBlock
             key={`actionFilters.${actionFilter.id}`}
@@ -268,4 +275,8 @@ const DeleteButton = styled(Button)`
   position: absolute;
   top: ${p => p.theme.space.sm};
   right: ${p => p.theme.space.sm};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-top: ${p => p.theme.space.md};
 `;

@@ -35,6 +35,8 @@ const testingEntryPoints = [
 const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storybook.tsx',
+  'static/**/*.stories.{js,mjs,ts,tsx}',
+  'static/**/*.mdx',
 ];
 
 const config: KnipConfig = {
@@ -43,7 +45,6 @@ const config: KnipConfig = {
     ...testingEntryPoints,
     ...storyBookEntryPoints,
   ],
-  storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
     'config/**/*.ts',
@@ -55,13 +56,14 @@ const config: KnipConfig = {
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
-    // TEMPORARY!
-    '!static/app/components/core/disclosure/index.tsx',
-    '!static/app/components/core/disclosure/disclosure.tsx',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
   },
+  ignore: [
+    // will be removed in the next PR
+    'static/app/components/deprecatedSmartSearchBar/**',
+  ],
   ignoreDependencies: [
     'core-js',
     'eslint-import-resolver-typescript', // used in eslint config
@@ -77,10 +79,6 @@ const config: KnipConfig = {
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
     'terser', // Still used in a loader
-
-    // TEMPORARY!
-    '@react-stately/disclosure',
-    '@react-aria/disclosure',
   ],
   rules: {
     binaries: 'off',

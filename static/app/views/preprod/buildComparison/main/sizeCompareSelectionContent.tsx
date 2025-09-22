@@ -3,23 +3,13 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import {Stack} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
-import {
-  IconCalendar,
-  IconClose,
-  IconCode,
-  IconCommit,
-  IconDownload,
-  IconFocus,
-  IconLock,
-  IconTelescope,
-} from 'sentry/icons';
+import {IconCalendar, IconCode, IconCommit, IconDownload} from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -31,9 +21,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
+  isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+
+import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
 
 interface SizeCompareSelectionContentProps {
   headBuildDetails: BuildDetailsApiResponse;
@@ -55,14 +48,6 @@ export function SizeCompareSelectionContent({
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
-
-  const headPrNumber = headBuildDetails.vcs_info?.pr_number;
-  const headSha = headBuildDetails.vcs_info?.head_sha?.substring(0, 7);
-  const headBranchName = headBuildDetails.vcs_info?.head_ref;
-
-  const basePrNumber = selectedBaseBuild?.vcs_info?.pr_number;
-  const baseSha = selectedBaseBuild?.vcs_info?.head_sha?.substring(0, 7);
-  const baseBranchName = selectedBaseBuild?.vcs_info?.head_ref;
 
   const queryParams: Record<string, any> = {
     per_page: 25,
@@ -110,86 +95,23 @@ export function SizeCompareSelectionContent({
 
   return (
     <Stack gap="xl">
-      <Flex align="center" gap="lg" width="100%" justify="center">
-        <Flex align="center" gap="sm">
-          <IconLock size="xs" locked />
-          <Text bold>{t('Your build:')}</Text>
-          <Text size="sm" variant="accent" bold>
-            {headPrNumber && `#${headPrNumber} `}
-            {headSha && (
-              <Flex align="center" gap="xs">
-                <IconCommit size="xs" />
-                {headSha}
-              </Flex>
-            )}
-          </Text>
-          <BuildBranch>
-            <Text size="sm" variant="muted">
-              {headBranchName}
-            </Text>
-          </BuildBranch>
-        </Flex>
+      <SizeCompareSelectedBuilds
+        isComparing={isComparing}
+        headBuildDetails={headBuildDetails}
+        baseBuildDetails={selectedBaseBuild}
+        onClearBaseBuild={() => setSelectedBaseBuild(undefined)}
+        onTriggerComparison={() => {
+          if (!selectedBaseBuild) {
+            addErrorMessage(t('Please select a base build to compare.'));
+            return;
+          }
 
-        <Text>{t('vs')}</Text>
-
-        <Flex align="center" gap="sm">
-          {selectedBaseBuild ? (
-            <SelectedBaseBuild align="center" gap="sm">
-              <IconFocus size="xs" color="purple400" />
-              <Text size="sm" variant="accent" bold>
-                {t('Comparison:')}
-              </Text>
-              <Text size="sm" variant="accent" bold>
-                {basePrNumber && `#${basePrNumber} `}
-                {baseSha && (
-                  <Flex align="center" gap="xs">
-                    <IconCommit size="xs" color="purple400" />
-                    {baseSha}
-                  </Flex>
-                )}
-              </Text>
-              <BaseBuildBranch>
-                <Text size="sm" variant="muted">
-                  {baseBranchName}
-                </Text>
-              </BaseBuildBranch>
-              <Button
-                onClick={e => {
-                  e.stopPropagation();
-                  setSelectedBaseBuild(undefined);
-                }}
-                size="zero"
-                priority="transparent"
-                borderless
-                aria-label={t('Clear base build')}
-                icon={<IconClose size="xs" color="purple400" />}
-              />
-            </SelectedBaseBuild>
-          ) : (
-            <SelectBuild>
-              <Text size="sm">{t('Select a build')}</Text>
-            </SelectBuild>
-          )}
-        </Flex>
-
-        <Flex align="center" gap="sm">
-          <Button
-            onClick={() => {
-              if (selectedBaseBuild) {
-                triggerComparison({
-                  baseArtifactId: selectedBaseBuild.id.toString(),
-                  headArtifactId: headBuildDetails.id.toString(),
-                });
-              }
-            }}
-            disabled={!selectedBaseBuild || isComparing}
-            priority="primary"
-            icon={<IconTelescope size="sm" />}
-          >
-            {isComparing ? t('Comparing...') : t('Compare builds')}
-          </Button>
-        </Flex>
-      </Flex>
+          triggerComparison({
+            baseArtifactId: selectedBaseBuild.id.toString(),
+            headArtifactId: headBuildDetails.id.toString(),
+          });
+        }}
+      />
 
       {buildsQuery.isLoading && <LoadingIndicator />}
       {buildsQuery.isError && <Alert type="error">{buildsQuery.error?.message}</Alert>}
@@ -215,32 +137,6 @@ export function SizeCompareSelectionContent({
   );
 }
 
-const BuildBranch = styled('span')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const BaseBuildBranch = styled('span')`
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const SelectBuild = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  border-style: dashed;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-`;
-
-const SelectedBaseBuild = styled(Flex)`
-  background-color: ${p => p.theme.surface100};
-  border: 1px solid ${p => p.theme.focusBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-`;
-
 interface BuildItemProps {
   build: BuildDetailsApiResponse;
   isSelected: boolean;
@@ -252,8 +148,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const commitHash = build.vcs_info?.head_sha?.substring(0, 7);
   const branchName = build.vcs_info?.head_ref;
   const dateAdded = build.app_info?.date_added;
-  const downloadSize = build.size_info?.download_size_bytes;
-  const installSize = build.size_info?.install_size_bytes;
+  const sizeInfo = build.size_info;
 
   return (
     <BuildItemContainer
@@ -287,16 +182,16 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
               <TimeSince date={dateAdded} />
             </Flex>
           )}
-          {downloadSize && (
+          {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconDownload size="xs" color="gray300" />
-              <Text>{formatBytesBase10(downloadSize)}</Text>
+              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
             </Flex>
           )}
-          {installSize && (
+          {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconCode size="xs" color="gray300" />
-              <Text>{formatBytesBase10(installSize)}</Text>
+              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
             </Flex>
           )}
         </Flex>
@@ -313,13 +208,13 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   cursor: pointer;
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.surface100};
   }
 
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.surface100};
+      background-color: ${p.theme.surface200};
     `}
 `;
 
