@@ -544,8 +544,6 @@ def rpc_get_replay_summary_logs(
     )
     if result:
         start, end = result
-    else:
-        start, end = default_start_end_dates()
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(
