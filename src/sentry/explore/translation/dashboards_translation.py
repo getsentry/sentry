@@ -8,6 +8,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
+    DatasetSourcesTypes,
 )
 from sentry.search.events.fields import is_function
 from sentry.utils.db import atomic_transaction
@@ -127,11 +128,18 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
 
         dropped_fields_info.append(dropped_fields)
 
-    with atomic_transaction(using=router.db_for_write(DashboardWidgetQuery)):
+    with atomic_transaction(
+        using=(
+            router.db_for_write(DashboardWidgetQuery),
+            router.db_for_write(DashboardWidget),
+        )
+    ):
         DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
         DashboardWidgetQuery.objects.bulk_create(new_widget_queries)
 
-    widget.changed_reason = dropped_fields_info
-    widget.save()
+        widget.widget_type = DashboardWidgetTypes.SPANS
+        widget.dataset_source = DatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value
+        widget.changed_reason = dropped_fields_info
+        widget.save()
 
     return widget

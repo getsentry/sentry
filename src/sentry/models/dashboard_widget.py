@@ -110,6 +110,10 @@ class DatasetSourcesTypes(Enum):
      Dataset inferred by split script, version 2
     """
     SPLIT_VERSION_2 = 5
+    """
+     Dataset modified by transaction -> span migration
+    """
+    SPAN_MIGRATION_VERSION_1 = 6
 
     @classmethod
     def as_choices(cls):
