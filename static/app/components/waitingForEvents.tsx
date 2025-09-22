@@ -29,6 +29,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
   const {data, error, isPending} = useQuery(
     apiOptions.as<Array<{id: string}>>()('/projects/$orgSlug/$projectSlug/issues/', {
       staleTime: Infinity,
+      data: {limit: 1},
       path:
         project && sampleIssueIdProp === undefined
           ? {
