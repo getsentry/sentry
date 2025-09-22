@@ -69,7 +69,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
         value = trigger.alert_threshold + 1
         self.send_update(rule, value)
-        assert mock_logger.info.call_count == 2
+
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra={
@@ -79,6 +79,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 "rule_id": rule.id,
             },
         )
+
         mock_logger.info.assert_any_call(
             "subscription_processor.alert_triggered",
             extra={
@@ -129,7 +130,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
         self.snooze_rule(owner_id=self.user.id, alert_rule=rule)
         self.send_update(rule, trigger.alert_threshold + 1)
-        assert mock_logger.info.call_count == 1
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra={
@@ -184,7 +184,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
         )
-        assert mock_logger.info.call_count == 2
+
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra={
@@ -236,7 +236,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
         )
-        assert mock_logger.info.call_count == 1
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra={
@@ -648,7 +647,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
             ],
         )
-        assert mock_logger.info.call_count == 4
         mock_logger.info.assert_any_call(
             "subscription_processor.alert_triggered",
             extra={
@@ -718,7 +716,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
             ],
         )
-        assert mock_logger.info.call_count == 3
 
         # this one gets called twice, once per trigger
         mock_logger.info.assert_any_call(
@@ -794,7 +791,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ],
         )
-        assert mock_logger.info.call_count == 4
 
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
@@ -877,7 +873,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ],
         )
-        assert mock_logger.info.call_count == 3
 
         # this one gets called twice, once per trigger
         mock_logger.info.assert_any_call(

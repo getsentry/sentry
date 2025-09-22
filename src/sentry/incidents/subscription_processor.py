@@ -510,7 +510,7 @@ class SubscriptionProcessor:
         aggregation_value: float,
         detector: Detector | None,
         results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] | None,
-    ) -> None:
+    ) -> list[IncidentTrigger] | None:
         organization = self.subscription.project.organization
         has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
         potential_anomalies = None
@@ -529,8 +529,9 @@ class SubscriptionProcessor:
                     last_update=self.last_update.timestamp(),
                     aggregation_value=aggregation_value,
                 )
+
             if potential_anomalies is None:
-                return
+                return None
 
         fired_incident_triggers: list[IncidentTrigger] = []
         with transaction.atomic(router.db_for_write(AlertRule)):
@@ -609,7 +610,7 @@ class SubscriptionProcessor:
                                 "organization_id": organization.id,
                             },
                         )
-                        return
+                        return None
 
                     fired_incident_triggers, metrics_incremented = self.handle_trigger_alerts(
                         trigger,
@@ -632,6 +633,7 @@ class SubscriptionProcessor:
         # this will have no effect, but if someone manages to close a triggered incident
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
+        return fired_incident_triggers
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
         """
@@ -708,12 +710,20 @@ class SubscriptionProcessor:
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 return
 
+            metric_prefix = "incidents.workflow_engine.processing"
             if aggregation_value is not None:
                 workflow_engine_results = None
+                legacy_results = None
+
                 if self._has_workflow_engine_processing:
                     workflow_engine_results = self.process_results_workflow_engine(
                         subscription_update, aggregation_value, organization
                     )
+
+                    if self._has_workflow_engine_processing_only:
+                        # Send a metric if are only evaluating in workflow engine
+                        # This can be used to show the amount of traffic on workflow_engine
+                        metrics.incr(f"{metric_prefix}.single")
 
                 if not self._has_workflow_engine_processing_only:
                     """
@@ -725,11 +735,22 @@ class SubscriptionProcessor:
                     This allows us to process the anomaly detection results in
                     workflow engine "and" metric alerts.
                     """
-                    self.process_legacy_metric_alerts(
+                    legacy_results = self.process_legacy_metric_alerts(
                         subscription_update,
                         aggregation_value,
                         detector,
                         workflow_engine_results,
+                    )
+
+                if workflow_engine_results or legacy_results:
+                    # If either the new or old system detect an issue, log the results for both systems
+                    logger.info(
+                        metric_prefix,
+                        extra={
+                            "detector": detector,
+                            "workflow_engine_triggered": bool(workflow_engine_results),
+                            "metric_alert_triggered": bool(legacy_results),
+                        },
                     )
 
     def trigger_alert_threshold(
