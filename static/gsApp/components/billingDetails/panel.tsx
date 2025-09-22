@@ -20,6 +20,7 @@ import type {Subscription} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
+import type {GetsentryEventKey} from 'getsentry/utils/trackGetsentryAnalytics';
 
 /**
  * Sets the min-height so a field displaying text will be the same height as a
@@ -41,9 +42,11 @@ function BillingDetailsPanel({
   subscription,
   title,
   isNewBillingUI,
+  analyticsEvent,
 }: {
   organization: Organization;
   subscription: Subscription;
+  analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
   title?: string;
 }) {
@@ -185,6 +188,7 @@ function BillingDetailsPanel({
                 {t('Cancel')}
               </Button>
             }
+            analyticsEvent={analyticsEvent}
           />
         ) : billingDetails ? (
           <Fragment>
