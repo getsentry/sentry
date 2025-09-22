@@ -240,7 +240,9 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert last_activity_entry.value == str(IncidentStatus.CLOSED.value)
 
     @mock.patch("sentry.models.group.logger")
-    def test_new_to_ongoing_no_igop_write(self, mock_logger) -> None:
+    def test_bulk_transition_new_group_to_ongoing__metric_issues__no_incident_activites(
+        self, mock_logger
+    ) -> None:
         """Don't want to trigger an IGOP write for this status change"""
         _, group_info = self.save_issue_occurrence()
         group = group_info.group
@@ -252,6 +254,8 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
 
         dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
         incident = Incident.objects.get(id=dummy_relationship.incident_id)
+        assert len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+
         group.substatus = GroupSubStatus.NEW
         group.save()
 
@@ -264,11 +268,14 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         ).exists()
         assert mock_logger.error.call_count == 0
 
-        activity = IncidentActivity.objects.filter(incident_id=incident.id)
-        assert len(activity) == 3  # detected, created, priority change
+        assert (
+            len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+        )  # no new IGOP entry
 
     @mock.patch("sentry.models.group.logger")
-    def test_regressed_to_ongoing_no_igop_write(self, mock_logger) -> None:
+    def test_bulk_transition_regressed_group_to_ongoing__metric_issues__no_incident_activites(
+        self, mock_logger
+    ) -> None:
         """Don't want to trigger an IGOP write for this status change"""
         _, group_info = self.save_issue_occurrence()
         group = group_info.group
@@ -280,6 +287,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
 
         dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
         incident = Incident.objects.get(id=dummy_relationship.incident_id)
+        assert len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
         group.substatus = GroupSubStatus.REGRESSED
         group.save()
 
@@ -294,5 +302,6 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         ).exists()
         assert mock_logger.error.call_count == 0
 
-        activity = IncidentActivity.objects.filter(incident_id=incident.id)
-        assert len(activity) == 3  # detected, created, priority change
+        assert (
+            len(IncidentActivity.objects.filter(incident_id=incident.id)) == 3
+        )  # no new IGOP entry

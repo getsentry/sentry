@@ -508,39 +508,36 @@ class GroupManager(BaseManager["Group"]):
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
+            is_status_resolved = status == GroupStatus.RESOLVED
+            is_status_unresolved = status == GroupStatus.UNRESOLVED
+
             # The open period is only updated when a group is resolved or reopened. We don't want to
             # update the open period when a group transitions between different substatuses within UNRESOLVED.
-            if status == GroupStatus.RESOLVED:
+            if is_status_resolved:
                 update_group_open_period(
                     group=group,
                     new_status=GroupStatus.RESOLVED,
                     resolution_time=activity.datetime,
                     resolution_activity=activity,
                 )
-                # TODO (aci cleanup): remove this once we've deprecated the incident model
-                if group.type == MetricIssue.type_id:
-                    if detector_id is None:
-                        logger.error(
-                            "Call to update metric issue status missing detector ID",
-                            extra={"group_id": group.id},
-                        )
-                        continue
-                    update_incident_based_on_open_period_status_change(group, status, detector_id)
-
-            elif status == GroupStatus.UNRESOLVED and should_reopen_open_period[group.id]:
+            elif is_status_unresolved and should_reopen_open_period[group.id]:
                 update_group_open_period(
                     group=group,
                     new_status=GroupStatus.UNRESOLVED,
                 )
-                # TODO (aci cleanup): remove this once we've deprecated the incident model
-                if group.type == MetricIssue.type_id:
-                    if detector_id is None:
-                        logger.error(
-                            "Call to update metric issue status missing detector ID",
-                            extra={"group_id": group.id},
-                        )
-                        continue
-                    update_incident_based_on_open_period_status_change(group, status, detector_id)
+
+            should_update_incident = is_status_resolved or (
+                is_status_unresolved and should_reopen_open_period[group.id]
+            )
+            # TODO (aci cleanup): remove this once we've deprecated the incident model
+            if group.type == MetricIssue.type_id and should_update_incident:
+                if detector_id is None:
+                    logger.error(
+                        "Call to update metric issue status missing detector ID",
+                        extra={"group_id": group.id},
+                    )
+                    continue
+                update_incident_based_on_open_period_status_change(group, status, detector_id)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
