@@ -215,7 +215,7 @@ function OnboardingPanel({
             <Body>
               <Setup>{children}</Setup>
               <Preview>
-                <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
+                <BodyTitle>{t('Preview MCP Insights')}</BodyTitle>
                 <Arcade
                   src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
                   loading="lazy"
