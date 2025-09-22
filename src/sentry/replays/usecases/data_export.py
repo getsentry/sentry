@@ -11,7 +11,18 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any, TypedDict
 
-from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.replays.usecases.query import execute_query
 
@@ -26,17 +37,27 @@ def export_clickhouse_rows(
     start: datetime,
     end: datetime,
     limit: int = 1000,
-    cursor: Cursor | None = None,
-) -> dict[str, Any]:
-    where = []
-    if cursor:
-        where.extend(
-            [
-                Condition(hash_(Column("replay_id")), Op.GTE, hash_(cursor["replay_id"])),
-                Condition(Column("event_hash"), Op.GT, cursor["event_hash"]),
-            ]
-        )
+    num_pages: int = 1,
+):
+    offset = 0
+    for _ in range(num_pages):
+        results = export_clickhouse_row_set(project_ids, start, end, limit, offset)
+        offset += len(results)
 
+        if results:
+            yield results
+
+        if len(results) != limit:
+            break
+
+
+def export_clickhouse_row_set(
+    project_ids: list[int],
+    start: datetime,
+    end: datetime,
+    limit: int,
+    offset: int,
+) -> dict[str, Any]:
     query = Query(
         match=Entity("replays"),
         select=[
@@ -55,13 +76,11 @@ def export_clickhouse_rows(
             Column("event_hash"),
             Column("segment_id"),
             Column("trace_ids"),
-            Column("_trace_ids_hashed"),
             Column("title"),
             Column("url"),
             Column("urls"),
             Column("is_archived"),
             Column("error_ids"),
-            Column("_error_ids_hashed"),
             Column("project_id"),
             Column("timestamp"),
             Column("replay_start_timestamp"),
@@ -95,7 +114,6 @@ def export_clickhouse_rows(
             Column("sdk_version"),
             Column("tags"),
             Column("tags"),
-            Column("_tags_hash_map"),
             Column("click_node_id"),
             Column("click_tag"),
             Column("click_id"),
@@ -119,15 +137,15 @@ def export_clickhouse_rows(
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
-            *where,
         ],
         orderby=[
-            Column("project_id"),
-            Function("toStartOfDay", parameters=[Column("timestamp")]),
-            hash_(Column("replay_id")),
-            Column("event_hash"),
+            OrderBy(Column("project_id"), Direction.ASC),
+            OrderBy(Function("toStartOfDay", parameters=[Column("timestamp")]), Direction.ASC),
+            OrderBy(hash_(Column("replay_id")), Direction.ASC),
+            OrderBy(Column("event_hash"), Direction.ASC),
         ],
         limit=Limit(limit),
+        offset=Offset(offset),
     )
 
     return execute_query(query, {}, "replays.compliance_data_export")["data"]
@@ -272,6 +290,17 @@ def retry_export_blob_data[T](
     message = base64.b64decode(event["data"]).decode("utf-8")
     payload = json.loads(message)
 
+    # Check for a failed transfer operation
+    if "transferOperation" in payload and payload["transferOperation"]["status"] == "FAILED":
+        job_name = payload["transferOperation"]["transferJobName"]
+        project_id = payload["transferOperation"]["projectId"]
+
+        request = UpdateTransferJobRequest(
+            job_name=job_name,
+            project_id=project_id,
+            transfer_job=TransferJob(status=storage_transfer_v1.TransferJob.Status.ENABLED),
+        )
+        return retry_transfer_job(request)
     # Check for a failed transfer operation
     if "transferOperation" in payload and payload["transferOperation"]["status"] == "FAILED":
         job_name = payload["transferOperation"]["transferJobName"]
