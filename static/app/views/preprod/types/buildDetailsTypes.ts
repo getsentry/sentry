@@ -1,5 +1,8 @@
 import type {Platform} from './sharedTypes';
 
+// Utility type for API fields that can be undefined or null
+type NullableOptional<T> = T | null | undefined;
+
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
   id: string;
@@ -9,16 +12,16 @@ export interface BuildDetailsApiResponse {
 }
 
 export interface BuildDetailsAppInfo {
-  app_id?: string;
-  artifact_type?: BuildDetailsArtifactType;
-  build_configuration?: string;
-  build_number?: string;
-  date_added?: string;
-  date_built?: string;
-  is_installable?: boolean;
-  name?: string;
-  platform?: Platform;
-  version?: string;
+  app_id?: string | null;
+  artifact_type?: BuildDetailsArtifactType | null;
+  build_configuration?: string | null;
+  build_number?: string | null;
+  date_added?: string | null;
+  date_built?: string | null;
+  is_installable?: boolean | null;
+  name?: string | null;
+  platform?: Platform | null;
+  version?: string | null;
 }
 
 interface BuildDetailsVcsInfo {
