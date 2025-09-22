@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
+from sentry.performance_issues.base import DetectorType
 from sentry.performance_issues.detectors.http_overhead_detector import HTTPOverheadDetector
 from sentry.performance_issues.performance_detection import (
     get_detection_settings,
@@ -65,7 +66,9 @@ def _valid_http_overhead_event(url: str) -> dict[str, Any]:
     }
 
 
-def find_problems(settings: Any, event: dict[str, Any]) -> list[PerformanceProblem]:
+def find_problems(
+    settings: dict[DetectorType, Any], event: dict[str, Any]
+) -> list[PerformanceProblem]:
     detector = HTTPOverheadDetector(settings, event)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())

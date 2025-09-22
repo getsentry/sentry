@@ -54,7 +54,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
             ]
         )
 
-    def create_eligible_spans(self, duration: float, count: int) -> list[dict[str, Any]]:
+    def create_eligible_spans(self, duration: float, count: int) -> list[Span]:
         spans = []
 
         for i in range(count):
