@@ -19,6 +19,7 @@ from sentry.performance_issues.performance_detection import (
     get_detection_settings,
 )
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.types import Span
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
@@ -35,7 +36,7 @@ BASE_DETECTOR_OPTIONS_OFF = {
 }
 
 
-def assert_n_plus_one_db_problem(perf_problems):
+def assert_n_plus_one_db_problem(perf_problems: list[PerformanceProblem]) -> None:
     assert any(
         problem
         == PerformanceProblem(
@@ -701,5 +702,5 @@ class EventPerformanceProblemTest(TestCase):
         ),
     ],
 )
-def test_total_span_time(spans, duration) -> None:
+def test_total_span_time(spans: list[Span], duration: float) -> None:
     assert total_span_time(spans) == pytest.approx(duration, 0.01)

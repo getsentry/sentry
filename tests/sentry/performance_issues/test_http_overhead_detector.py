@@ -21,7 +21,11 @@ from sentry.testutils.performance_issues.event_generators import (
 
 
 def overhead_span(
-    duration: float, request_start: float, url: str, span_start=1.0, span_id="b" * 16
+    duration: float,
+    request_start: float,
+    url: str,
+    span_start: float = 1.0,
+    span_id: str = "b" * 16,
 ) -> dict[str, Any]:
     span = create_span(
         "http.client",
@@ -61,7 +65,7 @@ def _valid_http_overhead_event(url: str) -> dict[str, Any]:
     }
 
 
-def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
+def find_problems(settings: Any, event: dict[str, Any]) -> list[PerformanceProblem]:
     detector = HTTPOverheadDetector(settings, event)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
@@ -73,7 +77,7 @@ class HTTPOverheadDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event):
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
         return find_problems(self._settings, event)
 
     def test_detects_http_overhead(self) -> None:

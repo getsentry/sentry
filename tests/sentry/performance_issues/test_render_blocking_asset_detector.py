@@ -54,7 +54,7 @@ def _valid_render_blocking_asset_event(url: str) -> dict[str, Any]:
     }
 
 
-def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
+def find_problems(settings: Any, event: dict[str, Any]) -> list[PerformanceProblem]:
     detector = RenderBlockingAssetSpanDetector(settings, event)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
@@ -66,7 +66,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event):
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
         return find_problems(self._settings, event)
 
     def test_detects_render_blocking_asset(self) -> None:
