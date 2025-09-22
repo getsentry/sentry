@@ -150,14 +150,23 @@ import base64
 from datetime import datetime, timedelta, timezone
 
 from google.cloud import storage_transfer_v1
-from google.cloud.storage_transfer_v1.services.storage_transfer_service import types
+from google.cloud.storage_transfer_v1 import (
+    CreateTransferJobRequest,
+    GcsData,
+    NotificationConfig,
+    Schedule,
+    TransferJob,
+    TransferSpec,
+    types,
+)
+from google.type import date_pb2
 
 from sentry.utils import json
 
 
 def export_projects_replay_blob_data(
     project_ids: list[int],
-    gcs_project_id: int,
+    gcs_project_id: str,
     destination_bucket: str,
     pubsub_topic_name: str,
     source_bucket: str = "sentry-replays",
@@ -176,15 +185,21 @@ def export_projects_replay_blob_data(
             )
 
 
-def export_blob_data(
-    gcs_project_id: int,
+def request_schedule_transfer_job(transfer_job: dict[str, Any]) -> Any:
+    client = storage_transfer_v1.StorageTransferServiceClient()
+    return client.create_transfer_job(transfer_job=transfer_job)
+
+
+def export_blob_data[T](
+    gcs_project_id: str,
     source_bucket: str,
     source_prefix: str,
     destination_bucket: str,
     pubsub_topic_name: str,
     job_duration: timedelta,
-    schedule_transfer_job: Callable[[dict[str, Any], Any]] | None = None,
-):
+    schedule_transfer_job: Callable[[CreateTransferJobRequest], T] = request_schedule_transfer_job,
+    get_current_datetime: Callable[[], datetime] = lambda: datetime.now(tz=timezone.utc),
+) -> T:
     """
     Schedule a transfer job copying the prefix.
 
@@ -200,49 +215,38 @@ def export_blob_data(
     :param job_duration:
     :param schedule_transfer_job: An injected function which manages the service interaction.
     """
-    do_schedule_transfer_job = schedule_transfer_job or request_schedule_transfer_job
-
-    date_job_starts = datetime.now(tz=timezone.utc)
+    date_job_starts = get_current_datetime()
     date_job_ends = date_job_starts + job_duration
 
-    transfer_job = {
-        "project_id": gcs_project_id,
-        "description": "Session Replay EU Compliance Export",
-        "status": storage_transfer_v1.TransferJob.Status.ENABLED,
-        "transfer_spec": {
-            "gcs_data_source": {
-                "bucket_name": source_bucket,
-                "path": source_prefix,
-            },
-            "gcs_data_sink": {
-                "bucket_name": destination_bucket,
-            },
-        },
-        "schedule": {
-            "schedule_start_date": {
-                "year": date_job_starts.year,
-                "month": date_job_starts.month,
-                "day": date_job_starts.day,
-            },
-            "schedule_end_date": {
-                "year": date_job_ends.year,
-                "month": date_job_ends.month,
-                "day": date_job_ends.day,
-            },
-        },
-        "notification_config": {
-            "pubsub_topic": pubsub_topic_name,
-            "event_types": ["TRANSFER_OPERATION_FAILED"],
-            "payload_format": "JSON",
-        },
-    }
+    transfer_job = TransferJob(
+        description="Session Replay EU Compliance Export",
+        project_id=gcs_project_id,
+        status=storage_transfer_v1.TransferJob.Status.ENABLED,
+        transfer_spec=TransferSpec(
+            gcs_data_source=GcsData(bucket_name=source_bucket, path=source_prefix),
+            gcs_data_sink=GcsData(bucket_name=destination_bucket),
+        ),
+        schedule=Schedule(
+            schedule_start_date=date_pb2.Date(
+                year=date_job_starts.year,
+                month=date_job_starts.month,
+                day=date_job_starts.day,
+            ),
+            schedule_end_date=date_pb2.Date(
+                year=date_job_ends.year,
+                month=date_job_ends.month,
+                day=date_job_ends.day,
+            ),
+        ),
+        notification_config=NotificationConfig(
+            pubsub_topic=pubsub_topic_name,
+            event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
+            payload_format=NotificationConfig.PayloadFormat.JSON,
+        ),
+    )
+    request = CreateTransferJobRequest(transfer_job=transfer_job)
 
-    do_schedule_transfer_job(transfer_job)
-
-
-def request_schedule_transfer_job(transfer_job: dict[str, Any]) -> Any:
-    client = storage_transfer_v1.StorageTransferServiceClient()
-    return client.create_transfer_job(transfer_job=transfer_job)
+    return schedule_transfer_job(request)
 
 
 def retry_export_blob_data(
@@ -254,6 +258,7 @@ def retry_export_blob_data(
     :param event:
     :param retry_transfer_job:
     """
+    # If not specified default to the pre-defined function.
     do_retry_transfer_job = retry_transfer_job or request_retry_transfer_job
 
     if "data" not in event:

@@ -1,0 +1,105 @@
+from datetime import datetime, timedelta
+from unittest.mock import Mock
+
+from google.cloud import storage_transfer_v1
+from google.cloud.storage_transfer_v1 import (
+    CreateTransferJobRequest,
+    GcsData,
+    NotificationConfig,
+    Schedule,
+    TransferJob,
+    TransferSpec,
+)
+from google.type import date_pb2
+
+from sentry.replays.usecases.data_export import export_blob_data
+
+
+def test_export_blob_data():
+    # Function parameters which could be abstracted to test multiple variations of this behavior.
+    gcs_project_id = "1"
+    pubsub_topic = "PUBSUB_TOPIC"
+    bucket_name = "BUCKET"
+    bucket_prefix = "PREFIX"
+    start_date = datetime(year=2025, month=1, day=31)
+    job_duration = timedelta(days=5)
+    end_date = start_date + job_duration
+
+    result = export_blob_data(
+        gcs_project_id=gcs_project_id,
+        source_bucket=bucket_name,
+        source_prefix=bucket_prefix,
+        destination_bucket="b",
+        pubsub_topic_name=pubsub_topic,
+        job_duration=job_duration,
+        schedule_transfer_job=lambda event: event,
+        get_current_datetime=lambda: start_date,
+    )
+
+    assert result == CreateTransferJobRequest(
+        transfer_job=TransferJob(
+            description="Session Replay EU Compliance Export",
+            project_id=gcs_project_id,
+            status=storage_transfer_v1.TransferJob.Status.ENABLED,
+            transfer_spec=TransferSpec(
+                gcs_data_source=GcsData(bucket_name=bucket_name, path=bucket_prefix),
+                gcs_data_sink=GcsData(bucket_name="b"),
+            ),
+            schedule=Schedule(
+                schedule_start_date=date_pb2.Date(
+                    year=start_date.year,
+                    month=start_date.month,
+                    day=start_date.day,
+                ),
+                schedule_end_date=date_pb2.Date(
+                    year=end_date.year,
+                    month=end_date.month,
+                    day=end_date.day,
+                ),
+            ),
+            notification_config=NotificationConfig(
+                pubsub_topic=pubsub_topic,
+                event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
+                payload_format=NotificationConfig.PayloadFormat.JSON,
+            ),
+        )
+    )
+
+
+def test_request_schedule_transfer_job():
+    """
+    Test "request_schedule_transfer_job" by proxy.
+
+    We don't actually pass the function to our export function. Instead we pass a nearly identical
+    function with the client defined in the local scope so we can mock that client and assert its
+    running correctly.
+    """
+    gcs_project_id = "1"
+    pubsub_topic = "PUBSUB_TOPIC"
+    bucket_name = "BUCKET"
+    bucket_prefix = "PREFIX"
+    start_date = datetime(year=2025, month=1, day=31)
+    job_duration = timedelta(days=5)
+    client = storage_transfer_v1.StorageTransferServiceClient()
+
+    def request_schedule_transfer_job(transfer_job):
+        return client.create_transfer_job(transfer_job)
+
+    mock_rpc = Mock()
+    client._transport._wrapped_methods[client._transport.create_transfer_job] = mock_rpc
+
+    export_blob_data(
+        gcs_project_id=gcs_project_id,
+        source_bucket=bucket_name,
+        source_prefix=bucket_prefix,
+        destination_bucket="b",
+        pubsub_topic_name=pubsub_topic,
+        job_duration=job_duration,
+        schedule_transfer_job=request_schedule_transfer_job,
+        get_current_datetime=lambda: start_date,
+    )
+
+    # Assert we made it to the RPC call. We've done everything correctly. Its up to GCS to
+    # execute now.
+    assert mock_rpc.call_count == 1
+    mock_rpc.reset_mock()
