@@ -14,12 +14,17 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -249,15 +254,22 @@ class SlackEventEndpoint(SlackDMEndpoint):
             "unfurls": orjson.dumps(results).decode(),
         }
 
-        client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            client.chat_unfurl(
-                channel=data["channel"],
-                ts=data["message_ts"],
-                unfurls=payload["unfurls"],
-            )
-        except SlackApiError:
-            _logger.exception("on_link_shared.unfurl-error", extra=logger_params)
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.UNFURL_LINK,
+            spec=SlackMessagingSpec(),
+        ).capture() as lifecycle:
+            client = SlackSdkClient(integration_id=slack_request.integration.id)
+            try:
+                client.chat_unfurl(
+                    channel=data["channel"],
+                    ts=data["message_ts"],
+                    unfurls=payload["unfurls"],
+                )
+            except SlackApiError as e:
+                lifecycle.add_extras(logger_params)
+                lifecycle.add_extra("unfurls", payload["unfurls"])
+                lifecycle.record_failure(e)
+                return False
 
         return True
 
