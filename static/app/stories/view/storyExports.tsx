@@ -1,6 +1,6 @@
 import React, {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
