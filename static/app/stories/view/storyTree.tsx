@@ -597,7 +597,8 @@ const FolderName = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.md} ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.md}
+    ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.muted};
   cursor: pointer;
   position: relative;
@@ -628,7 +629,8 @@ const FolderLink = styled(Link, {
   gap: ${p => p.theme.space.xs};
   color: ${p =>
     p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.muted};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md}
+    ${p => p.theme.space.sm};
   position: relative;
   transition: none;
 
