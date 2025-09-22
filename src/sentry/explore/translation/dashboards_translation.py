@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import router
 
 from sentry.api.serializers.base import serialize
@@ -140,6 +142,60 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
         widget.widget_type = DashboardWidgetTypes.SPANS
         widget.dataset_source = DatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value
         widget.changed_reason = dropped_fields_info
+        widget.save()
+
+    return widget
+
+
+def restore_transaction_widget(widget):
+    snapshot = widget.widget_snapshot
+
+    if not snapshot:
+        return widget
+
+    queries: list[dict[str, Any]] = snapshot["queries"]
+
+    restored_widget_queries = []
+    for order, query_snapshot in enumerate(queries):
+        name = query_snapshot.get("name", "")
+
+        fields = query_snapshot.get("fields", [])
+        conditions = query_snapshot.get("conditions", "")
+        aggregates = query_snapshot.get("aggregates", [])
+        columns = query_snapshot.get("columns", [])
+        field_aliases = query_snapshot.get("fieldAliases", [])
+        orderby = query_snapshot.get("orderby", "")
+        is_hidden = query_snapshot.get("isHidden")
+        selected_aggregate = query_snapshot.get("selectedAggregate")
+
+        restored_widget_queries.append(
+            DashboardWidgetQuery(
+                widget_id=widget.id,
+                order=order,
+                name=name,
+                fields=fields,
+                conditions=conditions,
+                aggregates=aggregates,
+                columns=columns,
+                field_aliases=field_aliases,
+                orderby=orderby,
+                is_hidden=is_hidden,
+                selected_aggregate=selected_aggregate,
+            )
+        )
+
+    with atomic_transaction(
+        using=(
+            router.db_for_write(DashboardWidgetQuery),
+            router.db_for_write(DashboardWidget),
+        )
+    ):
+        DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
+        DashboardWidgetQuery.objects.bulk_create(restored_widget_queries)
+
+        widget.widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
+        widget.dataset_source = DatasetSourcesTypes.RESTORED_SPAN_MIGRATION_VERSION_1.value
+        widget.changed_reason = None
         widget.save()
 
     return widget
