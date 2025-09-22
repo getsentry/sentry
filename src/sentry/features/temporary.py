@@ -348,6 +348,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable replay AI summaries
     manager.add("organizations:replay-ai-summaries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable replay summary log parsing via Seer RPC
+    manager.add("organizations:replay-ai-summaries-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable replay list selection
     manager.add("organizations:replay-list-select", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable version 2 of release serializer
@@ -364,8 +366,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder input flow changes
     manager.add("organizations:search-query-builder-input-flow-changes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable search query builder match key suggestions
-    manager.add("organizations:search-query-builder-match-key-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder raw search replacement
     manager.add("organizations:search-query-builder-raw-search-replacement", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new search query builder wildcard operators
@@ -486,8 +486,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:uptime-eap-results", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable querying uptime data from EAP uptime_results instead of uptime_checks
     manager.add("organizations:uptime-eap-uptime-results-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable case-insensitive codeowners team matching
-    manager.add("organizations:use-case-insensitive-codeowners", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:user-feedback-ai-summaries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable label generation at ingest time for user feedbacks
@@ -514,8 +512,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable medium date range options on new explore page
     manager.add("organizations:visibility-explore-range-medium", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enforce stacked navigation feature (with ability to opt out)
-    manager.add("organizations:enforce-stacked-navigation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Update action status when integration is installed/deleted
     manager.add("organizations:update-action-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable processing activity updates in workflow engine
@@ -587,10 +583,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:github-multi-org", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable seeing upsell modal when clicking upgrade for multi-org
     manager.add("organizations:github-multi-org-upsell-modal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables new billing-related UI (checkout, subscription page)
+    # Enables new checkout UI
     manager.add("organizations:checkout-v3", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Stripe components in UI
     manager.add("organizations:stripe-components", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables new Subscription UI
+    manager.add("organizations:subscriptions-v3", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables CMD+K supercharged (omni search)
     manager.add("organizations:cmd-k-supercharged", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
