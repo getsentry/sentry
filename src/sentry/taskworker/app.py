@@ -24,6 +24,7 @@ class TaskworkerApp:
         }
         self._modules: Iterable[str] = []
         self._taskregistry = taskregistry or TaskRegistry()
+        self._at_most_once_store: AtMostOnceStore | None = None
 
     @property
     def taskregistry(self) -> TaskRegistry:
@@ -63,11 +64,7 @@ class TaskworkerApp:
     def should_attempt_at_most_once(self, activation: TaskActivation) -> bool:
         if not self._at_most_once_store:
             return True
-        key = get_at_most_once_key(
-            activation.namespace,
-            activation.taskname,
-            activation.id,
-        )
+        key = get_at_most_once_key(activation.namespace, activation.taskname, activation.id)
         return self._at_most_once_store.add(
             key, "1", timeout=self._config["at_most_once_timeout"] or 60
         )
