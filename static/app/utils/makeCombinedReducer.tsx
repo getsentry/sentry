@@ -1,5 +1,4 @@
 import type {Reducer} from 'react';
-import {useReducer} from 'react';
 
 import type {ReducerAction} from 'sentry/types/reducerAction';
 
@@ -45,11 +44,4 @@ export function makeCombinedReducers<M extends ReducersObject>(
 
     return nextState;
   };
-}
-
-export function useCombinedReducer<M extends ReducersObject>(
-  reducers: M,
-  initialState: CombinedState<ReducersState<M>>
-): [CombinedState<ReducersState<M>>, React.Dispatch<ReducerActions<M>>] {
-  return useReducer(makeCombinedReducers(reducers), initialState);
 }
