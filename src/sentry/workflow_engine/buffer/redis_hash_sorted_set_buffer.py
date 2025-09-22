@@ -51,6 +51,8 @@ _NEED_EXPIRE = {
     "zrangebyscore": False,
     "zrem": True,
     "zremrangebyscore": True,
+    "set": True,
+    "get": False,
 }
 
 
@@ -420,8 +422,10 @@ class RedisHashSortedSetBuffer:
 
         return converted_results
 
-    def get_parsed_key[T: pydantic.BaseModel](self, key: str, model: type[T]) -> T:
+    def get_parsed_key[T: pydantic.BaseModel](self, key: str, model: type[T]) -> T | None:
         value = self._execute_redis_operation(key, "get")
+        if value is None:
+            return None
         return model.parse_raw(value)
 
     def put_parsed_key[T: pydantic.BaseModel](self, key: str, value: T) -> None:
