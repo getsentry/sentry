@@ -293,7 +293,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.models.project import Project
 
         if not hasattr(self, "_project_cache"):
-            self._project_cache = Project.objects.get(id=self.project_id)
+            self._project_cache = Project.objects.select_related("organization").get(
+                id=self.project_id
+            )
         return self._project_cache
 
     @project.setter
