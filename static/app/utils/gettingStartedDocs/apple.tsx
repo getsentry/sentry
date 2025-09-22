@@ -55,7 +55,6 @@ export const appleProfilingOnboarding: OnboardingConfig = {
             </p>
           ),
           language: 'swift',
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: getInstallSnippet(params),
         },
       ],
