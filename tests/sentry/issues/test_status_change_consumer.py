@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints, update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
@@ -10,6 +11,9 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -101,6 +105,48 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         mock_kick_off_status_syncs.apply_async.assert_called_once_with(
             kwargs={"project_id": self.project.id, "group_id": self.group.id}
         )
+
+    @with_feature("organizations:issue-open-periods")
+    @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
+    @patch(
+        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
+    )  # rollout code that is independently tested
+    def test_valid_payload_resolved_open_period_activity(
+        self, mock_update_igop: MagicMock, mock_kick_off_status_syncs: MagicMock
+    ) -> None:
+        self.group.type = MetricIssue.type_id
+        self.group.save()
+        GroupOpenPeriod.objects.create(project=self.project, group=self.group, user_id=self.user.id)
+
+        message = get_test_message_status_change(
+            self.project.id, fingerprint=["touch-id"], detector_id=1
+        )
+        result = _process_message(message)
+        assert result is not None
+        group_info = result[1]
+        assert group_info is not None
+        group = group_info.group
+        group.refresh_from_db()
+
+        self._assert_statuses_set(
+            GroupStatus.RESOLVED,
+            None,
+            GroupHistoryStatus.RESOLVED,
+            ActivityType.SET_RESOLVED,
+            group_inbox_reason=None,
+        )
+
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": self.project.id, "group_id": self.group.id}
+        )
+
+        open_period = get_latest_open_period(self.group)
+        assert open_period is not None
+        assert open_period.date_ended is not None
+        open_period_closed_activity = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
+        )
+        assert open_period_closed_activity
 
     @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
     def test_valid_payload_archived_forever(self, mock_kick_off_status_syncs: MagicMock) -> None:

@@ -13,8 +13,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +95,12 @@ class GroupOpenPeriod(DefaultFieldsModel):
             user_id=resolution_activity.user_id,
         )
 
+        if get_group_type_by_type_id(self.group.type).detector_settings is not None:
+            GroupOpenPeriodActivity.objects.create(
+                group_open_period=self,
+                type=OpenPeriodActivityType.CLOSED,
+            )
+
     def reopen_open_period(self) -> None:
         if self.date_ended is None:
             logger.warning("Open period is not closed", extra={"group_id": self.group.id})
@@ -152,6 +160,8 @@ def create_open_period(group: Group, start_time: datetime) -> None:
         logger.warning("Latest open period is not closed", extra={"group_id": group.id})
         return
 
+    # There are some historical cases where we log multiple regressions for the same group,
+    # but we only want to create a new open period for the first regression
     with transaction.atomic(router.db_for_write(Group)):
         # Force a Group lock before the create to establish consistent lock ordering
         # This prevents deadlocks by ensuring we always acquire the Group lock first
@@ -159,13 +169,22 @@ def create_open_period(group: Group, start_time: datetime) -> None:
 
         # There are some historical cases where we log multiple regressions for the same group,
         # but we only want to create a new open period for the first regression
-        GroupOpenPeriod.objects.create(
+        open_period = GroupOpenPeriod.objects.create(
             group=group,
             project=group.project,
             date_started=start_time,
             date_ended=None,
             resolution_activity=None,
         )
+
+        # If we care about this group's activity, create activity entry
+        if get_group_type_by_type_id(group.type).detector_settings is not None:
+            GroupOpenPeriodActivity.objects.create(
+                date_added=start_time,
+                group_open_period=open_period,
+                type=OpenPeriodActivityType.OPENED,
+                value=group.priority,
+            )
 
 
 def update_group_open_period(

@@ -92,7 +92,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
+from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -1596,12 +1596,8 @@ def _create_group(
             raise
 
     if features.has("organizations:issue-open-periods", project.organization):
-        GroupOpenPeriod.objects.create(
-            group=group,
-            project_id=project.id,
-            date_started=group.first_seen,
-            date_ended=None,
-        )
+        create_open_period(group=group, start_time=group.first_seen)
+
     return group
 
 
