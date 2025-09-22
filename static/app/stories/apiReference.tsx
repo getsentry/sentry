@@ -350,7 +350,7 @@ const StoryTableContainer = styled('div')`
 `;
 
 const StoryTypesSearchContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StoryTypesTable = styled('table')`
@@ -388,28 +388,28 @@ const StoryTypesTableHeader = styled('thead')`
 
 const StoryTypesTableHeaderCell = styled('th')`
   background-color: ${p => p.theme.surface200};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const StoryTypesTableCell = styled('td')`
-  padding: ${space(1)};
-  padding-left: ${space(1.5)};
+  padding: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.lg};
 `;
 
 const StoryTypesTableDefinitionCell = styled('td')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   padding-left: 0;
   background-color: ${p => p.theme.surface200};
 
   button {
-    margin-left: ${space(0.25)};
-    margin-right: ${space(0.25)};
+    margin-left: ${p => p.theme.space['2xs']};
+    margin-right: ${p => p.theme.space['2xs']};
   }
 
   > span {
     font-size: ${p => p.theme.fontSizeRelativeSmall};
     font-weight: ${p => p.theme.fontWeight.bold};
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
@@ -419,7 +419,7 @@ const StoryType = styled('div')`
 
 const StoryPropDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const RequiredAsterisk = styled('span')`

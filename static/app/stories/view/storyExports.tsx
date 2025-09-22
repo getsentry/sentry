@@ -71,7 +71,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
   return (
     <StoryHeader>
       <StoryGrid>
-        <StoryContainer style={{gap: space(3)}}>
+        <StoryContainer style={{gap: '24px'}}>
           <Flex
             direction="column"
             gap="xl"
@@ -253,8 +253,8 @@ const StoryContainer = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
-  padding-inline: ${space(2)};
+  gap: ${p => p.theme.space['3xl']};
+  padding-inline: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     max-width: 832px;

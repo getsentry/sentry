@@ -50,7 +50,7 @@ const Code = styled('code')`
     padding-inline: 0;
   }
   & > [data-node] {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
   }
 `;
 

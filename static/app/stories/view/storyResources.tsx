@@ -18,7 +18,7 @@ export function StoryResources() {
   const resources: Resources = story.exports.frontmatter?.resources ?? {};
 
   return (
-    <table style={{marginTop: space(4)}}>
+    <table style={{marginTop: '32px'}}>
       <thead>
         <tr>
           <th>Type</th>
@@ -96,7 +96,7 @@ function A11yResource(props: {items: Record<string, string>}) {
       <td>
         <ul style={{listStyle: 'none', padding: 0}}>
           {Object.entries(props.items).map(([text, href]) => (
-            <li style={{padding: `${space(0.5)} 0`}} key={href}>
+            <li style={{padding: '4px 0'}} key={href}>
               <a target="_blank" href={href} rel="noreferrer">
                 {text}
               </a>

@@ -596,8 +596,8 @@ const StoryList = styled('ul')`
 const FolderName = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
-  padding: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.md} ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.muted};
   cursor: pointer;
   position: relative;
@@ -605,7 +605,7 @@ const FolderName = styled('div')`
   &:before {
     background: ${p => p.theme.gray100};
     content: '';
-    inset: 0 ${space(0.25)} 0 -${space(0.25)};
+    inset: 0 ${p => p.theme.space['2xs']} 0 -${p => p.theme.space['2xs']};
     position: absolute;
     z-index: -1;
     border-radius: ${p => p.theme.borderRadius};
@@ -625,10 +625,10 @@ const FolderLink = styled(Link, {
 })<{active: boolean}>`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p =>
     p.active ? p.theme.tokens.content.accent : p.theme.tokens.content.muted};
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.75)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.sm};
   position: relative;
   transition: none;
 
@@ -636,7 +636,7 @@ const FolderLink = styled(Link, {
     background: ${p =>
       p.theme.isChonk ? (p.theme as any).colors.blue100 : p.theme.blue100};
     content: '';
-    inset: 0 ${space(1)} 0 -${space(0.25)};
+    inset: 0 ${p => p.theme.space.md} 0 -${p => p.theme.space['2xs']};
     position: absolute;
     z-index: -1;
     border-radius: ${p => p.theme.borderRadius};

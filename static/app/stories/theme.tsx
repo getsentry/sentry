@@ -58,14 +58,14 @@ export function ThemeToggle({children}: ThemeToggleProps) {
 }
 
 const Inset = styled('div')`
-  padding-inline: ${space(1)};
+  padding-inline: ${p => p.theme.space.md};
 `;
 const Background = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-direction: column;
   background: ${p => p.theme.background};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;

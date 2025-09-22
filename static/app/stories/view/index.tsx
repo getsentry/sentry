@@ -136,7 +136,7 @@ const Layout = styled('div')`
   grid-template-columns: 256px minmax(auto, 1fr);
   place-items: stretch;
   min-height: calc(100dvh - 52px);
-  padding-bottom: ${space(4)};
+  padding-bottom: ${p => p.theme.space['3xl']};
   position: absolute;
   top: 52px;
   left: 0;
@@ -158,7 +158,7 @@ const VerticalScroll = styled('main')`
 
   grid-row: 1;
   grid-column: 2;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const StoryMainContainer = styled('div')`
@@ -167,7 +167,7 @@ const StoryMainContainer = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   h1,
   h2,
@@ -208,8 +208,8 @@ const StoryMainContainer = styled('div')`
     }
 
     & th {
-      padding-inline: ${space(2)};
-      padding-block: ${space(0.75)};
+      padding-inline: ${p => p.theme.space.xl};
+      padding-block: ${p => p.theme.space.sm};
 
       &:first-of-type {
         border-radius: ${p => p.theme.borderRadius} 0 0 0;
@@ -241,8 +241,8 @@ const StoryMainContainer = styled('div')`
     }
 
     td {
-      padding-inline: ${space(2)};
-      padding-block: ${space(1.5)};
+      padding-inline: ${p => p.theme.space.xl};
+      padding-block: ${p => p.theme.space.lg};
     }
   }
 

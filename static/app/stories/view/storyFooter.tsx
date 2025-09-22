@@ -71,7 +71,7 @@ const Card = styled(LinkButton)`
   flex-direction: column;
   flex: 1;
   height: 80px;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   span:last-child {
     width: 100%;
     display: grid;
@@ -80,7 +80,7 @@ const Card = styled(LinkButton)`
       'icon text';
     grid-template-columns: auto 1fr;
     place-content: center;
-    gap: ${space(1)} ${space(2)};
+    gap: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
   &[data-flip] span:last-child {
     grid-template-areas:

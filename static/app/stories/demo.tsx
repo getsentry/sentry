@@ -15,7 +15,7 @@ export const Demo = styled((props: React.HTMLAttributes<HTMLDivElement>) => (
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: 64px 16px;
   min-height: 160px;
   max-height: 512px;
