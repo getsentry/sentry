@@ -918,7 +918,6 @@ class GetReplayRangeTestCase(
         assert result is None
 
     def test_get_replay_range_wrong_project(self) -> None:
-        """Test that get_replay_range returns None when replay exists but in different project."""
         other_project = self.create_project()
 
         self.store_replay(dt=datetime.now(UTC))
