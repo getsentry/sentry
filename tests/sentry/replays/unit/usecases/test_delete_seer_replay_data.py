@@ -29,8 +29,8 @@ def test_delete_seer_replay_data_network_exception(mock_make_seer_api_request: M
     """Test handling of network/timeout exceptions during Seer API call."""
     mock_make_seer_api_request.side_effect = Exception("Network timeout")
     assert delete_seer_replay_data(123, ["replay-1", "replay-2"]) is False
-    # Should be called twice: once for summarization URL, once for autofix fallback
-    assert mock_make_seer_api_request.call_count == 2
+    # Should be called once (retries happen at urllib3 level, invisible to application layer)
+    assert mock_make_seer_api_request.call_count == 1
 
 
 @patch("sentry.replays.usecases.delete.make_signed_seer_api_request")

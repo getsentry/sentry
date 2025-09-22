@@ -2,10 +2,10 @@ import logging
 from datetime import timedelta
 from typing import TypedDict
 
-from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from urllib3 import Retry
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -19,9 +19,9 @@ from sentry.feedback.lib.label_query import (
     query_recent_feedbacks_with_ai_labels,
     query_top_ai_labels_by_feedback_count,
 )
+from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
 from sentry.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
@@ -31,10 +31,8 @@ logger = logging.getLogger(__name__)
 
 
 SEER_LABEL_GROUPS_ENDPOINT_PATH = "/v1/automation/summarize/feedback/label-groups"
-
-seer_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
+SEER_TIMEOUT_S = 30
+SEER_RETRIES = Retry(total=1, backoff_factor=3)  # 1 retry after a 3 second delay.
 
 
 MIN_FEEDBACKS_CONTEXT = 10
@@ -211,9 +209,11 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         if len(context_feedbacks) >= THRESHOLD_TO_GET_ASSOCIATED_LABELS:
             try:
                 response = make_signed_seer_api_request(
-                    connection_pool=seer_connection_pool,
+                    connection_pool=seer_summarization_connection_pool,
                     path=SEER_LABEL_GROUPS_ENDPOINT_PATH,
                     body=json.dumps(seer_request).encode("utf-8"),
+                    timeout=SEER_TIMEOUT_S,
+                    retries=SEER_RETRIES,
                 )
                 response_data = response.json()
             except Exception:
