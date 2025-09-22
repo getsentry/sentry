@@ -4,6 +4,7 @@ from .organization_available_action_index import OrganizationAvailableActionInde
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
+from .organization_detector_resolve_issues import OrganizationDetectorResolveIssuesEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_detector_workflow_details import OrganizationDetectorWorkflowDetailsEndpoint
 from .organization_detector_workflow_index import OrganizationDetectorWorkflowIndexEndpoint
@@ -30,6 +31,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/(?P<detector_id>\d+)/$",
         OrganizationDetectorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-detector-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/(?P<detector_id>\d+)/resolve_issues/$",
+        OrganizationDetectorResolveIssuesEndpoint.as_view(),
+        name="sentry-api-0-organization-detector-resolve-issues",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/$",
