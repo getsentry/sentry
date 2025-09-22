@@ -61,7 +61,8 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
   }
 
   if (key === 'totalFailCount') {
-    return <Container alignment={alignment}>{value}</Container>;
+    const totalFailCount = row.totalFailCount + row.totalFlakyFailCount;
+    return <Container alignment={alignment}>{totalFailCount}</Container>;
   }
 
   if (key === 'lastRun') {
