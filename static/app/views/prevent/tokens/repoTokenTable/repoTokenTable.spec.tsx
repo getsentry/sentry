@@ -8,6 +8,7 @@ import {
 
 import {openTokenRegenerationConfirmationModal} from 'sentry/actionCreators/modal';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 import RepoTokenTable, {type ValidSort} from './repoTokenTable';
 
@@ -51,6 +52,17 @@ describe('RepoTokenTable', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+
+    localStorageWrapper.clear();
+
+    localStorageWrapper.setItem(
+      'prevent-selection:org-slug',
+      JSON.stringify({
+        'integrated-name': {
+          integratedOrgId: 'integrated-123',
+        },
+      })
+    );
   });
 
   const renderWithContext = (props = defaultProps) => {
@@ -63,7 +75,7 @@ describe('RepoTokenTable', () => {
           location: {
             pathname: '/prevent/tokens/',
             query: {
-              integratedOrgId: 'integrated-123',
+              integratedOrgName: 'integrated-name',
             },
           },
         },

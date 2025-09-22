@@ -1,6 +1,7 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import TestsPage from 'sentry/views/prevent/tests/tests';
 
 jest.mock('sentry/components/pagination', () => {
@@ -136,6 +137,19 @@ const mockApiCall = () => {
 
 describe('CoveragePageWrapper', () => {
   describe('when the wrapper is used', () => {
+    beforeEach(() => {
+      localStorageWrapper.clear();
+
+      localStorageWrapper.setItem(
+        'prevent-selection:org-slug',
+        JSON.stringify({
+          'test-integration': {
+            integratedOrgId: '123',
+          },
+        })
+      );
+    });
+
     mockApiCall();
     it('renders the passed children', async () => {
       render(
@@ -148,7 +162,7 @@ describe('CoveragePageWrapper', () => {
               pathname: '/prevent/tests',
               query: {
                 preventPeriod: '7d',
-                integratedOrgId: '123',
+                integratedOrgName: 'test-integration',
                 repository: 'some-repository',
                 branch: 'some-branch',
               },

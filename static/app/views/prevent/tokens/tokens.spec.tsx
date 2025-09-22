@@ -7,6 +7,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import TokensPage from 'sentry/views/prevent/tokens/tokens';
 
 jest.mock('sentry/components/pagination', () => {
@@ -62,6 +63,21 @@ const mockApiCall = () => {
 
 describe('TokensPage', () => {
   describe('when the wrapper is used', () => {
+    beforeEach(() => {
+      localStorageWrapper.clear();
+
+      localStorageWrapper.setItem(
+        'prevent-selection:org-slug',
+        JSON.stringify({
+          'test-integration': {
+            integratedOrgId: '1',
+          },
+          'test-integration-2': {
+            integratedOrgId: '2',
+          },
+        })
+      );
+    });
     it('renders the header', async () => {
       mockApiCall();
       render(
@@ -73,7 +89,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/prevent/tokens/',
               query: {
-                integratedOrgId: '1',
+                integratedOrgName: 'test-integration',
               },
             },
           },
@@ -93,7 +109,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/prevent/tokens/',
               query: {
-                integratedOrgId: '2',
+                integratedOrgName: 'test-integration-2',
               },
             },
           },
@@ -128,7 +144,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/prevent/tokens/',
               query: {
-                integratedOrgId: '1',
+                integratedOrgName: 'test-integration',
               },
             },
           },
@@ -149,7 +165,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/prevent/tokens/',
               query: {
-                integratedOrgId: '1',
+                integratedOrgName: 'test-integration',
               },
             },
           },
@@ -170,7 +186,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/prevent/tokens/',
               query: {
-                integratedOrgId: '1',
+                integratedOrgName: 'test-integration',
               },
             },
           },
@@ -204,7 +220,7 @@ describe('TokensPage', () => {
             location: {
               pathname: '/prevent/tokens/',
               query: {
-                integratedOrgId: '1',
+                integratedOrgName: 'test-integration',
               },
             },
           },
@@ -246,7 +262,7 @@ describe('TokensPage', () => {
               location: {
                 pathname: '/prevent/tokens/',
                 query: {
-                  integratedOrgId: '1',
+                  integratedOrgName: 'test-integration',
                   sort: 'name', // ascending sort
                 },
               },
@@ -272,7 +288,7 @@ describe('TokensPage', () => {
               location: {
                 pathname: '/prevent/tokens/',
                 query: {
-                  integratedOrgId: '1',
+                  integratedOrgName: 'test-integration',
                   sort: '-name', // descending sort
                 },
               },
@@ -298,7 +314,7 @@ describe('TokensPage', () => {
               location: {
                 pathname: '/prevent/tokens/',
                 query: {
-                  integratedOrgId: '1',
+                  integratedOrgName: 'test-integration',
                   // no sort parameter
                 },
               },
@@ -335,7 +351,7 @@ describe('TokensPage', () => {
               location: {
                 pathname: '/prevent/tokens/',
                 query: {
-                  integratedOrgId: '1',
+                  integratedOrgName: 'test-integration',
                   sort: '-name', // descending name sort
                 },
               },
