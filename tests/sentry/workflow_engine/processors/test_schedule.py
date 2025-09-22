@@ -184,13 +184,11 @@ class FetchGroupToEventDataTest(CreateEventTestCase):
 class TestProjectChooser:
     @pytest.fixture
     def mock_buffer(self):
-        """Create a mock buffer for testing."""
         mock_buffer = Mock(spec=DelayedWorkflowClient)
         return mock_buffer
 
     @pytest.fixture
     def project_chooser(self, mock_buffer):
-        """Create a ProjectChooser with mocked buffer."""
         return ProjectChooser(mock_buffer, num_cohorts=6)
 
     def test_init_default_cohorts(self, mock_buffer):
@@ -198,7 +196,6 @@ class TestProjectChooser:
         assert chooser.num_cohorts == NUM_COHORTS
 
     def test_project_id_to_cohort_distribution(self, project_chooser):
-        """Test that project IDs are distributed across cohorts."""
         project_ids = list(range(1, 1001))  # 1000 project IDs
         cohorts = [project_chooser.project_id_to_cohort(pid) for pid in project_ids]
 
@@ -211,7 +208,6 @@ class TestProjectChooser:
         assert all(count < 1000 for count in cohort_counts)
 
     def test_project_id_to_cohort_consistent(self, project_chooser):
-        """Test that same project ID always maps to same cohort."""
         for project_id in [123, 999, 4, 193848493]:
             cohort1 = project_chooser.project_id_to_cohort(project_id)
             cohort2 = project_chooser.project_id_to_cohort(project_id)
@@ -221,7 +217,6 @@ class TestProjectChooser:
             assert 0 <= cohort1 < 6
 
     def test_project_ids_to_process_must_process_over_minute(self, project_chooser):
-        """Test that cohorts not run for over a minute are marked as must_process."""
         fetch_time = 1000.0
         cohort_updates = CohortUpdates(
             values={
@@ -243,7 +238,6 @@ class TestProjectChooser:
         assert 0 in cohort_updates.values
 
     def test_project_ids_to_process_may_process_fallback(self, project_chooser):
-        """Test that when no must_process cohorts, oldest may_process is chosen."""
         fetch_time = 1000.0
         cohort_updates = CohortUpdates(
             values={
@@ -266,7 +260,6 @@ class TestProjectChooser:
             assert cohort_updates.values[cohort] == fetch_time
 
     def test_project_ids_to_process_no_processing_needed(self, project_chooser):
-        """Test when no processing is needed (all cohorts recently processed)."""
         fetch_time = 1000.0
         cohort_updates = CohortUpdates(
             values={
@@ -285,10 +278,11 @@ class TestProjectChooser:
         # No cohorts are old enough for must_process or may_process
         assert len(result) == 0
 
-    def test_scenario_once_per_minute_6_cohorts(self, project_chooser):
+    def test_scenario_once_per_minute_6_cohorts(self, project_chooser: ProjectChooser) -> None:
         """
         Scenario test: Running once per minute with 6 cohorts.
-        Should converge to stable cycle where each cohort gets processed every 6 minutes.
+        In steady state, all cohorts should be processed on every run since
+        may_process threshold is 10 seconds and we run every 60 seconds.
         """
         # Find project IDs that map to each cohort to ensure even distribution
         all_project_ids = []
@@ -306,8 +300,8 @@ class TestProjectChooser:
         # Track which cohorts get processed over time
         processed_cohorts_over_time = []
 
-        # Simulate 20 minutes of processing (20 runs, once per minute)
-        for minute in range(20):
+        # Simulate 5 minutes of processing (5 runs, once per minute)
+        for minute in range(5):
             fetch_time = float(minute * 60)  # Every 60 seconds
 
             processed_projects = project_chooser.project_ids_to_process(
@@ -318,24 +312,27 @@ class TestProjectChooser:
             }
             processed_cohorts_over_time.append(processed_cohorts)
 
-        # After initial ramp-up, should settle into stable cycle
-        # Check the last 12 runs (2 full cycles) for stability
-        stable_period = processed_cohorts_over_time[-12:]
+        # After the first run (ramp-up), every run should process all 6 cohorts
+        # because may_process threshold (10s) < run interval (60s)
+        stable_period = processed_cohorts_over_time[1:]  # Skip first run
 
-        # Each cohort should be processed at least once in 12 minutes
-        cohort_counts = {i: 0 for i in range(6)}
-        for processed_cohorts in stable_period:
-            for cohort in processed_cohorts:
-                cohort_counts[cohort] += 1
+        for run_index, processed_cohorts in enumerate(stable_period):
+            assert (
+                len(processed_cohorts) == 6
+            ), f"Run {run_index + 1} processed {len(processed_cohorts)} cohorts, expected 6"
+            assert processed_cohorts == {
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+            }, f"Run {run_index + 1} didn't process all cohorts: {processed_cohorts}"
 
-        # Verify that all cohorts get processed (at least once in stable period)
-        for cohort in range(6):
-            assert cohort_counts[cohort] >= 1, f"Cohort {cohort} never processed in stable period"
-
-    def test_scenario_six_times_per_minute(self, project_chooser):
+    def test_scenario_six_times_per_minute(self, project_chooser: ProjectChooser) -> None:
         """
         Scenario test: Running 6 times per minute (every 10 seconds).
-        Should process one cohort per run in stable cycle.
+        Should process exactly one cohort per run in stable cycle, cycling through all.
         """
         # Find project IDs that map to each cohort to ensure even distribution
         all_project_ids = []
@@ -364,18 +361,28 @@ class TestProjectChooser:
             }
             processed_cohorts_over_time.append(processed_cohorts)
 
-        # After initial period, check stable cycle behavior
-        # In the last 6 runs, each cohort should be processed at least once
-        stable_period = processed_cohorts_over_time[-6:]
+        # After initial ramp-up, should process exactly 1 cohort per run
+        # and cycle through all cohorts over 6 runs
+        stable_period = processed_cohorts_over_time[6:]  # Skip first 6 runs for ramp-up
 
-        cohort_counts = {i: 0 for i in range(6)}
+        for run_index, processed_cohorts in enumerate(stable_period):
+            assert (
+                len(processed_cohorts) == 1
+            ), f"Run {run_index + 6} processed {len(processed_cohorts)} cohorts, expected 1"
+
+        # Over any 6 consecutive runs in stable period, all cohorts should be processed
+        all_processed_cohorts = set()
         for processed_cohorts in stable_period:
-            for cohort in processed_cohorts:
-                cohort_counts[cohort] += 1
+            all_processed_cohorts.update(processed_cohorts)
 
-        # Each cohort should be processed at least once in the last 6 runs
-        for cohort in range(6):
-            assert cohort_counts[cohort] >= 1, f"Cohort {cohort} never processed in stable period"
+        assert all_processed_cohorts == {
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+        }, f"Not all cohorts processed in stable period: {all_processed_cohorts}"
 
 
 class TestChosenProjects:

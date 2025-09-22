@@ -105,9 +105,9 @@ class ProjectChooser:
         for co in range(self.num_cohorts):
             last_run = cohort_updates.get_last_cohort_run(co)
             elapsed = timedelta(seconds=now - last_run)
-            if elapsed > timedelta(minutes=1):
+            if elapsed >= timedelta(minutes=1):
                 must_process.add(co)
-            elif elapsed > timedelta(seconds=60 / self.num_cohorts):
+            elif elapsed >= timedelta(seconds=60 / self.num_cohorts):
                 may_process.add(co)
         if may_process and not must_process:
             choice = min(may_process, key=lambda c: (cohort_updates.get_last_cohort_run(c), c))
@@ -145,7 +145,9 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
             max=fetch_time,
         )
 
-        project_chooser = ProjectChooser(buffer_client)
+        project_chooser = ProjectChooser(
+            buffer_client, num_cohorts=options.get("workflow_engine.num_cohorts", NUM_COHORTS)
+        )
         with chosen_projects(
             project_chooser, fetch_time, list(all_project_ids_and_timestamps.keys())
         ) as project_ids_to_process:
