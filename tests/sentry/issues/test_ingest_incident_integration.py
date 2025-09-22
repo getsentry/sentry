@@ -243,14 +243,13 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
     def test_bulk_transition_new_group_to_ongoing__metric_issues__no_incident_activites(
         self, mock_logger
     ) -> None:
-        """Don't want to trigger an IGOP write for this status change"""
+        """Ensure we do not trigger an IGOP write for a new to ongoing status change"""
         _, group_info = self.save_issue_occurrence()
         group = group_info.group
         assert group is not None
 
-        assert GroupOpenPeriod.objects.filter(group=group, project=self.project).exists()
-
         open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+        assert open_period
 
         dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
         incident = Incident.objects.get(id=dummy_relationship.incident_id)
@@ -276,14 +275,13 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
     def test_bulk_transition_regressed_group_to_ongoing__metric_issues__no_incident_activites(
         self, mock_logger
     ) -> None:
-        """Don't want to trigger an IGOP write for this status change"""
+        """Ensure we do not trigger an IGOP write for a regressed to ongoing status change"""
         _, group_info = self.save_issue_occurrence()
         group = group_info.group
         assert group is not None
 
-        assert GroupOpenPeriod.objects.filter(group=group, project=self.project).exists()
-
         open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+        assert open_period
 
         dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
         incident = Incident.objects.get(id=dummy_relationship.incident_id)
