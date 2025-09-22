@@ -262,6 +262,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 or attr,
                 "cohort1": cohort_1_distribution_map.get(attr),
                 "cohort2": cohort_2_distribution_map.get(attr),
+                "cohort1Total": total_outliers,
+                "cohort2Total": total_baseline,
                 "order": {  # TODO: aayush-se remove this once we have selected a single ranking method
                     "rrf": i,
                     "rrr": rrr_order_map.get(attr),
