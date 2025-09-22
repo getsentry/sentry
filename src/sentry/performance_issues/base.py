@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlparse
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.performance_issues.detectors.utils import is_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 
 from .types import Span
@@ -382,7 +383,7 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
     url_paths = []
     for http_span in spans:
         url = get_url_from_span(http_span)
-        if url:
+        if url and not is_filtered_url(url):
             parametrized_url = parameterize_url(url)
             path = urlparse(parametrized_url).path
             if path not in url_paths:
