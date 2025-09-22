@@ -2,8 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
-import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.png';
-import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.png';
+import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.svg';
+import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.svg';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
