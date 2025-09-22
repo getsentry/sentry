@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import orjson
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -203,12 +204,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 and not slack_request.has_identity
                 and features.has("organizations:discover-basic", organization, actor=request.user)
             ):
-                analytics.record(
-                    IntegrationSlackChartUnfurl(
-                        organization_id=organization.id,
-                        unfurls_count=0,
+                try:
+                    analytics.record(
+                        IntegrationSlackChartUnfurl(
+                            organization_id=organization.id,
+                            unfurls_count=0,
+                        )
                     )
-                )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+
                 self.prompt_link(slack_request)
                 return True
 
