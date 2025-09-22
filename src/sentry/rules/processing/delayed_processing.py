@@ -527,7 +527,7 @@ def fire_rules(
         group_to_groupevent = get_group_to_groupevent(
             log_config, parsed_rulegroup_to_event_data, project_id, groups_to_fire
         )
-        if log_config.num_events_issue_debugging or log_config.workflow_engine_process_workflows:
+        if log_config.num_events_issue_debugging:
             serialized_groups = {
                 group.id: group_event.event_id
                 for group, (group_event, _) in group_to_groupevent.items()
