@@ -229,7 +229,9 @@ describe('DetectorsList', () => {
       );
 
       // Click on Name column header to sort
-      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+      await userEvent.click(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      );
 
       await waitFor(() => {
         expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
@@ -244,7 +246,9 @@ describe('DetectorsList', () => {
       expect(router.location.query.sort).toBe('name');
 
       // Click on Name column header again to change sort direction
-      await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+      await userEvent.click(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      );
 
       await waitFor(() => {
         expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
