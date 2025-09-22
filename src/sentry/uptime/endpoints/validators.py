@@ -376,7 +376,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         max_value=60_000,
         help_text="The number of milliseconds the request will wait for a response before timing-out.",
     )
-    mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
         required=False,
         choices=UptimeSubscription.SupportedHTTPMethods.choices,
@@ -402,8 +401,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         fields = [
             "url",
             "headers",
-            "status",
-            "mode",
             "timeout_ms",
             "method",
             "trace_sampling",
@@ -416,9 +413,6 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
 
     def validate_headers(self, headers):
         return _validate_headers(headers)
-
-    def validate_status(self, value):
-        return _validate_monitor_status(value)
 
     def validate_mode(self, mode):
         return _validate_mode(mode, self.context["request"])
@@ -474,8 +468,6 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
         return instance
 
     def update_data_source(self, instance: Detector, data_source: dict[str, Any]):
-        # data_source will have some extra Detector-related in it, so cull them before
-        # calling update_project_uptime_subscription
         subscription = get_uptime_subscription(instance)
         update_uptime_subscription(
             subscription=subscription,

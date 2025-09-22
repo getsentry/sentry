@@ -76,12 +76,6 @@ class UptimeMonitorDataSourceValidatorTest(TestCase):
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
 
-    def test_bad_status(self):
-        data = self.get_valid_data()
-        data["status"] = ["ready to work!"]
-        validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
-        assert not validator.is_valid()
-
     def test_too_many_urls(self):
         for _ in range(0, 100):
             UptimeSubscription.objects.create(
