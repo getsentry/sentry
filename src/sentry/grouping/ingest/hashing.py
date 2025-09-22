@@ -232,7 +232,9 @@ def get_or_create_grouphashes(
         hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
 
     for hash_value in hashes:
-        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        grouphash, created = GroupHash.objects.get_or_create(
+            project=project, hash=hash_value
+        ).select_related("group")
         if features.has("organizations:group-deletion-in-progress", project.organization):
             # If the group a group hash is associated with is in deletion in progress, we don't
             # want to associate the group hash with it so we can create a new group for the event
@@ -242,7 +244,7 @@ def get_or_create_grouphashes(
             ]:
                 # This will cause a new group to be created
                 grouphash.group = None
-                grouphash.save()
+                grouphash.save(update_fields=["group"])
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
