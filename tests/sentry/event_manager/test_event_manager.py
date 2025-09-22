@@ -146,7 +146,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert GroupHash.objects.get(group_id=new_event.group_id).group_id != group.id
         assert new_event.group_id != group.id
 
-    @with_feature("organizations:group-deletion-in-progress")
+    @with_feature("organizations:no-group-match-when-deletion-in-progress")
     def test_group_in_deletion_in_progress_should_create_new_group_when_flag_on(self) -> None:
         data = {"timestamp": before_now(minutes=1).isoformat()}
 
