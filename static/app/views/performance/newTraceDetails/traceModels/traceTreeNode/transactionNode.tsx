@@ -37,7 +37,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   ) {
     super(parent, value, extra);
 
-    this.expanded = false;
     this.extra = extra;
     this._fromSpans = fromSpans;
     this._applyPreferences = applyPreferences;

@@ -397,7 +397,7 @@ describe('TransactionNode', () => {
   });
 
   describe('expand', () => {
-    it('should expand and add visible children to tree list', () => {
+    it('should expand and collapse', () => {
       const transaction = makeTransaction();
       const node = new TransactionNode(
         null,
@@ -406,14 +406,35 @@ describe('TransactionNode', () => {
         mockFromSpans,
         mockApplyPreference
       );
+      const child1 = new TransactionNode(
+        node,
+        makeTransaction({start_timestamp: 500, 'transaction.op': 'http.server'}),
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
       const mockTree = {
-        list: [node],
+        list: [node, child1],
       };
 
-      const result = node.expand(true, mockTree as any);
-
-      expect(result).toBe(true);
+      // Should be expanded by default
       expect(node.expanded).toBe(true);
+
+      // Collapse
+      const collapseResult = node.expand(false, mockTree as any);
+      expect(collapseResult).toBe(true);
+      expect(node.expanded).toBe(false);
+      expect(mockTree.list).toHaveLength(1);
+      expect(mockTree.list).toContain(node);
+
+      // Expand
+      const expandResult = node.expand(true, mockTree as any);
+      expect(expandResult).toBe(true);
+      expect(node.expanded).toBe(true);
+      expect(mockTree.list).toHaveLength(2);
+      expect(mockTree.list).toContain(node);
+      expect(mockTree.list).toContain(child1);
     });
 
     it('should not expand when already expanded', () => {
