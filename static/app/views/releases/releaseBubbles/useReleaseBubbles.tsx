@@ -198,7 +198,7 @@ function ReleaseBubbleSeries({
     renderItem: renderReleaseBubble,
     name: t('Releases'),
     data,
-    color: theme.purple300,
+    color: theme.purple400,
     animation: false,
     markLine: {
       silent: true,
