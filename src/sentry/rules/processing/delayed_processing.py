@@ -604,10 +604,7 @@ def fire_rules(
                         rule, group, groupevent.event_id, notification_uuid
                     )
 
-                    if (
-                        log_config.workflow_engine_process_workflows
-                        or log_config.num_events_issue_debugging
-                    ):
+                    if log_config.num_events_issue_debugging:
                         logger.info(
                             "post_process.delayed_processing.triggered_rule",
                             extra={
@@ -727,7 +724,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     ):
         condition_group_results = get_condition_group_results(condition_groups, project)
 
-    if log_config.workflow_engine_process_workflows or log_config.num_events_issue_debugging:
+    if log_config.num_events_issue_debugging:
         serialized_results = (
             {str(query): count_dict for query, count_dict in condition_group_results.items()}
             if condition_group_results
@@ -754,10 +751,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
             rules_to_fire = get_rules_to_fire(
                 condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
             )
-            if (
-                log_config.workflow_engine_process_workflows
-                or log_config.num_events_issue_debugging
-            ):
+            if log_config.num_events_issue_debugging:
                 logger.info(
                     "delayed_processing.rules_to_fire",
                     extra={
