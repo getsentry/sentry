@@ -187,11 +187,9 @@ def merge_groups(
                 last_seen=max(group.last_seen, new_group.last_seen),
             )
             try:
-                total_times_seen = new_group.times_seen + group.times_seen_with_pending
-
                 # it's possible to hit an out of range value for counters
                 new_group.update(
-                    times_seen=total_times_seen,
+                    times_seen=F("times_seen") + group.times_seen_with_pending,
                     num_comments=F("num_comments") + group.num_comments,
                 )
             except DataError as e:
