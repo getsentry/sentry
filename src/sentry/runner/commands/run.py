@@ -5,6 +5,7 @@ import os
 import random
 import signal
 import time
+from collections.abc import Mapping
 from multiprocessing import cpu_count
 from typing import Any
 
@@ -256,22 +257,30 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     """
     from django.conf import settings
 
-    from sentry.taskworker.runtime import app
+    from sentry import options as runtime_options
+    from sentry.conf.types.taskworker import ScheduleConfig
+    from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
     from sentry.utils.redis import redis_clusters
 
-    app.load_modules()
+    for module in settings.TASKWORKER_IMPORTS:
+        __import__(module)
+
     run_storage = RunStorage(redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
-        runner = ScheduleRunner(app, run_storage)
-        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+        runner = ScheduleRunner(taskregistry, run_storage)
+        schedules: Mapping[str, ScheduleConfig] = {}
+        if runtime_options.get("taskworker.enabled"):
+            schedules = settings.TASKWORKER_SCHEDULES
+
+        for key, schedule_data in schedules.items():
             runner.add(key, schedule_data)
 
         logger.info(
             "taskworker.scheduler.schedule_data",
             extra={
-                "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
+                "schedule_keys": list(schedules.keys()),
             },
         )
 
@@ -367,7 +376,6 @@ def run_taskworker(
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
-            app_module="sentry.taskworker.runtime:app",
             broker_hosts=make_broker_hosts(
                 host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
             ),
