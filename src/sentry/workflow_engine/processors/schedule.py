@@ -122,15 +122,14 @@ class ProjectChooser:
 
 @contextmanager
 def chosen_projects(
-    buffer_client: DelayedWorkflowClient, fetch_time: float, all_project_ids: list[int]
+    project_chooser: ProjectChooser, fetch_time: float, all_project_ids: list[int]
 ) -> Generator[list[int]]:
-    project_chooser = ProjectChooser(buffer_client)
-    cohort_updates = buffer_client.fetch_updates()
+    cohort_updates = project_chooser.client.fetch_updates()
     project_ids_to_process = project_chooser.project_ids_to_process(
         fetch_time, cohort_updates, all_project_ids
     )
     yield project_ids_to_process
-    buffer_client.persist_updates(cohort_updates)
+    project_chooser.client.persist_updates(cohort_updates)
 
 
 def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
@@ -146,8 +145,9 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
             max=fetch_time,
         )
 
+        project_chooser = ProjectChooser(buffer_client)
         with chosen_projects(
-            buffer_client, fetch_time, list(all_project_ids_and_timestamps.keys())
+            project_chooser, fetch_time, list(all_project_ids_and_timestamps.keys())
         ) as project_ids_to_process:
             metrics.distribution("workflow_engine.schedule.projects", len(project_ids_to_process))
             logger.info(
