@@ -6,6 +6,7 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
 import sentry_sdk
+from django.db import router, transaction
 
 from sentry import options
 from sentry.exceptions import HashDiscarded
@@ -277,13 +278,16 @@ def process_grouphashes(
 
     # Bulk create new GroupHash objects
     if new_hashes:
-        new_grouphashes = [GroupHash(project=project, hash=hash_value) for hash_value in new_hashes]
-        GroupHash.objects.bulk_create(new_grouphashes, ignore_conflicts=True)
+        with transaction.atomic(router.db_for_write(GroupHash)):
+            new_grouphashes = [
+                GroupHash(project=project, hash=hash_value) for hash_value in new_hashes
+            ]
+            GroupHash.objects.bulk_create(new_grouphashes, ignore_conflicts=True)
 
-        # Fetch the newly created objects (needed for metadata processing)
-        newly_created = {
-            gh.hash: gh for gh in GroupHash.objects.filter(project=project, hash__in=new_hashes)
-        }
-        grouphashes.update(newly_created)
+            # Fetch the newly created objects (needed for metadata processing)
+            newly_created = {
+                gh.hash: gh for gh in GroupHash.objects.filter(project=project, hash__in=new_hashes)
+            }
+            grouphashes.update(newly_created)
 
     return grouphashes, new_hashes
