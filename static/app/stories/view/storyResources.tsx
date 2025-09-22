@@ -92,6 +92,7 @@ function JsResource(props: {href: string}) {
 }
 
 function A11yResource(props: {items: Record<string, string>}) {
+  const theme = useTheme();
   return (
     <tr>
       <td>Accessibility</td>
