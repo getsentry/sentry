@@ -1,5 +1,5 @@
 import type {ChangeEvent, FocusEvent, RefObject} from 'react';
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaGridListOptions} from '@react-aria/gridlist';
@@ -102,25 +102,25 @@ function ArgumentsGrid({
     );
   };
 
+  if (!args.length) {
+    return null;
+  }
+
   return (
-    <Fragment>
-      {args.length ? (
-        <ArgumentsGridList
-          aria-label={t('Enter arguments')}
-          items={functionToken.attributes}
-          arguments={args}
-          rowRef={rowRef}
-          item={functionItem}
-          state={functionListState}
-          token={functionToken}
-          onArgumentsChange={(index: number, argument: string) =>
-            updateArgumentAtIndex(index, argument)
-          }
-        >
-          {item => <Item key={item.key}>{item.key}</Item>}
-        </ArgumentsGridList>
-      ) : null}
-    </Fragment>
+    <ArgumentsGridList
+      aria-label={t('Enter arguments')}
+      items={functionToken.attributes}
+      arguments={args}
+      rowRef={rowRef}
+      item={functionItem}
+      state={functionListState}
+      token={functionToken}
+      onArgumentsChange={(index: number, argument: string) =>
+        updateArgumentAtIndex(index, argument)
+      }
+    >
+      {item => <Item key={item.key}>{item.key}</Item>}
+    </ArgumentsGridList>
   );
 }
 
@@ -715,11 +715,11 @@ function useAttributeItems({
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
-  height: 24px;
+  height: fit-content;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
   max-width: 100%;
@@ -749,7 +749,8 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
 const ArgumentsGridWrapper = styled('div')`
   display: flex;
-  align-items: center;
+  justify-content: flex-start;
+  flex-direction: column;
   position: relative;
   height: 100%;
   flex-shrink: 1;
@@ -764,12 +765,9 @@ const ArgumentGridCell = styled('div')`
   flex: 0 1 auto;
   max-width: fit-content;
 
-  > div:first-child input {
-    width: 100% !important;
+  > div input {
     max-width: fit-content !important;
     min-width: 0 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis;
     white-space: nowrap !important;
   }
 `;
