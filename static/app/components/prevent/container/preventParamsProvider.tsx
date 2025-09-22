@@ -48,9 +48,7 @@ export default function PreventQueryParamsProvider({
     const integratedOrgId =
       (integratedOrgName
         ? localStorageState?.[integratedOrgName]?.integratedOrgId
-        : null) ||
-      currentParams?.integratedOrgName ||
-      undefined;
+        : null) || undefined;
     const repository =
       (integratedOrgName ? localStorageState?.[integratedOrgName]?.repository : null) ||
       currentParams?.repository ||

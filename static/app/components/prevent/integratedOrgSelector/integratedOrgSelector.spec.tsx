@@ -27,10 +27,10 @@ describe('IntegratedOrgSelector', () => {
     localStorageWrapper.setItem(
       'prevent-selection:org-slug',
       JSON.stringify({
-        MOCK_INTEGRATED_ORG_NAME: {
+        [MOCK_INTEGRATED_ORG_NAME]: {
           integratedOrgId: '1',
         },
-        MOCK_INTEGRATED_ORG_NAME_2: {
+        [MOCK_INTEGRATED_ORG_NAME_2]: {
           integratedOrgId: '2',
         },
       })
