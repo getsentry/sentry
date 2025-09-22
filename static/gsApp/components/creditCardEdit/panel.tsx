@@ -88,11 +88,12 @@ function CreditCardPanel({
           location,
         });
       }
+
+      trackGetsentryAnalytics('billing_failure.button_clicked', {
+        organization,
+        referrer,
+      });
     }
-    trackGetsentryAnalytics('billing_failure.button_clicked', {
-      organization,
-      referrer,
-    });
   }, [location, isNewBillingUI, organization, subscription, handleCardUpdated, referrer]);
 
   if (!isNewBillingUI) {
@@ -170,7 +171,7 @@ function CreditCardPanel({
           />
         ) : subscription.paymentSource ? (
           <Fragment>
-            <Text>{`****${subscription.paymentSource.last4} ${moment(new Date(subscription.paymentSource.expYear, subscription.paymentSource.expMonth)).format('MM/YY')}`}</Text>
+            <Text>{`****${subscription.paymentSource.last4} ${moment(new Date(subscription.paymentSource.expYear, subscription.paymentSource.expMonth - 1)).format('MM/YY')}`}</Text>
             <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode}`}</Text>
           </Fragment>
         ) : (
