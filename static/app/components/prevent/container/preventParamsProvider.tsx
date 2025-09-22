@@ -15,15 +15,16 @@ type PreventQueryParamsProviderProps = {
 
 type Org = {
   branch: string | null;
-  repository: string;
+  integratedOrgId: string | null;
+  repository: string | null;
 };
 
 type LocalStorageState = Record<string, Org> & {
-  lastVisitedOrgId?: string;
+  lastVisitedOrgName?: string;
   preventPeriod?: string;
 };
 
-const VALUES_TO_RESET = ['repository', 'branch', 'testSuites'];
+const VALUES_TO_RESET_URL_PARAMS = ['repository', 'branch', 'testSuites'];
 
 export default function PreventQueryParamsProvider({
   children,
@@ -40,15 +41,22 @@ export default function PreventQueryParamsProvider({
   function _defineParams(): PreventContextDataParams {
     const currentParams = Object.fromEntries(searchParams.entries());
 
-    const localStorageLastVisitedOrgId = localStorageState?.lastVisitedOrgId;
+    const localStorageLastVisitedOrgName = localStorageState?.lastVisitedOrgName;
+    const integratedOrgName =
+      currentParams?.integratedOrgName || localStorageLastVisitedOrgName || undefined;
+
     const integratedOrgId =
-      currentParams?.integratedOrgId || localStorageLastVisitedOrgId || undefined;
+      (integratedOrgName
+        ? localStorageState?.[integratedOrgName]?.integratedOrgId
+        : null) ||
+      currentParams?.integratedOrgName ||
+      undefined;
     const repository =
-      (integratedOrgId ? localStorageState?.[integratedOrgId]?.repository : null) ||
+      (integratedOrgName ? localStorageState?.[integratedOrgName]?.repository : null) ||
       currentParams?.repository ||
       undefined;
     const branch =
-      (integratedOrgId ? localStorageState?.[integratedOrgId]?.branch : null) ||
+      (integratedOrgName ? localStorageState?.[integratedOrgName]?.branch : null) ||
       currentParams?.branch ||
       null;
     const preventPeriod =
@@ -56,6 +64,7 @@ export default function PreventQueryParamsProvider({
 
     return {
       integratedOrgId,
+      integratedOrgName,
       repository,
       branch,
       preventPeriod,
@@ -65,31 +74,43 @@ export default function PreventQueryParamsProvider({
   const changeContextValue = useCallback(
     (input: Partial<PreventContextDataParams>) => {
       const currentParams = Object.fromEntries(searchParams.entries());
-      const integratedOrgId = input.integratedOrgId;
+      const integratedOrgName = input.integratedOrgName;
 
       setLocalStorageState((prev: LocalStorageState) => {
-        if (integratedOrgId && !prev[integratedOrgId]) {
-          VALUES_TO_RESET.forEach(key => {
+        if (integratedOrgName) {
+          VALUES_TO_RESET_URL_PARAMS.forEach(key => {
             delete currentParams[key];
           });
         }
 
-        const newState = {...prev};
+        const prevState = {...prev};
 
-        if (input.repository) {
-          const orgId = input.integratedOrgId;
+        if (integratedOrgName) {
+          const newState: Partial<Org> = {};
 
-          if (orgId) {
+          newState.integratedOrgId = input.integratedOrgId as string;
+
+          if (input.repository) {
             const branch = input.branch ?? null;
 
-            newState[orgId] = {repository: input.repository, branch};
-            newState.lastVisitedOrgId = orgId;
+            newState.repository = input.repository;
+            newState.branch = branch;
           }
+
+          prevState[integratedOrgName] = {
+            integratedOrgId:
+              newState.integratedOrgId ??
+              prevState[integratedOrgName]?.integratedOrgId ??
+              null,
+            repository:
+              newState.repository ?? prevState[integratedOrgName]?.repository ?? null,
+            branch: newState.branch ?? prevState[integratedOrgName]?.branch ?? null,
+          };
+          prevState.lastVisitedOrgName = integratedOrgName;
+          prevState.preventPeriod = input.preventPeriod ? input.preventPeriod : '24h';
         }
 
-        newState.preventPeriod = input.preventPeriod ? input.preventPeriod : '24h';
-
-        return newState;
+        return prevState;
       });
 
       const updatedParams = {
@@ -101,39 +122,46 @@ export default function PreventQueryParamsProvider({
         delete updatedParams.branch;
       }
 
+      if (updatedParams.integratedOrgId) {
+        delete updatedParams.integratedOrgId;
+      }
+
       setSearchParams(updatedParams as Record<string, string>);
     },
     [searchParams, setLocalStorageState, setSearchParams]
   );
 
-  const {integratedOrgId, repository, branch, preventPeriod} = _defineParams();
+  const {integratedOrgId, integratedOrgName, repository, branch, preventPeriod} =
+    _defineParams();
 
   // Save repository and branch to localStorage when they come from URL params
   useEffect(() => {
     const currentParams = Object.fromEntries(searchParams.entries());
     const shouldSave = currentParams?.repository || currentParams?.branch;
 
-    if (shouldSave && integratedOrgId) {
+    if (shouldSave && integratedOrgName) {
       setLocalStorageState((prev: LocalStorageState) => {
         const newState = {...prev};
 
         if (currentParams?.repository) {
-          newState[integratedOrgId] = {
-            ...newState[integratedOrgId],
+          newState[integratedOrgName] = {
+            ...newState[integratedOrgName],
             repository: currentParams.repository,
-            branch: currentParams?.branch || newState[integratedOrgId]?.branch || null,
+            branch: currentParams?.branch || newState[integratedOrgName]?.branch || null,
+            integratedOrgId: newState[integratedOrgName]?.integratedOrgId || '',
           };
-          newState.lastVisitedOrgId = integratedOrgId;
+          newState.lastVisitedOrgName = integratedOrgName;
         }
 
         return newState;
       });
     }
-  }, [searchParams, integratedOrgId, setLocalStorageState]);
+  }, [searchParams, integratedOrgName, setLocalStorageState]);
 
   const params: PreventContextData = {
     ...(repository ? {repository} : {}),
     ...(integratedOrgId ? {integratedOrgId} : {}),
+    ...(integratedOrgName ? {integratedOrgName} : {}),
     branch,
     preventPeriod,
     changeContextValue,
