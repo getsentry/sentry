@@ -113,7 +113,9 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
       {isError && <Alert type="error">{errorMessage}</Alert>}
       <InnerIntentForm
         {...props}
-        buttonText={isSubmitting ? t('Saving Changes...') : props.buttonText}
+        buttonText={props.buttonText}
+        busyButtonText={t('Saving Changes...')}
+        isSubmitting={isSubmitting}
         intentData={intentData}
         onError={setErrorMessage}
         handleSubmit={handleSubmit}

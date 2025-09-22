@@ -26,6 +26,8 @@ export interface InnerIntentFormProps extends StripeIntentFormProps {
     elements: StripeElements | null;
     stripe: Stripe | null;
   }) => void;
+  isSubmitting: boolean;
   onError: (error: string) => void;
+  busyButtonText?: string;
   intentData?: PaymentSetupCreateResponse | PaymentCreateResponse;
 }

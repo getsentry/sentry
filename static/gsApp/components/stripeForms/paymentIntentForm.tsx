@@ -86,7 +86,9 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
       {isError && <Alert type="error">{errorMessage}</Alert>}
       <InnerIntentForm
         {...props}
-        buttonText={isSubmitting ? t('Sending Payment...') : props.buttonText}
+        buttonText={props.buttonText}
+        busyButtonText={t('Sending Payment...')}
+        isSubmitting={isSubmitting}
         intentData={intentData}
         onError={setErrorMessage}
         handleSubmit={handleSubmit}

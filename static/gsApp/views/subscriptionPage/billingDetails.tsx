@@ -186,7 +186,7 @@ function PaymentMethodPanel({
           {isEditing ? (
             <CreditCardSetup
               organization={organization}
-              onSuccess={() => {}}
+              onSuccess={() => setIsEditing(false)}
               onCancel={() => setIsEditing(false)}
               onSuccessWithSubscription={handleCardUpdated}
               location={ftcLocation}
@@ -322,7 +322,10 @@ function BillingDetailsPanel({
             <BillingDetailsForm
               organization={organization}
               initialData={billingDetails}
-              onSubmitSuccess={fetchBillingDetails}
+              onSubmitSuccess={() => {
+                fetchBillingDetails();
+                setIsEditing(false);
+              }}
               extraButton={
                 <Button
                   priority="default"

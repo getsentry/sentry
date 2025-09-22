@@ -17,6 +17,8 @@ function InnerIntentForm({
   budgetTerm,
   buttonText,
   location,
+  isSubmitting,
+  busyButtonText,
   handleSubmit,
 }: InnerIntentFormProps) {
   const elements = useElements();
@@ -35,7 +37,7 @@ function InnerIntentForm({
     <Form
       onSubmit={() => handleSubmit({stripe, elements})}
       submitDisabled={submitDisabled}
-      submitLabel={buttonText}
+      submitLabel={isSubmitting && busyButtonText ? busyButtonText : buttonText}
       extraButton={
         onCancel && (
           <Button aria-label={t('Cancel')} onClick={onCancel}>
