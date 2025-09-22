@@ -81,7 +81,7 @@ def is_filtered_url(url: str) -> bool:
 
 
 # Creates a stable fingerprint for resource spans from their description (url), removing common cache busting tokens.
-def fingerprint_resource_span(span: Span):
+def fingerprint_resource_span(span: Span) -> str:
     url = urlparse(span.get("description") or "")
     path = url.path
     path = UUID_REGEX.sub("*", path)
@@ -191,7 +191,7 @@ def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -
     return value
 
 
-def get_notification_attachment_body(op, desc) -> str:
+def get_notification_attachment_body(op: str | None, desc: str | None) -> str:
     """Get the 'span evidence' data for a performance problem. This is displayed in issue alert emails."""
     value = "no value"
     if not op and desc:
@@ -203,7 +203,7 @@ def get_notification_attachment_body(op, desc) -> str:
     return value
 
 
-def does_overlap_previous_span(previous_span: Span, current_span: Span):
+def does_overlap_previous_span(previous_span: Span, current_span: Span) -> bool:
     previous_span_ends = timedelta(seconds=previous_span.get("timestamp", 0))
     current_span_begins = timedelta(seconds=current_span.get("start_timestamp", 0))
     return previous_span_ends > current_span_begins
@@ -215,7 +215,7 @@ def get_span_duration(span: Span) -> timedelta:
     )
 
 
-def get_duration_between_spans(first_span: Span, second_span: Span):
+def get_duration_between_spans(first_span: Span, second_span: Span) -> float:
     first_span_ends = first_span.get("timestamp", 0)
     second_span_begins = second_span.get("start_timestamp", 0)
     return timedelta(seconds=second_span_begins - first_span_ends).total_seconds() * 1000
@@ -265,7 +265,7 @@ def get_url_from_span(span: Span) -> str:
     return ""
 
 
-def fingerprint_spans(spans: list[Span], unique_only: bool = False):
+def fingerprint_spans(spans: list[Span], unique_only: bool = False) -> str:
     span_hashes = []
     for span in spans:
         hash = str(span.get("hash", "") or "")
@@ -276,7 +276,7 @@ def fingerprint_spans(spans: list[Span], unique_only: bool = False):
 
 
 # Creates a stable fingerprint given the same span details using sha1.
-def fingerprint_span(span: Span):
+def fingerprint_span(span: Span) -> str | None:
     op = span.get("op", None)
     description = span.get("description", None)
     if not description or not op:
