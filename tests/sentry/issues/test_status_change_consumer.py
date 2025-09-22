@@ -13,7 +13,6 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -106,7 +105,6 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             kwargs={"project_id": self.project.id, "group_id": self.group.id}
         )
 
-    @with_feature("organizations:issue-open-periods")
     @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
     @patch(
         "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
