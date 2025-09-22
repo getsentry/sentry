@@ -22,6 +22,7 @@ from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment
 from sentry.replays.usecases.summarize import (
     fetch_error_details,
     fetch_trace_connected_errors,
+    get_replay_range,
     get_summary_logs,
 )
 from sentry.seer.seer_setup import has_seer_access
@@ -182,12 +183,11 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             if features.has(
                 "organizations:replay-ai-summaries-rpc", project.organization, actor=request.user
             ):
-                start, end = default_start_end_dates()
                 snuba_response = query_replay_instance(
                     project_id=project.id,
                     replay_id=replay_id,
-                    start=start,
-                    end=end,
+                    start=filter_params["start"],
+                    end=filter_params["end"],
                     organization=project.organization,
                     request_user_id=request.user.id,
                 )
@@ -233,12 +233,18 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             error_ids = processed_response[0].get("error_ids", [])
             trace_ids = processed_response[0].get("trace_ids", [])
 
+            result = get_replay_range(
+                organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
+            )
+
+            (start, end) = default_start_end_dates() if not result else result
+
             # Fetch same-trace errors.
             trace_connected_errors = fetch_trace_connected_errors(
                 project=project,
                 trace_ids=trace_ids,
-                start=filter_params["start"],
-                end=filter_params["end"],
+                start=start,
+                end=end,
                 limit=100,
             )
             trace_connected_error_ids = {x["id"] for x in trace_connected_errors}

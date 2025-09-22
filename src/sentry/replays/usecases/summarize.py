@@ -1,16 +1,18 @@
 import logging
 from collections.abc import Generator, Iterator
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query
 
 from sentry import nodestore
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
+from sentry.replays.lib.snuba import execute_query
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance, query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import EventType
@@ -33,6 +35,39 @@ class EventDict(TypedDict):
     message: str
     timestamp: float  # this should be in milliseconds
     category: str
+
+
+def get_replay_range(
+    organization_id: int,
+    project_id: int,
+    replay_id: str,
+) -> tuple[datetime, datetime] | None:
+    query = Query(
+        match=Entity("replays"),
+        select=[
+            Function("min", parameters=[Column("replay_start_timestamp")], alias="min"),
+            Function("max", parameters=[Column("timestamp")], alias="max"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("replay_id"), Op.EQ, replay_id),
+            Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
+            Condition(Column("timestamp"), Op.LT, datetime.now()),
+        ],
+        groupby=[Column("replay_id")],
+        limit=Limit(1),
+    )
+
+    rows = execute_query(
+        query,
+        tenant_id={"organization_id": organization_id},
+        referrer="replay.breadcrumbs.range",
+    )
+    if not rows:
+        return None
+    else:
+        return (rows[0]["min"], rows[0]["max"])
 
 
 @sentry_sdk.trace
@@ -79,9 +114,9 @@ def _parse_iso_timestamp_to_ms(timestamp: str | None) -> float:
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
-    start: datetime | None,
-    end: datetime | None,
     limit: int,
+    start: datetime,
+    end: datetime,
 ) -> list[EventDict]:
     """Fetch same-trace events from both errors and issuePlatform datasets."""
     if not trace_ids:
@@ -462,8 +497,11 @@ def rpc_get_replay_summary_logs(
     """
 
     project = Project.objects.get(id=project_id)
-    # Last 90 days. We don't support date filters in /summarize/.
-    start, end = default_start_end_dates()
+
+    (result) = get_replay_range(
+        organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
+    )
+    (start, end) = default_start_end_dates() if not result else result
 
     # Fetch the replay's error and trace IDs from the replay_id.
     snuba_response = query_replay_instance(
