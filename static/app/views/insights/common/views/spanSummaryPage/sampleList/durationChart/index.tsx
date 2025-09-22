@@ -5,7 +5,6 @@ import {t} from 'sentry/locale';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 // TODO(release-drawer): Used in spanSummarPage/samplelist and spanSamplesPanelContainer
