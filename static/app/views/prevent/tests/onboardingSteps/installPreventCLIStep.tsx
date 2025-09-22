@@ -16,7 +16,7 @@ interface InstallPreventCLIStepProps {
 type Method = 'pip' | 'binary';
 
 const PLATFORMS = {
-  macOS: {label: 'MacOS', value: 'macos'},
+  macos: {label: 'MacOS', value: 'macos'},
   windows: {label: 'Windows', value: 'windows.exe'},
   linux_x86_64: {label: 'Linux x86_64', value: 'linux_x86_64'},
   linux_arm64: {label: 'Linux Arm64', value: 'linux_arm64'},
@@ -37,7 +37,7 @@ chmod u+x sentry-prevent-cli_${platformSuffix}
 
 export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
   const [method, setMethod] = useState<Method>('pip');
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform>('macOS');
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform>('linux_arm64');
 
   const headerText = tct(
     'Step [step]: Install the [preventLink] to your CI environment',
