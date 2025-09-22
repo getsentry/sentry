@@ -18,6 +18,7 @@ from sentry.replays.usecases.summarize import (
     EventDict,
     _parse_iso_timestamp_to_ms,
     as_log_message,
+    get_replay_range,
     get_summary_logs,
     rpc_get_replay_summary_logs,
 )
@@ -846,6 +847,103 @@ def test_parse_iso_timestamp_to_ms() -> None:
     assert _parse_iso_timestamp_to_ms("invalid timestamp") == 0.0
     assert _parse_iso_timestamp_to_ms("") == 0.0
     assert _parse_iso_timestamp_to_ms("2023-13-01T12:00:00Z") == 0.0
+
+
+@requires_snuba
+class GetReplayRangeTestCase(
+    TransactionTestCase,
+    SnubaTestCase,
+):
+    def setUp(self) -> None:
+        super().setUp()
+        self.replay_id = uuid.uuid4().hex
+
+    def store_replay(self, dt: datetime | None = None, **kwargs: Any) -> None:
+        replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+        )
+        assert response.status_code == 200
+
+    def test_get_replay_range_success(self) -> None:
+        start_time = datetime.now(UTC) - timedelta(minutes=10)
+
+        self.store_replay(dt=start_time)
+
+        result = get_replay_range(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+        )
+
+        assert result is not None
+        start, end = result
+
+        assert isinstance(start, datetime)
+        assert isinstance(end, datetime)
+
+        # The start should be close to our replay start time (within a reasonable tolerance)
+        assert abs((start - start_time).total_seconds()) < 60  # Within 1 minute
+
+        assert end >= start
+
+        # Both should be recent (within last 90 days)
+        now = datetime.now(UTC)
+        assert (now - start).days < 90
+        assert (now - end).days < 90
+
+    def test_get_replay_range_replay_not_found(self) -> None:
+        non_existent_replay_id = uuid.uuid4().hex
+
+        result = get_replay_range(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            replay_id=non_existent_replay_id,
+        )
+
+        assert result is None
+
+    def test_get_replay_range_replay_outside_90_day_window(self) -> None:
+        # Create a replay that's older than 90 days
+        old_time = datetime.now(UTC) - timedelta(days=100)
+
+        self.store_replay(dt=old_time)
+
+        result = get_replay_range(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+        )
+
+        assert result is None
+
+    def test_get_replay_range_wrong_project(self) -> None:
+        """Test that get_replay_range returns None when replay exists but in different project."""
+        other_project = self.create_project()
+
+        self.store_replay(dt=datetime.now(UTC))
+
+        result = get_replay_range(
+            organization_id=self.organization.id,
+            project_id=other_project.id,
+            replay_id=self.replay_id,
+        )
+
+        assert result is None
+
+    def test_get_replay_range_wrong_organization(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        self.store_replay(dt=datetime.now(UTC))
+
+        result = get_replay_range(
+            organization_id=other_org.id,
+            project_id=other_project.id,
+            replay_id=self.replay_id,
+        )
+
+        assert result is None
 
 
 @requires_snuba

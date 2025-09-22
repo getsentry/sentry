@@ -237,7 +237,10 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
             )
 
-            (start, end) = default_start_end_dates() if not result else result
+            if result is not None:
+                start, end = result
+            else:
+                start, end = default_start_end_dates()
 
             # Fetch same-trace errors.
             trace_connected_errors = fetch_trace_connected_errors(

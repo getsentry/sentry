@@ -12,7 +12,6 @@ from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
-from sentry.replays.lib.snuba import execute_query
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance, query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import EventType
@@ -20,6 +19,7 @@ from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
 )
 from sentry.replays.usecases.ingest.event_parser import parse_network_content_lengths, which
+from sentry.replays.usecases.query import execute_query
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
@@ -59,15 +59,31 @@ def get_replay_range(
         limit=Limit(1),
     )
 
-    rows = execute_query(
+    response = execute_query(
         query,
         tenant_id={"organization_id": organization_id},
         referrer="replay.breadcrumbs.range",
     )
+    rows = response.get("data", [])
     if not rows:
         return None
     else:
-        return (rows[0]["min"], rows[0]["max"])
+        # Convert string timestamps to datetime objects
+        min_timestamp = rows[0]["min"]
+        max_timestamp = rows[0]["max"]
+
+        # Handle both string and datetime inputs
+        if isinstance(min_timestamp, str):
+            min_dt = datetime.fromisoformat(min_timestamp.replace("Z", "+00:00"))
+        else:
+            min_dt = min_timestamp
+
+        if isinstance(max_timestamp, str):
+            max_dt = datetime.fromisoformat(max_timestamp.replace("Z", "+00:00"))
+        else:
+            max_dt = max_timestamp
+
+        return (min_dt, max_dt)
 
 
 @sentry_sdk.trace
@@ -523,11 +539,13 @@ def rpc_get_replay_summary_logs(
     error_ids = processed_response[0].get("error_ids", [])
     trace_ids = processed_response[0].get("trace_ids", [])
 
-    (result) = get_replay_range(
+    result = get_replay_range(
         organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
     )
     if result:
         start, end = result
+    else:
+        start, end = default_start_end_dates()
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(
