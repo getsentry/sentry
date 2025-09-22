@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -197,7 +197,7 @@ export function ReleasesDrawerTable({
   );
 
   return (
-    <Fragment>
+    <div>
       <GridEditable
         error={isError}
         isLoading={isLoading}
@@ -221,7 +221,7 @@ export function ReleasesDrawerTable({
           });
         }}
       />
-    </Fragment>
+    </div>
   );
 }
 
