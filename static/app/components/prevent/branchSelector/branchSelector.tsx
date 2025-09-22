@@ -16,8 +16,14 @@ import {space} from 'sentry/styles/space';
 const ALL_BRANCHES = 'All Branches';
 
 export function BranchSelector() {
-  const {branch, integratedOrgId, repository, preventPeriod, changeContextValue} =
-    usePreventContext();
+  const {
+    branch,
+    integratedOrgId,
+    integratedOrgName,
+    repository,
+    preventPeriod,
+    changeContextValue,
+  } = usePreventContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
 
   const {data, isFetching, isLoading} = useInfiniteRepositoryBranches({
@@ -30,13 +36,14 @@ export function BranchSelector() {
       const newBranch =
         selectedOption.value === ALL_BRANCHES ? null : selectedOption.value;
       changeContextValue({
+        integratedOrgName,
         integratedOrgId,
         repository,
         preventPeriod,
         branch: newBranch,
       });
     },
-    [changeContextValue, integratedOrgId, repository, preventPeriod]
+    [changeContextValue, integratedOrgName, integratedOrgId, repository, preventPeriod]
   );
 
   const handleOnSearch = useMemo(
