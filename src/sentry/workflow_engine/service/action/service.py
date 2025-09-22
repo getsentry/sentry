@@ -34,5 +34,17 @@ class ActionService(RpcService):
     ) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abc.abstractmethod
+    def update_action_status_for_sentry_app(
+        self,
+        *,
+        organization_id: int,
+        status: int,
+        sentry_app_install_uuid: str | None = None,
+        sentry_app_id: int | None = None,
+    ) -> None:
+        pass
+
 
 action_service = ActionService.create_delegation()
