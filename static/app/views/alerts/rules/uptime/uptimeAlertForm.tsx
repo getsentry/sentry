@@ -370,7 +370,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
                   DEFAULT_DOWNTIME_THRESHOLD;
                 const downDuration = intervalSeconds * threshold;
                 return tct(
-                  'Issue created after [threshold] consecutive failures in a row (after [downtime] of downtime).',
+                  'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
                   {
                     threshold: <strong>{threshold}</strong>,
                     downtime: <strong>{getDuration(downDuration)}</strong>,
