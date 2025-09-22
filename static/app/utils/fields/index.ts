@@ -2957,7 +2957,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
   },
   [FeedbackFieldKey.HAS_LINKED_ERROR]: {
     desc: t(
-      'Whether the feedback is explicitly linked to a Sentry error (associated_event_id).'
+      'Whether the feedback is explicitly linked to a Sentry error (has associated_event_id).'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
