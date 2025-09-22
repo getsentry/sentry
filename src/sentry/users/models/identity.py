@@ -94,6 +94,11 @@ class IdentityManager(BaseManager["Identity"]):
         if is_demo_user(user) and options.get(
             "identity.prevent-link-identity-for-demo-users.enabled"
         ):
+            logger.info(
+                "Preventing link identity for demo user",
+                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
+                stack_info=True,
+            )
             return None
 
         from sentry.integrations.slack.analytics import IntegrationIdentityLinked
