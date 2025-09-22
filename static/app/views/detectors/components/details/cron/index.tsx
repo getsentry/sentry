@@ -59,7 +59,15 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
       : dataSource.queryObj.environments,
   };
 
-  const monitorEnv = getLatestCronMonitorEnv(detector);
+  const monitorEnv = getLatestCronMonitorEnv({
+    ...detector,
+    dataSources: [
+      {
+        ...detector.dataSources[0],
+        queryObj: filteredMonitor,
+      },
+    ],
+  });
   const hasCheckedIn = hasLastCheckIn(filteredMonitor.environments);
 
   function getIntervalSecondsFromEnv(env?: MonitorEnvironment): number | undefined {
