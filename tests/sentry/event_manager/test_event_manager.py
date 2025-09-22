@@ -143,12 +143,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         new_event = self.store_event(data=data, project_id=self.project.id)
         new_event_hash = new_event.get_primary_hash()
         assert new_event_hash == first_event_hash
-        assert new_event.group_id != group.id
         assert GroupHash.objects.get(group_id=new_event.group_id).group_id != group.id
         assert new_event.group_id != group.id
 
     @with_feature("organizations:group-deletion-in-progress")
-    def test_group_in_deletion_in_progress_should_create_new_group(self) -> None:
+    def test_group_in_deletion_in_progress_should_create_new_group_when_flag_on(self) -> None:
         data = {"timestamp": before_now(minutes=1).isoformat()}
 
         event = self.store_event(data=data, project_id=self.project.id)
