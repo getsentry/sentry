@@ -54,15 +54,14 @@ On an otherwise static page, any motion will draw user attention. For this reaso
 
 # Token Reference
 
-## Duration
+Motion tokens for CSS are exposed under the `theme.motion` namespace as pairs of easing and duration values.
 
-The duration of an animation is proportional to its impact on the visual hierarchy of the page. Subtle changes like hover states or interactions should use quick durations, small changes like surface expansions or overlay entrances should use moderate durations, and significant changes like a slideout entrance or onboarding should use longer durations.
+```js
+const theme = useTheme();
 
-| **Name**   | **Description**                                                                                            | **Value** |
-| ---------- | ---------------------------------------------------------------------------------------------------------- | --------- |
-| `fast`     | stateful micro-interactions like movement (button press, switch toggle), color and opacity changes (links) | `120ms`   |
-| `moderate` | stateful changes like size changes, element exits                                                          | `160ms`   |
-| `slow`     | emphatic, expressive movement like entrances, modals, toasts                                               | `240ms`   |
+// motion -> easing.duration
+theme.motion.smooth.moderate;
+```
 
 ## Easing
 
@@ -74,3 +73,13 @@ The easing curve of an animation drastically changes our perception of it. These
 | `snap`   | an expressive snap, with slight anticipation and overshoot before settling | `cubic-bezier(0.8, -0.4, 0.5, 1)` |
 | `enter`  | similar to `ease-out`, starts fast and slows into place smoothly           | `cubic-bezier(0.24, 1, 0.32, 1)`  |
 | `exit`   | similar to `ease-in`, starts slowly and accelerates away quickly           | `cubic-bezier(0.64, 0, 0.8, 0)`   |
+
+## Duration
+
+The duration of an animation is proportional to its impact on the visual hierarchy of the page. Subtle changes like hover states or interactions should use quick durations, small changes like surface expansions or overlay entrances should use moderate durations, and significant changes like a slideout entrance or onboarding should use longer durations.
+
+| **Name**   | **Description**                                                                                            | **Value** |
+| ---------- | ---------------------------------------------------------------------------------------------------------- | --------- |
+| `fast`     | stateful micro-interactions like movement (button press, switch toggle), color and opacity changes (links) | `120ms`   |
+| `moderate` | stateful changes like size changes, element exits                                                          | `160ms`   |
+| `slow`     | emphatic, expressive movement like entrances, modals, toasts                                               | `240ms`   |
