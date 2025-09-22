@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
-from sentry.net.http import connection_from_url
+from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
@@ -35,13 +35,6 @@ SEER_REQUEST_SIZE_LOG_THRESHOLD = 1e5  # Threshold for logging large Seer reques
 
 SEER_START_TASK_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/start"
 SEER_POLL_STATE_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/state"
-
-seer_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
-fallback_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
-)
 
 
 class ReplaySummaryPermission(ProjectPermission):
@@ -74,7 +67,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         super().__init__(**kw)
 
     def make_seer_request(self, path: str, post_body: dict[str, Any]) -> Response:
-        """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
+        """Make a POST request to a Seer endpoint with retry logic. Raises HTTPError and logs non-200 status codes."""
         data = json.dumps(post_body)
 
         if len(data) > SEER_REQUEST_SIZE_LOG_THRESHOLD:
@@ -91,29 +84,18 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         try:
             response = make_signed_seer_api_request(
-                connection_pool=seer_connection_pool,
+                connection_pool=seer_summarization_connection_pool,
                 path=path,
                 body=data.encode("utf-8"),
+                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+                retries=0,
             )
         except Exception:
-            # If summarization pod fails, fall back to autofix pod
-            logger.warning(
-                "Summarization pod connection failed for replay summary, falling back to autofix",
-                exc_info=True,
+            logger.exception(
+                "Seer replay breadcrumbs summary endpoint failed after retries",
                 extra={"path": path},
             )
-            try:
-                response = make_signed_seer_api_request(
-                    connection_pool=fallback_connection_pool,
-                    path=path,
-                    body=data.encode("utf-8"),
-                )
-            except Exception:
-                logger.exception(
-                    "Seer replay breadcrumbs summary endpoint failed on both pods",
-                    extra={"path": path},
-                )
-                return self.respond("Internal Server Error", status=500)
+            return self.respond("Internal Server Error", status=500)
 
         if response.status < 200 or response.status >= 300:
             logger.error(
