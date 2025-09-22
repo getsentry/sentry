@@ -146,7 +146,7 @@ export default function PreventQueryParamsProvider({
             ...newState[integratedOrgName],
             repository: currentParams.repository,
             branch: currentParams?.branch || newState[integratedOrgName]?.branch || null,
-            integratedOrgId: newState[integratedOrgName]?.integratedOrgId || '',
+            integratedOrgId: newState[integratedOrgName]?.integratedOrgId || null,
           };
           newState.lastVisitedOrgName = integratedOrgName;
         }
