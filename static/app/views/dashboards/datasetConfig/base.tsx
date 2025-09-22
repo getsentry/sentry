@@ -42,6 +42,11 @@ export type WidgetBuilderSearchBarProps = {
   portalTarget?: HTMLElement | null;
 };
 
+export type SearchBarDataProviderProps = {
+  pageFilters: PageFilters;
+  widgetQuery?: WidgetQuery;
+};
+
 export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];
   getFilterKeys: () => TagCollection;
@@ -237,7 +242,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Data provider hook that provides methods
    * to retrieve tags and values for the search bar.
    */
-  useSearchBarDataProvider?: (...args: any[]) => SearchBarData;
+  useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(
