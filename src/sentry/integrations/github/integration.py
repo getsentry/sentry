@@ -838,10 +838,7 @@ class OAuthLoginView:
             self.client = GithubSetupApiClient(access_token=payload["access_token"])
             authenticated_user_info = self.client.get_user_info()
 
-            if self.active_user_organization is not None and features.has(
-                "organizations:github-multi-org",
-                organization=self.active_user_organization.organization,
-            ):
+            if self.active_user_organization is not None:
                 owner_orgs = self._get_owner_github_organizations()
 
                 installation_info = self._get_eligible_multi_org_installations(
@@ -902,10 +899,7 @@ class GithubOrganizationSelection:
             else False
         )
 
-        if self.active_user_organization is None or not features.has(
-            "organizations:github-multi-org",
-            organization=self.active_user_organization.organization,
-        ):
+        if self.active_user_organization is None:
             return pipeline.next_step()
 
         with record_event(
@@ -1017,43 +1011,12 @@ class GitHubInstallation:
                 return error_page
 
             if self.active_user_organization is not None:
-                if features.has(
-                    "organizations:github-multi-org",
-                    organization=self.active_user_organization.organization,
-                ):
-                    try:
-                        integration = Integration.objects.get(
-                            external_id=installation_id, status=ObjectStatus.ACTIVE
-                        )
-                    except Integration.DoesNotExist:
-                        return pipeline.next_step()
-
-                else:
-                    try:
-                        # We want to limit GitHub integrations to 1 organization
-                        installations_exist = OrganizationIntegration.objects.filter(
-                            integration=Integration.objects.get(external_id=installation_id)
-                        ).exists()
-                    except Integration.DoesNotExist:
-                        return pipeline.next_step()
-
-                    if installations_exist:
-                        lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
-                        return error(
-                            request,
-                            self.active_user_organization,
-                            error_short=GitHubInstallationError.INSTALLATION_EXISTS,
-                            error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
-                        )
-
-                    # OrganizationIntegration does not exist, but Integration does exist.
-                    try:
-                        integration = Integration.objects.get(
-                            external_id=installation_id, status=ObjectStatus.ACTIVE
-                        )
-                    except Integration.DoesNotExist:
-                        lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
-                        return error(request, self.active_user_organization)
+                try:
+                    integration = Integration.objects.get(
+                        external_id=installation_id, status=ObjectStatus.ACTIVE
+                    )
+                except Integration.DoesNotExist:
+                    return pipeline.next_step()
 
             # Check that the authenticated GitHub user is the same as who installed the app.
             if (
