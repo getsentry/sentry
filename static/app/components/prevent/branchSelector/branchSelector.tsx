@@ -18,7 +18,6 @@ const ALL_BRANCHES = 'All Branches';
 export function BranchSelector() {
   const {branch, integratedOrgId, repository, preventPeriod, changeContextValue} =
     usePreventContext();
-  const [displayedBranches, setDisplayedBranches] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState<string | undefined>();
 
   const {data, isFetching, isLoading} = useInfiniteRepositoryBranches({
@@ -48,6 +47,11 @@ export function BranchSelector() {
     [setSearchValue]
   );
 
+  const displayedBranches = useMemo(
+    () => (isFetching ? [] : (branches?.map(item => item.name) ?? [])),
+    [branches, isFetching]
+  );
+
   const options = useMemo((): Array<SelectOption<string>> => {
     if (isFetching) {
       return [];
@@ -69,13 +73,6 @@ export function BranchSelector() {
 
     return [...optionSet].map(makeOption);
   }, [branch, displayedBranches, isFetching]);
-
-  useEffect(() => {
-    // Only update displayedBranches if the hook returned something non-empty
-    if (!isFetching) {
-      setDisplayedBranches((branches ?? []).map(item => item.name));
-    }
-  }, [branches, isFetching]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
