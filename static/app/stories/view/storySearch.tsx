@@ -14,7 +14,6 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
-import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -247,11 +246,11 @@ const StorySearchContainer = styled('div')`
   width: 320px;
   flex-grow: 1;
   z-index: ${p => p.theme.zIndex.header};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   padding-right: 0;
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   margin-left: -${p => p.theme.space['2xl']};
 `;
 

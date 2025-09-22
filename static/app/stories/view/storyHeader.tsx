@@ -6,7 +6,6 @@ import {Link} from 'sentry/components/core/link';
 import {Heading} from 'sentry/components/core/text';
 import {IconGithub, IconLink} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 import {StorySearch} from './storySearch';
 
@@ -63,9 +62,9 @@ export function StoryHeader() {
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: 256px minmax(auto, 820px) auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   height: 53px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: sticky;
