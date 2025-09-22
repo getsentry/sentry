@@ -149,16 +149,11 @@ class LogConfig:
 
     # Cached value of features.has("projects:num-events-issue-debugging", project)
     num_events_issue_debugging: bool
-    # Cached value of features.has("organizations:workflow-engine-process-workflows", organization)
-    workflow_engine_process_workflows: bool
 
     @classmethod
     def create(cls, project: Project) -> "LogConfig":
         return cls(
             num_events_issue_debugging=features.has("projects:num-events-issue-debugging", project),
-            workflow_engine_process_workflows=features.has(
-                "organizations:workflow-engine-process-workflows", project.organization
-            ),
         )
 
 

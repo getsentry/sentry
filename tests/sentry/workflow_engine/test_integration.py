@@ -217,7 +217,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
     def with_feature_flags(self):
         with Feature(
             {
-                "organizations:workflow-engine-process-workflows": True,
                 "organizations:workflow-engine-trigger-actions": True,
             }
         ):
