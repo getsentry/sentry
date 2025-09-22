@@ -1,3 +1,5 @@
+from django.db import router
+
 from sentry.api.serializers.base import serialize
 from sentry.discover.arithmetic import is_equation, is_equation_alias
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
@@ -8,6 +10,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.search.events.fields import is_function
+from sentry.utils.db import atomic_transaction
 
 
 def snapshot_widget(widget: DashboardWidget):
@@ -121,8 +124,9 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
 
         dropped_fields_info.append(dropped_fields)
 
-    DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
-    DashboardWidgetQuery.objects.bulk_create(new_widget_queries)
+    with atomic_transaction(using=router.db_for_write(DashboardWidgetQuery)):
+        DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
+        DashboardWidgetQuery.objects.bulk_create(new_widget_queries)
 
     widget.changed_reason = {"reason": dropped_fields_info}
     widget.save()
