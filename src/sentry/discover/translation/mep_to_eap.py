@@ -116,6 +116,12 @@ def switch_arguments(function_match):
     return f"{raw_function}({new_arg})"
 
 
+def add_equation_prefix_if_needed(term, need_equation):
+    if need_equation and term.startswith(("apdex(", "user_misery(", "count_if(")):
+        return f"equation|{term}"
+    return term
+
+
 def column_switcheroo(term):
     """Swaps out the entire column name."""
     parsed_mri = parse_mri(term)
@@ -144,38 +150,21 @@ def column_switcheroo(term):
     return swapped_term, swapped_term != term
 
 
-def function_switcheroo(term, need_equation=True):
+def function_switcheroo(term):
     """Swaps out the entire function, including args."""
     swapped_term = term
     if term == "count()":
         swapped_term = "count(span.duration)"
     elif term.startswith("percentile("):
         swapped_term = format_percentile_term(term)
-    # certain functions are now only supported in equation notation
-    # (unless they already are then henced we would pass need_equation=False)
-    elif term.startswith("count_if("):
-        new_count_if = switch_arguments(fields.is_function(term))
-        if need_equation:
-            swapped_term = f"equation|{new_count_if}"
-        else:
-            swapped_term = new_count_if
     elif term == "apdex()":
-        if need_equation:
-            swapped_term = "equation|apdex(span.duration,300)"
-        else:
-            swapped_term = "apdex(span.duration,300)"
+        swapped_term = "apdex(span.duration,300)"
     elif term == "user_misery()":
-        if need_equation:
-            swapped_term = "equation|user_misery(span.duration,300)"
-        else:
-            swapped_term = "user_misery(span.duration,300)"
+        swapped_term = "user_misery(span.duration,300)"
 
     match = re.match(APDEX_USER_MISERY_PATTERN, term)
     if match:
-        if need_equation:
-            swapped_term = f"equation|{match.group(1)}(span.duration,{match.group(2)})"
-        else:
-            swapped_term = f"{match.group(1)}(span.duration,{match.group(2)})"
+        swapped_term = f"{match.group(1)}(span.duration,{match.group(2)})"
 
     return swapped_term, swapped_term != term
 
@@ -197,7 +186,7 @@ class TranslationVisitor(NodeVisitor):
         return column_switcheroo(node.text)[0]
 
     def visit_aggregate_key(self, node, children):
-        term, did_update = function_switcheroo(node.text, need_equation=False)
+        term, did_update = function_switcheroo(node.text)
         if did_update:
             return term
 
@@ -232,7 +221,7 @@ class ArithmeticTranslationVisitor(NodeVisitor):
         return column_switcheroo(node.text)[0]
 
     def visit_function_value(self, node, children):
-        new_functions, dropped_functions = translate_columns([node.text], need_equation=False)
+        new_functions, dropped_functions = translate_columns([node.text])
         self.dropped_fields.extend(dropped_functions)
         return new_functions[0]
 
@@ -257,7 +246,7 @@ def translate_query(query: str):
     return apply_is_segment_condition("".join(flattened_query))
 
 
-def translate_columns(columns, need_equation=True):
+def translate_columns(columns, need_equation=False):
     """
     @param columns: list of columns to translate
     @param need_equation: whether to translate some of the functions to equation notation (usually if
@@ -272,12 +261,14 @@ def translate_columns(columns, need_equation=True):
             translated_columns.append(column_switcheroo(column)[0])
             continue
 
-        translated_func, did_update = function_switcheroo(column, need_equation)
+        translated_func, did_update = function_switcheroo(column)
         if did_update:
+            translated_func = add_equation_prefix_if_needed(translated_func, need_equation)
             translated_columns.append(translated_func)
             continue
 
         new_function = switch_arguments(match)
+        new_function = add_equation_prefix_if_needed(new_function, need_equation)
         translated_columns.append(new_function)
 
     # need to drop columns after they have been translated to avoid issues with percentile()
@@ -437,7 +428,9 @@ def translate_mep_to_eap(query_parts: QueryParts):
     datamodels to store EAP compatible EQS queries.
     """
     new_query = translate_query(query_parts["query"])
-    new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
+    new_columns, dropped_columns = translate_columns(
+        query_parts["selected_columns"], need_equation=True
+    )
     new_equations, dropped_equations = translate_equations(query_parts["equations"])
     equations = query_parts["equations"] if query_parts["equations"] is not None else []
     dropped_equations_without_reasons = (
