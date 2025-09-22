@@ -195,7 +195,9 @@ function Dashboard({
       widget_type: widgetToDelete.displayType,
     });
 
-    let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    let nextList = dashboard.widgets.filter(
+      widget => constructGridItemKey(widget) !== constructGridItemKey(widgetToDelete)
+    );
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
