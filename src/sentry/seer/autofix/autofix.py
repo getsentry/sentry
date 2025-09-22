@@ -628,9 +628,3 @@ def trigger_autofix(
         },
         status=202,
     )
-    return Response(
-        {
-            "run_id": run_id,
-        },
-        status=202,
-    )
