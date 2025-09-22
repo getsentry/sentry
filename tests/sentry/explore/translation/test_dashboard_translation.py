@@ -68,6 +68,7 @@ class DashboardTranslationTestCase(TestCase):
         assert new_queries.count() == 1
 
         new_query = new_queries.first()
+        assert new_query is not None
         assert new_query.widget_id == transaction_widget.id
         assert new_query.order == 0
         assert new_query.fields == ["release", "count(span.duration)", "count_unique(user)"]
@@ -109,6 +110,7 @@ class DashboardTranslationTestCase(TestCase):
         assert new_queries.count() == 1
 
         new_query = new_queries.first()
+        assert new_query is not None
         assert new_query.widget_id == transaction_widget.id
         assert new_query.order == 0
 
@@ -162,6 +164,7 @@ class DashboardTranslationTestCase(TestCase):
         assert new_queries.count() == 1
 
         new_query = new_queries.first()
+        assert new_query is not None
         assert new_query.widget_id == transaction_widget.id
         assert new_query.order == 0
 
@@ -224,6 +227,7 @@ class DashboardTranslationTestCase(TestCase):
         assert new_queries.count() == 1
 
         new_query = new_queries.first()
+        assert new_query is not None
         assert new_query.widget_id == transaction_widget.id
         assert new_query.order == 0
 

@@ -24,7 +24,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
     snapshot_widget(widget)
 
     if not widget.widget_snapshot:
-        return
+        return widget
 
     transaction_widget = widget.widget_snapshot
     new_widget_queries = []
@@ -126,3 +126,5 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
 
     widget.changed_reason = {"reason": dropped_fields_info}
     widget.save()
+
+    return widget
