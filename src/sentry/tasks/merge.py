@@ -165,8 +165,10 @@ def merge_groups(
                     ),
                 )
 
-            previous_group_id = group.id
+            # Fetch buffered stats before deleting the group
+            fetch_buffered_group_stats(group)
 
+            previous_group_id = group.id
             with transaction.atomic(router.db_for_write(GroupRedirect)):
                 GroupRedirect.create_for_group(group, new_group)
                 group.delete()
@@ -185,7 +187,6 @@ def merge_groups(
                 last_seen=max(group.last_seen, new_group.last_seen),
             )
             try:
-                fetch_buffered_group_stats(group)
                 total_times_seen = new_group.times_seen + group.times_seen_with_pending
 
                 # it's possible to hit an out of range value for counters
