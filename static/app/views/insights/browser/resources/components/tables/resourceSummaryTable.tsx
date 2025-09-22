@@ -9,6 +9,7 @@ import type {
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -165,13 +166,17 @@ function ResourceSummaryTable() {
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...columnOrder],
+    location,
+  });
 
   return (
     <Fragment>
       <GridEditable
         data={data || []}
         isLoading={isPending}
-        columnOrder={columnOrder}
+        columnOrder={columns}
         columnSortBy={[
           {
             key: sort.field as keyof Row,
@@ -186,6 +191,7 @@ function ResourceSummaryTable() {
               sort,
             }),
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
