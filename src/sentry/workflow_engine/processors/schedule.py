@@ -1,8 +1,16 @@
+import hashlib
 import logging
 import math
 import uuid
 from datetime import datetime, timezone
+from itertools import chain, islice
+from collections.abc import Generator
+from contextlib import contextmanager
+from dataclasses import asdict
+from datetime import datetime, timedelta, timezone
 from itertools import islice
+
+import pydantic
 
 from sentry import options
 from sentry.utils import metrics
@@ -79,6 +87,67 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
             )
 
 
+class CohortUpdates(pydantic.BaseModel):
+    values: dict[int, float]
+
+    def get_last_cohort_run(self, cohort_id: int) -> float:
+        return self.values.get(cohort_id, 0)
+
+
+NUM_COHORTS = 6
+
+
+class ProjectChooser:
+    def __init__(self, buffer: RedisHashSortedSetBuffer, num_cohorts: int = NUM_COHORTS):
+        self.buffer = buffer
+        self.num_cohorts = num_cohorts
+
+    def fetch_updates(self) -> CohortUpdates:
+        return self.buffer.get_parsed_key("WORKFLOW_ENGINE_COHORT_UPDATES", CohortUpdates)
+
+    def persist_updates(self, cohort_updates: CohortUpdates) -> None:
+        self.buffer.put_parsed_key("WORKFLOW_ENGINE_COHORT_UPDATES", cohort_updates)
+
+    def project_id_to_cohort(self, project_id: int) -> int:
+        return hashlib.sha256(project_id.to_bytes(8)).digest()[0] % self.num_cohorts
+
+    def project_ids_to_process(
+        self, fetch_time: float, cohort_updates: CohortUpdates, all_project_ids: list[int]
+    ) -> list[int]:
+        must_process = set[int]()
+        may_process = set[int]()
+        now = fetch_time
+        for co in range(self.num_cohorts):
+            last_run = cohort_updates.get_last_cohort_run(co)
+            elapsed = timedelta(seconds=now - last_run)
+            if elapsed > timedelta(minutes=1):
+                must_process.add(co)
+            elif elapsed > timedelta(seconds=60 / self.num_cohorts):
+                may_process.add(co)
+        if may_process and not must_process:
+            choice = min(may_process, key=lambda c: (cohort_updates.get_last_cohort_run(c), c))
+            must_process.add(choice)
+        cohort_updates.values.update({cohort_id: fetch_time for cohort_id in must_process})
+        return [
+            project_id
+            for project_id in all_project_ids
+            if self.project_id_to_cohort(project_id) in must_process
+        ]
+
+
+@contextmanager
+def chosen_projects(
+    buffer: RedisHashSortedSetBuffer, fetch_time: float, all_project_ids: list[int]
+) -> Generator[list[int]]:
+    project_chooser = ProjectChooser(buffer)
+    cohort_updates = project_chooser.fetch_updates()
+    project_ids_to_process = project_chooser.project_ids_to_process(
+        fetch_time, cohort_updates, all_project_ids
+    )
+    yield project_ids_to_process
+    project_chooser.persist_updates(cohort_updates)
+
+
 def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
     option_name = buffer_client.option
     if option_name and not options.get(option_name):
@@ -92,17 +161,17 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
             max=fetch_time,
         )
 
-        metrics.distribution(
-            "workflow_engine.schedule.projects", len(all_project_ids_and_timestamps)
-        )
-        logger.info(
-            "delayed_workflow.project_id_list",
-            extra={"project_ids": sorted(all_project_ids_and_timestamps.keys())},
-        )
+        with chosen_projects(
+            buffer_client, fetch_time, list(all_project_ids_and_timestamps.keys())
+        ) as project_ids_to_process:
+            metrics.distribution("workflow_engine.schedule.projects", len(project_ids_to_process))
+            logger.info(
+                "delayed_workflow.project_id_list",
+                extra={"project_ids": sorted(project_ids_to_process)},
+            )
 
-        project_ids = list(all_project_ids_and_timestamps.keys())
-        for project_id in project_ids:
-            process_in_batches(buffer_client.for_project(project_id))
+            for project_id in project_ids_to_process:
+                process_in_batches(buffer_client.for_project(project_id))
 
         mark_projects_processed(buffer_client, all_project_ids_and_timestamps)
 
