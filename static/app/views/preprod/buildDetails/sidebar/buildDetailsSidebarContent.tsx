@@ -36,7 +36,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   const vcsInfo = buildDetailsData.vcs_info;
 
   const makeLinkableValue = (
-    value: string | number | undefined,
+    value: string | number | null | undefined,
     url: string | null
   ): React.ReactNode => {
     if (value === undefined || value === null) {

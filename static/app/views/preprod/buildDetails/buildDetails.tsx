@@ -49,8 +49,10 @@ export default function BuildDetails() {
   let title = t('Build details');
   if (
     version !== undefined &&
+    version !== null &&
     version !== '' &&
     buildNumber !== undefined &&
+    buildNumber !== null &&
     buildNumber !== ''
   ) {
     title = t('Build details v%s (%s)', version, buildNumber);

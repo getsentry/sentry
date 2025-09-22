@@ -1,12 +1,12 @@
 interface VcsInfo {
-  base_ref?: string;
-  base_repo_name?: string;
-  base_sha?: string;
-  head_ref?: string;
-  head_repo_name?: string;
-  head_sha?: string;
-  pr_number?: number;
-  provider?: 'github';
+  base_ref?: string | null;
+  base_repo_name?: string | null;
+  base_sha?: string | null;
+  head_ref?: string | null;
+  head_repo_name?: string | null;
+  head_sha?: string | null;
+  pr_number?: number | null;
+  provider?: string | null;
 }
 
 function getBaseUrl(provider: string, repoName: string): string | null {
@@ -20,7 +20,7 @@ function getBaseUrl(provider: string, repoName: string): string | null {
 
 export function getShaUrl(
   vcsInfo: VcsInfo,
-  sha: string | undefined,
+  sha: string | null | undefined,
   isBaseSha = false
 ): string | null {
   if (!vcsInfo.provider || !sha || sha === '-') {
@@ -67,7 +67,7 @@ export function getPrUrl(vcsInfo: VcsInfo): string | null {
 
 export function getBranchUrl(
   vcsInfo: VcsInfo,
-  branch: string | undefined,
+  branch: string | null | undefined,
   isBaseBranch = false
 ): string | null {
   if (!vcsInfo.provider || !branch || branch === '-') {
@@ -96,7 +96,7 @@ export function getBranchUrl(
 
 export function getRepoUrl(
   vcsInfo: VcsInfo,
-  repoName: string | undefined
+  repoName: string | null | undefined
 ): string | null {
   if (!vcsInfo.provider || !repoName || repoName === '-') {
     return null;
