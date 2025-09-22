@@ -75,17 +75,20 @@ describe('TraceNode', () => {
 
   describe('printNode', () => {
     it('should return "trace root" for trace split result', () => {
-      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
+      const traceNode = new TraceNode(
+        null,
+        {
+          transactions: [],
+          orphan_errors: [],
+        },
+        createMockExtra()
+      );
 
       expect(traceNode.printNode()).toBe('trace root');
     });
 
     it('should return "eap trace root" for EAP trace', () => {
-      // Create an EAP trace value (not a trace split result)
-      const eapTraceValue = makeEAPSpan({
-        event_id: 'eap-trace-id',
-      });
-      const traceNode = new TraceNode(null, eapTraceValue as any, createMockExtra());
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 
       expect(traceNode.printNode()).toBe('eap trace root');
     });
