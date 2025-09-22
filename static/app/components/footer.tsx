@@ -93,6 +93,7 @@ function BaseFooter({className}: Props) {
 const WaitingIndicator = styled('div')`
   --pulsingIndicatorRing: ${p => p.theme.gray200};
   ${pulsingIndicatorStyles};
+  contain: layout;
 `;
 
 const LeftLinks = styled('div')`
