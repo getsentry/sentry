@@ -9,6 +9,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
+    DatasetSourcesTypes,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -88,6 +89,12 @@ class DashboardTranslationTestCase(TestCase):
         assert new_query.conditions == "(transaction:foo) AND is_transaction:1"
         assert new_query.aggregates == ["count(span.duration)", "count_unique(user)"]
         assert new_query.columns == ["release"]
+
+        # Assert widget type and dataset source are set correctly
+        assert transaction_widget.widget_type == DashboardWidgetTypes.SPANS
+        assert (
+            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value
+        )
 
         assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
 
