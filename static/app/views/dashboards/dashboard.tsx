@@ -153,6 +153,7 @@ function Dashboard({
     );
   }, [api, organization.slug, selection.projects]);
 
+  // The operations in this effect should only run on mount/unmount
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
 
@@ -175,55 +176,9 @@ function Dashboard({
       GroupStore.reset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // The operations in this effect should only run on mount/unmount
+  }, []);
 
-  // Handle layout updates when dashboard widgets change (replaces getDerivedStateFromProps)
-  useEffect(() => {
-    if (isMobile) {
-      // Don't need to recalculate any layout state from props in the mobile view
-      // because we want to force different positions (i.e. new widgets added
-      // at the bottom)
-      return;
-    }
-
-    // If the user clicks "Cancel" and the dashboard resets,
-    // recalculate the layout to revert to the unmodified state
-    const dashboardLayout = getDashboardLayout(dashboard.widgets);
-    const currentDesktopLayout = layouts[DESKTOP].map(pickDefinedStoreKeys);
-    const newDesktopLayout = dashboardLayout.map(pickDefinedStoreKeys);
-
-    // Only update if layouts are actually different
-    let layoutsAreDifferent = false;
-    if (currentDesktopLayout.length === newDesktopLayout.length) {
-      for (let i = 0; i < currentDesktopLayout.length; i++) {
-        const current = currentDesktopLayout[i];
-        const newLayout = newDesktopLayout[i];
-        if (
-          !current ||
-          !newLayout ||
-          current.x !== newLayout.x ||
-          current.y !== newLayout.y ||
-          current.w !== newLayout.w ||
-          current.h !== newLayout.h
-        ) {
-          layoutsAreDifferent = true;
-          break;
-        }
-      }
-    } else {
-      layoutsAreDifferent = true;
-    }
-
-    if (layoutsAreDifferent) {
-      setLayouts({
-        [DESKTOP]: dashboardLayout,
-        [MOBILE]: getMobileLayout(dashboardLayout, dashboard.widgets),
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboard.widgets, isMobile]); // TODO(nar): Don't include layouts to avoid infinite loop
-
-  // Handle newWidget and selection.projects changes (replaces componentDidUpdate)
+  // Handle newWidget parsed from Add to Dashboard flows
   useEffect(() => {
     if (newWidget) {
       addNewWidget();
@@ -341,6 +296,17 @@ function Dashboard({
 
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
+      if (!isEditingDashboard) {
+        // If we're not editing, then the dashboard.widgets positions are the
+        // source of truth for the current layout.
+        const desktopLayout = getDashboardLayout(dashboard.widgets);
+        setLayouts({
+          [DESKTOP]: desktopLayout,
+          [MOBILE]: getMobileLayout(desktopLayout, dashboard.widgets),
+        });
+        return;
+      }
+
       const isNotAddButton = ({i}: any) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
       const newLayouts = {
         [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
@@ -399,7 +365,7 @@ function Dashboard({
       window.clearTimeout(forceCheckTimeout.current);
       forceCheckTimeout.current = window.setTimeout(forceCheck, 400);
     },
-    [dashboard.widgets, isMobile, onUpdate]
+    [dashboard.widgets, isMobile, onUpdate, isEditingDashboard]
   );
 
   const handleBreakpointChange = useCallback(
