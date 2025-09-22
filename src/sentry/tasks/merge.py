@@ -2,6 +2,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
@@ -188,8 +189,15 @@ def merge_groups(
                     times_seen=F("times_seen") + group.times_seen,
                     num_comments=F("num_comments") + group.num_comments,
                 )
-            except DataError:
-                pass
+            except DataError as e:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_extra("new_group_id", new_group.id)
+                    scope.set_extra("old_group_id", group.id)
+                    scope.set_extra("new_times_seen", new_group.times_seen)
+                    scope.set_extra("old_times_seen", group.times_seen)
+                    scope.set_extra("attempted_times_seen", new_group.times_seen + group.times_seen)
+                    scope.set_extra("project_id", new_group.project_id)
+                    sentry_sdk.capture_exception(e, level="warning")
 
     if from_object_ids:
         # This task is recursed until `from_object_ids` is empty and all
