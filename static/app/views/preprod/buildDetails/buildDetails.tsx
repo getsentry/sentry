@@ -47,12 +47,7 @@ export default function BuildDetails() {
   const buildNumber = buildDetails?.app_info?.build_number;
 
   let title = t('Build details');
-  if (
-    version !== undefined &&
-    version !== '' &&
-    buildNumber !== undefined &&
-    buildNumber !== ''
-  ) {
+  if (version && buildNumber) {
     title = t('Build details v%s (%s)', version, buildNumber);
   }
 
