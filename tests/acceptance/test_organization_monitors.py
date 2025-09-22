@@ -16,7 +16,7 @@ from sentry.testutils.silo import no_silo_test
 
 
 @no_silo_test
-class OrganizationMontorsTest(AcceptanceTestCase):
+class OrganizationMonitorsTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.path = f"/organizations/{self.organization.slug}/insights/crons/"
@@ -61,6 +61,9 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.wait_until('[name="name"]')
         name_input = self.browser.find_element_by_name("name")
         name_input.send_keys("My Monitor")
+
+        self.browser.click_when_visible("#project")
+        self.browser.click_when_visible(f'[data-test-id="{self.project.slug}"]')
 
         schedule_input = self.browser.find_element_by_name("config.schedule")
         schedule_input.clear()
