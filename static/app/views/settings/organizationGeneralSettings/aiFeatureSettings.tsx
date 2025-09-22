@@ -19,7 +19,7 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
       'Allows organization members to access [docs:features] powered by generative AI',
       {
         docs: (
-          <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/" />
+          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/#ai-powered-features" />
         ),
       }
     ),
