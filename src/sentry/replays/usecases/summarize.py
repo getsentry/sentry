@@ -67,12 +67,15 @@ def get_replay_range(
     rows = response.get("data", [])
     if not rows:
         return None
-    else:
-        # Convert string timestamps to datetime objects
-        min_timestamp = rows[0]["min"]
-        max_timestamp = rows[0]["max"]
 
-        # Handle both string and datetime inputs
+    min_timestamp = rows[0]["min"]
+    max_timestamp = rows[0]["max"]
+
+    if min_timestamp is None or max_timestamp is None:
+        return None
+
+    # Convert string timestamps to datetime objects
+    try:
         if isinstance(min_timestamp, str):
             min_dt = datetime.fromisoformat(min_timestamp.replace("Z", "+00:00"))
         else:
@@ -84,6 +87,8 @@ def get_replay_range(
             max_dt = max_timestamp
 
         return (min_dt, max_dt)
+    except (ValueError, TypeError):
+        return None
 
 
 @sentry_sdk.trace
@@ -544,9 +549,6 @@ def rpc_get_replay_summary_logs(
     )
     if result:
         start, end = result
-    else:
-        # Fallback to default date range if replay range cannot be determined
-        start, end = default_start_end_dates()
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(
