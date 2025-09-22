@@ -314,13 +314,14 @@ class EventLifecycle:
             # The context called record_success or record_failure being closing,
             # so we can just exit quietly.
             return
-        if isinstance(exc_value.__cause__, RestrictedIPAddress):
-            # ApiHostError is raised from RestrictedIPAddress
-            self._terminate(EventLifecycleOutcome.HALTED, exc_value)
-        elif exc_value is not None:
-            # We were forced to exit the context by a raised exception.
-            # Default to creating a Sentry issue for unhandled exceptions
-            self.record_failure(exc_value, create_issue=True)
+        if exc_value is not None:
+            if isinstance(exc_value.__cause__, RestrictedIPAddress):
+                # ApiHostError is raised from RestrictedIPAddress
+                self._terminate(EventLifecycleOutcome.HALTED, exc_value)
+            else:
+                # We were forced to exit the context by a raised exception.
+                # Default to creating a Sentry issue for unhandled exceptions
+                self.record_failure(exc_value, create_issue=True)
         else:
             # We exited the context without record_success or record_failure being
             # called. Assume success if we were told to do so. Else, log a halt

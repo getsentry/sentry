@@ -242,10 +242,10 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    @mock.patch("sentry.integrations.gitlab.client.GitLabApiClient.check_file")
+    @mock.patch("requests.sessions.Session.send")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_stacktrace_link_restricted_ip_address(
-        self, mock_record: mock.MagicMock, mock_check_file: mock.MagicMock
+        self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
         path = "/src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
@@ -254,9 +254,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             json={"text": 200},
         )
-        error = ApiHostError("Unable to reach host")
-        error.__cause__ = RestrictedIPAddress
-        mock_check_file.side_effect = error
+        mock_send.side_effect = RestrictedIPAddress
 
         with pytest.raises(ApiHostError):
             self.installation.get_stacktrace_link(self.repo, path, "master", None)
