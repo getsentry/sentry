@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
 import type {
@@ -97,7 +97,7 @@ export default function PreventQueryParamsProvider({
         ...input,
       };
 
-      if (updatedParams.branch === null) {
+      if (!input.branch) {
         delete updatedParams.branch;
       }
 
@@ -107,6 +107,29 @@ export default function PreventQueryParamsProvider({
   );
 
   const {integratedOrgId, repository, branch, preventPeriod} = _defineParams();
+
+  // Save repository and branch to localStorage when they come from URL params
+  useEffect(() => {
+    const currentParams = Object.fromEntries(searchParams.entries());
+    const shouldSave = currentParams?.repository || currentParams?.branch;
+
+    if (shouldSave && integratedOrgId) {
+      setLocalStorageState((prev: LocalStorageState) => {
+        const newState = {...prev};
+
+        if (currentParams?.repository) {
+          newState[integratedOrgId] = {
+            ...newState[integratedOrgId],
+            repository: currentParams.repository,
+            branch: currentParams?.branch || newState[integratedOrgId]?.branch || null,
+          };
+          newState.lastVisitedOrgId = integratedOrgId;
+        }
+
+        return newState;
+      });
+    }
+  }, [searchParams, integratedOrgId, setLocalStorageState]);
 
   const params: PreventContextData = {
     ...(repository ? {repository} : {}),
