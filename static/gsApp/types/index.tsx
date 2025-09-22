@@ -702,7 +702,7 @@ export type BillingMetricHistory = {
   trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
-  retention?: {downsampled: number; standard: number};
+  retention?: {downsampled: number | null; standard: number};
 };
 
 export type BillingHistory = {
