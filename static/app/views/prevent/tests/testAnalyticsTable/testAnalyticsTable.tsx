@@ -57,14 +57,12 @@ export const RIGHT_ALIGNED_FIELDS = new Set([
 ]);
 
 export type SortableTAOptions =
-  | 'testName'
   | 'averageDurationMs'
   | 'flakeRate'
   | 'totalFailCount'
   | 'lastRun';
 
 export const SORTABLE_FIELDS: SortableTAOptions[] = [
-  'testName',
   'averageDurationMs',
   'flakeRate',
   'totalFailCount',

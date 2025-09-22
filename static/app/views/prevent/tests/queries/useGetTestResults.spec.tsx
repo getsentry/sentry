@@ -265,7 +265,7 @@ describe('useInfiniteTestResults', () => {
     };
 
     const mockSearchParams = new URLSearchParams(
-      'term=integration&filterBy=slowestTests&sort=testName'
+      'term=integration&filterBy=slowestTests&sort=totalFailCount'
     );
     jest.requireMock('react-router-dom').useSearchParams = () => [
       mockSearchParams,
@@ -278,7 +278,7 @@ describe('useInfiniteTestResults', () => {
       match: [
         MockApiClient.matchQuery({
           interval: 'INTERVAL_1_DAY', // from preventPeriod: '24h'
-          sortBy: 'NAME', // from sort: 'testName' (no '-' prefix means ascending)
+          sortBy: 'RUNS_FAILED', // from sort: 'totalFailCount' (no '-' prefix means ascending)
           branch: 'feature-branch', // from context
           term: 'integration', // from search params
           filterBy: 'SLOWEST_TESTS', // from filterBy: 'slowestTests'
