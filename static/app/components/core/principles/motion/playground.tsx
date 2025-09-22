@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion, type BezierDefinition, type HTMLMotionProps} from 'framer-motion';
+import {motion, type HTMLMotionProps} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -9,31 +10,21 @@ import {Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
-const durations = {
-  xs: 0.08,
-  sm: 0.12,
-  md: 0.16,
-  lg: 0.24,
-  xl: 0.32,
-  '2xl': 0.48,
-  '3xl': 0.64,
-};
-const easings: Record<'enter' | 'exit' | 'default' | 'snap', BezierDefinition> = {
-  default: [0.72, 0, 0.16, 1],
-  snap: [0.8, -0.4, 0.5, 1],
-  enter: [0.24, 1, 0.32, 1],
-  exit: [0.64, 0, 0.8, 0],
-};
+type Motion = Theme['motion'];
+type Duration = keyof Motion['enter'];
+type Easing = keyof Motion;
+
 const animations = ['x', 'y', 'scale', 'rotate'] as const;
 
 export function MotionPlayground() {
+  const {motion: tokens} = useTheme();
   const [animation, setAnimation] = useState<(typeof animations)[number]>('x');
-  const [duration, setDuration] = useState<keyof typeof durations>('md');
-  const [easing, setEasing] = useState<keyof typeof easings>('default');
+  const [duration, setDuration] = useState<Duration>('moderate');
+  const [easing, setEasing] = useState<Easing>('smooth');
 
   const boxProps = useMemo(
-    () => createAnimation({duration, easing, property: animation}),
-    [duration, easing, animation]
+    () => createAnimation({duration, easing, property: animation, tokens}),
+    [duration, easing, animation, tokens]
   );
 
   return (
@@ -50,19 +41,19 @@ export function MotionPlayground() {
         radius="0 0 xl xl"
         gap="xl"
       >
-        <Grid columns={'repeat(2, 160px) 1fr'} gap="md" align="center" justify="center">
-          <Control label="Duration">
-            <CompactSelect
-              options={extractTokens(durations).map(value => ({value, label: value}))}
-              value={duration}
-              onChange={opt => setDuration(opt.value)}
-            />
-          </Control>
+        <Grid columns="160px 192px" gap="lg" align="center" justify="center">
           <Control label="Easing">
             <CompactSelect
-              options={extractTokens(easings).map(value => ({value, label: value}))}
+              options={extractTokens(tokens).map(value => ({value, label: value}))}
               value={easing}
               onChange={opt => setEasing(opt.value)}
+            />
+          </Control>
+          <Control label="Duration">
+            <CompactSelect
+              options={extractTokens(tokens.enter).map(value => ({value, label: value}))}
+              value={duration}
+              onChange={opt => setDuration(opt.value)}
             />
           </Control>
         </Grid>
@@ -107,19 +98,20 @@ function Control({label, children}: React.PropsWithChildren<{label: string}>) {
 }
 
 interface CreateAnimationOptions {
-  duration: keyof typeof durations;
-  easing: keyof typeof easings;
+  duration: Duration;
+  easing: Easing;
   property: (typeof animations)[number];
+  tokens: Motion;
 }
 function createAnimation({
   property,
   duration: durationKey,
   easing,
+  tokens,
 }: CreateAnimationOptions): HTMLMotionProps<'div'> {
   const delay = 1;
-  const duration = durations[durationKey];
-  const ease = easings[easing];
   const defaultState = {x: 0, y: 0, opacity: 1, scale: 1, rotate: 0};
+  const {duration, ease} = extractDurationAndEase(tokens[easing][durationKey]);
 
   return {
     initial: {
@@ -146,44 +138,81 @@ function createAnimation({
 }
 
 type Property = (typeof animations)[number];
-type Easing = keyof typeof easings;
 type State = 'start' | 'end';
 type TargetConfig = Record<Easing, Record<State, number>>;
 
 interface TargetStateOptions {
-  easing: keyof typeof easings;
+  easing: Easing;
   property: Property;
   state: State;
 }
 
 const TARGET_OPACITY: TargetConfig = {
-  default: {start: 1, end: 1},
+  smooth: {start: 1, end: 1},
   snap: {start: 1, end: 1},
   enter: {start: 0, end: 1},
   exit: {start: 1, end: 0},
 };
 const TARGET_AXIS: TargetConfig = {
-  default: {start: -32, end: 32},
-  snap: {start: -32, end: 32},
-  enter: {start: -32, end: 0},
-  exit: {start: 0, end: 32},
+  smooth: {start: -16, end: 16},
+  snap: {start: -16, end: 16},
+  enter: {start: -16, end: 0},
+  exit: {start: 0, end: 16},
 };
 const TARGET_CONFIGS: Record<string, TargetConfig> = {
   rotate: {
-    default: {start: 0, end: 90},
+    smooth: {start: 0, end: 90},
     snap: {start: 0, end: 90},
     enter: {start: -90, end: 0},
     exit: {start: 0, end: 90},
   },
   scale: {
-    default: {start: 1, end: 1.2},
-    snap: {start: 1, end: 1.2},
-    enter: {start: 1.2, end: 1},
+    smooth: {start: 1, end: 1.125},
+    snap: {start: 1, end: 1.125},
+    enter: {start: 1.125, end: 1},
     exit: {start: 1, end: 0.8},
   },
   x: TARGET_AXIS,
   y: TARGET_AXIS,
 };
+
+function extractDurationAndEase(css: string): {
+  duration: number;
+  ease: [number, number, number, number];
+} {
+  const re =
+    /^\s*(\d*\.?\d+)(ms|s)\s+cubic-bezier\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)\s*$/i;
+  const match = css.match(re);
+
+  if (!match) {
+    throw new Error(`Invalid timing string: ${css}`);
+  }
+
+  const [, value, unit, x1, y1, x2, y2] = match as [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
+
+  // framer-motion expects duration in seconds
+  const duration =
+    unit.toLowerCase() === 'ms'
+      ? Number.parseFloat(value) / 1000
+      : Number.parseFloat(value);
+
+  const ease: [number, number, number, number] = [
+    Number.parseFloat(x1),
+    Number.parseFloat(y1),
+    Number.parseFloat(x2),
+    Number.parseFloat(y2),
+  ];
+
+  return {duration, ease};
+}
 
 function makeTargetState({property, state, easing}: TargetStateOptions) {
   const config = TARGET_CONFIGS[property as keyof typeof TARGET_CONFIGS] ?? TARGET_AXIS;
