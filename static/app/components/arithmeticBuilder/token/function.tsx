@@ -26,7 +26,6 @@ import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 
@@ -781,7 +780,7 @@ const BaseGridCell = styled('div')`
 
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
 `;
 
 const DeleteButton = styled('button')`
@@ -790,7 +789,7 @@ const DeleteButton = styled('button')`
   color: ${p => p.theme.subText};
   outline: none;
   user-select: none;
-  padding-right: ${space(0.5)};
+  padding-right: ${p => p.theme.space.xs};
 
   :focus {
     background-color: ${p => p.theme.translucentGray100};
