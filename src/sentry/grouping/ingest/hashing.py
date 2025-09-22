@@ -231,7 +231,7 @@ def get_or_create_grouphashes(
         )
         hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
 
-    do_not_associate_with_group = features.has(
+    detach_in_deletion_groups = features.has(
         "organizations:group-deletion-in-progress", project.organization
     )
 
