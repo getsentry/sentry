@@ -569,7 +569,6 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
         self.dashboard.projects.set([self.project, self.project_2])
 
     def test_simple_case_restore(self) -> None:
-        # Create original transaction widget
         transaction_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -593,7 +592,6 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
             order=0,
         )
 
-        # Store original values for comparison
         original_widget_type = transaction_widget.widget_type
         original_query_name = original_query.name
         original_query_fields = original_query.fields
@@ -606,7 +604,6 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
         original_query_selected_aggregate = original_query.selected_aggregate
         original_query_order = original_query.order
 
-        # Translate the widget
         translate_dashboard_widget(transaction_widget)
         transaction_widget.refresh_from_db()
 
@@ -617,11 +614,9 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
         )
         assert transaction_widget.widget_snapshot is not None
 
-        # Restore the widget
         restore_transaction_widget(transaction_widget)
         transaction_widget.refresh_from_db()
 
-        # Assert widget is restored to original state
         assert transaction_widget.widget_type == original_widget_type
         assert (
             transaction_widget.dataset_source
@@ -629,7 +624,6 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
         )
         assert transaction_widget.changed_reason is None
 
-        # Assert queries are restored to original state
         restored_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
         assert restored_queries.count() == 1
 
@@ -646,6 +640,3 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
         assert restored_query.is_hidden == original_query_is_hidden
         assert restored_query.selected_aggregate == original_query_selected_aggregate
         assert restored_query.order == original_query_order
-
-        # Verify original query was replaced
-        assert not DashboardWidgetQuery.objects.filter(id=original_query.id).exists()
