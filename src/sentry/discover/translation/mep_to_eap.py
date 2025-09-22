@@ -76,20 +76,19 @@ def drop_unsupported_columns(columns):
     for column in columns:
         if column.startswith(COLUMNS_TO_DROP):
             dropped_columns.append(column)
-        else:
+        elif match := fields.is_function(column):
+            arguments = fields.parse_arguments(match.group("function"), match.group("columns"))
             should_drop = False
-            # regex for beginning of equation or function (if it starts with a parenthesis or comma)
-            regex_beginning = r".*[\(,]"
-            # regex for ending of equation or function (if it ends with a parenthesis or comma and other args)
-            regex_ending = r"((,.*)|\))"
-            # fields can be within the columns if the column is a function (like in count_if)
-            for field in FIELDS_TO_DROP:
-                if re.search(regex_beginning + re.escape(field) + regex_ending, column):
+            for argument in arguments:
+                if argument in FIELDS_TO_DROP:
                     dropped_columns.append(column)
                     should_drop = True
                     break
             if not should_drop:
                 final_columns.append(column)
+
+        else:
+            final_columns.append(column)
     # if no columns are left, leave the original columns but keep track of the "dropped" columns
     if len(final_columns) == 0:
         return columns, dropped_columns
@@ -101,19 +100,6 @@ def apply_is_segment_condition(query: str) -> str:
     if query:
         return f"({query}) AND is_transaction:1"
     return "is_transaction:1"
-
-
-def switch_arguments(function_match):
-    """swaps out arguments of a function"""
-    raw_function = function_match.group("function")
-    arguments = fields.parse_arguments(raw_function, function_match.group("columns"))
-    translated_arguments = []
-
-    for argument in arguments:
-        translated_arguments.append(column_switcheroo(argument)[0])
-
-    new_arg = ",".join(translated_arguments)
-    return f"{raw_function}({new_arg})"
 
 
 def add_equation_prefix_if_needed(term, need_equation):
@@ -267,8 +253,15 @@ def translate_columns(columns, need_equation=False):
             translated_columns.append(translated_func)
             continue
 
-        new_function = switch_arguments(match)
-        new_function = add_equation_prefix_if_needed(new_function, need_equation)
+        raw_function = match.group("function")
+        arguments = fields.parse_arguments(raw_function, match.group("columns"))
+        translated_arguments = []
+
+        for argument in arguments:
+            translated_arguments.append(column_switcheroo(argument)[0])
+
+        new_arg = ",".join(translated_arguments)
+        new_function = add_equation_prefix_if_needed(f"{raw_function}({new_arg})", need_equation)
         translated_columns.append(new_function)
 
     # need to drop columns after they have been translated to avoid issues with percentile()
