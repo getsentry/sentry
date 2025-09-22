@@ -14,6 +14,7 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
+from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -267,7 +268,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 )
             except SlackApiError as e:
                 lifecycle.add_extras(logger_params)
-                lifecycle.add_extra("unfurls", payload["unfurls"])
+                if organization_id == SUPERUSER_ORG_ID:
+                    lifecycle.add_extra("unfurls", payload["unfurls"])
                 lifecycle.record_failure(e)
                 return False
 
