@@ -171,12 +171,10 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   if (!appSizeData) {
     return (
-      <Flex direction="column" gap="lg" minHeight="700px">
-        <BuildError
-          title={t('Size analysis failed')}
-          message={t('The treemap data could not be loaded')}
-        />
-      </Flex>
+      <BuildError
+        title={t('Size analysis failed')}
+        message={t('The treemap data could not be loaded')}
+      />
     );
   }
 

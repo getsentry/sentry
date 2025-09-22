@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {main} from 'knip';
 
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
