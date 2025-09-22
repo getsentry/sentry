@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk
 
-from sentry import options
+from sentry import features, options
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
@@ -25,6 +25,7 @@ from sentry.grouping.ingest.grouphash_metadata import (
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.variants import BaseVariant
+from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
@@ -232,6 +233,16 @@ def get_or_create_grouphashes(
 
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        if features.has("organizations:group-deletion-in-progress", project.organization):
+            # If the group a group hash is associated with is in deletion in progress, we don't
+            # want to associate the group hash with it so we can create a new group for the event
+            if grouphash.group and grouphash.group.status in [
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_DELETION,
+            ]:
+                # This will cause a new group to be created
+                grouphash.group = None
+                grouphash.save()
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
