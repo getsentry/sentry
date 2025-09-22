@@ -454,7 +454,7 @@ services:
     labels:
       - orchestrator=devservices
   spotlight:
-    image: ghcr.io/getsentry/spotlight:latest
+    image: ghcr.io/getsentry/spotlight:7640f9ff4be79a934e5cac8b255d2a2055ceeb28
     healthcheck:
       interval: 1s
       timeout: 1s
