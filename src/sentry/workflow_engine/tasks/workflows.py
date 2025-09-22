@@ -183,13 +183,6 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
 
     try:
         with lock.acquire():
-            # Only process delayed_workflow type
-            use_new_scheduling = options.get("workflow_engine.use_new_scheduling_task")
-            if not use_new_scheduling:
-                logger.info(
-                    "Configured to use process_pending_batch for delayed_workflow; exiting."
-                )
-                return
             with quiet_redis_noise():
                 process_buffered_workflows(DelayedWorkflowClient())
     except UnableToAcquireLock as error:
