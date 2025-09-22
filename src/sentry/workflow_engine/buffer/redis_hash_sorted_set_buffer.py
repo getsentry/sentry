@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any, TypeAlias, TypeVar
 
 import rb
+import pydantic
 from redis.client import Pipeline
 
 ClusterPipeline: TypeAlias = Any
@@ -418,3 +419,10 @@ class RedisHashSortedSetBuffer:
             converted_results.update(host_parsed)
 
         return converted_results
+
+    def get_parsed_key[T: pydantic.BaseModel](self, key: str, model: type[T]) -> T:
+        value = self._execute_redis_operation(key, "get")
+        return model.parse_raw(value)
+
+    def put_parsed_key[T: pydantic.BaseModel](self, key: str, value: T) -> None:
+        self._execute_redis_operation(key, "set", value.json())
