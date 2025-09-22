@@ -88,9 +88,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     owner = ApiOwner.VISIBILITY
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:discover-basic", organization, actor=request.user
-        ) or features.has("organizations:performance-view", organization, actor=request.user)
+        return (
+            features.has("organizations:discover-basic", organization, actor=request.user)
+            or features.has("organizations:performance-view", organization, actor=request.user)
+            or features.has(
+                "organizations:visibility-explore-view", organization, actor=request.user
+            )
+        )
 
     def get_equation_list(
         self, organization: Organization, request: Request, param_name: str = "field"
