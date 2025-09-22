@@ -150,7 +150,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
 def restore_transaction_widget(widget):
     snapshot = widget.widget_snapshot
 
-    if not snapshot:
+    if not snapshot or widget.widget_type != DashboardWidgetTypes.SPANS:
         return widget
 
     queries: list[dict[str, Any]] = snapshot["queries"]
