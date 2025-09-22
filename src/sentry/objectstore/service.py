@@ -4,6 +4,7 @@ from io import BytesIO
 from typing import IO, Literal, NamedTuple, NotRequired, Self, TypedDict, cast
 from urllib.parse import urlencode
 
+import sentry_sdk
 import urllib3
 import zstandard
 from urllib3.connectionpool import HTTPConnectionPool
@@ -32,10 +33,11 @@ class GetResult(NamedTuple):
 
 
 class ClientBuilder:
-    def __init__(self, usecase: str, options: dict | None = None):
+    def __init__(self, usecase: str, options: dict | None = None, propagate_traces: bool = False):
         self._usecase = usecase
         self._options = options
         self._default_compression: Compression = "zstd"
+        self._propagate_traces = propagate_traces
 
     def _make_client(self, scope: str) -> Client:
         from sentry import options as options_store
@@ -43,7 +45,7 @@ class ClientBuilder:
         options = self._options or options_store.get("objectstore.config")
         pool = urllib3.connectionpool.connection_from_url(options["base_url"])
 
-        return Client(pool, self._default_compression, self._usecase, scope)
+        return Client(pool, self._default_compression, self._usecase, scope, self._propagate_traces)
 
     def default_compression(self, default_compression: Compression) -> Self:
         self._default_compression = default_compression
@@ -58,12 +60,23 @@ class ClientBuilder:
 
 class Client:
     def __init__(
-        self, pool: HTTPConnectionPool, default_compression: Compression, usecase: str, scope: str
+        self,
+        pool: HTTPConnectionPool,
+        default_compression: Compression,
+        usecase: str,
+        scope: str,
+        propagate_traces: bool,
     ):
         self._pool = pool
         self._default_compression = default_compression
         self._usecase = usecase
         self._scope = scope
+        self._propagate_traces = propagate_traces
+
+    def _make_headers(self) -> dict[str, str]:
+        if self._propagate_traces:
+            return dict(sentry_sdk.get_current_scope().iter_trace_propagation_headers())
+        return {}
 
     def _make_url(self, url: str) -> str:
         qs = urlencode({"usecase": self._usecase, "scope": self._scope})
@@ -89,7 +102,7 @@ class Client:
         Providing `"none"` as the argument will instruct the client to not apply
         any compression to this upload, which is useful for uncompressible formats.
         """
-        headers = {}
+        headers = self._make_headers()
         body = BytesIO(contents) if isinstance(contents, bytes) else contents
         original_body: IO[bytes] = body
 
@@ -134,12 +147,14 @@ class Client:
         decompressed, unless `decompress=True` is passed.
         """
 
+        headers = self._make_headers()
         with measure_storage_operation("get", self._usecase):
             response = self._pool.request(
                 "GET",
                 self._make_url(f"/{id}"),
                 preload_content=False,
                 decode_content=False,
+                headers=headers,
             )
             raise_for_status(response)
         # OR: should I use `response.stream()`?
@@ -163,10 +178,12 @@ class Client:
         Deletes the blob with the given `id`.
         """
 
+        headers = self._make_headers()
         with measure_storage_operation("delete", self._usecase):
             response = self._pool.request(
                 "DELETE",
                 self._make_url(f"/{id}"),
+                headers=headers,
             )
             raise_for_status(response)
 
