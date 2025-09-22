@@ -52,11 +52,20 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
 
   // Filter monitor environments based on the selected environment from page filters
   const selectedEnvironment = location.query.environment;
+  const selectedEnvironments = Array.isArray(selectedEnvironment)
+    ? selectedEnvironment
+    : selectedEnvironment
+      ? [selectedEnvironment]
+      : [];
+
   const filteredMonitor = {
     ...dataSource.queryObj,
-    environments: selectedEnvironment
-      ? dataSource.queryObj.environments.filter(env => env.name === selectedEnvironment)
-      : dataSource.queryObj.environments,
+    environments:
+      selectedEnvironments.length > 0
+        ? dataSource.queryObj.environments.filter(env =>
+            selectedEnvironments.includes(env.name)
+          )
+        : dataSource.queryObj.environments,
   };
 
   const monitorEnv = getLatestCronMonitorEnv({
