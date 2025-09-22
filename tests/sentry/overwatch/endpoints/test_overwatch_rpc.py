@@ -67,7 +67,7 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
     )
     def test_requires_auth(self):
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
-        resp = self.client.get(url, {"fullRepoName": "org/repo", "repoId": "456"})
+        resp = self.client.get(url, {"repoId": "456"})
         assert resp.status_code == 403
 
     @patch(
@@ -82,19 +82,13 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         resp = self.client.get(url, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 400
 
-        resp = self.client.get(url, {"fullRepoName": "org/repo"}, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 400
-
-        resp = self.client.get(url, {"repoId": "456"}, HTTP_AUTHORIZATION=auth)
-        assert resp.status_code == 400
-
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         [base64.b64encode(b"test-secret").decode()],
     )
     def test_returns_empty_list_when_no_repos_found(self):
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
-        params = {"fullRepoName": "org/repo", "repoId": "456"}
+        params = {"repoId": "456"}
         b64_secret = base64.b64encode(b"test-secret").decode()
         auth = self._auth_header_for_get(url, params, b64_secret)
 
@@ -132,7 +126,7 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
-        params = {"fullRepoName": "org/repo", "repoId": repo_id}
+        params = {"repoId": repo_id}
         b64_secret = base64.b64encode(b"test-secret").decode()
         auth = self._auth_header_for_get(url, params, b64_secret)
 
@@ -161,7 +155,7 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         )
 
         url = reverse("sentry-api-0-prevent-pr-review-github-sentry-org")
-        params = {"fullRepoName": "org/repo", "repoId": repo_id}
+        params = {"repoId": repo_id}
         b64_secret = base64.b64encode(b"test-secret").decode()
         auth = self._auth_header_for_get(url, params, b64_secret)
 

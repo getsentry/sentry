@@ -127,7 +127,7 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
     """
     Get Sentry organization IDs for a GitHub repository.
 
-    GET /prevent/pr-review/github/sentry-org?fullRepoName={fullRepoName}&repoId={repoId}
+    GET /prevent/pr-review/github/sentry-org?repoId={repoId}
     """
 
     publish_status = {
@@ -144,14 +144,12 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
         ):
             raise PermissionDenied
 
-        full_repo_name = request.GET.get("fullRepoName")
         repo_id = request.GET.get("repoId")
 
-        if not full_repo_name or not repo_id:
-            raise ParseError("Missing required query parameters: fullRepoName, repoId")
+        if not repo_id:
+            raise ParseError("Missing required query parameter: repoId")
 
         organization_ids = Repository.objects.filter(
-            name=full_repo_name,
             external_id=repo_id,
             provider="integrations:github",
             status=ObjectStatus.ACTIVE,
