@@ -9,12 +9,11 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from itertools import islice
 
-import pydantic
-
 from sentry import options
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.workflow_engine.buffer.batch_client import (
+    CohortUpdates,
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
 )
@@ -86,26 +85,13 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
             )
 
 
-class CohortUpdates(pydantic.BaseModel):
-    values: dict[int, float]
-
-    def get_last_cohort_run(self, cohort_id: int) -> float:
-        return self.values.get(cohort_id, 0)
-
-
 NUM_COHORTS = 6
 
 
 class ProjectChooser:
-    def __init__(self, buffer: RedisHashSortedSetBuffer, num_cohorts: int = NUM_COHORTS):
-        self.buffer = buffer
+    def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts: int = NUM_COHORTS):
+        self.client = buffer_client
         self.num_cohorts = num_cohorts
-
-    def fetch_updates(self) -> CohortUpdates:
-        return self.buffer.get_parsed_key("WORKFLOW_ENGINE_COHORT_UPDATES", CohortUpdates)
-
-    def persist_updates(self, cohort_updates: CohortUpdates) -> None:
-        self.buffer.put_parsed_key("WORKFLOW_ENGINE_COHORT_UPDATES", cohort_updates)
 
     def project_id_to_cohort(self, project_id: int) -> int:
         return hashlib.sha256(project_id.to_bytes(8)).digest()[0] % self.num_cohorts
@@ -136,15 +122,15 @@ class ProjectChooser:
 
 @contextmanager
 def chosen_projects(
-    buffer: RedisHashSortedSetBuffer, fetch_time: float, all_project_ids: list[int]
+    buffer_client: DelayedWorkflowClient, fetch_time: float, all_project_ids: list[int]
 ) -> Generator[list[int]]:
-    project_chooser = ProjectChooser(buffer)
-    cohort_updates = project_chooser.fetch_updates()
+    project_chooser = ProjectChooser(buffer_client)
+    cohort_updates = buffer_client.fetch_updates()
     project_ids_to_process = project_chooser.project_ids_to_process(
         fetch_time, cohort_updates, all_project_ids
     )
     yield project_ids_to_process
-    project_chooser.persist_updates(cohort_updates)
+    buffer_client.persist_updates(cohort_updates)
 
 
 def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:

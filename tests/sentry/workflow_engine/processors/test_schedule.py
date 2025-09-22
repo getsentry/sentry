@@ -8,10 +8,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
-from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.buffer.batch_client import CohortUpdates, DelayedWorkflowClient
 from sentry.workflow_engine.processors.schedule import (
     NUM_COHORTS,
-    CohortUpdates,
     ProjectChooser,
     bucket_num_groups,
     chosen_projects,
