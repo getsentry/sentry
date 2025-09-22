@@ -237,12 +237,13 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
 export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.MOBILE_VITALS,
   ModuleName.SESSIONS,
+  ModuleName.MCP,
 ]);
 
 /**
  * Modules that are in beta, e.g. used to show a badge on the tab.
  */
-export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set([ModuleName.MCP]);
+export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set();
 
 export const INGESTION_DELAY = 90;
 
