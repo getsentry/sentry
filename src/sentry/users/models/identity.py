@@ -10,7 +10,7 @@ from django.db import IntegrityError, models
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -19,6 +19,7 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.manager.base import BaseManager
+from sentry.demo_mode.utils import is_demo_user
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.users.services.user import RpcUser
 
@@ -83,12 +84,23 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         should_reattach: bool = True,
         defaults: Mapping[str, Any | None] | None = None,
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Link the user with the identity. If `should_reattach` is passed, handle
         the case where the user is linked to a different identity or the
         identity is linked to a different user.
         """
+        # NOTE(vgrozdanic): temporary fix for #inc-1373 to stop the bleed
+        if is_demo_user(user) and options.get(
+            "identity.prevent-link-identity-for-demo-users.enabled"
+        ):
+            logger.info(
+                "Preventing link identity for demo user",
+                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
+                stack_info=True,
+            )
+            return None
+
         from sentry.integrations.slack.analytics import IntegrationIdentityLinked
 
         defaults = {

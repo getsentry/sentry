@@ -451,6 +451,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.eventattachment import EventAttachment
     from sentry.models.grouprulestatus import GroupRuleStatus
+    from sentry.models.release import Release
     from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors.models import MonitorCheckIn
     from sentry.replays.models import ReplayRecordingSegment
@@ -464,6 +465,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (MonitorCheckIn, "date_added", "date_added"),
         (GroupRuleStatus, "date_added", "date_added"),
         (RuleFireHistory, "date_added", "date_added"),
+        (Release, "date_added", "date_added"),
     ]
 
 
@@ -579,7 +581,7 @@ def prepare_deletes_by_project(
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
         debug_output("Preparing DELETES_BY_PROJECT context")
         project_deletion_query = Project.objects.filter(status=ObjectStatus.ACTIVE)
-        if project:
+        if project_id is not None:
             project_deletion_query = Project.objects.filter(id=project_id)
 
         for model_tp_tup in DELETES_BY_PROJECT:
@@ -610,7 +612,7 @@ def prepare_deletes_by_organization(
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
         debug_output("Preparing DELETES_BY_ORGANIZATION context")
         organization_deletion_query = Organization.objects.filter(status=ObjectStatus.ACTIVE)
-        if organization:
+        if organization_id is not None:
             organization_deletion_query = Organization.objects.filter(id=organization_id)
 
         for model_tp_tup in DELETES_BY_ORGANIZATION:

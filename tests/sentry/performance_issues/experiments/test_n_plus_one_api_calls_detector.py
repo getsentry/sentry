@@ -312,6 +312,14 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         path_params = problem.evidence_data.get("path_parameters", [])
         assert path_params == []
 
+    def test_span_has_http_query_and_query_on_url(self):
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-http-query")
+        [problem] = self.find_problems(event)
+        assert problem.evidence_data is not None
+        assert problem.evidence_data["parameters"] == [
+            "id: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+        ]
+
 
 @pytest.mark.parametrize(
     "url,parameterized_url",

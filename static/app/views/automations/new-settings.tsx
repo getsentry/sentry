@@ -98,7 +98,7 @@ export default function AutomationNewSettings() {
     return connectedIds;
   }, [location.query.connectedIds]);
 
-  const {mutateAsync: createAutomation} = useCreateAutomation();
+  const {mutateAsync: createAutomation, error} = useCreateAutomation();
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, _, __, ___, ____) => {
@@ -139,6 +139,7 @@ export default function AutomationNewSettings() {
                 errors: automationBuilderErrors,
                 setErrors: setAutomationBuilderErrors,
                 removeError,
+                mutationErrors: error?.responseJSON,
               }}
             >
               <AutomationBuilderContext.Provider value={{state, actions}}>

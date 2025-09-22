@@ -5,7 +5,6 @@ export interface BuildDetailsApiResponse {
   id: string;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
-  size_analysis_state?: BuildDetailsSizeAnalysisState;
   size_info?: BuildDetailsSizeInfo;
 }
 
@@ -33,9 +32,36 @@ interface BuildDetailsVcsInfo {
   provider?: 'github';
 }
 
-export interface BuildDetailsSizeInfo {
+interface BuildDetailsSizeInfoPending {
+  state: BuildDetailsSizeAnalysisState.PENDING;
+}
+
+interface BuildDetailsSizeInfoProcessing {
+  state: BuildDetailsSizeAnalysisState.PROCESSING;
+}
+
+interface BuildDetailsSizeInfoCompleted {
   download_size_bytes: number;
   install_size_bytes: number;
+  state: BuildDetailsSizeAnalysisState.COMPLETED;
+}
+
+interface BuildDetailsSizeInfoFailed {
+  error_code: number;
+  error_message: string;
+  state: BuildDetailsSizeAnalysisState.FAILED;
+}
+
+export type BuildDetailsSizeInfo =
+  | BuildDetailsSizeInfoPending
+  | BuildDetailsSizeInfoProcessing
+  | BuildDetailsSizeInfoCompleted
+  | BuildDetailsSizeInfoFailed;
+
+export function isSizeInfoCompleted(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): sizeInfo is BuildDetailsSizeInfoCompleted {
+  return sizeInfo?.state === BuildDetailsSizeAnalysisState.COMPLETED;
 }
 
 export enum BuildDetailsState {

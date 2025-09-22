@@ -70,7 +70,6 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 export function RepoSelector() {
   const {repository, integratedOrgId, preventPeriod, changeContextValue} =
     usePreventContext();
-  const [displayedRepos, setDisplayedRepos] = useState<string[]>([]);
   const organization = useOrganization();
 
   const [searchValue, setSearchValue] = useState<string | undefined>();
@@ -117,6 +116,11 @@ export function RepoSelector() {
     [setSearchValue]
   );
 
+  const displayedRepos = useMemo(
+    () => (isFetching ? [] : (repositories?.map(item => item.name) ?? [])),
+    [repositories, isFetching]
+  );
+
   const options = useMemo((): Array<SelectOption<string>> => {
     const repoSet = new Set([...(repository ? [repository] : []), ...displayedRepos]);
 
@@ -142,13 +146,6 @@ export function RepoSelector() {
 
     return t('No repositories found');
   }
-
-  useEffect(() => {
-    // Only update displayedRepos if the hook returned something non-empty
-    if (!isFetching) {
-      setDisplayedRepos((repositories ?? []).map(item => item.name));
-    }
-  }, [isFetching, repositories]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
