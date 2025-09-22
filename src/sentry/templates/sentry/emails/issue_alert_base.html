@@ -54,7 +54,7 @@
     <span>
       <span class="text-desktop-only">Errors are half the story.</span> Start tracking latency across your application.
     </span>
-    <a href="{% absolute_uri '/organizations/{}/performance/' group.project.organization.slug %}?project={{ group.project.id }}&referrer=alert_email" class="banner-action">
+    <a href="{% absolute_uri '/organizations/{}/explore/traces/' group.project.organization.slug %}?project={{ group.project.id }}&referrer=alert_email" class="banner-action">
       <b style="font-weight: bold;">Set up Performance</b>
     </a>
   </div>

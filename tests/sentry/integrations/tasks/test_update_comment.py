@@ -7,7 +7,6 @@ from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.tasks import update_comment
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
-from sentry.taskworker.retry import RetryError
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -150,7 +149,9 @@ class TestUpdateComment(TestCase):
             integration=self.example_integration,
         )
 
-        with pytest.raises(RetryError):
+        with pytest.raises(Exception) as exc:
             update_comment(external_issue.id, self.user.id, self.activity.id)
+
+        assert exc.match("Something went wrong updating comment")
 
         assert_failure_metric(mock_record_event, Exception("Something went wrong updating comment"))
