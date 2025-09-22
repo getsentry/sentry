@@ -9,9 +9,15 @@ from sentry.analytics import record
 from sentry.analytics.events.alert_created import AlertCreatedEvent
 from sentry.analytics.events.first_event_sent import (
     FirstEventSentEvent,
+    FirstEventSentEventWithMinifiedStackTraceForProject,
     FirstEventSentForProjectEvent,
 )
+from sentry.analytics.events.first_release_tag_sent import FirstReleaseTagSentEvent
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.analytics.events.first_sourcemaps_sent import (
+    FirstSourcemapsSentEvent,
+    FirstSourcemapsSentEventForProject,
+)
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
 from sentry.analytics.events.onboarding_complete import OnboardingCompleteEvent
@@ -386,13 +392,15 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         with pytest.raises(AssertionError):
-            record_analytics.assert_called_with(
-                "first_event_with_minified_stack_trace_for_project.sent",
-                user_id=self.user.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform="javascript",
-                url="http://localhost:3000",
+            assert_last_analytics_event(
+                record_analytics,
+                FirstEventSentEventWithMinifiedStackTraceForProject(
+                    user_id=self.user.id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    platform="javascript",
+                    url="http://localhost:3000",
+                ),
             )
 
     @patch("sentry.analytics.record", wraps=record)
@@ -441,14 +449,16 @@ class OrganizationOnboardingTaskTest(TestCase):
             data=event,
         )
 
-        record_analytics.assert_called_with(
-            "first_event_with_minified_stack_trace_for_project.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event["platform"],
-            project_platform="VueJS",
-            url=url,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstEventSentEventWithMinifiedStackTraceForProject(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event["platform"],
+                project_platform="VueJS",
+                url=url,
+            ),
         )
 
     @patch("sentry.analytics.record", wraps=record)
@@ -506,7 +516,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if "first_event_with_minified_stack_trace_for_project.sent" in call_arg[0]:
+            if isinstance(call_arg[0], FirstEventSentEventWithMinifiedStackTraceForProject):
                 count += 1
 
         assert count == 1
@@ -572,7 +582,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if "first_event_with_minified_stack_trace_for_project.sent" in call_arg[0]:
+            if isinstance(call_arg[0], FirstEventSentEventWithMinifiedStackTraceForProject):
                 count += 1
 
         assert count == 0
@@ -604,7 +614,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if "first_sourcemaps_for_project.sent" in call_arg[0]:
+            if isinstance(call_arg[0], FirstSourcemapsSentEventForProject):
                 count += 1
 
         assert count == 0
@@ -644,14 +654,16 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         event_processed.send(project=project, event=event, sender=None)
 
-        record_analytics.assert_called_with(
-            "first_sourcemaps_for_project.sent",
-            user_id=self.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform="VueJS",
-            url=url,
+        assert_last_analytics_event(
+            record_analytics,
+            FirstSourcemapsSentEventForProject(
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform="VueJS",
+                url=url,
+            ),
         )
 
     @patch("sentry.analytics.record", wraps=record)
@@ -701,7 +713,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if "first_sourcemaps_for_project.sent" in call_arg[0]:
+            if isinstance(call_arg[0], FirstSourcemapsSentEventForProject):
                 count += 1
 
         assert count == 1
@@ -752,7 +764,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if "first_sourcemaps_for_project.sent" in call_arg[0]:
+            if isinstance(call_arg[0], FirstSourcemapsSentEventForProject):
                 count += 1
 
         assert count == 0
@@ -999,13 +1011,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.call_args_list[
-            len(record_analytics.call_args_list) - 2
-        ].assert_called_with(
-            "first_release_tag.sent",
-            user_id=self.user.id,
-            project_id=project.id,
-            organization_id=self.organization.id,
+
+        assert_any_analytics_event(
+            record_analytics,
+            FirstReleaseTagSentEvent(
+                user_id=self.user.id,
+                project_id=project.id,
+                organization_id=self.organization.id,
+            ),
         )
 
         # Link Sentry to source code
@@ -1288,25 +1301,27 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
-        record_analytics.call_args_list[
-            len(record_analytics.call_args_list) - 2
-        ].assert_called_with(
-            "first_sourcemaps.sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=event_with_sourcemap.platform,
-            project_platform=project.platform,
-            url=dict(event_with_sourcemap.tags).get("url", None),
+        assert_any_analytics_event(
+            record_analytics,
+            FirstSourcemapsSentEvent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=event_with_sourcemap.platform,
+                project_platform=project.platform,
+                url=dict(event_with_sourcemap.tags).get("url", None),
+            ),
         )
-        record_analytics.assert_called_with(
-            "first_sourcemaps_for_project.sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            project_id=project.id,
-            platform=event_with_sourcemap.platform,
-            project_platform=project.platform,
-            url=dict(event_with_sourcemap.tags).get("url", None),
+        assert_last_analytics_event(
+            record_analytics,
+            FirstSourcemapsSentEventForProject(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=event_with_sourcemap.platform,
+                project_platform=project.platform,
+                url=dict(event_with_sourcemap.tags).get("url", None),
+            ),
         )
 
         # Manually update the completionSeen column of existing tasks
