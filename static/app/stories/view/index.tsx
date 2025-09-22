@@ -256,7 +256,3 @@ function GlobalStoryStyles() {
   `;
   return <Global styles={styles} />;
 }
-
-
-
-

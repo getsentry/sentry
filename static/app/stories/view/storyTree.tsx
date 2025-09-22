@@ -615,7 +615,6 @@ const StoryList = styled('ul')`
   }
 `;
 
-
 const FolderLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'active',
 })<{active: boolean}>`

@@ -179,10 +179,8 @@ export function StoryTableOfContents() {
 
   return (
     <StoryIndexContainer>
-      <Flex align="center" css={{ height: '28px' }}>
-        <Text size="md">
-          On this page
-        </Text>
+      <Flex align="center" css={{height: '28px'}}>
+        <Text size="md">On this page</Text>
       </Flex>
       <StoryIndexList>
         {nestedEntries.map(entry => (
@@ -273,7 +271,6 @@ const StoryIndexContainer = styled('div')`
     display: block;
   }
 `;
-
 
 const StoryIndexList = styled('ul')`
   list-style: none;

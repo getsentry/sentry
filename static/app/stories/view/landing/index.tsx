@@ -88,7 +88,8 @@ export function StoryLanding() {
               <Flex direction="column" gap="md">
                 <Border />
                 <Heading as="h1">
-                  Welcome to <Text
+                  Welcome to{' '}
+                  <Text
                     as="em"
                     variant="accent"
                     css={{
@@ -204,10 +205,6 @@ function Border() {
   );
 }
 
-
-
-
-
 interface CardProps {
   children: React.ReactNode;
   href: string;
@@ -267,7 +264,6 @@ const CardLink = styled(Link)`
     max-width: calc(50% - 32px);
   }
 `;
-
 
 function CardFigure(props: PropsWithChildren) {
   return (

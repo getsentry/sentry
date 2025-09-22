@@ -120,7 +120,14 @@ export function StorySearch() {
       {item => {
         if (isStorySection(item)) {
           return (
-            <Section key={item.key} title={<Text bold uppercase>{item.label}</Text>}>
+            <Section
+              key={item.key}
+              title={
+                <Text bold uppercase>
+                  {item.label}
+                </Text>
+              }
+            >
               {item.options.map(storyItem => (
                 <Item
                   key={storyItem.filesystemPath}
@@ -255,7 +262,6 @@ function SearchComboBox(props: SearchComboBoxProps) {
   );
 }
 
-
 const StyledOverlay = styled(Overlay)`
   position: fixed;
   top: 48px;
@@ -269,7 +275,6 @@ const StyledOverlay = styled(Overlay)`
     color: ${p => p.theme.textColor};
   }
 `;
-
 
 function getStoryTreeNodeFromKey(
   key: Key,

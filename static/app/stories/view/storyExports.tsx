@@ -54,7 +54,7 @@ function StoryLayout() {
             },
           }}
         >
-          <main style={{ flexGrow: 1 }}>
+          <main style={{flexGrow: 1}}>
             <StoryTabPanels />
           </main>
           <ErrorBoundary>
@@ -252,7 +252,6 @@ function StoryAPI() {
   );
 }
 
-
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {
   return (
     <Grid
@@ -262,5 +261,3 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
     />
   );
 }
-
-

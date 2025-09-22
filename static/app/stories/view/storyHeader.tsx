@@ -1,5 +1,5 @@
-import styled from '@emotion/styled';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex, Grid} from 'sentry/components/core/layout';
@@ -74,7 +74,6 @@ export function StoryHeader() {
     </Grid>
   );
 }
-
 
 const StyledScrapsLogo = styled(ScrapsLogo)`
   width: 36px;
