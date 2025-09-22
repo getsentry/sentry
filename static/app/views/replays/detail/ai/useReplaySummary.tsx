@@ -14,9 +14,9 @@ import {
 } from 'sentry/views/replays/detail/ai/utils';
 
 const POLL_INTERVAL_MS = 500;
-const POLL_TIMEOUT_MS = 30 * 1000; // Based on task timeout in Seer.
+const POLL_TIMEOUT_MS = 100 * 1000; // Task timeout in Seer (90s) + 10s buffer.
 
-export interface UseFetchReplaySummaryResult {
+export interface UseReplaySummaryResult {
   /**
    * Whether there was an error with the initial query or summary generation,
    * or the summary data status is errored.
@@ -75,10 +75,10 @@ function createAISummaryQueryKey(
   return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/`];
 }
 
-export function useFetchReplaySummary(
+export function useReplaySummary(
   replay: ReplayReader,
   options?: UseApiQueryOptions<SummaryResponse>
-): UseFetchReplaySummaryResult {
+): UseReplaySummaryResult {
   const organization = useOrganization();
   const replayRecord = replay.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
