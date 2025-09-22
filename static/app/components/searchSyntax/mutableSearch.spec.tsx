@@ -305,10 +305,6 @@ describe('MutableSearch', () => {
         new MutableSearch('message:["value with \\\\\\" complex escape",other]'),
         'message:["value with \\\\\\" complex escape",other]',
       ],
-      // [
-      //   new MutableSearch('message:"[test, "[Filtered]"]"'),
-      //   'message:"[test, "[Filtered]"]"',
-      // ],
     ])('produces %s', (obj, expected) => {
       expect(obj.formatString()).toEqual(expected);
     });
