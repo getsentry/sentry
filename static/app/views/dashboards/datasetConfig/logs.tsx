@@ -28,6 +28,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   handleOrderByReset,
   type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
   type WidgetBuilderSearchBarProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -42,7 +44,10 @@ import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/tra
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemSearchQueryBuilder,
+  useSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
@@ -140,6 +145,30 @@ function LogsSearchBar({
   );
 }
 
+function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
+  const {pageFilters, widgetQuery} = props;
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
+
+  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
+    itemType: TraceItemDataset.LOGS,
+    numberAttributes,
+    stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    searchSource: 'dashboards',
+    initialQuery: widgetQuery?.conditions ?? '',
+    projects: pageFilters.projects,
+  });
+  return {
+    getFilterKeySections: () => filterKeySections,
+    getFilterKeys: () => filterKeys,
+    getTagValues,
+  };
+}
+
 export const LogsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
@@ -148,6 +177,7 @@ export const LogsConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   SearchBar: LogsSearchBar,
+  useSearchBarDataProvider: useLogsSearchBarDataProvider,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
