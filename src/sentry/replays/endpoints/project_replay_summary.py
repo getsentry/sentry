@@ -12,7 +12,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
 from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import storage
@@ -240,7 +239,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             if result is not None:
                 start, end = result
             else:
-                start, end = default_start_end_dates()
+                start, end = (filter_params["start"], filter_params["end"])
 
             # Fetch same-trace errors.
             trace_connected_errors = fetch_trace_connected_errors(
