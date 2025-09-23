@@ -73,14 +73,7 @@ function ReserveAdditionalVolume({
   );
 
   return (
-    <Flex
-      direction="column"
-      gap="xl"
-      padding="xl"
-      background="primary"
-      border="primary"
-      radius="lg"
-    >
+    <Flex direction="column" gap="xl">
       <Flex gap="md" align="center" justify="between" width="100%" height="28px">
         <Flex align="center" gap="md">
           <Button

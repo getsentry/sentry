@@ -186,14 +186,14 @@ function OnDemandDiff({
   return (
     <Fragment>
       {sharedOnDemandChanges.length > 0 && (
-        <ChangeSection data-test-id="shared-spend-cap-diff">
+        <ChangeSection data-test-id="shared-spend-limit-diff">
           <ChangeGrid>
             {sharedOnDemandChanges.map((change, index) => {
               const {key, currentValue, newValue} = change;
               let leftComponent = <div />;
               if (index === 0) {
                 leftComponent = (
-                  <ChangeSectionTitle>{t('Shared spend cap')}</ChangeSectionTitle>
+                  <ChangeSectionTitle>{t('Shared spend limit')}</ChangeSectionTitle>
                 );
               }
               return (
@@ -215,9 +215,9 @@ function OnDemandDiff({
         </ChangeSection>
       )}
       {perCategoryOnDemandChanges.length > 0 && (
-        <ChangeSection data-test-id="per-category-spend-cap-diff">
+        <ChangeSection data-test-id="per-category-spend-limit-diff">
           <ChangeSectionTitle hasBottomMargin>
-            {t('Per-category spend caps')}
+            {t('Per-category spend limits')}
           </ChangeSectionTitle>
           <ChangeGrid>
             {perCategoryOnDemandChanges.map(({key, currentValue, newValue}) => {

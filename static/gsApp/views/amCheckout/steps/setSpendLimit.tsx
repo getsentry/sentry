@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {Flex} from 'sentry/components/core/layout';
-import {capitalize} from 'sentry/utils/string/capitalize';
+import {t} from 'sentry/locale';
 
 import type {OnDemandBudgets} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -12,7 +12,7 @@ import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/onDemandBudgets/utils';
-import SpendCapSettings from 'getsentry/views/spendCaps/spendCapSettings';
+import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
 
 function SetSpendCap({
   activePlan,
@@ -68,10 +68,10 @@ function SetSpendCap({
 
   return (
     <Flex direction="column" gap="2xl">
-      <SpendCapSettings
+      <SpendLimitSettings
         header={
           <StepHeader
-            title={capitalize(activePlan.budgetTerm)}
+            title={t('Set your %s limit', activePlan.budgetTerm)}
             isActive
             stepNumber={stepNumber}
             isCompleted={false}
