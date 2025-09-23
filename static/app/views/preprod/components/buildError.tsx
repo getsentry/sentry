@@ -22,12 +22,7 @@ export function BuildError({title, message, children}: BuildErrorProps) {
       gap="3xl"
       style={{minHeight: '60vh', padding: theme.space.md}}
     >
-      <Flex
-        direction="column"
-        align="center"
-        gap="lg"
-        style={{maxWidth: '500px', textAlign: 'center'}}
-      >
+      <Flex direction="column" align="center" gap="lg" padding="md" maxWidth="500px">
         <AlertImage src={Missing} alt="Error image" />
         <Heading as="h2">{title}</Heading>
         <Text>{message}</Text>

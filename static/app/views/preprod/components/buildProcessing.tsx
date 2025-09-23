@@ -20,15 +20,14 @@ export function BuildProcessing({title, message, children}: BuildProcessingProps
       justify="center"
       gap="3xl"
       style={{minHeight: '60vh', padding: theme.space.md}}
+      padding="md"
+      maxWidth="500px"
     >
-      <Flex
-        direction="column"
-        align="center"
-        gap="xl"
-        style={{maxWidth: '500px', textAlign: 'center'}}
-      >
-        <Heading as="h2">{title}</Heading>
-        <Text>{message}</Text>
+      <Flex direction="column" align="center" gap="xl">
+        <Heading as="h2" align="center">
+          {title}
+        </Heading>
+        <Text align="center">{message}</Text>
         <Flex gap="sm">
           <RotatingIcon>
             <IconSettings size="2xl" />

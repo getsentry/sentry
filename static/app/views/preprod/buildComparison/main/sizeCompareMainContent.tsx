@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -10,7 +11,7 @@ import {PercentChange} from 'sentry/components/percentChange';
 import {IconCode, IconDownload, IconFile, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -69,6 +70,29 @@ export function SizeCompareMainContent() {
     }
   );
 
+  const {mutate: triggerComparison, isPending: isComparing} = useMutation<
+    void,
+    RequestError,
+    {baseArtifactId: string; headArtifactId: string}
+  >({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      navigate(
+        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/`
+      );
+    },
+    onError: error => {
+      addErrorMessage(
+        error?.message || t('Failed to trigger comparison. Please try again.')
+      );
+    },
+  });
+
   // Process the comparison data for metrics cards
   const processedMetrics = useMemo(() => {
     if (!comparisonDataQuery.data) {
@@ -125,7 +149,7 @@ export function SizeCompareMainContent() {
     return metrics;
   }, [comparisonDataQuery.data]);
 
-  if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading) {
+  if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
     return (
       <Flex
         direction="column"
@@ -168,28 +192,47 @@ export function SizeCompareMainContent() {
           >
             {t('Back')}
           </Button>
-          <Button
-            priority="primary"
-            onClick={() => {
-              navigate(0);
-            }}
-          >
-            <Flex gap="sm">
-              <IconRefresh size="sm" />
-              {t('Retry')}
-            </Flex>
-          </Button>
         </Flex>
       </BuildError>
     );
   }
 
-  if (mainArtifactComparison.state === SizeAnalysisComparisonState.PROCESSING) {
+  if (
+    mainArtifactComparison.state in
+    [SizeAnalysisComparisonState.PROCESSING, SizeAnalysisComparisonState.PENDING]
+  ) {
     return (
       <BuildProcessing
         title={t('Running diff engine')}
         message={t('Hang tight, this may take a few minutes...')}
       />
+    );
+  }
+
+  if (mainArtifactComparison.state === SizeAnalysisComparisonState.FAILED) {
+    return (
+      <BuildError
+        title={t('Comparison failed')}
+        message={
+          mainArtifactComparison.error_message ||
+          t("Something went wrong, we're looking into it.")
+        }
+      >
+        <Button
+          priority="default"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          <Flex gap="sm">
+            <IconRefresh size="sm" />
+            {t('Retry')}
+          </Flex>
+        </Button>
+      </BuildError>
     );
   }
 
