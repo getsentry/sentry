@@ -302,3 +302,185 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
         assert len(self.find_problems(event)) == 0
+
+    def test_does_not_trigger_detection_for_file_downloads_with_content_disposition_attachment(
+        self,
+    ) -> None:
+        """Test that spans with Content-Disposition: attachment are excluded"""
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET /api/0/organizations/download/file/12345",
+                duration=1000.0,
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                    "response": {
+                        "headers": {
+                            "content-disposition": 'attachment; filename="document.pdf"',
+                            "content-type": "application/pdf",
+                        }
+                    },
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert len(self.find_problems(event)) == 0
+
+    def test_does_not_trigger_detection_for_file_downloads_with_file_content_types(self) -> None:
+        """Test that spans with file download Content-Types are excluded"""
+        test_cases = [
+            "application/octet-stream",
+            "application/pdf",
+            "application/zip",
+            "application/x-zip-compressed",
+            "application/vnd.ms-excel",
+            "image/jpeg",
+            "video/mp4",
+            "audio/mpeg",
+            "text/csv",
+        ]
+
+        for content_type in test_cases:
+            spans = [
+                create_span(
+                    "http.client",
+                    hash=f"hash_{content_type.replace('/', '_')}",
+                    desc="GET /api/0/organizations/download/file/12345",
+                    duration=1000.0,
+                    data={
+                        "http.response_transfer_size": 50_000_000,
+                        "http.response_content_length": 50_000_000,
+                        "http.decoded_response_content_length": 50_000_000,
+                        "response": {
+                            "headers": {
+                                "content-type": content_type,
+                            }
+                        },
+                    },
+                )
+            ]
+            event = create_event(spans)
+            assert len(self.find_problems(event)) == 0, f"Failed for content-type: {content_type}"
+
+    def test_does_not_trigger_detection_for_file_downloads_with_content_type_prefixes(self) -> None:
+        """Test that spans with Content-Type prefixes like image/, video/, audio/ are excluded"""
+        test_cases = [
+            "image/png",
+            "image/gif",
+            "video/avi",
+            "video/quicktime",
+            "audio/wav",
+            "audio/ogg",
+        ]
+
+        for content_type in test_cases:
+            spans = [
+                create_span(
+                    "http.client",
+                    hash=f"hash_{content_type.replace('/', '_')}",
+                    desc="GET /api/0/organizations/download/file/12345",
+                    duration=1000.0,
+                    data={
+                        "http.response_transfer_size": 50_000_000,
+                        "http.response_content_length": 50_000_000,
+                        "http.decoded_response_content_length": 50_000_000,
+                        "response": {
+                            "headers": {
+                                "content-type": content_type,
+                            }
+                        },
+                    },
+                )
+            ]
+            event = create_event(spans)
+            assert len(self.find_problems(event)) == 0, f"Failed for content-type: {content_type}"
+
+    def test_still_triggers_detection_for_large_payloads_without_file_headers(self) -> None:
+        """Test that large payloads without file download headers still trigger detection"""
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET /api/0/organizations/large-data-endpoint",
+                duration=1000.0,
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                    "response": {
+                        "headers": {
+                            "content-type": "application/json",
+                        }
+                    },
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert len(self.find_problems(event)) == 1
+
+    def test_still_triggers_detection_for_large_payloads_with_inline_content_disposition(
+        self,
+    ) -> None:
+        """Test that large payloads with Content-Disposition: inline still trigger detection"""
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET /api/0/organizations/large-data-endpoint",
+                duration=1000.0,
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                    "response": {
+                        "headers": {
+                            "content-disposition": 'inline; filename="data.json"',
+                            "content-type": "application/json",
+                        }
+                    },
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert len(self.find_problems(event)) == 1
+
+    def test_handles_missing_response_headers_gracefully(self) -> None:
+        """Test that missing response headers don't cause errors"""
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET /api/0/organizations/endpoint",
+                duration=1000.0,
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                    # No response headers
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert len(self.find_problems(event)) == 1
+
+    def test_handles_empty_response_headers_gracefully(self) -> None:
+        """Test that empty response headers don't cause errors"""
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET /api/0/organizations/endpoint",
+                duration=1000.0,
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                    "response": {"headers": {}},
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert len(self.find_problems(event)) == 1
