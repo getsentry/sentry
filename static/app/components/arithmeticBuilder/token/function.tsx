@@ -102,7 +102,7 @@ function ArgumentsGrid({
   };
 
   if (!args.length) {
-    return null;
+    return '()';
   }
 
   return (
@@ -749,7 +749,7 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 const ArgumentsGridWrapper = styled('div')`
   display: flex;
   justify-content: flex-start;
-  flex-direction: column;
+  flex-wrap: wrap;
   position: relative;
   height: 100%;
   flex-shrink: 1;
