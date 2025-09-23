@@ -19,6 +19,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {useIssueListSearchBarDataProvider} from 'sentry/views/issueList/searchBar';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
@@ -67,6 +68,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
   SearchBar: IssuesSearchBar,
+  useSearchBarDataProvider: useIssueListSearchBarDataProvider,
   getTableSortOptions,
   getTableFieldOptions: (_organization: Organization) =>
     generateIssueWidgetFieldOptions(),
