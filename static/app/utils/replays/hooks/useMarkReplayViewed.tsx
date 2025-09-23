@@ -16,8 +16,11 @@ export default function useMarkReplayViewed() {
       return fetchMutation({method: 'POST', url});
     },
     onSuccess(_data, {projectSlug, replayId}) {
-      const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
-      queryClient.refetchQueries({queryKey: [url]});
+      const viewedByUrl = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
+      queryClient.refetchQueries({queryKey: [viewedByUrl]});
+
+      const replayListUrl = `/organizations/${organization.slug}/replays/`;
+      queryClient.refetchQueries({queryKey: [replayListUrl]});
     },
     retry: false,
   });
