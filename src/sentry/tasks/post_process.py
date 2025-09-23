@@ -471,8 +471,9 @@ def update_existing_attachments(job):
 
 def fetch_buffered_group_stats(group):
     """
-    Fetches buffered increments to `times_seen` for this group and adds them to the current
-    `times_seen`.
+    Populates `times_seen_pending` with the number of buffered increments to `times_seen`
+    for this group. `times_seen_with_pending` can subsequently be used as the total times seen,
+    including the pending buffer updates.
     """
     from sentry import buffer
     from sentry.models.group import Group
