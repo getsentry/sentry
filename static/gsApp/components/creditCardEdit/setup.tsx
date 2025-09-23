@@ -1,3 +1,6 @@
+import {Fragment} from 'react';
+
+import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -47,21 +50,30 @@ function CreditCardSetup({
 
   if (shouldUseStripe) {
     return (
-      <StripeCreditCardSetup
-        onCancel={onCancel ?? (() => {})}
-        onSuccess={() => {
-          onSuccess?.();
-          if (analyticsEvent) {
-            trackGetsentryAnalytics(analyticsEvent, {
-              organization,
-              referrer: decodeScalar(referrer),
-              isStripeComponent: true,
-            });
-          }
-        }}
-        onSuccessWithSubscription={onSuccessWithSubscription}
-        {...commonProps}
-      />
+      <Fragment>
+        {referrer?.includes('billing-failure') && (
+          <Alert.Container>
+            <Alert type="warning" showIcon={false}>
+              {t('Your credit card will be charged upon update.')}
+            </Alert>
+          </Alert.Container>
+        )}
+        <StripeCreditCardSetup
+          onCancel={onCancel ?? (() => {})}
+          onSuccess={() => {
+            onSuccess?.();
+            if (analyticsEvent) {
+              trackGetsentryAnalytics(analyticsEvent, {
+                organization,
+                referrer: decodeScalar(referrer),
+                isStripeComponent: true,
+              });
+            }
+          }}
+          onSuccessWithSubscription={onSuccessWithSubscription}
+          {...commonProps}
+        />
+      </Fragment>
     );
   }
 
