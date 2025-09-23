@@ -48,98 +48,37 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
+import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
-const getFunctionTags = (fields: readonly Field[] | undefined) => {
-  if (!fields?.length) {
-    return [];
-  }
-  return fields.reduce((acc, item) => {
-    if (
-      !STATIC_FIELD_TAGS_SET.has(item.field) &&
-      !isEquation(item.field) &&
-      !isCustomMeasurement(item.field)
-    ) {
-      const parsedFunction = parseFunction(item.field);
-      if (parsedFunction) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        acc[parsedFunction.name] = {
-          key: parsedFunction.name,
-          name: parsedFunction.name,
-          kind: FieldKind.FUNCTION,
-        };
-      }
-    }
-
-    return acc;
-  }, {});
-};
-
-const getMeasurementTags = (
-  measurements: Parameters<
-    React.ComponentProps<typeof Measurements>['children']
-  >[0]['measurements'],
-  customMeasurements:
-    | Parameters<React.ComponentProps<typeof Measurements>['children']>[0]['measurements']
-    | undefined
-) => {
-  const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    tags[key] = {
-      ...measurements[key],
-      kind: FieldKind.MEASUREMENT,
-    };
-    return tags;
-  }, {});
-
-  if (!customMeasurements) {
-    return measurementsWithKind;
-  }
-
-  return Object.keys(customMeasurements).reduce((tags, key) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    tags[key] = {
-      ...customMeasurements[key],
-      kind: FieldKind.MEASUREMENT,
-    };
-    return tags;
-  }, measurementsWithKind);
-};
-
-const getHasTag = (tags: TagCollection) => ({
-  key: FieldKey.HAS,
-  name: 'Has property',
-  values: Object.keys(tags).sort((a, b) => {
-    return a.toLowerCase().localeCompare(b.toLowerCase());
-  }),
-  predefined: true,
-  kind: FieldKind.FIELD,
-});
-
-type Props = {
+type DataProviderProps = {
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
-  disabled?: boolean;
   fields?: readonly Field[];
   includeSessionTagsValues?: boolean;
   includeTransactions?: boolean;
   omitTags?: string[];
+  projectIds?: number[] | readonly number[];
+};
+
+type Props = {
+  disabled?: boolean;
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
   placeholder?: string;
   portalTarget?: HTMLElement | null;
-  projectIds?: number[] | readonly number[];
   query?: string;
   recentSearches?: SavedSearchType;
   searchSource?: string;
   supportedTags?: TagCollection | undefined;
-};
-
-const EXCLUDED_FILTER_KEYS = [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT];
+} & DataProviderProps;
 
 function ResultsSearchQueryBuilder(props: Props) {
   const {
+    placeholder,
+    portalTarget,
+    disabled,
     omitTags,
     fields,
     projectIds,
@@ -147,11 +86,54 @@ function ResultsSearchQueryBuilder(props: Props) {
     customMeasurements,
     dataset,
     includeTransactions = true,
-    placeholder,
-    portalTarget,
-    disabled,
   } = props;
 
+  const placeholderText = useMemo(() => {
+    return placeholder ?? t('Search for events, users, tags, and more');
+  }, [placeholder]);
+
+  const {getFilterKeys, getFilterKeySections, getTagValues} =
+    useResultsSearchBarDataProvider({
+      dataset,
+      omitTags,
+      fields,
+      projectIds,
+      includeSessionTagsValues,
+      customMeasurements,
+      includeTransactions,
+    });
+
+  return (
+    <SearchQueryBuilder
+      placeholder={placeholderText}
+      disabled={disabled}
+      filterKeys={getFilterKeys()}
+      filterKeySections={getFilterKeySections()}
+      getTagValues={getTagValues}
+      initialQuery={props.query ?? ''}
+      onSearch={props.onSearch}
+      onChange={props.onChange}
+      searchSource={props.searchSource || 'eventsv2'}
+      recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
+      portalTarget={portalTarget}
+    />
+  );
+}
+
+export default ResultsSearchQueryBuilder;
+
+const EXCLUDED_FILTER_KEYS = [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT];
+
+export function useResultsSearchBarDataProvider(props: DataProviderProps): SearchBarData {
+  const {
+    projectIds,
+    dataset,
+    omitTags,
+    fields,
+    includeSessionTagsValues,
+    customMeasurements,
+    includeTransactions,
+  } = props;
   const api = useApi();
   const organization = useOrganization();
   const projectIdStrings = useMemo(
@@ -171,10 +153,6 @@ function ResultsSearchQueryBuilder(props: Props) {
       ? omit(tags, omitTags, EXCLUDED_FILTER_KEYS)
       : omit(tags, EXCLUDED_FILTER_KEYS);
   }, [tags, omitTags]);
-
-  const placeholderText = useMemo(() => {
-    return placeholder ?? t('Search for events, users, tags, and more');
-  }, [placeholder]);
   const measurements = useMemo(() => getMeasurements(), []);
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
 
@@ -244,6 +222,38 @@ function ResultsSearchQueryBuilder(props: Props) {
     featureFlagTags,
   ]);
 
+  const filterKeySections = useMemo(() => {
+    const customTagsSection: FilterKeySection = {
+      value: 'custom_fields',
+      label: 'Custom Tags',
+      children: Object.keys(filteredTags),
+    };
+
+    const featureFlagsSection: FilterKeySection = {
+      value: FieldKind.FEATURE_FLAG,
+      label: t('Feature Flags'),
+      children: Object.keys(featureFlagTags),
+    };
+
+    const tagsAndFlagsSections = [
+      customTagsSection,
+      ...(includeFeatureFlags && featureFlagTags ? [featureFlagsSection] : []),
+    ];
+
+    if (
+      dataset === DiscoverDatasets.TRANSACTIONS ||
+      dataset === DiscoverDatasets.METRICS_ENHANCED
+    ) {
+      return [...ALL_INSIGHTS_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
+    }
+
+    if (dataset === DiscoverDatasets.ERRORS) {
+      return [...ERRORS_DATASET_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
+    }
+
+    return [...COMBINED_DATASET_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
+  }, [filteredTags, dataset, includeFeatureFlags, featureFlagTags]);
+
   // Returns array of tag values that substring match `query`; invokes `callback`
   // with data when ready
   const getEventFieldValues = useCallback(
@@ -310,53 +320,75 @@ function ResultsSearchQueryBuilder(props: Props) {
     ]
   );
 
-  const filterKeySections = useMemo(() => {
-    const customTagsSection: FilterKeySection = {
-      value: 'custom_fields',
-      label: 'Custom Tags',
-      children: Object.keys(filteredTags),
-    };
-
-    const featureFlagsSection: FilterKeySection = {
-      value: FieldKind.FEATURE_FLAG,
-      label: t('Feature Flags'),
-      children: Object.keys(featureFlagTags),
-    };
-
-    const tagsAndFlagsSections = [
-      customTagsSection,
-      ...(includeFeatureFlags && featureFlagTags ? [featureFlagsSection] : []),
-    ];
-
-    if (
-      dataset === DiscoverDatasets.TRANSACTIONS ||
-      dataset === DiscoverDatasets.METRICS_ENHANCED
-    ) {
-      return [...ALL_INSIGHTS_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
-    }
-
-    if (dataset === DiscoverDatasets.ERRORS) {
-      return [...ERRORS_DATASET_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
-    }
-
-    return [...COMBINED_DATASET_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
-  }, [filteredTags, dataset, includeFeatureFlags, featureFlagTags]);
-
-  return (
-    <SearchQueryBuilder
-      placeholder={placeholderText}
-      disabled={disabled}
-      filterKeys={getTagList}
-      initialQuery={props.query ?? ''}
-      onSearch={props.onSearch}
-      onChange={props.onChange}
-      searchSource={props.searchSource || 'eventsv2'}
-      filterKeySections={filterKeySections}
-      getTagValues={getEventFieldValues}
-      recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
-      portalTarget={portalTarget}
-    />
-  );
+  return {
+    getFilterKeys: () => getTagList,
+    getFilterKeySections: () => filterKeySections,
+    getTagValues: getEventFieldValues,
+  };
 }
 
-export default ResultsSearchQueryBuilder;
+const getFunctionTags = (fields: readonly Field[] | undefined) => {
+  if (!fields?.length) {
+    return [];
+  }
+  return fields.reduce((acc, item) => {
+    if (
+      !STATIC_FIELD_TAGS_SET.has(item.field) &&
+      !isEquation(item.field) &&
+      !isCustomMeasurement(item.field)
+    ) {
+      const parsedFunction = parseFunction(item.field);
+      if (parsedFunction) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        acc[parsedFunction.name] = {
+          key: parsedFunction.name,
+          name: parsedFunction.name,
+          kind: FieldKind.FUNCTION,
+        };
+      }
+    }
+
+    return acc;
+  }, {});
+};
+
+const getMeasurementTags = (
+  measurements: Parameters<
+    React.ComponentProps<typeof Measurements>['children']
+  >[0]['measurements'],
+  customMeasurements:
+    | Parameters<React.ComponentProps<typeof Measurements>['children']>[0]['measurements']
+    | undefined
+) => {
+  const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    tags[key] = {
+      ...measurements[key],
+      kind: FieldKind.MEASUREMENT,
+    };
+    return tags;
+  }, {});
+
+  if (!customMeasurements) {
+    return measurementsWithKind;
+  }
+
+  return Object.keys(customMeasurements).reduce((tags, key) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    tags[key] = {
+      ...customMeasurements[key],
+      kind: FieldKind.MEASUREMENT,
+    };
+    return tags;
+  }, measurementsWithKind);
+};
+
+const getHasTag = (tags: TagCollection) => ({
+  key: FieldKey.HAS,
+  name: 'Has property',
+  values: Object.keys(tags).sort((a, b) => {
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+  }),
+  predefined: true,
+  kind: FieldKind.FIELD,
+});
