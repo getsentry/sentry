@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 from abc import ABC, abstractmethod
+from datetime import timedelta
 from enum import Enum
 from typing import Any, ClassVar
 
@@ -66,13 +67,15 @@ class PerformanceDetector(ABC):
         self._event = event
         self.stored_problems: dict[str, PerformanceProblem] = {}
 
-    def find_span_prefix(self, settings, span_op: str):
+    def find_span_prefix(self, settings: dict[str, Any], span_op: str) -> str | bool:
         allowed_span_ops = settings.get("allowed_span_ops", [])
         if len(allowed_span_ops) <= 0:
             return True
         return next((op for op in allowed_span_ops if span_op.startswith(op)), False)
 
-    def settings_for_span(self, span: Span):
+    def settings_for_span(
+        self, span: Span
+    ) -> tuple[str, str, str | bool, timedelta, dict[str, Any]] | None:
         op = span.get("op", None)
         span_id = span.get("span_id", None)
         if not op or not span_id:
@@ -143,5 +146,5 @@ class PerformanceDetector(ABC):
         return False
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project | None = None) -> bool:
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         return True
