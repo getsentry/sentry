@@ -467,27 +467,15 @@ export class MutableSearch {
   }
 
   getFilters(): Record<string, string[]> {
-    const acc: Record<string, string[]> = {};
-    for (const t of this.tokens) {
+    return this.tokens.reduce<Record<string, string[]>>((acc, t) => {
       if (t.type !== TokenType.FILTER) {
-        continue;
+        return acc;
       }
-      const key = t.key;
-      const push = (val: string) => {
-        if (!acc[key]) {
-          acc[key] = [];
-        }
-        acc[key].push(val);
-      };
-      if (t.listValues && t.listValues.length > 0) {
-        for (const v of t.listValues) {
-          push(v);
-        }
-      } else {
-        push(t.value ?? '');
-      }
-    }
-    return acc;
+      const values =
+        t.listValues && t.listValues.length > 0 ? t.listValues : [t.value ?? ''];
+      (acc[t.key] ??= []).push(...values);
+      return acc;
+    }, {});
   }
 
   getFilterValues(key: string): string[] {
@@ -613,6 +601,13 @@ export class MutableSearch {
     return this;
   }
 
+  setFreeText(values: string[]): void {
+    this.tokens = this.tokens.filter(t => t.type !== TokenType.FREE_TEXT);
+    for (const v of values) {
+      this.addFreeText(v);
+    }
+  }
+
   addOp(value: OperatorToken['value']): this {
     this.tokens.push({type: TokenType.OPERATOR, value, text: value});
     return this;
@@ -620,13 +615,6 @@ export class MutableSearch {
 
   getFreeText(): string[] {
     return this.tokens.filter(t => t.type === TokenType.FREE_TEXT).map(t => t.value);
-  }
-
-  setFreeText(values: string[]): void {
-    this.tokens = this.tokens.filter(t => t.type !== TokenType.FREE_TEXT);
-    for (const v of values) {
-      this.addFreeText(v);
-    }
   }
 
   copy(): MutableSearch {
