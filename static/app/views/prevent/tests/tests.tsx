@@ -9,6 +9,7 @@ import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector'
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {TestSuiteDropdown} from 'sentry/components/prevent/testSuiteDropdown/testSuiteDropdown';
+import {getPreventParamsString} from 'sentry/components/prevent/utils';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -84,9 +85,12 @@ function Content({response}: TestResultsContentData) {
 
   useEffect(() => {
     if (!repoData?.testAnalyticsEnabled && isSuccess) {
-      navigate('/prevent/tests/new');
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
+        replace: true,
+      });
     }
-  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess]);
+  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess, location]);
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,

@@ -9,14 +9,14 @@ import {
   ReplaySummaryTemp,
 } from 'sentry/views/replays/detail/ai/utils';
 
-import {useFetchReplaySummary} from './useFetchReplaySummary';
+import {useReplaySummary} from './useReplaySummary';
 
 jest.mock('sentry/utils/replays/playback/providers/replayReaderProvider');
 jest.mock('sentry/utils/useProjectFromId');
 
 const mockUseProjectFromId = jest.mocked(useProjectFromId);
 
-describe('useFetchReplaySummary', () => {
+describe('useReplaySummary', () => {
   let mockReplay: any;
   let mockReplayRecord: any;
   let mockProject: any;
@@ -55,7 +55,7 @@ describe('useFetchReplaySummary', () => {
         body: mockSummaryData,
       });
 
-      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });
 
@@ -74,7 +74,7 @@ describe('useFetchReplaySummary', () => {
         body: {detail: 'Internal server error'},
       });
 
-      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });
 
@@ -96,7 +96,7 @@ describe('useFetchReplaySummary', () => {
       });
 
       const {result} = renderHookWithProviders(
-        () => useFetchReplaySummary(mockReplay, {enabled: false, staleTime: 0}),
+        () => useReplaySummary(mockReplay, {enabled: false, staleTime: 0}),
         {
           organization: mockOrganization,
         }
@@ -118,7 +118,7 @@ describe('useFetchReplaySummary', () => {
       });
 
       const {result} = renderHookWithProviders(
-        () => useFetchReplaySummary(mockReplay, {enabled: true, staleTime: 0}),
+        () => useReplaySummary(mockReplay, {enabled: true, staleTime: 0}),
         {
           organization: mockOrganization,
         }
@@ -150,7 +150,7 @@ describe('useFetchReplaySummary', () => {
         body: startSummaryRequestPromise,
       });
 
-      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });
 
@@ -179,7 +179,7 @@ describe('useFetchReplaySummary', () => {
         body: {status: ReplaySummaryStatus.PROCESSING, data: undefined},
       });
 
-      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });
 
@@ -198,7 +198,7 @@ describe('useFetchReplaySummary', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });
 
@@ -214,7 +214,7 @@ describe('useFetchReplaySummary', () => {
         body: {status: ReplaySummaryStatus.ERROR, data: undefined},
       });
 
-      const {result} = renderHookWithProviders(() => useFetchReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });
 
@@ -242,7 +242,7 @@ describe('useFetchReplaySummary', () => {
       });
 
       const {result, rerender} = renderHookWithProviders(
-        () => useFetchReplaySummary(mockReplay),
+        () => useReplaySummary(mockReplay),
         {
           organization: mockOrganization,
         }
