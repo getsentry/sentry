@@ -85,8 +85,7 @@ Sentry.init({
       ? `
   // Enable logs to be sent to Sentry
   // Learn more at https://docs.sentry.io/platforms/react-native/logs/
-  enableLogs: true,
-  }`
+  enableLogs: true,`
       : ''
   }
 });`;
