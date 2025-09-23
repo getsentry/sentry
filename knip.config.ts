@@ -33,10 +33,9 @@ const testingEntryPoints = [
 const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storybook.tsx',
+  'static/app/stories/playground/*.tsx',
   'static/**/*.stories.{js,mjs,ts,tsx}',
   'static/**/*.mdx',
-  // used but not detected
-  'static/app/components/core/principles/motion/playground.tsx',
 ];
 
 const config: KnipConfig = {
