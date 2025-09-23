@@ -304,8 +304,7 @@ function SubtotalSummary({
                     {tct('up to [pricePerMonth]', {
                       pricePerMonth: `${utils.displayPrice({
                         cents: formData.onDemandMaxSpend,
-                      })}
-                    /mo`,
+                      })}/mo`,
                     })}
                   </Text>
                   <AnimatePresence>
@@ -353,8 +352,7 @@ function SubtotalSummary({
                       {tct('up to [pricePerMonth]', {
                         pricePerMonth: `${utils.displayPrice({
                           cents: budget,
-                        })}
-                    /mo`,
+                        })}/mo`,
                       })}
                     </Text>
                   </ItemFlex>
