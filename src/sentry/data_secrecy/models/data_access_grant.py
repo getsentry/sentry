@@ -8,19 +8,17 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, control_sil
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-class GrantType(StrEnum):
-    ZENDESK = "zendesk"
-    MANUAL = "manual"
-
-
-class RevocationReason(StrEnum):
-    TICKET_RESOLVED = "ticket_resolved"
-    MANUAL_REVOCATION = "manual_revocation"
-
-
 @control_silo_model
 class DataAccessGrant(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
+
+    class GrantType(StrEnum):
+        ZENDESK = "zendesk"
+        MANUAL = "manual"
+
+    class RevocationReason(StrEnum):
+        TICKET_RESOLVED = "ticket_resolved"
+        MANUAL_REVOCATION = "manual_revocation"
 
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     grant_type = models.CharField(max_length=24, choices=[(t.value, t.value) for t in GrantType])

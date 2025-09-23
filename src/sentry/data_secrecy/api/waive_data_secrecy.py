@@ -1,6 +1,8 @@
 import logging
-from datetime import timezone
+from datetime import datetime
+from typing import Any
 
+from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -10,14 +12,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.data_secrecy.cache import effective_grant_status_cache
 from sentry.data_secrecy.logic import data_access_grant_exists
-from sentry.data_secrecy.models.data_access_grant import (
-    DataAccessGrant,
-    GrantType,
-    RevocationReason,
-)
+from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.models.organization import Organization
 
 logger = logging.getLogger("sentry.data_secrecy")
@@ -31,17 +28,16 @@ class WaiveDataSecrecyPermission(OrganizationPermission):
     }
 
 
-class DataSecrecyWaiverValidator(CamelSnakeSerializer):
+class DataSecrecyWaiverValidator(serializers.Serializer[dict[str, Any]]):
     grant_end = serializers.DateTimeField()
 
-    def validate(self, data):
-        grant_end = data.get("access_end")
+    def validate_grant_end(self, grant_end) -> datetime:
         if grant_end <= timezone.now():
             raise serializers.ValidationError(
                 "Invalid timestamp (access_end must be in the future)."
             )
 
-        return data
+        return grant_end
 
 
 def get_active_tickets_for_organization(organization_id: int) -> list[str]:
@@ -51,7 +47,7 @@ def get_active_tickets_for_organization(organization_id: int) -> list[str]:
     Fast query since we can filter by time.
     """
     now = timezone.now()
-    active_zendesk_grants = DataAccessGrant.objects.filter(
+    active_zendesk_tickets = DataAccessGrant.objects.filter(
         organization_id=organization_id,
         grant_type="ZENDESK",
         grant_start__lte=now,
@@ -60,7 +56,7 @@ def get_active_tickets_for_organization(organization_id: int) -> list[str]:
         ticket_id__isnull=False,
     ).values_list("ticket_id", flat=True)
 
-    return list(active_zendesk_grants)
+    return [ticket_id for ticket_id in active_zendesk_tickets if ticket_id is not None]
 
 
 @region_silo_endpoint
@@ -84,6 +80,13 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
 
         # calling data_access_grant_exists sets the grant status in the cache
         grant_status = effective_grant_status_cache.get(organization_id=organization.id)
+        if not grant_status.access_start or not grant_status.access_end:
+            logger.error(
+                "EffectiveGrantStatus with valid window missing start or end date",
+                extra={"organization_id": organization.id},
+            )
+            return Response("Effective grant status is malformed", status=status.HTTP_404_NOT_FOUND)
+
         serialized_grant_status = {
             "accessStart": grant_status.access_start.isoformat(),
             "accessEnd": grant_status.access_end.isoformat(),
@@ -105,7 +108,7 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
 
         DataAccessGrant.objects.create_or_update(
             organization=organization,
-            grant_type=GrantType.MANUAL,
+            grant_type=DataAccessGrant.GrantType.MANUAL,
             defaults={
                 "grant_start": timezone.now(),
                 "grand_end": result["grant_end"],
@@ -125,13 +128,13 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
         now = timezone.now()
 
         DataAccessGrant.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             grant_start__lte=now,
             grant_end__gt=now,
             revocation_date__isnull=True,  # Not revoked
         ).update(
             revocation_date=now,
-            revocation_reason=RevocationReason.MANUAL_REVOCATION,
+            revocation_reason=DataAccessGrant.RevocationReason.MANUAL_REVOCATION,
             revoked_by_user_id=request.user.id,
         )
 
