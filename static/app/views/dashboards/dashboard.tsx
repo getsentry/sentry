@@ -249,10 +249,6 @@ function Dashboard({
         widget_type: widget.displayType,
       });
 
-      if (widget.widgetType === WidgetType.METRICS) {
-        return;
-      }
-
       onEditWidget?.(widget);
       return;
     },
