@@ -29,6 +29,13 @@ class AutofixIssue(TypedDict):
     title: str
 
 
+class AutofixStoppingPoint(StrEnum):
+    ROOT_CAUSE = "root_cause"
+    SOLUTION = "solution"
+    CODE_CHANGES = "code_changes"
+    OPEN_PR = "open_pr"
+
+
 class AutofixRequest(BaseModel):
     organization_id: int
     project_id: int
