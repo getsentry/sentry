@@ -166,9 +166,10 @@ function CreditCardPanel({
             budgetTerm={budgetTerm}
             referrer={referrer}
             analyticsEvent={
-              (analyticsEvent ?? fromBillingFailure)
+              analyticsEvent ??
+              (fromBillingFailure
                 ? 'billing_failure.updated_cc'
-                : 'billing_details.updated_cc'
+                : 'billing_details.updated_cc')
             }
           />
         ) : subscription.paymentSource ? (

@@ -1,26 +1,14 @@
-import {
-  keepPreviousData,
-  useApiQuery,
-  type QueryObserverResult,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {BillingDetails} from 'getsentry/types';
 
-interface HookResult {
-  data: BillingDetails | undefined;
-  error: RequestError | null;
-  isError: boolean;
-  isLoading: boolean;
-  refetch: () => Promise<QueryObserverResult<BillingDetails, unknown>>;
-}
-
-export function useBillingDetails(): HookResult {
+export function useBillingDetails() {
   const organization = useOrganization();
 
-  const {data, isPending, isLoading, isError, error, refetch} =
-    useApiQuery<BillingDetails>([`/customers/${organization.slug}/billing-details/`], {
+  return useApiQuery<BillingDetails>(
+    [`/customers/${organization.slug}/billing-details/`],
+    {
       staleTime: 0,
       placeholderData: keepPreviousData,
       retry: (failureCount, apiError: any) => {
@@ -30,13 +18,6 @@ export function useBillingDetails(): HookResult {
         }
         return failureCount < 3;
       },
-    });
-
-  return {
-    data,
-    isLoading: isLoading || isPending,
-    isError,
-    error,
-    refetch,
-  };
+    }
+  );
 }
