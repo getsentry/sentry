@@ -15,6 +15,7 @@ from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import find_roots
+from sentry.issues.auto_source_code_config.errors import UnsupportedFrameInfo
 from sentry.issues.auto_source_code_config.frame_info import FrameInfo, create_frame_info
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -119,7 +120,12 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
         source_url = data["source_url"]
-        frame_info = get_frame_info_from_request(request)
+        try:
+            frame_info = get_frame_info_from_request(request)
+        except UnsupportedFrameInfo:
+            return self.respond(
+                {"detail": "Unsupported frame info"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         # validated by `serializer.is_valid()`
         assert serializer.repo is not None
