@@ -13,16 +13,17 @@ interface BuildErrorProps {
 }
 
 export function BuildError({title, message, children}: BuildErrorProps) {
-  const theme = useTheme();
   return (
     <Flex
       direction="column"
       align="center"
       justify="center"
       gap="3xl"
-      style={{minHeight: '60vh', padding: theme.space.md}}
+      padding="md"
+      minHeight="60vh"
+      maxWidth="500px"
     >
-      <Flex direction="column" align="center" gap="lg" padding="md" maxWidth="500px">
+      <Flex direction="column" align="center" gap="lg" padding="md">
         <AlertImage src={Missing} alt="Error image" />
         <Heading as="h2">{title}</Heading>
         <Text>{message}</Text>

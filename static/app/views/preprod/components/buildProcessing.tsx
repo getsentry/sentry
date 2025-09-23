@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -12,15 +11,14 @@ interface BuildProcessingProps {
 }
 
 export function BuildProcessing({title, message, children}: BuildProcessingProps) {
-  const theme = useTheme();
   return (
     <Flex
       direction="column"
       align="center"
       justify="center"
       gap="3xl"
-      style={{minHeight: '60vh', padding: theme.space.md}}
       padding="md"
+      minHeight="60vh"
       maxWidth="500px"
     >
       <Flex direction="column" align="center" gap="xl">

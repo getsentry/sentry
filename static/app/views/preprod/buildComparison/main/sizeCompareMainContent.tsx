@@ -198,8 +198,10 @@ export function SizeCompareMainContent() {
   }
 
   if (
-    mainArtifactComparison.state in
-    [SizeAnalysisComparisonState.PROCESSING, SizeAnalysisComparisonState.PENDING]
+    [
+      SizeAnalysisComparisonState.PROCESSING,
+      SizeAnalysisComparisonState.PENDING,
+    ].includes(mainArtifactComparison.state)
   ) {
     return (
       <BuildProcessing
