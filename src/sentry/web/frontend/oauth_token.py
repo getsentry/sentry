@@ -237,19 +237,7 @@ class OAuthTokenView(View):
         if not validate_code_challenge(grant.code_challenge):
             return {"error": "invalid_grant", "reason": "invalid code_challenge"}
 
-        # For v0: missing verifier is allowed (log), provided one must validate
-        if app_version < 1 and not code_verifier:
-            logger.warning(
-                "oauth.token-legacy-pkce-missing-verifier",
-                extra={
-                    "application_id": grant.application_id,
-                    "client_id": grant.application.client_id,
-                    "grant_id": grant.id,
-                },
-            )
-            return None
-
-        # For v1 or when provided in v0, validate per RFC 7636
+        # For v1, and for v0 once a challenge is stored, PKCE must complete.
         if not code_verifier:
             return {"error": "invalid_grant", "reason": "missing code_verifier"}
         if len(code_verifier) < 43 or len(code_verifier) > 128:
