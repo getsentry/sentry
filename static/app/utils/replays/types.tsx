@@ -134,7 +134,6 @@ export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
-export type OptionFrameEvent = TOptionFrameEvent;
 export type RawSpanFrame =
   | Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>
   | CompatibleReplayWebVitalFrame;
