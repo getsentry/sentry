@@ -32,4 +32,4 @@ class CompatibleSpan(EnrichedSpan, total=True):
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
 
-    attributes: NotRequired[dict(str, Any)]
+    attributes: NotRequired[dict[str, Any]]
