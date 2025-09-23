@@ -154,7 +154,6 @@ export function BaseChartActionDropdown({
     if (Array.isArray(addToDashboardOptions)) {
       menuOption.isSubmenu = true;
       menuOption.children = addToDashboardOptions.map((option, idx) => ({
-        ...option,
         key: `${option.chartType}-${idx}-${option.yAxes}`,
         label: option.widgetName,
         onAction: () => {
