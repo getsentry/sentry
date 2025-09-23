@@ -1,4 +1,4 @@
-import type {QueryTokensProps} from 'sentry/views/explore/components/seerComboBox/queryTokens';
+import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');

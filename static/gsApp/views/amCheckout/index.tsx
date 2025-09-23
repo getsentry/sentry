@@ -74,6 +74,7 @@ import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
+import AddBillingInformation from 'getsentry/views/amCheckout/steps/checkoutV3/addBillingInfo';
 import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
 import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/checkoutV3/chooseYourBillingCycle';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
@@ -296,7 +297,12 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
-      return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle];
+      return [
+        BuildYourPlan,
+        SetSpendLimit,
+        ChooseYourBillingCycle,
+        AddBillingInformation,
+      ];
     }
 
     const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
@@ -903,7 +909,6 @@ class AMCheckout extends Component<Props, State> {
               <Cart
                 {...overviewProps}
                 referrer={this.referrer}
-                hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
                 formDataForPreview={formDataForPreview}
                 onSuccess={params => {
                   this.setState(prev => ({...prev, ...params}));

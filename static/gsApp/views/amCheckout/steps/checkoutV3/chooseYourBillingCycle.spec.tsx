@@ -55,6 +55,10 @@ describe('ChooseYourBillingCycle', () => {
         invoiceItems: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
   });
 
   afterEach(() => {

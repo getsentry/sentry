@@ -411,7 +411,6 @@ describe('AutomationsList', () => {
         match: [
           MockApiClient.matchQuery({
             query: 'action:slack',
-            project: [1],
           }),
         ],
       });
@@ -454,7 +453,7 @@ describe('AutomationsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
-            query: {id: undefined, query: 'action:slack', project: [1]},
+            query: {id: undefined, query: 'action:slack', project: []},
           })
         );
       });

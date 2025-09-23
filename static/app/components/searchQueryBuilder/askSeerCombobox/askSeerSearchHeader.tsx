@@ -8,7 +8,7 @@ interface SeerSearchHeaderProps {
   loading?: boolean;
 }
 
-export function SeerSearchHeader({title, loading = false}: SeerSearchHeaderProps) {
+export function AskSeerSearchHeader({title, loading = false}: SeerSearchHeaderProps) {
   return (
     <HeaderWrapper>
       <StyledIconSeer variant={loading ? 'loading' : 'default'} />

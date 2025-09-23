@@ -18,6 +18,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
+import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
   AddOnCategory,
@@ -55,7 +56,6 @@ interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
   formDataForPreview: CheckoutFormData;
-  hasCompleteBillingDetails: boolean;
   onSuccess: ({
     invoice,
     nextQueryParams,
@@ -607,7 +607,6 @@ function Cart({
   organization,
   referrer,
   formDataForPreview,
-  hasCompleteBillingDetails,
   onSuccess,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
@@ -617,6 +616,8 @@ function Cart({
   const [summaryIsOpen, setSummaryIsOpen] = useState(true);
   const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
+  const {data: billingDetails} = useBillingDetails();
+  const hasCompleteBillingInfo = utils.hasBillingInfo(billingDetails, subscription, true);
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
@@ -778,7 +779,7 @@ function Cart({
           isOpen={summaryIsOpen}
           activePlan={activePlan}
           billedTotal={previewState.billedTotal}
-          buttonDisabled={!hasCompleteBillingDetails}
+          buttonDisabled={!hasCompleteBillingInfo}
           formData={formData}
           isSubmitting={isSubmitting}
           originalBilledTotal={previewState.originalBilledTotal}
