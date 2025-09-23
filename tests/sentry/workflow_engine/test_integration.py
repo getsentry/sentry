@@ -18,15 +18,12 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.utils.cache import cache_key_for_event
-from sentry.workflow_engine import buffer
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_source import process_data_source
 from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.tasks.delayed_workflows import (
-    DelayedWorkflow,
-    process_delayed_workflows,
-)
+from sentry.workflow_engine.tasks.delayed_workflows import process_delayed_workflows
 from sentry.workflow_engine.tasks.workflows import schedule_delayed_workflows
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -211,7 +208,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         self.workflow_triggers.conditions.all().delete()
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
-        self.buffer_keys = DelayedWorkflow.get_buffer_keys()
 
     @pytest.fixture(autouse=True)
     def with_feature_flags(self):
@@ -403,9 +399,8 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_1, is_new=True)
         assert not mock_trigger.called
 
-        project_ids = buffer.get_backend().bulk_get_sorted_set(
-            self.buffer_keys, 0, timezone.now().timestamp()
-        )
+        batch_client = DelayedWorkflowClient()
+        project_ids = batch_client.get_project_ids(0, timezone.now().timestamp())
         assert not project_ids
 
         # event that does not have the tags = no enqueue
@@ -413,9 +408,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_2, is_new=True)
         assert not mock_trigger.called
 
-        project_ids = buffer.get_backend().bulk_get_sorted_set(
-            self.buffer_keys, 0, timezone.now().timestamp()
-        )
+        project_ids = batch_client.get_project_ids(0, timezone.now().timestamp())
         assert not project_ids
 
         # event that fires
@@ -427,8 +420,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_5)
         assert not mock_trigger.called
 
-        project_ids = buffer.get_backend().bulk_get_sorted_set(
-            self.buffer_keys,
+        project_ids = batch_client.get_project_ids(
             min=0,
             max=timezone.now().timestamp(),
         )
@@ -457,6 +449,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         now = timezone.now()
 
+        batch_client = DelayedWorkflowClient()
         with freeze_time(now):
             event_1 = self.create_error_event(environment="production", tags=[["hello", "world"]])
             self.post_process_error(event_1)
@@ -470,8 +463,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_3)
             assert not mock_trigger.called
 
-            project_ids = buffer.get_backend().bulk_get_sorted_set(
-                self.buffer_keys,
+            project_ids = batch_client.get_project_ids(
                 min=0,
                 max=timezone.now().timestamp(),
             )
@@ -485,8 +477,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_4)
             assert not mock_trigger.called
 
-            project_ids = buffer.get_backend().bulk_get_sorted_set(
-                self.buffer_keys,
+            project_ids = batch_client.get_project_ids(
                 min=0,
                 max=timezone.now().timestamp(),
             )
@@ -504,10 +495,10 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
                 "value": 2,
             },
         )
+        batch_client = DelayedWorkflowClient()
 
         assert (
-            buffer.get_backend().bulk_get_sorted_set(
-                self.buffer_keys,
+            batch_client.get_project_ids(
                 min=0,
                 max=timezone.now().timestamp(),
             )
@@ -518,8 +509,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         event = self.create_error_event()
         self.post_process_error(event)
 
-        project_ids = buffer.get_backend().bulk_get_sorted_set(
-            self.buffer_keys,
+        project_ids = batch_client.get_project_ids(
             min=0,
             max=timezone.now().timestamp(),
         )
@@ -528,12 +518,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         with patch(
             "sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async"
         ) as mock_apply_async:
-            with self.options(
-                {
-                    "workflow_engine.use_new_scheduling_task": True,
-                    "delayed_workflow.rollout": True,
-                }
-            ):
+            with self.options({"delayed_workflow.rollout": True}):
                 # Call schedule_delayed_workflows - this runs the real buffer processing
                 schedule_delayed_workflows()
 
@@ -544,8 +529,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             assert call_kwargs["project_id"] == self.project.id
 
         assert (
-            buffer.get_backend().bulk_get_sorted_set(
-                self.buffer_keys,
+            batch_client.get_project_ids(
                 min=0,
                 max=timezone.now().timestamp(),
             )

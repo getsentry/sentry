@@ -3,6 +3,7 @@ import logging
 from sentry import features
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 from sentry.models.project import Project
+from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,10 @@ def trim_response(text):
 
 
 def spam_detection_enabled(project: Project) -> bool:
-    return features.has(
+    has_spam_enabled = features.has(
         "organizations:user-feedback-spam-ingest", project.organization
     ) and project.get_option("sentry:feedback_ai_spam_detection")
+
+    has_ai_enabled = has_seer_access(project.organization)
+
+    return has_spam_enabled and has_ai_enabled

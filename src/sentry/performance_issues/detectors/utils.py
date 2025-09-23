@@ -4,7 +4,16 @@ from sentry.performance_issues.base import get_span_duration
 
 from ..types import Span
 
-FILTERED_KEYWORDS = ["[Filtered]", "[ip]", "[REDACTED]", "[id]", "[Filtered Email]"]
+FILTERED_KEYWORDS = [
+    "[Filtered]",
+    "[ip]",
+    "[REDACTED]",
+    "[id]",
+    "[Filtered Email]",
+    "[filtered]",
+    "[Filtered email]",
+    "[Email]",
+]
 
 
 def get_total_span_duration(spans: list[Span]) -> float:

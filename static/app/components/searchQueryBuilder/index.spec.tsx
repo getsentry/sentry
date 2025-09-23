@@ -174,6 +174,89 @@ describe('SearchQueryBuilder', () => {
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
   });
 
+  describe('rendering search query builder', () => {
+    describe('footer', () => {
+      it('displays wildcard footer when canUseWildcard is true', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+      });
+
+      it('does not display footer when disallowWildcard is true', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            disallowWildcard
+            initialQuery="browser.name:Firefox"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+
+      it('does not display footer when canUseWildcard is false', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="assigned:me" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+
+      it('does not display footer when using a wildcard operator', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {
+            name: 'Edit value for filter: browser.name',
+          })
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        await userEvent.keyboard('{escape}');
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+
+        await userEvent.click(screen.getByRole('option', {name: 'contains'}));
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+    });
+  });
+
   describe('callbacks', () => {
     it('calls onChange, onBlur, and onSearch with the query string', async () => {
       const mockOnChange = jest.fn();
@@ -4156,7 +4239,9 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.click(getLastInput());
 
-      const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
+      const askSeer = await screen.findByRole('option', {
+        name: /Ask Seer to build your query/,
+      });
       expect(askSeer).toBeInTheDocument();
     });
 
@@ -4304,7 +4389,9 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
 
-        const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
+        const askSeer = await screen.findByRole('option', {
+          name: /Ask Seer to build your query/,
+        });
         expect(askSeer).toBeInTheDocument();
         await userEvent.hover(askSeer);
         await userEvent.keyboard('{enter}');
@@ -4328,7 +4415,9 @@ describe('SearchQueryBuilder', () => {
         const yep = await screen.findByRole('button', {name: 'Yep, correct results'});
         await userEvent.click(yep);
 
-        const askSeer2 = await screen.findByRole('option', {name: /Ask Seer/});
+        const askSeer2 = await screen.findByRole('option', {
+          name: /Ask Seer to build your query/,
+        });
         expect(askSeer2).toBeInTheDocument();
       });
     });
@@ -4362,7 +4451,9 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         await userEvent.type(screen.getByRole('combobox'), 'some free text');
 
-        expect(screen.getByRole('option', {name: /Ask Seer/i})).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', {name: /Ask Seer to build your query/i})
+        ).toBeInTheDocument();
       });
     });
 
