@@ -337,9 +337,9 @@ const Divider = styled('hr')`
 `;
 
 const Arcade = styled('iframe')`
-  width: 750px;
+  width: 720px;
   max-width: 100%;
-  height: 500px;
+  height: 420px;
   border: 0;
   color-scheme: auto;
 `;
