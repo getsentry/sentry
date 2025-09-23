@@ -41,7 +41,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
         orderby = query.get("orderby", "")
         conditions = query.get("conditions", "")
         field_aliases = query.get("fieldAliases", [])
-        is_hidden = query.get("isHidden", [])
+        is_hidden = query.get("isHidden")
         selected_aggregate = query.get("selectedAggregate", None)
 
         equations = [field for field in original_fields if is_equation(field)]
@@ -165,8 +165,8 @@ def restore_transaction_widget(widget):
         columns = query_snapshot.get("columns", [])
         field_aliases = query_snapshot.get("fieldAliases", [])
         orderby = query_snapshot.get("orderby", "")
-        is_hidden = query_snapshot.get("isHidden")
-        selected_aggregate = query_snapshot.get("selectedAggregate")
+        is_hidden: bool = query_snapshot.get("isHidden", False)
+        selected_aggregate: int | None = query_snapshot.get("selectedAggregate")
 
         restored_widget_queries.append(
             DashboardWidgetQuery(
