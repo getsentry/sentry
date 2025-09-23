@@ -1,4 +1,4 @@
-import {escapeTagValue} from 'sentry/components/deprecatedSmartSearchBar/utils';
+import {escapeTagValue} from 'sentry/components/searchBar/utils';
 
 describe('escapeTagValue()', () => {
   it('wraps tags containing quotes in quotes', () => {

@@ -7,12 +7,12 @@ import type {KeyboardEvent} from '@react-types/shared';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
+import {DeviceName} from 'sentry/components/deviceName';
 import {
   ItemType,
   type SearchGroup,
   type SearchItem,
-} from 'sentry/components/deprecatedSmartSearchBar/types';
-import {DeviceName} from 'sentry/components/deviceName';
+} from 'sentry/components/searchBar/types';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
