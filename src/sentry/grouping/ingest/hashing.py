@@ -30,6 +30,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
+from sentry.utils.db import retry_on_connection_failure
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
@@ -235,11 +236,21 @@ def get_or_create_grouphashes(
         "organizations:no-group-match-when-deletion-in-progress", project.organization
     )
 
-    for hash_value in hashes:
-        # Fetching the group with the grouphash is necessary to avoid N+1 queries
-        grouphash, created = GroupHash.objects.select_related("group").get_or_create(
+    @retry_on_connection_failure(max_retries=2)
+    def get_or_create_grouphash(project: Project, hash_value: str) -> tuple[GroupHash, bool]:
+        """
+        Get or create GroupHash with connection failure retry logic.
+
+        This function is wrapped with retry logic to handle intermittent
+        database connection issues like "server closed the connection unexpectedly".
+        """
+        return GroupHash.objects.select_related("group").get_or_create(
             project=project, hash=hash_value
         )
+
+    for hash_value in hashes:
+        # Fetching the group with the grouphash is necessary to avoid N+1 queries
+        grouphash, created = get_or_create_grouphash(project, hash_value)
         if detach_in_deletion_groups:
             # If the group a group hash is associated with is in deletion in progress, we don't
             # want to associate the group hash with it so we can create a new group for the event

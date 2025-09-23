@@ -1,12 +1,16 @@
 import logging
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
 from contextlib import ExitStack
 from functools import wraps
+from typing import Any
 
 import sentry_sdk
 from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
-from django.db.utils import OperationalError, ProgrammingError
+from django.db.utils import DatabaseError, OperationalError, ProgrammingError
 from sentry_sdk.integrations import Integration
+
+from sentry.db.postgres.helpers import can_reconnect
 
 
 def handle_db_failure(func, model, wrap_in_transaction: bool = True):
@@ -23,6 +27,56 @@ def handle_db_failure(func, model, wrap_in_transaction: bool = True):
             return
 
     return wrapped
+
+
+def retry_on_connection_failure(
+    max_retries: int = 2,
+) -> Callable[[Callable[[], Any]], Callable[[], Any]]:
+    """
+    Retry decorator for database connection failures.
+
+    This handles the specific case of "server closed the connection unexpectedly"
+    and other connection issues that can be resolved by retrying the operation.
+
+    Args:
+        max_retries: Maximum number of retry attempts (default: 2)
+
+    Returns:
+        Decorator function that wraps the target function with retry logic
+
+    Example:
+        @retry_on_connection_failure(max_retries=2)
+        def get_or_create_something():
+            return Model.objects.get_or_create(...)
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except (DatabaseError, OperationalError) as e:
+                    if attempt == max_retries or not can_reconnect(e):
+                        # Either we've exhausted retries or this isn't a recoverable error
+                        raise
+
+                    logging.warning(
+                        "Database connection failure in %s, retrying (attempt %d/%d): %s",
+                        func.__name__,
+                        attempt + 1,
+                        max_retries,
+                        str(e),
+                    )
+                    # Small delay before retry to allow connection recovery
+                    time.sleep(0.1 * (attempt + 1))  # Exponential backoff: 0.1s, 0.2s
+
+            # This should never be reached due to the logic above
+            raise RuntimeError("Unexpected retry loop exit")  # type: ignore[misc]
+
+        return wrapper
+
+    return decorator
 
 
 def atomic_transaction(
