@@ -57,7 +57,7 @@ class SlowDBQueryDetector(PerformanceDetector):
 
         description = span["description"].strip()
 
-        if span_duration >= timedelta(milliseconds=duration_threshold):
+        if duration_threshold and span_duration >= timedelta(milliseconds=duration_threshold):
             spans_involved = [span_id]
 
             hash = span.get("hash", "")
