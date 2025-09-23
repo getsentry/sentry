@@ -1,13 +1,10 @@
 from unittest import mock
 
-import pytest
-from django.test import override_settings
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_events import LEGACY_RATE_LIMIT
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
@@ -157,24 +154,3 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.do_request(query)
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.insights.transaction-summary")
-
-    @pytest.mark.skip(reason="flaky: #95995")
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self) -> None:
-        query = {
-            "field": ["transaction"],
-            "project": [self.project.id],
-        }
-        limit = LEGACY_RATE_LIMIT
-        with freeze_time("2000-01-01") as frozen_time:
-            for _ in range(
-                limit["limit"] - 1
-            ):  # for longer windows / higher limits this loop takes too long
-                self.do_request(query)
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            response = self.do_request(query)
-            assert response.status_code == 429, response.content
-            frozen_time.shift(limit["window"] + 1)
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
