@@ -1,57 +1,25 @@
 import {useEffect, useState} from 'react';
-import type {
-  PaymentMethod,
-  SetupIntentResult,
-  Stripe,
-  StripeElements,
-} from '@stripe/stripe-js';
+import type {PaymentIntentResult, Stripe, StripeElements} from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 
-import InnerIntentForm from 'getsentry/components/stripeForms/innerIntentForm';
-import type {StripeIntentFormProps} from 'getsentry/components/stripeForms/types';
-import {useSetupIntentData} from 'getsentry/hooks/useIntentData';
-import type {Subscription} from 'getsentry/types';
+import InnerIntentForm from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
+import type {StripeIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-function StripeSetupIntentForm(props: StripeIntentFormProps) {
-  const {
-    organization,
-    location: ftcConsentLocation,
-    onSuccess,
-    onSuccessWithSubscription,
-  } = props;
+function StripePaymentIntentForm(props: StripeIntentFormProps) {
+  const {organization, referrer, onSuccess} = props;
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {intentData, isLoading, isError, error} = useSetupIntentData({
+  const {intentData, isLoading, isError, error} = usePaymentIntentData({
     endpoint: props.intentDataEndpoint,
-  });
-
-  const {mutateAsync: updateSubscription} = useMutation({
-    mutationFn: ({paymentMethod}: {paymentMethod: string | PaymentMethod | null}) =>
-      fetchMutation<Subscription>({
-        method: 'PUT',
-        url: `/customers/${organization.slug}/`,
-        data: {
-          paymentMethod,
-          ftcConsentLocation,
-        },
-      }),
-    onSuccess: (data: Subscription) => {
-      addSuccessMessage(t('Updated payment method.'));
-      onSuccessWithSubscription?.(data);
-      onSuccess();
-      setIsSubmitting(false);
-    },
-    onError: () => {
-      setErrorMessage(t('Could not update payment method.'));
-      setIsSubmitting(false);
-    },
   });
 
   useEffect(() => {
@@ -82,13 +50,13 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
 
     const stripeResult = await elements.submit();
     if (stripeResult.error) {
-      setErrorMessage(stripeResult.error.message ?? t('Setup failed.'));
+      setErrorMessage(stripeResult.error.message ?? t('Payment failed.'));
       setIsSubmitting(false);
       return;
     }
 
     stripe
-      .confirmSetup({
+      .confirmPayment({
         elements,
         clientSecret: intentData.clientSecret,
         redirect: 'if_required', // if the payment method requires redirects, we redirect to the return_url on completion
@@ -96,15 +64,20 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
           return_url: window.location.href,
         },
       })
-      .then((result: SetupIntentResult) => {
+      .then((result: PaymentIntentResult) => {
         if (result.error) {
-          setErrorMessage(result.error.message ?? t('Setup failed.'));
+          setErrorMessage(result.error.message ?? t('Payment failed.'));
           setIsSubmitting(false);
           return;
         }
-        updateSubscription({
-          paymentMethod: result.setupIntent.payment_method,
+        trackGetsentryAnalytics('billing_failure.paid_now', {
+          organization,
+          referrer: decodeScalar(referrer),
+          isStripeComponent: true,
         });
+        addSuccessMessage(t('Payment sent successfully.'));
+        onSuccess?.();
+        setIsSubmitting(false);
       });
   };
 
@@ -113,7 +86,9 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
       {isError && <Alert type="error">{errorMessage}</Alert>}
       <InnerIntentForm
         {...props}
-        buttonText={isSubmitting ? t('Saving Changes...') : props.buttonText}
+        buttonText={props.buttonText}
+        busyButtonText={t('Sending Payment...')}
+        isSubmitting={isSubmitting}
         intentData={intentData}
         onError={setErrorMessage}
         handleSubmit={handleSubmit}
@@ -122,4 +97,4 @@ function StripeSetupIntentForm(props: StripeIntentFormProps) {
   );
 }
 
-export default StripeSetupIntentForm;
+export default StripePaymentIntentForm;
