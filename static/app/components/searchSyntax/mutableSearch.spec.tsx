@@ -1,7 +1,7 @@
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 
 describe('MutableSearch', () => {
-  describe('MutableSearch.fromQueryObject', () => {
+  describe('fromQueryObject', () => {
     it.each([
       [{transaction: '/index'}, 'transaction:/index'],
       [{transaction: '/index', has: 'span.domain'}, 'transaction:/index has:span.domain'],
