@@ -9,6 +9,20 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {Text} from 'sentry/components/core/text';
+import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
+import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
+import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
+import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
+import {
+  useApplySeerSearchQuery,
+  useAskSeerSearch,
+  type AskSeerSearchItem,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/hooks';
+import QueryTokens from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
+import {
+  formatQueryToNaturalLanguage,
+  generateQueryTokensString,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
@@ -17,20 +31,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
-import {
-  useApplySeerSearchQuery,
-  useSeerSearch,
-  type SeerSearchItem,
-} from 'sentry/views/explore/components/seerComboBox/hooks';
-import QueryTokens from 'sentry/views/explore/components/seerComboBox/queryTokens';
-import {SeerSearchHeader} from 'sentry/views/explore/components/seerComboBox/seerSearchHeader';
-import {SeerSearchListBox} from 'sentry/views/explore/components/seerComboBox/seerSearchListBox';
-import {SeerSearchPopover} from 'sentry/views/explore/components/seerComboBox/seerSearchPopover';
-import {SeerSearchSkeleton} from 'sentry/views/explore/components/seerComboBox/seerSearchSkeleton';
-import {
-  formatQueryToNaturalLanguage,
-  generateQueryTokensString,
-} from 'sentry/views/explore/components/seerComboBox/utils';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 
 // The menu size can change from things like loading states, long options,
@@ -90,7 +90,7 @@ interface NoneOfTheseItem {
   label: string;
 }
 
-function isNoneOfTheseItem(item: SeerSearchItems): item is NoneOfTheseItem {
+function isNoneOfTheseItem(item: AskSeerSearchItems): item is NoneOfTheseItem {
   return item.key === 'none-of-these';
 }
 
@@ -99,13 +99,13 @@ interface ExampleItem {
   query: string;
 }
 
-function isExampleItem(item: SeerSearchItems): item is ExampleItem {
+function isExampleItem(item: AskSeerSearchItems): item is ExampleItem {
   return item.key.startsWith('example-query-');
 }
 
-type SeerSearchItems = SeerSearchItem<string> | NoneOfTheseItem | ExampleItem;
+type AskSeerSearchItems = AskSeerSearchItem<string> | NoneOfTheseItem | ExampleItem;
 
-export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
+export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -126,7 +126,30 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     autoSubmitSeer,
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
-  const {rawResult, submitQuery, isPending, isError, unsupportedReason} = useSeerSearch();
+
+  // TODO(nsdeschenes): break this out in some similar fashion so that we can extend this
+  // component and make it generic for other use cases
+  // Something like this, but for mutations:
+  // const baseQueryKey = useMemo(
+  //   () => ['search-query-builder-tag-values', queryParams],
+  //   [queryParams]
+  // );
+  // const queryKey = useDebouncedValue(baseQueryKey);
+  // const isDebouncing = baseQueryKey !== queryKey;
+  //
+  // const {data, isFetching} = useQuery<string[]>({
+  //   // disable exhaustive deps because we want to debounce the query key above
+  //   // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  //   queryKey,
+  //   queryFn: () => getTagValues(...queryParams),
+  //   placeholderData: keepPreviousData,
+  //   enabled: shouldFetchValues,
+  // });
+  // Also need to investigate why projects are not being included in the query
+
+  const {rawResult, submitQuery, isPending, isError, unsupportedReason} =
+    useAskSeerSearch();
+
   const applySeerSearchQuery = useApplySeerSearchQuery();
   const organization = useOrganization();
   const areAiFeaturesAllowed =
@@ -149,9 +172,9 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     }
   };
 
-  const items: SeerSearchItems[] = useMemo(() => {
+  const items: AskSeerSearchItems[] = useMemo(() => {
     if (rawResult && rawResult.length > 0) {
-      const results: SeerSearchItems[] = rawResult.map((query, index) => ({
+      const results: AskSeerSearchItems[] = rawResult.map((query, index) => ({
         ...query,
         key: `${index}-${query.query}`,
       }));
@@ -417,7 +440,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         />
       </ButtonsWrapper>
       {state.isOpen ? (
-        <SeerSearchPopover
+        <AskSeerSearchPopover
           isNonModal
           state={state}
           triggerRef={inputRef}
@@ -427,19 +450,19 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         >
           {isPending ? (
             <SeerContent>
-              <SeerSearchHeader title={t('Let me think about that...')} loading />
-              <SeerSearchSkeleton />
+              <AskSeerSearchHeader title={t('Let me think about that...')} loading />
+              <AskSeerSearchSkeleton />
             </SeerContent>
           ) : isError ? (
             <SeerContent>
-              <SeerSearchHeader
+              <AskSeerSearchHeader
                 title={t('An error occurred while fetching Seer queries')}
               />
             </SeerContent>
           ) : rawResult && (rawResult?.length ?? 0) > 0 ? (
             <SeerContent onMouseLeave={onMouseLeave}>
-              <SeerSearchHeader title={t('Do any of these look right to you?')} />
-              <SeerSearchListBox
+              <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+              <AskSeerSearchListBox
                 {...listBoxProps}
                 listBoxRef={listBoxRef}
                 state={state}
@@ -447,13 +470,13 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             </SeerContent>
           ) : unsupportedReason ? (
             <SeerContent>
-              <SeerSearchHeader
+              <AskSeerSearchHeader
                 title={unsupportedReason || 'This query is not supported'}
               />
             </SeerContent>
           ) : (
             <SeerContent onMouseLeave={onMouseLeave}>
-              <SeerSearchHeader title={t("Describe what you're looking for.")} />
+              <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </SeerContent>
           )}
           <SeerFooter>
@@ -475,7 +498,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               </Button>
             )}
           </SeerFooter>
-        </SeerSearchPopover>
+        </AskSeerSearchPopover>
       ) : null}
     </Wrapper>
   );
