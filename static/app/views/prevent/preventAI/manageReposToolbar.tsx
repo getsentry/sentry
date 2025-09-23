@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
@@ -49,7 +48,7 @@ function ManageReposToolbar({
         <CompactSelect
           value={selectedOrg}
           options={organizationOptions}
-          onChange={option => onOrgChange(String(option?.value))}
+          onChange={option => onOrgChange(option?.value ?? '')}
           trigger={(triggerProps, isOpen) => (
             <DropdownButton isOpen={isOpen} {...triggerProps}>
               <Flex justify="start" gap="sm" align="center">
@@ -68,7 +67,7 @@ function ManageReposToolbar({
         <CompactSelect
           value={selectedRepo}
           options={repositoryOptions}
-          onChange={option => onRepoChange(String(option?.value))}
+          onChange={option => onRepoChange(option?.value ?? '')}
           trigger={(triggerProps, isOpen) => (
             <DropdownButton isOpen={isOpen} {...triggerProps}>
               <Flex justify="start" gap="sm" align="center">

@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -101,7 +100,14 @@ function ManageReposPanel({
         <Flex direction="column" gap="xl" padding="2xl">
           {/* PR Review Feature */}
           <Flex direction="column">
-            <FeatureSectionTop>
+            <Flex
+              border="muted"
+              radius="md"
+              background="secondary"
+              padding="lg xl"
+              align="center"
+              justify="between"
+            >
               <Flex direction="column" gap="sm">
                 <Text size="md">Enable PR Review</Text>
                 <Text variant="muted" size="sm">
@@ -122,12 +128,19 @@ function ManageReposPanel({
                 }}
                 aria-label="Enable PR Review"
               />
-            </FeatureSectionTop>
+            </Flex>
           </Flex>
 
           {/* Test Generation Feature */}
           <Flex direction="column">
-            <FeatureSectionTop>
+            <Flex
+              border="muted"
+              radius="md"
+              background="secondary"
+              padding="lg xl"
+              align="center"
+              justify="between"
+            >
               <Flex direction="column" gap="sm">
                 <Text size="md">Enable Test Generation</Text>
                 <Text variant="muted" size="sm">
@@ -148,12 +161,19 @@ function ManageReposPanel({
                 }}
                 aria-label="Enable Test Generation"
               />
-            </FeatureSectionTop>
+            </Flex>
           </Flex>
 
           {/* Error Prediction Feature with SubItems */}
           <Flex direction="column">
-            <FeatureSectionTop>
+            <Flex
+              border="muted"
+              radius="md"
+              background="secondary"
+              padding="lg xl"
+              align="center"
+              justify="between"
+            >
               <Flex direction="column" gap="sm">
                 <Text size="md">Enable Error Prediction</Text>
                 <Text variant="muted" size="sm">
@@ -183,70 +203,79 @@ function ManageReposPanel({
                 }}
                 aria-label="Enable Error Prediction"
               />
-            </FeatureSectionTop>
+            </Flex>
             {isEnabledBugPrediction && (
-              <FeatureSectionSubItemContainer>
-                <FieldGroup
-                  label={<Text size="md">{t('Auto Run on Opened Pull Requests')}</Text>}
-                  help={
-                    <Text size="xs" variant="muted">
-                      {t('Run when a PR is published, ignoring new pushes.')}
-                    </Text>
-                  }
-                  inline
-                  flexibleControlStateSize
+              // width 150% because FieldGroup > FieldDescription has fixed width 50%
+              <Flex paddingLeft="xl" width="150%">
+                <Flex
+                  direction="column"
+                  borderLeft="muted"
+                  radius="md"
+                  paddingLeft="md"
+                  width="100%"
                 >
-                  <Switch
-                    size="lg"
-                    checked={isEnabledBugPredictionOnReadyForReview}
-                    disabled={isLoading}
-                    onChange={async () => {
-                      const newValue = !isEnabledBugPredictionOnReadyForReview;
-                      const newTriggers = {
-                        on_ready_for_review: newValue,
-                        on_command_phrase: isEnabledBugPredictionOnCommandPhrase,
-                      };
-                      await enableFeature({
-                        feature: 'bug_prediction',
-                        enabled: isEnabledBugPrediction,
-                        triggers: newTriggers,
-                      });
-                      refetchConfig();
-                    }}
-                    aria-label="Auto Run on Opened Pull Requests"
-                  />
-                </FieldGroup>
-                <FieldGroup
-                  label={<Text size="md">{t('Run When Mentioned')}</Text>}
-                  help={
-                    <Text size="xs" variant="muted">
-                      {t('Run when @sentry review is commented on a PR')}
-                    </Text>
-                  }
-                  inline
-                  flexibleControlStateSize
-                >
-                  <Switch
-                    size="lg"
-                    checked={isEnabledBugPredictionOnCommandPhrase}
-                    disabled={isLoading}
-                    onChange={async () => {
-                      const newValue = !isEnabledBugPredictionOnCommandPhrase;
-                      const newTriggers = {
-                        on_ready_for_review: isEnabledBugPredictionOnReadyForReview,
-                        on_command_phrase: newValue,
-                      };
-                      await enableFeature({
-                        feature: 'bug_prediction',
-                        enabled: isEnabledBugPrediction,
-                        triggers: newTriggers,
-                      });
-                      refetchConfig();
-                    }}
-                    aria-label="Run When Mentioned"
-                  />
-                </FieldGroup>
-              </FeatureSectionSubItemContainer>
+                  <FieldGroup
+                    label={<Text size="md">{t('Auto Run on Opened Pull Requests')}</Text>}
+                    help={
+                      <Text size="xs" variant="muted">
+                        {t('Run when a PR is published, ignoring new pushes.')}
+                      </Text>
+                    }
+                    inline
+                    flexibleControlStateSize
+                  >
+                    <Switch
+                      size="lg"
+                      checked={isEnabledBugPredictionOnReadyForReview}
+                      disabled={isLoading}
+                      onChange={async () => {
+                        const newValue = !isEnabledBugPredictionOnReadyForReview;
+                        const newTriggers = {
+                          on_ready_for_review: newValue,
+                          on_command_phrase: isEnabledBugPredictionOnCommandPhrase,
+                        };
+                        await enableFeature({
+                          feature: 'bug_prediction',
+                          enabled: isEnabledBugPrediction,
+                          triggers: newTriggers,
+                        });
+                        refetchConfig();
+                      }}
+                      aria-label="Auto Run on Opened Pull Requests"
+                    />
+                  </FieldGroup>
+                  <FieldGroup
+                    label={<Text size="md">{t('Run When Mentioned')}</Text>}
+                    help={
+                      <Text size="xs" variant="muted">
+                        {t('Run when @sentry review is commented on a PR')}
+                      </Text>
+                    }
+                    inline
+                    flexibleControlStateSize
+                  >
+                    <Switch
+                      size="lg"
+                      checked={isEnabledBugPredictionOnCommandPhrase}
+                      disabled={isLoading}
+                      onChange={async () => {
+                        const newValue = !isEnabledBugPredictionOnCommandPhrase;
+                        const newTriggers = {
+                          on_ready_for_review: isEnabledBugPredictionOnReadyForReview,
+                          on_command_phrase: newValue,
+                        };
+                        await enableFeature({
+                          feature: 'bug_prediction',
+                          enabled: isEnabledBugPrediction,
+                          triggers: newTriggers,
+                        });
+                        refetchConfig();
+                      }}
+                      aria-label="Run When Mentioned"
+                    />
+                  </FieldGroup>
+                </Flex>
+              </Flex>
             )}
           </Flex>
         </Flex>
@@ -254,23 +283,5 @@ function ManageReposPanel({
     </SlideOverPanel>
   );
 }
-
-const FeatureSectionTop = styled(Flex)`
-  align-items: center;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  border-radius: 6px;
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
-`;
-
-// width 150% because FieldGroup > FieldDescription has fixed width 50%
-const FeatureSectionSubItemContainer = styled(Flex)`
-  flex-direction: column;
-  margin-left: ${p => p.theme.space.xl};
-  border-left: 2px solid ${p => p.theme.border};
-  padding-left: ${p => p.theme.space.md};
-  width: 150%;
-`;
 
 export default ManageReposPanel;
