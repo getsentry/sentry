@@ -354,8 +354,8 @@ function quoteIfNeeded(value: string): string {
  *
  * It is different from the old MutableSearch in a few ways:
  * - Using the AST to parse the query string instead of a string tokenizer
- * - getFilterValues now returns an array of values for square bracket lists
  * - removeFilter now works with square bracket lists
+ * - getFilterValues now returns an array of values for square bracket lists
  * - getFreeText and setFreeText are now methods instead of getters and setters
  */
 export class MutableSearch {
@@ -524,6 +524,10 @@ export class MutableSearch {
     return this.tokens.map(t => (t.type === TokenType.FILTER ? t.key : undefined));
   }
 
+  getFreeText(): string[] {
+    return this.tokens.filter(t => t.type === TokenType.FREE_TEXT).map(t => t.value);
+  }
+
   hasFilter(key: string): boolean {
     return this.tokens.some(t => t.type === TokenType.FILTER && t.key === key);
   }
@@ -652,10 +656,6 @@ export class MutableSearch {
   addOp(value: OperatorToken['value']): this {
     this.tokens.push({type: TokenType.OPERATOR, value, text: value});
     return this;
-  }
-
-  getFreeText(): string[] {
-    return this.tokens.filter(t => t.type === TokenType.FREE_TEXT).map(t => t.value);
   }
 
   copy(): MutableSearch {
