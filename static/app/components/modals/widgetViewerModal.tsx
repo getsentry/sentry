@@ -216,8 +216,6 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
-  // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-  // let widgetContentLoadingStatus: boolean | undefined = undefined;
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -573,8 +571,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <ReleaseWidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -612,9 +608,6 @@ function WidgetViewerModal(props: Props) {
             dashboardFilters={dashboardFilters}
           >
             {({tableResults, loading, pageLinks}) => {
-              // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-              // small hack that improves the concurrency render of the warning triangle
-              // widgetContentLoadingStatus = loading;
               return renderTable({tableResults, loading, pageLinks});
             }}
           </WidgetQueries>

@@ -22,13 +22,15 @@ from sentry.uptime.grouptype import (
     UptimeDetectorHandler,
     UptimeDomainCheckFailure,
     UptimePacketValue,
-    build_detector_fingerprint_component,
     build_event_data,
     build_evidence_display,
+)
+from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_uptime_subscription
+from sentry.uptime.subscriptions.subscriptions import (
+    build_detector_fingerprint_component,
     build_fingerprint,
     resolve_uptime_issue,
 )
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
@@ -149,17 +151,14 @@ class TestUptimeHandler(UptimeTestCase):
         return evaluation[None]
 
     def test_simple_evaluate(self) -> None:
-        detector = self.create_uptime_detector()
+        detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)
         uptime_subscription = get_uptime_subscription(detector)
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
         now = datetime.now()
 
-        with (
-            self.feature("organizations:uptime-create-issues"),
-            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=2),
-        ):
+        with self.feature("organizations:uptime-create-issues"):
             evaluation = self.handle_result(
                 detector,
                 uptime_subscription,
@@ -191,14 +190,13 @@ class TestUptimeHandler(UptimeTestCase):
             assert uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_issue_creation_disabled(self) -> None:
-        detector = self.create_uptime_detector()
+        detector = self.create_uptime_detector(downtime_threshold=1, recovery_threshold=1)
         uptime_subscription = get_uptime_subscription(detector)
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
         with (
             # uptime-create-issues flag not enabled. No issue created
-            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1),
             mock.patch("sentry.uptime.grouptype.logger") as logger,
         ):
             check_result = self.create_uptime_result()
@@ -231,7 +229,6 @@ class TestUptimeHandler(UptimeTestCase):
             # All features enabled, but the host provider is disabled
             self.feature(["organizations:uptime-create-issues"]),
             self.options(options),
-            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1),
         ):
             evaluation = self.handle_result(
                 detector,
@@ -245,17 +242,14 @@ class TestUptimeHandler(UptimeTestCase):
         Test that a uptime monitor that flaps between failure, success success,
         failure, etc does not produce any evaluations.
         """
-        detector = self.create_uptime_detector()
+        detector = self.create_uptime_detector(downtime_threshold=3, recovery_threshold=1)
         uptime_subscription = get_uptime_subscription(detector)
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
         now = datetime.now()
 
-        with (
-            self.feature(["organizations:uptime-create-issues"]),
-            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=3),
-        ):
+        with self.feature(["organizations:uptime-create-issues"]):
             status_cycle: cycle[CheckStatus] = cycle(
                 [CHECKSTATUS_FAILURE, CHECKSTATUS_SUCCESS, CHECKSTATUS_SUCCESS]
             )
@@ -282,6 +276,8 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
             config={
                 "mode": UptimeMonitorMode.MANUAL,
                 "environment": "hi",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
 

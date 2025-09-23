@@ -11,7 +11,7 @@ def test_dualwrite_distribution(distribution, timing):
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.datadog.DatadogMetricsBackend",
         secondary_backend="sentry.metrics.precise_dogstatsd.PreciseDogStatsdMetricsBackend",
-        allow_prefixes=["foo"],
+        distribution_prefixes=["foo"],
     )
 
     backend.distribution("foo", 100, tags={"some": "stuff"}, unit="byte")

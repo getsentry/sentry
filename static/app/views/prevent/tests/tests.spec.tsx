@@ -1,6 +1,10 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
+import localStorageWrapper from 'sentry/utils/localStorage';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import TestsPage from 'sentry/views/prevent/tests/tests';
 
 jest.mock('sentry/components/pagination', () => {
@@ -8,6 +12,12 @@ jest.mock('sentry/components/pagination', () => {
     return <div>Pagination Component</div>;
   };
 });
+
+jest.mock('sentry/utils/regions', () => ({
+  getRegionDataFromOrganization: jest.fn(),
+}));
+
+const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
 
 // TODO: Make these fixtures
 const mockTestResultsData = [
@@ -69,9 +79,14 @@ const mockBranches = [
 ];
 
 const mockIntegrations = [
-  {name: 'integration-1', id: '1'},
-  {name: 'integration-2', id: '2'},
+  {name: 'integration-1', id: '1', status: 'active'},
+  {name: 'integration-2', id: '2', status: 'active'},
 ];
+
+const mockRepoData = {
+  testAnalyticsEnabled: true,
+  uploadToken: 'test-token',
+};
 
 const mockApiCall = () => {
   MockApiClient.addMockResponse({
@@ -122,12 +137,37 @@ const mockApiCall = () => {
       isSyncing: false,
     },
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/prevent/owner/123/repository/some-repository/',
+    method: 'GET',
+    body: mockRepoData,
+  });
 };
 
 describe('CoveragePageWrapper', () => {
-  describe('when the wrapper is used', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    localStorageWrapper.clear();
+    localStorageWrapper.setItem(
+      'prevent-selection:org-slug',
+      JSON.stringify({
+        'test-integration': {
+          integratedOrgId: '123',
+        },
+      })
+    );
     mockApiCall();
+  });
+
+  describe('when the wrapper is used', () => {
     it('renders the passed children', async () => {
+      mockGetRegionData.mockReturnValue({
+        name: 'us',
+        displayName: 'United States',
+        url: 'https://sentry.io',
+      });
+
       render(
         <PreventQueryParamsProvider>
           <TestsPage />
@@ -138,7 +178,7 @@ describe('CoveragePageWrapper', () => {
               pathname: '/prevent/tests',
               query: {
                 preventPeriod: '7d',
-                integratedOrgId: '123',
+                integratedOrgName: 'test-integration',
                 repository: 'some-repository',
                 branch: 'some-branch',
               },
@@ -160,6 +200,39 @@ describe('CoveragePageWrapper', () => {
       await waitFor(() => {
         expect(screen.getByText('Pagination Component')).toBeInTheDocument();
       });
+    });
+  });
+  describe('when the organization is not in the US region', () => {
+    it('renders the pre-onboarding page', () => {
+      mockGetRegionData.mockReturnValue({
+        name: 'eu',
+        displayName: 'European Union (EU)',
+        url: 'https://eu.sentry.io',
+      });
+
+      render(
+        <PreventQueryParamsProvider>
+          <TestsPage />
+        </PreventQueryParamsProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/prevent/tests',
+              query: {
+                preventPeriod: '7d',
+                integratedOrgName: 'test-integration',
+                repository: 'some-repository',
+                branch: 'some-branch',
+              },
+            },
+          },
+          organization: OrganizationFixture({features: ['test-analytics']}),
+        }
+      );
+
+      expect(
+        screen.getByText('Keep Test Problems From Slowing You Down')
+      ).toBeInTheDocument();
     });
   });
 });

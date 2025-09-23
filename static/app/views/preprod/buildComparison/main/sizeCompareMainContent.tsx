@@ -1,20 +1,26 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconCode, IconDownload, IconFile} from 'sentry/icons';
+import {IconCode, IconDownload, IconFile, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
+import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
   MetricsArtifactType,
   SizeAnalysisComparisonState,
@@ -26,6 +32,8 @@ import type {
 
 export function SizeCompareMainContent() {
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const theme = useTheme();
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -43,27 +51,47 @@ export function SizeCompareMainContent() {
       }
     );
 
-  const successfulComparison = sizeComparisonQuery.data?.comparisons.find(
-    comp =>
-      comp.state === SizeAnalysisComparisonState.SUCCESS &&
-      // TODO: Allow user to select artifact type
-      comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  const mainArtifactComparison = sizeComparisonQuery.data?.comparisons.find(
+    comp => comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
   );
 
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${successfulComparison?.head_size_metric_id}/${successfulComparison?.base_size_metric_id}/download/`,
+      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
     ],
     {
       staleTime: 0,
       enabled:
-        !!successfulComparison?.head_size_metric_id &&
-        !!successfulComparison?.base_size_metric_id &&
+        !!mainArtifactComparison?.head_size_metric_id &&
+        !!mainArtifactComparison?.base_size_metric_id &&
         !!organization.slug &&
         !!baseArtifactId,
     }
   );
+
+  const {mutate: triggerComparison, isPending: isComparing} = useMutation<
+    void,
+    RequestError,
+    {baseArtifactId: string; headArtifactId: string}
+  >({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      navigate(
+        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/${baseArtifactId}/`
+      );
+    },
+    onError: error => {
+      addErrorMessage(
+        error?.message || t('Failed to trigger comparison. Please try again.')
+      );
+    },
+  });
 
   // Process the comparison data for metrics cards
   const processedMetrics = useMemo(() => {
@@ -121,8 +149,17 @@ export function SizeCompareMainContent() {
     return metrics;
   }, [comparisonDataQuery.data]);
 
-  if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading) {
-    return <LoadingIndicator />;
+  if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
+    return (
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        style={{minHeight: '60vh', padding: theme.space.md}}
+      >
+        <LoadingIndicator />
+      </Flex>
+    );
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
@@ -136,9 +173,83 @@ export function SizeCompareMainContent() {
     );
   }
 
+  if (!mainArtifactComparison) {
+    return (
+      <BuildError
+        title={t('Comparison data not found')}
+        message={t(
+          'Something went wrong and we weren’t able to find the correct comparison.'
+        )}
+      >
+        <Flex gap="sm">
+          <Button
+            priority="default"
+            onClick={() => {
+              navigate(
+                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
+              );
+            }}
+          >
+            {t('Back')}
+          </Button>
+        </Flex>
+      </BuildError>
+    );
+  }
+
+  if (
+    [
+      SizeAnalysisComparisonState.PROCESSING,
+      SizeAnalysisComparisonState.PENDING,
+    ].includes(mainArtifactComparison.state)
+  ) {
+    return (
+      <BuildProcessing
+        title={t('Running diff engine')}
+        message={t('Hang tight, this may take a few minutes...')}
+      />
+    );
+  }
+
+  if (mainArtifactComparison.state === SizeAnalysisComparisonState.FAILED) {
+    return (
+      <BuildError
+        title={t('Comparison failed')}
+        message={
+          mainArtifactComparison.error_message ||
+          t("Something went wrong, we're looking into it.")
+        }
+      >
+        <Button
+          priority="default"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          <Flex gap="sm">
+            <IconRefresh size="sm" />
+            {t('Retry')}
+          </Flex>
+        </Button>
+      </BuildError>
+    );
+  }
+
   return (
     <Flex direction="column" gap="2xl">
-      {/* TODO: Build compare details */}
+      <SizeCompareSelectedBuilds
+        headBuildDetails={sizeComparisonQuery.data.head_build_details}
+        baseBuildDetails={sizeComparisonQuery.data.base_build_details}
+        isComparing={false}
+        onClearBaseBuild={() => {
+          navigate(
+            `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
+          );
+        }}
+      />
 
       {/* Metrics Grid */}
       <Grid columns="repeat(3, 1fr)" gap="lg">
