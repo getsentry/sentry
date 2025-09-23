@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -22,8 +23,11 @@ from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.api.oauth_authorize")
 
-# PKCE behavior: Prefer S256; v1 applications require S256; v0 allow plain for compatibility
-PKCE_DEFAULT_METHOD = "S256"
+# PKCE validation helpers
+PKCE_METHOD_S256 = "S256"
+PKCE_METHOD_PLAIN = "plain"
+PKCE_DEFAULT_METHOD = PKCE_METHOD_PLAIN
+PKCE_CODE_PATTERN = re.compile(r"^[A-Za-z0-9\-\._~]{43,128}$")
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -157,10 +161,18 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         # Validate PKCE inputs (when provided). For v1+ applications, only S256 is allowed;
-        # for v0, allow "plain" to avoid breakage.
+        # for v0, allow "plain" to avoid breakage. Spec default for missing method is "plain" (RFC 7636 §4.3).
         if code_challenge:
-            method = (code_challenge_method or PKCE_DEFAULT_METHOD).upper()
-            if method not in ("S256", "PLAIN"):
+            method_raw = code_challenge_method or PKCE_DEFAULT_METHOD
+            method_key = method_raw.upper()
+            if method_key == "S256":
+                method = PKCE_METHOD_S256
+            elif method_key == "PLAIN":
+                method = PKCE_METHOD_PLAIN
+            else:
+                method = None
+
+            if method is None:
                 return self.error(
                     request=request,
                     client_id=client_id,
@@ -169,8 +181,17 @@ class OAuthAuthorizeView(AuthLoginView):
                     name="invalid_request",
                     err_response="code_challenge_method",
                 )
-            if method == "PLAIN":
-                app_version = getattr(application, "version", 0) or 0
+            if not PKCE_CODE_PATTERN.match(code_challenge):
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    err_response="code_challenge",
+                )
+            if method == PKCE_METHOD_PLAIN:
+                app_version = application.version
                 if app_version >= 1:
                     return self.error(
                         request=request,
@@ -389,7 +410,7 @@ class OAuthAuthorizeView(AuthLoginView):
         state,
     ) -> HttpResponseBase:
         # Pull PKCE data (if any) from the session payload prepared during GET
-        sess_payload = request.session.get("oa2", {}) if hasattr(request, "session") else {}
+        sess_payload = request.session.get("oa2", {})
         sess_code_challenge = sess_payload.get("cc") or None
         sess_code_challenge_method = sess_payload.get("ccm") or None
         # Some applications require org level access, so user who approves only gives

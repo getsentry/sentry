@@ -9,6 +9,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
+from sentry.web.frontend.oauth_authorize import PKCE_METHOD_PLAIN
 
 
 @control_silo_test
@@ -489,6 +490,77 @@ class OAuthTokenCodeTest(TestCase):
             },
         )
         assert resp.status_code == 200
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.application == self.application
+        grant2.refresh_from_db()
+        assert grant2.code_challenge_method == PKCE_METHOD_PLAIN
+
+    def test_pkce_missing_method_defaults_to_plain(self) -> None:
+        self.application.update(version=0)
+        self.login_as(self.user)
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge="c" * 60,
+            code_challenge_method=None,
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant.code,
+                "code_verifier": "c" * 60,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.application == self.application
+        grant.refresh_from_db()
+        assert grant.code_challenge_method == PKCE_METHOD_PLAIN
+
+    def test_pkce_missing_method_treated_as_plain_failure_when_hashed(self) -> None:
+        self.application.update(version=0)
+        self.login_as(self.user)
+
+        import base64
+        import hashlib
+
+        verifier = "v" * 50
+        digest = hashlib.sha256(verifier.encode("ascii")).digest()
+        challenge = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+        grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri=self.application.get_default_redirect_uri(),
+            code_challenge=challenge,
+            code_challenge_method=None,
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": grant.code,
+                "code_verifier": verifier,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+        grant.refresh_from_db()
+        assert grant.code_challenge_method == PKCE_METHOD_PLAIN
 
     def test_valid_params(self) -> None:
         self.login_as(self.user)

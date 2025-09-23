@@ -7,6 +7,7 @@ from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.web.frontend.oauth_authorize import PKCE_METHOD_PLAIN, PKCE_METHOD_S256
 
 
 @control_silo_test
@@ -119,6 +120,66 @@ class OAuthAuthorizeCodeTest(TestCase):
             "WWxwZkV3MldEdmZ2N2d0X1pPZ1NrZzN1RDl0MHBZQUpzQ1ZzQWxkSW1aZw"
         )
         assert grant.code_challenge_method == "S256"
+
+    def test_pkce_defaults_to_plain_for_legacy_apps(self) -> None:
+        self.application.update(version=0)
+        self.login_as(self.user)
+
+        challenge = "a" * 64
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={challenge}"
+        )
+
+        assert resp.status_code == 200
+
+        resp = self.client.post(self.path, {"op": "approve"})
+        assert resp.status_code == 302
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.code_challenge == challenge
+        assert grant.code_challenge_method == PKCE_METHOD_PLAIN
+
+    def test_pkce_missing_method_rejected_for_v1(self) -> None:
+        self.application.update(version=1)
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            "&code_challenge=" + ("a" * 64)
+        )
+
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert (
+            resp.context["error"] == "Missing or invalid <em>code_challenge_method</em> parameter."
+        )
+
+    def test_pkce_rejects_invalid_challenge_length(self) -> None:
+        self.login_as(self.user)
+
+        challenge = "a" * 200
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={challenge}&code_challenge_method={PKCE_METHOD_S256}"
+        )
+
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>code_challenge</em> parameter."
+
+    def test_pkce_rejects_invalid_challenge_charset(self) -> None:
+        self.login_as(self.user)
+
+        challenge = "invalid*chars"
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+            f"&code_challenge={challenge}&code_challenge_method={PKCE_METHOD_S256}"
+        )
+
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>code_challenge</em> parameter."
 
     def test_minimal_params_deny_flow(self) -> None:
         self.login_as(self.user)

@@ -23,6 +23,11 @@ from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
+from sentry.web.frontend.oauth_authorize import (
+    PKCE_DEFAULT_METHOD,
+    PKCE_METHOD_PLAIN,
+    PKCE_METHOD_S256,
+)
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api.oauth_token")
@@ -144,7 +149,7 @@ class OAuthTokenView(View):
             return {"error": "invalid_grant", "reason": "grant expired"}
 
         # Enforce redirect_uri binding with application-version-aware behavior
-        app_version = getattr(grant.application, "version", 0) or 0
+        app_version = grant.application.version
         redirect_uri = request.POST.get("redirect_uri")
         redirect_check = self._check_redirect_binding(
             application=application,
@@ -249,14 +254,27 @@ class OAuthTokenView(View):
         if not _PKCE_VERIFIER_RE.match(code_verifier):
             return {"error": "invalid_grant", "reason": "invalid code_verifier charset"}
 
-        method = (grant.code_challenge_method or "S256").upper()
-        if method == "S256":
+        method_raw = grant.code_challenge_method or ""
+        method_key = method_raw.upper()
+        if not method_key:
+            method = PKCE_DEFAULT_METHOD
+        elif method_key == "S256":
+            method = PKCE_METHOD_S256
+        elif method_key == "PLAIN":
+            method = PKCE_METHOD_PLAIN
+        else:
+            return {"error": "invalid_grant", "reason": "unsupported pkce method"}
+
+        if method_raw != method:
+            grant.update(code_challenge_method=method)
+
+        if method == PKCE_METHOD_S256:
             computed = self._compute_s256(code_verifier)
             if computed != grant.code_challenge:
                 return {"error": "invalid_grant", "reason": "pkce verification failed"}
             return None
 
-        if method == "PLAIN":
+        if method == PKCE_METHOD_PLAIN:
             # v1 forbids plain; v0 allows plain
             if app_version >= 1:
                 return {"error": "invalid_grant", "reason": "pkce verification failed"}
