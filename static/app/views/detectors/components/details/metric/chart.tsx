@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import type {YAXisComponentOption} from 'echarts';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -211,7 +212,6 @@ function MetricDetectorChart({
       yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
       grid={grid}
       xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
-      ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
       tooltip={{
         valueFormatter: getDetectorChartFormatters({
           detectionType,
@@ -219,6 +219,10 @@ function MetricDetectorChart({
         }).formatTooltipValue,
       }}
       {...chartZoomProps}
+      onChartReady={chart => {
+        chartZoomProps.onChartReady(chart);
+        openPeriodMarkerResult.onChartReady(chart);
+      }}
     />
   );
 }
