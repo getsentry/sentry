@@ -9,7 +9,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
-from sentry.web.frontend.oauth_authorize import PKCE_METHOD_PLAIN
+from sentry.utils.oauth import PKCE_METHOD_PLAIN
 
 
 @control_silo_test

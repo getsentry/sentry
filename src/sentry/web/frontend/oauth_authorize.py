@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -19,15 +18,10 @@ from sentry.models.apitoken import ApiToken
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.oauth import PKCE_METHOD_PLAIN, normalize_pkce_method, validate_code_challenge
 from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.api.oauth_authorize")
-
-# PKCE validation helpers
-PKCE_METHOD_S256 = "S256"
-PKCE_METHOD_PLAIN = "plain"
-PKCE_DEFAULT_METHOD = PKCE_METHOD_PLAIN
-PKCE_CODE_PATTERN = re.compile(r"^[A-Za-z0-9\-\._~]{43,128}$")
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -163,14 +157,7 @@ class OAuthAuthorizeView(AuthLoginView):
         # Validate PKCE inputs (when provided). For v1+ applications, only S256 is allowed;
         # for v0, allow "plain" to avoid breakage. Spec default for missing method is "plain" (RFC 7636 §4.3).
         if code_challenge:
-            method_raw = code_challenge_method or PKCE_DEFAULT_METHOD
-            method_key = method_raw.upper()
-            if method_key == "S256":
-                method = PKCE_METHOD_S256
-            elif method_key == "PLAIN":
-                method = PKCE_METHOD_PLAIN
-            else:
-                method = None
+            method = normalize_pkce_method(code_challenge_method)
 
             if method is None:
                 return self.error(
@@ -181,7 +168,7 @@ class OAuthAuthorizeView(AuthLoginView):
                     name="invalid_request",
                     err_response="code_challenge_method",
                 )
-            if not PKCE_CODE_PATTERN.match(code_challenge):
+            if not validate_code_challenge(code_challenge):
                 return self.error(
                     request=request,
                     client_id=client_id,

@@ -7,7 +7,12 @@ from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.web.frontend.oauth_authorize import PKCE_METHOD_PLAIN, PKCE_METHOD_S256
+from sentry.utils.oauth import (
+    PKCE_METHOD_PLAIN,
+    PKCE_METHOD_S256,
+    normalize_pkce_method,
+    validate_code_challenge,
+)
 
 
 @control_silo_test
@@ -180,6 +185,21 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>code_challenge</em> parameter."
+
+    def test_validate_code_challenge_helper(self) -> None:
+        assert validate_code_challenge("a" * 43)
+        assert validate_code_challenge("A._-~0" * 7)
+        assert not validate_code_challenge("short")
+        assert not validate_code_challenge("invalid*chars")
+        assert not validate_code_challenge("a" * 129)
+
+    def test_normalize_pkce_method_helper(self) -> None:
+        assert normalize_pkce_method(None) == PKCE_METHOD_PLAIN
+        assert normalize_pkce_method("plain") == PKCE_METHOD_PLAIN
+        assert normalize_pkce_method("PLAIN") == PKCE_METHOD_PLAIN
+        assert normalize_pkce_method("S256") == PKCE_METHOD_S256
+        assert normalize_pkce_method("s256") == PKCE_METHOD_S256
+        assert normalize_pkce_method("unknown") is None
 
     def test_minimal_params_deny_flow(self) -> None:
         self.login_as(self.user)

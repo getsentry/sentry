@@ -22,12 +22,13 @@ from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.web.frontend.base import control_silo_view
-from sentry.web.frontend.oauth_authorize import (
-    PKCE_DEFAULT_METHOD,
+from sentry.utils.oauth import (
     PKCE_METHOD_PLAIN,
     PKCE_METHOD_S256,
+    normalize_pkce_method,
+    validate_code_challenge,
 )
+from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api.oauth_token")
@@ -233,6 +234,8 @@ class OAuthTokenView(View):
     ) -> dict | None:
         if not grant.code_challenge:
             return None
+        if not validate_code_challenge(grant.code_challenge):
+            return {"error": "invalid_grant", "reason": "invalid code_challenge"}
 
         # For v0: missing verifier is allowed (log), provided one must validate
         if app_version < 1 and not code_verifier:
@@ -254,18 +257,11 @@ class OAuthTokenView(View):
         if not _PKCE_VERIFIER_RE.match(code_verifier):
             return {"error": "invalid_grant", "reason": "invalid code_verifier charset"}
 
-        method_raw = grant.code_challenge_method or ""
-        method_key = method_raw.upper()
-        if not method_key:
-            method = PKCE_DEFAULT_METHOD
-        elif method_key == "S256":
-            method = PKCE_METHOD_S256
-        elif method_key == "PLAIN":
-            method = PKCE_METHOD_PLAIN
-        else:
+        method = normalize_pkce_method(grant.code_challenge_method)
+        if method is None:
             return {"error": "invalid_grant", "reason": "unsupported pkce method"}
 
-        if method_raw != method:
+        if grant.code_challenge_method != method:
             grant.update(code_challenge_method=method)
 
         if method == PKCE_METHOD_S256:
