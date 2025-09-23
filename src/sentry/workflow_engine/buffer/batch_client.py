@@ -16,9 +16,6 @@ if TYPE_CHECKING:
 class CohortUpdates(pydantic.BaseModel):
     values: dict[int, float]
 
-    def get_last_cohort_run(self, cohort_id: int) -> float:
-        return self.values.get(cohort_id, 0)
-
 
 class DelayedWorkflowClient:
     """
