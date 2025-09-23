@@ -16,16 +16,16 @@ from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.base import (
-    DetectorType,
-    PerformanceDetector,
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
+from sentry.performance_issues.detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
     get_span_evidence_value,
+    get_total_span_duration,
     get_url_from_span,
+    is_filtered_url,
     parameterize_url,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration, is_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 

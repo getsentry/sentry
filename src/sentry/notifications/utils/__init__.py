@@ -34,7 +34,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.performance_issues.base import get_url_from_span
+from sentry.performance_issues.detectors.utils import get_url_from_span
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 from sentry.services.eventstore.models import Event, GroupEvent

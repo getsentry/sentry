@@ -9,16 +9,15 @@ from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.base import get_url_from_span
-from sentry.performance_issues.detectors.utils import is_filtered_url
-
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
+from sentry.performance_issues.detectors.utils import (
     does_overlap_previous_span,
     get_notification_attachment_body,
     get_span_evidence_value,
+    get_url_from_span,
+    is_filtered_url,
 )
+
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 

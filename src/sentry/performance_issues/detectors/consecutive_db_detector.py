@@ -11,17 +11,17 @@ from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.detectors.utils import get_max_span_duration, get_total_span_duration
-from sentry.utils.event_frames import get_sdk_name
-
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
+from sentry.performance_issues.detectors.utils import (
     fingerprint_spans,
+    get_max_span_duration,
     get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
+    get_total_span_duration,
 )
+from sentry.utils.event_frames import get_sdk_name
+
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
