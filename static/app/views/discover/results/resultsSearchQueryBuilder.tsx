@@ -203,7 +203,13 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
 
     Object.assign(combinedTags, filteredTags, STATIC_SEMVER_TAGS, featureFlagTags);
 
-    combinedTags.has = getHasTag(combinedTags);
+    // Function tags should not be included in the has tag
+    const functionTagKeys = new Set(Object.keys(functionTags));
+    combinedTags.has = getHasTag(
+      Object.fromEntries(
+        Object.entries(combinedTags).filter(([key]) => !functionTagKeys.has(key))
+      )
+    );
 
     return combinedTags;
   }, [

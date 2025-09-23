@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -9,16 +9,20 @@ import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector'
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {TestSuiteDropdown} from 'sentry/components/prevent/testSuiteDropdown/testSuiteDropdown';
+import {getPreventParamsString} from 'sentry/components/prevent/utils';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 import {
   useInfiniteTestResults,
   type UseInfiniteTestResultsResult,
 } from 'sentry/views/prevent/tests/queries/useGetTestResults';
+import {useRepo} from 'sentry/views/prevent/tests/queries/useRepo';
 import {DEFAULT_SORT} from 'sentry/views/prevent/tests/settings';
 import {Summaries} from 'sentry/views/prevent/tests/summaries/summaries';
 import type {ValidSort} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
@@ -27,7 +31,7 @@ import TestAnalyticsTable, {
 } from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
 import {TestSearchBar} from 'sentry/views/prevent/tests/testSearchBar/testSearchBar';
 
-function EmptySelectorsMessage() {
+export function EmptySelectorsMessage() {
   return (
     <MessageContainer>
       <StyledIconSearch color="subText" size="xl" />
@@ -42,15 +46,25 @@ function EmptySelectorsMessage() {
 export default function TestsPage() {
   const {integratedOrgId, repository, branch, preventPeriod} = usePreventContext();
   const location = useLocation();
-
   const response = useInfiniteTestResults({
     cursor: location.query?.cursor as string | undefined,
     navigation: location.query?.navigation as 'next' | 'prev' | undefined,
   });
   const defaultBranch = response.data?.defaultBranch;
   const shouldDisplayTestSuiteDropdown = branch === null || branch === defaultBranch;
-
+  const organization = useOrganization();
   const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
+
+  const regionData = getRegionDataFromOrganization(organization);
+  const isUSStorage = regionData?.name === 'us';
+
+  if (!isUSStorage) {
+    return (
+      <LayoutGap>
+        <TestsPreOnboardingPage />
+      </LayoutGap>
+    );
+  }
 
   return (
     <LayoutGap>
@@ -70,7 +84,7 @@ export default function TestsPage() {
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 interface TestResultsContentData {
@@ -81,6 +95,16 @@ function Content({response}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
   const {branch: selectedBranch} = usePreventContext();
+  const {data: repoData, isSuccess} = useRepo();
+
+  useEffect(() => {
+    if (!repoData?.testAnalyticsEnabled && isSuccess) {
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
+        replace: true,
+      });
+    }
+  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess, location]);
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -139,13 +163,13 @@ function Content({response}: TestResultsContentData) {
 const MessageContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-items: center;
   align-items: center;
   text-align: center;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Subtitle = styled('div')`
@@ -158,12 +182,12 @@ const Title = styled('div')`
 `;
 
 const StyledIconSearch = styled(IconSearch)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const ControlsContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const StyledPagination = styled(Pagination)`

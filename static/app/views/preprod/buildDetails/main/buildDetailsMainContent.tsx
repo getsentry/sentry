@@ -15,6 +15,8 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
+import {BuildError} from 'sentry/views/preprod/components/buildError';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
@@ -38,6 +40,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     error: appSizeError,
   } = props.appSizeQuery;
 
+  // If the main data fetch fails, this component will not be rendered
+  // so we don't handle 'isBuildDetailsError'.
   const {isPending: isBuildDetailsPending, data: buildDetailsData} =
     props.buildDetailsQuery;
 
@@ -48,12 +52,22 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
-  const isAppSizeProcessing =
-    buildDetailsData?.size_analysis_state === BuildDetailsSizeAnalysisState.PROCESSING ||
-    buildDetailsData?.size_analysis_state === BuildDetailsSizeAnalysisState.PENDING;
+  const sizeInfo = buildDetailsData?.size_info;
 
-  // Show loading state if either query is pending or the app size analysis is processing
-  if (isAppSizePending || isBuildDetailsPending || isAppSizeProcessing) {
+  // We have two requests:
+  // - one for the build details (buildDetailsQuery)
+  // - one for the actual size data (appSizeQuery)
+
+  const isLoadingRequests = isAppSizePending || isBuildDetailsPending;
+  const isSizePending = sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING;
+  const isSizeProcessing = sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING;
+  const isSizeNotStarted = sizeInfo === undefined;
+  const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
+
+  const showLoading = isLoadingRequests;
+  const showNoSizeRequested = !isLoadingRequests && isSizeNotStarted;
+
+  if (showLoading) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
         {/* Main visualization skeleton */}
@@ -76,7 +90,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             <Placeholder width="100%" height="508px" />
           </Container>
           <LoadingIndicator size={60} style={{zIndex: 1}}>
-            {isAppSizeProcessing && t('Your app is still being analyzed...')}
+            {isLoadingRequests && t('Requesting data...')}
+            {isSizePending && t('Waiting for analysis to start...')}
+            {isSizeProcessing && t('Your app is still being analyzed...')}
           </LoadingIndicator>
         </Flex>
         {/* Insights skeleton */}
@@ -92,23 +108,78 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  // Show an error if the treemap data fetch fails
-  // If the main data fetch fails, this component will not be rendered
-  if (isAppSizeError) {
+  if (isSizePending || isSizeProcessing) {
+    return (
+      <BuildProcessing
+        title={t('Running size analysis')}
+        message={t('Hang tight, this may take a few minutes...')}
+      />
+    );
+  }
+
+  // TODO(): It would be good to have a call-to-action here. e.g.
+  // click to run size analysis.
+  if (showNoSizeRequested) {
     return (
       <Flex direction="column" gap="lg" minHeight="700px">
-        <Alert type="error">
-          {appSizeError?.message ?? t('The treemap data could not be loaded')}
-        </Alert>
+        <Flex
+          align="center"
+          justify="center"
+          style={{position: 'relative', height: '508px'}}
+          data-testid="treemap-loading-skeleton"
+        >
+          <Container
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '508px',
+              zIndex: 0,
+            }}
+          >
+            <p>{t('No size analysis.')}</p>
+          </Container>
+        </Flex>
       </Flex>
+    );
+  }
+
+  if (isSizeFailed) {
+    return (
+      <BuildError
+        title={t('Size analysis failed')}
+        message={
+          sizeInfo.error_message || t("Something went wrong, we're looking into it.")
+        }
+      />
+    );
+  }
+
+  // Show an error if the treemap data fetch fails. Treemap data fetch
+  // will fail if size analysis is running so the data will (404) but
+  // this is handled above. Errors where we know the cause (error_code
+  // / error_message is set) will be shown above case so this is only
+  // the case where the size analysis *ought* to be successful -
+  // but loading the treemap fails.
+  // TODO(EME-302): Currently we don't set the size metrics
+  // error_{code,message} correctly so we often see this.
+  // If the main data fetch fails, this component will not be rendered.
+  if (isAppSizeError) {
+    return (
+      <BuildError
+        title={t('Size analysis failed')}
+        message={appSizeError?.message ?? t('The treemap data could not be loaded')}
+      />
     );
   }
 
   if (!appSizeData) {
     return (
-      <Flex direction="column" gap="lg" minHeight="700px">
-        <Alert type="error">{t('The treemap data could not be loaded')}</Alert>
-      </Flex>
+      <BuildError
+        title={t('Size analysis failed')}
+        message={t('The treemap data could not be loaded')}
+      />
     );
   }
 

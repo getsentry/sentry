@@ -24,7 +24,9 @@ class DataExportTest(APITestCase):
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.login_as(user=self.user)
 
-    def make_payload(self, payload_type, extras=None, overwrite=False):
+    def make_payload(
+        self, payload_type: str, extras: dict[str, Any] | None = None, overwrite: bool = False
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {}
         if payload_type == "issue":
             payload = {

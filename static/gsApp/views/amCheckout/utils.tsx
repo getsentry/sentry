@@ -865,10 +865,6 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   return SUPPORTED_TIERS[tierIndex + 1];
 }
 
-export function hasCheckoutV3(organization: Organization) {
-  return organization.features.includes('checkout-v3');
-}
-
 export function getContentForPlan(plan: Plan): PlanContent {
   if (isBizPlanFamily(plan)) {
     return {
@@ -984,4 +980,9 @@ export function getCreditApplied({
     return 0;
   }
   return creditApplied;
+}
+
+// TODO(isabella): clean this up after GA
+export function hasNewCheckout(organization: Organization) {
+  return organization.features.includes('checkout-v3');
 }

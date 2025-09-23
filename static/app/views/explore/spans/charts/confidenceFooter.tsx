@@ -10,6 +10,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 type Props = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
+  extrapolate?: boolean;
   isLoading?: boolean;
   isSampled?: boolean | null;
   sampleCount?: number;
@@ -23,8 +24,24 @@ export function ConfidenceFooter(props: Props) {
   );
 }
 
-function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Props) {
+function confidenceMessage({
+  extrapolate,
+  sampleCount,
+  confidence,
+  topEvents,
+  isSampled,
+}: Props) {
   const isTopN = defined(topEvents) && topEvents > 1;
+
+  if (defined(extrapolate) && !extrapolate) {
+    if (!defined(sampleCount)) {
+      return t('Span Count: \u2026');
+    }
+    return tct('Span Count: [sampleCountComponent]', {
+      sampleCountComponent: <Count value={sampleCount} />,
+    });
+  }
+
   if (!defined(sampleCount)) {
     return isTopN
       ? t('* Top %s groups extrapolated from \u2026', topEvents)

@@ -94,6 +94,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         self.create_data_source_detector(
@@ -402,6 +404,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         cron_detector = self.create_detector(
@@ -977,7 +981,12 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.owner.identifier == self.user.get_actor_identifier()
 
         # Verify serialized response includes owner
-        assert response.data["owner"] == self.user.get_actor_identifier()
+        assert response.data["owner"] == {
+            "email": self.user.email,
+            "id": str(self.user.id),
+            "name": self.user.get_username(),
+            "type": "user",
+        }
 
     def test_valid_creation_with_team_owner(self) -> None:
         # Create a team for testing
@@ -1005,7 +1014,11 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.owner.identifier == f"team:{team.id}"
 
         # Verify serialized response includes team owner
-        assert response.data["owner"] == f"team:{team.id}"
+        assert response.data["owner"] == {
+            "id": str(team.id),
+            "name": team.slug,
+            "type": "team",
+        }
 
     def test_invalid_owner(self) -> None:
         # Test with invalid owner format

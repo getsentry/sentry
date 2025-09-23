@@ -12,7 +12,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallStep,
+  getCrashReportJavaScriptInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigOptions,
@@ -529,7 +529,7 @@ const feedbackOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -558,7 +558,10 @@ const docs: Docs = {
   crashReportOnboarding,
   featureFlagOnboarding,
   profilingOnboarding,
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'solidstart',
+    configFileName: 'instrument.server.mjs',
+  }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'solidstart',
     sdkPackage: '@sentry/solidstart',

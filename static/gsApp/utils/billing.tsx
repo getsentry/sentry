@@ -311,6 +311,11 @@ export const hasPartnerMigrationFeature = (organization: Organization) =>
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
+// TODO(isabella): clean this up after GA
+export const hasNewBillingUI = (organization: Organization) =>
+  organization.features.includes('subscriptions-v3');
+
+// TODO(isabella): clean this up after GA
 export const hasStripeComponentsFeature = (organization: Organization) =>
   organization.features.includes('stripe-components');
 

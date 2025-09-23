@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -10,26 +11,22 @@ import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryPar
 
 jest.mock('sentry/utils/usePageFilters');
 
-function createWrapper() {
-  return function TestWrapper({children}: {children: React.ReactNode}) {
-    return (
-      <SpansQueryParamsProvider>
-        <PageParamsProvider>{children}</PageParamsProvider>
-      </SpansQueryParamsProvider>
-    );
-  };
+function Wrapper({children}: {children: ReactNode}) {
+  return (
+    <SpansQueryParamsProvider>
+      <PageParamsProvider>{children}</PageParamsProvider>
+    </SpansQueryParamsProvider>
+  );
 }
 
 describe('useExploreTimeseries', () => {
-  let mockNormalRequestUrl: jest.Mock;
-
   beforeEach(() => {
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     jest.clearAllMocks();
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
-    mockNormalRequestUrl = MockApiClient.addMockResponse({
+    const mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
         data: [[1745371800, [{count: 0}]]],
@@ -66,7 +63,7 @@ describe('useExploreTimeseries', () => {
           enabled: true,
         }),
       {
-        additionalWrapper: createWrapper(),
+        additionalWrapper: Wrapper,
       }
     );
 
@@ -88,6 +85,52 @@ describe('useExploreTimeseries', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          query: 'test value',
+        }),
+      })
+    );
+  });
+
+  it('disables extrapolation', async () => {
+    const mockNonExtrapolatedRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return (
+            options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY &&
+            options.query.disableAggregateExtrapolation === '1'
+          );
+        },
+      ],
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useExploreTimeseries({
+          query: 'test value',
+          enabled: true,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              extrapolate: '0',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(mockNonExtrapolatedRequest).toHaveBeenCalledTimes(1));
+    expect(mockNonExtrapolatedRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          disableAggregateExtrapolation: '1',
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
           query: 'test value',
         }),

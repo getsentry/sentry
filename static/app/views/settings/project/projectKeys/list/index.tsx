@@ -18,6 +18,7 @@ import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,9 +50,20 @@ function ProjectKeys({project}: Props) {
     isError,
     refetch,
     getResponseHeader,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<ProjectKey[]>(
+    [
+      `/projects/${organization.slug}/${projectId}/keys/`,
+      {
+        query: {
+          cursor: decodeScalar(location.query.cursor),
+          per_page: 5,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   /**
    * Optimistically remove key

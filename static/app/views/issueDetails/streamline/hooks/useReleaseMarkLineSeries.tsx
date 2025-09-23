@@ -91,7 +91,7 @@ export function useReleaseMarkLineSeries({
     seriesName: t('Releases'),
     data: [],
     markLine,
-    color: theme.purple200,
+    color: theme.purple400,
     type: 'line',
   };
 }

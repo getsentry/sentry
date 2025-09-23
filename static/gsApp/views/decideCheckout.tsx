@@ -1,25 +1,36 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import useSubscription from 'getsentry/hooks/useSubscription';
 import {PlanTier} from 'getsentry/types';
 import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import AMCheckout from 'getsentry/views/amCheckout';
-import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
+import {hasNewCheckout} from 'getsentry/views/amCheckout/utils';
 
 function DecideCheckout() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const subscription = useSubscription();
   const [tier, setTier] = useState<string | null>(null);
+  const isNewCheckout = hasNewCheckout(organization);
+
+  useEffect(() => {
+    // if we're showing new checkout, ensure we show the checkout for
+    // the current plan tier (we will not toggle between tiers for legacy checkout)
+    if (isNewCheckout) {
+      setTier(subscription?.planTier ?? null);
+    }
+  }, [subscription?.planTier, isNewCheckout]);
 
   const checkoutProps = {
     organization,
     onToggleLegacy: setTier,
-    isNewCheckout: hasCheckoutV3(organization),
+    isNewCheckout,
     location,
     navigate,
   };

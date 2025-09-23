@@ -8,11 +8,9 @@ the `GroupHash` model file, so that existing records will get updated with the n
 from __future__ import annotations
 
 import logging
-import random
 from datetime import datetime
 from typing import Any, TypeIs, cast
 
-from sentry import options
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
@@ -108,33 +106,6 @@ METRICS_TAGS_BY_HASH_BASIS = {
 }
 
 
-def should_handle_grouphash_metadata(project: Project, grouphash_is_new: bool) -> bool:
-    # Killswitches
-    if not options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": False, "reason": "killswitch"},
-        )
-        return False
-
-    # While we're backfilling metadata for existing grouphash records, if the load is too high, we
-    # want to prioritize metadata for new grouphashes because there's certain information
-    # (timestamp, Seer data) which is only available at group creation time.
-    if grouphash_is_new:
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": True, "reason": "new_group"},
-        )
-        return True
-    else:
-        result = random.random() <= options.get("grouping.grouphash_metadata.backfill_sample_rate")
-        metrics.incr(
-            "grouping.grouphash_metadata.should_handle",
-            tags={"result": result, "reason": f"die_roll_{result}"},
-        )
-        return result
-
-
 def create_or_update_grouphash_metadata_if_needed(
     event: Event,
     project: Project,
@@ -155,6 +126,8 @@ def create_or_update_grouphash_metadata_if_needed(
 
         # Handle race condition cases where this event lost the race to create the metadata record
         if not created:
+            grouphash.refresh_from_db()
+
             logger.info(
                 "grouphash_metadata.creation_race_condition.record_exists",
                 extra={

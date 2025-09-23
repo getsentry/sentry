@@ -13,7 +13,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -22,7 +21,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
-import {getPlatformIconFromPlatform} from 'sentry/views/preprod/utils/labelUtils';
+import {
+  formattedDownloadSize,
+  formattedInstallSize,
+  getPlatformIconFromPlatform,
+} from 'sentry/views/preprod/utils/labelUtils';
 
 export default function BuildList() {
   const organization = useOrganization();
@@ -112,17 +115,9 @@ export default function BuildList() {
                   </BuildInfo>
                 </SimpleTable.RowCell>
 
-                <SimpleTable.RowCell>
-                  {build.size_info?.install_size_bytes
-                    ? formatBytesBase10(build.size_info.install_size_bytes)
-                    : '-'}
-                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>{formattedInstallSize(build)}</SimpleTable.RowCell>
 
-                <SimpleTable.RowCell>
-                  {build.size_info?.download_size_bytes
-                    ? formatBytesBase10(build.size_info.download_size_bytes)
-                    : '-'}
-                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>{formattedDownloadSize(build)}</SimpleTable.RowCell>
 
                 <SimpleTable.RowCell>
                   {build.app_info?.date_added ? (

@@ -196,8 +196,9 @@ def get_url_from_span(span: Span) -> str:
         url = url_data
         query_data = data.get("http.query")
         if type(query_data) is str and len(query_data) > 0:
-            url += f"?{query_data}"
-
+            # Only append the query string if the URL doesn't already contain one
+            if "?" not in url:
+                url += f"?{query_data}"
         return url
 
     # Attempt to parse the full URL from the span description, in case
@@ -378,10 +379,12 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
     """
     Fingerprints http spans based on their paramaterized paths, assumes all spans are http spans
     """
+    from sentry.performance_issues.detectors.utils import is_filtered_url
+
     url_paths = []
     for http_span in spans:
         url = get_url_from_span(http_span)
-        if url:
+        if url and not is_filtered_url(url):
             parametrized_url = parameterize_url(url)
             path = urlparse(parametrized_url).path
             if path not in url_paths:

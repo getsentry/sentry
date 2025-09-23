@@ -162,9 +162,10 @@ x-sentry-service-config:
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
-    launchpad: [snuba, postgres, relay, spotlight, launchpad]
+    launchpad: [snuba, postgres, relay, spotlight, launchpad, taskbroker, taskworker]
     objectstore: [snuba, postgres, relay, spotlight, objectstore]
-    taskbroker:
+    taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
+    taskworker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
@@ -273,6 +274,7 @@ x-sentry-service-config:
         process-segments,
         process-spans,
         relay,
+        symbolicator,
         snuba,
         spotlight,
         taskbroker,
@@ -284,6 +286,7 @@ x-sentry-service-config:
         snuba,
         postgres,
         relay,
+        symbolicator,
         spotlight,
         vroom,
         ingest-events,
@@ -451,7 +454,7 @@ services:
     labels:
       - orchestrator=devservices
   spotlight:
-    image: ghcr.io/getsentry/spotlight:latest
+    image: ghcr.io/getsentry/spotlight:7640f9ff4be79a934e5cac8b255d2a2055ceeb28
     healthcheck:
       interval: 1s
       timeout: 1s

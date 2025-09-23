@@ -75,6 +75,7 @@ function getSentryIntegrations() {
       behaviour: 'apply-tag-if-contains-third-party-frames',
     }),
     Sentry.featureFlagsIntegration(),
+    Sentry.consoleLoggingIntegration(),
   ];
 
   return integrations;

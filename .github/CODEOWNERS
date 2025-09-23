@@ -496,6 +496,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
+/static/app/components/onboarding/                                               @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
 /static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
 /static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
@@ -679,4 +680,5 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/stories/                                  @getsentry/design-engineering
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
+/scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform

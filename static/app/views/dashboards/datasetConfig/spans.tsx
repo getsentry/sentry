@@ -1,4 +1,5 @@
 import pickBy from 'lodash/pickBy';
+import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
@@ -17,7 +18,13 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  getEquationAliasIndex,
+  isEquation,
+  isEquationAlias,
+  type Aggregation,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {
   doDiscoverQuery,
   type DiscoverQueryExtras,
@@ -174,7 +181,7 @@ export const SpansConfig: DatasetConfig<
 > = {
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  enableEquations: false,
+  enableEquations: true,
   SearchBar: SpansSearchBar,
   useSearchBarDataProvider: useSpansSearchBarDataProvider,
   SearchBarDataProviderWrapper: SpansSearchBarDataProviderWrapper,
@@ -334,8 +341,19 @@ function getEventsRequest(
     ...queryExtras,
   };
 
-  if (query.orderby) {
-    params.sort = toArray(query.orderby);
+  let orderBy = query.orderby;
+
+  if (orderBy) {
+    if (isEquationAlias(trimStart(orderBy, '-'))) {
+      const equations = query.fields?.filter(isEquation) ?? [];
+      const equationIndex = getEquationAliasIndex(trimStart(orderBy, '-'));
+
+      const orderby = equations[equationIndex];
+      if (orderby) {
+        orderBy = orderBy.startsWith('-') ? `-${orderby}` : orderby;
+      }
+    }
+    params.sort = toArray(orderBy);
   }
 
   return doDiscoverQuery<EventsTableData>(
@@ -406,7 +424,10 @@ function getSeriesRequest(
 // Filters the primary options in the sort by selector
 function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
-    if (option.value.kind === FieldValueKind.FUNCTION) {
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
       return true;
     }
 
