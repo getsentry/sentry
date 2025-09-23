@@ -26,7 +26,11 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.team import Team
-from sentry.notifications.platform.slack.provider import SlackRenderable, SlackRenderer
+from sentry.notifications.platform.slack.provider import (
+    SlackNotificationData,
+    SlackRenderable,
+    SlackRenderer,
+)
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
@@ -142,8 +146,11 @@ class SlackIntegration(IntegrationInstallation, IntegrationNotificationClient[Sl
             footer=None,
             chart=None,
         )
-
-        slack_renderable = SlackRenderer.render(data=None, rendered_template=rendered_template)
+        data = SlackNotificationData(source="notify_remove_external_team")
+        slack_renderable = SlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+        )
 
         target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
