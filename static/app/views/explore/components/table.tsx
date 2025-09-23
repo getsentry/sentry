@@ -66,7 +66,7 @@ export function useTableStyles(
   options?: {
     minimumColumnWidth?: number;
     prefixColumnWidth?: 'min-content' | number;
-    staticColumnWidths?: Record<string, number | '1fr'>;
+    staticColumnWidths?: Record<string, number | 'minmax(90px,1fr)'>;
   }
 ) {
   const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;

@@ -344,6 +344,7 @@ export const LogRowContent = memo(function LogRowContent({
               meta={meta}
               extra={{
                 ...rendererExtra,
+                canAppendTemplateToBody: true,
                 unit: meta?.units?.[field],
               }}
             />

@@ -232,6 +232,13 @@ export const LogsHighlight = styled(HighlightComponent)`
   margin-left: 2px;
 `;
 
+export const LogsFilteredHelperText = styled('span')`
+  margin-left: 4px;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.gray200};
+`;
+
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
   white-space: ${p => (p.wrapText ? 'pre-wrap' : 'nowrap')};
   overflow: hidden;
