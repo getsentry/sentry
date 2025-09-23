@@ -260,8 +260,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
               if (typeof triggerProps.ref === 'function') {
                 triggerProps.ref(r);
               } else {
-                (triggerProps.ref as React.RefObject<HTMLButtonElement | null>).current =
-                  r;
+                triggerProps.ref.current = r;
               }
 
               if (
