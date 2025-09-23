@@ -22,10 +22,9 @@ import {SearchInvalidTag} from './searchInvalidTag';
 import type {SearchGroup, SearchItem, Shortcut} from './types';
 import {invalidTypes, ItemType} from './types';
 
-// @ts-expect-error TS(7023): 'getDropdownItemKey' implicitly has return type 'a... Remove this comment to see the full error message
-const getDropdownItemKey = (item: SearchItem) =>
+const getDropdownItemKey = (item: SearchItem): string =>
   `${item.value || item.desc || item.title}-${
-    item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]!) : ''
+    item.children?.[0] ? getDropdownItemKey(item.children[0]) : ''
   }`;
 
 type Props = {
@@ -323,7 +322,7 @@ type DropdownItemProps = {
   additionalSearchConfig?: Partial<SearchConfig>;
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   isChild?: boolean;
-  onIconClick?: any;
+  onIconClick?: (value: string) => void;
 };
 
 function DropdownItem({
@@ -366,7 +365,7 @@ function DropdownItem({
             onClick={e => {
               // stop propagation so the item-level onClick doesn't get called
               e.stopPropagation();
-              onIconClick(item.value);
+              onIconClick(item.value as string);
             }}
           />
         )}
