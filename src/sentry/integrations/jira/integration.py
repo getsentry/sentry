@@ -52,6 +52,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -971,7 +972,7 @@ class JiraIntegration(IssueSyncIntegration):
         # Immediately fetch and return the created issue.
         return self.get_issue(issue_key)
 
-    def raise_error(self, exc: Exception) -> NoReturn:
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
         """
         Overrides the base `raise_error` method to treat ApiInvalidRequestErrors
         as configuration errors when we don't have error field handling for the
@@ -986,7 +987,7 @@ class JiraIntegration(IssueSyncIntegration):
                 if error_fields is not None:
                     raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
             raise IntegrationConfigurationError(exc.text) from exc
-        super().raise_error(exc)
+        super().raise_error(exc, identity=identity)
 
     def sync_assignee_outbound(
         self,
