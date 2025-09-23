@@ -944,7 +944,7 @@ class GetReplayRangeTestCase(
 
         assert result is None
 
-    @patch("sentry.replays.usecases.summarize.execute_query")
+    @patch("sentry.replays.usecases.query.execute_query")
     def test_get_replay_range_handles_null_aggregates(self, mock_execute_query: Mock) -> None:
         mock_execute_query.return_value = {"data": [{"min": None, "max": None}]}
 
@@ -956,7 +956,7 @@ class GetReplayRangeTestCase(
 
         assert result is None
 
-    @patch("sentry.replays.usecases.summarize.execute_query")
+    @patch("sentry.replays.usecases.query.execute_query")
     def test_get_replay_range_handles_conversion_errors(self, mock_execute_query: Mock) -> None:
         """Test that get_replay_range handles datetime conversion errors gracefully."""
         mock_execute_query.return_value = {
