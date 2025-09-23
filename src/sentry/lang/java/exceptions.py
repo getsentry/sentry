@@ -38,7 +38,7 @@ class Exceptions:
             if value := exc.get("value", None):
                 class_matches = _JAVA_CLASS_IN_TEXT_RE.findall(value)
                 if class_matches:
-                    self._processable_exceptions_with_values.append([exc, class_matches])
+                    self._processable_exceptions_with_values.append((exc, class_matches))
 
     def get_processable_exceptions(self):
         return self._processable_exceptions
