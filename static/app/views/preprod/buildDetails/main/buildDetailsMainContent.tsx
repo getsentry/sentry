@@ -147,7 +147,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   if (isSizeFailed) {
     return (
-      <BuildError title={t('Size analysis failed')} message={sizeInfo.error_message} />
+      <BuildError
+        title={t('Size analysis failed')}
+        message={
+          sizeInfo.error_message || t("Something went wrong, we're looking into it.")
+        }
+      />
     );
   }
 
