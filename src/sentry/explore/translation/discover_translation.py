@@ -134,14 +134,24 @@ def _translate_discover_query_field_to_explore_query_schema(
         )
     )
 
+    # for certain functions, we translate them to equations because they're only supported in the explore equation builder
+
     translated_aggregate_columns = (
-        [field for field in translated_query_parts["selected_columns"] if is_aggregate(field)]
+        [
+            field
+            for field in translated_query_parts["selected_columns"]
+            if is_aggregate(field) or is_equation(field)
+        ]
         if translated_query_parts["selected_columns"] is not None
         else []
     )
 
     translated_non_aggregate_columns = (
-        [field for field in translated_query_parts["selected_columns"] if not is_aggregate(field)]
+        [
+            field
+            for field in translated_query_parts["selected_columns"]
+            if not is_aggregate(field) and not is_equation(field)
+        ]
         if translated_query_parts["selected_columns"] is not None
         else []
     )
