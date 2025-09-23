@@ -570,6 +570,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:service-hooks-outbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable UI for log high fidelity queries
     manager.add("organizations:ourlogs-high-fidelity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable relay extraction of nested attributes from logs
+    manager.add("organizations:ourlogs-relay-extract-nested-attributes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
 
     # Enable using paginated projects endpoint for Jira integration
     manager.add("organizations:jira-paginated-projects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)

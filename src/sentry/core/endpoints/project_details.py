@@ -836,6 +836,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:csp_ignored_sources_defaults",
                     bool(options["sentry:csp_ignored_sources_defaults"]),
                 )
+            if "ourlogs.relay-extract-json-attributes.enable" in options:
+                project.update_option(
+                    "ourlogs.relay-extract-json-attributes.enable",
+                    bool(options["ourlogs.relay-extract-json-attributes.enable"]),
+                )
+            if "ourlogs.relay-extract-json-attributes.count" in options:
+                project.update_option(
+                    "ourlogs.relay-extract-json-attributes.count",
+                    int(options["ourlogs.relay-extract-json-attributes.count"]),
+                )
             if "sentry:csp_ignored_sources" in options:
                 project.update_option(
                     "sentry:csp_ignored_sources",
