@@ -34,6 +34,7 @@ import {
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -55,7 +56,10 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -128,6 +132,17 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
+function SpansSearchBarDataProviderWrapper({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
+  const enabled = organization.features.includes('visibility-explore-view');
+
+  return (
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled={enabled}>
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
+
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -162,6 +177,7 @@ export const SpansConfig: DatasetConfig<
   enableEquations: false,
   SearchBar: SpansSearchBar,
   useSearchBarDataProvider: useSpansSearchBarDataProvider,
+  SearchBarDataProviderWrapper: SpansSearchBarDataProviderWrapper,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,

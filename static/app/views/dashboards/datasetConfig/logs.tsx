@@ -24,6 +24,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   handleOrderByReset,
@@ -48,8 +49,12 @@ import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -109,6 +114,17 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
   },
   {} as Record<AggregationKey, Aggregation>
 );
+
+function LogsSearchBarDataProviderWrapper({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
+  const enabled = isLogsEnabled(organization);
+
+  return (
+    <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled={enabled}>
+      {children}
+    </TraceItemAttributeProvider>
+  );
+}
 
 function LogsSearchBar({
   widgetQuery,
@@ -178,6 +194,7 @@ export const LogsConfig: DatasetConfig<
   enableEquations: false,
   SearchBar: LogsSearchBar,
   useSearchBarDataProvider: useLogsSearchBarDataProvider,
+  SearchBarDataProviderWrapper: LogsSearchBarDataProviderWrapper,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,

@@ -97,6 +97,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters
   ) => TableData;
   /**
+   * Context provider component that wraps the search bar data provider.
+   * Required when the data provider hook needs specific context.
+   */
+  SearchBarDataProviderWrapper?: React.ComponentType<{
+    children: React.ReactNode;
+  }>;
+  /**
    * Configure enabling/disabling sort/direction options with an
    * optional message for why it is disabled.
    */
@@ -228,6 +235,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * to reset the orderby of the widget query.
    */
   handleOrderByReset?: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
+
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
@@ -237,7 +245,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     organization: Organization
   ) => Series[];
-
   /**
    * Data provider hook that provides methods
    * to retrieve tags and values for the search bar.
