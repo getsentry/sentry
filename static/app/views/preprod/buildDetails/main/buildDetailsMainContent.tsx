@@ -117,7 +117,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  // TODO(): It would be good to have a call-to-action here. e.g.
+  // TODO(EME-304): It would be good to have a call-to-action here. e.g.
   // click to run size analysis.
   if (showNoSizeRequested) {
     return (
