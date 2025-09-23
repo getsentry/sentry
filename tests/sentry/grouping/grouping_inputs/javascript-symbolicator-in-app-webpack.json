@@ -1,0 +1,23 @@
+{
+  "platform": "javascript",
+  "exception": {
+    "values": [
+      {
+        "type": "Error",
+        "value": "error with webpack in_app false",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "func",
+              "abs_path": "webpack:///./src/components/Button.js",
+              "filename": "./src/components/Button.js",
+              "lineno": 42,
+              "colno": 15,
+              "in_app": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
