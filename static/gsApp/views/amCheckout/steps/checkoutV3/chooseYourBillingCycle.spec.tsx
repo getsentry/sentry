@@ -73,7 +73,9 @@ describe('ChooseYourBillingCycle', () => {
     monthlyInfo: string | RegExp;
     yearlyInfo: string | RegExp;
   }) {
-    expect(await screen.findByText('Choose your billing cycle')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Pay monthly or yearly, your choice')
+    ).toBeInTheDocument();
 
     const monthlyOption = screen.getByTestId('billing-cycle-option-monthly');
     expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();

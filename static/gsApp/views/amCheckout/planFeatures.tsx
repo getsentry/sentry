@@ -24,14 +24,14 @@ const FEATURES: Array<{features: string[]; plan: string}> = [
     plan: 'developer',
     features: [
       t('1 user'),
-      t('5k Errors'),
-      t('5GB of Logs'),
-      t('5M Spans'),
-      t('50 Replays'),
+      t('5K errors'),
+      t('5GB of logs'),
+      t('5M spans'),
+      t('50 replays'),
       t('10 custom dashboards'),
-      t('1 Cron Monitor'),
-      t('1 Uptime Monitor'),
-      t('1GB of Attachments'),
+      t('1 cron monitor'),
+      t('1 uptime monitor'),
+      t('1GB of attachments'),
       t('20 metric alerts'),
     ],
   },
@@ -39,7 +39,7 @@ const FEATURES: Array<{features: string[]; plan: string}> = [
     plan: 'team',
     features: [
       t('Unlimited users'),
-      t('50K Errors'),
+      t('50K errors'),
       t('Access to UI and Continuous Profiling'),
       t('Can add event volume to subscription'),
       t('Third-party integrations'),
@@ -87,16 +87,27 @@ function PlanFeatures({
 }) {
   const planToFeatures: PlanFeatureInfo[] = [];
   let activePlanIndex = 0;
-  planOptions.forEach((planOption, index) => {
+  // XXX(isabella): this is a hacky way to show the free features
+  // without free plan being surfaced in the UI
+  // (will be removed when free is surfaced)
+  const planOptionsWithFree = [
+    {
+      ...planOptions[0],
+      name: 'Developer',
+    } as Plan,
+    ...planOptions,
+  ];
+
+  planOptionsWithFree.forEach((planOption, index) => {
     const planName = planOption.name.toLowerCase();
-    const priorPlan = index > 0 ? planOptions[index - 1] : null;
+    const priorPlan = index > 0 ? planOptionsWithFree[index - 1] : null;
     const featureList = FEATURES.filter(({plan}) => planName.includes(plan)).flatMap(
       ({features}) => features
     );
     const perUnitPriceDiffs =
       !priorPlan || priorPlan?.basePrice === 0
         ? {}
-        : Object.entries(planOption.planCategories).reduce(
+        : Object.entries(planOption.planCategories ?? {}).reduce(
             (acc, [category, eventBuckets]) => {
               const priorPlanEventBuckets =
                 priorPlan?.planCategories[category as DataCategory];
@@ -130,7 +141,10 @@ function PlanFeatures({
           planName: <Text underline>{activePlan.name}</Text>,
         })}
       </Heading>
-      <Grid columns={{xs: '1fr', sm: `repeat(${planOptions.length}, 1fr)`}} gap="md xl">
+      <Grid
+        columns={{xs: '1fr', sm: `repeat(${planOptionsWithFree.length}, 1fr)`}}
+        gap="md xl"
+      >
         {planToFeatures.map(({plan, features, perUnitPriceDiffs}, index) => {
           const planName = plan.name;
           const lowerCasePlanName = planName.toLowerCase();
@@ -147,7 +161,7 @@ function PlanFeatures({
                 <FeatureItem key={feature} feature={feature} isIncluded={isIncluded} />
               ))}
               {Object.keys(perUnitPriceDiffs).length > 0 && (
-                <EventPriceWarning align="center" gap="sm">
+                <EventPriceWarning isIncluded={isIncluded} align="center" gap="sm">
                   <IconWarning size="sm" color="yellow300" />
                   <Tooltip
                     title={tct('Starting at [priceDiffs].', {
@@ -188,7 +202,8 @@ function PlanFeatures({
 
 export default PlanFeatures;
 
-const EventPriceWarning = styled(Flex)`
+const EventPriceWarning = styled(Flex)<{isIncluded: boolean}>`
+  opacity: ${p => (p.isIncluded ? 1 : 0.5)};
   > span {
     text-decoration: underline dotted;
     text-decoration-color: ${p => p.theme.subText};
