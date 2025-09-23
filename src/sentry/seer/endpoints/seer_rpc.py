@@ -1,11 +1,14 @@
 import datetime
 import hashlib
 import hmac
+import json
 import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, TypedDict
+from urllib.parse import urljoin
 
+import requests
 import sentry_sdk
 from cryptography.fernet import Fernet
 from django.conf import settings
@@ -811,45 +814,56 @@ def get_spans(
 def get_github_enterprise_integration_config(
     *, organization_id: int, integration_id: int
 ) -> dict[str, Any]:
+    """
+    Get GitHub Enterprise integration configuration by calling the control silo endpoint.
+    This avoids silo boundary issues by making an HTTP call to the control silo.
+    """
+
     if not settings.SEER_GHE_ENCRYPT_KEY:
         logger.error("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")
-        return {"success": False}
-
-    integration = integration_service.get_integration(
-        integration_id=integration_id,
-        provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-        organization_id=organization_id,
-        status=ObjectStatus.ACTIVE,
-    )
-    if integration is None:
-        logger.error("Integration %s does not exist", integration_id)
-        return {"success": False}
-
-    installation = integration.get_installation(organization_id=organization_id)
-    assert isinstance(installation, GitHubEnterpriseIntegration)
-
-    client = installation.get_client()
-    access_token_data = client.get_access_token()
-
-    if not access_token_data:
-        logger.error("No access token found for integration %s", integration.id)
-        return {"success": False}
+        return {"success": False, "error": "SEER_GHE_ENCRYPT_KEY not configured"}
 
     try:
-        fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        access_token = access_token_data["access_token"]
-        encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
-    except Exception:
-        logger.exception("Failed to encrypt access token")
-        return {"success": False}
+        # Get the control silo address
+        control_address = getattr(settings, 'SENTRY_CONTROL_ADDRESS', None)
+        if not control_address:
+            logger.error("SENTRY_CONTROL_ADDRESS not configured")
+            return {"success": False, "error": "SENTRY_CONTROL_ADDRESS not configured"}
 
-    return {
-        "success": True,
-        "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
-        "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
-        "encrypted_access_token": encrypted_access_token,
-        "permissions": access_token_data["permissions"],
-    }
+        # Construct the URL for the control silo endpoint
+        url = urljoin(control_address, "/api/0/github-enterprise-config/")
+
+        # Prepare the request data
+        data = {
+            "organization_id": organization_id,
+            "integration_id": integration_id
+        }
+
+        # Make the request to the control silo
+        logger.info("Making request to control silo for integration %s, org %s", integration_id, organization_id)
+
+        # Use the same authentication mechanism
+        body = json.dumps(data).encode('utf-8')
+        signature = generate_request_signature("/api/0/github-enterprise-config/", body)
+
+        headers = {
+            "Content-Type": "application/json",
+            "X-Seer-Token": signature,
+        }
+
+        response = requests.post(url, data=body, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        result = response.json()
+        logger.info("Successfully got response from control silo for integration %s", integration_id)
+        return result
+
+    except requests.exceptions.RequestException as e:
+        logger.exception("HTTP error calling control silo for integration %s: %s", integration_id, e)
+        return {"success": False, "error": f"HTTP error: {e}"}
+    except Exception as e:
+        logger.exception("Unexpected error getting GitHub Enterprise integration config: %s", e)
+        return {"success": False, "error": f"Unexpected error: {e}"}
 
 
 def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:

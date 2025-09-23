@@ -501,6 +501,7 @@ from sentry.seer.endpoints.organization_seer_explorer_chat import (
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
+from sentry.seer.endpoints.github_enterprise_config import GitHubEnterpriseConfigEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
@@ -3405,6 +3406,11 @@ INTERNAL_URLS = [
         r"^seer-rpc/(?P<method_name>\w+)/$",
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
+    ),
+    re_path(
+        r"^github-enterprise-config/$",
+        GitHubEnterpriseConfigEndpoint.as_view(),
+        name="sentry-api-0-github-enterprise-config",
     ),
     # Prevent AI (Overwatch) endpoints
     re_path(
