@@ -10,6 +10,9 @@ describe('MutableSearch', () => {
       [{'span.description': '*hello*'}, 'span.description:*hello*'],
       [{'span.duration': ['>0', '<100']}, 'span.duration:>0 span.duration:<100'],
       [{transaction: '(empty)'}, '!has:transaction'],
+      [{'span.op': '\uf00dContains\uf00dtest'}, 'span.op:\uf00dContains\uf00dtest'],
+      [{'span.op': '\uf00dStartsWith\uf00dtest'}, 'span.op:\uf00dStartsWith\uf00dtest'],
+      [{'span.op': '\uf00dEndsWith\uf00dtest'}, 'span.op:\uf00dEndsWith\uf00dtest'],
     ])('converts %s to search string', (query, result) => {
       expect(MutableSearch.fromQueryObject(query).formatString()).toEqual(result);
     });
@@ -45,6 +48,9 @@ describe('MutableSearch', () => {
       ['a:"\\"a\\""', 'a:"\\"a\\""'],
       ['a:"i \\" quote" b:"b\\"bb" c:"cc"', 'a:"i \\" quote" b:"b\\"bb" c:"cc"'],
       ['tags["foo:bar",string]:asdf', 'tags["foo:bar",string]:asdf'],
+      ['span.op:\uf00dContains\uf00dtest', 'span.op:\uf00dContains\uf00dtest'],
+      ['span.op:\uf00dStartsWith\uf00dtest', 'span.op:\uf00dStartsWith\uf00dtest'],
+      ['span.op:\uf00dEndsWith\uf00dtest', 'span.op:\uf00dEndsWith\uf00dtest'],
     ])('normalizes %s -> %s', (input, expected) => {
       expect(new MutableSearch(input).formatString()).toEqual(expected);
     });
@@ -71,6 +77,11 @@ describe('MutableSearch', () => {
 
       results.addStringFilter('d:d2');
       expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2');
+
+      results.addStringFilter('f:\uf00dContains\uf00dtest');
+      expect(results.formatString()).toBe(
+        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uf00dContains\uf00dtest'
+      );
     });
 
     it('adds individual values to query object', () => {
