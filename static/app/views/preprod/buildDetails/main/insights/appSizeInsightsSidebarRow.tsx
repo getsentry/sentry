@@ -49,7 +49,7 @@ export function AppSizeInsightsSidebarRow({
             minWidth="56px"
             style={{
               flexShrink: 0,
-              background: theme.green100,
+              background: theme.green200,
             }}
           >
             <Text size="xs" variant="success" tabular>
