@@ -31,11 +31,11 @@ const Badge = styled('div')`
 
 /* Badge layout and style */
 const FastForwardTooltip = styled(Tooltip)`
-  display: grid;
-  grid-template-columns: max-content max-content;
-  gap: ${space(0.5)};
+  display: flex;
   align-items: center;
-
+  > svg {
+    margin-left: ${p => p.theme.space.sm};
+  }
   background: ${p => p.theme.gray300};
   color: ${p => p.theme.white};
   padding: ${space(1.5)} ${space(2)};
