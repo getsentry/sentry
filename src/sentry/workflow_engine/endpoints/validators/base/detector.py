@@ -2,6 +2,7 @@ import builtins
 from dataclasses import dataclass
 from typing import Any
 
+import jsonschema
 from django.db import router, transaction
 from rest_framework import serializers
 
@@ -168,16 +169,19 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 elif owner.is_team:
                     owner_team_id = owner.id
 
-            detector = Detector.objects.create(
-                project_id=self.context["project"].id,
-                name=validated_data["name"],
-                workflow_condition_group=condition_group,
-                type=validated_data["type"].slug,
-                config=validated_data.get("config", {}),
-                owner_user_id=owner_user_id,
-                owner_team_id=owner_team_id,
-                created_by_id=self.context["request"].user.id,
-            )
+            try:
+                detector = Detector.objects.create(
+                    project_id=self.context["project"].id,
+                    name=validated_data["name"],
+                    workflow_condition_group=condition_group,
+                    type=validated_data["type"].slug,
+                    config=validated_data.get("config", {}),
+                    owner_user_id=owner_user_id,
+                    owner_team_id=owner_team_id,
+                    created_by_id=self.context["request"].user.id,
+                )
+            except jsonschema.ValidationError as error:
+                raise serializers.ValidationError({"config": [str(error)]})
             DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
             create_audit_entry(
