@@ -64,10 +64,11 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
         #   - One week range -> one hour interval.
         #   - One day range -> ten minute interval.
         #   - One hour range -> twenty second interval.
-        interval_s = get_rollup_from_request(
-            request, end - start, "1h", ParseError("Invalid Interval"), max_rollup_override=200
+        interval = timedelta(
+            seconds=get_rollup_from_request(
+                request, end - start, "1h", ParseError("Invalid Interval"), max_rollup_override=200
+            )
         )
-        interval = timedelta(seconds=interval_s)
 
         SUPPORTED_AXES: dict[str, dict[str, Any]] = {
             "count(new_issues)": {
