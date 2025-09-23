@@ -513,12 +513,7 @@ export class MutableSearch {
   }
 
   hasFilter(key: string): boolean {
-    for (const t of this.tokens) {
-      if (t.type === TokenType.FILTER && t.key === key) {
-        return true;
-      }
-    }
-    return false;
+    return this.tokens.some(t => t.type === TokenType.FILTER && t.key === key);
   }
 
   removeFilter(key: string): this {
