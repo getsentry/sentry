@@ -17,12 +17,11 @@ from sentry.models.project import Project
 from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance
+from sentry.replays.query import get_replay_range, query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.replays.usecases.summarize import (
     fetch_error_details,
     fetch_trace_connected_errors,
-    get_replay_range,
     get_summary_logs,
 )
 from sentry.seer.seer_setup import has_seer_access

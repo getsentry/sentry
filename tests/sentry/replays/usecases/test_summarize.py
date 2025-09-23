@@ -12,13 +12,13 @@ from django.conf import settings
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
+from sentry.replays.query import get_replay_range
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.ingest.event_parser import get_timestamp_unit, which
 from sentry.replays.usecases.summarize import (
     EventDict,
     _parse_iso_timestamp_to_ms,
     as_log_message,
-    get_replay_range,
     get_summary_logs,
     rpc_get_replay_summary_logs,
 )
