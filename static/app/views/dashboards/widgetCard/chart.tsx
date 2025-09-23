@@ -159,7 +159,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       // N.B. Always use `onChartReady` for this, rather than `ref`, since
       // `onChartReady` correctly fires async when the instance becomes
       // available, unlike `ref`!
-      instance.group = props.chartGroup;
+      if (props.chartGroup) instance.group = props.chartGroup;
     },
     [props.chartGroup]
   );
