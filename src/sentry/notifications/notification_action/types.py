@@ -29,9 +29,12 @@ from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     IntegrationConfigurationError,
     IntegrationFormError,
 )
+from sentry.taskworker.retry import RetryError
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
@@ -45,36 +48,12 @@ from sentry.workflow_engine.typings.notification_action import (
 
 logger = logging.getLogger(__name__)
 
+FutureCallback = Callable[[GroupEvent, Sequence[RuleFuture]], None]
+
 
 class RuleData(TypedDict):
     actions: list[dict[str, Any]]
     legacy_rule_id: NotRequired[int]
-
-
-def unsafe_execute(
-    event_data: WorkflowEventData,
-    callback: Callable[[GroupEvent, Sequence[RuleFuture]], None],
-    future: list[RuleFuture],
-) -> None:
-    try:
-        callback(event_data.event, future)
-    except EXCEPTION_IGNORE_LIST:
-        # no-op on any exceptions in the ignore list. We likely have
-        # reporting for them in the integration code already.
-        pass
-    except Exception as e:
-        logger.exception("Failed to execute future", extra={"future": future})
-        if hasattr(callback, "im_class"):
-            cls = callback.im_class
-        else:
-            cls = callback.__class__
-
-        func_name = getattr(callback, "__name__", str(callback))
-        cls_name = cls.__name__
-        localized_logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
-
-        localized_logger.exception("%s.process_error", func_name, extra={"exception": e})
-        raise
 
 
 class LegacyRegistryHandler(ABC):
@@ -94,6 +73,46 @@ class LegacyRegistryHandler(ABC):
 
 
 EXCEPTION_IGNORE_LIST = (IntegrationFormError, IntegrationConfigurationError, InvalidIdentity)
+RETRIABLE_EXCEPTIONS = (ApiError,)
+
+
+def invoke_future_with_error_handling(
+    event_data: WorkflowEventData,
+    callback: FutureCallback,
+    future: list[RuleFuture],
+) -> None:
+    # WorkflowEventData should only ever be a GroupEvent in this context, so we
+    # narrow the type here to keep mypy happy.
+    assert isinstance(
+        event_data.event, GroupEvent
+    ), f"Expected a GroupEvent, received: {type(event_data.event).__name__}"
+    try:
+        callback(event_data.event, future)
+    except EXCEPTION_IGNORE_LIST:
+        # no-op on any exceptions in the ignore list. We likely have
+        # reporting for them in the integration code already.
+        pass
+    except ProcessingDeadlineExceeded:
+        # We need to reraise ProcessingDeadlineExceeded for workflow engine to
+        # monitor and potentially retry this action.
+        raise
+    except RETRIABLE_EXCEPTIONS as e:
+        raise RetryError from e
+    except Exception as e:
+        # This is just a redefinition of the safe_execute util function, as we
+        # still want to report any unhandled exceptions.
+        logger.exception("Failed to execute future", extra={"future": future})
+        if hasattr(callback, "im_class"):
+            cls = callback.im_class
+        else:
+            cls = callback.__class__
+
+        func_name = getattr(callback, "__name__", str(callback))
+        cls_name = cls.__name__
+        localized_logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
+
+        localized_logger.exception("%s.process_error", func_name, extra={"exception": e})
+        return None
 
 
 class BaseIssueAlertHandler(ABC):
@@ -253,9 +272,7 @@ class BaseIssueAlertHandler(ABC):
     @staticmethod
     def execute_futures(
         event_data: WorkflowEventData,
-        futures: Collection[
-            tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
-        ],
+        futures: Collection[tuple[FutureCallback, list[RuleFuture]]],
     ) -> None:
         """
         This method will execute the futures.
@@ -267,7 +284,7 @@ class BaseIssueAlertHandler(ABC):
             )
 
         for callback, future in futures:
-            unsafe_execute(callback, event_data.event, future)
+            invoke_future_with_error_handling(event_data, callback, future)
 
     @staticmethod
     def send_test_notification(
