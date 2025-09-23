@@ -9,7 +9,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -28,6 +28,7 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
@@ -62,14 +63,6 @@ class DiscoverDatasetSplitException(Exception):
     pass
 
 
-LEGACY_RATE_LIMIT = dict(limit=30, window=1, concurrent_limit=15)
-# reduced limit will be the future default for all organizations not explicitly on increased limit
-DEFAULT_REDUCED_RATE_LIMIT = dict(
-    limit=1000, window=300, concurrent_limit=15  # 1000 requests per 5 minutes
-)
-DEFAULT_INCREASED_RATE_LIMIT = dict(limit=50, window=1, concurrent_limit=50)
-
-
 class EventsMeta(TypedDict):
     fields: dict[str, str]
     datasetReason: NotRequired[str]
@@ -83,76 +76,6 @@ class EventsApiResponse(TypedDict):
     meta: EventsMeta
 
 
-def rate_limit_events(
-    request: Request, organization_id_or_slug: str | None = None, *args, **kwargs
-) -> dict[str, dict[RateLimitCategory, RateLimit]]:
-    """
-    Decision tree for rate limiting for organization events endpoint.
-    ```mermaid
-     flowchart TD
-         A[Get organization] --> B{Organization\nexists}
-         B -->|No| C[Return legacy rate limit]
-         B -->|Yes| D{Organization\nin increased\nrate limit}
-         D -->|Yes| E[Return increased rate limit]
-         D -->|No| F{Organization in\nreduced limit\nroll-out}
-         F -->|Yes| G[Return reduced rate limit]
-         F -->|No| H[Return legacy rate limit]
-     ```
-    """
-
-    def _config_for_limit(limit: RateLimit) -> dict[str, dict[RateLimitCategory, RateLimit]]:
-        return {
-            "GET": {
-                RateLimitCategory.IP: limit,
-                RateLimitCategory.USER: limit,
-                RateLimitCategory.ORGANIZATION: limit,
-            }
-        }
-
-    def _validated_limits(limits: dict[str, Any], fallback: dict[str, Any]) -> RateLimit:
-        """
-        Validate the rate limit configuration has required values of correct type.
-        """
-        try:
-            # dataclass doesn't check types, so forcing int which will raise if not int or numeric string
-            limits = {k: int(v) for k, v in limits.items()}
-            return RateLimit(**limits)
-        except Exception:
-            logger.exception("invalid rate limit config", extra={"limits": limits})
-            return RateLimit(**fallback)
-
-    rate_limit = RateLimit(**LEGACY_RATE_LIMIT)
-
-    try:
-        if str(organization_id_or_slug).isdecimal():
-            organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
-        else:
-            organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "organization.slug.invalid", extra={"organization_id_or_slug": organization_id_or_slug}
-        )
-        return _config_for_limit(rate_limit)
-
-    if organization.id in options.get("api.organization_events.rate-limit-increased.orgs", []):
-        rate_limit = _validated_limits(
-            options.get("api.organization_events.rate-limit-increased.limits"),
-            DEFAULT_INCREASED_RATE_LIMIT,
-        )
-
-    elif features.has(
-        "organizations:api-organization_events-rate-limit-reduced-rollout",
-        organization=organization,
-    ):
-
-        rate_limit = _validated_limits(
-            options.get("api.organization_events.rate-limit-reduced.limits"),
-            DEFAULT_REDUCED_RATE_LIMIT,
-        )
-
-    return _config_for_limit(rate_limit)
-
-
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
@@ -162,7 +85,15 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
     enforce_rate_limit = True
 
-    rate_limits = rate_limit_events
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=50, window=1, concurrent_limit=50),
+                RateLimitCategory.USER: RateLimit(limit=50, window=1, concurrent_limit=50),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=50, window=1, concurrent_limit=50),
+            }
+        }
+    )
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
