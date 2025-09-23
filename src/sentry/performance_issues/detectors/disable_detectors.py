@@ -11,23 +11,11 @@ class DetectorDisablingConfig(TypedDict):
 
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
+# `project_performance_issue_settings.py` has the project option keys for each detector.
 DEFAULT_DETECTOR_DISABLING_CONFIGS: list[DetectorDisablingConfig] = [
     {
-        "detector_project_option": "db_query_injection_detection_enabled",
-        "languages_to_disable": {
-            "php",
-            "php-laravel",
-            "php-symfony",
-            "go",
-            "go-echo",
-            "go-fasthttp",
-            "go-fiber",
-            "go-gin",
-            "go-http",
-            "go-iris",
-            "go-martini",
-            "go-negroni",
-        },
+        "detector_project_option": "consecutive_db_queries_detection_enabled",
+        "languages_to_disable": {"ruby"},
     }
 ]
 
