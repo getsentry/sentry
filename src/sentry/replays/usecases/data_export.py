@@ -293,22 +293,11 @@ def retry_export_blob_data[T](
     # Check for a failed transfer operation
     if "transferOperation" in payload and payload["transferOperation"]["status"] == "FAILED":
         job_name = payload["transferOperation"]["transferJobName"]
-        project_id = payload["transferOperation"]["projectId"]
+        gcs_project_id = payload["transferOperation"]["projectId"]
 
         request = UpdateTransferJobRequest(
             job_name=job_name,
-            project_id=project_id,
-            transfer_job=TransferJob(status=storage_transfer_v1.TransferJob.Status.ENABLED),
-        )
-        return retry_transfer_job(request)
-    # Check for a failed transfer operation
-    if "transferOperation" in payload and payload["transferOperation"]["status"] == "FAILED":
-        job_name = payload["transferOperation"]["transferJobName"]
-        project_id = payload["transferOperation"]["projectId"]
-
-        request = UpdateTransferJobRequest(
-            job_name=job_name,
-            project_id=project_id,
+            project_id=gcs_project_id,
             transfer_job=TransferJob(status=storage_transfer_v1.TransferJob.Status.ENABLED),
         )
         return retry_transfer_job(request)
