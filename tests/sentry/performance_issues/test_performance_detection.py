@@ -10,8 +10,9 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.performance_issues.base import DetectorType, total_span_time
+from sentry.performance_issues.base import DetectorType
 from sentry.performance_issues.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
+from sentry.performance_issues.detectors.utils import total_span_time
 from sentry.performance_issues.performance_detection import (
     EventPerformanceProblem,
     _detect_performance_problems,

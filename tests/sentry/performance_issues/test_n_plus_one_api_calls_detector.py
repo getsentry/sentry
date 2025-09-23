@@ -7,11 +7,12 @@ from uuid import uuid4
 import pytest
 
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
-from sentry.performance_issues.base import DetectorType, parameterize_url
+from sentry.performance_issues.base import DetectorType
 from sentry.performance_issues.detectors.n_plus_one_api_calls_detector import (
     NPlusOneAPICallsDetector,
     without_query_params,
 )
+from sentry.performance_issues.detectors.utils import parameterize_url
 from sentry.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,

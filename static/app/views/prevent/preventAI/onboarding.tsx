@@ -5,12 +5,14 @@ import preventHero from 'sentry-images/features/prevent-hero.svg';
 import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.svg';
 import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.svg';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface OnboardingStepProps {
@@ -38,8 +40,21 @@ function OnboardingStep({step, title, description}: OnboardingStepProps) {
 export default function PreventAIOnboarding() {
   const organization = useOrganization();
   const theme = useTheme();
+  const regionData = getRegionDataFromOrganization(organization);
+  const isUSOrg = regionData?.name === 'us';
   return (
     <Flex direction="column" gap="2xl">
+      {!isUSOrg && (
+        <Container maxWidth="1000px">
+          <Alert.Container>
+            <Alert type="info">
+              {t(
+                'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
+              )}
+            </Alert>
+          </Alert.Container>
+        </Container>
+      )}
       <Flex
         direction="row"
         gap="md"

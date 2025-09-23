@@ -61,7 +61,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
       });
 
       expect(localStorage.getItem).toHaveBeenCalledWith(
@@ -93,7 +92,6 @@ describe('PageFilters ActionCreators', () => {
         skipLoadLastUsed: true,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         router,
       });
 
@@ -117,7 +115,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -154,7 +151,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         router,
       });
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -179,7 +175,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '3h',
@@ -213,7 +208,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '24h',
@@ -246,7 +240,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '24h',
@@ -278,7 +271,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         router,
       });
 
@@ -314,7 +306,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         router,
       });
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -326,34 +317,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
           projects: [-1],
-          environments: [],
-        },
-        new Set(),
-        true
-      );
-    });
-
-    it('does invalidate all projects from query params if forced into single project', () => {
-      initializeUrlState({
-        organization,
-        queryParams: {
-          project: '-1',
-        },
-        memberProjects: projects,
-        nonMemberProjects: [],
-        // User does not have access to global views
-        shouldEnforceSingleProject: true,
-        router,
-      });
-      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        {
-          datetime: {
-            start: null,
-            end: null,
-            period: '14d',
-            utc: null,
-          },
-          projects: [1],
           environments: [],
         },
         new Set(),
@@ -384,7 +347,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
       });
 
       // Confirm that query params are not restored from local storage
@@ -416,7 +378,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
       });
 
       // Confirm that only environment is restored from local storage
@@ -457,7 +418,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         storageNamespace,
       });
       expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
@@ -524,7 +484,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         storageNamespace,
       });
       expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
@@ -572,7 +531,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         storageNamespace: 'insights',
       });
 
