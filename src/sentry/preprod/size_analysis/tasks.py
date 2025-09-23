@@ -246,8 +246,8 @@ def manual_size_analysis_comparison(
         extra={
             "head_artifact_id": head_artifact.id,
             "base_artifact_id": base_artifact.id,
-            "head_size_metrics": head_size_metrics,
-            "base_size_metrics": base_size_metrics,
+            "head_size_metrics_ids": [m.id for m in head_size_metrics],
+            "base_size_metrics_ids": [m.id for m in base_size_metrics],
         },
     )
 
