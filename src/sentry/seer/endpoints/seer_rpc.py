@@ -825,7 +825,7 @@ def get_github_enterprise_integration_config(
 
     try:
         # Get the control silo address
-        control_address = getattr(settings, 'SENTRY_CONTROL_ADDRESS', None)
+        control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", None)
         if not control_address:
             logger.error("SENTRY_CONTROL_ADDRESS not configured")
             return {"success": False, "error": "SENTRY_CONTROL_ADDRESS not configured"}
@@ -834,16 +834,17 @@ def get_github_enterprise_integration_config(
         url = urljoin(control_address, "/api/0/github-enterprise-config/")
 
         # Prepare the request data
-        data = {
-            "organization_id": organization_id,
-            "integration_id": integration_id
-        }
+        data = {"organization_id": organization_id, "integration_id": integration_id}
 
         # Make the request to the control silo
-        logger.info("Making request to control silo for integration %s, org %s", integration_id, organization_id)
+        logger.info(
+            "Making request to control silo for integration %s, org %s",
+            integration_id,
+            organization_id,
+        )
 
         # Use the same authentication mechanism
-        body = json.dumps(data).encode('utf-8')
+        body = json.dumps(data).encode("utf-8")
         signature = generate_request_signature("/api/0/github-enterprise-config/", body)
 
         headers = {
@@ -855,11 +856,15 @@ def get_github_enterprise_integration_config(
         response.raise_for_status()
 
         result = response.json()
-        logger.info("Successfully got response from control silo for integration %s", integration_id)
+        logger.info(
+            "Successfully got response from control silo for integration %s", integration_id
+        )
         return result
 
     except requests.exceptions.RequestException as e:
-        logger.exception("HTTP error calling control silo for integration %s: %s", integration_id, e)
+        logger.exception(
+            "HTTP error calling control silo for integration %s: %s", integration_id, e
+        )
         return {"success": False, "error": f"HTTP error: {e}"}
     except Exception as e:
         logger.exception("Unexpected error getting GitHub Enterprise integration config: %s", e)

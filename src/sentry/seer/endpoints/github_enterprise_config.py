@@ -42,12 +42,11 @@ class GitHubEnterpriseConfigEndpoint(Endpoint):
             if not organization_id or not integration_id:
                 return Response(
                     {"success": False, "error": "Missing organization_id or integration_id"},
-                    status=400
+                    status=400,
                 )
 
             result = get_github_enterprise_integration_config(
-                organization_id=organization_id,
-                integration_id=integration_id
+                organization_id=organization_id, integration_id=integration_id
             )
             return Response(result)
         except Exception as e:
@@ -73,7 +72,9 @@ def get_github_enterprise_integration_config(
             status=ObjectStatus.ACTIVE,
         )
         if integration is None:
-            logger.error("Integration %s does not exist for organization %s", integration_id, organization_id)
+            logger.error(
+                "Integration %s does not exist for organization %s", integration_id, organization_id
+            )
             return {"success": False, "error": "Integration not found"}
 
         logger.info("Successfully retrieved integration %s", integration.id)
@@ -84,7 +85,9 @@ def get_github_enterprise_integration_config(
             assert isinstance(installation, GitHubEnterpriseIntegration)
             logger.info("Successfully created installation for integration %s", integration.id)
         except Exception as e:
-            logger.exception("Failed to create installation for integration %s: %s", integration.id, e)
+            logger.exception(
+                "Failed to create installation for integration %s: %s", integration.id, e
+            )
             return {"success": False, "error": f"Failed to create installation: {e}"}
 
         # Step 3: Get the client
@@ -113,7 +116,9 @@ def get_github_enterprise_integration_config(
             encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
             logger.info("Successfully encrypted access token for integration %s", integration.id)
         except Exception as e:
-            logger.exception("Failed to encrypt access token for integration %s: %s", integration.id, e)
+            logger.exception(
+                "Failed to encrypt access token for integration %s: %s", integration.id, e
+            )
             return {"success": False, "error": f"Failed to encrypt access token: {e}"}
 
         return {
