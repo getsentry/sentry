@@ -1,4 +1,5 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
@@ -60,7 +61,7 @@ export function FeatureFlagsLogTable({
   );
 
   return (
-    <Fragment>
+    <div>
       <GridEditable
         error={error}
         isLoading={isPending}
@@ -78,8 +79,8 @@ export function FeatureFlagsLogTable({
         data-test-id="audit-log-table"
       />
 
-      <Pagination pageLinks={pageLinks} onCursor={handlePageChange} />
-    </Fragment>
+      <PaginationNoMargin pageLinks={pageLinks} onCursor={handlePageChange} />
+    </div>
   );
 }
 
@@ -103,3 +104,7 @@ function renderBodyCell(
       return dataRow[column.key];
   }
 }
+
+const PaginationNoMargin = styled(Pagination)`
+  margin: 0;
+`;

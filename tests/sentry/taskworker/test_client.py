@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 import grpc
 import pytest
+from django.test import override_settings
 from google.protobuf.message import Message
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
@@ -239,6 +240,7 @@ def test_get_task_writes_to_health_check_file() -> None:
 
 
 @django_db_all
+@override_settings(TASKWORKER_SHARED_SECRET='["a long secret value","notused"]')
 def test_get_task_with_interceptor() -> None:
     channel = MockChannel()
     channel.add_response(
@@ -260,10 +262,9 @@ def test_get_task_with_interceptor() -> None:
             ),
         ),
     )
-    secret = '["a long secret value","notused"]'
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient(["localhost-0:50051"], rpc_secret=secret)
+        client = TaskworkerClient(["localhost-0:50051"])
         result = client.get_task()
 
         assert result
