@@ -106,3 +106,26 @@ def assert_analytics_events(
     with patch("sentry.analytics.record") as mock_record:
         yield
         assert_analytics_events_recorded(mock_record, expected_events, exclude_fields)
+
+
+def get_event_count(
+    mock_record: MagicMock,
+    expected_event_type: type[Event] | tuple[type[Event], ...],
+    exact: bool = False,
+) -> int:
+    if exact:
+        return len(
+            [
+                call
+                for call in mock_record.call_args_list
+                if type(call.args[0]) is expected_event_type
+            ]
+        )
+    else:
+        return len(
+            [
+                call
+                for call in mock_record.call_args_list
+                if isinstance(call.args[0], expected_event_type)
+            ]
+        )
