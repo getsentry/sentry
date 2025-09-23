@@ -6,7 +6,7 @@ import requests
 from django.conf import settings
 
 from sentry.replays.testutils import mock_replay
-from sentry.replays.usecases.data_export import export_clickhouse_rows
+from sentry.replays.usecases.data_export import export_clickhouse_rows, export_replays_dataset
 from sentry.testutils.skips import requires_snuba
 
 
@@ -47,5 +47,6 @@ def test_export_clickhouse_rows(replay_store):
     replay_store.save(mock_replay(t3, 1, replay4_id, segment_id=0))
     replay_store.save(mock_replay(t2, 2, replay5_id, segment_id=0))
 
-    rows = list(export_clickhouse_rows([1], t0, t3, limit=1, num_pages=10))
+    query_fn = lambda limit, offset: export_replays_dataset(1, t0, t3, limit, offset)
+    rows = list(export_clickhouse_rows(query_fn, limit=1, num_pages=10))
     assert len(rows) == 3

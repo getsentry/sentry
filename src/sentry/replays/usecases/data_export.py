@@ -7,9 +7,11 @@
 # \$$$$$$  |$$$$$$$$\ $$$$$$\ \$$$$$$  |$$ | \$$\ $$ |  $$ | $$$$$$  |\$$$$$$  |\$$$$$$  |$$$$$$$$\
 #  \______/ \________|\______| \______/ \__|  \__|\__|  \__| \______/  \______/  \______/ \________|
 
-from collections.abc import Callable
+import csv
+import io
+from collections.abc import Callable, Generator, Iterator
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Protocol, TypedDict
 
 from snuba_sdk import (
     Column,
@@ -22,9 +24,15 @@ from snuba_sdk import (
     Op,
     OrderBy,
     Query,
+    Request,
 )
 
-from sentry.replays.usecases.query import execute_query
+from sentry.utils.retries import ConditionalRetryPolicy
+from sentry.utils.snuba import raw_snql_query
+
+
+class QueryFnProtocol(Protocol):
+    def __call__(self, limit: int, offset: int) -> Request: ...
 
 
 class Cursor(TypedDict):
@@ -32,32 +40,81 @@ class Cursor(TypedDict):
     replay_id: str
 
 
-def export_clickhouse_rows(
-    project_ids: list[int],
-    start: datetime,
-    end: datetime,
-    limit: int = 1000,
-    num_pages: int = 1,
-):
-    offset = 0
-    for _ in range(num_pages):
-        results = export_clickhouse_row_set(project_ids, start, end, limit, offset)
-        offset += len(results)
+def row_iterator_to_csv(rows: Iterator[dict[str, Any]]) -> io.BytesIO:
+    buf = io.BytesIO()
+    writer = csv.writer(buf)
 
+    for i, row in enumerate(rows):
+        if i == 0:
+            writer.writerow(row.keys())
+
+        writer.writerow(row.values())
+
+    return buf
+
+
+def export_clickhouse_rows(
+    query_fn: QueryFnProtocol,
+    referrer: str = "sentry.internal.eu-compliance-data-export",
+    limit: int = 1000,
+    offset: int = 0,
+    num_pages: int = 1,
+    max_retries: int = 10,
+    retry_after_seconds: float = 1.0,
+) -> Generator[dict[str, Any]]:
+    """
+    ClickHouse row export.
+
+    :param query_fn: Any function which returns a request which is paginatable by limit and offset.
+    :param referrer: A unique identifier for a given data-export query.
+    :param limit: The number of rows to limit the query by.
+    :param offset: The initial offset value to offset the query by.
+    :param num_pages: The maximum number of pages we'll query before exiting. The number of pages
+        we query is intentionally capped. This ensures termination and encourages appropriate
+        bounding by the calling function.
+    :param max_retries: The maximum number of queries we'll make to the database before quitting.
+    :param retry_after_seconds: The number of seconds to wait after each query failure.
+    """
+    assert limit > 0, "limit mut be a positive integer greater than zero."
+    assert max_retries >= 0, "max_retries mut be a positive integer greater than or equal to zero."
+    assert num_pages > 0, "num_pages mut be a positive integer greater than zero."
+    assert offset >= 0, "offset mut be a positive integer greater than or equal to zero."
+    assert (
+        retry_after_seconds >= 0
+    ), "retry_after_seconds mut be a positive float greater than or equal to zero."
+
+    # Rate-limits might derail our queries. This policy will let us retry up to a maximum before
+    # giving up. Should we ever give up on a data-export? Probably but the specifics of that
+    # question are better answered elsewhere.
+    policy = ConditionalRetryPolicy(
+        test_function=lambda a, _: a <= max_retries,
+        delay_function=lambda _: retry_after_seconds,
+    )
+
+    # Iteration is capped to a maximum number of pages. This ensures termination and encourages
+    # appropriate bounding by the calling function. Ideally this export is ran in an asynchonrous
+    # task. Tasks typically have a deadline so iterating forever is undesireable. Each task should
+    # process a chunk of data commit it (and perhaps its progress) and then schedule another task
+    # to complete the remainder of the job which itself is bounded.
+    for _ in range(num_pages):
+        request = query_fn(limit=limit, offset=offset)
+        results = policy(lambda: raw_snql_query(request, referrer)["data"])
         if results:
-            yield results
+            yield from results
+
+        offset += len(results)
 
         if len(results) != limit:
             break
 
 
-def export_clickhouse_row_set(
-    project_ids: list[int],
+def export_replays_dataset(
+    project_id: int,
     start: datetime,
     end: datetime,
     limit: int,
     offset: int,
-) -> dict[str, Any]:
+) -> Request:
     query = Query(
         match=Entity("replays"),
         select=[
@@ -134,7 +191,7 @@ def export_clickhouse_row_set(
             Column("offset"),
         ],
         where=[
-            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
         ],
@@ -148,7 +205,12 @@ def export_clickhouse_row_set(
         offset=Offset(offset),
     )
 
-    return execute_query(query, {}, "replays.compliance_data_export")["data"]
+    return Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=query,
+        tenant_ids={},
+    )
 
 
 def hash_(value: Column | str) -> Function:
@@ -303,4 +365,5 @@ def retry_export_blob_data[T](
             project_id=gcs_project_id,
             transfer_job=TransferJob(status=storage_transfer_v1.TransferJob.Status.ENABLED),
         )
+        return retry_transfer_job(request)
         return retry_transfer_job(request)
