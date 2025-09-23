@@ -45,7 +45,6 @@ from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
@@ -643,7 +642,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
 
-    @with_feature("organizations:issue-open-periods")
     def test_update_open_period(self) -> None:
         fingerprint = ["some-fingerprint"]
         occurrence = self.build_occurrence(
@@ -695,7 +693,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group.priority == PriorityLevel.LOW
         assert group.priority_locked_at is not None
 
-    @with_feature("organizations:issue-open-periods")
     def test_create_open_period_activity_entry(self) -> None:
         fingerprint = ["some-fingerprint"]
         occurrence = self.build_occurrence(
@@ -716,7 +713,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert activity_updates[0].type == OpenPeriodActivityType.OPENED
         assert activity_updates[0].value == PriorityLevel.MEDIUM
 
-    @with_feature("organizations:issue-open-periods")
     def test_update_group_priority_open_period_activity_entry(self) -> None:
         fingerprint = ["some-fingerprint"]
         occurrence = self.build_occurrence(
@@ -753,7 +749,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert activity_updates[1].type == OpenPeriodActivityType.STATUS_CHANGE
         assert activity_updates[1].value == PriorityLevel.HIGH
 
-    @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.issues.ingest._process_existing_aggregate")
     def test_update_group_priority_and_unresolve(self, mock_is_regression: mock.MagicMock) -> None:
         # set up the group opening entry

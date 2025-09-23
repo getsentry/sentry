@@ -13,7 +13,6 @@ from sentry.models.groupopenperiod import (
     update_group_open_period,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
@@ -39,7 +38,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def get_url_args(self):
         return [self.organization.slug]
 
-    @with_feature("organizations:issue-open-periods")
     def test_no_group_link(self) -> None:
         # Create a new detector with no linked group
         detector = self.create_detector()
@@ -50,7 +48,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
         assert resp.data["detail"] == "Group not found. Could not query open periods."
 
-    @with_feature("organizations:issue-open-periods")
     def test_open_period_linked_to_group(self) -> None:
         response = self.get_success_response(
             *self.get_url_args(), qs_params={"detectorId": self.detector.id}
@@ -62,7 +59,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["duration"] is None
         assert open_period["isOpen"] is True
 
-    @with_feature("organizations:issue-open-periods")
     def test_open_periods_group_id(self) -> None:
         response = self.get_success_response(
             *self.get_url_args(), qs_params={"groupId": self.group.id}
@@ -72,7 +68,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def test_validation_error_when_missing_params(self) -> None:
         self.get_error_response(*self.get_url_args(), status_code=400)
 
-    @with_feature("organizations:issue-open-periods")
     def test_open_periods_new_group_with_last_checked(self) -> None:
         alert_rule = self.create_alert_rule(
             organization=self.organization,
@@ -95,7 +90,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["isOpen"] is True
         assert resp["lastChecked"] >= last_checked
 
-    @with_feature("organizations:issue-open-periods")
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
@@ -129,7 +123,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             second=0, microsecond=0
         )
 
-    @with_feature("organizations:issue-open-periods")
     def test_open_periods_unresolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
@@ -203,7 +196,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             second=0, microsecond=0
         )
 
-    @with_feature("organizations:issue-open-periods")
     def test_open_periods_limit(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.save()

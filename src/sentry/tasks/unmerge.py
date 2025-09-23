@@ -10,7 +10,7 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, eventstore, features, similarity, tsdb
+from sentry import analytics, eventstore, similarity, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
@@ -254,9 +254,6 @@ def migrate_events(
 
 
 def update_open_periods(source: Group, destination: Group) -> None:
-    if not features.has("organizations:issue-open-periods", destination.project.organization):
-        return
-
     # For groups that are not resolved, the open period created on group creation should have the necessary information
     if destination.status != GroupStatus.RESOLVED:
         return

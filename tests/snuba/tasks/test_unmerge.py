@@ -174,7 +174,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
-    @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.analytics.record")
     def test_unmerge(self, mock_record) -> None:
         now = before_now(minutes=5).replace(microsecond=0)
