@@ -899,9 +899,6 @@ class GithubOrganizationSelection:
             else False
         )
 
-        if self.active_user_organization is None:
-            return pipeline.next_step()
-
         with record_event(
             IntegrationPipelineViewType.ORGANIZATION_SELECTION
         ).capture() as lifecycle:
@@ -1034,8 +1031,6 @@ class GitHubInstallation:
             return pipeline.next_step()
 
     def check_pending_integration_deletion(self, request: HttpRequest) -> HttpResponse | None:
-        if self.active_user_organization is None:
-            return None
         # We want to wait until the scheduled deletions finish or else the
         # post install to migrate repos do not work.
         integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
