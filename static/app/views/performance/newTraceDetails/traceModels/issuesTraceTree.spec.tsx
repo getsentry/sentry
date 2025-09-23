@@ -8,9 +8,9 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
+import type {BaseNode} from './traceTreeNode/baseNode';
 import {IssuesTraceTree} from './issuesTraceTree';
 import {
   makeEventTransaction,
@@ -62,7 +62,7 @@ function mockSpansResponse(
   });
 }
 
-function hasErrors(n: TraceTreeNode<any>): boolean {
+function hasErrors(n: BaseNode): boolean {
   return (
     (isTraceErrorNode(n) || n.errors.size > 0 || n.occurrences.size > 0) &&
     !isTraceNode(n)
@@ -77,7 +77,7 @@ describe('IssuesTraceTree', () => {
       organization,
     });
 
-    const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
+    const issues = tree.root.findAllChildren(n => hasErrors(n));
     expect(tree.build().collapseList(issues, 3, 0).serialize()).toMatchSnapshot();
   });
 
@@ -88,10 +88,10 @@ describe('IssuesTraceTree', () => {
       organization,
     });
 
-    const error = IssuesTraceTree.Find(tree.root, hasErrors);
+    const error = tree.root.findChild(n => hasErrors(n));
 
     let node = error;
-    const nodes: Array<TraceTreeNode<any>> = [];
+    const nodes: Array<BaseNode<any>> = [];
     while (node && !isTraceNode(node)) {
       nodes.push(node);
       node = node.parent;
@@ -108,7 +108,7 @@ describe('IssuesTraceTree', () => {
       organization,
     });
 
-    const errors = IssuesTraceTree.FindAll(tree.root, hasErrors).slice(0, 10);
+    const errors = tree.root.findAllChildren(n => hasErrors(n)).slice(0, 10);
     expect(tree.build().collapseList(errors, 3, 0).serialize()).toMatchSnapshot();
   });
 
@@ -119,7 +119,7 @@ describe('IssuesTraceTree', () => {
       organization,
     });
 
-    const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
+    const issues = tree.root.findAllChildren(n => hasErrors(n));
 
     // Test with default value (3)
     const defaultCollapsed = tree.build().collapseList(issues, 3, 0).serialize();
@@ -140,7 +140,7 @@ describe('IssuesTraceTree', () => {
       organization,
     });
 
-    const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
+    const issues = tree.root.findAllChildren(n => hasErrors(n));
 
     // Test with default minShownNodes value
     const defaultMinShown = tree.build().collapseList(issues, 0, 3).serialize();
@@ -195,19 +195,16 @@ describe('IssuesTraceTree', () => {
         'event-id'
       );
 
-      const txn = TraceTree.Find(
-        tree.root,
+      const txn = tree.root.findChild(
         node => isTransactionNode(node) && node.value.transaction === 'transaction 2'
       )!;
 
-      await tree.zoom(txn, true, {
+      await txn.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      const span = TraceTree.Find(
-        tree.root,
+      const span = tree.root.findChild(
         node => isSpanNode(node) && node.value.span_id === 'error-span-id'
       )!;
       expect(tree.build().collapseList([span], 3, 0).serialize()).toMatchSnapshot();

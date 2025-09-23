@@ -1,22 +1,31 @@
 import type {Measurement} from 'sentry/types/event';
 
 import type {TraceSplitResults} from './traceApi/types';
-import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
-import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
-import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';
-import {CollapsedNode} from './traceModels/traceCollapsedNode';
-import {TraceTree} from './traceModels/traceTree';
-import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {TraceTree} from './traceModels/traceTree';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
+import type {CollapsedNode} from './traceModels/traceTreeNode/collapsedNode';
+import type {EapSpanNode} from './traceModels/traceTreeNode/eapSpanNode';
+import type {ErrorNode} from './traceModels/traceTreeNode/errorNode';
+import type {NoInstrumentationNode} from './traceModels/traceTreeNode/noInstrumentationNode';
+import type {ParentAutogroupNode} from './traceModels/traceTreeNode/parentAutogroupNode';
+import type {RootNode} from './traceModels/traceTreeNode/rootNode';
+import type {SiblingAutogroupNode} from './traceModels/traceTreeNode/siblingAutogroupNode';
+import type {SpanNode} from './traceModels/traceTreeNode/spanNode';
+import type {TransactionNode} from './traceModels/traceTreeNode/transactionNode';
+import type {UptimeCheckNode} from './traceModels/traceTreeNode/uptimeCheckNode';
+import type {UptimeCheckTimingNode} from './traceModels/traceTreeNode/uptimeCheckTimingNode';
 
 export function isMissingInstrumentationNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is MissingInstrumentationNode {
-  return node instanceof MissingInstrumentationNode;
+  node: BaseNode
+): node is NoInstrumentationNode {
+  return !!(
+    node.value &&
+    'type' in node.value &&
+    node.value.type === 'missing_instrumentation'
+  );
 }
 
-export function isSpanNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.Span> {
+export function isSpanNode(node: BaseNode): node is SpanNode {
   return (
     !!(node.value && !('transaction' in node.value) && 'span_id' in node.value) &&
     !isMissingInstrumentationNode(node) &&
@@ -32,27 +41,19 @@ export function isEAPTransaction(value: TraceTree.NodeValue): value is TraceTree
   return isEAPSpan(value) && value.is_transaction;
 }
 
-export function isEAPTransactionNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.EAPSpan> {
+export function isEAPTransactionNode(node: BaseNode): node is EapSpanNode {
   return isEAPTransaction(node.value);
 }
 
-export function isEAPSpanNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.EAPSpan> {
+export function isEAPSpanNode(node: BaseNode): node is EapSpanNode {
   return isEAPSpan(node.value);
 }
 
-export function isUptimeCheckNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.UptimeCheck> {
+export function isUptimeCheckNode(node: BaseNode): node is UptimeCheckNode {
   return isUptimeCheck(node.value);
 }
 
-export function isUptimeCheckTimingNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.UptimeCheckTiming> {
+export function isUptimeCheckTimingNode(node: BaseNode): node is UptimeCheckTimingNode {
   return !!(
     node.value &&
     'event_type' in node.value &&
@@ -60,15 +61,11 @@ export function isUptimeCheckTimingNode(
   );
 }
 
-export function isNonTransactionEAPSpanNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.EAPSpan> {
+export function isNonTransactionEAPSpanNode(node: BaseNode): node is EapSpanNode {
   return isEAPSpanNode(node) && !isEAPTransactionNode(node);
 }
 
-export function isTransactionNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.Transaction> {
+export function isTransactionNode(node: BaseNode): node is TransactionNode {
   return (
     !!(node.value && 'transaction' in node.value) &&
     !isAutogroupedNode(node) &&
@@ -94,64 +91,55 @@ export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPEr
   );
 }
 
-export function isEAPErrorNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.EAPError> {
+export function isEAPErrorNode(node: BaseNode): node is ErrorNode {
   return isEAPError(node.value);
 }
 
-export function isParentAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is ParentAutogroupNode {
-  return node instanceof ParentAutogroupNode;
+export function isParentAutogroupedNode(node: BaseNode): node is ParentAutogroupNode {
+  return !!(
+    node.value &&
+    'autogrouped_by' in node.value &&
+    node.value.type === 'children_autogroup'
+  );
 }
 
-export function isSiblingAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is SiblingAutogroupNode {
-  return node instanceof SiblingAutogroupNode;
+export function isSiblingAutogroupedNode(node: BaseNode): node is SiblingAutogroupNode {
+  return !!(
+    node.value &&
+    'autogrouped_by' in node.value &&
+    node.value.type === 'sibling_autogroup'
+  );
 }
 
 export function isAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
+  node: BaseNode
 ): node is ParentAutogroupNode | SiblingAutogroupNode {
-  return node instanceof ParentAutogroupNode || node instanceof SiblingAutogroupNode;
+  return isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node);
 }
 
-export function isCollapsedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is CollapsedNode {
-  return node instanceof CollapsedNode;
+export function isCollapsedNode(node: BaseNode): node is CollapsedNode {
+  return !!(node.value && 'type' in node.value && node.value.type === 'collapsed');
 }
 
 export function isTraceError(value: TraceTree.NodeValue): value is TraceTree.TraceError {
   return !!(value && 'level' in value && 'message' in value);
 }
 
-export function isTraceErrorNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.TraceError> {
+export function isTraceErrorNode(node: BaseNode): node is ErrorNode {
   return isTraceError(node.value);
 }
 
-export function isRootNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<null> {
+export function isRootNode(node: BaseNode): node is RootNode {
   return node.value === null;
 }
 
 export function isTraceNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceSplitResults<TraceTree.Transaction>> {
-  return !!(
-    node.value &&
-    ('orphan_errors' in node.value || 'transactions' in node.value)
-  );
+  node: BaseNode
+): node is BaseNode<TraceSplitResults<TraceTree.Transaction>> {
+  return !!(node.value && 'orphan_errors' in node.value && 'transactions' in node.value);
 }
 
-export function isEAPTraceNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.EAPTrace> {
+export function isEAPTraceNode(node: BaseNode): node is BaseNode<TraceTree.EAPTrace> {
   return !!node.value && Array.isArray(node.value) && !isTraceNode(node);
 }
 
@@ -197,9 +185,7 @@ export function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
   );
 }
 
-export function isPageloadTransactionNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): boolean {
+export function isPageloadTransactionNode(node: BaseNode): boolean {
   return (
     (isTransactionNode(node) && node.value['transaction.op'] === 'pageload') ||
     (isEAPTransactionNode(node) && node.value.op === 'pageload')
@@ -207,14 +193,12 @@ export function isPageloadTransactionNode(
 }
 
 export function isTransactionNodeEquivalent(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.Transaction | TraceTree.EAPSpan> {
+  node: BaseNode
+): node is TransactionNode | EapSpanNode {
   return isTransactionNode(node) || isEAPTransaction(node.value);
 }
 
-export function isServerRequestHandlerTransactionNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): boolean {
+export function isServerRequestHandlerTransactionNode(node: BaseNode): boolean {
   return (
     (isTransactionNode(node) && node.value['transaction.op'] === 'http.server') ||
     (isEAPTransactionNode(node) && node.value.op === 'http.server')
@@ -229,14 +213,13 @@ export function isBrowserRequestSpan(value: TraceTree.Span | TraceTree.EAPSpan):
   );
 }
 
-export function getPageloadTransactionChildCount(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): number {
+export function getPageloadTransactionChildCount(node: BaseNode): number {
   if (!isTransactionNode(node) && !isEAPTransactionNode(node)) {
     return 0;
   }
+
   let count = 0;
-  for (const txn of TraceTree.VisibleChildren(node)) {
+  for (const txn of node.visibleChildren) {
     if (
       txn &&
       (isTransactionNode(txn)
@@ -279,9 +262,7 @@ export function isEAPMeasurements(
   return Object.values(value).every(isEAPMeasurementValue);
 }
 
-export function isStandaloneSpanMeasurementNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-) {
+export function isStandaloneSpanMeasurementNode(node: BaseNode): boolean {
   if (node.value && 'op' in node.value && node.value.op) {
     if (
       node.value.op.startsWith('ui.webvital.') ||
@@ -302,5 +283,5 @@ export function isRootEvent(value: TraceTree.NodeValue): boolean {
 export function isTraceSplitResult(
   result: TraceTree.Trace
 ): result is TraceSplitResults<TraceTree.Transaction> {
-  return 'transactions' in result;
+  return 'transactions' in result && 'orphan_errors' in result;
 }

@@ -13,10 +13,10 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isTraceOccurence} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceIssuesLink} from 'sentry/views/performance/newTraceDetails/traceIssuesLink';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 type IssueProps = {
@@ -204,7 +204,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
         ))}
       </StyledPanel>
       {uniqueIssues.length > MAX_DISPLAYED_ISSUES_COUNT ? (
-        <TraceDrawerComponents.IssuesLink node={node}>
+        <TraceIssuesLink node={node}>
           <IssueLinkWrapper>
             <IconOpen />
             {t(
@@ -212,7 +212,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
               uniqueIssues.length - MAX_DISPLAYED_ISSUES_COUNT
             )}
           </IssueLinkWrapper>
-        </TraceDrawerComponents.IssuesLink>
+        </TraceIssuesLink>
       ) : null}
     </IssuesWrapper>
   );

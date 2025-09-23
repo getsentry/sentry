@@ -6,8 +6,8 @@ import {
   isStandaloneSpanMeasurementNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 
+import type {BaseNode} from './traceTreeNode/baseNode';
 import type {TraceTree} from './traceTree';
-import type {TraceTreeNode} from './traceTreeNode';
 
 // cls is not included as it is a cumulative layout shift and not a single point in time
 export const RENDERABLE_MEASUREMENTS = [
@@ -89,10 +89,10 @@ function traceMeasurementToTimestamp(
 // Collects measurements from a trace node and adds them to the indicators stored on trace tree
 export function collectTraceMeasurements(
   tree: TraceTree,
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   start_timestamp: number,
   measurements: Record<string, Measurement> | Record<string, number> | undefined,
-  vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]>,
+  vitals: Map<BaseNode, TraceTree.CollectedVital[]>,
   vital_types: Set<'web' | 'mobile'>
 ): TraceTree.Indicator[] {
   if (!measurements) {

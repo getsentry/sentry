@@ -6,6 +6,7 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import LoadingError from 'sentry/components/loadingError';
@@ -37,7 +38,7 @@ import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/trace
 import {AdditionalData, hasAdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';
 import {BuiltIn} from './sections/builtIn';
-import {Entries} from './sections/entries';
+// import {Entries} from './sections/entries';
 import GeneralInfo from './sections/generalInfo';
 import {TransactionHighlights} from './sections/highlights';
 import {hasMeasurements, Measurements} from './sections/measurements';
@@ -179,18 +180,19 @@ export function TransactionNodeDetails({
           cacheMetrics={cacheMetrics}
         />
 
-        {event.projectSlug ? (
+        {/* {event.projectSlug ? (
           <Entries
             definedEvent={event}
             projectSlug={event.projectSlug}
             group={undefined}
             organization={organization}
           />
-        ) : null}
+        ) : null} */}
 
-        <TraceDrawerComponents.EventTags
+        <EventTagsDataSection
           projectSlug={node.value.project_slug}
           event={event}
+          disableCollapsePersistence
         />
 
         <EventContexts event={event} disableCollapsePersistence />

@@ -9,12 +9,12 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   isEAPError,
   isEAPTraceNode,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceIssuesLink} from 'sentry/views/performance/newTraceDetails/traceIssuesLink';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -95,9 +95,7 @@ export function Meta(props: MetaProps) {
         headingText={t('Issues')}
         bodyText={
           uniqueIssuesCount && traceNode ? (
-            <TraceDrawerComponents.IssuesLink node={traceNode}>
-              {uniqueIssuesCount}
-            </TraceDrawerComponents.IssuesLink>
+            <TraceIssuesLink node={traceNode}>{uniqueIssuesCount}</TraceIssuesLink>
           ) : (
             uniqueIssuesCount
           )

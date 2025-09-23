@@ -2,11 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {EntryType} from 'sentry/types/event';
-import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {
-  isEAPSpanNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
@@ -15,7 +13,9 @@ import {
   isUptimeCheckNode,
   isUptimeCheckTimingNode,
 } from './../traceGuards';
-import type {ParentAutogroupNode} from './parentAutogroupNode';
+import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
+import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
+import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import {TraceTree} from './traceTree';
 import {
   assertEAPSpanNode,
@@ -223,20 +223,6 @@ const eapTraceWithOrphanErrors = makeEAPTrace([
   }),
 ]);
 
-function findTransactionByEventId(tree: TraceTree, eventId: string) {
-  return TraceTree.Find(
-    tree.root,
-    node => isTransactionNode(node) && node.value.event_id === eventId
-  );
-}
-
-function findEAPSpanByEventId(tree: TraceTree, eventId: string) {
-  return TraceTree.Find(
-    tree.root,
-    node => isEAPSpanNode(node) && node.value.event_id === eventId
-  );
-}
-
 describe('TraceTree', () => {
   describe('aggreagate node properties', () => {
     it('adds errors to node', () => {
@@ -288,7 +274,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(tree.root.children[0]!.children[0]!.profiles).toHaveLength(1);
+      expect(tree.root.children[0]!.children[0]!.profiles.size).toBe(1);
     });
 
     it('adds continuous profile to node', () => {
@@ -303,7 +289,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(tree.root.children[0]!.children[0]!.profiles).toHaveLength(1);
+      expect(tree.root.children[0]!.children[0]!.profiles.size).toBe(1);
     });
   });
 
@@ -475,6 +461,7 @@ describe('TraceTree', () => {
         replay: null,
         organization,
       });
+
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
@@ -560,13 +547,15 @@ describe('TraceTree', () => {
         }
       );
 
-      expect(findTransactionByEventId(tree, 'transaction')?.canFetch).toBe(true);
-      expect(findTransactionByEventId(tree, 'no-span-count-transaction')?.canFetch).toBe(
+      expect(tree.root.findChild(n => n.id === 'transaction')?.canFetchChildren).toBe(
         true
       );
-      expect(findTransactionByEventId(tree, 'no-spans-transaction')?.canFetch).toBe(
-        false
-      );
+      expect(
+        tree.root.findChild(n => n.id === 'no-span-count-transaction')?.canFetchChildren
+      ).toBe(true);
+      expect(
+        tree.root.findChild(n => n.id === 'no-spans-transaction')?.canFetchChildren
+      ).toBe(false);
     });
 
     it('initializes canFetch to true if no spanChildrenCount', () => {
@@ -582,7 +571,9 @@ describe('TraceTree', () => {
         {meta: null, replay: null, organization}
       );
 
-      expect(findTransactionByEventId(tree, 'transaction')?.canFetch).toBe(true);
+      expect(tree.root.findChild(n => n.id === 'transaction')?.canFetchChildren).toBe(
+        true
+      );
     });
   });
 
@@ -602,8 +593,8 @@ describe('TraceTree', () => {
 
       expect(tree.root.children[0]!.errors.size).toBe(1);
 
-      const eapTransaction = findEAPSpanByEventId(tree, 'eap-span-1');
-      const eapSpan = findEAPSpanByEventId(tree, 'eap-span-2');
+      const eapTransaction = tree.root.findChild(n => n.id === 'eap-span-1');
+      const eapSpan = tree.root.findChild(n => n.id === 'eap-span-2');
 
       expect(eapTransaction?.errors.size).toBe(1);
       expect(eapSpan?.errors.size).toBe(1);
@@ -614,8 +605,8 @@ describe('TraceTree', () => {
 
       expect(tree.root.children[0]!.occurrences.size).toBe(1);
 
-      const eapTransaction = findEAPSpanByEventId(tree, 'eap-span-1');
-      const eapSpan = findEAPSpanByEventId(tree, 'eap-span-2');
+      const eapTransaction = tree.root.findChild(n => n.id === 'eap-span-1');
+      const eapSpan = tree.root.findChild(n => n.id === 'eap-span-2');
 
       expect(eapTransaction?.occurrences.size).toBe(1);
       expect(eapSpan?.occurrences.size).toBe(1);
@@ -657,24 +648,24 @@ describe('TraceTree', () => {
         traceOptions
       );
 
-      const eapSpan1 = findEAPSpanByEventId(tree, 'eap-span-1');
-      expect(eapSpan1?.eapSpanOpsBreakdown).toEqual(
+      const eapSpan1 = tree.root.findChild(n => n.id === 'eap-span-1');
+      expect((eapSpan1 as EapSpanNode).opsBreakdown).toEqual(
         expect.arrayContaining([
           {op: 'op-2', count: 2},
           {op: 'op-3', count: 1},
         ])
       );
 
-      const eapSpan2 = findEAPSpanByEventId(tree, 'eap-span-2');
-      expect(eapSpan2?.eapSpanOpsBreakdown).toEqual(
+      const eapSpan2 = tree.root.findChild(n => n.id === 'eap-span-2');
+      expect((eapSpan2 as EapSpanNode).opsBreakdown).toEqual(
         expect.arrayContaining([{op: 'op-3', count: 1}])
       );
 
-      const eapSpan3 = findEAPSpanByEventId(tree, 'eap-span-3');
-      expect(eapSpan3?.eapSpanOpsBreakdown).toEqual([]);
+      const eapSpan3 = tree.root.findChild(n => n.id === 'eap-span-3');
+      expect((eapSpan3 as EapSpanNode).opsBreakdown).toEqual([]);
 
-      const eapSpan4 = findEAPSpanByEventId(tree, 'eap-span-4');
-      expect(eapSpan4?.eapSpanOpsBreakdown).toEqual([]);
+      const eapSpan4 = tree.root.findChild(n => n.id === 'eap-span-4');
+      expect((eapSpan4 as EapSpanNode).opsBreakdown).toEqual([]);
     });
 
     it('initializes expanded based on is_transaction property', () => {
@@ -700,10 +691,10 @@ describe('TraceTree', () => {
       );
 
       // eap-span-1 is a transaction/segment and should be collapsed
-      expect(findEAPSpanByEventId(tree, 'eap-span-1')?.expanded).toBe(false);
+      expect(tree.root.findChild(n => n.id === 'eap-span-1')?.expanded).toBe(false);
 
       // eap-span-2 is a span and should be expanded
-      expect(findEAPSpanByEventId(tree, 'eap-span-2')?.expanded).toBe(true);
+      expect(tree.root.findChild(n => n.id === 'eap-span-2')?.expanded).toBe(true);
     });
 
     it('correctly renders eap-transactions toggle state', () => {
@@ -761,12 +752,12 @@ describe('TraceTree', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
 
       // Assert expaneded state
-      const eapTxn = findEAPSpanByEventId(tree, 'eap-span-1');
-      tree.expand(eapTxn!, true);
+      const eapTxn = tree.root.findChild(n => n.id === 'eap-span-1');
+      eapTxn!.expand(true, tree);
       expect(tree.build().serialize()).toMatchSnapshot();
 
       // Assert state upon collapsing
-      tree.expand(eapTxn!, false);
+      eapTxn!.expand(false, tree);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
@@ -798,7 +789,7 @@ describe('TraceTree', () => {
 
       expect(tree.vitals.size).toBe(1);
 
-      const span1 = findEAPSpanByEventId(tree, 'eap-span-1');
+      const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
       expect(tree.vitals.get(span1!)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({key: 'fcp', measurement: {value: 100}}),
@@ -835,7 +826,7 @@ describe('TraceTree', () => {
       const listener = jest.fn();
       tree.on('trace timeline change', listener);
 
-      const txn = TraceTree.Find(tree.root, n => isTransactionNode(n))!;
+      const txn = tree.root.findChild(n => isTransactionNode(n))!;
 
       mockSpansResponse(
         [makeSpan({start_timestamp: start + 0.5, timestamp: start + 1})],
@@ -843,9 +834,8 @@ describe('TraceTree', () => {
         'event-id'
       );
 
-      await tree.zoom(txn, true, {
+      await txn.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
@@ -870,7 +860,7 @@ describe('TraceTree', () => {
       const listener = jest.fn();
       tree.on('trace timeline change', listener);
 
-      const txn = TraceTree.Find(tree.root, n => isTransactionNode(n))!;
+      const txn = tree.root.findChild(n => isTransactionNode(n))!;
 
       const transactionSpaceBounds = JSON.stringify(txn.space);
 
@@ -880,9 +870,8 @@ describe('TraceTree', () => {
         'event-id'
       );
 
-      await tree.zoom(txn, true, {
+      await txn.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
@@ -909,7 +898,7 @@ describe('TraceTree', () => {
       );
 
       const visitedNodes: string[] = [];
-      TraceTree.ForEachChild(tree.root, node => {
+      tree.root.forEachChild(node => {
         if (isTransactionNode(node)) {
           visitedNodes.push(node.value.transaction);
         }
@@ -931,11 +920,9 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroupNode = TraceTree.Find(tree.root, n =>
-        isParentAutogroupedNode(n)
-      )!;
+      const parentAutogroupNode = tree.root.findChild(n => isParentAutogroupedNode(n))!;
 
-      tree.expand(parentAutogroupNode, true);
+      parentAutogroupNode.expand(true, tree);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
@@ -949,11 +936,10 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroupNode = TraceTree.Find(tree.root, n =>
-        isParentAutogroupedNode(n)
-      )!;
-      tree.expand(parentAutogroupNode, true);
-      tree.expand(parentAutogroupNode, false);
+      const parentAutogroupNode = tree.root.findChild(n => isParentAutogroupedNode(n))!;
+      parentAutogroupNode.expand(true, tree);
+      parentAutogroupNode.expand(false, tree);
+
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
@@ -967,19 +953,19 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroupNode = TraceTree.Find(tree.root, n =>
+      const parentAutogroupNode = tree.root.findChild(n =>
         isParentAutogroupedNode(n)
       )! as ParentAutogroupNode;
 
       // Expand the chain and collapse an intermediary child
-      tree.expand(parentAutogroupNode, true);
-      tree.expand(parentAutogroupNode.head, false);
+      parentAutogroupNode.expand(true, tree);
+      parentAutogroupNode.head.expand(false, tree);
 
       const snapshot = tree.build().serialize();
 
       // Collapse the autogroup node and expand it again
-      tree.expand(parentAutogroupNode, false);
-      tree.expand(parentAutogroupNode, true);
+      parentAutogroupNode.expand(false, tree);
+      parentAutogroupNode.expand(true, tree);
 
       // Assert that the snapshot is preserved and we only render the parent autogroup chain
       // up to the collapsed span
@@ -996,9 +982,10 @@ describe('TraceTree', () => {
       );
 
       TraceTree.AutogroupSiblingSpanNodes(tree.root, traceOptions);
-      TraceTree.ForEachChild(tree.root, n => {
+
+      tree.root.forEachChild(n => {
         if (isSiblingAutogroupedNode(n)) {
-          tree.expand(n, true);
+          n.expand(true, tree);
         }
       });
       expect(tree.build().serialize()).toMatchSnapshot();
@@ -1013,15 +1000,15 @@ describe('TraceTree', () => {
       );
 
       TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
-      TraceTree.ForEachChild(tree.root, n => {
+      tree.root.forEachChild(n => {
         if (isSiblingAutogroupedNode(n)) {
-          tree.expand(n, true);
+          n.expand(true, tree);
         }
       });
 
-      TraceTree.ForEachChild(tree.root, n => {
+      tree.root.forEachChild(n => {
         if (isSiblingAutogroupedNode(n)) {
-          tree.expand(n, false);
+          n.expand(false, tree);
         }
       });
       expect(tree.build().serialize()).toMatchSnapshot();
@@ -1033,10 +1020,9 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(traceWithEventId, traceOptions);
       const request = mockSpansResponse([], 'project', 'event-id');
 
-      tree.root.children[0]!.children[0]!.canFetch = false;
-      tree.zoom(tree.root.children[0]!.children[0]!, true, {
+      tree.root.children[0]!.children[0]!.canFetchChildren = false;
+      tree.root.children[0]!.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
@@ -1047,15 +1033,13 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(traceWithEventId, traceOptions);
       const request = mockSpansResponse([], 'project', 'event-id');
 
-      tree.zoom(tree.root.children[0]!.children[0]!, true, {
+      tree.root.children[0]!.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      tree.zoom(tree.root.children[0]!, true, {
+      tree.root.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
       expect(request).toHaveBeenCalledTimes(1);
@@ -1069,9 +1053,8 @@ describe('TraceTree', () => {
       // Zoom mutates the list, so we need to build first
       tree.build();
 
-      await tree.zoom(tree.root.children[0]!.children[0]!.children[0]!, true, {
+      await tree.root.children[0]!.children[0]!.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
@@ -1084,17 +1067,15 @@ describe('TraceTree', () => {
       tree.build();
       // Zoom in on child span
       mockSpansResponse([makeSpan()], 'project', 'child-event-id');
-      await tree.zoom(tree.root.children[0]!.children[0]!.children[0]!, true, {
+      await tree.root.children[0]!.children[0]!.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
       // Then zoom in on a parent
       mockSpansResponse([makeSpan()], 'project', 'event-id');
-      await tree.zoom(tree.root.children[0]!.children[0]!, true, {
+      await tree.root.children[0]!.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
@@ -1127,16 +1108,14 @@ describe('TraceTree', () => {
       tree.build();
 
       mockSpansResponse([makeSpan({span_id: '0001'})], 'project', 'child-event-id');
-      await tree.zoom(tree.root.children[0]!.children[0]!.children[0]!, true, {
+      await tree.root.children[0]!.children[0]!.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
-      await tree.zoom(tree.root.children[0]!.children[0]!, true, {
+      await tree.root.children[0]!.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
@@ -1176,14 +1155,17 @@ describe('TraceTree', () => {
       tree.build();
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
-      await tree.zoom(tree.root.children[0]!.children[0]!, true, {
+      await tree.root.children[0]!.children[0]!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      const grandchild = findTransactionByEventId(tree, 'grandchild-event-id');
-      const child = findTransactionByEventId(tree, 'child-event-id');
+      const grandchild = tree.root.findChild(
+        node => isTransactionNode(node) && node.value.event_id === 'grandchild-event-id'
+      );
+      const child = tree.root.findChild(
+        node => isTransactionNode(node) && node.value.event_id === 'child-event-id'
+      );
 
       expect(grandchild?.parent).toBe(child);
       expect(tree.serialize()).toMatchSnapshot();
@@ -1223,9 +1205,8 @@ describe('TraceTree', () => {
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
       for (const bool of [true, false]) {
-        await tree.zoom(tree.root.children[0]!.children[0]!, bool, {
+        await tree.root.children[0]!.children[0]!.fetchChildren(bool, tree, {
           api: new MockApiClient(),
-          organization: OrganizationFixture(),
           preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
         });
       }
@@ -1273,10 +1254,11 @@ describe('TraceTree', () => {
         'child-event-id'
       );
 
-      const child = findTransactionByEventId(tree, 'child-event-id');
-      await tree.zoom(child!, true, {
+      const child = tree.root.findChild(
+        node => isTransactionNode(node) && node.value.event_id === 'child-event-id'
+      );
+      await child!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
@@ -1286,20 +1268,20 @@ describe('TraceTree', () => {
         'grandchild-event-id'
       );
 
-      const grandchild = findTransactionByEventId(tree, 'grandchild-event-id');
-      await tree.zoom(grandchild!, true, {
+      const grandchild = tree.root.findChild(
+        node => isTransactionNode(node) && node.value.event_id === 'grandchild-event-id'
+      );
+      await grandchild!.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      await tree.zoom(child!, false, {
+      await child!.fetchChildren(false, tree, {
         api: new MockApiClient(),
-        organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      const spans = TraceTree.FindAll(tree.root, n => isSpanNode(n));
+      const spans = tree.root.findAllChildren(n => isSpanNode(n));
       expect(spans).toHaveLength(1);
       expect(tree.serialize()).toMatchSnapshot();
     });
@@ -1319,13 +1301,13 @@ describe('TraceTree', () => {
         traceOptions
       );
 
-      const node = TraceTree.Find(tree.root, n => isTransactionNode(n));
+      const node = tree.root.findChild(n => isTransactionNode(n));
       expect(node).not.toBeNull();
       expect((node as any).value.transaction).toBe('first');
     });
     it('returns null if no node is found', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
-      const node = TraceTree.Find(tree.root, n => (n as any) === 'does not exist');
+      const node = tree.root.findChild(n => (n as any) === 'does not exist');
       expect(node).toBeNull();
     });
   });
@@ -1338,7 +1320,7 @@ describe('TraceTree', () => {
         ],
       });
       const tree = TraceTree.FromTrace(traceWithError, traceOptions);
-      const node = TraceTree.FindByID(tree.root, 'first-event-id');
+      const node = tree.root.findChild(n => n.matchById('first-event-id'));
 
       assertTransactionNode(node);
       expect(node.value.transaction).toBe('first');
@@ -1355,7 +1337,8 @@ describe('TraceTree', () => {
         ],
       });
       const tree = TraceTree.FromTrace(traceWithError, traceOptions);
-      const node = TraceTree.FindByID(tree.root, 'error-event-id');
+
+      const node = tree.root.findChild(n => n.matchById('error-event-id'));
 
       assertTransactionNode(node);
       expect(node.value.transaction).toBe('first');
@@ -1363,7 +1346,7 @@ describe('TraceTree', () => {
 
     it('finds eap error by event_id', () => {
       const tree = TraceTree.FromTrace(eapTraceWithErrors, traceOptions);
-      const node = TraceTree.FindByID(tree.root, 'eap-error-1');
+      const node = tree.root.findChild(n => n.matchById('eap-error-1'));
 
       assertEAPSpanNode(node);
       expect(node.value.description).toBe('EAP span with error');
@@ -1373,7 +1356,7 @@ describe('TraceTree', () => {
   describe('FindAll', () => {
     it('finds all nodes by predicate', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
-      const nodes = TraceTree.FindAll(tree.root, n => isTransactionNode(n));
+      const nodes = tree.root.findAllChildren(n => isTransactionNode(n));
       expect(nodes).toHaveLength(2);
     });
   });
@@ -1381,7 +1364,7 @@ describe('TraceTree', () => {
   describe('DirectVisibleChildren', () => {
     it('returns children for transaction', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
-      expect(TraceTree.DirectVisibleChildren(tree.root.children[0]!)).toEqual(
+      expect(tree.root.children[0]!.directChildren).toEqual(
         tree.root.children[0]!.children
       );
     });
@@ -1397,14 +1380,12 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroup = TraceTree.Find(tree.root, node =>
+      const parentAutogroup = tree.root.findChild(node =>
         isParentAutogroupedNode(node)
       ) as ParentAutogroupNode;
 
       expect(parentAutogroup).not.toBeNull();
-      expect(TraceTree.DirectVisibleChildren(parentAutogroup)[0]).toBe(
-        parentAutogroup.tail.children[0]
-      );
+      expect(parentAutogroup.directChildren[0]).toBe(parentAutogroup.tail.children[0]);
     });
     it('returns head for expanded parent autogroup', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
@@ -1417,15 +1398,13 @@ describe('TraceTree', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      const parentAutogroup = TraceTree.Find(tree.root, node =>
+      const parentAutogroup = tree.root.findChild(node =>
         isParentAutogroupedNode(node)
       ) as ParentAutogroupNode;
 
-      tree.expand(parentAutogroup, true);
+      parentAutogroup.expand(true, tree);
 
-      expect(TraceTree.DirectVisibleChildren(parentAutogroup)[0]).toBe(
-        parentAutogroup.head
-      );
+      expect(parentAutogroup.directChildren[0]).toBe(parentAutogroup.head);
     });
   });
 
@@ -1437,7 +1416,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(TraceTree.HasVisibleChildren(tree.root.children[0]!)).toBe(true);
+      expect(tree.root.children[0]!.hasVisibleChildren()).toBe(true);
     });
 
     describe('span', () => {
@@ -1457,13 +1436,12 @@ describe('TraceTree', () => {
           makeEventTransaction()
         );
 
-        const span = TraceTree.Find(
-          tree.root,
+        const span = tree.root.findChild(
           node => isSpanNode(node) && node.value.span_id === '0000'
         )!;
 
-        tree.expand(span, expanded);
-        expect(TraceTree.HasVisibleChildren(span)).toBe(expanded);
+        span.expand(expanded, tree);
+        expect(span.hasVisibleChildren()).toBe(expanded);
       });
     });
 
@@ -1478,12 +1456,12 @@ describe('TraceTree', () => {
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
-        const siblingAutogroup = TraceTree.Find(tree.root, node =>
+        const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
         );
 
-        tree.expand(siblingAutogroup!, expanded);
-        expect(TraceTree.HasVisibleChildren(siblingAutogroup!)).toBe(expanded);
+        siblingAutogroup!.expand(expanded, tree);
+        expect(siblingAutogroup!.hasVisibleChildren()).toBe(expanded);
       });
 
       it("doesn't auto-group sibling spans with default op", () => {
@@ -1537,7 +1515,7 @@ describe('TraceTree', () => {
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
 
-        const siblingAutogroup = TraceTree.Find(tree.root, node =>
+        const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
         );
         expect(siblingAutogroup).toBeNull();
@@ -1555,12 +1533,12 @@ describe('TraceTree', () => {
         );
 
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
-        const parentAutogroup = TraceTree.Find(tree.root, node =>
+        const parentAutogroup = tree.root.findChild(node =>
           isParentAutogroupedNode(node)
         );
 
-        tree.expand(parentAutogroup!, expanded);
-        expect(TraceTree.HasVisibleChildren(parentAutogroup!)).toBe(expanded);
+        parentAutogroup!.expand(expanded, tree);
+        expect(parentAutogroup!.hasVisibleChildren()).toBe(expanded);
       });
 
       it("does't auto-group child spans with default op", () => {
@@ -1579,7 +1557,7 @@ describe('TraceTree', () => {
 
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-        const parentAutogroup = TraceTree.Find(tree.root, node =>
+        const parentAutogroup = tree.root.findChild(node =>
           isParentAutogroupedNode(node)
         );
         expect(parentAutogroup).toBeNull();
@@ -1600,12 +1578,12 @@ describe('TraceTree', () => {
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
         tree.build();
 
-        const parentAutogroup = TraceTree.Find(tree.root, node =>
+        const parentAutogroup = tree.root.findChild(node =>
           isParentAutogroupedNode(node)
         );
 
-        tree.expand(parentAutogroup!, expanded);
-        expect(TraceTree.HasVisibleChildren(parentAutogroup!)).toBe(true);
+        parentAutogroup!.expand(expanded, tree);
+        expect(parentAutogroup!.hasVisibleChildren()).toBe(true);
       });
     });
   });
@@ -1618,7 +1596,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(TraceTree.IsLastChild(tree.root.children[0]!.children[0]!)).toBe(false);
+      expect(tree.root.children[0]!.children[0]!.isLastChild()).toBe(false);
     });
     it('returns true if node is last child', () => {
       const tree = TraceTree.FromTrace(
@@ -1627,7 +1605,7 @@ describe('TraceTree', () => {
         }),
         traceOptions
       );
-      expect(TraceTree.IsLastChild(tree.root.children[0]!.children[1]!)).toBe(true);
+      expect(tree.root.children[0]!.children[1]!.isLastChild()).toBe(true);
     });
   });
 
@@ -1637,7 +1615,7 @@ describe('TraceTree', () => {
       tree.root.children[0]!.depth = 10;
       tree.root.children[0]!.connectors = [1, 2, 3];
 
-      TraceTree.invalidate(tree.root.children[0]!, false);
+      tree.root.children[0]!.invalidate();
       expect(tree.root.children[0]!.depth).toBeUndefined();
       expect(tree.root.children[0]!.connectors).toBeUndefined();
     });
@@ -1645,7 +1623,8 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);
       tree.root.children[0]!.depth = 10;
       tree.root.children[0]!.connectors = [1, 2, 3];
-      TraceTree.invalidate(tree.root, true);
+      tree.root.children[0]!.invalidate();
+      tree.root.children[0]!.forEachChild(child => child.invalidate());
       expect(tree.root.children[0]!.depth).toBeUndefined();
       expect(tree.root.children[0]!.connectors).toBeUndefined();
     });
@@ -1706,19 +1685,17 @@ describe('TraceTree', () => {
 
     it('path to transaction node', () => {
       const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
-      const transactionNode = TraceTree.Find(
-        tree.root,
+      const transactionNode = tree.root.findChild(
         node => isTransactionNode(node) && node.value.transaction === 'child'
       )!;
 
-      const path = TraceTree.PathToNode(transactionNode);
+      const path = transactionNode.pathToNode();
       expect(path).toEqual(['txn-child-event-id']);
     });
 
     it('path to span includes parent txn', () => {
       const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
-      const child = TraceTree.Find(
-        tree.root,
+      const child = tree.root.findChild(
         node => isTransactionNode(node) && node.value.transaction === 'child'
       )!;
 
@@ -1728,8 +1705,8 @@ describe('TraceTree', () => {
         makeEventTransaction()
       );
 
-      const span = TraceTree.Find(tree.root, node => isSpanNode(node))!;
-      const path = TraceTree.PathToNode(span);
+      const span = tree.root.findChild(node => isSpanNode(node))!;
+      const path = span.pathToNode();
       expect(path).toEqual(['span-span-id', 'txn-child-event-id']);
     });
 
@@ -1751,42 +1728,39 @@ describe('TraceTree', () => {
       ];
       it('parent autogroup', () => {
         const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
-        const child = TraceTree.Find(
-          tree.root,
+        const child = tree.root.findChild(
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         TraceTree.FromSpans(child, pathParentAutogroupSpans, makeEventTransaction());
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-        const parentAutogroup = TraceTree.Find(tree.root, node =>
+        const parentAutogroup = tree.root.findChild(node =>
           isParentAutogroupedNode(node)
         )!;
 
-        const path = TraceTree.PathToNode(parentAutogroup);
+        const path = parentAutogroup.pathToNode();
         expect(path).toEqual(['ag-head-span-id', 'txn-child-event-id']);
       });
       it('path to child of parent autogroup skips autogroup', () => {
         const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
-        const child = TraceTree.Find(
-          tree.root,
+        const child = tree.root.findChild(
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         TraceTree.FromSpans(child, pathParentAutogroupSpans, makeEventTransaction());
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-        const parentAutogroup = TraceTree.Find(tree.root, node =>
+        const parentAutogroup = tree.root.findChild(node =>
           isParentAutogroupedNode(node)
         ) as ParentAutogroupNode;
-        expect(TraceTree.PathToNode(parentAutogroup.tail)).toEqual([
+        expect(parentAutogroup.tail.pathToNode()).toEqual([
           'span-tail-span-id',
           'txn-child-event-id',
         ]);
 
-        const requestSpan = TraceTree.Find(
-          tree.root,
+        const requestSpan = tree.root.findChild(
           node => isSpanNode(node) && node.value.description === 'request'
         )!;
-        expect(TraceTree.PathToNode(requestSpan)).toEqual([
+        expect(requestSpan.pathToNode()).toEqual([
           'span-child-span-id',
           'txn-child-event-id',
         ]);
@@ -1830,35 +1804,33 @@ describe('TraceTree', () => {
       ];
       it('path to sibling autogroup', () => {
         const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
-        const child = TraceTree.Find(
-          tree.root,
+        const child = tree.root.findChild(
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         TraceTree.FromSpans(child, pathSiblingAutogroupSpans, makeEventTransaction());
         TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
 
-        const siblingAutogroup = TraceTree.Find(tree.root, node =>
+        const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
         ) as SiblingAutogroupNode;
 
-        const path = TraceTree.PathToNode(siblingAutogroup);
+        const path = siblingAutogroup.pathToNode();
         expect(path).toEqual(['ag-0', 'txn-child-event-id']);
       });
 
       it('path to child of sibling autogroup skips autogroup', () => {
         const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
-        const child = TraceTree.Find(
-          tree.root,
+        const child = tree.root.findChild(
           node => isTransactionNode(node) && node.value.transaction === 'child'
         )!;
         TraceTree.FromSpans(child, pathSiblingAutogroupSpans, makeEventTransaction());
         TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
 
-        const siblingAutogroup = TraceTree.Find(tree.root, node =>
+        const siblingAutogroup = tree.root.findChild(node =>
           isSiblingAutogroupedNode(node)
         ) as SiblingAutogroupNode;
 
-        const path = TraceTree.PathToNode(siblingAutogroup.children[1]!);
+        const path = siblingAutogroup.children[1]!.pathToNode();
         expect(path).toEqual(['span-1', 'txn-child-event-id']);
       });
     });
@@ -1882,19 +1854,19 @@ describe('TraceTree', () => {
         }),
       ];
 
-      const child = TraceTree.Find(
-        tree.root,
+      const child = tree.root.findChild(
         node => isTransactionNode(node) && node.value.transaction === 'child'
       )!;
       TraceTree.FromSpans(child, missingInstrumentationSpans, makeEventTransaction());
       TraceTree.DetectMissingInstrumentation(tree.root);
 
-      const missingInstrumentationNode = TraceTree.Find(tree.root, node =>
+      const missingInstrumentationNode = tree.root.findChild(node =>
         isMissingInstrumentationNode(node)
       )!;
 
-      const path = TraceTree.PathToNode(missingInstrumentationNode);
-      expect(path).toEqual(['ms-0', 'txn-child-event-id']);
+      const path = missingInstrumentationNode.pathToNode();
+      expect(path[0]).toMatch(/^ms-[a-f0-9]{32}$/);
+      expect(path[1]).toBe('txn-child-event-id');
     });
   });
 
@@ -1925,12 +1897,11 @@ describe('TraceTree', () => {
     it('expands transactions from path segments', async () => {
       const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
 
-      const child = TraceTree.Find(
-        tree.root,
+      const child = tree.root.findChild(
         node => isTransactionNode(node) && node.value.transaction === 'child'
       )!;
 
-      await TraceTree.ExpandToPath(tree, TraceTree.PathToNode(child), {
+      await TraceTree.ExpandToPath(tree, child.pathToNode(), {
         api,
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -1942,13 +1913,12 @@ describe('TraceTree', () => {
     it('discards non txns segments', async () => {
       const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
 
-      const child = TraceTree.Find(
-        tree.root,
+      const child = tree.root.findChild(
         node => isTransactionNode(node) && node.value.transaction === 'child'
       )!;
 
       const request = mockSpansResponse([makeSpan()], 'project', 'child-event-id');
-      await TraceTree.ExpandToPath(tree, ['span-0', ...TraceTree.PathToNode(child)], {
+      await TraceTree.ExpandToPath(tree, ['span-0', ...child.pathToNode()], {
         api,
         organization,
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -2028,7 +1998,7 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace([uptimeCheck], traceOptions);
 
       // Find the uptime check node in the tree
-      const uptimeNode = TraceTree.Find(tree.root, node => isUptimeCheckNode(node));
+      const uptimeNode = tree.root.findChild(node => isUptimeCheckNode(node));
       expect(uptimeNode).toBeDefined();
 
       // Check that timing nodes were automatically added as children
@@ -2101,7 +2071,7 @@ describe('TraceTree', () => {
         traceOptions
       );
 
-      const uptimeNode = TraceTree.Find(tree.root, node => isUptimeCheckNode(node));
+      const uptimeNode = tree.root.findChild(node => isUptimeCheckNode(node));
       const timingChildren = uptimeNode?.children.filter(child =>
         isUptimeCheckTimingNode(child)
       );
