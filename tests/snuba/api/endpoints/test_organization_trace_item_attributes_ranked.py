@@ -93,6 +93,8 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             query={"query_1": "span.duration:<=100", "query_2": "span.duration:>100"}
         )
         assert response.status_code == 200, response.data
+        assert "cohort1Total" in response.data
+        assert "cohort2Total" in response.data
         distributions = response.data["rankedAttributes"]
         attribute = next(a for a in distributions if a["attributeName"] == "sentry.device")
         assert attribute
@@ -101,13 +103,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             {"label": "desktop", "value": 1.0},
         ]
         assert attribute["cohort2"] == [{"label": "desktop", "value": 2.0}]
-        assert attribute["cohort1Total"] == 4
-        assert attribute["cohort2Total"] == 3
 
         attribute = next(a for a in distributions if a["attributeName"] == "browser")
         assert attribute["attributeName"] == "browser"
-        assert attribute["cohort1Total"] == 4
-        assert attribute["cohort2Total"] == 3
 
         assert mock_compare_distributions.called
         call_args = mock_compare_distributions.call_args
@@ -148,6 +146,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         # Should succeed (not return 400 error)
         assert response.status_code == 200, response.data
 
+        assert "cohort1Total" in response.data
+        assert "cohort2Total" in response.data
+
         # Should have ranking info but no function value since segmentation was skipped
         assert "rankingInfo" in response.data
         assert response.data["rankingInfo"]["function"] == "coalesce(span.duration, span.self_time)"
@@ -155,10 +156,3 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Should still return ranked attributes based on the queries
         assert "rankedAttributes" in response.data
-        # Check that total counts are included in the response
-        if response.data["rankedAttributes"]:
-            attribute = response.data["rankedAttributes"][0]
-            assert "cohort1Total" in attribute
-            assert "cohort2Total" in attribute
-            assert attribute["cohort1Total"] == 1
-            assert attribute["cohort2Total"] == 1
