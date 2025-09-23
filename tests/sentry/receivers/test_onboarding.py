@@ -516,7 +516,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if isinstance(call_arg[0], FirstEventSentEventWithMinifiedStackTraceForProject):
+            if isinstance(call_arg[0][0], FirstEventSentEventWithMinifiedStackTraceForProject):
                 count += 1
 
         assert count == 1
@@ -582,7 +582,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if isinstance(call_arg[0], FirstEventSentEventWithMinifiedStackTraceForProject):
+            if isinstance(call_arg[0][0], FirstEventSentEventWithMinifiedStackTraceForProject):
                 count += 1
 
         assert count == 0
@@ -614,7 +614,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if isinstance(call_arg[0], FirstSourcemapsSentEventForProject):
+            if isinstance(call_arg[0][0], FirstSourcemapsSentEventForProject):
                 count += 1
 
         assert count == 0
@@ -713,7 +713,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if isinstance(call_arg[0], FirstSourcemapsSentEventForProject):
+            if isinstance(call_arg[0][0], FirstSourcemapsSentEventForProject):
                 count += 1
 
         assert count == 1
@@ -764,7 +764,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0
         for call_arg in record_analytics.call_args_list:
-            if isinstance(call_arg[0], FirstSourcemapsSentEventForProject):
+            if isinstance(call_arg[0][0], FirstSourcemapsSentEventForProject):
                 count += 1
 
         assert count == 0
