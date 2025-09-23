@@ -4,7 +4,7 @@ import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 
 interface UpdateFeatureParams {
   enabled: boolean;
-  feature: string;
+  feature: 'vanilla' | 'test_generation' | 'bug_prediction';
   triggers?: Record<string, boolean>;
 }
 

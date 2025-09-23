@@ -5,6 +5,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -23,6 +24,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
@@ -52,6 +54,7 @@ export default function OverviewTimeConsumingRequestsWidget(
   const yAxes = `p75(${SpanFields.SPAN_DURATION})`;
   const totalTimeField = `sum(${SpanFields.SPAN_SELF_TIME})`;
   const title = t('Network Requests by Time Spent');
+  const interval = getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
 
   const {
     data: requestsListData,
@@ -84,6 +87,7 @@ export default function OverviewTimeConsumingRequestsWidget(
       yAxis: [yAxes],
       topN: 3,
       enabled: requestsListData?.length > 0,
+      interval,
     },
     referrer
   );
@@ -164,8 +168,19 @@ export default function OverviewTimeConsumingRequestsWidget(
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    interval,
     referrer,
   });
+
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType: ChartType.LINE,
+    yAxes: [yAxes],
+    widgetName: title,
+    groupBy: [groupBy],
+    search,
+    sort: {field: totalTimeField, kind: 'desc'},
+    topEvents: 3,
+  };
 
   return (
     <Widget
@@ -179,6 +194,7 @@ export default function OverviewTimeConsumingRequestsWidget(
                 key="time consuming requests widget"
                 exploreUrl={exploreUrl}
                 referrer={referrer}
+                addToDashboardOptions={addToDashboardOptions}
                 alertMenuOptions={requestSeriesData.map(series => ({
                   key: series.seriesName,
                   label: aliases[series.seriesName],

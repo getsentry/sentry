@@ -61,7 +61,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
       });
 
       expect(localStorage.getItem).toHaveBeenCalledWith(
@@ -93,7 +92,6 @@ describe('PageFilters ActionCreators', () => {
         skipLoadLastUsed: true,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         router,
       });
 
@@ -117,7 +115,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -154,7 +151,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         router,
       });
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -179,7 +175,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '3h',
@@ -213,7 +208,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '24h',
@@ -246,7 +240,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '24h',
@@ -278,7 +271,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         router,
       });
 
@@ -314,7 +306,6 @@ describe('PageFilters ActionCreators', () => {
         },
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
         router,
       });
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -326,34 +317,6 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
           projects: [-1],
-          environments: [],
-        },
-        new Set(),
-        true
-      );
-    });
-
-    it('does invalidate all projects from query params if forced into single project', () => {
-      initializeUrlState({
-        organization,
-        queryParams: {
-          project: '-1',
-        },
-        memberProjects: projects,
-        nonMemberProjects: [],
-        // User does not have access to global views
-        shouldEnforceSingleProject: true,
-        router,
-      });
-      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        {
-          datetime: {
-            start: null,
-            end: null,
-            period: '14d',
-            utc: null,
-          },
-          projects: [1],
           environments: [],
         },
         new Set(),
@@ -384,7 +347,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
       });
 
       // Confirm that query params are not restored from local storage
@@ -416,7 +378,6 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
       });
 
       // Confirm that only environment is restored from local storage
@@ -433,10 +394,130 @@ describe('PageFilters ActionCreators', () => {
       pageFilterStorageMock.mockRestore();
     });
 
-    it('retrieves filters from a separate key when storageNamespace is provided', () => {
-      const starfishKey = `global-selection:starfish:${organization.slug}`;
+    it('fallbacks to global state with storageNamespace empty', () => {
+      const storageNamespace = 'insights:frontend';
+      const insightsKey = `global-selection:${storageNamespace}:${organization.slug}`;
+      const globalKey = `global-selection:${organization.slug}`;
+
       localStorage.setItem(
-        starfishKey,
+        globalKey,
+        JSON.stringify({
+          environments: [],
+          projects: [1],
+          pinnedFilters: ['datetime', 'projects', 'environments'],
+          start: null,
+          end: null,
+          period: '30d',
+          utc: null,
+        })
+      );
+
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        storageNamespace,
+      });
+      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
+      expect(localStorage.getItem).toHaveBeenCalledWith(globalKey);
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: [],
+          projects: [1],
+          datetime: {
+            period: '30d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+        }),
+        new Set(['datetime', 'projects', 'environments']),
+        true
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: [],
+            project: ['1'],
+            statsPeriod: '30d',
+          },
+        })
+      );
+    });
+
+    it('uses global datetime with storageNamespace', () => {
+      const storageNamespace = 'insights:frontend';
+      const insightsKey = `global-selection:${storageNamespace}:${organization.slug}`;
+      const globalKey = `global-selection:${organization.slug}`;
+      localStorage.setItem(
+        insightsKey,
+        JSON.stringify({
+          environments: [],
+          projects: [],
+          pinnedFilters: ['datetime'],
+          start: null,
+          end: null,
+          period: '14d',
+          utc: null,
+        })
+      );
+
+      localStorage.setItem(
+        globalKey,
+        JSON.stringify({
+          environments: [],
+          projects: [],
+          pinnedFilters: ['datetime'],
+          start: null,
+          end: null,
+          period: '30d',
+          utc: null,
+        })
+      );
+
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        storageNamespace,
+      });
+      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
+      expect(localStorage.getItem).toHaveBeenCalledWith(globalKey);
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: [],
+          projects: [],
+          datetime: {
+            period: '30d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+        }),
+        new Set(['datetime']),
+        true
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: [],
+            project: [],
+            statsPeriod: '30d',
+          },
+        })
+      );
+    });
+
+    it('retrieves filters from a separate key when storageNamespace is provided', () => {
+      const insightsKey = `global-selection:insights:${organization.slug}`;
+      localStorage.setItem(
+        insightsKey,
         JSON.stringify({
           environments: [],
           projects: [1],
@@ -450,11 +531,10 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: projects,
         nonMemberProjects: [],
-        shouldEnforceSingleProject: false,
-        storageNamespace: 'starfish',
+        storageNamespace: 'insights',
       });
 
-      expect(localStorage.getItem).toHaveBeenCalledWith(starfishKey);
+      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           environments: [],

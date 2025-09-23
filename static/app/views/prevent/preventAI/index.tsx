@@ -2,14 +2,14 @@ import Feature from 'sentry/components/acl/feature';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import ManageReposPage from 'sentry/views/prevent/preventAI/manageRepos';
+import PreventAIManageRepos from 'sentry/views/prevent/preventAI/manageRepos';
 import PreventAIOnboarding from 'sentry/views/prevent/preventAI/onboarding';
 
 import {usePreventAIOrgRepos} from './hooks/usePreventAIOrgRepos';
 
 function PreventAIContent() {
   const {data, isLoading, isError} = usePreventAIOrgRepos();
-  const hasOrgs = data?.orgRepos?.length && data.orgRepos.length > 0;
+  const orgRepos = data?.orgRepos ?? [];
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -22,8 +22,8 @@ function PreventAIContent() {
       />
     );
   }
-  if (hasOrgs) {
-    return <ManageReposPage installedOrgs={data.orgRepos} />;
+  if (orgRepos.length > 0) {
+    return <PreventAIManageRepos installedOrgs={orgRepos} />;
   }
   return <PreventAIOnboarding />;
 }

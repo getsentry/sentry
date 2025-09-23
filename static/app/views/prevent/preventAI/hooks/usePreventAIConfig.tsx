@@ -1,72 +1,82 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 
-interface PreventAIConfigResult {
-  data: PreventAIConfig | undefined;
+type PreventAIConfigResult = {
+  data: PreventAIConfig;
   isError: boolean;
   isLoading: boolean;
   refetch: () => void;
+};
+
+const DEFAULT_CONFIG: PreventAIConfig = {
+  features: {
+    vanilla: {enabled: false},
+    test_generation: {enabled: false},
+    bug_prediction: {
+      enabled: false,
+      triggers: {
+        on_command_phrase: false,
+        on_ready_for_review: false,
+      },
+    },
+  },
+};
+
+function mergeConfig(
+  stored: unknown,
+  fallback: PreventAIConfig = DEFAULT_CONFIG
+): PreventAIConfig {
+  if (typeof stored !== 'object' || stored === null || !('features' in (stored as any))) {
+    return fallback;
+  }
+  const parsed = stored as any;
+  return {
+    features: {
+      vanilla: {
+        ...fallback.features.vanilla,
+        ...parsed.features?.vanilla,
+      },
+      test_generation: {
+        ...fallback.features.test_generation,
+        ...parsed.features?.test_generation,
+      },
+      bug_prediction: {
+        ...fallback.features.bug_prediction,
+        ...parsed.features?.bug_prediction,
+        triggers: {
+          ...fallback.features.bug_prediction.triggers,
+          ...parsed.features?.bug_prediction?.triggers,
+        },
+      },
+    },
+  };
 }
 
 export function usePreventAIConfig(
   orgName?: string,
   repoName?: string
 ): PreventAIConfigResult {
-  // TODO: Hook up to real API - GET `/organizations/${organization.slug}/prevent/ai/config/`
+  const storageKey = useMemo(
+    () => `prevent-ai-config-${orgName}-${repoName}`,
+    [orgName, repoName]
+  );
 
-  // TODO: Below reads/writes from localstorage until real apis hooked up
-  // Generate storage key based on org and repo
-  const getStorageKey = useCallback(() => {
-    if (!orgName || !repoName) {
-      return 'prevent-ai-config-default';
-    }
-    return `prevent-ai-config-${orgName}-${repoName}`;
-  }, [orgName, repoName]);
   const loadConfig = useCallback((): PreventAIConfig => {
-    const defaultConfig: PreventAIConfig = {
-      features: {
-        vanilla: {
-          enabled: false,
-        },
-        test_generation: {
-          enabled: false,
-        },
-        bug_prediction: {
-          enabled: false,
-          triggers: {
-            on_command_phrase: false,
-            on_ready_for_review: false,
-          },
-        },
-      },
-    };
-
     try {
-      const storageKey = getStorageKey();
       const stored = localStorage.getItem(storageKey);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        // Merge with defaults to ensure all fields exist
-        return {
-          features: {
-            ...defaultConfig.features,
-            ...parsed.features,
-          },
-        };
+        return mergeConfig(JSON.parse(stored));
       }
-    } catch (err) {
-      // Silently handle localStorage errors
+    } catch {
+      // ignore (we are using local storage for a dummy UI until the api is hooked up)
     }
-    return defaultConfig;
-  }, [getStorageKey]);
+    return DEFAULT_CONFIG;
+  }, [storageKey]);
 
   const [config, setConfig] = useState<PreventAIConfig>(loadConfig);
 
-  const refetch = useCallback(() => {
-    const newConfig = loadConfig();
-    setConfig(newConfig);
-  }, [loadConfig]);
+  const refetch = useCallback(() => setConfig(loadConfig()), [loadConfig]);
 
   return {
     data: config,

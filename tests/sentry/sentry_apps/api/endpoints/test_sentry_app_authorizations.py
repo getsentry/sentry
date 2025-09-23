@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
@@ -41,7 +42,7 @@ class TestSentryAppAuthorizations(APITestCase):
             prevent_token_exchange=True,
         )
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: int | str, **params: int | str) -> Response:
         """Overriding `get_response` with some default data."""
         return super().get_response(
             self.install.uuid,

@@ -1,5 +1,5 @@
-// note: we only support github for now
-export type PreventAIProvider = 'github' | 'bitbucket' | 'gitlab';
+// Add any new providers here e.g., 'github' | 'bitbucket' | 'gitlab'
+type PreventAIProvider = 'github';
 
 interface PreventAIRepo {
   fullName: string;
