@@ -263,39 +263,6 @@ function Dashboard({
     }
   };
 
-  const renderWidget = (widget: Widget, index: number) => {
-    const widgetProps = {
-      widget,
-      widgetLegendState,
-      isEditingDashboard,
-      widgetLimitReached,
-      onDelete: handleDeleteWidget(widget),
-      onEdit: handleEditWidget(index),
-      onDuplicate: handleDuplicateWidget(widget),
-      onSetTransactionsDataset: () => handleChangeSplitDataset(widget, index),
-      isPreview,
-
-      dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
-    };
-
-    const key = constructGridItemKey(widget);
-
-    return (
-      <div key={key} data-grid={widget.layout}>
-        <SortableWidget
-          {...widgetProps}
-          dashboardPermissions={dashboard.permissions}
-          dashboardCreator={dashboard.createdBy}
-          isMobile={isMobile}
-          windowWidth={windowWidth}
-          index={String(index)}
-          newlyAddedWidget={newlyAddedWidget}
-          onNewWidgetScrollComplete={onNewWidgetScrollComplete}
-        />
-      </div>
-    );
-  };
-
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
       if (!isEditingDashboard) {
@@ -432,7 +399,29 @@ function Dashboard({
       useCSSTransforms={false}
       isBounded
     >
-      {widgetsWithLayout.map((widget, index) => renderWidget(widget, index))}
+      {widgetsWithLayout.map((widget, index) => (
+        <div key={constructGridItemKey(widget)} data-grid={widget.layout}>
+          <SortableWidget
+            widget={widget}
+            widgetLegendState={widgetLegendState}
+            isEditingDashboard={isEditingDashboard}
+            widgetLimitReached={widgetLimitReached}
+            onDelete={handleDeleteWidget(widget)}
+            onEdit={handleEditWidget(index)}
+            onDuplicate={handleDuplicateWidget(widget)}
+            onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
+            isPreview={isPreview}
+            dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
+            dashboardPermissions={dashboard.permissions}
+            dashboardCreator={dashboard.createdBy}
+            isMobile={isMobile}
+            windowWidth={windowWidth}
+            index={String(index)}
+            newlyAddedWidget={newlyAddedWidget}
+            onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+          />
+        </div>
+      ))}
       {isEditingDashboard && !widgetLimitReached && !isPreview && (
         <AddWidgetWrapper key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={addWidgetLayout}>
           <AddWidget onAddWidget={onAddWidget} />
