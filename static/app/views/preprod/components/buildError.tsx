@@ -20,9 +20,8 @@ export function BuildError({title, message, children}: BuildErrorProps) {
       gap="3xl"
       padding="md"
       minHeight="60vh"
-      maxWidth="500px"
     >
-      <Flex direction="column" align="center" gap="lg" padding="md">
+      <Flex maxWidth="500px" direction="column" align="center" gap="lg" padding="md">
         <AlertImage src={Missing} alt="Error image" />
         <Heading as="h2">{title}</Heading>
         <Text>{message}</Text>

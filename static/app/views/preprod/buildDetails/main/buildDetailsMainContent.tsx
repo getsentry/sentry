@@ -1,10 +1,10 @@
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
@@ -26,6 +26,52 @@ import {
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
+
+interface LoadingContentProps {
+  children: ReactNode;
+  showSkeleton?: boolean;
+}
+
+function LoadingContent({showSkeleton, children}: LoadingContentProps) {
+  return (
+    <Flex direction="column" gap="lg" minHeight="700px">
+      <Grid
+        columns="1fr"
+        rows="1fr"
+        areas={`"all"`}
+        align="center"
+        justify="center"
+        style={{position: 'relative', height: '508px'}}
+        data-testid="treemap-loading-skeleton"
+      >
+        {showSkeleton && (
+          <Container
+            area="all"
+            style={{
+              width: '100%',
+              height: '508px',
+            }}
+          >
+            <Placeholder width="100%" height="508px" />
+          </Container>
+        )}
+        <Flex area="all" direction="column" align="center">
+          {children}
+        </Flex>
+      </Grid>
+      {showSkeleton && (
+        <Flex direction="column" gap="md">
+          <Placeholder width="200px" height="24px" />
+          <Flex gap="md">
+            <Placeholder width="150px" height="60px" />
+            <Placeholder width="150px" height="60px" />
+            <Placeholder width="150px" height="60px" />
+          </Flex>
+        </Flex>
+      )}
+    </Flex>
+  );
+}
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
@@ -64,84 +110,34 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const isSizeNotStarted = sizeInfo === undefined;
   const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
 
-  const showLoading = isLoadingRequests;
   const showNoSizeRequested = !isLoadingRequests && isSizeNotStarted;
 
-  if (showLoading) {
+  if (isLoadingRequests) {
     return (
-      <Flex direction="column" gap="lg" minHeight="700px">
-        {/* Main visualization skeleton */}
-        <Flex
-          align="center"
-          justify="center"
-          style={{position: 'relative', height: '508px'}}
-          data-testid="treemap-loading-skeleton"
-        >
-          <Container
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '508px',
-              zIndex: 0,
-            }}
-          >
-            <Placeholder width="100%" height="508px" />
-          </Container>
-          <LoadingIndicator size={60} style={{zIndex: 1}}>
-            {isLoadingRequests && t('Requesting data...')}
-            {isSizePending && t('Waiting for analysis to start...')}
-            {isSizeProcessing && t('Your app is still being analyzed...')}
-          </LoadingIndicator>
-        </Flex>
-        {/* Insights skeleton */}
-        <Flex direction="column" gap="md">
-          <Placeholder width="200px" height="24px" />
-          <Flex gap="md">
-            <Placeholder width="150px" height="60px" />
-            <Placeholder width="150px" height="60px" />
-            <Placeholder width="150px" height="60px" />
-          </Flex>
-        </Flex>
-      </Flex>
+      <LoadingContent showSkeleton>
+        <LoadingIndicator size={60}>{t('Requesting data...')}</LoadingIndicator>
+      </LoadingContent>
     );
   }
 
   if (isSizePending || isSizeProcessing) {
     return (
-      <BuildProcessing
-        title={t('Running size analysis')}
-        message={t('Hang tight, this may take a few minutes...')}
-      />
+      <LoadingContent>
+        <BuildProcessing
+          title={t('Running size analysis')}
+          message={t('Hang tight, this may take a few minutes...')}
+        />
+      </LoadingContent>
     );
   }
 
-  // TODO(): It would be good to have a call-to-action here. e.g.
+  // TODO(EME-304): It would be good to have a call-to-action here. e.g.
   // click to run size analysis.
   if (showNoSizeRequested) {
     return (
-      <Flex direction="column" gap="lg" minHeight="700px">
-        <Flex
-          align="center"
-          justify="center"
-          style={{position: 'relative', height: '508px'}}
-          data-testid="treemap-loading-skeleton"
-        >
-          <Container
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '508px',
-              zIndex: 0,
-            }}
-          >
-            <p>{t('No size analysis.')}</p>
-          </Container>
-        </Flex>
-      </Flex>
+      <LoadingContent>
+        <p>{t('No size analysis.')}</p>
+      </LoadingContent>
     );
   }
 
