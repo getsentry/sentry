@@ -26,7 +26,7 @@ export function BuildProcessing({title, message, children}: BuildProcessingProps
           {title}
         </Heading>
         <Text align="center">{message}</Text>
-        <Flex gap="sm">
+        <Flex align="center" justify="center">
           <RotatingIcon>
             <IconSettings size="2xl" />
           </RotatingIcon>
@@ -40,23 +40,26 @@ export function BuildProcessing({title, message, children}: BuildProcessingProps
   );
 }
 
+// 22.5deg to offset icon by one tooth.
 const RotatingIcon = styled('span')`
   display: inline-block;
-  animation: spin 2s linear infinite;
+  animation: spin 3s linear infinite;
+  line-height: 0;
 
   @keyframes spin {
     0% {
-      transform: rotate(0deg);
+      transform: rotate(22.5deg);
     }
     100% {
-      transform: rotate(360deg);
+      transform: rotate(382.5deg);
     }
   }
 `;
 
 const RotatingIconReverse = styled('span')`
   display: inline-block;
-  animation: spin-reverse 2s linear infinite;
+  animation: spin-reverse 3s linear infinite;
+  line-height: 0;
 
   @keyframes spin-reverse {
     0% {
