@@ -1,4 +1,4 @@
-import React, {useRef} from 'react';
+import React, {useCallback, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
@@ -25,6 +25,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
+  ECharts,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -145,6 +146,23 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const location = useLocation();
   const theme = useTheme();
 
+  const handleChartReady = useCallback(
+    (instance: ECharts) => {
+      // `connectDashboardCharts` runs before charts are mounted, and creates a
+      // lightweight lookup entry in ECharts to let it know that a group exists.
+      // When each chart is mounted, this "ready" callback fires, and attaches
+      // the group directly to the chart instance. When an event is dispatched
+      // on any of the chart instances, it's propagated to any other currently
+      // rendered charts that have a matching group. This creates synchronized
+      // cursors.
+      // N.B. Always use `onChartReady` for this, rather than `ref`, since
+      // `onChartReady` correctly fires async when the instance becomes
+      // available, unlike `ref`!
+      instance.group = props.chartGroup;
+    },
+    [props.chartGroup]
+  );
+
   if (errorMessage) {
     return (
       <StyledErrorPanel>
@@ -175,6 +193,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       </TransitionChart>
     );
   }
+
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
@@ -349,11 +368,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const handleRef = (nextRef: ReactEchartsRef): void => {
     if (nextRef && !chartRef.current) {
       chartRef.current = nextRef;
-      // add chart to the group so that it has synced cursors
-      const instance = nextRef.getEchartsInstance?.();
-      if (instance && !instance.group && props.chartGroup) {
-        instance.group = props.chartGroup;
-      }
     }
 
     if (!nextRef) {
@@ -422,6 +436,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                                 : []),
                             ],
                             onLegendSelectChanged,
+                            onChartReady: handleChartReady,
                             ref: props.chartGroup ? handleRef : undefined,
                           },
                           widget
