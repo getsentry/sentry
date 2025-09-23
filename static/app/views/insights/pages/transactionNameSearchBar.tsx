@@ -2,11 +2,11 @@ import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import SearchDropdown from 'sentry/components/deprecatedSmartSearchBar/searchDropdown';
-import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
-import {ItemType} from 'sentry/components/deprecatedSmartSearchBar/types';
-import {getSearchGroupWithItemMarkedActive} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import BaseSearchBar from 'sentry/components/searchBar';
+import SearchDropdown from 'sentry/components/searchBar/searchDropdown';
+import type {SearchGroup} from 'sentry/components/searchBar/types';
+import {ItemType} from 'sentry/components/searchBar/types';
+import {getSearchGroupWithItemMarkedActive} from 'sentry/components/searchBar/utils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

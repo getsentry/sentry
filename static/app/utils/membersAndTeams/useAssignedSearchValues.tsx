@@ -1,10 +1,7 @@
 import {useMemo} from 'react';
 
-import {
-  ItemType,
-  type SearchGroup,
-} from 'sentry/components/deprecatedSmartSearchBar/types';
-import {escapeTagValue} from 'sentry/components/deprecatedSmartSearchBar/utils';
+import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
+import {escapeTagValue} from 'sentry/components/searchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';

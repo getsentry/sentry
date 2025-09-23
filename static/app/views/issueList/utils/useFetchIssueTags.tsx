@@ -1,11 +1,8 @@
 import {useMemo} from 'react';
 
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import {
-  ItemType,
-  type SearchGroup,
-} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
+import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {
   FixabilityScoreThresholds,
   getIssueTitleFromType,
