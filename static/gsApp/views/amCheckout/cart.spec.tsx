@@ -103,7 +103,7 @@ describe('Cart', () => {
     );
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
-    expect(cart).toHaveTextContent('Pay-as-you-go spend limit$0-$300/mo');
+    expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
     expect(cart).toHaveTextContent('Plan Total$89/mo');
     expect(cart).toHaveTextContent('Default Amount');
   });
@@ -149,11 +149,11 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('Available with pay-as-you-go');
 
     const seerItem = screen.getByTestId('summary-item-product-seer');
-    expect(seerItem).toHaveTextContent('Seer AI Agent');
+    expect(seerItem).toHaveTextContent('Seer');
     expect(seerItem).toHaveTextContent('$216/yr');
 
     const spendCapItem = screen.getByTestId('summary-item-spend-limit');
-    expect(spendCapItem).toHaveTextContent('$0-$50/mo');
+    expect(spendCapItem).toHaveTextContent('up to $50/mo');
 
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument(); // changes aren't shown for free plan
   });
@@ -198,16 +198,16 @@ describe('Cart', () => {
     const spendCapItems = await screen.findAllByTestId(/summary-item-spend-limit/);
     expect(spendCapItems).toHaveLength(4);
     expect(screen.getByTestId('summary-item-spend-limit-errors')).toHaveTextContent(
-      '$0-$10/mo'
+      'up to $10/mo'
     );
     expect(screen.getByTestId('summary-item-spend-limit-transactions')).toHaveTextContent(
-      '$0-$5/mo'
+      'up to $5/mo'
     );
     expect(screen.getByTestId('summary-item-spend-limit-attachments')).toHaveTextContent(
-      '$0-$20/mo'
+      'up to $20/mo'
     );
     expect(screen.getByTestId('summary-item-spend-limit-replays')).toHaveTextContent(
-      '$0-$15/mo'
+      'up to $15/mo'
     );
   });
 

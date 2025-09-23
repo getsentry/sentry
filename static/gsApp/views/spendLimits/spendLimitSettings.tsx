@@ -574,11 +574,9 @@ function BudgetModeSettings({
                 />
               </Container>
               <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
-                {tct('[budgetMode] spending [limitTerm]', {
-                  budgetMode: budgetModeName,
-                  limitTerm:
-                    budgetMode === OnDemandBudgetMode.PER_CATEGORY ? 'limits' : 'limit',
-                })}
+                {budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                  ? t('Set a spending limit for each product')
+                  : t('Set a spending limit shared across all products')}
               </Heading>
             </Flex>
           </CheckoutOption>
@@ -599,7 +597,7 @@ function SpendLimitSettings({
   footer,
 }: SpendLimitSettingsProps) {
   return (
-    <Flex direction="column">
+    <Flex direction="column" gap="sm">
       {header}
       {isOpen && (
         <Grid gap="2xl">

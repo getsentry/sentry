@@ -31,7 +31,7 @@ function assertCheckoutV3Steps(tier: PlanTier) {
     [PlanTier.AM1, PlanTier.AM2].includes(tier)
       ? /Set your on-demand limit/
       : /Set your pay-as-you-go limit/,
-    'Billing cycle',
+    'Choose your billing cycle',
     'Edit billing information',
   ].forEach(step => {
     expect(screen.getByText(step)).toBeInTheDocument();
