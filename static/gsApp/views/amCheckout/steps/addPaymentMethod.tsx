@@ -49,6 +49,7 @@ function AddPaymentMethod({
         buttonText="Continue"
         location={FTCConsentLocation.CHECKOUT}
         budgetTerm={subscription.planDetails.budgetTerm}
+        analyticsEvent="checkout.updated_cc"
       />
     );
 

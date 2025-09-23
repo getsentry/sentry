@@ -13,11 +13,13 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import LegacyBillingDetailsForm from 'getsentry/components/billingDetails/legacyForm';
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
-import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
+import {hasNewBillingUI, hasStripeComponentsFeature} from 'getsentry/utils/billing';
 import {countryCodes} from 'getsentry/utils/ISO3166codes';
 import type {TaxFieldInfo} from 'getsentry/utils/salesTax';
 import {
@@ -26,12 +28,18 @@ import {
   getRegionChoiceCode,
   getTaxFieldInfo,
 } from 'getsentry/utils/salesTax';
+import type {GetsentryEventKey} from 'getsentry/utils/trackGetsentryAnalytics';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 const COUNTRY_CODE_CHOICES = countryCodes.map(({name, code}) => [code, name]);
 
 type Props = {
   onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void;
   organization: Organization;
+  /**
+   * Analytics event to track on form submission.
+   */
+  analyticsEvent?: GetsentryEventKey;
   /**
    * Extra button to render in the form footer.
    */
@@ -131,6 +139,7 @@ function BillingDetailsForm({
   wrapper = DefaultWrapper,
   fieldProps,
   extraButton,
+  analyticsEvent,
 }: Props) {
   const transformData = (data: Record<string, any>) => {
     // Clear tax number if not applicable to country code.
@@ -157,6 +166,9 @@ function BillingDetailsForm({
     showTaxNumber:
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
+  const hasStripeComponents = hasStripeComponentsFeature(organization);
+  const isNewBillingUI = hasNewBillingUI(organization);
+  const location = useLocation();
 
   const taxFieldInfo = useMemo(
     () => getTaxFieldInfo(state.countryCode),
@@ -206,11 +218,23 @@ function BillingDetailsForm({
     return null;
   }
 
-  if (!hasStripeComponentsFeature(organization)) {
+  const handleSubmit = (data: Record<PropertyKey, unknown>) => {
+    if (analyticsEvent) {
+      trackGetsentryAnalytics(analyticsEvent, {
+        organization,
+        isNewBillingUI,
+        isStripeComponent: hasStripeComponents,
+        referrer: decodeScalar(location.query?.referrer),
+      });
+    }
+    onSubmitSuccess(data);
+  };
+
+  if (!hasStripeComponents) {
     return (
       <LegacyBillingDetailsForm
         initialData={initialData}
-        onSubmitSuccess={onSubmitSuccess}
+        onSubmitSuccess={handleSubmit}
         organization={organization}
         onSubmitError={onSubmitError}
         onPreSubmit={onPreSubmit}
@@ -241,7 +265,7 @@ function BillingDetailsForm({
       apiEndpoint={`/customers/${organization.slug}/billing-details/`}
       submitLabel={submitLabel}
       onPreSubmit={onPreSubmit}
-      onSubmitSuccess={onSubmitSuccess}
+      onSubmitSuccess={handleSubmit}
       onSubmitError={onSubmitError}
       initialData={transformedInitialData}
       footerStyle={footerStyle}
