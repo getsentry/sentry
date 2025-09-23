@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AddressElement} from '@stripe/react-stripe-js';
 
 import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Text} from 'sentry/components/core/text';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -14,7 +14,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
-import LegacyBillingDetailsForm from 'getsentry/components/legacyBillingDetailsForm';
+import LegacyBillingDetailsForm from 'getsentry/components/billingDetails/legacyForm';
 import StripeWrapper from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
 import {hasStripeComponentsFeature} from 'getsentry/utils/billing';
@@ -32,6 +32,10 @@ const COUNTRY_CODE_CHOICES = countryCodes.map(({name, code}) => [code, name]);
 type Props = {
   onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void;
   organization: Organization;
+  /**
+   * Extra button to render in the form footer.
+   */
+  extraButton?: React.ReactNode;
   /**
    * Additional form field props for custom components.
    */
@@ -126,6 +130,7 @@ function BillingDetailsForm({
   isDetailed = true,
   wrapper = DefaultWrapper,
   fieldProps,
+  extraButton,
 }: Props) {
   const transformData = (data: Record<string, any>) => {
     // Clear tax number if not applicable to country code.
@@ -229,86 +234,82 @@ function BillingDetailsForm({
   };
 
   return (
-    <Flex direction="column" gap="lg">
-      <Heading as="h2" size="md">
-        {t('Invoice Details')}
-      </Heading>
-      <Form
-        apiMethod="PUT"
-        model={form}
-        requireChanges={requireChanges}
-        apiEndpoint={`/customers/${organization.slug}/billing-details/`}
-        submitLabel={submitLabel}
-        onPreSubmit={onPreSubmit}
-        onSubmitSuccess={onSubmitSuccess}
-        onSubmitError={onSubmitError}
-        initialData={transformedInitialData}
-        footerStyle={footerStyle}
-      >
-        <FieldWrapper>
-          <Flex direction="column" gap="xl">
-            {isDetailed && (
-              <CustomBillingDetailsFormField
-                inputName="billingEmail"
-                label={t('Billing email')}
-                help={t(
-                  'If provided, all billing-related notifications will be sent to this address'
-                )}
-                placeholder={t('name@example.com (optional)')}
-                value={form.getValue('billingEmail') ?? ''}
-                fieldProps={fieldProps}
-              />
-            )}
-            <StripeWrapper>
-              <AddressElement
-                options={{
-                  mode: 'billing',
-                  autocomplete: GOOGLE_MAPS_API_KEY
-                    ? {
-                        mode: 'google_maps_api',
-                        apiKey: GOOGLE_MAPS_API_KEY,
-                      }
-                    : {
-                        mode: 'automatic', // if our key isn't available, see if we can use Stripe's
-                      },
-                  allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
-                    defined(code)
-                  ).map(([code]) => code as string),
-                  fields: {phone: 'never'}, // don't show phone number field
-                  defaultValues: {
-                    name: initialData?.companyName,
-                    address: {
-                      line1: initialData?.addressLine1,
-                      line2: initialData?.addressLine2,
-                      city: initialData?.city,
-                      state: initialData?.region,
-                      postal_code: initialData?.postalCode,
-                      country: initialData?.countryCode ?? 'US',
+    <Form
+      apiMethod="PUT"
+      model={form}
+      requireChanges={requireChanges}
+      apiEndpoint={`/customers/${organization.slug}/billing-details/`}
+      submitLabel={submitLabel}
+      onPreSubmit={onPreSubmit}
+      onSubmitSuccess={onSubmitSuccess}
+      onSubmitError={onSubmitError}
+      initialData={transformedInitialData}
+      footerStyle={footerStyle}
+      extraButton={extraButton}
+    >
+      <FieldWrapper>
+        <Flex direction="column" gap="xl">
+          {isDetailed && (
+            <CustomBillingDetailsFormField
+              inputName="billingEmail"
+              label={t('Billing email')}
+              help={t(
+                'If provided, all billing-related notifications will be sent to this address'
+              )}
+              placeholder={t('name@example.com (optional)')}
+              value={form.getValue('billingEmail') ?? ''}
+              fieldProps={fieldProps}
+            />
+          )}
+          <StripeWrapper>
+            <AddressElement
+              options={{
+                mode: 'billing',
+                autocomplete: GOOGLE_MAPS_API_KEY
+                  ? {
+                      mode: 'google_maps_api',
+                      apiKey: GOOGLE_MAPS_API_KEY,
+                    }
+                  : {
+                      mode: 'automatic', // if our key isn't available, see if we can use Stripe's
                     },
+                allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
+                  defined(code)
+                ).map(([code]) => code as string),
+                fields: {phone: 'never'}, // don't show phone number field
+                defaultValues: {
+                  name: initialData?.companyName,
+                  address: {
+                    line1: initialData?.addressLine1,
+                    line2: initialData?.addressLine2,
+                    city: initialData?.city,
+                    state: initialData?.region,
+                    postal_code: initialData?.postalCode,
+                    country: initialData?.countryCode ?? 'US',
                   },
-                  display: {name: 'organization'},
-                }}
-                onChange={handleStripeFormChange}
-              />
-            </StripeWrapper>
-            {!!(state.showTaxNumber && taxFieldInfo) && (
-              // TODO: use Stripe's TaxIdElement when it's generally available
-              <CustomBillingDetailsFormField
-                inputName="taxNumber"
-                label={taxFieldInfo.label}
-                help={tct(
-                  "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
-                  {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
-                )}
-                value={form.getValue('taxNumber') ?? ''}
-                placeholder={taxFieldInfo.placeholder}
-                fieldProps={fieldProps}
-              />
-            )}
-          </Flex>
-        </FieldWrapper>
-      </Form>
-    </Flex>
+                },
+                display: {name: 'organization'},
+              }}
+              onChange={handleStripeFormChange}
+            />
+          </StripeWrapper>
+          {!!(state.showTaxNumber && taxFieldInfo) && (
+            // TODO: use Stripe's TaxIdElement when it's generally available
+            <CustomBillingDetailsFormField
+              inputName="taxNumber"
+              label={taxFieldInfo.label}
+              help={tct(
+                "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
+                {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
+              )}
+              value={form.getValue('taxNumber') ?? ''}
+              placeholder={taxFieldInfo.placeholder}
+              fieldProps={fieldProps}
+            />
+          )}
+        </Flex>
+      </FieldWrapper>
+    </Form>
   );
 }
 
