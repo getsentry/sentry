@@ -75,34 +75,21 @@ export default function PreventQueryParamsProvider({
       const integratedOrgName = input.integratedOrgName;
 
       setLocalStorageState((prev: LocalStorageState) => {
+        const prevState = {...prev};
+
         if (integratedOrgName) {
           VALUES_TO_RESET_URL_PARAMS.forEach(key => {
             delete currentParams[key];
           });
-        }
-
-        const prevState = {...prev};
-
-        if (integratedOrgName) {
-          const newState: Partial<Org> = {};
-
-          newState.integratedOrgId = input.integratedOrgId as string;
-
-          if (input.repository) {
-            const branch = input.branch ?? null;
-
-            newState.repository = input.repository;
-            newState.branch = branch;
-          }
 
           prevState[integratedOrgName] = {
             integratedOrgId:
-              newState.integratedOrgId ??
+              input.integratedOrgId ??
               prevState[integratedOrgName]?.integratedOrgId ??
               null,
             repository:
-              newState.repository ?? prevState[integratedOrgName]?.repository ?? null,
-            branch: newState.branch ?? prevState[integratedOrgName]?.branch ?? null,
+              input.repository ?? prevState[integratedOrgName]?.repository ?? null,
+            branch: input.branch ?? null,
           };
           prevState.lastVisitedOrgName = integratedOrgName;
           prevState.preventPeriod = input.preventPeriod ? input.preventPeriod : '24h';
