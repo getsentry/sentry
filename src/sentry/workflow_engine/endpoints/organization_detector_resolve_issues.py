@@ -40,7 +40,7 @@ class OrganizationDetectorResolveIssuesEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ISSUES
 
     permission_classes = (OrganizationDetectorPermission,)
 
