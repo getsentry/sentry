@@ -102,43 +102,45 @@ export function setPageFiltersStorage(
  * Retrieves the page filters from local storage
  */
 export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
-  const localStorageKey = makeLocalStorageKey(
-    storageNamespace.length > 0 ? `${storageNamespace}:${orgSlug}` : orgSlug
-  );
+  const globalSelectionValue = decodePageFilter(orgSlug);
+  const storageNamespaceValue = decodePageFilter(`${storageNamespace}:${orgSlug}`);
 
-  const value = localStorage.getItem(localStorageKey);
-
-  if (!value) {
-    return null;
-  }
-
-  let decoded: StoredObject;
-
-  try {
-    decoded = JSON.parse(value);
-  } catch (err) {
-    // use default if invalid
-    Sentry.captureException(err);
-    console.error(err); // eslint-disable-line no-console
-
-    return null;
-  }
-
-  const {projects, environments, start, end, period, utc, pinnedFilters} = decoded;
-
+  const {projects, environments, pinnedFilters} = {
+    ...globalSelectionValue,
+    ...storageNamespaceValue,
+  };
   const state = getStateFromQuery(
     {
-      project: projects.map(String),
+      project: projects?.map(String),
       environment: environments,
-      start,
-      end,
-      period,
-      utc,
+      start: globalSelectionValue?.start,
+      end: globalSelectionValue?.end,
+      period: globalSelectionValue?.period,
+      utc: globalSelectionValue?.utc,
     },
     {allowAbsoluteDatetime: true}
   );
 
   return {state, pinnedFilters: new Set(pinnedFilters)};
+}
+
+function decodePageFilter(key: string): StoredObject | null {
+  const storageKey = makeLocalStorageKey(key);
+
+  const value = localStorage.getItem(storageKey);
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const decodedValue = JSON.parse(value);
+    return decodedValue;
+  } catch (err) {
+    Sentry.captureException(err);
+    console.error(err); // eslint-disable-line no-console
+
+    return null;
+  }
 }
 
 /**

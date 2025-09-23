@@ -5,6 +5,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -25,6 +26,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -53,6 +55,9 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const yAxes = 'p75(span.duration)';
   const totalTimeField = 'sum(span.duration)';
   const title = t('Assets by Time Spent');
+  const interval = getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
+  const chartType = ChartType.LINE;
+  const topEvents = 3;
 
   const {
     data: assetListData,
@@ -69,7 +74,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       ],
       sorts: [{field: totalTimeField, kind: 'desc'}],
       search,
-      limit: 3,
+      limit: topEvents,
       noPagination: true,
     },
     referrer
@@ -85,8 +90,9 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
       fields: [groupBy, yAxes],
       yAxis: [yAxes],
       sort: {field: yAxes, kind: 'desc'},
-      topN: 3,
+      topN: topEvents,
       enabled: assetListData?.length > 0,
+      interval,
     },
     referrer
   );
@@ -161,7 +167,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     organization,
     visualize: [
       {
-        chartType: ChartType.LINE,
+        chartType,
         yAxes: [yAxes],
       },
     ],
@@ -170,8 +176,19 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    interval,
     referrer,
   });
+
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType,
+    yAxes: [yAxes],
+    widgetName: title,
+    groupBy: [groupBy],
+    search,
+    sort: {field: totalTimeField, kind: 'desc'},
+    topEvents,
+  };
 
   return (
     <Widget
@@ -185,6 +202,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
                 key="slow assets widget"
                 exploreUrl={exploreUrl}
                 referrer={referrer}
+                addToDashboardOptions={addToDashboardOptions}
                 alertMenuOptions={assetSeriesData.map(series => ({
                   key: series.seriesName,
                   label: series.seriesName,

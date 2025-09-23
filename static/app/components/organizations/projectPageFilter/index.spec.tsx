@@ -236,7 +236,6 @@ describe('ProjectPageFilter', () => {
       organization: desyncOrganization,
       queryParams: {project: ['2']},
       router: desyncRouter,
-      shouldEnforceSingleProject: false,
     });
 
     render(<ProjectPageFilter />, {

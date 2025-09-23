@@ -61,7 +61,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert client.api_key == "test_api_key_123"
         assert client.base_url == "https://api.cursor.com"
 
-    @patch("requests.post")
+    @patch("sentry.integrations.cursor.client.CursorAgentClient.post")
     def test_launch(self, mock_post):
         from datetime import datetime
 
@@ -71,7 +71,7 @@ class CursorIntegrationTest(IntegrationTestCase):
 
         # Mock the response
         mock_response = MagicMock()
-        mock_response.json.return_value = {
+        mock_response.json = {
             "id": "test_session_123",
             "name": "Test Session",
             "status": "running",
@@ -128,4 +128,4 @@ class CursorIntegrationTest(IntegrationTestCase):
         # Verify the API call
         mock_post.assert_called_once()
         call_args = mock_post.call_args
-        assert call_args[0][0] == "https://api.cursor.com/v0/agents"
+        assert call_args[0][0] == "/v0/agents"

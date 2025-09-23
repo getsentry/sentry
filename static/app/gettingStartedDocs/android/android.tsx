@@ -1,8 +1,4 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list/';
-import ListItem from 'sentry/components/list/listItem';
 import type {
   BasePlatformOptions,
   Docs,
@@ -169,60 +165,54 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ? [
           {
             type: StepType.INSTALL,
-            description: tct(
-              'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
+            content: [
               {
-                wizardLink: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/android/#install" />
+                type: 'text',
+                text: tct(
+                  'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
+                  {
+                    wizardLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/android/#install" />
+                    ),
+                  }
                 ),
-              }
-            ),
-            configurations: [
+              },
               {
-                code: getWizardInstallSnippet({
+                type: 'code',
+                tabs: getWizardInstallSnippet({
                   platform: 'android',
                   params,
                 }),
               },
               {
-                description: (
-                  <Fragment>
-                    <p>
-                      {t('The Sentry wizard will automatically patch your application:')}
-                    </p>
-                    <List symbol="bullet">
-                      <ListItem>
-                        {tct(
-                          "Update your app's [buildGradle:build.gradle] file with the Sentry Gradle plugin and configure it.",
-                          {
-                            buildGradle: <code />,
-                          }
-                        )}
-                      </ListItem>
-                      <ListItem>
-                        {tct(
-                          'Update your [manifest: AndroidManifest.xml] with the default Sentry configuration',
-                          {
-                            manifest: <code />,
-                          }
-                        )}
-                      </ListItem>
-                      <ListItem>
-                        {tct(
-                          'Create [code: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [code: .gitignore])',
-                          {
-                            code: <code />,
-                          }
-                        )}
-                      </ListItem>
-                      <ListItem>
-                        {t(
-                          "Add an example error to your app's Main Activity to verify your Sentry setup"
-                        )}
-                      </ListItem>
-                    </List>
-                  </Fragment>
-                ),
+                type: 'text',
+                text: t('The Sentry wizard will automatically patch your application:'),
+              },
+              {
+                type: 'list',
+                items: [
+                  tct(
+                    "Update your app's [buildGradle:build.gradle] file with the Sentry Gradle plugin and configure it.",
+                    {
+                      buildGradle: <code />,
+                    }
+                  ),
+                  tct(
+                    'Update your [manifest: AndroidManifest.xml] with the default Sentry configuration',
+                    {
+                      manifest: <code />,
+                    }
+                  ),
+                  tct(
+                    'Create [code: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [code: .gitignore])',
+                    {
+                      code: <code />,
+                    }
+                  ),
+                  t(
+                    "Add an example error to your app's Main Activity to verify your Sentry setup"
+                  ),
+                ],
               },
             ],
           },
@@ -230,20 +220,28 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       : [
           {
             type: StepType.INSTALL,
-            description: tct(
-              'Add the [sagpLink:Sentry Android Gradle plugin] to your [app:app] module:',
+            content: [
               {
-                sagpLink: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/android/configuration/gradle/" />
+                type: 'text',
+                text: tct(
+                  'Add the [sagpLink:Sentry Android Gradle plugin] to your [app:app] module:',
+                  {
+                    sagpLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/android/configuration/gradle/" />
+                    ),
+                    app: <code />,
+                  }
                 ),
-                app: <code />,
-              }
-            ),
-            configurations: [
+              },
               {
-                language: 'groovy',
-                partialLoading: params.sourcePackageRegistries?.isLoading,
-                code: getManualInstallSnippet(params),
+                type: 'code',
+                tabs: [
+                  {
+                    label: 'Groovy',
+                    language: 'groovy',
+                    code: getManualInstallSnippet(params),
+                  },
+                ],
               },
             ],
           },
@@ -254,23 +252,30 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       : [
           {
             type: StepType.CONFIGURE,
-            description: (
-              <Fragment>
-                <p>
-                  {tct(
-                    'Configuration is done via the application [code: AndroidManifest.xml]. Under the hood Sentry uses a [code:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
-                    {
-                      code: <code />,
-                    }
-                  )}
-                </p>
-                <p>{t("Here's an example config which should get you started:")}</p>
-              </Fragment>
-            ),
-            configurations: [
+            content: [
               {
-                language: 'xml',
-                code: getConfigurationSnippet(params),
+                type: 'text',
+                text: tct(
+                  'Configuration is done via the application [code: AndroidManifest.xml]. Under the hood Sentry uses a [code:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
+                  {
+                    code: <code />,
+                  }
+                ),
+              },
+              {
+                type: 'text',
+                text: t("Here's an example config which should get you started:"),
+              },
+              {
+                type: 'code',
+                tabs: [
+                  {
+                    label: 'XML',
+                    language: 'xml',
+                    filename: 'AndroidManifest.xml',
+                    code: getConfigurationSnippet(params),
+                  },
+                ],
               },
             ],
           },
@@ -281,16 +286,25 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       : [
           {
             type: StepType.VERIFY,
-            description: tct(
-              "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. You can add it to your app's [mainActivity: MainActivity].",
+            content: [
               {
-                mainActivity: <code />,
-              }
-            ),
-            configurations: [
+                type: 'text',
+                text: tct(
+                  "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. You can add it to your app's [mainActivity: MainActivity].",
+                  {
+                    mainActivity: <code />,
+                  }
+                ),
+              },
               {
-                language: 'kotlin',
-                code: getVerifySnippet(params),
+                type: 'code',
+                tabs: [
+                  {
+                    label: 'Kotlin',
+                    language: 'kotlin',
+                    code: getVerifySnippet(params),
+                  },
+                ],
               },
             ],
           },
@@ -363,16 +377,19 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        "Make sure your Sentry Android SDK version is at least 7.20.0. The easiest way to update the SDK is through the Sentry Android Gradle plugin in your app module's [code:build.gradle] file.",
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct(
+            "Make sure your Sentry Android SDK version is at least 7.20.0. The easiest way to update the SDK is through the Sentry Android Gradle plugin in your app module's [code:build.gradle] file.",
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Groovy',
-              value: 'groovy',
               language: 'groovy',
               filename: 'app/build.gradle',
               code: `plugins {
@@ -386,7 +403,6 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             },
             {
               label: 'Kotlin',
-              value: 'kotlin',
               language: 'kotlin',
               filename: 'app/build.gradle.kts',
               code: `plugins {
@@ -401,16 +417,17 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'If you have the SDK installed without the Sentry Gradle Plugin, you can update the version directly in the [code:build.gradle] through:',
             {code: <code />}
           ),
         },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Groovy',
-              value: 'groovy',
               language: 'groovy',
               filename: 'app/build.gradle',
               code: `dependencies {
@@ -423,7 +440,6 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             },
             {
               label: 'Kotlin',
-              value: 'kotlin',
               language: 'kotlin',
               filename: 'app/build.gradle.kts',
               code: `dependencies {
@@ -437,21 +453,21 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
         {
-          description: t(
+          type: 'text',
+          text: t(
             'To set up the integration, add the following to your Sentry initialization:'
           ),
         },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Kotlin',
-              value: 'kotlin',
               language: 'kotlin',
               code: getReplaySetupSnippetKotlin(params),
             },
             {
               label: 'XML',
-              value: 'xml',
               language: 'xml',
               filename: 'AndroidManifest.xml',
               code: getReplaySetupSnippetXml(),
@@ -464,18 +480,24 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayMobileConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/android/session-replay/#privacy',
-      }),
-      configurations: [
+      content: [
         {
-          description: t(
+          type: 'text',
+          text: getReplayMobileConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/android/session-replay/#privacy',
+          }),
+        },
+        {
+          type: 'text',
+          text: t(
             'The following code is the default configuration, which masks and blocks everything.'
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Kotlin',
-              value: 'kotlin',
               language: 'kotlin',
               code: getReplayConfigurationSnippet(),
             },
@@ -495,25 +517,30 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Android UI Profiling is available starting in SDK version [code:8.7.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Android UI Profiling is available starting in SDK version [code:8.7.0].',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          partialLoading: params.sourcePackageRegistries?.isLoading,
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Groovy',
-              value: 'groovy',
               language: 'groovy',
               filename: 'app/build.gradle',
               code: getManualInstallSnippet(params),
             },
           ],
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'Version [versionPlugin] of the plugin will automatically add the Sentry Android SDK (version [versionSdk]) to your app.',
             {
               versionPlugin: (
@@ -537,16 +564,18 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Set up profiling in your [code:AndroidManifest.xml] file.', {
-        code: <code />,
-      }),
-      configurations: [
+      content: [
         {
-          language: 'xml',
-          code: [
+          type: 'text',
+          text: tct('Set up profiling in your [code:AndroidManifest.xml] file.', {
+            code: <code />,
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'XML',
-              value: 'xml',
               language: 'xml',
               filename: 'AndroidManifest.xml',
               code: `
@@ -598,7 +627,8 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
@@ -615,9 +645,14 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 };

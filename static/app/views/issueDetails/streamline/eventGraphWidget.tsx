@@ -91,7 +91,7 @@ function EventGraphLoadedWidget({
           eventView={eventView}
           group={group}
           showSummary={false}
-          showReleasesAs="line"
+          showReleasesAs="line" // this is intentionally set to line, for more granularity
           disableZoomNavigation
         />
       }

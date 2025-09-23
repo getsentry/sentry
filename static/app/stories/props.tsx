@@ -1,8 +1,6 @@
 import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 import {JSXProperty} from './jsx';
 import {SizingWindow} from './layout';
 
@@ -104,12 +102,12 @@ function item(Component: any, props: any, sizingWindowProps: any) {
 
 const Title = styled('h4')`
   margin: 0;
-  scroll-margin-top: ${space(2)};
+  scroll-margin-top: ${p => p.theme.space.xl};
 `;
 
 const Grid = styled('section')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   padding: var(--stories-grid-space);
   overflow-x: auto;
