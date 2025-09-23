@@ -84,10 +84,3 @@ export type Shortcut = {
     display?: string[] | string;
   };
 };
-
-export type AutocompleteGroup = {
-  recentSearchItems: SearchItem[] | undefined;
-  searchItems: SearchItem[] | SearchGroup[];
-  tagName: string;
-  type: ItemType;
-};

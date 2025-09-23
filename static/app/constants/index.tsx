@@ -585,12 +585,8 @@ export const DATA_CATEGORY_INFO = {
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
-// Special Search characters
-export const NEGATION_OPERATOR = '!';
-
 // SmartSearchBar settings
 export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
-export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
 

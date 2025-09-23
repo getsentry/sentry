@@ -58,10 +58,6 @@ const config: KnipConfig = {
   compilers: {
     mdx: async text => String(await compile(text)),
   },
-  ignore: [
-    // will be removed in the next PR
-    'static/app/components/deprecatedSmartSearchBar/**',
-  ],
   ignoreDependencies: [
     'core-js',
     'jest-environment-jsdom', // used as testEnvironment in jest config
