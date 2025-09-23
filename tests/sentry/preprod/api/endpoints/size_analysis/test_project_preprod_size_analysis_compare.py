@@ -361,8 +361,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         )
         mock_apply_async.assert_called_once_with(
             kwargs={
-                "head_size_metric_id": self.head_size_metric.id,
-                "base_size_metric_id": self.base_size_metric.id,
+                "head_artifact_id": self.head_artifact.id,
+                "base_artifact_id": self.base_artifact.id,
             }
         )
 
