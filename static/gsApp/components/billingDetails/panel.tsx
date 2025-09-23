@@ -13,6 +13,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 
 import {openEditBillingDetails} from 'getsentry/actionCreators/modal';
 import BillingDetailsForm from 'getsentry/components/billingDetails/form';
@@ -191,7 +192,8 @@ function BillingDetailsPanel({
             }
             analyticsEvent={analyticsEvent}
           />
-        ) : billingDetails ? (
+        ) : billingDetails &&
+          Object.values(billingDetails).some(value => defined(value)) ? (
           <Fragment>
             {billingDetails.billingEmail && <Text>{billingDetails.billingEmail}</Text>}
             {billingDetails.companyName && <Text>{billingDetails.companyName}</Text>}
