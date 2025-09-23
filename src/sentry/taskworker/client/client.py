@@ -136,7 +136,7 @@ class TaskworkerClient:
         temporary_unavailable_host_timeout: int = DEFAULT_TEMPORARY_UNAVAILABLE_HOST_TIMEOUT,
         health_check_settings: HealthCheckSettings | None = None,
         rpc_secret: str | None = None,
-        grpc_config: list[tuple[str, Any]] | None = None,
+        grpc_config: str | None = None,
     ) -> None:
         assert len(hosts) > 0, "You must provide at least one RPC host to connect to"
         self._hosts = hosts
