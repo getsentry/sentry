@@ -41,6 +41,7 @@ import type {
   EChartEventHandler,
   EChartFinishedHandler,
   EChartHighlightHandler,
+  EChartLegendSelectChangeHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   EChartRenderedHandler,
@@ -219,11 +220,7 @@ export interface BaseChartProps {
   onDownplay?: EChartDownplayHandler;
   onFinished?: EChartFinishedHandler;
   onHighlight?: EChartHighlightHandler;
-  onLegendSelectChanged?: EChartEventHandler<{
-    name: string;
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }>;
+  onLegendSelectChanged?: EChartLegendSelectChangeHandler;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   onRendered?: EChartRenderedHandler;
