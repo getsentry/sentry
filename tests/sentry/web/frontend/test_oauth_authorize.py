@@ -160,6 +160,17 @@ class OAuthAuthorizeCodeTest(TestCase):
             resp.context["error"] == "Missing or invalid <em>code_challenge_method</em> parameter."
         )
 
+    def test_pkce_method_without_challenge_rejected(self) -> None:
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&code_challenge_method=S256"
+        )
+
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>code_challenge</em> parameter."
+
     def test_pkce_rejects_invalid_challenge_length(self) -> None:
         self.login_as(self.user)
 

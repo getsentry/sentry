@@ -156,6 +156,16 @@ class OAuthAuthorizeView(AuthLoginView):
 
         # Validate PKCE inputs (when provided). For v1+ applications, only S256 is allowed;
         # for v0, allow "plain" to avoid breakage. Spec default for missing method is "plain" (RFC 7636 §4.3).
+        if code_challenge_method and not code_challenge:
+            return self.error(
+                request=request,
+                client_id=client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name="invalid_request",
+                err_response="code_challenge",
+            )
+
         if code_challenge:
             method = normalize_pkce_method(code_challenge_method)
 
