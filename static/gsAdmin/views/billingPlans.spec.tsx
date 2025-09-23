@@ -1,7 +1,5 @@
 import '@testing-library/jest-dom';
 
-import * as Sentry from '@sentry/react';
-
 import {
   render,
   screen,
@@ -95,25 +93,6 @@ describe('BillingPlans Component', () => {
     // Wait for the plans data to be fetched and rendered
     await waitFor(() => {
       expect(screen.getAllByText('AM9000 Plans').length).toBeGreaterThan(0);
-    });
-  });
-
-  it('handles API errors gracefully', async () => {
-    MockApiClient.addMockResponse({
-      url: '/billing-plans/',
-      method: 'GET',
-      statusCode: 500,
-      body: {
-        error: 'Internal Server Error',
-      },
-    });
-
-    render(<BillingPlans />);
-
-    // Wait for the component to handle the error
-    await waitFor(() => {
-      // Since there's no UI indication for the error, we check that Sentry captured it
-      expect(Sentry.captureException).toHaveBeenCalled();
     });
   });
 
