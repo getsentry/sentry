@@ -4,24 +4,17 @@ import styled from '@emotion/styled';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconJson} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tn} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {
-  DEFAULT_CHECKIN_MARGIN,
-  DEFAULT_MAX_RUNTIME,
-} from 'sentry/views/insights/crons/components/monitorForm';
-import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
+import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
-import {CheckInStatus, ScheduleType} from 'sentry/views/insights/crons/types';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 interface Props {
@@ -84,53 +77,14 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
           <CrontabText>({schedule})</CrontabText>
         )}
       </Schedule>
-      <SectionHeading>{t('Legend')}</SectionHeading>
-      <CheckInLegend>
-        <CheckInLegendItem>
-          <MonitorIndicator status={CheckInStatus.MISSED} size={12} />
-          <Text>
-            {tn(
-              'Check-in missed after %s min',
-              'Check-in missed after %s mins',
-              checkin_margin ?? DEFAULT_CHECKIN_MARGIN
-            )}
-          </Text>
-        </CheckInLegendItem>
-        <CheckInLegendItem>
-          <MonitorIndicator status={CheckInStatus.ERROR} size={12} />
-          <Text>{t('Check-in reported as failed')}</Text>
-        </CheckInLegendItem>
-        <CheckInLegendItem>
-          <MonitorIndicator status={CheckInStatus.TIMEOUT} size={12} />
-          <Text>
-            {tn(
-              'Check-in timed out after %s min',
-              'Check-in timed out after %s mins',
-              max_runtime ?? DEFAULT_MAX_RUNTIME
-            )}
-          </Text>
-        </CheckInLegendItem>
-        {showUnknownLegend && (
-          <CheckInLegendItem>
-            <MonitorIndicator status={CheckInStatus.UNKNOWN} size={12} />
-            <UnknownText>
-              {t('Unknown Status')}
-              <QuestionTooltip
-                size="sm"
-                isHoverable
-                title={tct(
-                  'Sentry was unable to determine the check-in status. [link:Learn More].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/crons/monitor-details/#check-in-statuses" />
-                    ),
-                  }
-                )}
-              />
-            </UnknownText>
-          </CheckInLegendItem>
-        )}
-      </CheckInLegend>
+      <Legend>
+        <SectionHeading>{t('Legend')}</SectionHeading>
+        <DetailsTimelineLegend
+          checkInMargin={checkin_margin}
+          maxRuntime={max_runtime}
+          showUnknownLegend={showUnknownLegend}
+        />
+      </Legend>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <KeyValueTable>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
@@ -181,7 +135,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
 const CheckIns = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   h4 {
     margin-top: 0;
@@ -189,10 +143,14 @@ const CheckIns = styled('div')`
 `;
 
 const Schedule = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
+`;
+
+const Legend = styled('div')`
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const CrontabText = styled(Text)`
@@ -200,32 +158,11 @@ const CrontabText = styled(Text)`
   color: ${p => p.theme.subText};
 `;
 
-const CheckInLegend = styled('ul')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  margin-bottom: ${space(2)};
-  padding: 0;
-  gap: ${space(1)};
-`;
-
-const CheckInLegendItem = styled('li')`
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: center;
-  grid-column: 1 / -1;
-`;
-
-const UnknownText = styled(Text)`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const MonitorSlug = styled('button')`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   background: transparent;
   border: none;

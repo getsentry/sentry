@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import sortBy from 'lodash/sortBy';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -18,9 +18,10 @@ import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/co
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
+import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
-import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 
 type CronDetectorDetailsProps = {
   detector: CronDetector;
@@ -63,6 +64,17 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
 
   const intervalSeconds = getIntervalSecondsFromEnv(monitorEnv);
 
+  // Only display the unknown legend when there are visible unknown check-ins
+  // in the timeline
+  const [showUnknownLegend, setShowUnknownLegend] = useState(false);
+
+  const checkHasUnknown = useCallback((stats: MonitorBucket[]) => {
+    const hasUnknown = stats.some(bucket =>
+      Object.values(bucket[1]).some(envBucket => Boolean(envBucket.unknown))
+    );
+    setShowUnknownLegend(hasUnknown);
+  }, []);
+
   return (
     <DetailLayout>
       <DetectorDetailsHeader detector={detector} project={project} />
@@ -71,7 +83,10 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
           {hasCheckedIn ? (
             <Fragment>
               <DatePageFilter />
-              <DetailsTimeline monitor={dataSource.queryObj} />
+              <DetailsTimeline
+                monitor={dataSource.queryObj}
+                onStatsLoaded={checkHasUnknown}
+              />
               <ErrorBoundary mini>
                 <DetectorDetailsOngoingIssues
                   detector={detector}
@@ -109,6 +124,13 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             )}
           </Section>
           <DetectorDetailsAssignee owner={detector.owner} />
+          <Section title={t('Legend')}>
+            <DetailsTimelineLegend
+              checkInMargin={dataSource.queryObj.config.checkin_margin}
+              maxRuntime={dataSource.queryObj.config.max_runtime}
+              showUnknownLegend={showUnknownLegend}
+            />
+          </Section>
           <DetectorExtraDetails>
             <KeyValueTableRow
               keyName={t('Monitor slug')}
