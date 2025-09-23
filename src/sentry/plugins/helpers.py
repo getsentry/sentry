@@ -6,7 +6,7 @@ from sentry.models.project import Project
 from sentry.projects.services.project import RpcProject, project_service
 from sentry.users.models.user_option import UserOption
 
-__all__ = ("set_option", "get_option")
+__all__ = ("set_option", "get_option", "unset_option")
 
 
 def reset_options(prefix, project=None):
@@ -41,3 +41,12 @@ def get_option(key, project: Project | RpcProject | None = None, user=None):
         result = options.get(key)
 
     return result
+
+
+def unset_option(key, project=None, user=None) -> None:
+    if user:
+        UserOption.objects.unset_value(user, project, key)
+    elif project:
+        ProjectOption.objects.unset_value(project, key)
+    else:
+        raise NotImplementedError

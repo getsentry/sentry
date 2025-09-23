@@ -1,13 +1,9 @@
-from __future__ import annotations
-
 from functools import cached_property
 from urllib.parse import parse_qsl, urlparse
 
 import orjson
 import responses
 
-from sentry.models.options.project_option import ProjectOption
-from sentry.models.project import Project
 from sentry.testutils.cases import PluginTestCase
 from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.trello.plugin import TrelloPlugin
@@ -21,10 +17,6 @@ class TrelloPluginTestBase(PluginTestCase):
     @cached_property
     def plugin(self) -> TrelloPlugin:
         return TrelloPlugin()
-
-
-def _unset_org(project: Project) -> None:
-    ProjectOption.objects.filter(project_id=project.id, key="trello:organization").delete()
 
 
 class TrelloPluginTest(TrelloPluginTestBase):
@@ -63,7 +55,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         self.login_as(self.user)
 
     def test_get_config_no_org(self) -> None:
-        _unset_org(self.project)
+        self.plugin.unset_option("organization", self.project)
         out = self.plugin.get_config(self.project)
         assert out == [
             {
@@ -86,7 +78,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
 
     @responses.activate
     def test_get_config_include_additional(self) -> None:
-        _unset_org(self.project)
+        self.plugin.unset_option("organization", self.project)
 
         responses.add(
             responses.GET,
@@ -239,7 +231,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
 
     @responses.activate
     def test_view_autocomplete_no_org(self) -> None:
-        _unset_org(self.project)
+        self.plugin.unset_option("organization", self.project)
 
         responses.add(
             responses.GET,

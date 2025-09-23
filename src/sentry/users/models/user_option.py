@@ -55,6 +55,21 @@ class UserOptionManager(OptionManager["UserOption"]):
             result = self.get_all_values(user, project)
         return result.get(key, default)
 
+    def unset_value(self, user: User, project: Project, key: str) -> None:
+        """
+        This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
+        """
+        self.filter(user=user, project=project, key=key).delete()
+
+        if not hasattr(self, "_metadata"):
+            return
+
+        metakey = self._make_key(user, project=project)
+
+        if metakey not in self._option_cache:
+            return
+        self._option_cache[metakey].pop(key, None)
+
     def set_value(self, user: User | int, key: str, value: Any, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
