@@ -214,8 +214,8 @@ def export_blob_data[T](
     source_bucket: str,
     source_prefix: str,
     destination_bucket: str,
-    pubsub_topic_name: str,
     job_duration: timedelta,
+    pubsub_topic_name: str | None = None,
     schedule_transfer_job: Callable[[CreateTransferJobRequest], T] = request_schedule_transfer_job,
     get_current_datetime: Callable[[], datetime] = lambda: datetime.now(tz=timezone.utc),
 ) -> T:
@@ -257,12 +257,15 @@ def export_blob_data[T](
                 day=date_job_ends.day,
             ),
         ),
-        notification_config=NotificationConfig(
+    )
+
+    if pubsub_topic_name:
+        transfer_job.notification_config = NotificationConfig(
             pubsub_topic=pubsub_topic_name,
             event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
             payload_format=NotificationConfig.PayloadFormat.JSON,
-        ),
-    )
+        )
+
     request = CreateTransferJobRequest(transfer_job=transfer_job)
 
     return schedule_transfer_job(request)
