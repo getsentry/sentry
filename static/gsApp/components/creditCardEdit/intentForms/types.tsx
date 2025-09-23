@@ -1,19 +1,7 @@
 import type {Stripe, StripeElements} from '@stripe/stripe-js';
 
-import type {StripeCreditCardSetupProps} from 'getsentry/components/stripeCreditCardSetup';
+import type {StripeCreditCardFormProps} from 'getsentry/components/creditCardEdit/stripeForm';
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
-
-export interface StripeCreditCardFormProps extends StripeCreditCardSetupProps {
-  /**
-   * If the form is being used for setup or payment intent.
-   */
-  cardMode: 'setup' | 'payment';
-  /**
-   * The endpoint to get the intent data.
-   */
-  intentDataEndpoint: string;
-  amount?: number;
-}
 
 export interface StripeIntentFormProps
   extends Omit<StripeCreditCardFormProps, 'amount'> {}
@@ -26,6 +14,8 @@ export interface InnerIntentFormProps extends StripeIntentFormProps {
     elements: StripeElements | null;
     stripe: Stripe | null;
   }) => void;
+  isSubmitting: boolean;
   onError: (error: string) => void;
+  busyButtonText?: string;
   intentData?: PaymentSetupCreateResponse | PaymentCreateResponse;
 }

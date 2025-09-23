@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
-import type {SubmitData} from 'getsentry/components/creditCardForm';
-import CreditCardForm from 'getsentry/components/creditCardForm';
+import type {SubmitData} from 'getsentry/components/creditCardEdit/legacyForm';
+import LegacyCreditCardForm from 'getsentry/components/creditCardEdit/legacyForm';
 import type {
   FTCConsentLocation,
   PaymentSetupCreateResponse,
@@ -15,9 +15,9 @@ import type {
 } from 'getsentry/types';
 
 type Props = {
+  budgetTerm: string;
   onSuccess: (data: Subscription) => void;
   organization: Organization;
-  budgetModeText?: string;
   buttonText?: string;
   cancelButtonText?: string;
   className?: string;
@@ -29,8 +29,9 @@ type Props = {
 
 /**
  * Credit Card form and submit handler for SetupIntent based cards.
+ * @deprecated Use CreditCardSetup for flag-based rendering or StripeCreditCardSetup directly instead.
  */
-function CreditCardSetup({
+function LegacyCreditCardSetup({
   organization,
   onSuccess,
   onCancel,
@@ -40,7 +41,7 @@ function CreditCardSetup({
   cancelButtonText = t('Cancel'),
   referrer,
   location,
-  budgetModeText,
+  budgetTerm,
 }: Props) {
   const api = useApi();
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
@@ -145,7 +146,7 @@ function CreditCardSetup({
   }
 
   return (
-    <CreditCardForm
+    <LegacyCreditCardForm
       className={className}
       buttonText={buttonText}
       cancelButtonText={cancelButtonText}
@@ -155,9 +156,9 @@ function CreditCardSetup({
       onSubmit={handleSubmit}
       referrer={referrer}
       location={location}
-      budgetModeText={budgetModeText}
+      budgetTerm={budgetTerm}
     />
   );
 }
 
-export default CreditCardSetup;
+export default LegacyCreditCardSetup;

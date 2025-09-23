@@ -106,6 +106,8 @@ function transformData(data: Record<string, any>) {
 /**
  * Billing details form to be rendered inside a panel. This is
  * used in checkout, legal & compliance, and subscription settings.
+ *
+ * @deprecated Do not use directly. Use BillingDetailsForm for flag-based rendering.
  */
 function LegacyBillingDetailsForm({
   initialData,
