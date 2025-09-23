@@ -14,6 +14,7 @@ import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
+import toArray from 'sentry/utils/array/toArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
@@ -51,13 +52,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
 
   // Filter monitor environments based on the selected environment from page filters
-  const selectedEnvironment = location.query.environment;
-  const selectedEnvironments = Array.isArray(selectedEnvironment)
-    ? selectedEnvironment
-    : selectedEnvironment
-      ? [selectedEnvironment]
-      : [];
-
+  const selectedEnvironments = toArray(location.query.environment);
   const filteredMonitor = {
     ...dataSource.queryObj,
     environments:
