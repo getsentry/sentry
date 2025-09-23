@@ -10,6 +10,7 @@ import {RIGHT_ALIGNED_FIELDS} from 'sentry/views/prevent/tests/testAnalyticsTabl
 
 type TableHeaderParams = {
   column: Column;
+  isMainOrDefaultBranch: boolean;
   sort?: Sort;
 };
 
@@ -30,7 +31,11 @@ function FlakyTestsTooltip() {
   );
 }
 
-export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
+export const renderTableHeader = ({
+  column,
+  isMainOrDefaultBranch,
+  sort,
+}: TableHeaderParams) => {
   const {key, name} = column;
 
   const alignment = RIGHT_ALIGNED_FIELDS.has(key) ? 'right' : 'left';
@@ -43,9 +48,10 @@ export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
       fieldName={key}
       label={name}
       enableToggle={enableToggle}
-      {...(key === 'flakeRate' && {
-        tooltip: <FlakyTestsTooltip />,
-      })}
+      {...(key === 'flakeRate' &&
+        isMainOrDefaultBranch && {
+          tooltip: <FlakyTestsTooltip />,
+        })}
     />
   );
 };
