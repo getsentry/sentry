@@ -733,7 +733,7 @@ def test_generate_rules_return_minimum_sample_rate_when_enabled(
                 "condition": {"inner": [], "op": "and"},
                 "id": 1006,
                 "samplingValue": {"type": "minimumSampleRate", "value": 0.3},
-                "type": "transaction",
+                "type": "project",
             },
             {
                 "condition": {"inner": [], "op": "and"},

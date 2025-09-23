@@ -15,7 +15,7 @@ def test_generate_rules_with_different_sample_rates(default_project) -> None:
         expected_rules = [
             {
                 "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},
-                "type": "transaction",
+                "type": "project",
                 "condition": {
                     "inner": [],
                     "op": "and",
