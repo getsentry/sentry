@@ -25,6 +25,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
+  EChartLegendSelectChangeHandler,
   ECharts,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
@@ -283,6 +284,21 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
   };
 
+  const handleLegendSelectChange: EChartLegendSelectChangeHandler = (
+    params,
+    instance
+  ) => {
+    // Legend changes, like tooltips, are dispatched to every chart in the
+    // group. However, we do _not_ want to synchronize legend state! There is no
+    // simple way to prevent this in ECharts. Instead, we make sure that we only
+    // dispatch the _handler_ for widget selection from the current chart.
+    if (!isChartHovered(chartRef.current)) {
+      return;
+    }
+
+    onLegendSelectChanged?.(params, instance);
+  };
+
   const chartOptions = {
     autoHeightResize: shouldResize ?? true,
     useMultilineDate: true,
@@ -435,7 +451,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                                 ? (modifiedReleaseSeriesResults ?? [])
                                 : []),
                             ],
-                            onLegendSelectChanged,
+                            onLegendSelectChanged: handleLegendSelectChange,
                             onChartReady: handleChartReady,
                             ref: props.chartGroup ? handleRef : undefined,
                           },
