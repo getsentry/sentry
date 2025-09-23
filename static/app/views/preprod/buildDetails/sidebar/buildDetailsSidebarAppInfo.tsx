@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
@@ -118,7 +119,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             <InfoIcon>
               <IconMobile />
             </InfoIcon>
-            <Text>{props.appInfo.build_configuration}</Text>
+            <Text monospace>
+              <InlineCodeSnippet data-render-inline>
+                {props.appInfo.build_configuration}
+              </InlineCodeSnippet>
+            </Text>
           </Flex>
         )}
       </Flex>
@@ -165,4 +170,8 @@ const InstallableLink = styled('button')`
   &:hover {
     color: ${p => p.theme.linkHoverColor};
   }
+`;
+
+const InlineCodeSnippet = styled(CodeSnippet)`
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 `;
