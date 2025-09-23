@@ -491,23 +491,11 @@ export class MutableSearch {
   }
 
   getFilterValues(key: string): string[] {
-    const values: string[] = [];
-    for (const t of this.tokens) {
-      if (t.type !== TokenType.FILTER) {
-        continue;
-      }
-      if (t.key !== key) {
-        continue;
-      }
-      if (t.listValues && t.listValues.length > 0) {
-        for (const v of t.listValues) {
-          values.push(v);
-        }
-      } else {
-        values.push(t.value ?? '');
-      }
-    }
-    return values;
+    return this.tokens
+      .filter((t): t is FilterToken => t.type === TokenType.FILTER && t.key === key)
+      .flatMap(t =>
+        t.listValues && t.listValues.length > 0 ? t.listValues : [t.value ?? '']
+      );
   }
 
   getFilterKeys(): string[] {
