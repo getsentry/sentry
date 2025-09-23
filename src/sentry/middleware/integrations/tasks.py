@@ -93,7 +93,7 @@ class _AsyncRegionDispatcher(ABC):
             return None
         else:
             logger.info(
-                "discord.async_integration_response",
+                "integration.async_integration_response",
                 extra={
                     "path": self.request_payload["path"],
                     "region": result.region.name,
@@ -110,7 +110,9 @@ class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
         return IntegrationProviderSlug.SLACK.value
 
     def unpack_payload(self, response: Response) -> Any:
-        return orjson.loads(response.content)
+        if response.content:
+            return orjson.loads(response.content)
+        return None
 
 
 @instrumented_task(
