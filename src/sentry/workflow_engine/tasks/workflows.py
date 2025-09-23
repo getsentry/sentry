@@ -134,8 +134,9 @@ def process_workflows_event(
                 has_reappeared=has_reappeared,
                 has_escalated=has_escalated,
             )
-        except RetryError as e:
+        except (RetryError, OSError) as e:
             # We want to quietly retry these.
+            # Both are expected transient errors from Bigtable interactions.
             retry_task(e)
 
         event_start_time = (
