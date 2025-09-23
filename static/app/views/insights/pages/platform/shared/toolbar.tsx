@@ -75,7 +75,7 @@ export function Toolbar({
     if (visualize[0] && visualize.length === 1) {
       addToDashboardOptions = {
         chartType: visualize[0].chartType || ChartType.LINE,
-        yAxes: [...visualize[0].yAxes],
+        yAxes,
         groupBy: (exploreParams?.groupBy as SpanFields[]) ?? [],
         search: new MutableSearch(exploreParams?.query || ''),
         sort: decodeSorts(exploreParams?.sort).at(0),
