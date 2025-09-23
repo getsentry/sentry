@@ -9,7 +9,7 @@ import {usePreventAIOrgRepos} from './hooks/usePreventAIOrgRepos';
 
 function PreventAIContent() {
   const {data, isLoading, isError} = usePreventAIOrgRepos();
-  const hasOrgs = data?.orgRepos?.length && data.orgRepos.length > 0;
+  const orgRepos = data?.orgRepos ?? [];
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -22,8 +22,8 @@ function PreventAIContent() {
       />
     );
   }
-  if (hasOrgs) {
-    return <PreventAIManageRepos installedOrgs={data.orgRepos} />;
+  if (orgRepos.length > 0) {
+    return <PreventAIManageRepos installedOrgs={orgRepos} />;
   }
   return <PreventAIOnboarding />;
 }

@@ -1,5 +1,5 @@
-// note: we only support github for now
-type PreventAIProvider = 'github' | 'bitbucket' | 'gitlab';
+// Add any new providers here e.g., 'github' | 'bitbucket' | 'gitlab'
+type PreventAIProvider = 'github';
 
 interface PreventAIRepo {
   fullName: string;
@@ -26,7 +26,7 @@ export interface PreventAIConfig {
     test_generation: {
       enabled: boolean;
     };
-    vanilla_pr_review: {
+    vanilla: {
       enabled: boolean;
     };
   };

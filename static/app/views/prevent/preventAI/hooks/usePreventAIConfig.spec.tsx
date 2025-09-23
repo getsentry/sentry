@@ -14,7 +14,7 @@ describe('usePreventAIConfig', () => {
     const {result} = renderHook(() => usePreventAIConfig(orgName, repoName));
     expect(result.current.data).toEqual({
       features: {
-        vanilla_pr_review: {enabled: false},
+        vanilla: {enabled: false},
         test_generation: {enabled: false},
         bug_prediction: {
           enabled: false,
