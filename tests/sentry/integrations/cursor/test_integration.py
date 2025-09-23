@@ -155,9 +155,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert integration.metadata["api_key"] == "new_secret_key"
 
         # OrganizationIntegration config should remain empty (no secret stored there)
-        from sentry.integrations.models.organization_integration import (
-            OrganizationIntegration,
-        )
+        from sentry.integrations.models.organization_integration import OrganizationIntegration
 
         with assume_test_silo_mode_of(OrganizationIntegration):
             org_integration = OrganizationIntegration.objects.get(
