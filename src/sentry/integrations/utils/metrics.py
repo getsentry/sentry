@@ -341,6 +341,11 @@ class IntegrationEventLifecycle(EventLifecycle):
         exc_value: BaseException | None,
         traceback: TracebackType,
     ) -> None:
+        if self._state != EventLifecycleOutcome.STARTED:
+            # The context called record_success or record_failure being closing,
+            # so we can just exit quietly.
+            return
+
         if exc_value is not None and isinstance(exc_value.__cause__, RestrictedIPAddress):
             # ApiHostError is raised from RestrictedIPAddress
             self.record_halt(exc_value)
