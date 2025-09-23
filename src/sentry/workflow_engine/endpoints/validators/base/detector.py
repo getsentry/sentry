@@ -89,6 +89,23 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data["type"].slug} monitors."
             )
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        group_type = attrs.get("type")
+        schema = None
+        if group_type and getattr(group_type, "detector_settings", None):
+            schema = getattr(group_type.detector_settings, "config_schema", None)
+
+        if schema:
+            config = attrs.get("config", {})
+            try:
+                jsonschema.validate(config, schema)
+            except jsonschema.ValidationError as error:
+                raise serializers.ValidationError({"config": f"Invalid config: {error.message}"})
+
+        return attrs
+
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         with transaction.atomic(router.db_for_write(Detector)):
             if "name" in validated_data:
@@ -169,19 +186,16 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 elif owner.is_team:
                     owner_team_id = owner.id
 
-            try:
-                detector = Detector.objects.create(
-                    project_id=self.context["project"].id,
-                    name=validated_data["name"],
-                    workflow_condition_group=condition_group,
-                    type=validated_data["type"].slug,
-                    config=validated_data.get("config", {}),
-                    owner_user_id=owner_user_id,
-                    owner_team_id=owner_team_id,
-                    created_by_id=self.context["request"].user.id,
-                )
-            except jsonschema.ValidationError as error:
-                raise serializers.ValidationError({"config": [str(error)]})
+            detector = Detector.objects.create(
+                project_id=self.context["project"].id,
+                name=validated_data["name"],
+                workflow_condition_group=condition_group,
+                type=validated_data["type"].slug,
+                config=validated_data.get("config", {}),
+                owner_user_id=owner_user_id,
+                owner_team_id=owner_team_id,
+                created_by_id=self.context["request"].user.id,
+            )
             DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
             create_audit_entry(
