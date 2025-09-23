@@ -29,7 +29,7 @@ describe('TestPreOnboardingPage', () => {
     // Check that the alert is displayed
     expect(
       screen.getByText(
-        'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+        'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
       )
     ).toBeInTheDocument();
   });
@@ -46,7 +46,7 @@ describe('TestPreOnboardingPage', () => {
 
     expect(
       screen.queryByText(
-        'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+        'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
       )
     ).not.toBeInTheDocument();
   });
@@ -60,7 +60,7 @@ describe('TestPreOnboardingPage', () => {
     // Check that the alert is displayed
     expect(
       screen.getByText(
-        'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+        'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
       )
     ).toBeInTheDocument();
   });
@@ -79,7 +79,7 @@ describe('TestPreOnboardingPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+        'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
       )
     ).toBeInTheDocument();
   });

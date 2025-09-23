@@ -36,7 +36,7 @@ export default function TestPreOnboardingPage() {
         <Alert.Container>
           <Alert type="info">
             {t(
-              'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+              'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
             )}
           </Alert>
         </Alert.Container>
