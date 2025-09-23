@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Sequence
 from typing import cast
 
+import sentry_sdk
 from django.core.exceptions import ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
@@ -59,6 +60,7 @@ def process_segment(
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
+    _verify_compatibility(spans)
     _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
@@ -70,6 +72,26 @@ def process_segment(
     #     _track_outcomes(segment_span, spans)
 
     return spans
+
+
+def _verify_compatibility(spans):
+    try:
+        for span in spans:
+            # As soon as compatibility spans are fully rolled out, we can assert that attributes exist here.
+            if "attributes" in span:
+                attributes = span["attributes"]
+                metrics.incr("spans.consumers.process_segments.span_v2")
+                data = span.get("data", {})
+                # Verify that all data exist also in attributes.
+                mismatches = [
+                    (key, data_value, attribute_value)
+                    for (key, data_value) in data.items()
+                    if data_value != (attribute_value := attributes.get(key, {}).get("value"))
+                ]
+                if mismatches:
+                    logger.error("Attribute mismatch", extra={"mismatches": mismatches})
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
