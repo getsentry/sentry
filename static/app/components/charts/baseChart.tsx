@@ -38,7 +38,6 @@ import type {
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
-  EChartEventHandler,
   EChartFinishedHandler,
   EChartHighlightHandler,
   EChartLegendSelectChangeHandler,
