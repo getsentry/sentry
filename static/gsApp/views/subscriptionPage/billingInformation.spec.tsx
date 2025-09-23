@@ -17,11 +17,12 @@ import {
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {FTCConsentLocation, PlanTier} from 'getsentry/types';
-import {BillingDetails as BillingDetailsView} from 'getsentry/views/subscriptionPage/billingDetails';
+import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInformation';
 
 // Stripe mocks handled by global setup.ts
+// TODO(isabella): tbh most of these tests should be in a spec for the individual panel components
 
-describe('Subscription > BillingDetails', () => {
+describe('Subscription > BillingInformation', () => {
   const {organization, router} = initializeOrg({
     organization: {access: ['org:billing']},
   });
@@ -61,6 +62,13 @@ describe('Subscription > BillingDetails', () => {
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      body: {},
+      method: 'POST',
+    });
+    organization.features = [];
   });
 
   it('renders an error for non-billing roles', async () => {
@@ -72,7 +80,7 @@ describe('Subscription > BillingDetails', () => {
     });
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={org}
         subscription={subscription}
         location={router.location}
@@ -87,7 +95,7 @@ describe('Subscription > BillingDetails', () => {
 
   it('renders with subscription', async () => {
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -98,12 +106,90 @@ describe('Subscription > BillingDetails', () => {
     expect(screen.getByText('$100 credit')).toBeInTheDocument();
   });
 
+  it('renders for new billing UI', async () => {
+    organization.features = ['subscriptions-v3'];
+
+    render(
+      <BillingInformation
+        organization={organization}
+        subscription={subscription}
+        location={router.location}
+      />
+    );
+
+    await screen.findByText('Payment method');
+    expect(screen.getByText(/\*\*\*\*4242/)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit payment method'})).toBeInTheDocument();
+    expect(screen.getByText('Business address')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Edit business address'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Address Line 1')).not.toBeInTheDocument();
+
+    // can edit both
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
+    expect(
+      screen.queryByRole('button', {name: 'Edit payment method'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Edit business address'}));
+    expect(
+      screen.queryByRole('button', {name: 'Edit business address'})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Save Changes'})).toHaveLength(2);
+  });
+
+  it('renders with no pre-existing information for new billing UI', async () => {
+    organization.features = ['subscriptions-v3'];
+    const sub: TSubscription = {...subscription, paymentSource: null};
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <BillingInformation
+        organization={organization}
+        subscription={sub}
+        location={router.location}
+      />
+    );
+
+    await screen.findByText('Payment method');
+    expect(screen.getByText('No payment method on file')).toBeInTheDocument();
+    expect(screen.queryByText(/\*\*\*\*4242/)).not.toBeInTheDocument();
+    expect(screen.getByText('Business address')).toBeInTheDocument();
+    expect(screen.getByText('No business address on file')).toBeInTheDocument();
+  });
+
+  it('opens credit card form with billing failure query for new billing UI', async () => {
+    organization.features = ['subscriptions-v3'];
+    router.location = {
+      ...router.location,
+      query: {referrer: 'billing-failure'},
+    };
+
+    render(
+      <BillingInformation
+        organization={organization}
+        subscription={subscription}
+        location={router.location}
+      />
+    );
+
+    await screen.findByText('Payment method');
+    expect(
+      screen.queryByRole('button', {name: 'Edit payment method'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/Your credit card will be charged upon update./)
+    ).toBeInTheDocument();
+  });
+
   it('renders without credit if account balance > 0', async () => {
     const sub: TSubscription = {...subscription, accountBalance: 10_000};
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={sub}
         location={router.location}
@@ -120,7 +206,7 @@ describe('Subscription > BillingDetails', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={sub}
         location={router.location}
@@ -133,7 +219,7 @@ describe('Subscription > BillingDetails', () => {
 
   it('renders credit card details', async () => {
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -173,7 +259,7 @@ describe('Subscription > BillingDetails', () => {
     });
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -222,7 +308,7 @@ describe('Subscription > BillingDetails', () => {
     });
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -252,7 +338,7 @@ describe('Subscription > BillingDetails', () => {
     });
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -285,7 +371,7 @@ describe('Subscription > BillingDetails', () => {
 
     renderGlobalModal();
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -355,7 +441,7 @@ describe('Billing details form', () => {
 
   it('renders billing details form', async () => {
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -387,7 +473,7 @@ describe('Billing details form', () => {
     });
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -435,7 +521,7 @@ describe('Billing details form', () => {
     });
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
@@ -460,7 +546,7 @@ describe('Billing details form', () => {
     organization.features = ['stripe-components'];
 
     render(
-      <BillingDetailsView
+      <BillingInformation
         organization={organization}
         subscription={subscription}
         location={router.location}
