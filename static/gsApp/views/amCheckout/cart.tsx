@@ -203,20 +203,6 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                     </div>
                   ) : (
                     isPaygOnly &&
-                    // <Tag
-                    //   icon={
-                    //     hasPaygForCategory ? undefined : <IconLock locked size="xs" />
-                    //   }
-                    // >
-                    //   {hasPaygForCategory
-                    //     ? tct('Available with [budgetTerm]', {
-                    //         budgetTerm:
-                    //           activePlan.budgetTerm === 'pay-as-you-go'
-                    //             ? t('PAYG')
-                    //             : activePlan.budgetTerm,
-                    //       })
-                    //     : t('Product not available')}
-                    // </Tag>
                     (hasPaygForCategory ? (
                       <Tag>
                         {tct('Available with [budgetTerm]', {
