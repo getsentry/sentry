@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidIdentity
 from sentry.incidents.grouptype import MetricIssueEvidenceData
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -27,9 +28,12 @@ from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
+from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
+    IntegrationFormError,
+)
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
-from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
@@ -47,6 +51,32 @@ class RuleData(TypedDict):
     legacy_rule_id: NotRequired[int]
 
 
+def unsafe_execute(
+    event_data: WorkflowEventData,
+    callback: Callable[[GroupEvent, Sequence[RuleFuture]], None],
+    future: list[RuleFuture],
+) -> None:
+    try:
+        callback(event_data.event, future)
+    except EXCEPTION_IGNORE_LIST:
+        # no-op on any exceptions in the ignore list. We likely have
+        # reporting for them in the integration code already.
+        pass
+    except Exception as e:
+        logger.exception("Failed to execute future", extra={"future": future})
+        if hasattr(callback, "im_class"):
+            cls = callback.im_class
+        else:
+            cls = callback.__class__
+
+        func_name = getattr(callback, "__name__", str(callback))
+        cls_name = cls.__name__
+        localized_logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
+
+        localized_logger.exception("%s.process_error", func_name, extra={"exception": e})
+        raise
+
+
 class LegacyRegistryHandler(ABC):
     """
     Abstract base class that defines the interface for notification handlers.
@@ -61,6 +91,9 @@ class LegacyRegistryHandler(ABC):
         Implement this method to handle the specific notification logic for your handler.
         """
         raise NotImplementedError
+
+
+EXCEPTION_IGNORE_LIST = (IntegrationFormError, IntegrationConfigurationError, InvalidIdentity)
 
 
 class BaseIssueAlertHandler(ABC):
@@ -234,7 +267,7 @@ class BaseIssueAlertHandler(ABC):
             )
 
         for callback, future in futures:
-            safe_execute(callback, event_data.event, future)
+            unsafe_execute(callback, event_data.event, future)
 
     @staticmethod
     def send_test_notification(
