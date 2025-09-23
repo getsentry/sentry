@@ -1,4 +1,14 @@
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
+import type {
+  AskSeerSearchItems,
+  NoneOfTheseItem,
+  QueryTokensProps,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+
+export function isNoneOfTheseItem(
+  item: AskSeerSearchItems<any>
+): item is NoneOfTheseItem {
+  return item.key === 'none-of-these';
+}
 
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');
@@ -69,22 +79,16 @@ export function formatQueryToNaturalLanguage(query: string): string {
   return `${formattedQuery} `;
 }
 
-export function generateQueryTokensString({
-  groupBys,
-  query,
-  sort,
-  statsPeriod,
-  visualizations,
-}: QueryTokensProps): string {
+export function generateQueryTokensString<T extends QueryTokensProps>(args: T): string {
   const parts = [];
 
-  if (query) {
-    const formattedFilter = formatQueryToNaturalLanguage(query.trim());
+  if (args?.query) {
+    const formattedFilter = formatQueryToNaturalLanguage(args?.query.trim());
     parts.push(`Filter is '${formattedFilter}'`);
   }
 
-  if (visualizations && visualizations.length > 0) {
-    const vizParts = visualizations.flatMap(visualization =>
+  if (args?.visualizations && args?.visualizations.length > 0) {
+    const vizParts = args?.visualizations.flatMap(visualization =>
       visualization.yAxes.map(yAxis => yAxis)
     );
     if (vizParts.length > 0) {
@@ -93,17 +97,19 @@ export function generateQueryTokensString({
     }
   }
 
-  if (groupBys && groupBys.length > 0) {
-    const groupByText = groupBys.length === 1 ? groupBys[0] : groupBys.join(', ');
+  if (args?.groupBys && args?.groupBys.length > 0) {
+    const groupByText =
+      args?.groupBys.length === 1 ? args?.groupBys[0] : args?.groupBys.join(', ');
     parts.push(`groupBys are '${groupByText}'`);
   }
 
-  if (statsPeriod && statsPeriod.length > 0) {
-    parts.push(`time range is '${statsPeriod}'`);
+  if (args?.statsPeriod && args?.statsPeriod.length > 0) {
+    parts.push(`time range is '${args?.statsPeriod}'`);
   }
 
-  if (sort && sort.length > 0) {
-    const sortText = sort[0] === '-' ? `${sort.slice(1)} Desc` : `${sort} Asc`;
+  if (args?.sort && args?.sort.length > 0) {
+    const sortText =
+      args?.sort[0] === '-' ? `${args?.sort.slice(1)} Desc` : `${args?.sort} Asc`;
     parts.push(`sort is '${sortText}'`);
   }
 
