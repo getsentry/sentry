@@ -19,7 +19,7 @@ interface Visualization {
   yAxes: string[];
 }
 
-interface SeerSearchQuery {
+interface AskSeerSearchQuery {
   groupBys: string[];
   mode: string;
   query: string;
@@ -28,11 +28,11 @@ interface SeerSearchQuery {
   visualizations: Visualization[];
 }
 
-export interface SeerSearchItem<S extends string> extends SeerSearchQuery {
+export interface AskSeerSearchItem<S extends string> extends AskSeerSearchQuery {
   key: S extends 'none-of-these' ? never : S;
 }
 
-interface SeerSearchResponse {
+interface AskSeerSearchResponse {
   queries: Array<{
     group_by: string[];
     mode: string;
@@ -48,19 +48,19 @@ interface SeerSearchResponse {
   unsupported_reason?: string;
 }
 
-export const useSeerSearch = () => {
+export const useAskSeerSearch = () => {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const memberProjects = projects.filter(p => p.isMember);
-  const [rawResult, setRawResult] = useState<SeerSearchQuery[]>([]);
+  const [rawResult, setRawResult] = useState<AskSeerSearchQuery[]>([]);
   const [unsupportedReason, setUnsupportedReason] = useState<string | null>(null);
 
   const {
     mutate: submitQuery,
     isPending,
     isError,
-  } = useMutation<SeerSearchResponse, RequestError, string>({
+  } = useMutation<AskSeerSearchResponse, RequestError, string>({
     mutationFn: (query: string) => {
       const selectedProjects =
         pageFilters.selection.projects?.length > 0 &&
@@ -123,7 +123,7 @@ export const useApplySeerSearchQuery = () => {
   const {askSeerSuggestedQueryRef} = useSearchQueryBuilder();
 
   return useCallback(
-    (result: SeerSearchQuery) => {
+    (result: AskSeerSearchQuery) => {
       if (!result) return;
       const {query, visualizations, groupBys, sort, statsPeriod} = result;
 

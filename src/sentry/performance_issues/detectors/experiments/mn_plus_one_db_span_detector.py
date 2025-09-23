@@ -14,9 +14,8 @@ from sentry.issues.grouptype import (
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.base import (
-    DetectorType,
-    PerformanceDetector,
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
+from sentry.performance_issues.detectors.utils import (
     get_notification_attachment_body,
     get_span_evidence_value,
     total_span_time,

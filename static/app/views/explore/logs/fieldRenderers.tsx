@@ -41,6 +41,7 @@ import {
   ColoredLogText,
   LogBasicRendererContainer,
   LogDate,
+  LogsFilteredHelperText,
   LogsHighlight,
   WrappingText,
   type getLogColors,
@@ -72,6 +73,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
+  canAppendTemplateToBody?: boolean;
   logEnd?: string;
   logStart?: string;
   meta?: EventsMetaType;
@@ -324,19 +326,45 @@ function FilteredTooltip({
   value,
   children,
   extra,
+  isAppendingTemplate,
 }: {
   children: React.ReactNode;
   extra: RendererExtra;
   value: string | number | null;
+  isAppendingTemplate?: boolean;
 }) {
   if (
     !value ||
     typeof value !== 'string' ||
-    !value.includes('[Filtered]') ||
+    value.trim() !== '[Filtered]' ||
     !extra.projectSlug
   ) {
     return <React.Fragment>{children}</React.Fragment>;
   }
+
+  if (isAppendingTemplate) {
+    return (
+      <Tooltip
+        title={tct(
+          `The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].`,
+          {
+            settings: (
+              <Link
+                to={normalizeUrl(
+                  `/settings/${extra.organization.slug}/projects/${extra.projectSlug}/security-and-privacy/`
+                )}
+              >
+                {'Settings, under Security & Privacy'}
+              </Link>
+            ),
+          }
+        )}
+      >
+        {children}
+      </Tooltip>
+    );
+  }
+
   return (
     <Tooltip
       title={tct(
@@ -404,11 +432,26 @@ function ReleaseRenderer(props: LogFieldRendererProps) {
 export function LogBodyRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
   const highlightTerm = props.extra?.highlightTerms[0] ?? '';
-  // TODO: Allow more than one highlight term to be highlighted at once.
+  const template = props.extra.attributes?.[OurLogKnownFieldKey.TEMPLATE];
+  const templateText =
+    props.extra.canAppendTemplateToBody && template ? template : undefined;
+
   return (
-    <FilteredTooltip value={props.item.value} extra={props.extra}>
+    <FilteredTooltip
+      value={props.item.value}
+      extra={props.extra}
+      isAppendingTemplate={!!templateText}
+    >
       <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
+        {templateText && (
+          <FieldReplacementHelper
+            original={attribute_value}
+            replacement={templateText as string}
+            extra={props.extra}
+            item={props.item}
+          />
+        )}
       </WrappingText>
     </FilteredTooltip>
   );
@@ -502,6 +545,12 @@ function AnnotatedAttributeWrapper(props: {
 
 function ProjectRenderer(props: LogFieldRendererProps) {
   return <span>{props.item.value}</span>;
+}
+
+function FieldReplacementHelper(
+  props: {original: string; replacement: string} & LogFieldRendererProps
+) {
+  return <LogsFilteredHelperText>{props.replacement}</LogsFilteredHelperText>;
 }
 
 /**

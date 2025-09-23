@@ -11,7 +11,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 
-describe('SetSpendCap', () => {
+describe('SetSpendLimit', () => {
   let api: Client;
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
@@ -64,17 +64,17 @@ describe('SetSpendCap', () => {
       />
     );
 
-    expect(await screen.findByText('Pay-as-you-go')).toBeInTheDocument();
+    expect(await screen.findByText('Set your pay-as-you-go limit')).toBeInTheDocument();
     expect(
-      screen.queryByRole('radio', {name: 'Shared spending cap mode'})
+      screen.queryByRole('radio', {name: 'Shared spending limit mode'})
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('radio', {name: 'Per-category spending cap mode'})
+      screen.queryByRole('radio', {name: 'Per-category spending limit mode'})
     ).not.toBeInTheDocument();
-    const paygInput = screen.getByRole('textbox', {name: 'Custom shared spending cap'});
+    const paygInput = screen.getByRole('textbox', {name: 'Custom shared spending limit'});
     expect(paygInput).toHaveValue('300'); // default business budget
     expect(
-      screen.queryByRole('textbox', {name: 'Custom errors spending cap'})
+      screen.queryByRole('textbox', {name: 'Custom errors spending limit'})
     ).not.toBeInTheDocument();
   });
 
@@ -102,28 +102,28 @@ describe('SetSpendCap', () => {
       />
     );
 
-    expect(await screen.findByText('On-demand')).toBeInTheDocument();
+    expect(await screen.findByText('Set your on-demand limit')).toBeInTheDocument();
     expect(
-      screen.getByRole('radio', {name: 'Shared spending cap mode'})
+      screen.getByRole('radio', {name: 'Shared spending limit mode'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('textbox', {name: 'Custom shared spending cap'})
+      screen.getByRole('textbox', {name: 'Custom shared spending limit'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: 'Custom errors spending cap'})
+      screen.queryByRole('textbox', {name: 'Custom errors spending limit'})
     ).not.toBeInTheDocument();
 
     const perCategoryRadio = screen.getByRole('radio', {
-      name: 'Per-category spending cap mode',
+      name: 'Per-category spending limit mode',
     });
     expect(perCategoryRadio).toBeInTheDocument();
     await userEvent.click(perCategoryRadio);
 
     expect(
-      screen.queryByRole('textbox', {name: 'Custom shared spending cap'})
+      screen.queryByRole('textbox', {name: 'Custom shared spending limit'})
     ).not.toBeInTheDocument();
     const errorsPaygInput = screen.getByRole('textbox', {
-      name: 'Custom errors spending cap',
+      name: 'Custom errors spending limit',
     });
     expect(errorsPaygInput).toBeInTheDocument();
   });
