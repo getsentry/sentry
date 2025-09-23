@@ -6,7 +6,8 @@ from selenium.webdriver.common.by import By
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.services.eventstore.models import Event
-from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase, before_now
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
@@ -44,7 +45,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     @mock.patch("sentry.api.helpers.group_index.update.update_group_open_period")
-    def test_resolve_basic(self, mock_update_open_period) -> None:
+    def test_resolve_basic(self, mock_update_open_period: mock.MagicMock) -> None:
         event = self.create_sample_event(platform="python")
         assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
