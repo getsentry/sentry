@@ -147,14 +147,12 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     );
   }
 
-  renderWaterfallRow<T extends TraceTreeNode<TraceTree.NodeValue>>(
-    props: TraceRowProps<T>
-  ): React.ReactNode {
+  renderWaterfallRow<T extends TraceTree.Node>(props: TraceRowProps<T>): React.ReactNode {
     return (
       <TraceTransactionRow
         {...props}
         // Won't need this cast once we use BaseNode type for props.node
-        node={props.node as TraceTreeNode<TraceTree.Transaction>}
+        node={props.node as unknown as TraceTreeNode<TraceTree.Transaction>}
       />
     );
   }

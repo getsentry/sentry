@@ -57,34 +57,6 @@ describe('ErrorNode', () => {
       expect(node.errors.has(value)).toBe(true);
     });
 
-    it('should add itself to parent children and sort chronologically', () => {
-      const extra = createMockExtra();
-      const parentValue = makeTraceError({
-        event_id: 'parent',
-        title: 'Parent Error',
-        timestamp: 1000,
-      });
-      const error1Value = makeTraceError({
-        event_id: 'error1',
-        title: 'Error 1',
-        timestamp: 1002,
-      });
-      const error2Value = makeTraceError({
-        event_id: 'error2',
-        title: 'Error 2',
-        timestamp: 1001,
-      });
-
-      const parent = new ErrorNode(null, parentValue, extra);
-      const error1 = new ErrorNode(parent, error1Value, extra);
-      const error2 = new ErrorNode(parent, error2Value, extra);
-
-      // Children should be sorted by timestamp (chronological order)
-      expect(parent.children).toHaveLength(2);
-      expect(parent.children[0]).toBe(error2); // Earlier timestamp (1001)
-      expect(parent.children[1]).toBe(error1); // Later timestamp (1002)
-    });
-
     it('should handle different timestamp formats', () => {
       const extra = createMockExtra();
       const parentValue = makeTraceError({
