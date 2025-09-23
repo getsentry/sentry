@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -99,7 +100,18 @@ function CustomBlock(block: Extract<ContentBlock, {type: 'custom'}>) {
 }
 
 function TextBlock(block: Extract<ContentBlock, {type: 'text'}>) {
-  return <TextBlockWrapper>{block.text}</TextBlockWrapper>;
+  return (
+    <TextBlockWrapper>
+      {Array.isArray(block.text)
+        ? block.text.map((text, index) => (
+            <Fragment key={index}>
+              {index > 0 && <br />}
+              {text}
+            </Fragment>
+          ))
+        : block.text}
+    </TextBlockWrapper>
+  );
 }
 
 const TextBlockWrapper = styled('div')`

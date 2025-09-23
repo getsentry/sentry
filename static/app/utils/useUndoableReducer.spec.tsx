@@ -2,7 +2,7 @@ import {useReducer} from 'react';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
+import {makeCombinedReducers} from 'sentry/utils/makeCombinedReducer';
 import type {UndoableNode} from 'sentry/utils/useUndoableReducer';
 import {makeUndoableReducer, useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
