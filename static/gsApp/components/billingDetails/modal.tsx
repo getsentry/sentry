@@ -4,7 +4,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import BillingDetailsForm from 'getsentry/components/billingDetailsForm';
+import BillingDetailsForm from 'getsentry/components/billingDetails/form';
 import type {BillingDetails} from 'getsentry/types';
 
 type Props = ModalRenderProps & {

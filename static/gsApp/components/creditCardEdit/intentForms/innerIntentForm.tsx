@@ -8,15 +8,18 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
-import type {InnerIntentFormProps} from 'getsentry/components/stripeForms/types';
+import type {InnerIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 
 function InnerIntentForm({
   onCancel,
-  budgetModeText,
+  budgetTerm,
   buttonText,
   location,
   handleSubmit,
+  isSubmitting,
+  busyButtonText,
 }: InnerIntentFormProps) {
   const elements = useElements();
   const stripe = useStripe();
@@ -34,11 +37,17 @@ function InnerIntentForm({
     <Form
       onSubmit={() => handleSubmit({stripe, elements})}
       submitDisabled={submitDisabled}
-      submitLabel={buttonText}
+      submitLabel={
+        isSubmitting && busyButtonText
+          ? busyButtonText
+          : (buttonText ?? t('Save Changes'))
+      }
       extraButton={
-        <Button aria-label={t('Cancel')} onClick={onCancel}>
-          {t('Cancel')}
-        </Button>
+        onCancel && (
+          <Button aria-label={t('Cancel')} onClick={onCancel}>
+            {t('Cancel')}
+          </Button>
+        )
       }
       footerStyle={{
         display: 'flex',
@@ -61,13 +70,13 @@ function InnerIntentForm({
             })}
           </small>
           {/* location is 0 on the checkout page which is why this isn't location && */}
-          {location !== null && location !== undefined && (
+          {defined(location) && (
             <Text size="xs" variant="muted">
               {tct(
-                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetModeText] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetModeText] fees. You may cancel your subscription at any time [here:here].',
+                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetTerm] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
                 {
-                  buttonText: <b>{buttonText}</b>,
-                  budgetModeText,
+                  buttonText: <b>{buttonText ?? t('Save Changes')}</b>,
+                  budgetTerm,
                   here: (
                     <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
                   ),

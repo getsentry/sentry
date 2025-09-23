@@ -14,9 +14,12 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
+import {getPreventParamsString} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
@@ -40,6 +43,7 @@ enum SetupOption {
 }
 
 export default function TestsOnboardingPage() {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -61,9 +65,10 @@ export default function TestsOnboardingPage() {
 
   useEffect(() => {
     if (repoData?.testAnalyticsEnabled && isSuccess) {
-      navigate('/prevent/tests');
+      const queryString = getPreventParamsString(location);
+      navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {replace: true});
     }
-  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess]);
+  }, [repoData?.testAnalyticsEnabled, navigate, isSuccess, location]);
 
   const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
     [
@@ -72,6 +77,17 @@ export default function TestsOnboardingPage() {
     ],
     {staleTime: 0}
   );
+
+  const regionData = getRegionDataFromOrganization(organization);
+  const isUSStorage = regionData?.name === 'us';
+
+  if (!isUSStorage) {
+    return (
+      <LayoutGap>
+        <TestPreOnboardingPage />
+      </LayoutGap>
+    );
+  }
 
   if (isPending) {
     return (

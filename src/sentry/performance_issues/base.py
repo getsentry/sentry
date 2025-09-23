@@ -379,10 +379,12 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
     """
     Fingerprints http spans based on their paramaterized paths, assumes all spans are http spans
     """
+    from sentry.performance_issues.detectors.utils import is_filtered_url
+
     url_paths = []
     for http_span in spans:
         url = get_url_from_span(http_span)
-        if url:
+        if url and not is_filtered_url(url):
             parametrized_url = parameterize_url(url)
             path = urlparse(parametrized_url).path
             if path not in url_paths:
