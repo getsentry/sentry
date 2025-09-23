@@ -62,7 +62,10 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
@@ -156,6 +159,9 @@ ERR_INTEGRATION_PENDING_DELETION = _(
 ERR_INTEGRATION_INVALID_INSTALLATION = _(
     "Your GitHub account does not have owner privileges for the chosen organization."
 )
+ERR_INTEGRATION_MISSING_ORGANIZATION = _(
+    "You must be logged into an organization to access this feature."
+)
 
 
 class GithubInstallationInfo(TypedDict):
@@ -175,13 +181,17 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
 
 def error(
     request,
-    org,
+    org: RpcUserOrganizationContext | None,
     error_short="Invalid installation request.",
     error_long=ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
 ):
+    if org is None:
+        org_id = None
+    else:
+        org_id = org.organization.id
     logger.error(
         "github.installation_error",
-        extra={"org_id": org.organization.id, "error_short": error_short},
+        extra={"org_id": org_id, "error_short": error_short},
     )
 
     return render_to_response(
@@ -760,6 +770,7 @@ class GitHubInstallationError(StrEnum):
     MISSING_INTEGRATION = "Integration does not exist."
     INVALID_INSTALLATION = "User does not have access to given installation."
     FEATURE_NOT_AVAILABLE = "Your organization does not have access to this feature."
+    MISSING_ORGANIZATION = "You must be logged into an organization to access this feature."
 
 
 def record_event(event: IntegrationPipelineViewType):
@@ -890,13 +901,18 @@ class OAuthLoginView:
 class GithubOrganizationSelection:
     def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         self.active_user_organization = determine_active_organization(request)
-        has_scm_multi_org = (
-            features.has(
-                "organizations:integrations-scm-multi-org",
-                organization=self.active_user_organization.organization,
+
+        if self.active_user_organization is None:
+            return error(
+                request,
+                None,
+                error_short=GitHubInstallationError.MISSING_ORGANIZATION,
+                error_long=ERR_INTEGRATION_MISSING_ORGANIZATION,
             )
-            if self.active_user_organization is not None
-            else False
+
+        has_scm_multi_org = features.has(
+            "organizations:integrations-scm-multi-org",
+            organization=self.active_user_organization.organization,
         )
 
         with record_event(
@@ -1031,6 +1047,14 @@ class GitHubInstallation:
             return pipeline.next_step()
 
     def check_pending_integration_deletion(self, request: HttpRequest) -> HttpResponse | None:
+        if self.active_user_organization is None:
+            return error(
+                request,
+                None,
+                error_short=GitHubInstallationError.MISSING_ORGANIZATION,
+                error_long=ERR_INTEGRATION_MISSING_ORGANIZATION,
+            )
+
         # We want to wait until the scheduled deletions finish or else the
         # post install to migrate repos do not work.
         integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
