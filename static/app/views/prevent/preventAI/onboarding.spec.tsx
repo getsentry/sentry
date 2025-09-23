@@ -8,13 +8,13 @@ import PreventAIOnboarding from './onboarding';
 
 jest.mock('sentry-images/features/prevent-hero.svg', () => 'prevent-hero-mock.svg');
 jest.mock(
-  'sentry-images/features/prevent-pr-comments-light.png',
-  () => 'prevent-pr-comments-light-mock.png',
+  'sentry-images/features/prevent-pr-comments-light.svg',
+  () => 'prevent-pr-comments-light-mock.svg',
   {virtual: true}
 );
 jest.mock(
-  'sentry-images/features/prevent-pr-comments-dark.png',
-  () => 'prevent-pr-comments-dark-mock.png',
+  'sentry-images/features/prevent-pr-comments-dark.svg',
+  () => 'prevent-pr-comments-dark-mock.svg',
   {virtual: true}
 );
 
@@ -152,7 +152,7 @@ describe('PreventAIOnboarding', () => {
 
     const prCommentsImage = screen.getByAltText('Prevent PR Comments');
     expect(prCommentsImage).toBeInTheDocument();
-    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-light-mock.png');
+    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-light-mock.svg');
   });
 
   it('renders admin notice text', () => {
@@ -241,8 +241,8 @@ describe('PreventAIOnboarding', () => {
   });
 
   it.each([
-    [{type: 'dark'}, 'prevent-pr-comments-dark-mock.png'],
-    [{type: 'light'}, 'prevent-pr-comments-light-mock.png'],
+    [{type: 'dark'}, 'prevent-pr-comments-dark-mock.svg'],
+    [{type: 'light'}, 'prevent-pr-comments-light-mock.svg'],
   ])('renders the correct image in %p theme', (theme, expectedSrc) => {
     render(
       <ThemeProvider theme={theme as Theme}>
