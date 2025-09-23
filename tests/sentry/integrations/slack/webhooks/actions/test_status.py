@@ -112,7 +112,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Archive", "emoji": True},
             "value": "archive_dialog",
             "type": "button",
-            "action_ts": before_now(minutes=7).isoformat(),
+            "action_ts": before_now(minutes=7).timestamp(),
         }
 
     def get_assign_status_action(self, type, text, id):
@@ -125,7 +125,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                 "value": f"{type}:{id}",
             },
             "placeholder": {"type": "plain_text", "text": "Select Assignee...", "emoji": True},
-            "action_ts": before_now(minutes=5).isoformat(),
+            "action_ts": before_now(minutes=5).timestamp(),
         }
 
     def get_resolve_status_action(self):
@@ -135,7 +135,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
             "value": "resolve_dialog",
             "type": "button",
-            "action_ts": before_now(minutes=3).isoformat(),
+            "action_ts": before_now(minutes=3).timestamp(),
         }
 
     def get_mark_ongoing_action(self):
@@ -145,7 +145,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Mark as Ongoing", "emoji": True},
             "value": "unresolved:ongoing",
             "type": "button",
-            "action_ts": before_now(minutes=1).isoformat(),
+            "action_ts": before_now(minutes=1).timestamp(),
         }
 
     def archive_issue(self, original_message, selected_option, payload_data=None):
