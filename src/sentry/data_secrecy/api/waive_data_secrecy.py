@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import Any
 
 from django.utils import timezone
@@ -29,15 +28,16 @@ class WaiveDataSecrecyPermission(OrganizationPermission):
 
 
 class DataSecrecyWaiverValidator(serializers.Serializer[dict[str, Any]]):
-    grant_end = serializers.DateTimeField()
+    grant_end = serializers.DateTimeField(required=True)
 
-    def validate_grant_end(self, grant_end) -> datetime:
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        grant_end = data["access_end"]
         if grant_end <= timezone.now():
             raise serializers.ValidationError(
                 "Invalid timestamp (access_end must be in the future)."
             )
 
-        return grant_end
+        return data
 
 
 def get_active_tickets_for_organization(organization_id: int) -> list[str]:
