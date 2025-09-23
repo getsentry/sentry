@@ -149,6 +149,8 @@ export const wildcardOperators = [
   TermOperator.DOES_NOT_END_WITH,
 ] as const;
 
+export type WildcardOperator = (typeof wildcardOperators)[number];
+
 /**
  * Map of certain filter types to other filter types with applicable operators
  * e.g. SpecificDate can use the operators from Date to become a Date filter.

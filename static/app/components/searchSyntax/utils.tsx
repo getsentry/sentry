@@ -1,7 +1,11 @@
 import type {LocationRange} from 'peggy';
 
-import type {TokenResult} from './parser';
-import {Token} from './parser';
+import {
+  Token,
+  wildcardOperators,
+  type TokenResult,
+  type WildcardOperator,
+} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -340,6 +344,10 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   stringifiedToken += stringifyToken(token.value);
 
   return stringifiedToken;
+}
+
+export function isWildcardOperator(value: unknown): value is WildcardOperator {
+  return wildcardOperators.includes(value as never);
 }
 
 export function stringifyToken(token: TokenResult<Token>): string {
