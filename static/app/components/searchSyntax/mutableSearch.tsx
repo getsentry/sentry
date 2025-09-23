@@ -444,18 +444,19 @@ export class MutableSearch {
   }
 
   addFilterValue(key: string, value: string, shouldEscape = true): this {
-    let text: string;
     if (key === 'has' || key === '!has') {
-      const val = String(value);
-      text = `${key}:${val}`;
-      this.tokens.push({type: TokenType.FILTER, key, value: val, text});
+      this.tokens.push({type: TokenType.FILTER, key, value, text: `${key}:${value}`});
       return this;
     }
 
-    const escaped = shouldEscape ? escapeFilterValue(String(value)) : String(value);
+    const escaped = shouldEscape ? escapeFilterValue(value) : value;
     const valueText = quoteIfNeeded(escaped);
-    text = `${key}:${valueText}`;
-    this.tokens.push({type: TokenType.FILTER, key, value: escaped, text});
+    this.tokens.push({
+      type: TokenType.FILTER,
+      key,
+      value: escaped,
+      text: `${key}:${valueText}`,
+    });
     return this;
   }
 
