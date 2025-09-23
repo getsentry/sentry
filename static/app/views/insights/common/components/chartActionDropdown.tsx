@@ -12,7 +12,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -91,7 +90,7 @@ export function ChartActionDropdown({
   const addToDashboardOptions: AddToSpanDashboardOptions = {
     chartType,
     yAxes,
-    widgetName: title ?? DEFAULT_WIDGET_NAME,
+    widgetName: title,
     groupBy,
     search,
   };
@@ -137,24 +136,6 @@ export function BaseChartActionDropdown({
     },
   ];
 
-  if (alertMenuOptions.length > 0) {
-    menuOptions.push({
-      key: 'create-alert',
-      label: t('Create Alert for'),
-      isSubmenu: true,
-      children: alertMenuOptions.map(option => ({
-        ...option,
-        onAction: () => {
-          option.onAction?.();
-          trackAnalytics('insights.create_alert', {
-            organization,
-            referrer,
-          });
-        },
-      })),
-    });
-  }
-
   if (addToDashboardOptions) {
     menuOptions.push({
       key: 'add-to-dashboard',
@@ -173,6 +154,24 @@ export function BaseChartActionDropdown({
       },
       isSubmenu: false,
       disabled: !hasDashboardEdit,
+    });
+  }
+
+  if (alertMenuOptions.length > 0) {
+    menuOptions.push({
+      key: 'create-alert',
+      label: t('Create Alert for'),
+      isSubmenu: true,
+      children: alertMenuOptions.map(option => ({
+        ...option,
+        onAction: () => {
+          option.onAction?.();
+          trackAnalytics('insights.create_alert', {
+            organization,
+            referrer,
+          });
+        },
+      })),
     });
   }
 
