@@ -146,32 +146,28 @@ const mockApiCall = () => {
 
 describe('CoveragePageWrapper', () => {
   beforeEach(() => {
-    mockGetRegionData.mockReset();
+    jest.clearAllMocks();
+
+    localStorageWrapper.clear();
+    localStorageWrapper.setItem(
+      'prevent-selection:org-slug',
+      JSON.stringify({
+        'test-integration': {
+          integratedOrgId: '123',
+        },
+      })
+    );
+    mockApiCall();
   });
 
   describe('when the wrapper is used', () => {
-    beforeEach(() => {
-      localStorageWrapper.clear();
-
-      localStorageWrapper.setItem(
-        'prevent-selection:org-slug',
-        JSON.stringify({
-          'test-integration': {
-            integratedOrgId: '123',
-          },
-        })
-      );
-
-      // Mock US region by default
+    it('renders the passed children', async () => {
       mockGetRegionData.mockReturnValue({
         name: 'us',
         displayName: 'United States',
         url: 'https://sentry.io',
       });
-    });
 
-    mockApiCall();
-    it('renders the passed children', async () => {
       render(
         <PreventQueryParamsProvider>
           <TestsPage />
@@ -207,27 +203,13 @@ describe('CoveragePageWrapper', () => {
     });
   });
   describe('when the organization is not in the US region', () => {
-    beforeEach(() => {
-      localStorageWrapper.clear();
-
-      localStorageWrapper.setItem(
-        'prevent-selection:org-slug',
-        JSON.stringify({
-          'test-integration': {
-            integratedOrgId: '123',
-          },
-        })
-      );
-
+    it('renders the pre-onboarding page', () => {
       mockGetRegionData.mockReturnValue({
         name: 'eu',
         displayName: 'European Union (EU)',
         url: 'https://eu.sentry.io',
       });
 
-      mockApiCall();
-    });
-    it('renders the pre-onboarding page', () => {
       render(
         <PreventQueryParamsProvider>
           <TestsPage />

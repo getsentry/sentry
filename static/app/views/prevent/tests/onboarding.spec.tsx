@@ -53,7 +53,7 @@ const mockRepoData = {
 
 describe('TestsOnboardingPage', () => {
   beforeEach(() => {
-    mockGetRegionData.mockReset();
+    jest.clearAllMocks();
     mockGetRegionData.mockReturnValue({
       name: 'us',
       displayName: 'United States',
@@ -695,15 +695,13 @@ describe('TestsOnboardingPage', () => {
   });
 
   describe('when the organization is not in the US region', () => {
-    beforeEach(() => {
+    it('renders the pre-onboarding page with alert and header text', () => {
       mockGetRegionData.mockReturnValue({
         name: 'eu',
         displayName: 'European Union (EU)',
         url: 'https://eu.sentry.io',
       });
-    });
 
-    it('renders the pre-onboarding page with alert and header text', () => {
       render(
         <PreventContext.Provider value={mockPreventContext}>
           <TestsOnboardingPage />
