@@ -71,6 +71,11 @@ export type TimeSeries = {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
   yAxis: string;
+  /**
+   * If a a groupBy is present in the data request, it represent what the group is for the time series
+   * for example if we groupBy span.op, the groupBy could be [{key: 'span.op', value: 'db'}], meaning this timeseries is for the db operation
+   * If the `groupBy` is null but still present in the data request, it represents the data that does not belong to any of the other groups, i.e an "other" timeseries
+   */
   groupBy?: TimeSeriesGroupBy[];
 };
 

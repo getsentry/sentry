@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -14,8 +15,6 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -62,21 +61,23 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
     Referrer.QUERIES_CHART
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const timeSeriesRequest = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
-      fields: ['transaction', 'span.group', 'avg(span.duration)'],
+      query: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
+      groupBy: ['transaction', 'span.group'],
       yAxis: ['avg(span.duration)'],
       sort: {field: 'avg(span.duration)', kind: 'desc'},
-      topN: 3,
+      topEvents: 3,
       enabled: queriesRequest.data.length > 0,
     },
-    Referrer.QUERIES_CHART,
-    props.pageFilters
+    Referrer.QUERIES_CHART
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries =
+    timeSeriesRequest.data?.timeSeries.filter(
+      ts => ts.groupBy && ts.groupBy.length > 0
+    ) ?? [];
 
   const isLoading = timeSeriesRequest.isLoading || queriesRequest.isLoading;
   const error = timeSeriesRequest.error || queriesRequest.error;
@@ -85,13 +86,6 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
     queriesRequest.data && queriesRequest.data.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
-
-  const aliases = Object.fromEntries(
-    queriesRequest.data?.map(item => [
-      getSeriesName(item),
-      item['sentry.normalized_description'],
-    ]) ?? []
-  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -105,9 +99,8 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
         showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {
+            new Line(ts, {
               color: colorPalette[index],
-              alias: aliases[ts.seriesName],
             })
         ),
         ...props,
