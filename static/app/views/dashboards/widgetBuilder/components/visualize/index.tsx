@@ -120,6 +120,16 @@ function _sortFn(
     return 0;
   }
 
+  if (a.disabled && b.disabled) {
+    return a.label.localeCompare(b.label);
+  }
+  if (a.disabled) {
+    return 1;
+  }
+  if (b.disabled) {
+    return -1;
+  }
+
   return a.label.localeCompare(b.label);
 }
 
