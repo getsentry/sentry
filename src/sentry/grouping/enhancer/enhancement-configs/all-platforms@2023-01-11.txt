@@ -433,6 +433,16 @@ path:**https://cdn.jsdelivr.net/** -app
 path:**https://esm.run/** -app
 family:javascript function:reportError ^-app -app
 
+# JavaScript-specific in_app logic (moved from language processing)
+# Webpack modules: mark as in-app unless filename starts with ~/ or contains node_modules
+family:javascript stack.abs_path:webpack:** +app
+family:javascript stack.abs_path:webpack:** stack.filename:~/*** -app
+family:javascript stack.abs_path:webpack:** stack.filename:**/node_modules/** -app
+
+# App modules: mark as in-app unless filename contains node_modules
+family:javascript stack.abs_path:app:** +app
+family:javascript stack.abs_path:app:** stack.filename:**/node_modules/** -app
+
 ### transpilers and polyfills are just noise, be more aggressive
 module:@babel/** -app -group
 module:core-js/** -app -group
