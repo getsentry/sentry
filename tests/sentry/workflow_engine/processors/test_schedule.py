@@ -191,6 +191,19 @@ class TestProjectChooser:
     def project_chooser(self, mock_buffer):
         return ProjectChooser(mock_buffer, num_cohorts=6)
 
+    def _find_projects_for_cohorts(self, chooser: ProjectChooser, num_cohorts: int) -> list[int]:
+        """Helper method to find project IDs that map to each cohort to ensure even distribution."""
+        all_project_ids = []
+        used_cohorts: set[int] = set()
+        project_id = 1
+        while len(used_cohorts) < num_cohorts:
+            cohort = chooser.project_id_to_cohort(project_id)
+            if cohort not in used_cohorts:
+                all_project_ids.append(project_id)
+                used_cohorts.add(cohort)
+            project_id += 1
+        return all_project_ids
+
     def test_init_default_cohorts(self, mock_buffer):
         chooser = ProjectChooser(mock_buffer)
         assert chooser.num_cohorts == NUM_COHORTS
@@ -281,24 +294,12 @@ class TestProjectChooser:
     def test_scenario_once_per_minute_6_cohorts(self, project_chooser: ProjectChooser) -> None:
         """
         Scenario test: Running once per minute with 6 cohorts.
-        In steady state, all cohorts should be processed on every run since
-        may_process threshold is 10 seconds and we run every 60 seconds.
+        Since run interval (60s) equals must_process threshold (60s),
+        all cohorts should be processed on every single run.
         """
-        # Find project IDs that map to each cohort to ensure even distribution
-        all_project_ids = []
-        used_cohorts: set[int] = set()
-        project_id = 1
-        while len(used_cohorts) < 6:
-            cohort = project_chooser.project_id_to_cohort(project_id)
-            if cohort not in used_cohorts:
-                all_project_ids.append(project_id)
-                used_cohorts.add(cohort)
-            project_id += 1
+        all_project_ids = self._find_projects_for_cohorts(project_chooser, 6)
 
         cohort_updates = CohortUpdates(values={})
-
-        # Track which cohorts get processed over time
-        processed_cohorts_over_time = []
 
         # Simulate 5 minutes of processing (5 runs, once per minute)
         for minute in range(5):
@@ -310,16 +311,8 @@ class TestProjectChooser:
             processed_cohorts = {
                 project_chooser.project_id_to_cohort(pid) for pid in processed_projects
             }
-            processed_cohorts_over_time.append(processed_cohorts)
 
-        # After the first run (ramp-up), every run should process all 6 cohorts
-        # because may_process threshold (10s) < run interval (60s)
-        stable_period = processed_cohorts_over_time[1:]  # Skip first run
-
-        for run_index, processed_cohorts in enumerate(stable_period):
-            assert (
-                len(processed_cohorts) == 6
-            ), f"Run {run_index + 1} processed {len(processed_cohorts)} cohorts, expected 6"
+            # Every run should process all 6 cohorts.
             assert processed_cohorts == {
                 0,
                 1,
@@ -327,29 +320,22 @@ class TestProjectChooser:
                 3,
                 4,
                 5,
-            }, f"Run {run_index + 1} didn't process all cohorts: {processed_cohorts}"
+            }, f"Run {minute} didn't process all cohorts: {processed_cohorts}"
 
     def test_scenario_six_times_per_minute(self, project_chooser: ProjectChooser) -> None:
         """
         Scenario test: Running 6 times per minute (every 10 seconds).
         Should process exactly one cohort per run in stable cycle, cycling through all.
         """
-        # Find project IDs that map to each cohort to ensure even distribution
-        all_project_ids = []
-        used_cohorts: set[int] = set()
-        project_id = 1
-        while len(used_cohorts) < 6:
-            cohort = project_chooser.project_id_to_cohort(project_id)
-            if cohort not in used_cohorts:
-                all_project_ids.append(project_id)
-                used_cohorts.add(cohort)
-            project_id += 1
+        all_project_ids = self._find_projects_for_cohorts(project_chooser, 6)
 
         cohort_updates = CohortUpdates(values={})
 
+        all_cohorts = set(range(6))
         processed_cohorts_over_time = []
 
         # Simulate 2 minutes of processing (12 runs, every 10 seconds)
+        previous_cohorts = []
         for run in range(12):
             fetch_time = float(run * 10)  # Every 10 seconds
 
@@ -359,30 +345,59 @@ class TestProjectChooser:
             processed_cohorts = {
                 project_chooser.project_id_to_cohort(pid) for pid in processed_projects
             }
+            if run == 0:
+                assert (
+                    processed_cohorts == all_cohorts
+                ), f"First run should process all cohorts, got {processed_cohorts}"
+            previous_cohorts.append(processed_cohorts)
+            if len(previous_cohorts) > 6:
+                previous_cohorts.pop(0)
+            elif len(previous_cohorts) == 6:
+                processed_in_last_cycle = set().union(*previous_cohorts)
+                assert (
+                    processed_in_last_cycle == all_cohorts
+                ), f"Run {run} should process all cohorts, got {processed_in_last_cycle}"
             processed_cohorts_over_time.append(processed_cohorts)
 
-        # After initial ramp-up, should process exactly 1 cohort per run
-        # and cycle through all cohorts over 6 runs
-        stable_period = processed_cohorts_over_time[6:]  # Skip first 6 runs for ramp-up
+    def test_scenario_once_per_minute_cohort_count_1(self, mock_buffer) -> None:
+        """
+        Scenario test: Running once per minute with cohort count of 1 (production default).
+        This demonstrates that all projects are processed together every minute.
+        """
+        # Create ProjectChooser with cohort count = 1 (production default)
+        chooser = ProjectChooser(mock_buffer, num_cohorts=1)
+        all_project_ids = self._find_projects_for_cohorts(chooser, 1)
 
-        for run_index, processed_cohorts in enumerate(stable_period):
-            assert (
-                len(processed_cohorts) == 1
-            ), f"Run {run_index + 6} processed {len(processed_cohorts)} cohorts, expected 1"
+        # Add more projects to demonstrate they all map to cohort 0
+        additional_projects = [10, 25, 50, 100, 999, 1001, 5000]
+        all_project_ids.extend(additional_projects)
 
-        # Over any 6 consecutive runs in stable period, all cohorts should be processed
-        all_processed_cohorts = set()
-        for processed_cohorts in stable_period:
-            all_processed_cohorts.update(processed_cohorts)
+        # Verify all projects map to cohort 0
+        for project_id in all_project_ids:
+            cohort = chooser.project_id_to_cohort(project_id)
+            assert cohort == 0, f"Project {project_id} should map to cohort 0, got {cohort}"
 
-        assert all_processed_cohorts == {
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-        }, f"Not all cohorts processed in stable period: {all_processed_cohorts}"
+        cohort_updates = CohortUpdates(values={})
+
+        # Simulate 5 minutes of processing (5 runs, once per minute)
+        for minute in range(5):
+            fetch_time = float(minute * 60)  # Every 60 seconds
+
+            processed_projects = chooser.project_ids_to_process(
+                fetch_time, cohort_updates, all_project_ids
+            )
+            processed_cohorts = {chooser.project_id_to_cohort(pid) for pid in processed_projects}
+
+            # With cohort count = 1, should always process cohort 0
+            assert processed_cohorts == {
+                0
+            }, f"Run {minute} should process cohort 0, got {processed_cohorts}"
+
+            # Since all projects are in cohort 0, processing cohort 0 means ALL projects
+            assert set(processed_projects) == set(all_project_ids), (
+                f"Run {minute}: Expected all {len(all_project_ids)} projects to be processed, "
+                f"but got {len(processed_projects)}: {sorted(processed_projects)}"
+            )
 
 
 class TestChosenProjects:

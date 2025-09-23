@@ -91,6 +91,7 @@ NUM_COHORTS = 6
 class ProjectChooser:
     def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts: int = NUM_COHORTS):
         self.client = buffer_client
+        assert num_cohorts > 0 and num_cohorts <= 255
         self.num_cohorts = num_cohorts
 
     def project_id_to_cohort(self, project_id: int) -> int:
@@ -102,15 +103,16 @@ class ProjectChooser:
         must_process = set[int]()
         may_process = set[int]()
         now = fetch_time
+        long_ago = now - 1000
         for co in range(self.num_cohorts):
-            last_run = cohort_updates.get_last_cohort_run(co)
+            last_run = cohort_updates.values.get(co, long_ago)
             elapsed = timedelta(seconds=now - last_run)
             if elapsed >= timedelta(minutes=1):
                 must_process.add(co)
             elif elapsed >= timedelta(seconds=60 / self.num_cohorts):
                 may_process.add(co)
         if may_process and not must_process:
-            choice = min(may_process, key=lambda c: (cohort_updates.get_last_cohort_run(c), c))
+            choice = min(may_process, key=lambda c: (cohort_updates.values.get(c, long_ago), c))
             must_process.add(choice)
         cohort_updates.values.update({cohort_id: fetch_time for cohort_id in must_process})
         return [
