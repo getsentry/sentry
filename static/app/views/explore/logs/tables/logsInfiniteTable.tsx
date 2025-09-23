@@ -138,7 +138,7 @@ export function LogsInfiniteTable({
       minimumColumnWidth: 50,
       prefixColumnWidth: 'min-content',
       staticColumnWidths: {
-        [OurLogKnownFieldKey.MESSAGE]: '1fr',
+        [OurLogKnownFieldKey.MESSAGE]: 'minmax(90px,1fr)',
       },
     }
   );
