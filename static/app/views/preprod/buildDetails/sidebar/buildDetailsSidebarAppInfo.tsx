@@ -3,7 +3,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import {IconClock, IconFile, IconJson, IconLink} from 'sentry/icons';
+import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormattedDate} from 'sentry/utils/dates';
@@ -113,6 +113,14 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             )}
           </Text>
         </Flex>
+        {props.appInfo.build_configuration && (
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconMobile />
+            </InfoIcon>
+            <Text>{props.appInfo.build_configuration}</Text>
+          </Flex>
+        )}
       </Flex>
     </Flex>
   );
