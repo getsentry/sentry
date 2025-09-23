@@ -1,7 +1,14 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import TestsOnboardingPage from 'sentry/views/prevent/tests/onboarding';
+
+jest.mock('sentry/utils/regions', () => ({
+  getRegionDataFromOrganization: jest.fn(),
+}));
+
+const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
 
 const mockPreventContext = {
   repository: 'test-repo',
@@ -46,6 +53,13 @@ const mockRepoData = {
 
 describe('TestsOnboardingPage', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetRegionData.mockReturnValue({
+      name: 'us',
+      displayName: 'United States',
+      url: 'https://sentry.io',
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/',
       body: [mockGitHubIntegration],
@@ -677,6 +691,39 @@ describe('TestsOnboardingPage', () => {
 
       expect(await screen.findByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
       expect(screen.getByText('new-generated-token-12345')).toBeInTheDocument();
+    });
+  });
+
+  describe('when the organization is not in the US region', () => {
+    it('renders the pre-onboarding page with alert and header text', () => {
+      mockGetRegionData.mockReturnValue({
+        name: 'eu',
+        displayName: 'European Union (EU)',
+        url: 'https://eu.sentry.io',
+      });
+
+      render(
+        <PreventContext.Provider value={mockPreventContext}>
+          <TestsOnboardingPage />
+        </PreventContext.Provider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/prevent/tests/new',
+              query: {},
+            },
+          },
+        }
+      );
+
+      expect(
+        screen.getByText(
+          'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Keep Test Problems From Slowing You Down')
+      ).toBeInTheDocument();
     });
   });
 });

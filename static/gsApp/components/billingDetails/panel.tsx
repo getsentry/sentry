@@ -10,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -209,10 +210,19 @@ function BillingDetailsPanel({
             {billingDetails.countryCode && (
               <Text>{getCountryByCode(billingDetails.countryCode)?.name}</Text>
             )}
-            {billingDetails.taxNumber && (
-              <Text>
-                {taxFieldInfo.label}: {billingDetails.taxNumber}
-              </Text>
+            {countryHasSalesTax(billingDetails?.countryCode) && taxFieldInfo && (
+              <Flex gap="sm" align="center">
+                <Text>
+                  {taxFieldInfo.label}: {billingDetails.taxNumber}
+                </Text>
+                <QuestionTooltip
+                  title={tct(
+                    "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
+                    {taxNumberName: <Text bold>{taxFieldInfo.taxNumberName}</Text>}
+                  )}
+                  size="xs"
+                />
+              </Flex>
             )}
           </Fragment>
         ) : (

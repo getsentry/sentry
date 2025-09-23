@@ -81,6 +81,7 @@ class TaskWorker:
                 else HealthCheckSettings(Path(health_check_file_path), health_check_sec_per_touch)
             ),
             rpc_secret=app.config["rpc_secret"],
+            grpc_config=app.config["grpc_config"],
         )
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")
