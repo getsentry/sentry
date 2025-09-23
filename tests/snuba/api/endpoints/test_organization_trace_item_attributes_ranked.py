@@ -101,9 +101,13 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             {"label": "desktop", "value": 1.0},
         ]
         assert attribute["cohort2"] == [{"label": "desktop", "value": 2.0}]
+        assert attribute["cohort1Total"] == 4
+        assert attribute["cohort2Total"] == 3
 
         attribute = next(a for a in distributions if a["attributeName"] == "browser")
         assert attribute["attributeName"] == "browser"
+        assert attribute["cohort1Total"] == 4
+        assert attribute["cohort2Total"] == 3
 
         assert mock_compare_distributions.called
         call_args = mock_compare_distributions.call_args
@@ -151,3 +155,10 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Should still return ranked attributes based on the queries
         assert "rankedAttributes" in response.data
+        # Check that total counts are included in the response
+        if response.data["rankedAttributes"]:
+            attribute = response.data["rankedAttributes"][0]
+            assert "cohort1Total" in attribute
+            assert "cohort2Total" in attribute
+            assert attribute["cohort1Total"] == 1
+            assert attribute["cohort2Total"] == 1
