@@ -392,6 +392,8 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
 
         manual_size_analysis_comparison.apply_async(
             kwargs={
+                "project_id": project.id,
+                "org_id": project.organization_id,
                 "head_artifact_id": head_artifact.id,
                 "base_artifact_id": base_artifact.id,
             }
