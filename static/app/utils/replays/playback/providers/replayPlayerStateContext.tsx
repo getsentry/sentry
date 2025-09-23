@@ -182,7 +182,7 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       // If the replayer is set to skip inactive, we should turn it off before
       // manually scrubbing, so when the player resumes playing it's not stuck
       // fast-forwarding even through sections with activity
-      replayer.setConfig({skipInactive});
+      replayer.setConfig({skipInactive: false});
 
       if (replayer.service.state.value === 'playing') {
         replayer.play(offsetMs);
