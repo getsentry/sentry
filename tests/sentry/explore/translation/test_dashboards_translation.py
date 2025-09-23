@@ -2,7 +2,10 @@ from datetime import datetime
 
 import pytest
 
-from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
+from sentry.explore.translation.dashboards_translation import (
+    restore_transaction_widget,
+    translate_dashboard_widget,
+)
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -543,3 +546,97 @@ class DashboardTranslationTestCase(TestCase):
         assert new_query.orderby == ""
 
         assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
+
+
+class DashboardRestoreTransactionWidgetTestCase(TestCase):
+    @property
+    def now(self) -> datetime:
+        return before_now(minutes=10)
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization()
+        with assume_test_silo_mode_of(User):
+            self.user = User.objects.create(email="test@sentry.io")
+        self.project_2 = self.create_project(organization=self.org)
+        self.project_3 = self.create_project(organization=self.org)
+
+        self.dashboard = Dashboard.objects.create(
+            title="Dashboard With Split Widgets",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        self.dashboard.projects.set([self.project, self.project_2])
+
+    def test_simple_case_restore(self) -> None:
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        original_query = DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            name="Test Query",
+            fields=["release", "count()", "count_unique(user)"],
+            columns=["release"],
+            aggregates=["count()", "count_unique(user)"],
+            conditions="transaction:foo",
+            field_aliases=["Release", "Count", "Unique Users"],
+            orderby="count()",
+            is_hidden=False,
+            selected_aggregate=1,
+            order=0,
+        )
+
+        original_widget_type = transaction_widget.widget_type
+        original_query_name = original_query.name
+        original_query_fields = original_query.fields
+        original_query_conditions = original_query.conditions
+        original_query_aggregates = original_query.aggregates
+        original_query_columns = original_query.columns
+        original_query_field_aliases = original_query.field_aliases
+        original_query_orderby = original_query.orderby
+        original_query_is_hidden = original_query.is_hidden
+        original_query_selected_aggregate = original_query.selected_aggregate
+        original_query_order = original_query.order
+
+        translate_dashboard_widget(transaction_widget)
+        transaction_widget.refresh_from_db()
+
+        # Verify translation occurred
+        assert transaction_widget.widget_type == DashboardWidgetTypes.SPANS
+        assert (
+            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value
+        )
+        assert transaction_widget.widget_snapshot is not None
+
+        restore_transaction_widget(transaction_widget)
+        transaction_widget.refresh_from_db()
+
+        assert transaction_widget.widget_type == original_widget_type
+        assert (
+            transaction_widget.dataset_source
+            == DatasetSourcesTypes.RESTORED_SPAN_MIGRATION_VERSION_1.value
+        )
+        assert transaction_widget.changed_reason is None
+
+        restored_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
+        assert restored_queries.count() == 1
+
+        restored_query = restored_queries.first()
+        assert restored_query is not None
+        assert restored_query.widget_id == transaction_widget.id
+        assert restored_query.name == original_query_name
+        assert restored_query.fields == original_query_fields
+        assert restored_query.conditions == original_query_conditions
+        assert restored_query.aggregates == original_query_aggregates
+        assert restored_query.columns == original_query_columns
+        assert restored_query.field_aliases == original_query_field_aliases
+        assert restored_query.orderby == original_query_orderby
+        assert restored_query.is_hidden == original_query_is_hidden
+        assert restored_query.selected_aggregate == original_query_selected_aggregate
+        assert restored_query.order == original_query_order
