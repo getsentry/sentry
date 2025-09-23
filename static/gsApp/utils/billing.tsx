@@ -20,6 +20,7 @@ import {
 } from 'getsentry/constants';
 import type {
   BillingConfig,
+  BillingDetails,
   BillingMetricHistory,
   BillingStatTotal,
   EventBucket,
@@ -712,4 +713,11 @@ export function partnerPlanEndingModalIsDismissed(
     default:
       return true;
   }
+}
+
+/**
+ * Returns true if some billing details are set.
+ */
+export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined) {
+  return billingDetails && Object.values(billingDetails).some(value => defined(value));
 }

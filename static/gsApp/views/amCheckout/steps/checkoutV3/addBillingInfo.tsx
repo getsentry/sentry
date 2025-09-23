@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
@@ -11,6 +10,7 @@ import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {FTCConsentLocation} from 'getsentry/types';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {CheckoutV3StepProps} from 'getsentry/views/amCheckout/types';
+import {hasSomeBillingInfo} from 'getsentry/views/amCheckout/utils';
 
 function AddBillingInformation({
   subscription,
@@ -22,9 +22,7 @@ function AddBillingInformation({
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
   const {data: billingDetails} = useBillingDetails();
-  const hasSomeBillingInfo =
-    (billingDetails && Object.values(billingDetails).some(value => defined(value))) ||
-    subscription.paymentSource;
+  const showEditBillingInfo = hasSomeBillingInfo(billingDetails, subscription);
 
   return (
     <Flex direction="column" gap="xl">
@@ -36,7 +34,7 @@ function AddBillingInformation({
         isOpen={isOpen}
         stepNumber={stepNumber}
         title={
-          hasSomeBillingInfo
+          showEditBillingInfo
             ? t('Edit billing information')
             : t('Add billing information')
         }

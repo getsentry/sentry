@@ -13,12 +13,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 
 import {openEditBillingDetails} from 'getsentry/actionCreators/modal';
 import BillingDetailsForm from 'getsentry/components/billingDetails/form';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
+import {hasSomeBillingDetails} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
@@ -192,8 +192,7 @@ function BillingDetailsPanel({
             }
             analyticsEvent={analyticsEvent}
           />
-        ) : billingDetails &&
-          Object.values(billingDetails).some(value => defined(value)) ? (
+        ) : billingDetails && hasSomeBillingDetails(billingDetails) ? (
           <Fragment>
             {billingDetails.billingEmail && <Text>{billingDetails.billingEmail}</Text>}
             {billingDetails.companyName && <Text>{billingDetails.companyName}</Text>}

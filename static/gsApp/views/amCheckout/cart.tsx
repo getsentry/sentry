@@ -590,7 +590,7 @@ function Cart({
   const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
   const {data: billingDetails} = useBillingDetails();
-  const hasCompleteBillingInfo = billingDetails && subscription.paymentSource;
+  const hasCompleteBillingInfo = utils.hasSomeBillingInfo(billingDetails, subscription);
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
