@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.parsers.email import AllowedEmailField
@@ -40,12 +41,14 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.USER: RateLimit(limit=10, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.USER: RateLimit(limit=10, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
+            }
         }
-    }
+    )
 
     def post(self, request: Request, user: User) -> Response:
         """
