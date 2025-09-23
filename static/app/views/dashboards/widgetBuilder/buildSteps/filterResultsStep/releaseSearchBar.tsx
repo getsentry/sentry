@@ -10,7 +10,6 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   SearchBarData,
   SearchBarDataProviderProps,
@@ -36,8 +35,12 @@ interface Props {
   portalTarget?: HTMLElement | null;
 }
 
-export function ReleaseSearchBar({widgetQuery, onClose, portalTarget}: Props) {
-  const {selection: pageFilters} = usePageFilters();
+export function ReleaseSearchBar({
+  onClose,
+  pageFilters,
+  widgetQuery,
+  portalTarget,
+}: Props) {
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useReleasesSearchBarDataProvider({pageFilters});
 
