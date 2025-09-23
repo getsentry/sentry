@@ -53,6 +53,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "event_id": "a" * 32,
             "message": "IntegrationError",
             "fingerprint": ["group-1"],
+            "timestamp": before_now(minutes=10).isoformat(),
             "exception": {
                 "values": [
                     {
@@ -111,7 +112,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Archive", "emoji": True},
             "value": "archive_dialog",
             "type": "button",
-            "action_ts": "1702424387.108033",
+            "action_ts": before_now(minutes=7).isoformat(),
         }
 
     def get_assign_status_action(self, type, text, id):
@@ -124,7 +125,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                 "value": f"{type}:{id}",
             },
             "placeholder": {"type": "plain_text", "text": "Select Assignee...", "emoji": True},
-            "action_ts": "1702499909.524144",
+            "action_ts": before_now(minutes=5).isoformat(),
         }
 
     def get_resolve_status_action(self):
@@ -134,7 +135,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
             "value": "resolve_dialog",
             "type": "button",
-            "action_ts": "1702502121.403007",
+            "action_ts": before_now(minutes=3).isoformat(),
         }
 
     def get_mark_ongoing_action(self):
@@ -144,7 +145,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Mark as Ongoing", "emoji": True},
             "value": "unresolved:ongoing",
             "type": "button",
-            "action_ts": "1702502122.304116",
+            "action_ts": before_now(minutes=1).isoformat(),
         }
 
     def archive_issue(self, original_message, selected_option, payload_data=None):

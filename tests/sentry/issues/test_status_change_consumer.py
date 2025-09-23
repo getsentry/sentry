@@ -11,7 +11,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
-from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
@@ -114,7 +114,6 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
     ) -> None:
         self.group.type = MetricIssue.type_id
         self.group.save()
-        GroupOpenPeriod.objects.create(project=self.project, group=self.group, user_id=self.user.id)
 
         message = get_test_message_status_change(
             self.project.id, fingerprint=["touch-id"], detector_id=1
