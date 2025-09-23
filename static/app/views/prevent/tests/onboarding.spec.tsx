@@ -718,7 +718,7 @@ describe('TestsOnboardingPage', () => {
 
       expect(
         screen.getByText(
-          'Test Analytics data is stored in the U.S. only is not available in the EU. EU region support is coming soon.'
+          'Test Analytics data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
         )
       ).toBeInTheDocument();
       expect(

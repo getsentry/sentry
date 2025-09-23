@@ -47,7 +47,9 @@ export default function PreventAIOnboarding() {
       {!isUSOrg && (
         <Alert.Container>
           <Alert type="info">
-            {t('AI Code Review is only available in the U.S. More regions coming soon.')}
+            {t(
+              'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
+            )}
           </Alert>
         </Alert.Container>
       )}
