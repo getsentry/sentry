@@ -9,7 +9,7 @@ interface SeerSearchListBoxProps extends AriaListBoxOptions<unknown> {
   listBoxRef?: React.RefObject<HTMLUListElement | null>;
 }
 
-export function SeerSearchListBox(props: SeerSearchListBoxProps) {
+export function AskSeerSearchListBox(props: SeerSearchListBoxProps) {
   const ref = useRef<HTMLUListElement>(null);
   const {listBoxRef = ref, state} = props;
   const {listBoxProps} = useListBox(props, state, listBoxRef);

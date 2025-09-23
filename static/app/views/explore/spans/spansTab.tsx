@@ -16,6 +16,7 @@ import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -48,7 +49,6 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 import {
   useExploreFields,
   useExploreId,
@@ -203,7 +203,7 @@ function SpansTabSeerComboBox() {
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
 
-  return <SeerComboBox initialQuery={initialSeerQuery} />;
+  return <AskSeerComboBox initialQuery={initialSeerQuery} />;
 }
 
 interface SpanTabSearchSectionProps {

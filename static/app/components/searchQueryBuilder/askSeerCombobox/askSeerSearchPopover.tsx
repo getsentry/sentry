@@ -16,7 +16,7 @@ interface PopoverProps extends Omit<AriaPopoverProps, 'popoverRef'> {
   popoverRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function SeerSearchPopover(props: PopoverProps) {
+export function AskSeerSearchPopover(props: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {popoverRef = ref, state, children, overlayProps} = props;
 

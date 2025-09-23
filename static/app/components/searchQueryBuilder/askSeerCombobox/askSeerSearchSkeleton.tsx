@@ -13,7 +13,7 @@ function generateThreeUniqueNumbers(): number[] {
   return Array.from(numbers);
 }
 
-export function SeerSearchSkeleton() {
+export function AskSeerSearchSkeleton() {
   const numbers = useMemo(() => generateThreeUniqueNumbers(), []);
 
   return (

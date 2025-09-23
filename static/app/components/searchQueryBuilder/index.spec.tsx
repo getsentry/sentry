@@ -17,6 +17,7 @@ import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -35,7 +36,6 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
-import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -4326,7 +4326,7 @@ describe('SearchQueryBuilder', () => {
       it('renders the seer combobox', async () => {
         function AskSeerTestComponent({children}: {children: React.ReactNode}) {
           const {displayAskSeer, query} = useSearchQueryBuilder();
-          return displayAskSeer ? <SeerComboBox initialQuery={query} /> : children;
+          return displayAskSeer ? <AskSeerComboBox initialQuery={query} /> : children;
         }
 
         function AskSeerWrapper({children}: {children: React.ReactNode}) {

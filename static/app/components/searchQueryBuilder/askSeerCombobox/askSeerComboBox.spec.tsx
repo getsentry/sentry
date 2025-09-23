@@ -2,11 +2,11 @@ import {destroyAnnouncer} from '@react-aria/live-announcer';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
-import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 
 const defaultProps = {
   filterKeys: {},
@@ -15,7 +15,7 @@ const defaultProps = {
   searchSource: 'test',
 };
 
-describe('SeerComboBox', () => {
+describe('AskSeerComboBox', () => {
   beforeEach(() => {
     // Combobox announcements will pollute the test output if we don't clear them
     destroyAnnouncer();
@@ -53,7 +53,7 @@ describe('SeerComboBox', () => {
   it('renders the search input', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <SeerComboBox initialQuery="test" />
+        <AskSeerComboBox initialQuery="test" />
       </SearchQueryBuilderProvider>
     );
 
@@ -67,7 +67,7 @@ describe('SeerComboBox', () => {
   it('sets the passed initial query as the input value', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <SeerComboBox initialQuery="test" />
+        <AskSeerComboBox initialQuery="test" />
       </SearchQueryBuilderProvider>
     );
 
@@ -80,7 +80,7 @@ describe('SeerComboBox', () => {
   it('defaults popover to be open', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <SeerComboBox initialQuery="test" />
+        <AskSeerComboBox initialQuery="test" />
       </SearchQueryBuilderProvider>
     );
 
@@ -92,7 +92,7 @@ describe('SeerComboBox', () => {
     function TestComponent() {
       const {displayAskSeer, setDisplayAskSeer} = useSearchQueryBuilder();
       return displayAskSeer ? (
-        <SeerComboBox initialQuery="test" />
+        <AskSeerComboBox initialQuery="test" />
       ) : (
         <div>
           <p>Not Seer Search</p>
@@ -122,7 +122,7 @@ describe('SeerComboBox', () => {
   it('displays results after user searches', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <SeerComboBox initialQuery="" />
+        <AskSeerComboBox initialQuery="" />
       </SearchQueryBuilderProvider>
     );
 
@@ -138,7 +138,7 @@ describe('SeerComboBox', () => {
   it('applies the query to the route query params when selected via keyboard', async () => {
     const {router} = render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <SeerComboBox initialQuery="" />
+        <AskSeerComboBox initialQuery="" />
       </SearchQueryBuilderProvider>,
       {
         initialRouterConfig: {location: {pathname: '/foo/'}},
@@ -172,7 +172,7 @@ describe('SeerComboBox', () => {
 
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
-        <SeerComboBox initialQuery="" />
+        <AskSeerComboBox initialQuery="" />
       </SearchQueryBuilderProvider>
     );
 
