@@ -160,10 +160,6 @@ function Dashboard({
     // Always load organization tags on dashboards
     loadOrganizationTags(api, organization.slug, selection);
 
-    if (newWidget) {
-      addNewWidget();
-    }
-
     // Get member list data for issue widgets
     fetchMemberList();
 
@@ -188,6 +184,15 @@ function Dashboard({
   useEffect(() => {
     fetchMemberList();
   }, [fetchMemberList]);
+
+  // Ensure that when the dashboard widgets change externally, the layout is kept in sync
+  useEffect(() => {
+    const desktopLayout = getDashboardLayout(dashboard.widgets);
+    setLayouts({
+      [DESKTOP]: desktopLayout,
+      [MOBILE]: getMobileLayout(desktopLayout, dashboard.widgets),
+    });
+  }, [dashboard.widgets]);
 
   const handleDeleteWidget = (widgetToDelete: Widget) => () => {
     trackAnalytics('dashboards_views.widget.delete', {
