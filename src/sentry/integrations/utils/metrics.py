@@ -93,6 +93,11 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
             "interaction_type": self.get_interaction_type(),
         }
 
+    def capture(
+        self, assume_success: bool = True, sample_log_rate: float = 1.0
+    ) -> "IntegrationEventLifecycle":
+        return IntegrationEventLifecycle(self, assume_success, sample_log_rate)
+
 
 class EventLifecycle:
     """Context object that measures an event that may succeed or fail.
@@ -315,13 +320,9 @@ class EventLifecycle:
             # so we can just exit quietly.
             return
         if exc_value is not None:
-            if isinstance(exc_value.__cause__, RestrictedIPAddress):
-                # ApiHostError is raised from RestrictedIPAddress
-                self._terminate(EventLifecycleOutcome.HALTED, exc_value)
-            else:
-                # We were forced to exit the context by a raised exception.
-                # Default to creating a Sentry issue for unhandled exceptions
-                self.record_failure(exc_value, create_issue=True)
+            # We were forced to exit the context by a raised exception.
+            # Default to creating a Sentry issue for unhandled exceptions
+            self.record_failure(exc_value, create_issue=True)
         else:
             # We exited the context without record_success or record_failure being
             # called. Assume success if we were told to do so. Else, log a halt
@@ -331,6 +332,20 @@ class EventLifecycle:
                 if self.assume_success
                 else EventLifecycleOutcome.HALTED
             )
+
+
+class IntegrationEventLifecycle(EventLifecycle):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType,
+    ) -> None:
+        if exc_value is not None and isinstance(exc_value.__cause__, RestrictedIPAddress):
+            # ApiHostError is raised from RestrictedIPAddress
+            self.record_halt(exc_value)
+            return
+        super().__exit__(exc_type, exc_value, traceback)
 
 
 class IntegrationPipelineViewType(StrEnum):
