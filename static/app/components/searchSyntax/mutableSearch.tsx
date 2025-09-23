@@ -361,6 +361,11 @@ function quoteIfNeeded(value: string): string {
 export class MutableSearch {
   tokens: Array<Readonly<Token>>;
 
+  /**
+   * Creates a `MutableSearch` from a key-value mapping of field:value.
+   * This construct doesn't support conditions like `OR` and `AND` or
+   * parentheses, so it's only useful for simple queries.
+   */
   static fromQueryObject(
     params: Record<string, string[] | string | number | undefined>
   ): MutableSearch {
@@ -387,7 +392,13 @@ export class MutableSearch {
     return query;
   }
 
+  /**
+   * Creates a MutableSearch from a string query
+   */
   constructor(query: string);
+  /**
+   * Creates a mutable search query from a list of query parts
+   */
   constructor(queries: string[]);
   constructor(tokensOrQuery: string[] | string) {
     const queryString = Array.isArray(tokensOrQuery)
@@ -403,6 +414,11 @@ export class MutableSearch {
       .trim();
   }
 
+  /**
+   * Adds the filters from a string query to the current MutableSearch query.
+   * The string query may consist of multiple key:value pairs separated
+   * by spaces.
+   */
   addStringMultiFilter(multiFilter: string, shouldEscape = true): void {
     const tmp = new MutableSearch(multiFilter);
     Object.entries(tmp.getFilters()).forEach(([key, values]) => {
@@ -410,6 +426,10 @@ export class MutableSearch {
     });
   }
 
+  /**
+   * Adds a string filter to the current MutableSearch query. The filter should follow
+   * the format key:value.
+   */
   addStringFilter(filter: string): this {
     const parsed = parseToFlatTokens(filter).filter(t => t.type === TokenType.FILTER);
     if (parsed.length === 0) {
@@ -428,6 +448,10 @@ export class MutableSearch {
     return this;
   }
 
+  /**
+   * Adds the filter values separated by OR operators. This is in contrast to
+   * addFilterValues, which implicitly separates each filter value with an AND operator.
+   */
   addDisjunctionFilterValues(key: string, values: string[], shouldEscape = true): this {
     if (values.length === 0) {
       return this;
@@ -519,6 +543,7 @@ export class MutableSearch {
           const next = this.tokens[i + 1];
           if (isBooleanOp(token, token.value)) {
             if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
+              // Want to avoid removing `(term) OR (term)` and `term OR (term)`
               if (
                 prev &&
                 next &&
@@ -539,8 +564,14 @@ export class MutableSearch {
       t => !(t.type === TokenType.FILTER && t.key === key)
     );
 
+    // Remove any AND/OR operators that have become erroneous due to filtering out tokens
     removeErroneousAndOrOps();
 
+    // Now the really complicated part: removing parens that only have one element in them.
+    // Since parens are themselves tokens, this gets tricky. In summary, loop through the
+    // tokens until we find the innermost open paren. Then forward search through the rest of the tokens
+    // to see if that open paren corresponds to a closed paren with one or fewer items inside.
+    // If it does, delete those parens, and loop again until there are no more parens to delete.
     let parensToDelete: number[] = [];
     const cleanParens = (_: unknown, idx: number) => !parensToDelete.includes(idx);
     do {
@@ -552,6 +583,8 @@ export class MutableSearch {
       for (let i = 0; i < this.tokens.length; i++) {
         const token = this.tokens[i]!;
         if (!isOp(token) || token.value !== '(') {
+          // Continue down to the nested parens. We can skip i forward since we know
+          // everything between i and j is NOT an open paren.
           continue;
         }
 
@@ -563,10 +596,12 @@ export class MutableSearch {
             break;
           } else if (!isOp(nextToken)) {
             if (alreadySeen) {
+              // This has more than one term, no need to delete
               break;
             }
             alreadySeen = true;
           } else if (isOp(nextToken) && nextToken.value === ')') {
+            // We found another paren with zero or one terms inside. Delete the pair.
             parensToDelete = [i, j];
             break;
           }
@@ -578,6 +613,11 @@ export class MutableSearch {
       }
     } while (parensToDelete.length > 0);
 
+    // Now that all erroneous parens are removed we need to remove dangling OR/AND operators.
+    // I originally removed all the dangling properties in a single loop, but that meant that
+    // cases like `a OR OR b` would remove both operators, when only one should be removed. So
+    // instead, we loop until we find an operator to remove, then go back to the start and loop
+    // again.
     removeErroneousAndOrOps();
 
     return this;
@@ -601,11 +641,12 @@ export class MutableSearch {
     return this;
   }
 
-  setFreeText(values: string[]): void {
+  setFreeText(values: string[]): this {
     this.tokens = this.tokens.filter(t => t.type !== TokenType.FREE_TEXT);
     for (const v of values) {
       this.addFreeText(v);
     }
+    return this;
   }
 
   addOp(value: OperatorToken['value']): this {
