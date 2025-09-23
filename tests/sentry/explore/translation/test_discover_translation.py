@@ -248,7 +248,7 @@ class DiscoverToExploreTranslationTest(TestCase):
             {"groupBy": "transaction"},
             {"groupBy": "request.url"},
             {"groupBy": "timestamp"},
-            {"yAxes": ["apdex(span.duration,300)"], "chartType": 2},
+            {"yAxes": ["equation|apdex(span.duration,300)"], "chartType": 2},
             {"yAxes": ["max(measurements.cls)"], "chartType": 2},
         ]
         assert query["aggregateOrderby"] is None
