@@ -115,13 +115,13 @@ function Dashboard({
   const organization = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
-  const [layouts, setLayouts] = useState<LayoutState>(() => {
+  const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
     return {
       [DESKTOP]: desktopLayout,
       [MOBILE]: getMobileLayout(desktopLayout, dashboard.widgets),
     };
-  });
+  }, [dashboard.widgets]);
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
@@ -185,88 +185,103 @@ function Dashboard({
     fetchMemberList();
   }, [fetchMemberList]);
 
-  // Ensure that when the dashboard widgets change externally, the layout is kept in sync
-  useEffect(() => {
-    const desktopLayout = getDashboardLayout(dashboard.widgets);
-    setLayouts({
-      [DESKTOP]: desktopLayout,
-      [MOBILE]: getMobileLayout(desktopLayout, dashboard.widgets),
-    });
-  }, [dashboard.widgets]);
+  const handleDeleteWidget = useCallback(
+    (widgetToDelete: Widget) => () => {
+      trackAnalytics('dashboards_views.widget.delete', {
+        organization,
+        widget_type: widgetToDelete.displayType,
+      });
 
-  const handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    trackAnalytics('dashboards_views.widget.delete', {
+      let nextList = dashboard.widgets.filter(
+        widget => constructGridItemKey(widget) !== constructGridItemKey(widgetToDelete)
+      );
+      nextList = generateWidgetsAfterCompaction(nextList);
+
+      onUpdate(nextList);
+
+      if (!isEditingDashboard) {
+        handleUpdateWidgetList(nextList);
+      }
+    },
+    [
       organization,
-      widget_type: widgetToDelete.displayType,
-    });
+      dashboard.widgets,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    ]
+  );
 
-    let nextList = dashboard.widgets.filter(
-      widget => constructGridItemKey(widget) !== constructGridItemKey(widgetToDelete)
-    );
-    nextList = generateWidgetsAfterCompaction(nextList);
+  const handleDuplicateWidget = useCallback(
+    (widget: Widget) => () => {
+      trackAnalytics('dashboards_views.widget.duplicate', {
+        organization,
+        widget_type: widget.displayType,
+      });
 
-    onUpdate(nextList);
+      const widgetCopy = cloneDeep(
+        assignTempId({...widget, id: undefined, tempId: undefined})
+      );
 
-    if (!isEditingDashboard) {
-      handleUpdateWidgetList(nextList);
-    }
-  };
+      let nextList = [...dashboard.widgets, widgetCopy];
+      nextList = generateWidgetsAfterCompaction(nextList);
 
-  const handleDuplicateWidget = (widget: Widget) => () => {
-    trackAnalytics('dashboards_views.widget.duplicate', {
+      onUpdate(nextList);
+      if (!isEditingDashboard) {
+        handleUpdateWidgetList(nextList);
+      }
+    },
+    [
       organization,
-      widget_type: widget.displayType,
-    });
+      dashboard.widgets,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    ]
+  );
 
-    const widgetCopy = cloneDeep(
-      assignTempId({...widget, id: undefined, tempId: undefined})
-    );
+  const handleEditWidget = useCallback(
+    (index: number) => () => {
+      const widget = dashboard.widgets[index]!;
 
-    let nextList = [...dashboard.widgets, widgetCopy];
-    nextList = generateWidgetsAfterCompaction(nextList);
+      trackAnalytics('dashboards_views.widget.edit', {
+        organization,
+        widget_type: widget.displayType,
+      });
 
-    onUpdate(nextList);
-    if (!isEditingDashboard) {
-      handleUpdateWidgetList(nextList);
-    }
-  };
+      if (widget.widgetType === WidgetType.METRICS) {
+        return;
+      }
 
-  const handleEditWidget = (index: number) => () => {
-    const widget = dashboard.widgets[index]!;
-
-    trackAnalytics('dashboards_views.widget.edit', {
-      organization,
-      widget_type: widget.displayType,
-    });
-
-    if (widget.widgetType === WidgetType.METRICS) {
+      onEditWidget?.(widget);
       return;
-    }
+    },
+    [organization, dashboard.widgets, onEditWidget]
+  );
 
-    onEditWidget?.(widget);
-    return;
-  };
+  const handleChangeSplitDataset = useCallback(
+    (widget: Widget, index: number) => {
+      const widgetCopy = cloneDeep({
+        ...widget,
+        id: undefined,
+      });
 
-  const handleChangeSplitDataset = (widget: Widget, index: number) => {
-    const widgetCopy = cloneDeep({
-      ...widget,
-      id: undefined,
-    });
+      const nextList = [...dashboard.widgets];
+      const nextWidgetData = {
+        ...widgetCopy,
+        widgetType: WidgetType.TRANSACTIONS,
+        datasetSource: DatasetSource.USER,
+        id: widget.id,
+      };
+      nextList[index] = nextWidgetData;
 
-    const nextList = [...dashboard.widgets];
-    const nextWidgetData = {
-      ...widgetCopy,
-      widgetType: WidgetType.TRANSACTIONS,
-      datasetSource: DatasetSource.USER,
-      id: widget.id,
-    };
-    nextList[index] = nextWidgetData;
-
-    onUpdate(nextList);
-    if (!isEditingDashboard) {
-      handleUpdateWidgetList(nextList);
-    }
-  };
+      onUpdate(nextList);
+      if (!isEditingDashboard) {
+        handleUpdateWidgetList(nextList);
+      }
+    },
+    [dashboard.widgets, onUpdate, isEditingDashboard, handleUpdateWidgetList]
+  );
 
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
@@ -325,7 +340,6 @@ function Dashboard({
         };
       });
 
-      setLayouts(newLayouts);
       onUpdate(newWidgets);
 
       // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
@@ -337,22 +351,13 @@ function Dashboard({
     [dashboard.widgets, isMobile, onUpdate, isEditingDashboard]
   );
 
-  const handleBreakpointChange = useCallback(
-    (newBreakpoint: string) => {
-      const {widgets} = dashboard;
-
-      if (newBreakpoint === MOBILE) {
-        setIsMobile(true);
-        setLayouts({
-          ...layouts,
-          [MOBILE]: getMobileLayout(layouts[DESKTOP], widgets),
-        });
-        return;
-      }
-      setIsMobile(false);
-    },
-    [layouts, dashboard]
-  );
+  const handleBreakpointChange = useCallback((newBreakpoint: string) => {
+    if (newBreakpoint === MOBILE) {
+      setIsMobile(true);
+      return;
+    }
+    setIsMobile(false);
+  }, []);
 
   const addWidgetLayout = useMemo(() => {
     let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
