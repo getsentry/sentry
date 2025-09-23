@@ -127,18 +127,16 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
 
-  // Also need to investigate why projects are not being included in the query
-
-  // TODO: break this out into a fetcher function and wrap it in a useQuery hook
-  // Something like this:
+  // TODO(nsdeschenes): break this out in some similar fashion so that we can extend this
+  // component and make it generic for other use cases
+  // Something like this, but for mutations:
   // const baseQueryKey = useMemo(
   //   () => ['search-query-builder-tag-values', queryParams],
   //   [queryParams]
   // );
   // const queryKey = useDebouncedValue(baseQueryKey);
   // const isDebouncing = baseQueryKey !== queryKey;
-
-  // // TODO(malwilley): Display error states
+  //
   // const {data, isFetching} = useQuery<string[]>({
   //   // disable exhaustive deps because we want to debounce the query key above
   //   // eslint-disable-next-line @tanstack/query/exhaustive-deps
@@ -147,6 +145,7 @@ export function AskSeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   //   placeholderData: keepPreviousData,
   //   enabled: shouldFetchValues,
   // });
+  // Also need to investigate why projects are not being included in the query
 
   const {rawResult, submitQuery, isPending, isError, unsupportedReason} =
     useAskSeerSearch();
