@@ -169,6 +169,87 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
 @run.command()
 @click.option(
+    "--pidfile",
+    help=(
+        "Optional file used to store the process pid. The "
+        "program will not start if this file already exists and "
+        "the pid is still alive."
+    ),
+)
+@click.option(
+    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
+)
+@click.option("--quiet", "-q", is_flag=True, default=False)
+@click.option("--no-color", is_flag=True, default=False)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--without-gossip", is_flag=True, default=False)
+@click.option("--without-mingle", is_flag=True, default=False)
+@click.option("--without-heartbeat", is_flag=True, default=False)
+@log_options()
+@configuration
+def cron(**options: Any) -> None:
+    # TODO(taskworker) Remove this stub command
+    while True:
+        click.secho(
+            "The cron command has been removed. Use `sentry run taskworker-scheduler` instead.",
+            fg="yellow",
+        )
+        time.sleep(5)
+
+
+@run.command()
+@click.option(
+    "--hostname",
+    "-n",
+    help=(
+        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
+    ),
+)
+@click.option(
+    "--queues",
+    "-Q",
+    type=QueueSet,
+    help=(
+        "List of queues to enable for this worker, separated by "
+        "comma. By default all configured queues are enabled. "
+        "Example: -Q video,image"
+    ),
+)
+@click.option("--exclude-queues", "-X", type=QueueSet)
+@click.option(
+    "--concurrency",
+    "-c",
+    default=1,
+    help=(
+        "Number of child processes processing the queue. The "
+        "default is the number of CPUs available on your "
+        "system."
+    ),
+)
+@click.option(
+    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
+)
+@click.option("--quiet", "-q", is_flag=True, default=False)
+@click.option("--no-color", is_flag=True, default=False)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--without-gossip", is_flag=True, default=False)
+@click.option("--without-mingle", is_flag=True, default=False)
+@click.option("--without-heartbeat", is_flag=True, default=False)
+@click.option("--max-tasks-per-child", default=10000)
+@click.option("--ignore-unknown-queues", is_flag=True, default=False)
+@log_options()
+@configuration
+def worker(ignore_unknown_queues: bool, **options: Any) -> None:
+    # TODO(taskworker) Remove this stub command
+    while True:
+        click.secho(
+            "The worker command has been removed. Use `sentry run taskworker` instead.", fg="yellow"
+        )
+        time.sleep(5)
+
+
+@run.command()
+@click.option(
     "--rpc-host",
     help="The hostname and port for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
     default="127.0.0.1:50051",
