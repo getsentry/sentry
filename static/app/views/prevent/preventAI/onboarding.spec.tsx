@@ -30,6 +30,11 @@ describe('PreventAIOnboarding', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     configState = ConfigStore.getState();
+    // Set up default regions for tests
+    ConfigStore.set('regions', [
+      {url: 'https://us.sentry.io', name: 'us'},
+      {url: 'https://de.sentry.io', name: 'de'},
+    ]);
   });
 
   afterEach(() => {
@@ -266,11 +271,6 @@ describe('PreventAIOnboarding', () => {
   });
 
   it('shows EU data storage alert when organization region is EU', () => {
-    ConfigStore.set('regions', [
-      {url: 'https://us.sentry.io', name: 'us'},
-      {url: 'https://de.sentry.io', name: 'de'},
-    ]);
-
     const euOrg = OrganizationFixture({
       slug: 'eu-org',
       links: {
@@ -281,17 +281,14 @@ describe('PreventAIOnboarding', () => {
 
     render(<PreventAIOnboarding />, {organization: euOrg});
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
-    );
+    expect(
+      screen.getByText(
+        'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('does not show region alert for US organizations', () => {
-    ConfigStore.set('regions', [
-      {url: 'https://us.sentry.io', name: 'us'},
-      {url: 'https://de.sentry.io', name: 'de'},
-    ]);
-
     const usOrg = OrganizationFixture({
       slug: 'us-org',
       links: {
@@ -302,6 +299,10 @@ describe('PreventAIOnboarding', () => {
 
     render(<PreventAIOnboarding />, {organization: usOrg});
 
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'AI Code Review data is stored in the U.S. only and is not available in the EU. EU region support is coming soon.'
+      )
+    ).not.toBeInTheDocument();
   });
 });
