@@ -52,7 +52,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
 
   // Filter monitor environments based on the selected environment from page filters
-  const selectedEnvironments = toArray(location.query.environment);
+  const selectedEnvironments = toArray(location.query.environment).filter(Boolean);
   const filteredMonitor = {
     ...dataSource.queryObj,
     environments:
