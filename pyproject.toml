@@ -794,6 +794,7 @@ module = [
     "tests.sentry.onboarding_tasks.*",
     "tests.sentry.organizations.*",
     "tests.sentry.partnerships.*",
+    "tests.sentry.performance_issues.*",
     "tests.sentry.plugins.interfaces.*",
     "tests.sentry.plugins.sentry_useragents.*",
     "tests.sentry.plugins.sentry_webhooks.*",

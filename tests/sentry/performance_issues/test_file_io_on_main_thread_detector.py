@@ -40,7 +40,7 @@ class FileIOMainThreadDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def create_proguard(self, uuid):
+    def create_proguard(self, uuid: str) -> None:
         with ZipFile(BytesIO(), "w") as f:
             f.writestr(f"proguard/{uuid}.txt", PROGUARD_SOURCE)
             create_files_from_dif_zip(f, project=self.project)
