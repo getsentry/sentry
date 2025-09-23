@@ -124,7 +124,7 @@ export function TracesTable() {
   const traceErrorRequest = useSpans(
     {
       // Get all generations and tool calls with status unknown
-      search: `span.status:unknown trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `!span.status:ok trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: ['trace', ...AI_AGENT_SUB_OPS],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
