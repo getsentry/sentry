@@ -271,13 +271,8 @@ function Dashboard({
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
       if (!isEditingDashboard) {
-        // If we're not editing, then the dashboard.widgets positions are the
-        // source of truth for the current layout.
-        const desktopLayout = getDashboardLayout(dashboard.widgets);
-        setLayouts({
-          [DESKTOP]: desktopLayout,
-          [MOBILE]: getMobileLayout(desktopLayout, dashboard.widgets),
-        });
+        // Do not update anything if we're not editing. This avoids infinite re-rendering
+        // by updating the parents which then triggers a re-render of this component
         return;
       }
 
