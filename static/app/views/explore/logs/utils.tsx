@@ -281,6 +281,14 @@ export function getLogRowTimestampMillis(row: OurLogsResponseItem): number {
   return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
 }
 
+export function quantizeTimestampToMinutes(
+  timestampMs: number,
+  quantizeMinutes: number
+): number {
+  const quantizeMs = quantizeMinutes * 60 * 1000;
+  return Math.floor(timestampMs / quantizeMs) * quantizeMs;
+}
+
 export function getLogTimestampBucketIndex(
   rowTimestampMillis: number,
   periodStartMillis: number,
