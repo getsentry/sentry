@@ -73,6 +73,7 @@ export default function OverviewApiLatencyChartWidget(props: LoadableChartWidget
         !isEmpty && (
           <Toolbar
             showCreateAlert
+            showAddToDashboard
             exploreParams={{
               mode: Mode.SAMPLES,
               visualize: [

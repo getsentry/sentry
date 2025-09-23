@@ -110,8 +110,12 @@ function EventsContent(props: Props) {
     if (platform === ProjectPerformanceType.BACKEND) {
       const userIndex = transactionsListTitles.indexOf('user');
       if (userIndex > 0) {
-        transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
-        fields.splice(userIndex + 1, 0, {field: 'http.method'});
+        if (!transactionsListTitles.includes('http.method')) {
+          transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
+        }
+        if (!fields.some(f => f.field === 'http.method')) {
+          fields.splice(userIndex + 1, 0, {field: 'http.method'});
+        }
       }
     }
 

@@ -74,6 +74,10 @@ describe('Cart', () => {
         invoiceItems: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
   });
 
   afterEach(() => {
@@ -99,10 +103,9 @@ describe('Cart', () => {
     );
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
-    expect(cart).toHaveTextContent('Pay-as-you-go spend cap$0-$300/mo');
+    expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
     expect(cart).toHaveTextContent('Plan Total$89/mo');
     expect(cart).toHaveTextContent('Default Amount');
-    expect(within(cart).getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
   });
 
   it('renders form data', async () => {
@@ -129,7 +132,6 @@ describe('Cart', () => {
         activePlan={teamPlanAnnual}
         formData={formData}
         formDataForPreview={getFormDataForPreview(formData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
         onSuccess={jest.fn()}
@@ -147,16 +149,16 @@ describe('Cart', () => {
     expect(planItem).toHaveTextContent('Available with pay-as-you-go');
 
     const seerItem = screen.getByTestId('summary-item-product-seer');
-    expect(seerItem).toHaveTextContent('Seer AI Agent');
+    expect(seerItem).toHaveTextContent('Seer');
     expect(seerItem).toHaveTextContent('$216/yr');
 
-    const spendCapItem = screen.getByTestId('summary-item-spend-cap');
-    expect(spendCapItem).toHaveTextContent('$0-$50/mo');
+    const spendCapItem = screen.getByTestId('summary-item-spend-limit');
+    expect(spendCapItem).toHaveTextContent('up to $50/mo');
 
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument(); // changes aren't shown for free plan
   });
 
-  it('renders per-category spend caps', async () => {
+  it('renders per-category spend limits', async () => {
     const formData: CheckoutFormData = {
       plan: 'am2_team',
       reserved: {
@@ -187,26 +189,25 @@ describe('Cart', () => {
         activePlan={legacyTeamPlan}
         formData={formData}
         formDataForPreview={getFormDataForPreview(formData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
         onSuccess={jest.fn()}
       />
     );
 
-    const spendCapItems = await screen.findAllByTestId(/summary-item-spend-cap/);
+    const spendCapItems = await screen.findAllByTestId(/summary-item-spend-limit/);
     expect(spendCapItems).toHaveLength(4);
-    expect(screen.getByTestId('summary-item-spend-cap-errors')).toHaveTextContent(
-      '$0-$10/mo'
+    expect(screen.getByTestId('summary-item-spend-limit-errors')).toHaveTextContent(
+      'up to $10/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-transactions')).toHaveTextContent(
-      '$0-$5/mo'
+    expect(screen.getByTestId('summary-item-spend-limit-transactions')).toHaveTextContent(
+      'up to $5/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-attachments')).toHaveTextContent(
-      '$0-$20/mo'
+    expect(screen.getByTestId('summary-item-spend-limit-attachments')).toHaveTextContent(
+      'up to $20/mo'
     );
-    expect(screen.getByTestId('summary-item-spend-cap-replays')).toHaveTextContent(
-      '$0-$15/mo'
+    expect(screen.getByTestId('summary-item-spend-limit-replays')).toHaveTextContent(
+      'up to $15/mo'
     );
   });
 
@@ -240,7 +241,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
         onSuccess={jest.fn()}
@@ -281,7 +281,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
         onSuccess={jest.fn()}
@@ -294,21 +293,6 @@ describe('Cart', () => {
     expect(
       screen.getByText(/Your changes will apply on Jun 7, 2023/)
     ).toBeInTheDocument();
-  });
-
-  it('disables confirm and pay button for incomplete billing details', async () => {
-    render(
-      <Cart
-        activePlan={businessPlan}
-        formData={defaultFormData}
-        formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails={false}
-        organization={organization}
-        subscription={subscription}
-        onSuccess={jest.fn()}
-      />
-    );
-    expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
   });
 
   it('renders buttons and subtext for migrating partner customers', async () => {
@@ -333,7 +317,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={partnerOrg}
         subscription={partnerSub}
         onSuccess={jest.fn()}
@@ -374,7 +357,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={partnerSub}
         onSuccess={jest.fn()}
@@ -416,7 +398,6 @@ describe('Cart', () => {
         activePlan={teamPlanAnnual}
         formData={formData}
         formDataForPreview={getFormDataForPreview(formData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
         onSuccess={jest.fn()}
@@ -431,8 +412,8 @@ describe('Cart', () => {
     const reservedChanges = within(changes).getByTestId('reserved-diff');
     expect(reservedChanges).toHaveTextContent('Reserved volume');
 
-    const sharedSpendCapChanges = within(changes).getByTestId('shared-spend-cap-diff');
-    expect(sharedSpendCapChanges).toHaveTextContent('Shared spend cap');
+    const sharedSpendCapChanges = within(changes).getByTestId('shared-spend-limit-diff');
+    expect(sharedSpendCapChanges).toHaveTextContent('Shared spend limit');
   });
 
   it('can toggle changes and plan summary', async () => {
@@ -448,7 +429,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
         onSuccess={jest.fn()}

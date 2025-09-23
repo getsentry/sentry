@@ -17,7 +17,7 @@ const PERMISSIONS_SNIPPET = `permissions:
 
 const ACTION_SNIPPET = `- name: Upload test results to Sentry Prevent
   if: \${{ !cancelled() }}
-  uses: getsentry/prevent-action@latest
+  uses: getsentry/prevent-action@v0
 `;
 
 export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
