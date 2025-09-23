@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -155,7 +156,9 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
                 style={{marginLeft: space(1)}}
               />
               <EventDetails>
-                <Title data-issue-title-primary>{latestEvent.title}</Title>
+                <Text size="md" data-issue-title-primary>
+                  {latestEvent.title}
+                </Text>
               </EventDetails>
             </Flex>
           ) : null}
@@ -208,11 +211,6 @@ const EventDetails = styled('div')`
   display: flex;
   justify-content: space-between;
   padding: ${space(1)};
-`;
-
-const Title = styled('span')`
-  position: relative;
-  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export default MergedItem;
