@@ -20,7 +20,6 @@ class TaskworkerApp:
         self._config = {
             "rpc_secret": None,
             "at_most_once_timeout": None,
-            "grpc_config": None,
         }
         self._modules: Iterable[str] = []
         self._taskregistry = taskregistry or TaskRegistry()
