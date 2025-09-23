@@ -67,11 +67,11 @@ class ProcessBufferedWorkflowsTest(CreateEventTestCase):
         # Push data to buffer (need actual workflow data, not just rule data)
         self.batch_client.for_project(project.id).push_to_hash(
             batch_key=None,
-            data={f"{rule.id}:{group.id}": json.dumps({"event_id": "event-1"})},
+            data={f"345:{group.id}": json.dumps({"event_id": "event-1"})},
         )
         self.batch_client.for_project(project_two.id).push_to_hash(
             batch_key=None,
-            data={f"{rule.id}:{group_two.id}": json.dumps({"event_id": "event-2"})},
+            data={f"345:{group_two.id}": json.dumps({"event_id": "event-2"})},
         )
 
         # Add projects to sorted set

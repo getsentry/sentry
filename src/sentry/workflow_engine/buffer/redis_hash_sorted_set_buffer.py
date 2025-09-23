@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any, TypeAlias, TypeVar
 
 import rb
@@ -106,7 +106,7 @@ class RedisHashSortedSetBuffer:
         return result
 
     def _execute_sharded_redis_operation(
-        self, keys: list[str], operation_name: str, *args: Any, **kwargs: Any
+        self, keys: Sequence[str], operation_name: str, *args: Any, **kwargs: Any
     ) -> Any:
         """Execute a Redis operation on multiple keys."""
         assert keys
@@ -202,7 +202,7 @@ class RedisHashSortedSetBuffer:
         return decoded_set
 
     def bulk_get_sorted_set(
-        self, keys: list[str], min: float, max: float
+        self, keys: Sequence[str], min: float, max: float
     ) -> dict[int, list[float]]:
         """Get values from multiple Redis sorted sets within a score range."""
         data_to_timestamps: dict[int, list[float]] = defaultdict(list)
@@ -245,7 +245,7 @@ class RedisHashSortedSetBuffer:
         """Delete values from a Redis sorted set within a score range."""
         self._execute_redis_operation(key, "zremrangebyscore", min=min, max=max)
 
-    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
+    def delete_keys(self, keys: Sequence[str], min: float, max: float) -> None:
         """Delete values from multiple Redis sorted sets within a score range."""
         if not self.is_redis_cluster:
             for key in keys:
@@ -271,7 +271,7 @@ class RedisHashSortedSetBuffer:
             # Fallback for standalone Redis using cluster client
             return 0  # Treat as single slot
 
-    def _group_keys_by_slot(self, keys: list[str]) -> list[list[str]]:
+    def _group_keys_by_slot(self, keys: Sequence[str]) -> list[list[str]]:
         """Group keys by their Redis cluster slot."""
         slot_groups = defaultdict(list)
         for key in keys:
@@ -280,7 +280,7 @@ class RedisHashSortedSetBuffer:
         return list(slot_groups.values())
 
     def _parse_slot_result(
-        self, slot_result: list[Any], slot_keys: list[str]
+        self, slot_result: list[Any], slot_keys: Sequence[str]
     ) -> dict[str, list[int]]:
         """Parse flat array result from Lua script and return results dict."""
         # Parse flat array result: [key1, member1, key1, member2, key2, member3, ...]
@@ -317,7 +317,7 @@ class RedisHashSortedSetBuffer:
             self.cluster.script_load(self._conditional_zrem_script.script)
 
     def conditional_delete_from_sorted_sets(
-        self, keys: list[str], members_and_scores: list[tuple[int, float]]
+        self, keys: Sequence[str], members_and_scores: list[tuple[int, float]]
     ) -> dict[str, list[int]]:
         """
         Conditionally delete members from multiple Redis sorted sets.
@@ -325,6 +325,8 @@ class RedisHashSortedSetBuffer:
         Only removes members from a sorted set if their current score is <= the provided score.
         This is useful for safe cleanup where you only want to remove items that haven't been
         updated since a certain time.
+
+        Returns a dictionary of keys and the members that were deleted.
         """
         if not keys:
             raise ValueError("Keys list cannot be empty")
@@ -374,7 +376,9 @@ class RedisHashSortedSetBuffer:
 
         return converted_results
 
-    def _group_keys_by_host_rb(self, cluster: rb.Cluster, keys: list[str]) -> dict[str, list[str]]:
+    def _group_keys_by_host_rb(
+        self, cluster: rb.Cluster, keys: Sequence[str]
+    ) -> dict[str, list[str]]:
         """Group keys by their rb.Cluster host for efficient batching."""
         host_groups = defaultdict(list)
         router = cluster.get_router()
@@ -386,7 +390,7 @@ class RedisHashSortedSetBuffer:
         return dict(host_groups)
 
     def _conditional_delete_rb_fallback(
-        self, cluster: rb.Cluster, keys: list[str], members_and_scores: list[tuple[int, float]]
+        self, cluster: rb.Cluster, keys: Sequence[str], members_and_scores: list[tuple[int, float]]
     ) -> dict[str, list[int]]:
         """
         Fallback implementation for rb.Cluster using atomic Lua script execution.
