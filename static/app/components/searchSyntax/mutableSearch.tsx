@@ -359,7 +359,7 @@ function quoteIfNeeded(value: string): string {
  * - getFreeText and setFreeText are now methods instead of getters and setters
  */
 export class MutableSearch {
-  tokens: Token[];
+  tokens: Array<Readonly<Token>>;
 
   static fromQueryObject(
     params: Record<string, string[] | string | number | undefined>
