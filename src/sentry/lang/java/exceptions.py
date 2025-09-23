@@ -30,7 +30,7 @@ _JAVA_CLASS_IN_TEXT_RE = re.compile(
 class Exceptions:
     def __init__(self, data: Any):
         self._processable_exceptions: list[dict[str, Any]] = []
-        self._processable_exceptions_with_values: list[tuple[Any, list[str]]] = []
+        self._processable_exceptions_with_values: list[tuple[Any, list[Any]]] = []
 
         for exc in get_path(data, "exception", "values", filter=True, default=()):
             if exc.get("type", None) and exc.get("module", None):
@@ -43,7 +43,7 @@ class Exceptions:
     def get_processable_exceptions(self):
         return self._processable_exceptions
 
-    def get_value_class_names(self):
+    def get_exception_class_names(self):
         """
         Returns a flattened list of all class names found in the exception values.
         """
@@ -57,7 +57,7 @@ class Exceptions:
         return self._processable_exceptions_with_values
 
     def deobfuscate_and_save(
-        self, classes: dict[str, str], mapped_exceptions: list[dict[str, Any]]
+        self, classes: dict[str, str] | None, mapped_exceptions: list[dict[str, Any]]
     ):
         """
         Deobfuscates all exception values, module and type in-place
@@ -70,16 +70,35 @@ class Exceptions:
             raw_exc["type"] = exc["type"]
 
         # Deobfuscate exception values
-        for exc, class_names in self._processable_exceptions_with_values:
-            value = exc["value"]
-            for class_name in class_names:
-                mapped_class_name = classes.get(class_name) or classes.get(
-                    _strip_quotes(class_name)
-                )
-                if mapped_class_name:
-                    exc["raw_value"] = value
+        # Note: operate on a local copy to avoid partial replacements preventing subsequent matches.
+        # Replace longer tokens first to avoid overlapping replacements (e.g., a.b$c$1 vs a.b$c).
+        if classes:
+            for exc, class_names in self._processable_exceptions_with_values:
+                original_value = exc["value"]
+                new_value = original_value
+
+                # Preserve order but ensure uniqueness, then sort by stripped length desc
+                unique_tokens = list(dict.fromkeys(class_names))
+                unique_tokens.sort(key=lambda t: len(_strip_quotes(t)), reverse=True)
+
+                performed_replacement = False
+                for class_name in unique_tokens:
+                    mapped_class_name = classes.get(class_name) or classes.get(
+                        _strip_quotes(class_name)
+                    )
+                    if not mapped_class_name:
+                        continue
+
+                    if not performed_replacement:
+                        # Set once if any replacement is performed
+                        exc["raw_value"] = original_value
+                        performed_replacement = True
+
                     replacement = _wrap_with_same_quotes(class_name, mapped_class_name)
-                    exc["value"] = exc["value"].replace(class_name, replacement)
+                    new_value = new_value.replace(class_name, replacement)
+
+                if performed_replacement:
+                    exc["value"] = new_value
 
 
 def _is_quoted(token: str) -> bool:

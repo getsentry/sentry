@@ -196,7 +196,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     exceptions = Exceptions(data)
     processable_exceptions = exceptions.get_processable_exceptions()
-    value_class_names = exceptions.get_value_class_names()
+    exception_class_names = exceptions.get_exception_class_names()
 
     metrics.incr("proguard.symbolicator.events")
 
@@ -204,7 +204,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         not any(stacktrace["frames"] for stacktrace in stacktraces)
         and not processable_exceptions
         and not window_class_names
-        and not value_class_names
+        and not exception_class_names
     ):
         metrics.incr("proguard.symbolicator.events.skipped")
         return
@@ -219,7 +219,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         stacktraces=stacktraces,
         modules=modules,
         release_package=release_package,
-        classes=window_class_names + value_class_names,
+        classes=window_class_names + exception_class_names,
     )
 
     if not _handle_response_status(data, response):

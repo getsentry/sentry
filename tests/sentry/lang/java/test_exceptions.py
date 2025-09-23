@@ -36,7 +36,7 @@ def test_value_class_names_matches_fqcn_inner_and_quoted_multiple_values():
     )
 
     excs = Exceptions(data)
-    class_names = excs.get_value_class_names()
+    class_names = excs.get_exception_class_names()
 
     # Expect quoted single-segment and FQCN and inner class patterns across values
     assert "o" in class_names
@@ -88,3 +88,64 @@ def test_deobfuscate_and_save_deobfuscates_types_and_values_multiple_values():
     assert "io.sample.MainActivity" in exc3["value"]
     assert "alpha.beta.C$1" in exc3["value"]
     assert exc3["raw_value"].startswith("Caused by com.example.myapp.MainActivity")
+
+
+def test_deobfuscate_value_replaces_longest_tokens_first():
+    # Overlapping tokens: a.b$c$1 (longer) and a.b$c (shorter)
+    exc = {"value": "Found both inner a.b$c$1 and outer a.b$c in text"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    classes = {
+        "a.b$c$1": "alpha.beta.C$1",
+        "a.b$c": "alpha.beta.C",
+    }
+
+    excs.deobfuscate_and_save(classes, mapped_exceptions=[])
+
+    # The longer token must be replaced without being broken by the shorter one
+    assert exc["value"].count("alpha.beta.C$1") == 1
+    assert exc["value"].count("alpha.beta.C") == 1
+    assert "a.b$c$1" not in exc["value"]
+    assert "a.b$c" not in exc["value"]
+    assert exc["raw_value"].startswith("Found both inner a.b$c$1")
+
+
+def test_deobfuscate_value_preserves_quotes_in_replacements():
+    exc = {"value": "Got 'o' and \"j4\" in message"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    classes = {
+        "o": "org.example.ObfO",
+        "j4": "org.example.ObfJ4",
+    }
+
+    excs.deobfuscate_and_save(classes, mapped_exceptions=[])
+
+    assert "'org.example.ObfO'" in exc["value"]
+    assert '"org.example.ObfJ4"' in exc["value"]
+    assert exc["raw_value"].startswith("Got '")
+
+
+def test_deobfuscate_is_noop_when_no_classes_mapping():
+    # Only value matches; no module/type entries and no classes mapping
+    original = "Refs com.example.A and a.b$c$1 and 'o'"
+    exc = {"value": original}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    # None mapping
+    excs.deobfuscate_and_save(None, mapped_exceptions=[])
+    assert exc["value"] == original
+    assert "raw_value" not in exc
+
+    # Empty mapping
+    excs = Exceptions(build_event([{"value": original}]))
+    exc = excs.get_processable_exceptions_with_values()[0][0]
+    excs.deobfuscate_and_save({}, mapped_exceptions=[])
+    assert exc["value"] == original
+    assert "raw_value" not in exc
