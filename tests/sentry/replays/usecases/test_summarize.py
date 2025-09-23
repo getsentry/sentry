@@ -850,21 +850,21 @@ def test_parse_iso_timestamp_to_ms() -> None:
 
 
 class ReplayStore:
-    def save(self, data):
+    def save(self, data: Any) -> None:
         request_url = settings.SENTRY_SNUBA + "/tests/entities/replays/insert"
         response = requests.post(request_url, json=[data])
         assert response.status_code == 200
 
 
 @pytest.fixture
-def replay_store():
+def replay_store() -> ReplayStore:
     assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
     return ReplayStore()
 
 
 @pytest.mark.snuba
 @requires_snuba
-def test_get_replay_range_success(replay_store):
+def test_get_replay_range_success(replay_store: ReplayStore) -> None:
     """Test that get_replay_range returns correct time range for existing replay."""
     replay_id = uuid.uuid4().hex
     organization_id = 1
@@ -898,7 +898,7 @@ def test_get_replay_range_success(replay_store):
 
 @pytest.mark.snuba
 @requires_snuba
-def test_get_replay_range_replay_not_found(replay_store):
+def test_get_replay_range_replay_not_found(replay_store: ReplayStore) -> None:
     """Test that get_replay_range returns None for non-existent replay."""
     non_existent_replay_id = uuid.uuid4().hex
     organization_id = 1
@@ -915,7 +915,7 @@ def test_get_replay_range_replay_not_found(replay_store):
 
 @pytest.mark.snuba
 @requires_snuba
-def test_get_replay_range_replay_outside_90_day_window(replay_store):
+def test_get_replay_range_replay_outside_90_day_window(replay_store: ReplayStore) -> None:
     """Test that get_replay_range returns None for replay older than 90 days."""
     replay_id = uuid.uuid4().hex
     organization_id = 1
@@ -936,7 +936,7 @@ def test_get_replay_range_replay_outside_90_day_window(replay_store):
 
 @pytest.mark.snuba
 @requires_snuba
-def test_get_replay_range_wrong_project(replay_store):
+def test_get_replay_range_wrong_project(replay_store: ReplayStore) -> None:
     """Test that get_replay_range returns None when querying wrong project."""
     replay_id = uuid.uuid4().hex
     organization_id = 1
@@ -956,7 +956,7 @@ def test_get_replay_range_wrong_project(replay_store):
 
 @pytest.mark.snuba
 @requires_snuba
-def test_get_replay_range_wrong_organization(replay_store):
+def test_get_replay_range_wrong_organization(replay_store: ReplayStore) -> None:
     """Test that get_replay_range returns None when querying wrong organization."""
     replay_id = uuid.uuid4().hex
     wrong_organization_id = 2
@@ -976,7 +976,9 @@ def test_get_replay_range_wrong_organization(replay_store):
 @pytest.mark.snuba
 @requires_snuba
 @patch("sentry.replays.usecases.query.execute_query")
-def test_get_replay_range_handles_null_aggregates(mock_execute_query: Mock, replay_store):
+def test_get_replay_range_handles_null_aggregates(
+    mock_execute_query: Mock, replay_store: ReplayStore
+) -> None:
     """Test that get_replay_range handles null aggregates gracefully."""
     mock_execute_query.return_value = {"data": [{"min": None, "max": None}]}
     replay_id = uuid.uuid4().hex
