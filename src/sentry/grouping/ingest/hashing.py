@@ -249,6 +249,7 @@ def get_or_create_grouphashes(
             ]:
                 # This will cause a new group to be created
                 grouphash.group = None
+                grouphash.save()
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
