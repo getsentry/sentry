@@ -231,7 +231,7 @@ class OAuthTokenView(View):
                         status=401,
                     )
                 try:
-                    decoded = base64.b64decode(b64).decode("utf-8")
+                    decoded = base64.b64decode(b64.encode("ascii"), validate=True).decode("utf-8")
                     # format: client_id:client_secret (client_secret may be empty)
                     if ":" not in decoded:
                         raise ValueError("missing colon in basic credentials")

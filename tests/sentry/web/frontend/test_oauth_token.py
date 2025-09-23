@@ -99,6 +99,23 @@ class OAuthTokenCodeTest(TestCase):
         assert data["token_type"] == "Bearer"
         assert "no-store" in resp["Cache-Control"]
 
+    def test_basic_auth_invalid_base64_character(self) -> None:
+        self.login_as(self.user)
+        invalid_value = f"{self._basic_auth_value()}$"
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+            },
+            HTTP_AUTHORIZATION=invalid_value,
+        )
+        assert resp.status_code == 401
+        assert resp.json() == {"error": "invalid_client"}
+        assert resp["WWW-Authenticate"].startswith("Basic ")
+        assert "no-store" in resp["Cache-Control"]
+
     def test_basic_and_body_conflict(self) -> None:
         self.login_as(self.user)
         auth_value = self._basic_auth_value()
