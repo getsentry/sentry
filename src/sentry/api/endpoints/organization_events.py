@@ -88,9 +88,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     rate_limits = RateLimitConfig(
         limit_overrides={
             "GET": {
-                RateLimitCategory.IP: RateLimit(limit=50, window=1, concurrent_limit=50),
-                RateLimitCategory.USER: RateLimit(limit=50, window=1, concurrent_limit=50),
-                RateLimitCategory.ORGANIZATION: RateLimit(limit=50, window=1, concurrent_limit=50),
+                RateLimitCategory.IP: RateLimit(limit=30, window=1, concurrent_limit=15),
+                RateLimitCategory.USER: RateLimit(limit=30, window=1, concurrent_limit=15),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=30, window=1, concurrent_limit=15),
             }
         }
     )
