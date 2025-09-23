@@ -2,7 +2,7 @@ import {useLayoutEffect, useMemo, useRef, useState, type ReactNode} from 'react'
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
@@ -231,23 +231,18 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
 
   const [autoFocus, setAutoFocus] = useState(false);
-  const ref = useRef<HTMLButtonElement>(null);
-
-  const initialOpSetting = useRef(false);
+  // track to see if we have already clicked the button
+  const initialOpClickedRef = useRef(false);
+  // track to see if we have already set the initial operator
+  const initialOpSettingRef = useRef(false);
 
   useLayoutEffect(() => {
     if (focusOverride?.itemKey === item.key && focusOverride.part === 'op') {
       setAutoFocus(true);
-      initialOpSetting.current = true;
+      initialOpSettingRef.current = true;
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
   }, [dispatch, focusOverride, item.key, onOpenChange]);
-
-  useLayoutEffect(() => {
-    if (autoFocus && ref.current && initialOpSetting.current) {
-      ref.current.click();
-    }
-  }, [autoFocus]);
 
   return (
     <CompactSelect
@@ -259,7 +254,25 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
             aria-label={t('Edit operator for filter: %s', token.key.text)}
             onlyOperator={onlyOperator}
             {...mergeProps(triggerProps, filterButtonProps, focusWithinProps)}
-            ref={mergeRefs(triggerProps.ref, ref)}
+            ref={r => {
+              if (!r || !triggerProps.ref) return;
+
+              if (typeof triggerProps.ref === 'function') {
+                triggerProps.ref(r);
+              } else {
+                (triggerProps.ref as React.RefObject<HTMLButtonElement | null>).current =
+                  r;
+              }
+
+              if (
+                autoFocus &&
+                !initialOpClickedRef.current &&
+                initialOpSettingRef.current
+              ) {
+                r.click();
+                initialOpClickedRef.current = true;
+              }
+            }}
           >
             <InteractionStateLayer />
             {label}
@@ -285,14 +298,14 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
-          focusOverride: initialOpSetting.current
+          focusOverride: initialOpSettingRef.current
             ? {
                 itemKey: `${item.key}`,
                 part: 'value',
               }
             : undefined,
         });
-        initialOpSetting.current = false;
+        initialOpSettingRef.current = false;
         setAutoFocus(false);
       }}
       offset={MENU_OFFSET}
