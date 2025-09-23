@@ -1738,6 +1738,7 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_inbox_adds,
     kick_off_seer_automation,
     process_rules,
+    process_workflow_engine_issue_alerts,
     process_resource_change_bounds,
     process_data_forwarding,
 ]
