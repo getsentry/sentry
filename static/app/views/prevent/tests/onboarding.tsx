@@ -18,6 +18,7 @@ import {getPreventParamsString} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
@@ -76,6 +77,17 @@ export default function TestsOnboardingPage() {
     ],
     {staleTime: 0}
   );
+
+  const regionData = getRegionDataFromOrganization(organization);
+  const isUSStorage = regionData?.name === 'us';
+
+  if (!isUSStorage) {
+    return (
+      <LayoutGap>
+        <TestPreOnboardingPage />
+      </LayoutGap>
+    );
+  }
 
   if (isPending) {
     return (

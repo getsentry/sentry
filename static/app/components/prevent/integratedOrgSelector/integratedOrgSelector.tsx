@@ -20,7 +20,7 @@ const DEFAULT_ORG_LABEL = 'Select Integrated Org';
 function AddIntegratedOrgButton() {
   return (
     <LinkButton
-      href="https://github.com/apps/sentry/installations/select_target"
+      href="https://github.com/apps/sentry-io/installations/select_target"
       size="sm"
       icon={<IconAdd size="sm" />}
       priority="default"

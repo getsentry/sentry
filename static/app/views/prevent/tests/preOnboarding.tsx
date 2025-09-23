@@ -47,7 +47,7 @@ export default function TestPreOnboardingPage() {
             <img src={isDarkMode ? testsAnalyticsSummaryDark : testsAnalyticsSummary} />
           </ImgContainer>
           <StyledDiv>
-            <h2>{t('Keep test problems from slowing you down')}</h2>
+            <h2>{t('Keep Test Problems From Slowing You Down')}</h2>
             <SpacedParagraph>
               {t('Get testing data that keeps your CI running smoothly')}
             </SpacedParagraph>

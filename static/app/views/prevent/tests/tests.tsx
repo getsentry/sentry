@@ -13,8 +13,11 @@ import {getPreventParamsString} from 'sentry/components/prevent/utils';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 import {
   useInfiniteTestResults,
   type UseInfiniteTestResultsResult,
@@ -49,8 +52,19 @@ export default function TestsPage() {
   });
   const defaultBranch = response.data?.defaultBranch;
   const shouldDisplayTestSuiteDropdown = branch === null || branch === defaultBranch;
-
+  const organization = useOrganization();
   const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
+
+  const regionData = getRegionDataFromOrganization(organization);
+  const isUSStorage = regionData?.name === 'us';
+
+  if (!isUSStorage) {
+    return (
+      <LayoutGap>
+        <TestsPreOnboardingPage />
+      </LayoutGap>
+    );
+  }
 
   return (
     <LayoutGap>

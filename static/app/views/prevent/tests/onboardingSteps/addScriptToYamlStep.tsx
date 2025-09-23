@@ -12,7 +12,7 @@ interface AddScriptToYamlStepProps {
 
 const SNIPPET = `- name: Upload test results to Sentry Prevent
   if: \${{ !cancelled() }}
-  uses: getsentry/prevent-action@latest
+  uses: getsentry/prevent-action@v0
   with:
     token: \${{ secrets.SENTRY_PREVENT_TOKEN }}
 `;

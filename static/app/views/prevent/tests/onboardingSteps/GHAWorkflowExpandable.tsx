@@ -34,7 +34,7 @@ jobs:
       # Copy and paste the getsentry/prevent-action here
       - name: Upload test results to Sentry Prevent
         if: \${{ !cancelled() }}
-        uses: getsentry/prevent-action@latest
+        uses: getsentry/prevent-action@v0
 `;
 
 export function GHAWorkflowExpandable() {
