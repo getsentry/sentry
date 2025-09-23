@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 
 import {Button} from 'sentry/components/core/button';
+import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
@@ -26,6 +27,7 @@ function AutofixFeedback() {
           },
         })
       }
+      icon={<IconMegaphone />}
     >
       {t('Give Us Feedback')}
     </Button>

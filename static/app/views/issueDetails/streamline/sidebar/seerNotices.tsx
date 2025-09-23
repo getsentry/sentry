@@ -501,4 +501,5 @@ const CollapsedSummaryCard = styled('div')`
 
 const StyledGuidedSteps = styled(GuidedSteps)`
   max-width: 600px;
+  background: transparent;
 `;

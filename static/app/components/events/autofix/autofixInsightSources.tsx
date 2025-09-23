@@ -1,11 +1,8 @@
-import {useEffect, useRef, useState} from 'react';
-import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import type {InsightSources} from 'sentry/components/events/autofix/types';
 import {
-  IconChat,
   IconCode,
   IconCommit,
   IconFatal,
@@ -17,19 +14,22 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 interface AutofixInsightSourcesProps {
+  alignment?: 'left' | 'right';
   codeUrls?: string[];
+  size?: 'zero' | 'xs' | 'sm' | 'md';
   sources?: InsightSources;
+  textColor?: 'subText' | 'textColor';
   title?: string;
 }
 
 // Helper to extract a meaningful name from a code URL
-function getCodeSourceName(url: string): string {
+export function getCodeSourceName(url: string): string {
   try {
     const urlObj = new URL(url);
     // Attempt to get the filename from the path
@@ -67,27 +67,16 @@ function getCodeSourceName(url: string): string {
   return ellipsize(url, 30);
 }
 
-function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSourcesProps) {
-  const [showThoughtsPopup, setShowThoughtsPopup] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const thoughtsButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (thoughtsButtonRef.current?.contains(event.target as Node)) {
-        return;
-      }
-
-      if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
-        setShowThoughtsPopup(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [overlayRef, thoughtsButtonRef]);
+function AutofixInsightSources({
+  sources,
+  title,
+  codeUrls,
+  size = 'xs',
+  textColor = 'textColor',
+  alignment = 'left',
+}: AutofixInsightSourcesProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
 
   if (!sources && !codeUrls) {
     return null;
@@ -101,11 +90,25 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
       <SourceCard
         key="stacktrace"
         onClick={() => {
-          window.location.hash = '';
-          window.location.hash = SectionKey.EXCEPTION;
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...Object.fromEntries(
+                Object.entries(location.query).filter(([k]) => k !== 'seerDrawer')
+              ),
+            },
+            hash: SectionKey.EXCEPTION,
+          });
+          requestAnimationFrame(() => {
+            document
+              .getElementById(SectionKey.EXCEPTION)
+              ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+          });
         }}
-        size="xs"
-        icon={<IconStack size="xs" />}
+        size={size}
+        textColor={textColor}
+        icon={<IconStack />}
+        priority="default"
       >
         {t('Stacktrace')}
       </SourceCard>
@@ -118,11 +121,25 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
       <SourceCard
         key="breadcrumbs"
         onClick={() => {
-          window.location.hash = '';
-          window.location.hash = SectionKey.BREADCRUMBS;
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...Object.fromEntries(
+                Object.entries(location.query).filter(([k]) => k !== 'seerDrawer')
+              ),
+            },
+            hash: SectionKey.BREADCRUMBS,
+          });
+          requestAnimationFrame(() => {
+            document
+              .getElementById(SectionKey.BREADCRUMBS)
+              ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+          });
         }}
-        size="xs"
-        icon={<IconList size="xs" />}
+        size={size}
+        textColor={textColor}
+        icon={<IconList />}
+        priority="default"
       >
         {t('Breadcrumbs')}
       </SourceCard>
@@ -135,11 +152,25 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
       <SourceCard
         key="http-request"
         onClick={() => {
-          window.location.hash = '';
-          window.location.hash = SectionKey.REQUEST;
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...Object.fromEntries(
+                Object.entries(location.query).filter(([k]) => k !== 'seerDrawer')
+              ),
+            },
+            hash: SectionKey.REQUEST,
+          });
+          requestAnimationFrame(() => {
+            document
+              .getElementById(SectionKey.REQUEST)
+              ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+          });
         }}
-        size="xs"
-        icon={<IconGlobe size="xs" />}
+        size={size}
+        textColor={textColor}
+        icon={<IconGlobe />}
+        priority="default"
       >
         {t('HTTP Request')}
       </SourceCard>
@@ -159,8 +190,10 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
             );
           }
         }}
-        size="xs"
-        icon={<IconSpan size="xs" />}
+        size={size}
+        textColor={textColor}
+        icon={<IconSpan />}
+        priority="default"
       >
         {t('Trace: %s', id.substring(0, 7))}
       </SourceCard>
@@ -172,11 +205,13 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
     sourceCards.push(
       <SourceCard
         key={`profile-${id}`}
-        size="xs"
-        icon={<IconProfiling size="xs" />}
+        size={size}
+        textColor={textColor}
+        icon={<IconProfiling />}
         onClick={() =>
           window.open(`/explore/profiling/profile/${id}/flamegraph`, '_blank')
         }
+        priority="default"
       >
         {t('Profile: %s', id.substring(0, 7))}
       </SourceCard>
@@ -188,7 +223,6 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
     sourceCards.push(
       <SourceCard
         key={`error-${id}`}
-        size="xs"
         onClick={() => {
           if (sources?.event_trace_id) {
             window.open(
@@ -197,7 +231,10 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
             );
           }
         }}
-        icon={<IconFatal size="xs" />}
+        size={size}
+        textColor={textColor}
+        icon={<IconFatal />}
+        priority="default"
       >
         {t('Error: %s', id.substring(0, 7))}
       </SourceCard>
@@ -210,8 +247,10 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
       <SourceCard
         key={`code-${index}`}
         onClick={() => window.open(url, '_blank')}
-        size="xs"
-        icon={<IconCode size="xs" />}
+        size={size}
+        textColor={textColor}
+        icon={<IconCode />}
+        priority="default"
       >
         {getCodeSourceName(url)}
       </SourceCard>
@@ -224,8 +263,10 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
         <SourceCard
           key={`passed-code-${index}`}
           onClick={() => window.open(url, '_blank')}
-          size="xs"
-          icon={<IconCode size="xs" />}
+          size={size}
+          textColor={textColor}
+          icon={<IconCode />}
+          priority="default" // codeUrls are passed separately, not from expanded card
         >
           {getCodeSourceName(url)}
         </SourceCard>
@@ -239,30 +280,15 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
       <SourceCard
         key={`diff-${index}`}
         onClick={() => window.open(url, '_blank')}
-        size="xs"
-        icon={<IconCommit size="xs" />}
+        size={size}
+        textColor={textColor}
+        icon={<IconCommit />}
+        priority="default"
       >
         {t('Commit %s', getCodeSourceName(url))}
       </SourceCard>
     );
   });
-
-  // Thoughts Card
-  if (defined(sources?.thoughts) && sources?.thoughts.length > 0) {
-    sourceCards.push(
-      <SourceCard
-        key="thoughts"
-        ref={thoughtsButtonRef}
-        onClick={() => {
-          setShowThoughtsPopup(prev => !prev);
-        }}
-        size="xs"
-        icon={<IconChat size="xs" />}
-      >
-        {t('Thoughts')}
-      </SourceCard>
-    );
-  }
 
   if (sourceCards.length === 0) {
     return null;
@@ -270,109 +296,37 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
 
   return (
     <SourcesContainer>
-      <CardsContainer aria-label="Autofix Insight Sources">{sourceCards}</CardsContainer>
-      {showThoughtsPopup &&
-        sources?.thoughts &&
-        document.body &&
-        createPortal(
-          <ThoughtsOverlay
-            ref={overlayRef}
-            data-ignore-autofix-highlight="true"
-            data-overlay="true"
-          >
-            <OverlayHeader>
-              <OverlayTitle>{t("Seer's Thoughts")}</OverlayTitle>
-              {title && <InsightTitle>"{title.trim()}"</InsightTitle>}
-            </OverlayHeader>
-            <OverlayContent>
-              <MarkedText as="p" text={`...\n${sources.thoughts}\n...`} />
-            </OverlayContent>
-            <OverlayFooter>
-              <OverlayButtonGroup>
-                <Button onClick={() => setShowThoughtsPopup(false)}>{t('Close')}</Button>
-              </OverlayButtonGroup>
-            </OverlayFooter>
-          </ThoughtsOverlay>,
-          document.body
-        )}
+      <CardsContainer aria-label="Autofix Insight Sources" alignment={alignment}>
+        {sourceCards}
+      </CardsContainer>
     </SourcesContainer>
   );
 }
 
 const SourcesContainer = styled('div')`
-  margin-top: -${space(1)};
-  padding-bottom: ${space(1)};
   width: 100%;
 `;
 
-const CardsContainer = styled('div')`
+const CardsContainer = styled('div')<{alignment: 'left' | 'right'}>`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(0.5)};
   width: 100%;
+  justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
+  align-items: flex-start;
+  align-content: flex-start;
 `;
 
-const SourceCard = styled(Button)`
+const SourceCard = styled(Button)<{textColor: 'subText' | 'textColor'}>`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   font-weight: ${p => p.theme.fontWeight.normal};
-
   white-space: nowrap;
-  flex-shrink: 0;
-`;
-
-const ThoughtsOverlay = styled('div')`
-  position: fixed;
-  bottom: ${space(2)};
-  left: 50%;
-  right: ${space(2)};
-  background: ${p => p.theme.backgroundElevated};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  z-index: ${p => p.theme.zIndex.tooltip};
-  display: flex;
-  flex-direction: column;
-  max-height: calc(100vh - 18rem);
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    left: ${space(2)};
-  }
-`;
-
-const OverlayHeader = styled('div')`
-  padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const OverlayContent = styled('div')`
-  padding: ${space(2)};
-  overflow-y: auto;
-`;
-
-const OverlayFooter = styled('div')`
-  padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
-`;
-
-const OverlayButtonGroup = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  gap: ${space(1)};
-  font-family: ${p => p.theme.text.family};
-`;
-
-const OverlayTitle = styled('div')`
-  font-weight: bold;
-  color: ${p => p.theme.textColor};
-  font-family: ${p => p.theme.text.family};
-`;
-
-const InsightTitle = styled('div')`
-  padding-bottom: ${space(1)};
-  color: ${p => p.theme.subText};
-  font-family: ${p => p.theme.text.family};
+  flex-shrink: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  color: ${p => (p.textColor === 'subText' ? p.theme.subText : p.theme.textColor)};
 `;
 
 export default AutofixInsightSources;

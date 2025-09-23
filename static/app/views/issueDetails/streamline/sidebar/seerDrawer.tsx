@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -23,7 +22,7 @@ import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconSettings} from 'sentry/icons';
+import {IconRefresh, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -206,64 +205,60 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               ),
             },
             {label: getShortEventId(event.id)},
-            {label: t('Seer')},
+            {
+              label: (
+                <Flex align="center" gap="md">
+                  {t('Seer')}
+                  <QuestionTooltip
+                    isHoverable
+                    title={
+                      <Flex direction="column" gap="md">
+                        <div>
+                          {tct(
+                            'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
+                            {
+                              dataDocs: (
+                                <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/#data-processing" />
+                              ),
+                            }
+                          )}
+                        </div>
+                        <div>
+                          {tct('Seer can be turned off in [settingsDocs:Settings].', {
+                            settingsDocs: (
+                              <Link
+                                to={{
+                                  pathname: `/settings/${organization.slug}/`,
+                                  hash: '#hideAiFeatures',
+                                }}
+                              />
+                            ),
+                          })}
+                        </div>
+                      </Flex>
+                    }
+                    size="sm"
+                  />
+                </Flex>
+              ),
+            },
           ]}
         />
         {!showWelcomeScreen &&
           !aiConfig.isAutofixSetupLoading &&
           !aiConfig.orgNeedsGenAiAcknowledgement && (
             <FeedbackWrapper>
-              <AutofixFeedback />
-            </FeedbackWrapper>
-          )}
-      </SeerDrawerHeader>
-      {(!showWelcomeScreen || aiConfig.isAutofixSetupLoading) && (
-        <SeerDrawerNavigator>
-          <Flex align="center" gap="md">
-            <Header>{t('Seer')}</Header>
-            <QuestionTooltip
-              isHoverable
-              title={
-                <Flex direction="column" gap="md">
-                  <div>
-                    {tct(
-                      'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
-                      {
-                        dataDocs: (
-                          <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/#data-processing" />
-                        ),
-                      }
-                    )}
-                  </div>
-                  <div>
-                    {tct('Seer can be turned off in [settingsDocs:Settings].', {
-                      settingsDocs: (
-                        <Link
-                          to={{
-                            pathname: `/settings/${organization.slug}/`,
-                            hash: '#hideAiFeatures',
-                          }}
-                        />
-                      ),
-                    })}
-                  </div>
-                </Flex>
-              }
-              size="sm"
-            />
-          </Flex>
-          {!aiConfig.orgNeedsGenAiAcknowledgement && (
-            <ButtonBarWrapper data-test-id="seer-button-bar">
-              <ButtonBar>
-                <Feature features={['organizations:autofix-seer-preferences']}>
-                  <LinkButton
-                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                    size="xs"
-                    title={t('Project Settings for Seer')}
-                    aria-label={t('Project Settings for Seer')}
-                    icon={<IconSettings />}
-                  />
-                </Feature>
+              <ButtonBar gap={'md'}>
+                <AutofixFeedback />
+                <LinkButton
+                  to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                  size="xs"
+                  title={t('Project Settings for Seer')}
+                  aria-label={t('Project Settings for Seer')}
+                  icon={<IconSettings />}
+                >
+                  {t('Settings')}
+                </LinkButton>
                 {aiConfig.hasAutofix && (
                   <Button
                     size="xs"
@@ -271,6 +266,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                       reset();
                       aiConfig.refetchAutofixSetup?.();
                     }}
+                    icon={<IconRefresh />}
                     title={
                       autofixData?.last_triggered_at
                         ? tct('Last run at [date]', {
@@ -284,10 +280,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   </Button>
                 )}
               </ButtonBar>
-            </ButtonBarWrapper>
+            </FeedbackWrapper>
           )}
-        </SeerDrawerNavigator>
-      )}
+      </SeerDrawerHeader>
 
       <SeerDrawerBody>
         {aiConfig.isAutofixSetupLoading ? (
@@ -418,6 +413,7 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`
@@ -425,16 +421,6 @@ const SeerDrawerHeader = styled(DrawerHeader)`
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const SeerDrawerNavigator = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(0.75)} ${space(3)};
-  background: ${p => p.theme.background};
-  z-index: 1;
-  min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
 const SeerDrawerBody = styled(DrawerBody)`
@@ -448,14 +434,8 @@ const SeerDrawerBody = styled(DrawerBody)`
     direction: ltr;
   }
   padding: 0;
-  height: calc(100vh - ${MIN_NAV_HEIGHT}px - ${MIN_NAV_HEIGHT}px);
-  max-height: calc(100vh - ${MIN_NAV_HEIGHT}px - ${MIN_NAV_HEIGHT}px);
-`;
-
-const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
+  height: calc(100vh - ${MIN_NAV_HEIGHT}px);
+  max-height: calc(100vh - ${MIN_NAV_HEIGHT}px);
 `;
 
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
@@ -473,10 +453,6 @@ const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
-`;
-
-const ButtonBarWrapper = styled('div')`
-  margin-left: auto;
 `;
 
 const FeedbackWrapper = styled('div')`
