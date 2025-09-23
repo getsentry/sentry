@@ -678,8 +678,7 @@ describe('PageParamsProvider', () => {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        // span.duration should be added automatically once setPageParams is migrated to use setQueryParams.
-        fields: ['id', 'timestamp', 'span.self_time' /* 'span.duration' */],
+        fields: ['id', 'timestamp', 'span.self_time'],
       })
     );
 
@@ -693,7 +692,8 @@ describe('PageParamsProvider', () => {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.self_time'],
+        // span.duration should be added automatically once setPageParams is migrated to use setQueryParams.
+        fields: ['id', 'timestamp', 'span.self_time' /* 'span.duration' */],
       })
     );
   });
