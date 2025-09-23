@@ -1,7 +1,9 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -9,7 +11,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {
   SummaryEntries,
   SummaryEntry,
-  SummaryEntryLabel,
   SummaryEntryValue,
   SummaryEntryValueLink,
 } from 'sentry/components/prevent/summary';
@@ -18,60 +19,65 @@ import {formatPercentRate} from 'sentry/utils/formatters';
 
 function FlakyTestsTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of tests that transition from fail to pass or pass to fail.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>
+            {t('The number of tests that transition from fail to pass or pass to fail.')}
+          </Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
 
 function AverageFlakeTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>Impact:</ToolTipTitle>
-        The average flake rate on your selected branch.
-      </p>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The percentage of tests that flake, based on how many times a test transitions
-        from fail to pass or pass to fail on a given branch and commit.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('Impact:')}</Heading>
+          <Text>{t('The average flake rate on your selected branch.')}</Text>
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>
+            {t(
+              'The percentage of tests that flake, based on how many times a test transitions from fail to pass or pass to fail on a given branch and commit.'
+            )}
+          </Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
 
 function CumulativeFailuresTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>Impact:</ToolTipTitle>
-        The number of test failures on your default branch.
-      </p>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of individual runs of tests that failed.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('Impact:')}</Heading>
+          <Text>{t('The number of test failures on your default branch.')}</Text>
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>{t('The number of individual runs of tests that failed.')}</Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
 
 function SkippedTestsTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of individual runs of tests that were skipped.
-      </p>
-    </Fragment>
+    <Flex direction="column" gap="sm">
+      {props => (
+        <Text {...props} align="left">
+          <Heading as="h5">{t('What is it:')}</Heading>
+          <Text>{t('The number of individual runs of tests that were skipped.')}</Text>
+        </Text>
+      )}
+    </Flex>
   );
 }
-
-const ToolTipTitle = styled('strong')`
-  display: block;
-`;
 
 interface TestPerformanceBodyProps {
   averageFlakeRate?: number;
@@ -97,9 +103,9 @@ function TestPerformanceBody({
   return (
     <SummaryEntries largeColumnSpan={15} smallColumnSpan={1}>
       <SummaryEntry columns={4}>
-        <SummaryEntryLabel showUnderline body={<FlakyTestsTooltip />}>
+        <Tooltip showUnderline title={<FlakyTestsTooltip />}>
           {t('Flaky Tests')}
-        </SummaryEntryLabel>
+        </Tooltip>
         {flakyTests === undefined ? (
           <SummaryEntryValue>-</SummaryEntryValue>
         ) : (
@@ -116,9 +122,9 @@ function TestPerformanceBody({
         )}
       </SummaryEntry>
       <SummaryEntry columns={4}>
-        <SummaryEntryLabel showUnderline body={<AverageFlakeTooltip />}>
+        <Tooltip showUnderline title={<AverageFlakeTooltip />}>
           {t('Avg. Flake Rate')}
-        </SummaryEntryLabel>
+        </Tooltip>
         <SummaryEntryValue>
           {averageFlakeRate === undefined ? '-' : `${averageFlakeRate?.toFixed(2)}%`}
           {typeof averageFlakeRateChange === 'number' && averageFlakeRateChange !== 0 && (
@@ -129,9 +135,9 @@ function TestPerformanceBody({
         </SummaryEntryValue>
       </SummaryEntry>
       <SummaryEntry columns={4}>
-        <SummaryEntryLabel showUnderline body={<CumulativeFailuresTooltip />}>
+        <Tooltip showUnderline title={<CumulativeFailuresTooltip />}>
           {t('Cumulative Failures')}
-        </SummaryEntryLabel>
+        </Tooltip>
         {cumulativeFailures === undefined ? (
           <SummaryEntryValue>-</SummaryEntryValue>
         ) : (
@@ -149,9 +155,9 @@ function TestPerformanceBody({
         )}
       </SummaryEntry>
       <SummaryEntry columns={3}>
-        <SummaryEntryLabel showUnderline body={<SkippedTestsTooltip />}>
+        <Tooltip showUnderline title={<SkippedTestsTooltip />}>
           {t('Skipped Tests')}
-        </SummaryEntryLabel>
+        </Tooltip>
         {skippedTests === undefined ? (
           <SummaryEntryValue>-</SummaryEntryValue>
         ) : (
