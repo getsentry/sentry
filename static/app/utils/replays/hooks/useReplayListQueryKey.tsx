@@ -40,7 +40,9 @@ export default function useReplayListQueryKey({
 
     // HACK!!! Because the sort field needs to be in the eventView, but I cannot
     // ask the server for compound fields like `os.name`.
-    const splitFields = REPLAY_LIST_FIELDS.map(field => field.split('.')[0]);
+    const splitFields = REPLAY_LIST_FIELDS.map(field => field.split('.')[0]).filter(
+      field => field !== 'has_viewed'
+    );
     const fields = uniq(splitFields);
 
     // when queryReferrer === 'issueReplays' we override the global view check on the backend
@@ -61,7 +63,8 @@ export default function useReplayListQueryKey({
         query: {
           per_page: 50,
           ...query,
-          field: fields, // Passed as multiple params - field=a&field=b..
+          fields,
+          field: ['has_viewed'],
           project,
           queryReferrer,
         },
