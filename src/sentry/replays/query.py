@@ -996,9 +996,6 @@ def get_replay_range(
     if min_timestamp is None or max_timestamp is None:
         return None
 
-    try:
-        min_dt = datetime.fromisoformat(min_timestamp.replace("Z", "+00:00"))
-        max_dt = datetime.fromisoformat(max_timestamp.replace("Z", "+00:00"))
-        return (min_dt, max_dt)
-    except (ValueError, TypeError):
-        return None
+    min_dt = datetime.fromisoformat(min_timestamp.replace("Z", "+00:00"))
+    max_dt = datetime.fromisoformat(max_timestamp.replace("Z", "+00:00"))
+    return (min_dt, max_dt)

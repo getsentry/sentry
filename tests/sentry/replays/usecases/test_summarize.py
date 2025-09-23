@@ -956,21 +956,6 @@ class GetReplayRangeTestCase(
 
         assert result is None
 
-    @patch("sentry.replays.usecases.query.execute_query")
-    def test_get_replay_range_handles_conversion_errors(self, mock_execute_query: Mock) -> None:
-        """Test that get_replay_range handles datetime conversion errors gracefully."""
-        mock_execute_query.return_value = {
-            "data": [{"min": "invalid-timestamp", "max": "2023-01-01T00:00:00Z"}]
-        }
-
-        result = get_replay_range(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            replay_id=self.replay_id,
-        )
-
-        assert result is None
-
 
 @requires_snuba
 class RpcGetReplaySummaryLogsTestCase(
