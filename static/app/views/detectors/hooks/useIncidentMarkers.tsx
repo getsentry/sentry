@@ -16,9 +16,10 @@ import type {
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {
+  EChartChartReadyHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
-  ReactEchartsRef,
+  ECharts,
 } from 'sentry/types/echarts';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 
@@ -224,7 +225,6 @@ interface UseIncidentMarkersProps {
 }
 
 interface UseIncidentMarkersResult {
-  connectIncidentMarkerChartRef: (ref: ReactEchartsRef | null) => void;
   incidentMarkerGrid: GridComponentOption;
   incidentMarkerSeries: CustomSeriesOption | null;
   incidentMarkerXAxis: {
@@ -232,6 +232,7 @@ interface UseIncidentMarkersResult {
     offset: number;
   };
   incidentMarkerYAxis: YAXisComponentOption | null;
+  onChartReady: EChartChartReadyHandler;
 }
 
 /**
@@ -244,7 +245,7 @@ export function useIncidentMarkers({
   seriesId = INCIDENT_MARKER_SERIES_ID,
 }: UseIncidentMarkersProps): UseIncidentMarkersResult {
   const theme = useTheme();
-  const chartRef = useRef<ReactEchartsRef | null>(null);
+  const chartRef = useRef<ECharts | null>(null);
 
   const incidentPeriods = useMemo(() => incidents || [], [incidents]);
 
@@ -302,11 +303,9 @@ export function useIncidentMarkers({
   }, [incidentPeriods.length, totalMarkerPaddingY]);
 
   // Chart ref handler
-  const connectIncidentMarkerChartRef = useCallback(
-    (ref: ReactEchartsRef | null) => {
-      chartRef.current = ref;
-
-      const echartsInstance = ref?.getEchartsInstance?.();
+  const onChartReady = useCallback<EChartChartReadyHandler>(
+    echartsInstance => {
+      chartRef.current = echartsInstance;
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
         if (params.seriesId !== seriesId || !echartsInstance) {
@@ -391,7 +390,7 @@ export function useIncidentMarkers({
   }, [incidentPeriods, theme, yAxisIndex, seriesName, seriesId]);
 
   return {
-    connectIncidentMarkerChartRef,
+    onChartReady,
     incidentMarkerSeries,
     incidentMarkerYAxis,
     incidentMarkerGrid,
