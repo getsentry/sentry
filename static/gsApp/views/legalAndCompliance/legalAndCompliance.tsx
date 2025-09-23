@@ -34,6 +34,7 @@ function LegalAndCompliance(props: Props) {
         subscription={props.subscription}
         title={t('Company Details')}
         isNewBillingUI={isNewBillingUI}
+        analyticsEvent="legal_and_compliance.updated_billing_details"
       />
     </div>
   );

@@ -152,6 +152,7 @@ function AddBillingDetails({
           submitLabel={t('Continue')}
           footerStyle={footerStyle}
           fieldProps={fieldProps}
+          analyticsEvent="checkout.updated_billing_details"
         />
       </FormWrapper>
     );
