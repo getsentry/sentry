@@ -250,11 +250,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
-    @mock.patch("sentry.notifications.notification_action.types.safe_execute")
+    @mock.patch("sentry.notifications.notification_action.types.invoke_future_with_error_handling")
     @mock.patch("sentry.notifications.notification_action.types.activate_downstream_actions")
     @mock.patch("uuid.uuid4")
     def test_invoke_legacy_registry(
-        self, mock_uuid, mock_activate_downstream_actions, mock_safe_execute
+        self, mock_uuid, mock_activate_downstream_actions, mock_invoke_future_with_error_handling
     ):
         # Test that invoke_legacy_registry correctly processes the action
         mock_uuid.return_value = uuid.UUID("12345678-1234-5678-1234-567812345678")
@@ -272,8 +272,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         )
 
         # Verify callback execution
-        mock_safe_execute.assert_called_once_with(
-            mock_callback, self.event_data.event, mock_futures
+        mock_invoke_future_with_error_handling.assert_called_once_with(
+            self.event_data, mock_callback, mock_futures
         )
 
 
