@@ -150,7 +150,6 @@ describe('DatePageFilter', () => {
       organization: desyncOrganization,
       queryParams: {statsPeriod: '14d'},
       router: desyncRouter,
-      shouldEnforceSingleProject: false,
     });
 
     render(<DatePageFilter />, {

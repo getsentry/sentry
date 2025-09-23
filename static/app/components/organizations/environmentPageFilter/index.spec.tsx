@@ -158,7 +158,6 @@ describe('EnvironmentPageFilter', () => {
       organization: desyncOrganization,
       queryParams: {project: ['1'], environment: 'staging'},
       router: desyncRouter,
-      shouldEnforceSingleProject: false,
     });
 
     render(<EnvironmentPageFilter />, {

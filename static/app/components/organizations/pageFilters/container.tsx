@@ -24,12 +24,7 @@ import {getDatetimeFromState, getStateFromQuery} from './parse';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,
-  | 'memberProjects'
-  | 'nonMemberProjects'
-  | 'queryParams'
-  | 'router'
-  | 'shouldEnforceSingleProject'
-  | 'organization'
+  'memberProjects' | 'nonMemberProjects' | 'queryParams' | 'router' | 'organization'
 >;
 
 interface Props extends InitializeUrlStateProps {
@@ -80,8 +75,6 @@ function PageFiltersContainer({
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  const enforceSingleProject = !organization.features.includes('global-views');
-
   const specifiedProjects = specificProjectSlugs
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
     : projects;
@@ -107,7 +100,6 @@ function PageFiltersContainer({
       defaultSelection,
       forceProject,
       shouldForceProject,
-      shouldEnforceSingleProject: enforceSingleProject,
       shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
