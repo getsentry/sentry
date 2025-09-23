@@ -1,8 +1,9 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IconIntegratedOrg} from 'sentry/icons/iconIntegratedOrg';
@@ -43,7 +44,7 @@ function ManageReposToolbar({
   }, [installedOrgs, selectedOrg]);
 
   return (
-    <ControlsContainer>
+    <Fragment>
       <PageFilterBar condensed>
         <CompactSelect
           value={selectedOrg}
@@ -51,17 +52,15 @@ function ManageReposToolbar({
           onChange={option => onOrgChange(String(option?.value))}
           trigger={(triggerProps, isOpen) => (
             <DropdownButton isOpen={isOpen} {...triggerProps}>
-              <TriggerLabelWrap>
+              <Flex justify="start" gap="sm" align="center">
                 <Flex align="center" gap="sm">
-                  <IconContainer>
-                    <IconIntegratedOrg />
-                  </IconContainer>
-                  <TriggerLabel>
+                  <IconIntegratedOrg />
+                  <Text size="md" bold>
                     {organizationOptions.find(opt => opt.value === selectedOrg)?.label ||
                       t('Select organization')}
-                  </TriggerLabel>
+                  </Text>
                 </Flex>
-              </TriggerLabelWrap>
+              </Flex>
             </DropdownButton>
           )}
         />
@@ -72,43 +71,21 @@ function ManageReposToolbar({
           onChange={option => onRepoChange(String(option?.value))}
           trigger={(triggerProps, isOpen) => (
             <DropdownButton isOpen={isOpen} {...triggerProps}>
-              <TriggerLabelWrap>
+              <Flex justify="start" gap="sm" align="center">
                 <Flex align="center" gap="sm">
-                  <IconContainer>
-                    <IconRepository />
-                  </IconContainer>
-                  <TriggerLabel>
+                  <IconRepository />
+                  <Text size="md" bold>
                     {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
                       t('Select repo')}
-                  </TriggerLabel>
+                  </Text>
                 </Flex>
-              </TriggerLabelWrap>
+              </Flex>
             </DropdownButton>
           )}
         />
       </PageFilterBar>
-    </ControlsContainer>
+    </Fragment>
   );
 }
-
-const ControlsContainer = styled('div')`
-  margin-bottom: 16px;
-`;
-
-const TriggerLabelWrap = styled('span')`
-  display: flex;
-  align-items: center;
-`;
-
-const IconContainer = styled('span')`
-  display: flex;
-  align-items: center;
-  margin-right: 6px;
-`;
-
-const TriggerLabel = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: 600;
-`;
 
 export default ManageReposToolbar;

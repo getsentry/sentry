@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
@@ -61,11 +61,17 @@ function ManageReposPanel({
       slidePosition="right"
       ariaLabel="Settings Panel"
     >
-      <PanelWrapper>
-        <PanelHeader>
-          <PanelHeaderAllText>
-            <PanelHeaderTitle>{t('Prevent AI Settings')}</PanelHeaderTitle>
-            <PanelHeaderDescription>
+      <Flex direction="column">
+        <Flex
+          align="center"
+          justify="between"
+          padding="xl 2xl"
+          borderBottom="muted"
+          background="secondary"
+        >
+          <Flex direction="column" gap="xs">
+            <Heading as="h3">{t('AI Code Review Settings')}</Heading>
+            <Text variant="muted" size="sm">
               {tct(
                 'These settings apply to the selected [repoLink] repository. To switch, use the repository selector in the page header.',
                 {
@@ -76,8 +82,8 @@ function ManageReposPanel({
                   ),
                 }
               )}
-            </PanelHeaderDescription>
-          </PanelHeaderAllText>
+            </Text>
+          </Flex>
           <Button
             priority="transparent"
             size="zero"
@@ -88,20 +94,20 @@ function ManageReposPanel({
           >
             Close
           </Button>
-        </PanelHeader>
+        </Flex>
         {updateError && (
           <Alert type="error">{'Could not update settings. Please try again.'}</Alert>
         )}
-        <PanelContent>
+        <Flex direction="column" gap="xl" padding="2xl">
           {/* PR Review Feature */}
-          <FeatureSectionContainer>
+          <Flex direction="column">
             <FeatureSectionTop>
-              <FeatureSectionAllText>
-                <FeatureSectionTitle>Enable PR Review</FeatureSectionTitle>
-                <FeatureSectionDescription>
+              <Flex direction="column" gap="sm">
+                <Text size="md">Enable PR Review</Text>
+                <Text variant="muted" size="sm">
                   Run when @sentry review is commented on a PR.
-                </FeatureSectionDescription>
-              </FeatureSectionAllText>
+                </Text>
+              </Flex>
               <Switch
                 size="lg"
                 checked={isEnabledVanillaPrReview}
@@ -117,17 +123,17 @@ function ManageReposPanel({
                 aria-label="Enable PR Review"
               />
             </FeatureSectionTop>
-          </FeatureSectionContainer>
+          </Flex>
 
           {/* Test Generation Feature */}
-          <FeatureSectionContainer>
+          <Flex direction="column">
             <FeatureSectionTop>
-              <FeatureSectionAllText>
-                <FeatureSectionTitle>Enable Test Generation</FeatureSectionTitle>
-                <FeatureSectionDescription>
+              <Flex direction="column" gap="sm">
+                <Text size="md">Enable Test Generation</Text>
+                <Text variant="muted" size="sm">
                   Run when @sentry generate-test is commented on a PR.
-                </FeatureSectionDescription>
-              </FeatureSectionAllText>
+                </Text>
+              </Flex>
               <Switch
                 size="lg"
                 checked={isEnabledTestGeneration}
@@ -143,17 +149,17 @@ function ManageReposPanel({
                 aria-label="Enable Test Generation"
               />
             </FeatureSectionTop>
-          </FeatureSectionContainer>
+          </Flex>
 
           {/* Error Prediction Feature with SubItems */}
-          <FeatureSectionContainer>
+          <Flex direction="column">
             <FeatureSectionTop>
-              <FeatureSectionAllText>
-                <FeatureSectionTitle>Enable Error Prediction</FeatureSectionTitle>
-                <FeatureSectionDescription>
+              <Flex direction="column" gap="sm">
+                <Text size="md">Enable Error Prediction</Text>
+                <Text variant="muted" size="sm">
                   Allow organization members to review potential bugs.
-                </FeatureSectionDescription>
-              </FeatureSectionAllText>
+                </Text>
+              </Flex>
               <Switch
                 size="lg"
                 checked={isEnabledBugPrediction}
@@ -183,7 +189,7 @@ function ManageReposPanel({
                 <FieldGroup
                   label={<Text size="md">{t('Auto Run on Opened Pull Requests')}</Text>}
                   help={
-                    <Text size="xs">
+                    <Text size="xs" variant="muted">
                       {t('Run when a PR is published, ignoring new pushes.')}
                     </Text>
                   }
@@ -213,7 +219,7 @@ function ManageReposPanel({
                 <FieldGroup
                   label={<Text size="md">{t('Run When Mentioned')}</Text>}
                   help={
-                    <Text size="xs">
+                    <Text size="xs" variant="muted">
                       {t('Run when @sentry review is commented on a PR')}
                     </Text>
                   }
@@ -242,49 +248,12 @@ function ManageReposPanel({
                 </FieldGroup>
               </FeatureSectionSubItemContainer>
             )}
-          </FeatureSectionContainer>
-        </PanelContent>
-      </PanelWrapper>
+          </Flex>
+        </Flex>
+      </Flex>
     </SlideOverPanel>
   );
 }
-
-const PanelWrapper = styled(Flex)`
-  flex-direction: column;
-`;
-
-const PanelHeader = styled(Flex)`
-  background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${p => `${p.theme.space.xl} ${p.theme.space['2xl']}`};
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const PanelHeaderAllText = styled(Flex)`
-  flex-direction: column;
-`;
-
-const PanelHeaderTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
-  margin: 0 0 ${p => p.theme.space.xs} 0;
-  color: ${p => p.theme.headingColor};
-`;
-
-const PanelHeaderDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const PanelContent = styled(Flex)`
-  flex-direction: column;
-  padding: ${p => p.theme.space['2xl']};
-  gap: ${p => p.theme.space.xl};
-`;
-
-const FeatureSectionContainer = styled(Flex)`
-  flex-direction: column;
-`;
 
 const FeatureSectionTop = styled(Flex)`
   align-items: center;
@@ -293,22 +262,6 @@ const FeatureSectionTop = styled(Flex)`
   border-radius: 6px;
   border: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.backgroundSecondary};
-`;
-
-const FeatureSectionAllText = styled(Flex)`
-  flex-direction: column;
-`;
-
-const FeatureSectionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.headingColor};
-`;
-
-const FeatureSectionDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin-top: 2px;
 `;
 
 // width 150% because FieldGroup > FieldDescription has fixed width 50%

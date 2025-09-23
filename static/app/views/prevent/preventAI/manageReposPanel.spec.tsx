@@ -48,7 +48,7 @@ describe('ManageReposPanel', () => {
   it('renders the panel header and description with repo link', async () => {
     mockPreventAIConfigReturn = getMockConfig();
     render(<ManageReposPanel {...defaultProps} />);
-    expect(await screen.findByText('Prevent AI Settings')).toBeInTheDocument();
+    expect(await screen.findByText('AI Code Review Settings')).toBeInTheDocument();
     expect(
       await screen.findByText(/These settings apply to the selected/i)
     ).toBeInTheDocument();

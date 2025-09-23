@@ -49,10 +49,10 @@ describe('PreventAIManageRepos', () => {
 
   it('opens the settings panel when the settings button is clicked', async () => {
     render(<ManageReposPage installedOrgs={installedOrgs} />);
-    expect(screen.queryByText(/Prevent AI Settings/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/AI Code Review Settings/i)).not.toBeInTheDocument();
     const settingsButton = await screen.findByTestId('manage-repos-settings-button');
     await userEvent.click(settingsButton);
-    expect(await screen.findByText(/Prevent AI Settings/i)).toBeInTheDocument();
+    expect(await screen.findByText(/AI Code Review Settings/i)).toBeInTheDocument();
   });
 
   it('renders the illustration image', async () => {

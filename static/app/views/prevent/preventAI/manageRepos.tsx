@@ -1,9 +1,9 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.png';
-import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.png';
+import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.svg';
+import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.svg';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -27,8 +27,14 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
     () => installedOrgs[0]?.repos?.[0]?.id ?? ''
   );
 
-  const selectedOrgData = installedOrgs.find(org => org.id === selectedOrg);
-  const selectedRepoData = selectedOrgData?.repos?.find(repo => repo.id === selectedRepo);
+  const selectedOrgData = useMemo(
+    () => installedOrgs.find(org => org.id === selectedOrg),
+    [installedOrgs, selectedOrg]
+  );
+  const selectedRepoData = useMemo(
+    () => selectedOrgData?.repos?.find(repo => repo.id === selectedRepo),
+    [selectedOrgData, selectedRepo]
+  );
 
   // Reset repo selection when org changes
   useEffect(() => {
@@ -42,8 +48,8 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
   const isRepoSelected = !!selectedRepoData;
 
   return (
-    <ManageReposContainer>
-      <ManageReposHeader>
+    <Flex direction="column" maxWidth="1000px" gap="xl">
+      <Flex align="center" justify="between">
         <ManageReposToolbar
           installedOrgs={installedOrgs}
           selectedOrg={selectedOrg}
@@ -51,7 +57,7 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
           onOrgChange={setSelectedOrg}
           onRepoChange={setSelectedRepo}
         />
-        <SettingsButtonContainer>
+        <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
             title={'Select an organization and repository to configure settings'}
             disabled={isOrgSelected && isRepoSelected}
@@ -67,15 +73,32 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
               data-test-id="manage-repos-settings-button"
             />
           </Tooltip>
-        </SettingsButtonContainer>
-      </ManageReposHeader>
+        </Flex>
+      </Flex>
 
-      <ManageReposMainContent>
-        <ManageReposLeft>
-          <ManageReposLeftTitleBlock>
-            <ManageReposLeftTitle as="h1" data-test-id="manage-repos-title">
+      <Flex
+        direction="row"
+        gap="md"
+        border="muted"
+        radius="md"
+        padding="xl 2xl"
+        maxWidth="1000px"
+      >
+        <Flex direction="column" gap="md" maxWidth="600px" padding="md">
+          <Text
+            style={{
+              borderBottom: `1px solid ${theme.border}`,
+              marginBottom: theme.space.xl,
+              paddingBottom: theme.space['2xl'],
+            }}
+          >
+            <Heading
+              as="h1"
+              data-test-id="manage-repos-title"
+              style={{marginBottom: theme.space.xs}}
+            >
               {t('Manage Repositories')}
-            </ManageReposLeftTitle>
+            </Heading>
             <Text>
               {tct(
                 `To install more repositories or uninstall the app, go to your [link:Seer by Sentry app] on GitHub.`,
@@ -89,16 +112,16 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
                 }
               )}
             </Text>
-          </ManageReposLeftTitleBlock>
+          </Text>
           <FeatureOverview />
-        </ManageReposLeft>
+        </Flex>
 
         <StyledImg
           src={theme.type === 'dark' ? preventPrCommentsDark : preventPrCommentsLight}
           alt="Prevent PR Comments"
           data-test-id="manage-repos-illustration-image"
         />
-      </ManageReposMainContent>
+      </Flex>
 
       <ManageReposPanel
         key={`${selectedOrg || 'no-org'}-${selectedRepo || 'no-repo'}`}
@@ -107,50 +130,9 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         orgName={selectedOrgData?.name || 'Select Organization'}
         repoName={selectedRepoData?.name || 'Select Repository'}
       />
-    </ManageReposContainer>
+    </Flex>
   );
 }
-
-const ManageReposContainer = styled(Flex)`
-  flex-direction: column;
-  max-width: 1000px;
-`;
-
-const ManageReposHeader = styled(Flex)`
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.sm};
-`;
-
-const SettingsButtonContainer = styled(Flex)`
-  transform: translateY(-70px);
-`;
-
-const ManageReposMainContent = styled(Flex)`
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => `${p.theme.space.xl} ${p.theme.space['2xl']}`};
-  max-width: 1000px;
-`;
-
-const ManageReposLeft = styled(Flex)`
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  max-width: 600px;
-  padding: ${p => p.theme.space.md};
-`;
-
-const ManageReposLeftTitleBlock = styled(Text)`
-  border-bottom: 1px solid ${p => p.theme.border};
-  margin-bottom: ${p => p.theme.space.xl};
-  padding-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const ManageReposLeftTitle = styled(Heading)`
-  margin-bottom: ${p => p.theme.space.xs};
-`;
 
 const StyledImg = styled('img')`
   overflow: hidden;
