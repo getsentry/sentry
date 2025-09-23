@@ -992,9 +992,13 @@ export function hasNewCheckout(organization: Organization) {
 /**
  * Returns true if the subscription has either a payment source or some billing details set.
  */
-export function hasSomeBillingInfo(
+export function hasBillingInfo(
   billingDetails: BillingDetails | undefined,
-  subscription: Subscription
+  subscription: Subscription,
+  isComplete: boolean
 ) {
-  return subscription.paymentSource || hasSomeBillingDetails(billingDetails);
+  if (isComplete) {
+    return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
+  }
+  return !!subscription.paymentSource || hasSomeBillingDetails(billingDetails);
 }

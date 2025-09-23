@@ -719,5 +719,16 @@ export function partnerPlanEndingModalIsDismissed(
  * Returns true if some billing details are set.
  */
 export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined) {
-  return billingDetails && Object.values(billingDetails).some(value => defined(value));
+  if (!billingDetails) {
+    return false;
+  }
+  return (
+    billingDetails &&
+    Object.entries(billingDetails)
+      .filter(
+        ([key, _]) =>
+          key !== 'billingEmail' && key !== 'companyName' && key !== 'taxNumber'
+      )
+      .some(([_, value]) => defined(value))
+  );
 }

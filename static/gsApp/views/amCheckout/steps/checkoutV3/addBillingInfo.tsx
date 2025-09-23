@@ -10,7 +10,7 @@ import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {FTCConsentLocation} from 'getsentry/types';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {CheckoutV3StepProps} from 'getsentry/views/amCheckout/types';
-import {hasSomeBillingInfo} from 'getsentry/views/amCheckout/utils';
+import {hasBillingInfo} from 'getsentry/views/amCheckout/utils';
 
 function AddBillingInformation({
   subscription,
@@ -22,7 +22,7 @@ function AddBillingInformation({
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
   const {data: billingDetails} = useBillingDetails();
-  const showEditBillingInfo = hasSomeBillingInfo(billingDetails, subscription);
+  const showEditBillingInfo = hasBillingInfo(billingDetails, subscription, false);
 
   return (
     <Flex direction="column" gap="xl">
