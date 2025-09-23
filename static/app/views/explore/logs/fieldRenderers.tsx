@@ -433,6 +433,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   const template = props.extra.attributes?.[OurLogKnownFieldKey.TEMPLATE];
   const templateText =
     props.extra.canAppendTemplateToBody && template ? template : undefined;
+  const isBodyFiltered = props.item.value === '[Filtered]';
 
   return (
     <FilteredTooltip
@@ -442,7 +443,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
     >
       <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
-        {templateText && (
+        {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             original={attribute_value}
             replacement={templateText as string}
