@@ -208,7 +208,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            self.trigger(event, rule_object)
+            with pytest.raises(IntegrationFormError):
+                self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
@@ -230,7 +231,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            self.trigger(event, rule_object)
+            with pytest.raises(IntegrationConfigurationError):
+                self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
