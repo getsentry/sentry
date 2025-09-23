@@ -110,7 +110,7 @@ def assert_analytics_events(
 
 def get_event_count(
     mock_record: MagicMock,
-    expected_event_type: type[Event] | tuple[type[Event], ...],
+    expected_event_type: type[Event],
     exact: bool = False,
 ) -> int:
     if exact:
