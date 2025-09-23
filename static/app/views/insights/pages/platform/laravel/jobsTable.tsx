@@ -8,6 +8,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
@@ -52,8 +53,11 @@ const rightAlignColumns = new Set([
 
 export function JobsTable() {
   const {query} = useTransactionNameQuery();
+  const mutableQuery = new MutableSearch(query);
+  mutableQuery.addFilterValue('span.op', 'queue.process');
+
   const tableDataRequest = useSpanTableData({
-    query: `span.op:queue.process ${query ?? ''}`.trim(),
+    query: mutableQuery.formatString(),
     fields: [
       'count()',
       'project.id',
