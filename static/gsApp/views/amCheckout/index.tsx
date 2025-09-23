@@ -210,6 +210,7 @@ class AMCheckout extends Component<Props, State> {
     if (organization) {
       trackGetsentryAnalytics('am_checkout.viewed', {organization, subscription});
     }
+    Sentry.getReplay()?.start();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -223,6 +224,10 @@ class AMCheckout extends Component<Props, State> {
     } else {
       this.handleRedirect();
     }
+  }
+
+  componentWillUnmount() {
+    Sentry.getReplay()?.stop();
   }
 
   readonly initialStep: number;
