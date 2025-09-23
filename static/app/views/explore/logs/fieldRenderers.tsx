@@ -72,6 +72,8 @@ export interface RendererExtra extends RenderFunctionBaggage {
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
+  logEnd?: string;
+  logStart?: string;
   meta?: EventsMetaType;
   onReplayTimeClick?: (fieldName: string) => void;
   project?: Project;
@@ -562,7 +564,12 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
 
   return (
     <Container>
-      <ViewReplayLink replayId={replayId} to={target}>
+      <ViewReplayLink
+        replayId={replayId}
+        to={target}
+        start={props.extra.logStart}
+        end={props.extra.logEnd}
+      >
         {getShortEventId(replayId)}
       </ViewReplayLink>
     </Container>
