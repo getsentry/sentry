@@ -24,6 +24,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import type {AddOnCategory} from 'getsentry/types';
 import {getProductIcon} from 'getsentry/utils/billing';
 import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -88,6 +89,9 @@ function ProductSelect({
     <Fragment>
       {!isNewCheckout && <Separator orientation="horizontal" />}
       {availableProducts.map(productInfo => {
+        const productName =
+          activePlan.addOnCategories[productInfo.apiName as unknown as AddOnCategory]
+            ?.productName ?? productInfo.productCheckoutName;
         const checkoutInfo =
           PRODUCT_CHECKOUT_INFO[productInfo.apiName as string as SelectableProduct];
         if (!checkoutInfo) {
@@ -118,7 +122,7 @@ function ProductSelect({
           formData.selectedProducts?.[productInfo.apiName as string as SelectableProduct]
             ?.enabled;
 
-        const ariaLabel = t('Add %s to plan', productInfo.productCheckoutName);
+        const ariaLabel = t('Add %s to plan', productName);
 
         const toggleProductOption = () => {
           onUpdate({
@@ -159,7 +163,7 @@ function ProductSelect({
                   <Flex direction="column" gap="0" width="100%">
                     <Flex align="center" justify="between" gap="sm">
                       <Heading as="h3" variant="primary">
-                        {toTitleCase(productInfo.productCheckoutName, {
+                        {toTitleCase(productName, {
                           allowInnerUpperCase: true,
                         })}
                       </Heading>
@@ -236,7 +240,7 @@ function ProductSelect({
         return (
           <ProductOption
             key={productInfo.apiName}
-            aria-label={productInfo.productCheckoutName}
+            aria-label={productName}
             data-test-id={`product-option-${productInfo.apiName}`}
             onClick={toggleProductOption}
           >
@@ -251,7 +255,7 @@ function ProductSelect({
                   <ProductLabel productColor={checkoutInfo.color}>
                     {productIcon}
                     <ProductName>
-                      {toTitleCase(productInfo.productCheckoutName, {
+                      {toTitleCase(productName, {
                         allowInnerUpperCase: true,
                       })}
                     </ProductName>

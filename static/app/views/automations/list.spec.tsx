@@ -124,7 +124,9 @@ describe('AutomationsList', () => {
     );
 
     // Click on Name column header to sort
-    await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+    await userEvent.click(
+      screen.getByRole('columnheader', {name: 'Select all on page Name'})
+    );
 
     await waitFor(() => {
       expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
@@ -139,7 +141,9 @@ describe('AutomationsList', () => {
     expect(router.location.query.sort).toBe('name');
 
     // Click on Name column header again to change sort direction
-    await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+    await userEvent.click(
+      screen.getByRole('columnheader', {name: 'Select all on page Name'})
+    );
 
     await waitFor(() => {
       expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
@@ -220,7 +224,7 @@ describe('AutomationsList', () => {
       expect(rows).toHaveLength(3);
 
       // Initially no checkboxes should be checked
-      const checkboxes = screen.getAllByRole('checkbox');
+      let checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).not.toBeChecked();
       });
@@ -245,7 +249,8 @@ describe('AutomationsList', () => {
       await userEvent.click(masterCheckbox);
       expect(masterCheckbox).toBeChecked();
 
-      // // All checkboxes should be checked
+      // All checkboxes should be checked
+      checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).toBeChecked();
       });
@@ -406,7 +411,6 @@ describe('AutomationsList', () => {
         match: [
           MockApiClient.matchQuery({
             query: 'action:slack',
-            project: [1],
           }),
         ],
       });
@@ -449,7 +453,7 @@ describe('AutomationsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
-            query: {id: undefined, query: 'action:slack', project: [1]},
+            query: {id: undefined, query: 'action:slack', project: []},
           })
         );
       });

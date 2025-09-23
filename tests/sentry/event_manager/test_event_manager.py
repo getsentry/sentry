@@ -120,6 +120,51 @@ class EventManagerTestMixin:
 
 
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
+    def test_group_in_deletion_in_progress_should_not_create_new_group(self) -> None:
+        data = {"timestamp": before_now(minutes=1).isoformat()}
+
+        event = self.store_event(data=data, project_id=self.project.id)
+        assert event.group_id is not None
+        group = event.group
+        first_event_hash = event.get_primary_hash()
+
+        # New events will still be associated with the group in deletion in progress
+        group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
+        group.save()
+        new_event = self.store_event(data=data, project_id=self.project.id)
+        # The new event has the same hash as the first event
+        assert new_event.get_primary_hash() == first_event_hash
+        assert GroupHash.objects.get(group_id=new_event.group_id).group_id == group.id
+        assert new_event.group_id == group.id
+
+        # Now, if the group hash is deleted then the group will create a new group
+        assert len(GroupHash.objects.filter(group_id=group.id)) == 1
+        GroupHash.objects.get(group_id=group.id).delete()
+        new_event = self.store_event(data=data, project_id=self.project.id)
+        new_event_hash = new_event.get_primary_hash()
+        assert new_event_hash == first_event_hash
+        assert GroupHash.objects.get(group_id=new_event.group_id).group_id != group.id
+        assert new_event.group_id != group.id
+
+    @with_feature("organizations:no-group-match-when-deletion-in-progress")
+    def test_group_in_deletion_in_progress_should_create_new_group_when_flag_on(self) -> None:
+        data = {"timestamp": before_now(minutes=1).isoformat()}
+
+        event = self.store_event(data=data, project_id=self.project.id)
+        assert event.group_id is not None
+        group = event.group
+        first_event_hash = event.get_primary_hash()
+
+        # New events will create a new group since the group is in deletion in progress
+        group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
+        group.save()
+        new_event = self.store_event(data=data, project_id=self.project.id)
+        # The new event has the same hash as the first event
+        assert new_event.get_primary_hash() == first_event_hash
+        # The existing group hash will be associated to the new group
+        assert GroupHash.objects.get(group_id=new_event.group_id).group_id != group.id
+        assert new_event.group_id != group.id
+
     def test_ephemeral_interfaces_removed_on_save(self) -> None:
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
