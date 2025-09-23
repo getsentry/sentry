@@ -11,7 +11,7 @@ import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
-import {t, tct, tctCode} from 'sentry/locale';
+import {t, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -235,8 +235,8 @@ function WidgetBuilderSlideout({
               }
             >
               {disableTransactionWidget && isEditing
-                ? tct(
-                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the spans dataset below. Please read these [FAQLink:FAQs] for more information.',
+                ? tctCode(
+                    'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the spans dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
                     {
                       FAQLink: (
                         <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
