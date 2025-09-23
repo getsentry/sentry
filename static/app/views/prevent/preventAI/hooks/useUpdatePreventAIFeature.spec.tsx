@@ -1,5 +1,7 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import localStorageWrapper from 'sentry/utils/localStorage';
+
 import {useUpdatePreventAIFeature} from './useUpdatePreventAIFeature';
 
 describe('useUpdatePreventAIFeature', () => {
@@ -7,7 +9,7 @@ describe('useUpdatePreventAIFeature', () => {
   const repoName = 'repo-1';
 
   beforeEach(() => {
-    localStorage.clear();
+    localStorageWrapper.clear();
   });
 
   it('returns an object with enableFeature and isLoading properties', () => {

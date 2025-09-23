@@ -1,5 +1,7 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import localStorageWrapper from 'sentry/utils/localStorage';
+
 import {usePreventAIConfig} from './usePreventAIConfig';
 
 describe('usePreventAIConfig', () => {
@@ -7,7 +9,7 @@ describe('usePreventAIConfig', () => {
   const repoName = 'test-repo';
 
   beforeEach(() => {
-    localStorage.clear();
+    localStorageWrapper.clear();
   });
 
   it('returns default config when nothing is in localStorage', () => {
