@@ -74,6 +74,10 @@ describe('Cart', () => {
         invoiceItems: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
   });
 
   afterEach(() => {
@@ -102,7 +106,6 @@ describe('Cart', () => {
     expect(cart).toHaveTextContent('Pay-as-you-go spend limit$0-$300/mo');
     expect(cart).toHaveTextContent('Plan Total$89/mo');
     expect(cart).toHaveTextContent('Default Amount');
-    expect(within(cart).getByRole('button', {name: 'Confirm and pay'})).toBeEnabled();
   });
 
   it('renders form data', async () => {
@@ -129,7 +132,6 @@ describe('Cart', () => {
         activePlan={teamPlanAnnual}
         formData={formData}
         formDataForPreview={getFormDataForPreview(formData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
         onSuccess={jest.fn()}
@@ -187,7 +189,6 @@ describe('Cart', () => {
         activePlan={legacyTeamPlan}
         formData={formData}
         formDataForPreview={getFormDataForPreview(formData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
         onSuccess={jest.fn()}
@@ -240,7 +241,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
         onSuccess={jest.fn()}
@@ -281,7 +281,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={subscription}
         onSuccess={jest.fn()}
@@ -294,21 +293,6 @@ describe('Cart', () => {
     expect(
       screen.getByText(/Your changes will apply on Jun 7, 2023/)
     ).toBeInTheDocument();
-  });
-
-  it('disables confirm and pay button for incomplete billing details', async () => {
-    render(
-      <Cart
-        activePlan={businessPlan}
-        formData={defaultFormData}
-        formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails={false}
-        organization={organization}
-        subscription={subscription}
-        onSuccess={jest.fn()}
-      />
-    );
-    expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
   });
 
   it('renders buttons and subtext for migrating partner customers', async () => {
@@ -333,7 +317,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={partnerOrg}
         subscription={partnerSub}
         onSuccess={jest.fn()}
@@ -374,7 +357,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={partnerSub}
         onSuccess={jest.fn()}
@@ -416,7 +398,6 @@ describe('Cart', () => {
         activePlan={teamPlanAnnual}
         formData={formData}
         formDataForPreview={getFormDataForPreview(formData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
         onSuccess={jest.fn()}
@@ -448,7 +429,6 @@ describe('Cart', () => {
         activePlan={businessPlan}
         formData={defaultFormData}
         formDataForPreview={getFormDataForPreview(defaultFormData)}
-        hasCompleteBillingDetails
         organization={organization}
         subscription={paidSub}
         onSuccess={jest.fn()}
