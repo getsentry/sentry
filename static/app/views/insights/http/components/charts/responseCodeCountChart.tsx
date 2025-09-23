@@ -12,6 +12,7 @@ import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/c
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -96,11 +97,22 @@ export function ResponseCodeCountChart({
     referrer,
   });
 
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType: ChartType.LINE,
+    yAxes: [yAxis],
+    widgetName: title,
+    groupBy,
+    search,
+    sort: {field: yAxis, kind: 'desc'},
+    topEvents: 5,
+  };
+
   const extraActions = [
     <BaseChartActionDropdown
       key="http response chart widget"
       exploreUrl={exploreUrl}
       referrer={referrer}
+      addToDashboardOptions={addToDashboardOptions}
       alertMenuOptions={queries.map(query => ({
         key: query.label,
         label: query.label,
