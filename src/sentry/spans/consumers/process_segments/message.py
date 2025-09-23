@@ -74,7 +74,7 @@ def process_segment(
     return spans
 
 
-def _verify_compatibility(spans):
+def _verify_compatibility(spans: list[CompatibleSpan]) -> None:
     try:
         for span in spans:
             # As soon as compatibility spans are fully rolled out, we can assert that attributes exist here.
