@@ -20,6 +20,7 @@ import {
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {hasNewCheckout} from 'getsentry/views/amCheckout/utils';
 
 export function parseOnDemandBudgetsFromSubscription(
   subscription: Subscription
@@ -177,6 +178,13 @@ export function trackOnDemandBudgetAnalytics(
   const totalBudget = getTotalBudget(newBudget);
   const previousBudgetMode = previousBudget.budgetMode;
   const newBudgetMode = newBudget.budgetMode;
+
+  const analyticsParams: Record<string, any> = {};
+  if (prefix === 'checkout') {
+    const isNewCheckout = hasNewCheckout(organization);
+    analyticsParams.isNewCheckout = isNewCheckout;
+  }
+
   if (totalBudget > 0 && previousTotalBudget !== totalBudget) {
     const newBudgets: Partial<Record<`${DataCategoryExact}_budget`, number>> = {};
     const previousBudgets: Partial<
@@ -213,12 +221,14 @@ export function trackOnDemandBudgetAnalytics(
       previous_strategy: previousBudgetMode,
       previous_total_budget: previousTotalBudget,
       ...previousBudgets,
+      ...analyticsParams,
     });
     return;
   }
 
   trackGetsentryAnalytics(`${prefix}.ondemand_budget.turned_off`, {
     organization,
+    ...analyticsParams,
   });
 }
 

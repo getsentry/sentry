@@ -60,6 +60,7 @@ function SetSpendCap({
           plan: formData.plan,
           cents: totalBudget || 0,
           method: 'textbox',
+          isNewCheckout: true,
         });
       }
     },
