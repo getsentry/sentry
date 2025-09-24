@@ -101,7 +101,6 @@ def invoke_future_with_error_handling(
     except Exception as e:
         # This is just a redefinition of the safe_execute util function, as we
         # still want to report any unhandled exceptions.
-        logger.exception("Failed to execute future", extra={"future": future})
         if hasattr(callback, "im_class"):
             cls = callback.im_class
         else:
@@ -109,9 +108,9 @@ def invoke_future_with_error_handling(
 
         func_name = getattr(callback, "__name__", str(callback))
         cls_name = cls.__name__
-        localized_logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
+        local_logger = logging.getLogger(f"sentry.safe_action.{cls_name.lower()}")
 
-        localized_logger.exception("%s.process_error", func_name, extra={"exception": e})
+        local_logger.exception("%s.process_error", func_name, extra={"exception": e})
         return None
 
 
