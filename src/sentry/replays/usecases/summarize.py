@@ -12,7 +12,11 @@ from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance, query_trace_connected_events
+from sentry.replays.query import (
+    get_replay_range,
+    query_replay_instance,
+    query_trace_connected_events,
+)
 from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
@@ -79,9 +83,9 @@ def _parse_iso_timestamp_to_ms(timestamp: str | None) -> float:
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
-    start: datetime | None,
-    end: datetime | None,
     limit: int,
+    start: datetime,
+    end: datetime,
 ) -> list[EventDict]:
     """Fetch same-trace events from both errors and issuePlatform datasets."""
     if not trace_ids:
@@ -462,6 +466,7 @@ def rpc_get_replay_summary_logs(
     """
 
     project = Project.objects.get(id=project_id)
+
     # Last 90 days. We don't support date filters in /summarize/.
     start, end = default_start_end_dates()
 
@@ -486,6 +491,12 @@ def rpc_get_replay_summary_logs(
 
     error_ids = processed_response[0].get("error_ids", [])
     trace_ids = processed_response[0].get("trace_ids", [])
+
+    result = get_replay_range(
+        organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
+    )
+    if result:
+        start, end = result
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(
