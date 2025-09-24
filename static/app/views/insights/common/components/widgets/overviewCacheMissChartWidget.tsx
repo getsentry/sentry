@@ -62,9 +62,9 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
       ...pageFilterChartParams,
       yAxis: ['cache_miss_rate()'],
       query: search,
+      excludeOther: true,
       groupBy: [SpanFields.TRANSACTION],
       sort: {field: 'cache_miss_rate()', kind: 'desc'},
-
       topEvents: 4,
       enabled: !!cachesRequest.data,
       pageFilters: props.pageFilters,
@@ -72,10 +72,7 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
     Referrer.CACHE_CHART
   );
 
-  const timeSeries =
-    timeSeriesRequest.data?.timeSeries.filter(
-      ts => ts.groupBy && ts.groupBy.length > 0
-    ) || [];
+  const timeSeries = timeSeriesRequest.data?.timeSeries || [];
 
   const isLoading = timeSeriesRequest.isLoading || cachesRequest.isLoading;
   // The BE returns an error if cache.hit is not found in the metrics indexer.

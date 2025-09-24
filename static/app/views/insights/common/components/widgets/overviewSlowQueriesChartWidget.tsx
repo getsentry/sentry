@@ -65,16 +65,14 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
       yAxis: ['avg(span.duration)'],
       sort: {field: 'avg(span.duration)', kind: 'desc'},
       topEvents: 3,
+      excludeOther: true,
       enabled: queriesRequest.data.length > 0,
       pageFilters: props.pageFilters,
     },
     Referrer.QUERIES_CHART
   );
 
-  const timeSeries =
-    timeSeriesRequest.data?.timeSeries.filter(
-      ts => ts.groupBy && ts.groupBy.length > 0
-    ) ?? [];
+  const timeSeries = timeSeriesRequest.data?.timeSeries ?? [];
 
   const isLoading = timeSeriesRequest.isLoading || queriesRequest.isLoading;
   const error = timeSeriesRequest.error || queriesRequest.error;

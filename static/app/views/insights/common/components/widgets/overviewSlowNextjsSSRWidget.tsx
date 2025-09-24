@@ -60,15 +60,13 @@ export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetPr
       sort: {field: 'avg(span.duration)', kind: 'desc'},
       topEvents: 4,
       enabled: !!spansRequest.data,
+      excludeOther: true,
       pageFilters: props.pageFilters,
     },
     Referrer.SLOW_SSR_CHART
   );
 
-  const timeSeries =
-    timeSeriesRequest.data?.timeSeries.filter(
-      ts => ts.groupBy && ts.groupBy.length > 0
-    ) ?? [];
+  const timeSeries = timeSeriesRequest.data?.timeSeries ?? [];
 
   const isLoading = timeSeriesRequest.isLoading || spansRequest.isLoading;
   const error = timeSeriesRequest.error || spansRequest.error;

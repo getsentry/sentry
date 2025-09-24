@@ -202,7 +202,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
                   const normalizedDescription = timeSeries.groupBy?.[0]?.value;
                   return {
                     key: plottable.name,
-                    label: `${timeSeries.yAxis} : ${normalizedDescription}`,
+                    label: plottable.name,
                     to: getAlertsUrl({
                       project,
                       aggregate: yAxes,

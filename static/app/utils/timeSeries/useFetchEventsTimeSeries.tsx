@@ -19,10 +19,11 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 
-interface UseFetchEventsTimeSeriesOptions<YAxis, Attributes> {
+interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
   yAxis: YAxis | YAxis[];
   enabled?: boolean;
-  groupBy?: Attributes[];
+  excludeOther?: boolean;
+  groupBy?: Attribute[];
   interval?: string;
   /**
    * NOTE: If `pageFilters` are passed in, the implication is that these filters are ready, and have valid data. If present, the query is enabled immediately!
@@ -48,10 +49,11 @@ export function useFetchSpanTimeSeries<
 /**
  * Fetch time series data from the `/events-timeseries/` endpoint. Returns an array of `TimeSeries` objects.
  */
-export function useFetchEventsTimeSeries<T extends string, Attributes extends string>(
+export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends string>(
   dataset: DiscoverDatasets,
   {
     yAxis,
+    excludeOther,
     enabled,
     groupBy,
     interval,
@@ -60,7 +62,7 @@ export function useFetchEventsTimeSeries<T extends string, Attributes extends st
     pageFilters,
     sort,
     topEvents,
-  }: UseFetchEventsTimeSeriesOptions<T, Attributes>,
+  }: UseFetchEventsTimeSeriesOptions<YAxis, Attribute>,
   referrer: string
 ) {
   const organization = useOrganization();
@@ -82,7 +84,7 @@ export function useFetchEventsTimeSeries<T extends string, Attributes extends st
       {
         query: {
           partial: 1,
-          excludeOther: 0,
+          excludeOther: excludeOther ? 1 : 0,
           dataset,
           referrer,
           yAxis,
