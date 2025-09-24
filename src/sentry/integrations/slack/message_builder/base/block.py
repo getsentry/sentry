@@ -204,7 +204,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         *args: SlackBlock,
         fallback_text: str | None = None,
         color: str | None = None,
-        block_id: dict[str, Any] | None = None,
+        block_id: Mapping[str, Any] | None = None,
         callback_id: str | None = None,
         skip_fallback: bool = False,
     ) -> SlackBlock:
