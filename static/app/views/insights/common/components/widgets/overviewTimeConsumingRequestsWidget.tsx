@@ -86,6 +86,7 @@ export default function OverviewTimeConsumingRequestsWidget(
       yAxis: [yAxes],
       topEvents: 3,
       enabled: requestsListData?.length > 0,
+      excludeOther: true,
       interval,
     },
     referrer
