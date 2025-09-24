@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
 import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
@@ -16,9 +16,9 @@ export default function OverviewTransactionThroughputChartWidget(
   const yAxis: SpanProperty = 'epm()';
   const referrer = Referrer.TRANSACTION_THROUGHPUT_CHART;
 
-  const {data, isPending, error} = useSpanSeries(
+  const {data, isPending, error} = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: [yAxis],
     },
     referrer
@@ -32,7 +32,7 @@ export default function OverviewTransactionThroughputChartWidget(
       height="100%"
       error={error}
       isLoading={isPending}
-      series={[data[yAxis]]}
+      timeSeries={data?.timeSeries}
       queryInfo={{search, referrer}}
     />
   );
