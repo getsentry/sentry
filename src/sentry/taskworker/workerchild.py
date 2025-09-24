@@ -25,7 +25,6 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_sdk.consts import OP, SPANDATA, SPANSTATUS
 from sentry_sdk.crons import MonitorStatus, capture_checkin
 
-from sentry.taskworker.app import import_app
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import CompressionType
@@ -111,6 +110,7 @@ def child_process(
     """
     child_worker_init(process_type)
 
+    from sentry.taskworker.app import import_app
     from sentry.taskworker.retry import NoRetriesRemainingError
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
     from sentry.taskworker.task import Task

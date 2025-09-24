@@ -106,9 +106,8 @@ function PlanDiff({
             formattingFunction = (value: any) =>
               value
                 ? toTitleCase(
-                    newPlan.availableReservedBudgetTypes[key]?.productCheckoutName ??
-                      currentPlan.availableReservedBudgetTypes[key]
-                        ?.productCheckoutName ??
+                    newPlan.addOnCategories[key]?.productName ??
+                      currentPlan.addOnCategories[key]?.productName ??
                       key,
                     {allowInnerUpperCase: true}
                   )
@@ -186,14 +185,14 @@ function OnDemandDiff({
   return (
     <Fragment>
       {sharedOnDemandChanges.length > 0 && (
-        <ChangeSection data-test-id="shared-spend-cap-diff">
+        <ChangeSection data-test-id="shared-spend-limit-diff">
           <ChangeGrid>
             {sharedOnDemandChanges.map((change, index) => {
               const {key, currentValue, newValue} = change;
               let leftComponent = <div />;
               if (index === 0) {
                 leftComponent = (
-                  <ChangeSectionTitle>{t('Shared spend cap')}</ChangeSectionTitle>
+                  <ChangeSectionTitle>{t('Shared spend limit')}</ChangeSectionTitle>
                 );
               }
               return (
@@ -215,9 +214,9 @@ function OnDemandDiff({
         </ChangeSection>
       )}
       {perCategoryOnDemandChanges.length > 0 && (
-        <ChangeSection data-test-id="per-category-spend-cap-diff">
+        <ChangeSection data-test-id="per-category-spend-limit-diff">
           <ChangeSectionTitle hasBottomMargin>
-            {t('Per-category spend caps')}
+            {t('Per-category spend limits')}
           </ChangeSectionTitle>
           <ChangeGrid>
             {perCategoryOnDemandChanges.map(({key, currentValue, newValue}) => {
@@ -367,10 +366,9 @@ function CartDiff({
   };
 
   const getReservedChanges = useCallback((): ReservedChange[] => {
-    // TODO(checkout v3): This will need to be updated to handle non-budget products
-    const productCategories = Object.values(
-      activePlan.availableReservedBudgetTypes
-    ).flatMap(productInfo => productInfo.dataCategories);
+    const productCategories = Object.values(activePlan.addOnCategories).flatMap(
+      addOnInfo => addOnInfo.dataCategories
+    );
 
     const currentReserved: Partial<Record<DataCategory, number>> = {};
     const relevantFormDataReserved = Object.fromEntries(
@@ -501,7 +499,14 @@ function CartDiff({
   }
 
   return (
-    <CartDiffContainer data-test-id="cart-diff">
+    <Flex
+      data-test-id="cart-diff"
+      direction="column"
+      padding="xl"
+      border="primary"
+      background="primary"
+      radius="md"
+    >
       <Flex justify="between" align="center">
         <Title>{tct('Changes ([numChanges])', {numChanges: allChanges.length})}</Title>
         <Button
@@ -538,18 +543,11 @@ function CartDiff({
           )}
         </ChangesContainer>
       )}
-    </CartDiffContainer>
+    </Flex>
   );
 }
 
 export default CartDiff;
-
-const CartDiffContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
 
 const ChangesContainer = styled('div')`
   & > div:not(:last-child) {

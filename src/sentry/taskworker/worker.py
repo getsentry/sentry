@@ -63,9 +63,9 @@ class TaskWorker:
         process_type: str = "spawn",
         health_check_file_path: str | None = None,
         health_check_sec_per_touch: float = DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
-        **options: dict[str, Any],
+        **kwargs: dict[str, Any],
     ) -> None:
-        self.options = options
+        self.options = kwargs
         self._app_module = app_module
         self._max_child_task_count = max_child_task_count
         self._namespace = namespace
@@ -81,6 +81,7 @@ class TaskWorker:
                 else HealthCheckSettings(Path(health_check_file_path), health_check_sec_per_touch)
             ),
             rpc_secret=app.config["rpc_secret"],
+            grpc_config=options.get("taskworker.grpc_service_config"),
         )
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")
