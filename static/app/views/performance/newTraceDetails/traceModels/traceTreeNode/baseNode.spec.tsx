@@ -284,7 +284,7 @@ describe('BaseNode', () => {
       ];
       const value = createMockValue({
         event_id: 'test-id',
-        occurrences: occurrences as TraceTree.EAPOccurrence[],
+        occurrences,
       });
 
       const node = new TestNode(null, value, extra);
