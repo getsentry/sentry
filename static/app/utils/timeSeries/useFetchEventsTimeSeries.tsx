@@ -20,17 +20,41 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 
 interface UseFetchEventsTimeSeriesOptions<YAxis, Attributes> {
+  /**
+   * The fields (or single field) to fetch from the API. e.g., `"p50(span.duration)"`
+   */
   yAxis: YAxis | YAxis[];
+  /**
+   * Boolean. If missing, the query is enabled. If supplied, the query will obey the prop as specified.
+   */
   enabled?: boolean;
+  /**
+   * An array of tags by which to group the results. e.g., passing `["transaction"]` will group the results by the `"transaction"` tag. `["env", "transaction"]` will group by both the `"env"` and `"transaction"` tags.
+   */
   groupBy?: Attributes[];
+  /**
+   * Duration between items in the time series, as a string. e.g., `"5m"`
+   */
   interval?: string;
   /**
-   * NOTE: If `pageFilters` are passed in, the implication is that these filters are ready, and have valid data. If present, the query is enabled immediately!
+   * Page filters to apply to the request. This applies the date selection, projects, and environments. By default uses the currently applied filters after waiting for them to become available. If `pageFilters` are passed as a prop, does not wait for readiness.
    */
   pageFilters?: PageFilters;
+  /**
+   * Query to apply to the data set. Can be either a `MutableSearch` object (preferred) or a plain string.
+   */
   query?: MutableSearch | string;
+  /**
+   * Sampling mode. Only specify this if you're sure you require a specific sampling mode. In most cases, the backend will automatically decide this.
+   */
   sampling?: SamplingMode;
+  /**
+   * Sort order for the results, only applies if `groupBy` is provided.
+   */
   sort?: Sort;
+  /**
+   * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
+   */
   topEvents?: number;
 }
 

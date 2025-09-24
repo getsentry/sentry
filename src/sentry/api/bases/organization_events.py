@@ -92,7 +92,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             features.has("organizations:discover-basic", organization, actor=request.user)
             or features.has("organizations:performance-view", organization, actor=request.user)
             or features.has(
-                "organizations:performance-issues-all-events-tab", organization, actor=request.user
+                "organizations:visibility-explore-view", organization, actor=request.user
             )
         )
 
