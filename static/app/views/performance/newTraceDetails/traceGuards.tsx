@@ -185,13 +185,6 @@ export function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
   );
 }
 
-export function isPageloadTransactionNode(node: BaseNode): boolean {
-  return (
-    (isTransactionNode(node) && node.value['transaction.op'] === 'pageload') ||
-    (isEAPTransactionNode(node) && node.value.op === 'pageload')
-  );
-}
-
 export function isTransactionNodeEquivalent(
   node: BaseNode
 ): node is TransactionNode | EapSpanNode {
@@ -211,25 +204,6 @@ export function isBrowserRequestSpan(value: TraceTree.Span | TraceTree.EAPSpan):
     value.op === 'browser.request' ||
     (value.op === 'browser' && value.description === 'request')
   );
-}
-
-export function getPageloadTransactionChildCount(node: BaseNode): number {
-  if (!isTransactionNode(node) && !isEAPTransactionNode(node)) {
-    return 0;
-  }
-
-  let count = 0;
-  for (const txn of node.visibleChildren) {
-    if (
-      txn &&
-      (isTransactionNode(txn)
-        ? txn.value['transaction.op'] === 'pageload'
-        : isEAPTransactionNode(txn) && txn.value.op === 'pageload')
-    ) {
-      count++;
-    }
-  }
-  return count;
 }
 
 export function isTraceOccurence(

@@ -15,16 +15,13 @@ import type {
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
-  getPageloadTransactionChildCount,
   isBrowserRequestSpan,
   isEAPError,
   isEAPSpan,
   isEAPSpanNode,
   isEAPTraceNode,
-  isEAPTransactionNode,
   isJavascriptSDKEvent,
   isMissingInstrumentationNode,
-  isPageloadTransactionNode,
   isParentAutogroupedNode,
   isRootEvent,
   isServerRequestHandlerTransactionNode,
@@ -359,7 +356,7 @@ function fetchTrace(
 }
 
 export class TraceTree extends TraceTreeEventDispatcher {
-  transactions_count = 0;
+  collapsed_nodes = 0;
   eap_spans_count = 0;
   projects = new Map<number, TraceTree.Project>();
 
@@ -479,11 +476,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           },
           TraceTree.FromSpans,
           TraceTree.ApplyPreferences
-        ) as any;
+        );
       }
 
-      if (isTransactionNode(node) || isEAPTransactionNode(node)) {
-        tree.transactions_count++;
+      if (node.canFetchChildren || !node.expanded) {
+        tree.collapsed_nodes++;
       }
 
       if (isEAPSpanNode(node)) {
@@ -535,9 +532,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (
         c.parent &&
-        isPageloadTransactionNode(c) &&
-        isServerRequestHandlerTransactionNode(c.parent) &&
-        getPageloadTransactionChildCount(c.parent) === 1
+        c.op === 'pageload' &&
+        c.parent.op === 'http.server' &&
+        c.parent.visibleChildren.filter(child => child.op === 'pageload').length === 1
       ) {
         //   // The swap can occur at a later point when new transactions are fetched,
         //   // which means we need to invalidate the tree and re-render the UI.
@@ -1203,10 +1200,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     const transactionNodes = tree.root.findAllChildren(
-      node =>
-        isTransactionNode(node) &&
-        (transactionIds.has(node.value.span_id) ||
-          transactionIds.has(node.value.event_id))
+      node => node.canFetchChildren && transactionIds.has(node.id ?? '')
     ) as TransactionNode[];
 
     const promises = transactionNodes.map(node =>
@@ -1292,7 +1286,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     const connectors: number[] = [];
     let start: BaseNode | null = node.parent;
 
-    if (start && isTraceNode(start) && !node.isLastChild()) {
+    if (start && start.isRootNodeChild() && !node.isLastChild()) {
       node.connectors = [-TraceTree.Depth(node)];
       return node.connectors;
     }
@@ -1312,7 +1306,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       connectors.push(
-        isTraceNode(start.parent) ? -TraceTree.Depth(start) : TraceTree.Depth(start)
+        start.parent.isRootNodeChild() ? -TraceTree.Depth(start) : TraceTree.Depth(start)
       );
       start = start.parent;
     }
@@ -1345,7 +1339,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     let traceStats: {
-      javascript_root_transactions_count: number;
+      javascript_root_count: number;
       orphan_errors_count: number;
       orphan_spans_count: number;
       roots_count: number;
@@ -1353,20 +1347,21 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     if (isEAPTraceNode(trace)) {
       traceStats = {
-        javascript_root_transactions_count: trace.value.filter(
+        javascript_root_count: trace.value.filter(
           (v): v is TraceTree.EAPSpan => isEAPSpan(v) && isJavascriptSDKEvent(v)
         ).length,
         orphan_spans_count: trace.value.filter(
           v => isEAPSpan(v) && v.parent_span_id !== null
         ).length,
-        roots_count: trace.value.filter(v => isEAPSpan(v) && v.parent_span_id === null)
-          .length,
+        roots_count: trace.value.filter(
+          v => 'parent_span_id' in v && v.parent_span_id === null
+        ).length,
         orphan_errors_count: trace.value.filter(v => isEAPError(v)).length,
       };
     } else if (isTraceNode(trace)) {
       traceStats = {
         ...trace.value.transactions.reduce<{
-          javascript_root_transactions_count: number;
+          javascript_root_count: number;
           orphan_spans_count: number;
           roots_count: number;
         }>(
@@ -1375,14 +1370,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
               stats.roots_count++;
 
               if (isJavascriptSDKEvent(transaction)) {
-                stats.javascript_root_transactions_count++;
+                stats.javascript_root_count++;
               }
             } else {
               stats.orphan_spans_count++;
             }
             return stats;
           },
-          {roots_count: 0, orphan_spans_count: 0, javascript_root_transactions_count: 0}
+          {roots_count: 0, orphan_spans_count: 0, javascript_root_count: 0}
         ),
         orphan_errors_count: trace.value.orphan_errors.length,
       };
@@ -1411,7 +1406,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (traceStats.roots_count > 1) {
-      if (traceStats.javascript_root_transactions_count > 0) {
+      if (traceStats.javascript_root_count > 0) {
         return TraceShape.BROWSER_MULTIPLE_ROOTS;
       }
 

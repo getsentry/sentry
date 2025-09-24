@@ -38,7 +38,7 @@ import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/trace
 import {AdditionalData, hasAdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';
 import {BuiltIn} from './sections/builtIn';
-// import {Entries} from './sections/entries';
+import {Entries} from './sections/entries';
 import GeneralInfo from './sections/generalInfo';
 import {TransactionHighlights} from './sections/highlights';
 import {hasMeasurements, Measurements} from './sections/measurements';
@@ -180,14 +180,9 @@ export function TransactionNodeDetails({
           cacheMetrics={cacheMetrics}
         />
 
-        {/* {event.projectSlug ? (
-          <Entries
-            definedEvent={event}
-            projectSlug={event.projectSlug}
-            group={undefined}
-            organization={organization}
-          />
-        ) : null} */}
+        {event.projectSlug ? (
+          <Entries definedEvent={event} projectSlug={event.projectSlug} />
+        ) : null}
 
         <EventTagsDataSection
           projectSlug={node.value.project_slug}
