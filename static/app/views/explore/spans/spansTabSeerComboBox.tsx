@@ -85,7 +85,7 @@ export function SpansTabSeerComboBox() {
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
 
-  const spansTabSeerMutationOptions = mutationOptions({
+  const spansTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
       const selectedProjects =
         pageFilters.selection.projects?.length > 0 &&
@@ -192,7 +192,7 @@ export function SpansTabSeerComboBox() {
   return (
     <AskSeerComboBox
       initialQuery={initialSeerQuery}
-      seerMutationOptions={spansTabSeerMutationOptions}
+      askSeerMutationOptions={spansTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
     />
   );

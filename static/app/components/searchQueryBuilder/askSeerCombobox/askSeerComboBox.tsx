@@ -84,8 +84,7 @@ function useUpdateOverlayPositionOnContentChange({
 
 interface AskSeerComboBoxProps<T> extends Omit<AriaComboBoxProps<unknown>, 'children'> {
   applySeerSearchQuery: (item: T) => void;
-  initialQuery: string;
-  seerMutationOptions: MutationOptions<
+  askSeerMutationOptions: MutationOptions<
     {
       queries: T[];
       status: string;
@@ -94,6 +93,7 @@ interface AskSeerComboBoxProps<T> extends Omit<AriaComboBoxProps<unknown>, 'chil
     Error,
     string
   >;
+  initialQuery: string;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({
@@ -127,7 +127,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     isPending,
     isError,
   } = useMutation({
-    ...props.seerMutationOptions,
+    ...props.askSeerMutationOptions,
     onError: error => {
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
     },
