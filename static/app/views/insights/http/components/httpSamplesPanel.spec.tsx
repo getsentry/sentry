@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
@@ -8,6 +9,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -332,14 +334,26 @@ describe('HTTPSamplesPanel', () => {
       });
 
       chartRequestMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
+        url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({
             referrer: 'api.insights.http.samples-panel-duration-chart',
           }),
         ],
-        body: {data: [[1711393200, [{count: 900}]]]},
+        body: {
+          timeSeries: [
+            TimeSeriesFixture({
+              yAxis: 'avg(span.self_time)',
+              meta: {
+                valueType: 'duration',
+                valueUnit: DurationUnit.MILLISECOND,
+                interval: 1_800_000,
+              },
+              values: [{timestamp: 1711393200000, value: 900}],
+            }),
+          ],
+        },
       });
 
       samplesRequestMock = MockApiClient.addMockResponse({
@@ -374,7 +388,7 @@ describe('HTTPSamplesPanel', () => {
 
       expect(chartRequestMock).toHaveBeenNthCalledWith(
         1,
-        `/organizations/${organization.slug}/events-stats/`,
+        `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
@@ -382,13 +396,17 @@ describe('HTTPSamplesPanel', () => {
             sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             interval: '30m',
-            per_page: 50,
+            excludeOther: 0,
+            groupBy: undefined,
+            sort: undefined,
+            topEvents: undefined,
+            partial: 1,
             project: [],
             query:
               'span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             referrer: 'api.insights.http.samples-panel-duration-chart',
             statsPeriod: '10d',
-            yAxis: 'avg(span.self_time)',
+            yAxis: ['avg(span.self_time)'],
           }),
         })
       );

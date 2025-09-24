@@ -1,8 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -14,7 +16,7 @@ describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
 
   let eventsRequestMock: jest.Mock;
-  let eventsStatsRequestMock: jest.Mock;
+  let eventsTimeseriesRequestMock: jest.Mock;
   let samplesRequestMock: jest.Mock;
   let traceItemAttributesMock: jest.Mock;
 
@@ -44,19 +46,26 @@ describe('messageSpanSamplesPanel', () => {
   });
 
   beforeEach(() => {
-    eventsStatsRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+    eventsTimeseriesRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
-        data: [[1699907700, [{count: 7810}]]],
-        meta: {
-          fields: {
-            count: 'number',
-          },
-          units: {
-            count: 'millisecond',
-          },
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'avg(span.duration)',
+            values: [
+              {
+                timestamp: 1699907700000,
+                value: 7810,
+              },
+            ],
+            meta: {
+              valueType: 'duration',
+              valueUnit: DurationUnit.MILLISECOND,
+              interval: 1_800_000,
+            },
+          }),
+        ],
       },
     });
 
@@ -170,7 +179,7 @@ describe('messageSpanSamplesPanel', () => {
     });
     render(<MessageSpanSamplesPanel />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    expect(eventsStatsRequestMock).toHaveBeenCalled();
+    expect(eventsTimeseriesRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
@@ -282,7 +291,7 @@ describe('messageSpanSamplesPanel', () => {
     });
     render(<MessageSpanSamplesPanel />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    expect(eventsStatsRequestMock).toHaveBeenCalled();
+    expect(eventsTimeseriesRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({

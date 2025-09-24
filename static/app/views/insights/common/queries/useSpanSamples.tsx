@@ -1,13 +1,13 @@
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import type {
   SpanProperty,
@@ -94,19 +94,33 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
 
   const dateConditions = getDateConditions(pageFilter.selection);
 
-  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanSeries(
-    {
-      search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
-      yAxis: [`avg(${SPAN_SELF_TIME})`],
-      enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
-        Boolean(value)
-      ),
-    },
-    'api.insights.sidebar-span-metrics'
-  );
+  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} =
+    useFetchSpanTimeSeries(
+      {
+        query: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
+        yAxis: [`avg(${SPAN_SELF_TIME})`],
+        enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
+          Boolean(value)
+        ),
+      },
+      'api.insights.sidebar-span-metrics'
+    );
+
+  const timeSeries = spanMetricsSeriesData?.timeSeries || [];
+  const avgSelfTimeSeries = timeSeries.find(ts => ts.yAxis === `avg(${SPAN_SELF_TIME})`);
 
   const min = 0;
-  const max = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
+  const max = computeAxisMax([
+    avgSelfTimeSeries
+      ? {
+          data: avgSelfTimeSeries.values.map(v => ({
+            name: v.timestamp,
+            value: v.value || 0,
+          })),
+          seriesName: avgSelfTimeSeries.yAxis,
+        }
+      : {data: [], seriesName: `avg(${SPAN_SELF_TIME})`},
+  ]);
 
   const enabled = Boolean(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
