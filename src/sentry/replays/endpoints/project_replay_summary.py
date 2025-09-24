@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.replays.lib.seer_api import seer_summarization_connection_pool
 from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance
+from sentry.replays.query import get_replay_range, query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.replays.usecases.summarize import (
     fetch_error_details,
@@ -161,9 +161,9 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                     status=403,
                 )
 
-            filter_params = self.get_filter_params(request, project)
             num_segments = request.data.get("num_segments", 0)
             temperature = request.data.get("temperature", None)
+            start, end = default_start_end_dates()
 
             # Limit data with the frontend's segment count, to keep summaries consistent with the video displayed in the UI.
             # While the replay is live, the FE and BE may have different counts.
@@ -182,7 +182,6 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             if features.has(
                 "organizations:replay-ai-summaries-rpc", project.organization, actor=request.user
             ):
-                start, end = default_start_end_dates()
                 snuba_response = query_replay_instance(
                     project_id=project.id,
                     replay_id=replay_id,
@@ -214,8 +213,8 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             snuba_response = query_replay_instance(
                 project_id=project.id,
                 replay_id=replay_id,
-                start=filter_params["start"],
-                end=filter_params["end"],
+                start=start,
+                end=end,
                 organization=project.organization,
                 request_user_id=request.user.id,
             )
@@ -233,12 +232,19 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             error_ids = processed_response[0].get("error_ids", [])
             trace_ids = processed_response[0].get("trace_ids", [])
 
+            result = get_replay_range(
+                organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
+            )
+
+            if result is not None:
+                start, end = result
+
             # Fetch same-trace errors.
             trace_connected_errors = fetch_trace_connected_errors(
                 project=project,
                 trace_ids=trace_ids,
-                start=filter_params["start"],
-                end=filter_params["end"],
+                start=start,
+                end=end,
                 limit=100,
             )
             trace_connected_error_ids = {x["id"] for x in trace_connected_errors}

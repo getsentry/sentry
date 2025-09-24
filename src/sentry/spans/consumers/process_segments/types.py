@@ -1,4 +1,4 @@
-from typing import Any, NotRequired
+from typing import NotRequired
 
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
@@ -31,5 +31,3 @@ class CompatibleSpan(EnrichedSpan, total=True):
 
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
-
-    attributes: NotRequired[dict[str, Any]]

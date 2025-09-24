@@ -1,14 +1,24 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconCode, IconDownload, IconFile, IconRefresh} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChevron,
+  IconCode,
+  IconDownload,
+  IconFile,
+  IconRefresh,
+  IconSearch,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
@@ -34,6 +44,9 @@ export function SizeCompareMainContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const theme = useTheme();
+  const [isFilesExpanded, setIsFilesExpanded] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -149,6 +162,28 @@ export function SizeCompareMainContent() {
     return metrics;
   }, [comparisonDataQuery.data]);
 
+  // Filter diff items based on the toggle and search query
+  const filteredDiffItems = useMemo(() => {
+    if (!comparisonDataQuery.data?.diff_items) {
+      return [];
+    }
+
+    let items = comparisonDataQuery.data.diff_items;
+
+    // Filter by size if hideSmallChanges is enabled
+    if (hideSmallChanges) {
+      items = items.filter(item => Math.abs(item.size_diff) >= 500);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      items = items.filter(item => item.path.toLowerCase().includes(query));
+    }
+
+    return items;
+  }, [comparisonDataQuery.data?.diff_items, hideSmallChanges, searchQuery]);
+
   if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
     return (
       <Flex
@@ -257,10 +292,13 @@ export function SizeCompareMainContent() {
       <Grid columns="repeat(3, 1fr)" gap="lg">
         {processedMetrics.map((metric, index) => {
           let variant: 'danger' | 'success' | 'muted' = 'muted';
+          let icon: React.ReactNode | undefined;
           if (metric.diff > 0) {
             variant = 'danger';
+            icon = <IconArrow direction="up" size="xs" />;
           } else if (metric.diff < 0) {
             variant = 'success';
+            icon = <IconArrow direction="down" size="xs" />;
           }
 
           return (
@@ -280,8 +318,8 @@ export function SizeCompareMainContent() {
                 </Flex>
                 <Flex align="end" gap="sm">
                   <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
-                  {/* TODO: Danger/success */}
                   <InlineText variant={variant} size="sm">
+                    {icon}
                     <Text variant={variant} size="sm">
                       {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
                       {formatBytesBase10(Math.abs(metric.diff))}
@@ -316,19 +354,68 @@ export function SizeCompareMainContent() {
         })}
       </Grid>
 
-      {/* Files Changed Section */}
+      {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
-          {/* TODO: Collapsable */}
-          <Flex align="center" gap="sm" padding="xl">
-            <Heading as="h2">{t('Files Changed:')}</Heading>
-            <Heading as="h2" variant="muted">
-              {comparisonDataQuery.data?.diff_items.length}
-            </Heading>
+          <Flex align="center" justify="between" padding="xl">
+            <Flex align="center" gap="sm">
+              <Heading as="h2">{t('Items Changed:')}</Heading>
+              <Heading as="h2" variant="muted">
+                {filteredDiffItems.length}
+              </Heading>
+            </Flex>
+            <Flex align="center" gap="sm">
+              <Button
+                priority="transparent"
+                size="sm"
+                onClick={() => setIsFilesExpanded(!isFilesExpanded)}
+                aria-label={isFilesExpanded ? t('Collapse items') : t('Expand items')}
+              >
+                <IconChevron
+                  direction={isFilesExpanded ? 'up' : 'down'}
+                  size="sm"
+                  style={{
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </Button>
+            </Flex>
           </Flex>
-          <SizeCompareItemDiffTable
-            diffItems={comparisonDataQuery.data?.diff_items || []}
-          />
+          {isFilesExpanded && (
+            <Stack>
+              <Flex
+                align="center"
+                gap="xl"
+                paddingLeft="xl"
+                paddingRight="xl"
+                paddingBottom="xl"
+              >
+                <InputGroup style={{width: '100%'}}>
+                  <InputGroup.LeadingItems>
+                    <IconSearch />
+                  </InputGroup.LeadingItems>
+                  <InputGroup.Input
+                    placeholder={t('Search')}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                </InputGroup>
+                <Flex align="center" gap="lg">
+                  <Text wrap="nowrap">{t('Hide small changes (< 500B)')}</Text>
+                  <Switch
+                    checked={hideSmallChanges}
+                    size="sm"
+                    title={t('Hide < 500B')}
+                    onChange={() => setHideSmallChanges(!hideSmallChanges)}
+                    aria-label={
+                      hideSmallChanges ? t('Show small changes') : t('Hide small changes')
+                    }
+                  />
+                </Flex>
+              </Flex>
+              <SizeCompareItemDiffTable diffItems={filteredDiffItems} />
+            </Stack>
+          )}
         </Flex>
       </Container>
     </Flex>

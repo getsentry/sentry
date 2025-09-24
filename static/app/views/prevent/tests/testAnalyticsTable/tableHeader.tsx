@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {tct} from 'sentry/locale';
@@ -17,17 +15,12 @@ type TableHeaderParams = {
 function FlakyTestsTooltip() {
   const {preventPeriod} = usePreventContext();
   const dateRange = preventPeriod
-    ? Object.values(getArbitraryRelativePeriod(preventPeriod))
+    ? Object.values(getArbitraryRelativePeriod(preventPeriod)).join(', ')
     : '24 hours';
 
-  return (
-    <p>
-      {tct(
-        `Shows how often a flake occurs by tracking how many times a test goes from fail to pass or pass to fail on a given branch and commit within the [dateRange]`,
-        {dateRange: <StyledDateRange>{dateRange}</StyledDateRange>}
-      )}
-      .
-    </p>
+  return tct(
+    `Shows how often a flake occurs by tracking how many times a test goes from fail to pass or pass to fail on a given branch and commit within the [dateRange].`,
+    {dateRange: <strong>{dateRange.toLowerCase()}</strong>}
   );
 }
 
@@ -55,8 +48,3 @@ export const renderTableHeader = ({
     />
   );
 };
-
-const StyledDateRange = styled('span')`
-  text-transform: lowercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
