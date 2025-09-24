@@ -23,7 +23,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "To get started, download the latest release of Sentry for Godot from [releasesLink: GitHub Releases page] and place the Sentry addon in [code: addons/sentry] in your project's directory.",
+            "To get started, download the latest release of Sentry for Godot from [releasesLink: GitHub Releases] and place the Sentry addon in [code: addons/sentry] in your project's directory.",
             {
               releasesLink: (
                 <ExternalLink href="https://github.com/getsentry/sentry-godot/releases" />
