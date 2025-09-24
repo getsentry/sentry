@@ -11,6 +11,7 @@ from django.db.migrations.state import StateApps
 from django.db.models import Prefetch
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -221,8 +222,10 @@ def link_crons_to_compatible_issue_workflows(
     Monitor = apps.get_model("monitors", "Monitor")
 
     rules_by_project = defaultdict(list)
-    for rule in Rule.objects.filter(source=0):
-        rules_by_project[rule.project_id].append(rule)
+
+    for rule in RangeQuerySetWrapper(Rule.objects.all(), step=10000):
+        if rule.source == 0:
+            rules_by_project[rule.project_id].append(rule)
 
     if not rules_by_project:
         logger.info("No issue rules found, skipping migration")
