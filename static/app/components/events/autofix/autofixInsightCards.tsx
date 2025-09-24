@@ -472,6 +472,7 @@ function AutofixInsightCards({
   // Compare current insights with previous insights to determine which ones are new
   useEffect(() => {
     if (insights.length === previousInsightsRef.current.length + 1) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setNewInsightIndices([insights.length - 1]);
     } else {
       setNewInsightIndices([]);

@@ -157,6 +157,7 @@ function useFilterKeySections({
   const previousNumSections = usePrevious(numSections);
   useEffect(() => {
     if (previousNumSections !== numSections) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectedSection(sections[0]!.value);
     }
   }, [numSections, previousNumSections, sections]);
