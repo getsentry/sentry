@@ -25,6 +25,7 @@ import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table
 import {UserCell} from 'sentry/views/insights/pages/platform/shared/table/UserCell';
 import {useTableDataWithController} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const getP95Threshold = (avg: number) => {
   return {
@@ -56,11 +57,11 @@ const rightAlignColumns = new Set([
 export function PathsTable() {
   const {query} = useTransactionNameQuery();
   const mutableQuery = new MutableSearch(query);
-  mutableQuery.addFilterValue('transaction.op', 'http.server');
-  mutableQuery.addFilterValue('is_transaction', 'true');
+  mutableQuery.addFilterValue(SpanFields.TRANSACTION_OP, 'http.server');
+  mutableQuery.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
   const tableDataRequest = useTableDataWithController({
-    query: mutableQuery.formatString(),
+    query: mutableQuery,
     fields: [
       'project.id',
       'transaction',

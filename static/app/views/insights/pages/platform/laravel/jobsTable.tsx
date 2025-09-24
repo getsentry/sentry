@@ -20,6 +20,7 @@ import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/E
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {
@@ -54,10 +55,10 @@ const rightAlignColumns = new Set([
 export function JobsTable() {
   const {query} = useTransactionNameQuery();
   const mutableQuery = new MutableSearch(query);
-  mutableQuery.addFilterValue('span.op', 'queue.process');
+  mutableQuery.addFilterValue(SpanFields.SPAN_OP, 'queue.process');
 
   const tableDataRequest = useSpanTableData({
-    query: mutableQuery.formatString(),
+    query: mutableQuery,
     fields: [
       'count()',
       'project.id',
