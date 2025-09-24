@@ -5,7 +5,6 @@ import os
 import random
 import signal
 import time
-from collections.abc import Mapping
 from typing import Any
 
 import click
@@ -143,30 +142,22 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     """
     from django.conf import settings
 
-    from sentry import options as runtime_options
-    from sentry.conf.types.taskworker import ScheduleConfig
-    from sentry.taskworker.registry import taskregistry
+    from sentry.taskworker.runtime import app
     from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
     from sentry.utils.redis import redis_clusters
 
-    for module in settings.TASKWORKER_IMPORTS:
-        __import__(module)
-
+    app.load_modules()
     run_storage = RunStorage(redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
-        runner = ScheduleRunner(taskregistry, run_storage)
-        schedules: Mapping[str, ScheduleConfig] = {}
-        if runtime_options.get("taskworker.enabled"):
-            schedules = settings.TASKWORKER_SCHEDULES
-
-        for key, schedule_data in schedules.items():
+        runner = ScheduleRunner(app, run_storage)
+        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             runner.add(key, schedule_data)
 
         logger.info(
             "taskworker.scheduler.schedule_data",
             extra={
-                "schedule_keys": list(schedules.keys()),
+                "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
             },
         )
 
@@ -174,6 +165,87 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
         while True:
             sleep_time = runner.tick()
             time.sleep(sleep_time)
+
+
+@run.command()
+@click.option(
+    "--pidfile",
+    help=(
+        "Optional file used to store the process pid. The "
+        "program will not start if this file already exists and "
+        "the pid is still alive."
+    ),
+)
+@click.option(
+    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
+)
+@click.option("--quiet", "-q", is_flag=True, default=False)
+@click.option("--no-color", is_flag=True, default=False)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--without-gossip", is_flag=True, default=False)
+@click.option("--without-mingle", is_flag=True, default=False)
+@click.option("--without-heartbeat", is_flag=True, default=False)
+@log_options()
+@configuration
+def cron(**options: Any) -> None:
+    # TODO(taskworker) Remove this stub command
+    while True:
+        click.secho(
+            "The cron command has been removed. Use `sentry run taskworker-scheduler` instead.",
+            fg="yellow",
+        )
+        time.sleep(5)
+
+
+@run.command()
+@click.option(
+    "--hostname",
+    "-n",
+    help=(
+        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
+    ),
+)
+@click.option(
+    "--queues",
+    "-Q",
+    type=QueueSet,
+    help=(
+        "List of queues to enable for this worker, separated by "
+        "comma. By default all configured queues are enabled. "
+        "Example: -Q video,image"
+    ),
+)
+@click.option("--exclude-queues", "-X", type=QueueSet)
+@click.option(
+    "--concurrency",
+    "-c",
+    default=1,
+    help=(
+        "Number of child processes processing the queue. The "
+        "default is the number of CPUs available on your "
+        "system."
+    ),
+)
+@click.option(
+    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
+)
+@click.option("--quiet", "-q", is_flag=True, default=False)
+@click.option("--no-color", is_flag=True, default=False)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--without-gossip", is_flag=True, default=False)
+@click.option("--without-mingle", is_flag=True, default=False)
+@click.option("--without-heartbeat", is_flag=True, default=False)
+@click.option("--max-tasks-per-child", default=10000)
+@click.option("--ignore-unknown-queues", is_flag=True, default=False)
+@log_options()
+@configuration
+def worker(ignore_unknown_queues: bool, **options: Any) -> None:
+    # TODO(taskworker) Remove this stub command
+    while True:
+        click.secho(
+            "The worker command has been removed. Use `sentry run taskworker` instead.", fg="yellow"
+        )
+        time.sleep(5)
 
 
 @run.command()
@@ -262,6 +334,7 @@ def run_taskworker(
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
+            app_module="sentry.taskworker.runtime:app",
             broker_hosts=make_broker_hosts(
                 host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
             ),

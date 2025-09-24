@@ -74,15 +74,16 @@ import CheckoutSuccess from 'getsentry/views/amCheckout/checkoutSuccess';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
 import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
-import BillingCycle from 'getsentry/views/amCheckout/steps/checkoutV3/billingCycle';
+import AddBillingInformation from 'getsentry/views/amCheckout/steps/checkoutV3/addBillingInfo';
 import BuildYourPlan from 'getsentry/views/amCheckout/steps/checkoutV3/buildYourPlan';
+import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/checkoutV3/chooseYourBillingCycle';
 import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
 import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
 import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
 import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
 import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
-import SetSpendCap from 'getsentry/views/amCheckout/steps/setSpendCap';
+import SetSpendLimit from 'getsentry/views/amCheckout/steps/setSpendLimit';
 import type {
   CheckoutFormData,
   SelectedProductData,
@@ -296,7 +297,12 @@ class AMCheckout extends Component<Props, State> {
       : OnDemandSpend;
 
     if (isNewCheckout) {
-      return [BuildYourPlan, SetSpendCap, BillingCycle];
+      return [
+        BuildYourPlan,
+        SetSpendLimit,
+        ChooseYourBillingCycle,
+        AddBillingInformation,
+      ];
     }
 
     const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
@@ -903,7 +909,6 @@ class AMCheckout extends Component<Props, State> {
               <Cart
                 {...overviewProps}
                 referrer={this.referrer}
-                hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
                 formDataForPreview={formDataForPreview}
                 onSuccess={params => {
                   this.setState(prev => ({...prev, ...params}));
@@ -917,11 +922,21 @@ class AMCheckout extends Component<Props, State> {
             <SupportPrompt>
               {t('Have a question?')}
               <TextOverflow>
-                {tct('[help:Find an Answer] or [contact:Ask Support]', {
+                {tct('[help:Find an answer] or [contact]', {
                   help: (
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
-                  contact: <ZendeskLink subject="Billing Question" source="checkout" />,
+                  contact: (
+                    <ZendeskLink
+                      subject="Billing Question"
+                      source="checkout"
+                      Component={({href, onClick}) => (
+                        <LinkButton href={href ?? ''} onClick={onClick}>
+                          {t('ask Support')}
+                        </LinkButton>
+                      )}
+                    />
+                  ),
                 })}
               </TextOverflow>
             </SupportPrompt>

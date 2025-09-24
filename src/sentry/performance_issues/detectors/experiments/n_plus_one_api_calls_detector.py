@@ -12,17 +12,17 @@ from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.base import (
-    DetectorType,
-    PerformanceDetector,
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
+from sentry.performance_issues.detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
     get_span_evidence_value,
+    get_total_span_duration,
     get_url_from_span,
+    is_filtered_url,
     parameterize_url,
     parameterize_url_with_result,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -132,7 +132,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         if not url:
             return False
 
-        if has_filtered_url(self._event, span):
+        if is_filtered_url(url):
             return False
 
         # Once most users update their SDKs to use the latest standard, we
@@ -169,6 +169,13 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         if not fingerprint:
             return
 
+        if self.stored_problems.get(fingerprint):
+            logging.info(
+                "Multiple occurrences detected for fingerprint",
+                extra={"detector": self.settings_key},
+            )
+            return
+
         offender_span_ids = [span["span_id"] for span in self.spans]
         problem_description = self._get_parameterized_url(self.spans[0])
         if problem_description == "":
@@ -177,8 +184,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
             )
 
         parent_span_id = last_span.get("parent_span_id")
-        if self.stored_problems.get(fingerprint):
-            logging.info("Multiple N+1 API Call Problems for Fingerprint")
+
         parameters = self._get_parameters()
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,

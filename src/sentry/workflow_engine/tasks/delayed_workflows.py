@@ -11,21 +11,12 @@ import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-import sentry.workflow_engine.buffer as buffer
 from sentry import features, nodestore, options
-from sentry.buffer.base import BufferField
-from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
-from sentry.rules.processing.buffer_processing import (
-    BufferHashKeys,
-    DelayedProcessingBase,
-    FilterKeys,
-    delayed_processing_registry,
-)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -34,13 +25,15 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.taskworker.state import current_task
-from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import RateLimitExceeded, SnubaError
-from sentry.workflow_engine.buffer.redis_hash_sorted_set_buffer import RedisHashSortedSetBuffer
+from sentry.workflow_engine.buffer.batch_client import (
+    DelayedWorkflowClient,
+    ProjectDelayedWorkflowClient,
+)
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     GroupValues,
@@ -306,19 +299,6 @@ def fetch_project(project_id: int) -> Project | None:
             extra={"project_id": project_id},
         )
         return None
-
-
-def fetch_group_to_event_data(
-    project_id: int, model: type[models.Model], batch_key: str | None = None
-) -> dict[str, str]:
-    field: dict[str, models.Model | int | str] = {
-        "project_id": project_id,
-    }
-
-    if batch_key:
-        field["batch_key"] = batch_key
-
-    return buffer.get_backend().get_hash(model=model, field=field)
 
 
 def fetch_workflows_envs(
@@ -791,14 +771,9 @@ def fire_actions_for_groups(
 
 @sentry_sdk.trace
 def cleanup_redis_buffer(
-    project_id: int, event_keys: Iterable[EventKey], batch_key: str | None
+    client: ProjectDelayedWorkflowClient, event_keys: Iterable[EventKey], batch_key: str | None
 ) -> None:
-    hashes_to_delete = [key.original_key for key in event_keys]
-    filters: dict[str, BufferField] = {"project_id": project_id}
-    if batch_key:
-        filters["batch_key"] = batch_key
-
-    buffer.get_backend().delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
+    client.delete_hash_fields(batch_key=batch_key, fields=[key.original_key for key in event_keys])
 
 
 def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
@@ -840,6 +815,7 @@ def process_delayed_workflows(
     """
     log_context.add_extras(project_id=project_id)
 
+    batch_client = DelayedWorkflowClient()
     with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
         project = fetch_project(project_id)
         if not project:
@@ -850,7 +826,7 @@ def process_delayed_workflows(
         ):
             log_context.set_verbose(True)
 
-        redis_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
+        redis_data = batch_client.for_project(project_id).get_hash_data(batch_key)
         event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
 
         metrics.incr(
@@ -935,23 +911,4 @@ def process_delayed_workflows(
     )
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
-    cleanup_redis_buffer(project_id, event_data.events.keys(), batch_key)
-
-
-@delayed_processing_registry.register("delayed_workflow")
-class DelayedWorkflow(DelayedProcessingBase):
-    buffer_key = "workflow_engine_delayed_processing_buffer"
-    buffer_shards = 8
-    option = "delayed_workflow.rollout"
-
-    @property
-    def hash_args(self) -> BufferHashKeys:
-        return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
-
-    @property
-    def processing_task(self) -> Task[Any, Any]:
-        return process_delayed_workflows
-
-    @staticmethod
-    def buffer_backend() -> RedisHashSortedSetBuffer:
-        return buffer.get_backend()
+    cleanup_redis_buffer(batch_client.for_project(project_id), event_data.events.keys(), batch_key)

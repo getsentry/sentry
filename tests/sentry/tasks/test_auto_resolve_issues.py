@@ -14,7 +14,6 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
-from sentry.testutils.helpers.features import with_feature
 
 
 class ScheduleAutoResolutionTest(TestCase):
@@ -23,7 +22,6 @@ class ScheduleAutoResolutionTest(TestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    @with_feature("organizations:issue-open-periods")
     def test_simple(self, mock_kick_off_status_syncs: MagicMock, mock_record: MagicMock) -> None:
         project = self.create_project()
         project2 = self.create_project()
