@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 
+import localStorageWrapper from 'sentry/utils/localStorage';
 import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 
 interface UpdateFeatureParams {
@@ -40,7 +41,7 @@ export function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
         const currentConfig: PreventAIConfig = (() => {
           try {
             const storageKey = getStorageKey();
-            const stored = localStorage.getItem(storageKey);
+            const stored = localStorageWrapper.getItem(storageKey);
             if (stored) {
               return JSON.parse(stored);
             }
@@ -78,7 +79,7 @@ export function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
 
         // Save to localStorage
         const storageKey = getStorageKey();
-        localStorage.setItem(storageKey, JSON.stringify(updatedConfig));
+        localStorageWrapper.setItem(storageKey, JSON.stringify(updatedConfig));
 
         // Simulate API delay for realistic UX
         await new Promise(resolve => setTimeout(resolve, 300));

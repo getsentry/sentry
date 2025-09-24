@@ -22,7 +22,7 @@ describe('Dashboards - DashboardTable', () => {
   let dashboardUpdateMock: jest.Mock;
   let createMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   const {router} = initializeOrg();
@@ -280,7 +280,7 @@ describe('Dashboards - DashboardTable', () => {
 
   it('renders access column', async () => {
     const organizationWithEditAccess = OrganizationFixture({
-      features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
 
     render(
@@ -306,7 +306,7 @@ describe('Dashboards - DashboardTable', () => {
     });
 
     const organizationWithFavorite = OrganizationFixture({
-      features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
 
     render(

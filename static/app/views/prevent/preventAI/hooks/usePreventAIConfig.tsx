@@ -1,5 +1,6 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 
 type PreventAIConfigResult = {
@@ -62,9 +63,10 @@ export function usePreventAIConfig(
     [orgName, repoName]
   );
 
-  const loadConfig = useCallback((): PreventAIConfig => {
+  const [stored] = useLocalStorageState(storageKey, undefined);
+
+  const config = useMemo(() => {
     try {
-      const stored = localStorage.getItem(storageKey);
       if (stored) {
         return mergeConfig(JSON.parse(stored));
       }
@@ -72,16 +74,12 @@ export function usePreventAIConfig(
       // ignore (we are using local storage for a dummy UI until the api is hooked up)
     }
     return DEFAULT_CONFIG;
-  }, [storageKey]);
-
-  const [config, setConfig] = useState<PreventAIConfig>(loadConfig);
-
-  const refetch = useCallback(() => setConfig(loadConfig()), [loadConfig]);
+  }, [stored]);
 
   return {
     data: config,
     isLoading: false,
     isError: false,
-    refetch,
+    refetch: () => {},
   };
 }
