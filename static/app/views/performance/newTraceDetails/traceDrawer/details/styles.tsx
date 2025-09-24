@@ -14,6 +14,7 @@ import {
   type DropdownMenuProps,
   type MenuItemProps,
 } from 'sentry/components/dropdownMenu';
+import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -41,7 +42,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
+import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -762,6 +763,40 @@ const HighlightsRightColumn = styled('div')`
   overflow: hidden;
 `;
 
+function IssuesLink({
+  node,
+  children,
+}: {
+  children: React.ReactNode;
+  node: TraceTreeNode<TraceTree.NodeValue>;
+}) {
+  const organization = useOrganization();
+  const params = useParams<{traceSlug?: string}>();
+  const traceSlug = params.traceSlug?.trim() ?? '';
+
+  // Adding a buffer of 15mins for errors only traces, where there is no concept of
+  // trace duration and start equals end timestamps.
+  const buffer = node.space[1] > 0 ? 0 : 15 * 60 * 1000;
+
+  return (
+    <Link
+      to={{
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {
+          query: `trace:${traceSlug}`,
+          start: new Date(node.space[0] - buffer).toISOString(),
+          end: new Date(node.space[0] + node.space[1] + buffer).toISOString(),
+          // If we don't pass the project param, the issues page will filter by the last selected project.
+          // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
+          project: -1,
+        },
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
+
 const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
   observerOptions: {rootMargin: '50px'},
 };
@@ -1102,6 +1137,16 @@ const ActionWrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
+function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
+  return (
+    <EventTagsDataSection
+      event={event}
+      projectSlug={projectSlug}
+      disableCollapsePersistence
+    />
+  );
+}
+
 export type SectionCardKeyValueList = KeyValueListData;
 
 function SectionCard({
@@ -1330,8 +1375,10 @@ export const TraceDrawerComponents = {
   LAZY_RENDER_PROPS,
   TableRowButtonContainer,
   TableValueRow,
+  IssuesLink,
   SectionCard,
   CopyableCardValueWithLink,
+  EventTags,
   SubtitleWithCopyButton,
   TraceDataSection,
   SectionCardGroup,
