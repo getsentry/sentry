@@ -1053,6 +1053,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'case',
+        groups: ['action'],
+        keywords: ['case', 'toggle', 'search', 'case sensitive', 'A', 'Aa'],
+        name: 'Case',
+        defaultProps: {},
+      },
+      {
         id: 'show',
         groups: ['action'],
         keywords: ['visible', 'eye', 'view', 'display'],
