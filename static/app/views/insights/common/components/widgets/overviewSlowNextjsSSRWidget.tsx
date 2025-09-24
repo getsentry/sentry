@@ -59,6 +59,7 @@ export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetPr
       sort: {field: 'avg(span.duration)', kind: 'desc'},
       topEvents: 4,
       enabled: !!spansRequest.data,
+      pageFilters: props.pageFilters,
     },
     Referrer.SLOW_SSR_CHART
   );

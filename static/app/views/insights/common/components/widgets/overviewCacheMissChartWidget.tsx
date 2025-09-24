@@ -64,6 +64,7 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
       groupBy: ['transaction'],
       topEvents: 4,
       enabled: !!cachesRequest.data,
+      pageFilters: props.pageFilters,
     },
     Referrer.CACHE_CHART
   );

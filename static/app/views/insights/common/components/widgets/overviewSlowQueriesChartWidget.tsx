@@ -70,6 +70,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
       sort: {field: 'avg(span.duration)', kind: 'desc'},
       topEvents: 3,
       enabled: queriesRequest.data.length > 0,
+      pageFilters: props.pageFilters,
     },
     Referrer.QUERIES_CHART
   );
