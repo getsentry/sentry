@@ -115,10 +115,15 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         return self.name or self.id
 
     def get_subcomponent(
-        self, id: str, only_contributing: bool = False
+        self, id: str, recursive: bool = False, only_contributing: bool = False
     ) -> str | int | BaseGroupingComponent[Any] | None:
         """Looks up a subcomponent by the id and returns the first or `None`."""
-        return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
+        return next(
+            self.iter_subcomponents(
+                id=id, recursive=recursive, only_contributing=only_contributing
+            ),
+            None,
+        )
 
     def iter_subcomponents(
         self, id: str, recursive: bool = False, only_contributing: bool = False
