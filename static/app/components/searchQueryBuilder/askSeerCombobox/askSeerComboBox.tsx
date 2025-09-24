@@ -217,7 +217,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         );
       }
 
-      const readableQuery = generateQueryTokensString<T>(item);
+      const readableQuery = generateQueryTokensString(item);
 
       return (
         <Item

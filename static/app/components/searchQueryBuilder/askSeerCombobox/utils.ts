@@ -79,7 +79,7 @@ export function formatQueryToNaturalLanguage(query: string): string {
   return `${formattedQuery} `;
 }
 
-export function generateQueryTokensString<T extends QueryTokensProps>(args: T): string {
+export function generateQueryTokensString(args: QueryTokensProps): string {
   const parts = [];
 
   if (args?.query) {
