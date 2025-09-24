@@ -71,7 +71,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             )
 
         if options.get("sentry:skip-record-onboarding-tasks-if-complete"):
-            onboarding_complete_option = OrganizationOption.get_value(
+            onboarding_complete_option = OrganizationOption.objects.get_value(
                 organization_id, "onboarding:complete", None
             )
             if onboarding_complete_option:
