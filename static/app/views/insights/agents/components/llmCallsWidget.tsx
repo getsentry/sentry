@@ -6,10 +6,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
-import {
-  useFetchEventsTimeSeries,
-  useFetchSpanTimeSeries,
-} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -21,8 +18,6 @@ import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -32,6 +27,7 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function LLMCallsWidget() {
@@ -57,7 +53,7 @@ export default function LLMCallsWidget() {
     {
       ...pageFilterChartParams,
       query: fullQuery,
-      groupBy: ['gen_ai.request.model'],
+      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
       yAxis: ['count(span.duration)'],
       sort: {field: 'count(span.duration)', kind: 'desc'},
       topEvents: 3,
