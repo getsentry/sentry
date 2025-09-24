@@ -102,23 +102,26 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
         return;
       }
 
+      // If clicking within the same container while already selected (and no range selection), toggle off
+      if (selection?.referenceElement === containerRef.current) {
+        setSelection(null);
+        return;
+      }
+
       // Otherwise treat it as a simple click-to-open
       const clickedText = containerRef.current?.textContent?.trim() || '';
-      setSelection(
-        clickedText
-          ? {
-              selectedText: clickedText,
-              referenceElement: containerRef.current!,
-              isRangeSelection: false,
-            }
-          : {
-              selectedText: '',
-              referenceElement: containerRef.current!,
-              isRangeSelection: false,
-            }
-      );
+      if (!clickedText) {
+        setSelection(null);
+        return;
+      }
+
+      setSelection({
+        selectedText: clickedText,
+        referenceElement: containerRef.current!,
+        isRangeSelection: false,
+      });
     },
-    [containerRef, getSelectedTextWithinContainer]
+    [containerRef, selection, getSelectedTextWithinContainer]
   );
 
   const clearSelection = useCallback(
