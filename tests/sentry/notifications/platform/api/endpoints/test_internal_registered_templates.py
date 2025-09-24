@@ -30,10 +30,10 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
 
 
 class SerializeSlackPreviewTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.template = MockNotificationTemplate()
 
-    def test_serialize_slack_preview_complete(self):
+    def test_serialize_slack_preview_complete(self) -> None:
         """Test complete serialization of Slack preview with all components"""
         result = serialize_slack_preview(self.template)
 
@@ -89,7 +89,7 @@ class SerializeSlackPreviewTest(TestCase):
 
 
 class SerializeTemplateTest(TestCase):
-    def test_serialize_template_form(self):
+    def test_serialize_template_form(self) -> None:
         """Test that serialize_template returns the correct structure"""
         template = MockNotificationTemplate()
         source = "test-source"
