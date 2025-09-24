@@ -160,10 +160,11 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
     const isContributing = variant.hash !== null;
 
     let title: string;
+    let hint: string | null | undefined;
     if (isContributing) {
       title = t('Contributing variant');
     } else {
-      const hint = 'component' in variant ? variant.component?.hint : undefined;
+      hint = 'component' in variant ? variant.component?.hint : undefined;
       if (hint) {
         title = t('Non-contributing variant: %s', hint);
       } else {
@@ -179,6 +180,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
             ?.split(' ')
             .map(i => capitalize(i))
             .join(' ') ?? t('Nothing')}
+          <VariantHint>{!isContributing && hint && t('(%s)', hint)}</VariantHint>
         </VariantTitle>
       </Tooltip>
     );
@@ -221,6 +223,13 @@ const VariantTitle = styled('h5')`
   margin: 0;
   display: flex;
   align-items: center;
+`;
+
+const VariantHint = styled('span')`
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.textColor};
+  margin-left: ${p => p.theme.space.xs};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const ContributionIcon = styled(({isContributing, ...p}: any) =>
