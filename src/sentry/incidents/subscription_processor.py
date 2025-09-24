@@ -635,7 +635,7 @@ class SubscriptionProcessor:
         self.update_alert_rule_stats()
         return fired_incident_triggers
 
-    def has_downgraded(self, dataset: Dataset, organization: Organization) -> bool:
+    def has_downgraded(self, dataset: str, organization: Organization) -> bool:
         """
         Check if the organization has downgraded since the subscription was created, return early if True
         """
@@ -649,7 +649,9 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
             return True
 
-        elif dataset == "generic_metrics" and not features.has("on-demand-metrics-extraction"):
+        elif dataset == "generic_metrics" and not features.has(
+            "on-demand-metrics-extraction", organization
+        ):
             metrics.incr("incidents.alert_rules.ignore_update_missing_on_demand")
             return True
 
