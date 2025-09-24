@@ -68,6 +68,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   canAutogroup = false;
 
   /**
+   * Can show details in the trace drawer.
+   */
+  canShowDetails = true;
+
+  /**
    * The errors associated with the node.
    */
   errors = new Set<TraceTree.TraceErrorIssue>();
@@ -107,6 +112,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
    * The extra options for the node. Examples include the organization to check for enabled features.
    */
   extra: TraceTreeNodeExtra | null;
+
+  /**
+   * Whether the node is an EAP event.
+   */
+  isEAPEvent = false;
 
   /**
    * The maximum severity of the node's issues.
@@ -284,6 +294,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return 'default';
   }
 
+  isRootNodeChild(): boolean {
+    return this.parent?.value === null;
+  }
+
   isLastChild(): boolean {
     if (!this.parent) {
       return false;
@@ -423,6 +437,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   ): Promise<any> {
     return Promise.resolve(null);
   }
+
+  abstract matchByPath(path: TraceTree.NodePath): boolean;
 
   abstract get drawerTabsTitle(): string;
 

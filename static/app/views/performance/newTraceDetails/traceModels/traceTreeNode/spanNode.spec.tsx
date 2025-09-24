@@ -293,6 +293,16 @@ describe('SpanNode', () => {
   });
 
   describe('abstract method implementations', () => {
+    it('should implement matchByPath', () => {
+      const span = makeSpan({
+        span_id: '123',
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+
+      expect(node.matchByPath('span-123')).toBe(true);
+      expect(node.matchByPath('span-456')).toBe(false);
+    });
+
     it('should implement renderWaterfallRow', () => {
       const span = makeSpan();
       const node = new SpanNode(null, span, createMockExtra());

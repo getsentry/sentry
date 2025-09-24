@@ -38,7 +38,7 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   }
 
   get id(): string {
-    return uuid4();
+    return this.previous.id || this.next.id || uuid4();
   }
 
   get drawerTabsTitle(): string {
@@ -65,6 +65,15 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     }
 
     return path;
+  }
+
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'ms' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
   }
 
   analyticsName(): string {

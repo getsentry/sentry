@@ -185,6 +185,15 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return [`txn-${this.id}`];
   }
 
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'txn' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
+  }
+
   matchWithFreeText(query: string): boolean {
     if (this.op?.includes(query)) {
       return true;

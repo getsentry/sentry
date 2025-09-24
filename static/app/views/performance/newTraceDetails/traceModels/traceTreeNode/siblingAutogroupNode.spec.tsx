@@ -443,6 +443,19 @@ describe('SiblingAutogroupNode', () => {
   });
 
   describe('matchById', () => {
+    it('should match by path', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeSiblingAutogroup({});
+      const childSpanValue = makeEAPSpan({event_id: 'child1'});
+      const childNode = new EapSpanNode(null, childSpanValue, extra);
+      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
+      node.children = [childNode];
+
+      expect(node.matchByPath('ag-child1')).toBe(true);
+      expect(node.matchByPath('ag-child2')).toBe(false);
+      expect(node.matchByPath('span-differentId')).toBe(false);
+    });
+
     it('should match by first child ID only', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});

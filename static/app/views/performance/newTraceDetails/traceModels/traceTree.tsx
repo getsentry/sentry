@@ -298,7 +298,7 @@ export declare namespace TraceTree {
   type Node = BaseNode;
 
   type NodePath =
-    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty' | 'uptime-check' | 'uptime-check-timing'}-${string}`;
+    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty' | 'uptimeCheck' | 'uptimeCheckTiming' | 'collapsed'}-${string}`;
 
   type Metadata = {
     event_id: string | undefined;

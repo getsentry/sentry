@@ -111,6 +111,15 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     return this.children[0]?.id === id;
   }
 
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'ag' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
+  }
+
   matchWithFreeText(query: string): boolean {
     if (this.op?.includes(query)) {
       return true;

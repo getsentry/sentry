@@ -247,6 +247,21 @@ describe('TransactionNode', () => {
   });
 
   describe('matchById', () => {
+    it('should match by path', () => {
+      const transaction = makeTransaction({
+        event_id: '123',
+      });
+      const node = new TransactionNode(
+        null,
+        transaction,
+        createMockExtra(),
+        mockFromSpans,
+        mockApplyPreference
+      );
+
+      expect(node.matchByPath('txn-123')).toBe(true);
+      expect(node.matchByPath('txn-456')).toBe(false);
+    });
     it('should match by event_id', () => {
       const transaction = makeTransaction({
         event_id: 'txn-123',

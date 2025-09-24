@@ -743,6 +743,27 @@ describe('ParentAutogroupNode', () => {
   });
 
   describe('matchById', () => {
+    it('should match by path', () => {
+      const extra = createMockExtra();
+      const autogroupValue = makeParentAutogroup({});
+      const headSpanValue = makeEAPSpan({event_id: 'headSpanId'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tailSpanId'});
+
+      const headNode = new EapSpanNode(null, headSpanValue, extra);
+      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
+      const node = new ParentAutogroupNode(
+        null,
+        autogroupValue,
+        extra,
+        headNode,
+        tailNode
+      );
+
+      expect(node.matchByPath('ag-headSpanId')).toBe(true);
+      expect(node.matchByPath('ag-tailSpanId')).toBe(true);
+      expect(node.matchByPath('ag-differentId')).toBe(false);
+    });
+
     it('should match by head node id', () => {
       const extra = createMockExtra();
       const autogroupValue = makeParentAutogroup({});

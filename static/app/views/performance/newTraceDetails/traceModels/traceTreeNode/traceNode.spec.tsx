@@ -20,6 +20,14 @@ const createMockTraceValue = (): TraceTree.Trace => [
 
 describe('TraceNode', () => {
   describe('constructor', () => {
+    it('should initialize with basic properties', () => {
+      const extra = createMockExtra();
+      const traceValue = createMockTraceValue();
+      const traceNode = new TraceNode(null, traceValue, extra);
+
+      expect(traceNode.canShowDetails).toBe(false);
+    });
+
     it('should add itself to parent children when parent is provided', () => {
       const extra = createMockExtra();
       const traceValue = createMockTraceValue();
@@ -125,6 +133,13 @@ describe('TraceNode', () => {
   });
 
   describe('abstract method implementations', () => {
+    it('should implement matchByPath', () => {
+      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
+
+      expect(traceNode.matchByPath('trace-root')).toBe(true);
+      expect(traceNode.matchByPath('trace-123')).toBe(false);
+    });
+
     it('should implement renderWaterfallRow', () => {
       const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 

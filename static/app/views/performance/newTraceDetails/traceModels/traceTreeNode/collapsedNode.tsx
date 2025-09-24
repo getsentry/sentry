@@ -16,6 +16,7 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
     extra: TraceTreeNodeExtra | null
   ) {
     super(parent, value, extra);
+    this.canShowDetails = false;
 
     this.parent?.children.push(this);
   }
@@ -30,6 +31,10 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
 
   printNode(): string {
     return 'collapsed';
+  }
+
+  matchByPath(_path: TraceTree.NodePath): boolean {
+    return false;
   }
 
   pathToNode(): TraceTree.NodePath[] {

@@ -7,6 +7,8 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode} from './baseNode';
 
 export class RootNode extends BaseNode<null> {
+  canShowDetails = false;
+
   get drawerTabsTitle(): string {
     return t('Root');
   }
@@ -31,6 +33,10 @@ export class RootNode extends BaseNode<null> {
     _props: TraceRowProps<T>
   ): React.ReactNode {
     return null;
+  }
+
+  matchByPath(_path: TraceTree.NodePath): boolean {
+    return false;
   }
 
   renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(

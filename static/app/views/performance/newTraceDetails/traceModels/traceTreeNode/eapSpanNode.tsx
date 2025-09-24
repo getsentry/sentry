@@ -36,6 +36,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     super(parentNode, value, extra);
 
+    this.isEAPEvent = true;
     this.expanded = !value.is_transaction;
     this.canAutogroup = !value.is_transaction;
     this.allowNoInstrumentationNodes = !value.is_transaction;
@@ -266,6 +267,15 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
   makeBarColor(theme: Theme): string {
     return pickBarColor(this.op, theme);
+  }
+
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'span' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
   }
 
   pathToNode(): TraceTree.NodePath[] {
