@@ -214,6 +214,7 @@ class AMCheckout extends Component<Props, State> {
         isNewCheckout: !!isNewCheckout,
       });
     }
+    Sentry.getReplay()?.start();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -227,6 +228,10 @@ class AMCheckout extends Component<Props, State> {
     } else {
       this.handleRedirect();
     }
+  }
+
+  componentWillUnmount() {
+    Sentry.getReplay()?.stop();
   }
 
   readonly initialStep: number;
