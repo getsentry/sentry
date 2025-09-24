@@ -69,6 +69,7 @@ function SetSpendCap({
   return (
     <Flex direction="column" gap="2xl">
       <SpendLimitSettings
+        organization={organization}
         header={
           <StepHeader
             title={t('Set your %s limit', activePlan.budgetTerm)}
