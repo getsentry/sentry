@@ -531,19 +531,19 @@ def _get_fallback_hashing_metadata(
 
     if (
         "app" in variants
-        and variants["app"].component.values[0].hint == "ignored because it contains no frames"
+        and variants["app"].root_component.values[0].hint == "ignored because it contains no frames"
     ):
         reason = "no_frames"
 
     elif (
         "system" in variants
-        and variants["system"].component.values[0].hint
+        and variants["system"].root_component.values[0].hint
         == "ignored because it contains no contributing frames"
     ):
         reason = "no_contributing_frames"
 
     elif "system" in variants and "min-frames" in (
-        variants["system"].component.values[0].hint or ""
+        variants["system"].root_component.values[0].hint or ""
     ):
         reason = "insufficient_contributing_frames"
 
