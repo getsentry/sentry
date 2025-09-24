@@ -43,6 +43,7 @@ export class VideoReplayer {
   private _attachments: VideoEvent[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
+  private _fullscreenVideoIndex = 0;
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: Array<[ts: number, index: number]>;
@@ -135,7 +136,7 @@ export class VideoReplayer {
   }
 
   private addListeners(el: HTMLVideoElement, index: number): void {
-    const handleEnded = () => this.handleSegmentEnd(index);
+    const handleEnded = () => this.handleSegmentEnd(index, el);
 
     const handleLoadedData = (event: any) => {
       // Used to correctly set the dimensions of the first frame
@@ -179,11 +180,16 @@ export class VideoReplayer {
       }
     };
 
+    const handleFullscreenChange = () => {
+      this._fullscreenVideoIndex = index;
+    };
+
     el.addEventListener('ended', handleEnded);
     el.addEventListener('loadeddata', handleLoadedData);
     el.addEventListener('play', handlePlay);
     el.addEventListener('loadedmetadata', handleLoadedMetaData);
     el.addEventListener('seeking', handleSeeking);
+    el.addEventListener('fullscreenchange', handleFullscreenChange);
 
     this._listeners.push(() => {
       el.removeEventListener('ended', handleEnded);
@@ -191,6 +197,7 @@ export class VideoReplayer {
       el.removeEventListener('play', handlePlay);
       el.removeEventListener('loadedmetadata', handleLoadedMetaData);
       el.removeEventListener('seeking', handleSeeking);
+      el.removeEventListener('fullscreenchange', handleFullscreenChange);
     });
   }
 
@@ -295,14 +302,23 @@ export class VideoReplayer {
     this._timer.stop();
     this._callbacks.onFinished!();
     this._isPlaying = false;
+    this._fullscreenVideoIndex = 0;
   }
 
   /**
    * Called when a video finishes playing, so that it can proceed
    * to the next video
    */
-  private async handleSegmentEnd(index: number): Promise<void> {
-    const nextIndex = index + 1;
+  private async handleSegmentEnd(
+    index: number,
+    previousVideo: HTMLVideoElement
+  ): Promise<void> {
+    const isFullscreen = document.fullscreenElement === previousVideo;
+    if (isFullscreen && !this._fullscreenVideoIndex) {
+      this._fullscreenVideoIndex = index;
+    }
+
+    const nextIndex = isFullscreen ? this._fullscreenVideoIndex + 1 : index + 1;
 
     // No more segments
     if (nextIndex >= this._attachments.length) {
@@ -316,6 +332,32 @@ export class VideoReplayer {
         return;
       }
       this.stopReplay();
+    }
+
+    // iOS Safari will play the video in fullscreen mode when pressing "play" on the replay.
+    // When the current video ends, in order to continue playing the next segment inside
+    // of the existing video player, we have to update the source of the video to the
+    // URL of the next segment.
+    if (isFullscreen) {
+      const nextAttachment = this._attachments[nextIndex];
+      if (!nextAttachment) {
+        return;
+      }
+
+      // Get the source element from the previous video and update its src
+      const sourceElement = previousVideo.querySelector('source');
+      if (!sourceElement) {
+        return;
+      }
+
+      const nextVideoSource = `${this._videoApiPrefix}${nextAttachment.id}/`;
+      sourceElement.src = nextVideoSource;
+      this._fullscreenVideoIndex = nextIndex;
+      // Load the new source and play next video
+      previousVideo.load();
+      previousVideo.play();
+
+      return;
     }
 
     // Final check in case replay was stopped immediately after a video
