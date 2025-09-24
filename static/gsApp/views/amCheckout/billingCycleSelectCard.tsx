@@ -52,24 +52,21 @@ function BillingCycleSelectCard({
   let cycleInfo: ReactNode;
   if (isPartnerMigration) {
     if (isAnnual) {
-      cycleInfo = t('Billed every 12 months from your selected start date on submission');
+      cycleInfo = t('Billed annually from your selected start date on submission');
     } else {
       cycleInfo = t('Billed monthly starting on your selected start date on submission');
     }
   } else if (isAnnual) {
-    cycleInfo = tct('Billed every 12 months on the [day] of [month]', {
-      day: contractStartDate.format('Do'),
-      month: contractStartDate.format('MMMM'),
-    });
+    cycleInfo = t('Billed annually');
   } else {
-    cycleInfo = tct('Billed monthly starting on [contractStartDate]', {
-      contractStartDate: contractStartDate.format('MMMM DD'),
+    cycleInfo = tct('Billed on the [day] of each month', {
+      day: contractStartDate.format('Do'),
     });
   }
 
   const additionalInfo = isAnnual
-    ? tct("Discount doesn't apply to [budgetTerm] usage", {
-        budgetTerm: plan.budgetTerm,
+    ? tct('[budgetTerm] usage billed monthly, discount does not apply', {
+        budgetTerm: plan.budgetTerm === 'pay-as-you-go' ? 'PAYG' : plan.budgetTerm,
       })
     : t('Cancel anytime');
 

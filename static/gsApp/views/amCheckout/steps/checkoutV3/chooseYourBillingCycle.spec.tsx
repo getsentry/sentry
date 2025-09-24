@@ -73,7 +73,9 @@ describe('ChooseYourBillingCycle', () => {
     monthlyInfo: string | RegExp;
     yearlyInfo: string | RegExp;
   }) {
-    expect(await screen.findByText('Choose your billing cycle')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Pay monthly or yearly, your choice')
+    ).toBeInTheDocument();
 
     const monthlyOption = screen.getByTestId('billing-cycle-option-monthly');
     expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();
@@ -86,7 +88,7 @@ describe('ChooseYourBillingCycle', () => {
     expect(within(yearlyOption).getByText('save 10%')).toBeInTheDocument();
     expect(within(yearlyOption).getByText(yearlyInfo)).toBeInTheDocument();
     expect(
-      within(yearlyOption).getByText("Discount doesn't apply to pay-as-you-go usage")
+      within(yearlyOption).getByText('PAYG usage billed monthly, discount does not apply')
     ).toBeInTheDocument();
   }
 
@@ -116,8 +118,8 @@ describe('ChooseYourBillingCycle', () => {
   it('renders for coterm upgrade', async () => {
     renderCheckout(true);
     await assertCycleText({
-      monthlyInfo: /Billed monthly starting on August 13/,
-      yearlyInfo: /Billed every 12 months on the 13th of August/,
+      monthlyInfo: /Billed on the 13th of each month/,
+      yearlyInfo: /Billed annually/,
     });
   });
 
@@ -131,8 +133,8 @@ describe('ChooseYourBillingCycle', () => {
     SubscriptionStore.set(organization.slug, annualSub);
     renderCheckout(true);
     await assertCycleText({
-      monthlyInfo: /Billed monthly starting on July 16/,
-      yearlyInfo: /Billed every 12 months on the 13th of August/, // annual can be applied immediately
+      monthlyInfo: /Billed on the 16th of each month/,
+      yearlyInfo: /Billed annually/,
     });
   });
 
@@ -156,7 +158,7 @@ describe('ChooseYourBillingCycle', () => {
     renderCheckout(true);
     await assertCycleText({
       monthlyInfo: /Billed monthly starting on your selected start date on submission/,
-      yearlyInfo: /Billed every 12 months from your selected start date on submission/,
+      yearlyInfo: /Billed annually from your selected start date on submission/,
     });
   });
 

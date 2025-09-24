@@ -185,7 +185,7 @@ function SharedSpendLimitPriceTable({
       radius="md"
       padding="lg xl"
     >
-      <Grid gap="sm" columns={{xs: '1fr', md: 'repeat(2, 1fr)'}}>
+      <Grid gap="lg" columns={{xs: '1fr', md: 'repeat(2, 1fr)'}}>
         {baseCategories.map(category => {
           const categoryInfo = getCategoryInfoFromPlural(category);
           const reserved = currentReserved[category] ?? 0;

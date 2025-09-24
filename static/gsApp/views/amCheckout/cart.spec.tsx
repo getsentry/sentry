@@ -146,7 +146,7 @@ describe('Cart', () => {
 
     // PAYG-only categories are also shown for paid plans
     expect(planItem).toHaveTextContent('Continuous profile hours');
-    expect(planItem).toHaveTextContent('Available with pay-as-you-go');
+    expect(planItem).toHaveTextContent('Available with PAYG');
 
     const seerItem = screen.getByTestId('summary-item-product-seer');
     expect(seerItem).toHaveTextContent('Seer');
@@ -413,7 +413,7 @@ describe('Cart', () => {
     expect(reservedChanges).toHaveTextContent('Reserved volume');
 
     const sharedSpendCapChanges = within(changes).getByTestId('shared-spend-limit-diff');
-    expect(sharedSpendCapChanges).toHaveTextContent('Shared spend limit');
+    expect(sharedSpendCapChanges).toHaveTextContent('PAYG spend limit');
   });
 
   it('can toggle changes and plan summary', async () => {
