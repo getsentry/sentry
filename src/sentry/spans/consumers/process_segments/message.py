@@ -102,13 +102,9 @@ def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dic
 
 def _redact(data: Any) -> Any:
     if isinstance(data, list):
-        for i, item in enumerate(data):
-            data[i] = _redact(item)
-        return data
+        return [_redact(item) for item in data]
     elif isinstance(data, dict):
-        for key, value in data.items():
-            data[key] = _redact(value)
-        return data
+        return {key: _redact(value) for key, value in data.items()}
     elif isinstance(data, str):
         return "[redacted]"
     else:
