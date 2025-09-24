@@ -74,18 +74,16 @@ def process_segment(
     return spans
 
 
-def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[list[Any]]:
-    all_mismatches = []
+def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dict[str, Any]]:
+    result: list[None | dict[str, Any]] = [None for span in spans]
     try:
-        for span in spans:
+        for i, span in enumerate(spans):
             # As soon as compatibility spans are fully rolled out, we can assert that attributes exist here.
             if "attributes" in span:
-                attributes = span["attributes"]
-                if attributes is None:
-                    logger.warning("Empty attributes")
-                    continue
                 metrics.incr("spans.consumers.process_segments.span_v2")
-                data = span.get("data", {})
+
+                attributes = span.get("attributes") or {}
+                data = span.get("data") or {}
                 # Verify that all data exist also in attributes.
                 mismatches = [
                     (key, data_value, attribute_value)
@@ -93,11 +91,24 @@ def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[list[Any]]
                     if data_value != (attribute_value := (attributes.get(key) or {}).get("value"))
                 ]
                 if mismatches:
-                    logger.warning("Attribute mismatch", extra={"mismatches": mismatches})
-                all_mismatches.append(mismatches)
+                    redacted = _redact(span)
+                    logger.warning("Attribute mismatch", extra={"span": redacted})
+                    result[i] = redacted
     except Exception as e:
         sentry_sdk.capture_exception(e)
-    return all_mismatches
+
+    return result
+
+
+def _redact(data: Any) -> Any:
+    if isinstance(data, list):
+        return [_redact(item) for item in data]
+    elif isinstance(data, dict):
+        return {key: _redact(value) for key, value in data.items()}
+    elif isinstance(data, str):
+        return "[redacted]"
+    else:
+        return data
 
 
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
