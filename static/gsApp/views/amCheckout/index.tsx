@@ -930,10 +930,10 @@ class AMCheckout extends Component<Props, State> {
                     <ZendeskLink
                       subject="Billing Question"
                       source="checkout"
-                      Component={({href, onClick}) => (
-                        <LinkButton href={href ?? ''} onClick={onClick}>
+                      Component={({onClick}) => (
+                        <Link to={''} onClick={onClick}>
                           {t('ask Support')}
-                        </LinkButton>
+                        </Link>
                       )}
                     />
                   ),
