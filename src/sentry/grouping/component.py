@@ -117,7 +117,16 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
     def get_subcomponent(
         self, id: str, recursive: bool = False, only_contributing: bool = False
     ) -> str | int | BaseGroupingComponent[Any] | None:
-        """Looks up a subcomponent by the id and returns the first or `None`."""
+        """
+        Looks up a subcomponent by id and returns the first instance found, or `None` if no
+        instances are found.
+
+        Unless `recursive=True` is passed, only direct children (the components in `self.values`)
+        are checked.
+
+        By default, any matching result will be returned. To filter out non-contributing components,
+        pass `only_contributing=True`.
+        """
         return next(
             self.iter_subcomponents(
                 id=id, recursive=recursive, only_contributing=only_contributing
