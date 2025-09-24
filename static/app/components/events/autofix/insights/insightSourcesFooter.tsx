@@ -167,24 +167,26 @@ const SourcesContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.md};
-  width: 50%;
-  flex: 0 0 50%;
+  width: 75%;
+  max-width: 75%;
+  align-self: flex-start;
+  justify-content: flex-start;
   min-width: 0;
 `;
 
 const FooterContent = styled('div')`
   display: flex;
+  flex-direction: column;
   gap: ${p => p.theme.space.md};
   width: 100%;
-  align-items: flex-end;
-  justify-content: flex-end;
+  align-items: stretch;
+  justify-content: flex-start;
 `;
 
 const FooterInputContainer = styled('div')`
-  flex: 0 0 50%;
   width: 50%;
   max-width: 50%;
+  align-self: flex-end;
 `;
 
 const FooterInputWrapper = styled('form')`

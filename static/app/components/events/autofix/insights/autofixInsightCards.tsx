@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {AutofixInsightCard} from './autofixInsightCard';
@@ -26,9 +27,7 @@ function AutofixInsightCardsDisplay({
   stepIndex,
   groupId,
   runId,
-  shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
-  const [isCollapsed] = useState(shouldCollapseByDefault ?? false);
   const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
   const previousInsightsRef = useRef<AutofixInsight[]>([]);
   const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
@@ -59,55 +58,37 @@ function AutofixInsightCardsDisplay({
       <VerticalLine />
       {insights.length > 0 ? (
         <InsightsCardContainer>
+          <HeaderWrapper>
+            <HeaderText>{t('Reasoning')}</HeaderText>
+          </HeaderWrapper>
           <Content>
             <Fragment>
-              {hasStepAbove && (
-                <CollapsibleChainLink
-                  isCollapsed={isCollapsed}
-                  insightCount={validInsightCount}
-                  stepIndex={stepIndex}
-                  groupId={groupId}
-                  runId={runId}
-                />
-              )}
               <AnimatePresence initial={hasMounted.current}>
-                {!isCollapsed && (
-                  <motion.div
-                    initial={{height: 0, opacity: 0}}
-                    animate={{height: 'auto', opacity: 1}}
-                    exit={{height: 0, opacity: 0}}
-                    transition={{duration: 0.2}}
-                  >
-                    <CardsStack>
-                      {insights.map((insight, index) =>
-                        insight ? (
-                          <AutofixInsightCard
-                            key={index}
-                            insight={insight}
-                            index={index}
-                            stepIndex={stepIndex}
-                            groupId={groupId}
-                            runId={runId}
-                            isNewInsight={newInsightIndices.includes(index)}
-                            isExpanded={expandedCardIndex === index}
-                            onToggleExpand={handleToggleExpand}
-                          />
-                        ) : null
-                      )}
-                    </CardsStack>
-                  </motion.div>
-                )}
+                <motion.div
+                  initial={{height: 0, opacity: 0}}
+                  animate={{height: 'auto', opacity: 1}}
+                  exit={{height: 0, opacity: 0}}
+                  transition={{duration: 0.2}}
+                >
+                  <CardsStack>
+                    {insights.map((insight, index) =>
+                      insight ? (
+                        <AutofixInsightCard
+                          key={index}
+                          insight={insight}
+                          index={index}
+                          stepIndex={stepIndex}
+                          groupId={groupId}
+                          runId={runId}
+                          isNewInsight={newInsightIndices.includes(index)}
+                          isExpanded={expandedCardIndex === index}
+                          onToggleExpand={handleToggleExpand}
+                        />
+                      ) : null
+                    )}
+                  </CardsStack>
+                </motion.div>
               </AnimatePresence>
-              {!isCollapsed && hasStepBelow && (
-                <CollapsibleChainLink
-                  isEmpty={insights.length === 0}
-                  stepIndex={stepIndex}
-                  groupId={groupId}
-                  runId={runId}
-                  insightCount={validInsightCount}
-                  showAddControl
-                />
-              )}
             </Fragment>
             <InsightSourcesFooter
               insights={insights}
@@ -145,6 +126,19 @@ function AutofixInsightCardsDisplay({
 export default function AutofixInsightCards(props: AutofixInsightCardsProps) {
   return <AutofixInsightCardsDisplay {...props} />;
 }
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const HeaderText = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.lg};
+  color: ${p => p.theme.subText};
+`;
 
 const NoInsightsYet = styled('div')`
   display: flex;
