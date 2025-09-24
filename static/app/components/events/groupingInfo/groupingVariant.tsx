@@ -226,10 +226,10 @@ const VariantTitle = styled('h5')`
 `;
 
 const VariantHint = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
 `;
 
 const ContributionIcon = styled(({isContributing, ...p}: any) =>
