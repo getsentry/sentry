@@ -336,13 +336,13 @@ class SentryAppUpdater:
                 )
 
     def record_analytics(self, user: User | RpcUser, new_schema_elements: set[str] | None) -> None:
+        created_alert_rule_ui_component = "alert-rule-action" in (new_schema_elements or set())
         analytics.record(
             SentryAppUpdatedEvent(
                 user_id=user.id,
                 organization_id=self.sentry_app.owner_id,
                 sentry_app=self.sentry_app.slug,
-                created_alert_rule_ui_component="alert-rule-action"
-                in (new_schema_elements or set()),
+                created_alert_rule_ui_component=created_alert_rule_ui_component,
             )
         )
 
