@@ -380,8 +380,8 @@ export function SizeCompareMainContent() {
                 paddingRight="xl"
                 paddingBottom="xl"
               >
-                <SwitchLabel>
-                  {t('Hide small changes (< 500B)')}
+                <Flex align="center" gap="lg">
+                  <Text>{t('Hide small changes (< 500B)')}</Text>
                   <Switch
                     checked={hideSmallChanges}
                     size="sm"
@@ -391,7 +391,7 @@ export function SizeCompareMainContent() {
                       hideSmallChanges ? t('Show small changes') : t('Hide small changes')
                     }
                   />
-                </SwitchLabel>
+                </Flex>
               </Flex>
               <SizeCompareItemDiffTable diffItems={filteredDiffItems} />
             </Stack>
@@ -409,10 +409,4 @@ const InlineText = styled(Text)`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const SwitchLabel = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
 `;
