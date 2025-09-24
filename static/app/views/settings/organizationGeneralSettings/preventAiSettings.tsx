@@ -28,7 +28,7 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
       const hideAiFeatures = model.getValue('hideAiFeatures');
       return hideAiFeatures;
     },
-    disabled: () => !isUSOrg,
+    disabled: ({access}) => !isUSOrg || !access.has('org:write'),
     disabledReason: isUSOrg
       ? null
       : t('AI Code Review is only available in the US region'),
