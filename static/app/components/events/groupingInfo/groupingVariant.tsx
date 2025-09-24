@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -173,16 +172,14 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
     }
 
     return (
-      <Tooltip title={title}>
-        <VariantTitle>
-          <ContributionIcon isContributing={isContributing} />
-          {variant.description
-            ?.split(' ')
-            .map(i => capitalize(i))
-            .join(' ') ?? t('Nothing')}
-          <VariantHint>{!isContributing && hint && t('(%s)', hint)}</VariantHint>
-        </VariantTitle>
-      </Tooltip>
+      <VariantTitle>
+        <ContributionIcon isContributing={isContributing} />
+        {variant.description
+          ?.split(' ')
+          .map(i => capitalize(i))
+          .join(' ') ?? t('Nothing')}
+        <VariantHint>{!isContributing && hint && t('(%s)', hint)}</VariantHint>
+      </VariantTitle>
     );
   };
 
