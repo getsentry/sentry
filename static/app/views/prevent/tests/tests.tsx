@@ -148,25 +148,27 @@ function Content({response}: TestResultsContentData) {
     <Fragment>
       {shouldDisplaySummaries && <Summaries />}
       <TestSearchBar testCount={response.totalCount} />
-      <TestAnalyticsTable response={response} sort={sorts[0]} />
-      <Flex justify="right">
-        <ButtonBar merged gap="0">
-          <Button
-            icon={<IconChevron direction="left" />}
-            aria-label={t('Previous')}
-            size="sm"
-            disabled={!response.hasPreviousPage}
-            onClick={() => handleCursor(-1)}
-          />
-          <Button
-            icon={<IconChevron direction="right" />}
-            aria-label={t('Next')}
-            size="sm"
-            disabled={!response.hasNextPage}
-            onClick={() => handleCursor(1)}
-          />
-        </ButtonBar>
-      </Flex>
+      <div>
+        <TestAnalyticsTable response={response} sort={sorts[0]} />
+        <Flex justify="right">
+          <ButtonBar merged gap="0">
+            <Button
+              icon={<IconChevron direction="left" />}
+              aria-label={t('Previous')}
+              size="sm"
+              disabled={!response.hasPreviousPage}
+              onClick={() => handleCursor(-1)}
+            />
+            <Button
+              icon={<IconChevron direction="right" />}
+              aria-label={t('Next')}
+              size="sm"
+              disabled={!response.hasNextPage}
+              onClick={() => handleCursor(1)}
+            />
+          </ButtonBar>
+        </Flex>
+      </div>
     </Fragment>
   );
 }
