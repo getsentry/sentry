@@ -7,9 +7,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
+import {useUpdateInsightCard} from 'sentry/components/events/autofix/insights/autofixInsightCards';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';

@@ -4,11 +4,11 @@ import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import {
   generateSourceCards,
   SourceCard,
-} from 'sentry/components/events/autofix/autofixInsightSources';
-import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
+} from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {
   deduplicateSources,
@@ -21,7 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {cardAnimationProps, FlippedReturnIcon} from './AutofixInsightCard';
+import {cardAnimationProps, FlippedReturnIcon} from './autofixInsightCard';
 
 interface InsightSourcesFooterProps {
   expandedCardIndex: number | null;

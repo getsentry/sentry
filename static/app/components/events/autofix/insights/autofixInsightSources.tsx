@@ -31,7 +31,7 @@ interface AutofixInsightSourcesProps {
 }
 
 // Helper to extract a meaningful name from a code URL
-export function getCodeSourceName(url: string): string {
+function getCodeSourceName(url: string): string {
   try {
     const urlObj = new URL(url);
     // Attempt to get the filename from the path

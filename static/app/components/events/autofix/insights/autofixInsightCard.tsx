@@ -19,7 +19,7 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import testableTransition from 'sentry/utils/testableTransition';
 
-export interface AutofixInsightCardProps {
+interface AutofixInsightCardProps {
   groupId: string;
   index: number;
   insight: AutofixInsight;

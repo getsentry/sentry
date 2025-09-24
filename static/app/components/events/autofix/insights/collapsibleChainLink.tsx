@@ -11,9 +11,9 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {FlippedReturnIcon} from './AutofixInsightCard';
+import {FlippedReturnIcon} from './autofixInsightCard';
 
-export interface CollapsibleChainLinkProps {
+interface CollapsibleChainLinkProps {
   groupId: string;
   runId: string;
   stepIndex: number;

@@ -17,7 +17,7 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
-import {FlippedReturnIcon} from 'sentry/components/events/autofix/autofixInsightCards';
+import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCards';
 import {
   makeAutofixQueryKey,
   useAutofixData,

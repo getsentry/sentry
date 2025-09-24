@@ -5,9 +5,9 @@ import {AnimatePresence, motion} from 'framer-motion';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {space} from 'sentry/styles/space';
 
-import {AutofixInsightCard} from './components/AutofixInsightCard';
-import {CollapsibleChainLink} from './components/CollapsibleChainLink';
-import {InsightSourcesFooter} from './components/InsightSourcesFooter';
+import {AutofixInsightCard} from './autofixInsightCard';
+import {CollapsibleChainLink} from './collapsibleChainLink';
+import {InsightSourcesFooter} from './insightSourcesFooter';
 
 interface AutofixInsightCardsProps {
   groupId: string;
