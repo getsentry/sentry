@@ -1595,8 +1595,7 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    if features.has("organizations:issue-open-periods", project.organization):
-        create_open_period(group=group, start_time=group.first_seen)
+    create_open_period(group=group, start_time=group.first_seen)
 
     return group
 
