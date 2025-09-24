@@ -3,6 +3,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, NotRequired, Optional, TypedDict
 
+from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
 from sentry.utils import urls
 
@@ -55,8 +56,10 @@ class SpanGroupingStrategy:
         # Treat the segment span like get_transaction_span_group for backwards
         # compatibility with transaction events, but fall back to default
         # fingerprinting if the span doesn't have a transaction.
-        data = span.get("data") or {}
-        if span.get("is_segment") and (transaction := data.get("sentry.transaction")) is not None:
+        if (
+            span.get("is_segment")
+            and (transaction := attribute_value(span, "sentry.transaction")) is not None
+        ):
             result = Hash()
             result.update(transaction)
             return result.hexdigest()
