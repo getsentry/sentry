@@ -225,7 +225,13 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           textValue={readableQuery}
           aria-label={`Query parameters: ${readableQuery}`}
         >
-          <QueryTokens {...item} />
+          <QueryTokens
+            sort={item?.sort}
+            query={item?.query}
+            groupBys={item?.groupBys}
+            statsPeriod={item?.statsPeriod}
+            visualizations={item?.visualizations}
+          />
         </Item>
       );
     },
