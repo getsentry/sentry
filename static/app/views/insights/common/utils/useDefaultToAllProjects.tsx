@@ -10,7 +10,7 @@ import useProjects from 'sentry/utils/useProjects';
  */
 export function useDefaultToAllProjects() {
   const {selection} = usePageFilters();
-  const {projects} = useProjects();
+  const {projects, initiallyLoaded} = useProjects();
 
   const myProjects = useMemo(
     () => projects.filter(project => project.isMember),
@@ -18,10 +18,10 @@ export function useDefaultToAllProjects() {
   );
 
   useEffect(() => {
-    if (selection.projects.length === 0 && myProjects.length === 0) {
+    if (initiallyLoaded && selection.projects.length === 0 && myProjects.length === 0) {
       updateProjects([ALL_ACCESS_PROJECTS], undefined, {
         save: true,
       });
     }
-  }, [selection.projects.length, myProjects.length]);
+  }, [selection.projects.length, myProjects.length, initiallyLoaded]);
 }
