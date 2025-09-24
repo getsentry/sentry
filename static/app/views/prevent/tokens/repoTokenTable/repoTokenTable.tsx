@@ -59,10 +59,10 @@ function Skeletons() {
             <Placeholder height="32px" />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
-            <Placeholder height="32px" />
+            <Placeholder height="32px" width="368px" />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
-            <Placeholder height="32px" />
+            <Placeholder height="32px" width="145px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
       ))}
