@@ -224,7 +224,6 @@ function FormField(props: FormFieldProps) {
   // Register field within the model
   useEffect(() => {
     model.setFieldDescriptor(name, initialProps.current);
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     return () => model.removeField(name);
   }, [model, name]);
 
