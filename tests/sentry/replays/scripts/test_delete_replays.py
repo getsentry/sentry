@@ -26,10 +26,10 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         self,
         replay_id: str,
         project_id: int,
-        timestamp,
+        timestamp: datetime.datetime,
         environment: str | None = None,
-        tags: dict | None = None,
-    ):
+        tags: dict[str, str] | None = None,
+    ) -> None:
         if tags is None:
             tags = {}
 
@@ -62,11 +62,11 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 file_id=f.id,
             )
 
-    def assert_recording_deleted(self, replay_id: str):
+    def assert_recording_deleted(self, replay_id: str) -> None:
         replay_recordings = ReplayRecordingSegment.objects.filter(replay_id=replay_id)
         assert len(replay_recordings) == 0
 
-    def assert_recording_not_deleted(self, replay_id: str):
+    def assert_recording_not_deleted(self, replay_id: str) -> None:
         replay_recordings = ReplayRecordingSegment.objects.filter(replay_id=replay_id)
         assert len(replay_recordings) == 5  # we create 5 segments for each replay in this test
 

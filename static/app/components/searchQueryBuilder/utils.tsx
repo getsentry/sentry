@@ -15,8 +15,6 @@ import {
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
 
-export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
-
 function getSearchConfigFromKeys(
   keys: TagCollection,
   getFieldDefinition: FieldDefinitionGetter
@@ -47,7 +45,6 @@ function getSearchConfigFromKeys(
         break;
       case FieldValueType.NUMBER:
       case FieldValueType.INTEGER:
-      case FieldValueType.SMALL_INTEGER:
       case FieldValueType.PERCENTAGE:
         config.numericKeys.add(key);
         break;

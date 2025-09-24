@@ -1552,14 +1552,12 @@ function buildRoutes(): RouteObject[] {
             {
               path: ':projectId/:detectorId/details/',
               component: make(() => import('sentry/views/alerts/rules/uptime/details')),
-              deprecatedRouteProps: true,
             },
             {
               path: 'existing-or-create/',
               component: make(
                 () => import('sentry/views/alerts/rules/uptime/existingOrCreate')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1891,27 +1889,6 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/performance/transactionSummary/transactionProfiles')
       ),
-    },
-    {
-      path: 'spans/',
-      children: [
-        {
-          index: true,
-          component: make(
-            () => import('sentry/views/performance/transactionSummary/transactionSpans')
-          ),
-        },
-        {
-          path: ':spanSlug/',
-          component: make(
-            () =>
-              import(
-                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
-              )
-          ),
-          deprecatedRouteProps: true,
-        },
-      ],
     },
   ];
 
@@ -2478,19 +2455,23 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':artifactId/install/',
       component: make(() => import('sentry/views/preprod/install/installPage')),
-      deprecatedRouteProps: true,
     },
     {
-      path: 'compare/:headArtifactId/',
-      component: make(
-        () => import('sentry/views/preprod/buildComparison/buildComparison')
-      ),
-    },
-    {
-      path: 'compare/:headArtifactId/:baseArtifactId/',
-      component: make(
-        () => import('sentry/views/preprod/buildComparison/buildComparison')
-      ),
+      path: 'compare/',
+      children: [
+        {
+          path: ':headArtifactId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+        {
+          path: ':headArtifactId/:baseArtifactId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+      ],
     },
   ];
   const preprodRoutes: SentryRouteObject = {
@@ -2498,6 +2479,7 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
+    deprecatedRouteProps: true,
   };
 
   const feedbackV2Children: SentryRouteObject[] = [

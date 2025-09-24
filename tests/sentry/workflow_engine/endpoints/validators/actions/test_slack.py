@@ -42,35 +42,7 @@ class TestSlackActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is True
-
-    def test_validate__missing_integration_id(self):
-        del self.valid_data["integrationId"]
-        validator = BaseActionValidator(
-            data={**self.valid_data},
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
-        assert validator.errors == {
-            "nonFieldErrors": [
-                ErrorDetail(string="Integration ID is required for slack action", code="invalid")
-            ]
-        }
-
-    def test_validate__missing_integration(self):
-        validator = BaseActionValidator(
-            data={**self.valid_data, "integrationId": 123},
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is False
-        assert validator.errors == {
-            "nonFieldErrors": [
-                ErrorDetail(string="slack integration with id 123 not found", code="invalid")
-            ]
-        }
+        validator.save()
 
     @mock.patch("sentry.integrations.slack.actions.form.validate_slack_entity_id")
     def test_validate__invalid_channel_id(self, mock_validate_slack_entity_id):

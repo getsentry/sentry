@@ -1,4 +1,5 @@
 from sentry import analytics
+from sentry.analytics.events.base_notification_sent import BaseNotificationSent
 
 
 @analytics.eventclass("integrations.slack.assign")
@@ -15,16 +16,8 @@ class SlackIntegrationStatus(analytics.Event):
 
 
 @analytics.eventclass("integrations.slack.notification_sent")
-class SlackIntegrationNotificationSent(analytics.Event):
-    organization_id: int
-    project_id: int | None = None
-    category: str
-    actor_id: int | None = None
-    user_id: int | None = None
-    group_id: int | None = None
-    notification_uuid: str
-    alert_id: int | None = None
-    actor_type: str | None = None
+class SlackIntegrationNotificationSent(BaseNotificationSent):
+    pass
 
 
 @analytics.eventclass("integrations.slack.identity_linked")

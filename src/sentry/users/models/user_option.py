@@ -55,6 +55,21 @@ class UserOptionManager(OptionManager["UserOption"]):
             result = self.get_all_values(user, project)
         return result.get(key, default)
 
+    def unset_value(self, user: User, project: Project, key: str) -> None:
+        """
+        This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
+        """
+        self.filter(user=user, project=project, key=key).delete()
+
+        if not hasattr(self, "_metadata"):
+            return
+
+        metakey = self._make_key(user, project=project)
+
+        if metakey not in self._option_cache:
+            return
+        self._option_cache[metakey].pop(key, None)
+
     def set_value(self, user: User | int, key: str, value: Any, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
@@ -149,8 +164,6 @@ class UserOption(Model):
         - unused
      - prefers_issue_details_streamlined_ui
         - Whether the user prefers the new issue details experience (boolean)
-     - prefers_stacked_navigation
-        - Whether the user prefers the new stacked navigation experience (boolean)
     - prefers_nextjs_insights_overview
         - Whether the user prefers the new NextJS insights overview experience (boolean)
      - prefers_chonk_ui

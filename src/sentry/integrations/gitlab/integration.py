@@ -46,7 +46,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    IntegrationError,
+    IntegrationConfigurationError,
     IntegrationProviderError,
 )
 from sentry.snuba.referrer import Referrer
@@ -132,8 +132,8 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         try:
             # eagerly populate this just for the error message
             self.default_identity
-        except Identity.DoesNotExist:
-            raise IntegrationError("Identity not found.")
+        except Identity.DoesNotExist as e:
+            raise IntegrationConfigurationError("Identity not found.") from e
         else:
             return GitLabApiClient(self)
 

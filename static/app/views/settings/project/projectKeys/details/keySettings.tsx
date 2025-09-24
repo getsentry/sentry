@@ -117,6 +117,7 @@ export function KeySettings({
               params={params}
               data={data}
               disabled={!hasAccess}
+              updateData={updateData}
             />
 
             <Panel>
