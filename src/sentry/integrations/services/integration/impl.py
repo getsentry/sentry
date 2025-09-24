@@ -20,6 +20,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
+from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -64,6 +65,19 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedIntegrationService(IntegrationService):
+    def send_message(
+        self, *, integration_id: int, organization_id: int, channel: str, message: str
+    ) -> bool:
+        try:
+            integration = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExist:
+            return False
+        install = integration.get_installation(organization_id=organization_id)
+        if isinstance(install, NotifyBasicMixin):
+            install.send_message(channel_id=channel, message=message)
+            return True
+
+        return False
 
     def page_integration_ids(
         self,

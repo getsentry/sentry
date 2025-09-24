@@ -283,12 +283,10 @@ class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
         assert len(external_actors) == 0
 
         assert self.mock_post.call_count == 1
-        blocks = self.mock_post.call_args.kwargs["blocks"]
-        section_block = blocks[1]
-
+        text = self.mock_post.call_args.kwargs["text"]
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
-            in section_block.text.text
+            in text
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -324,15 +322,10 @@ class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
         assert len(external_actors) == 0
 
         assert self.mock_post.call_count >= 1
-
-        blocks = self.mock_post.call_args_list[0].kwargs["blocks"]
-        # The message body is in the second block (SectionBlock with MarkdownTextObject)
-        section_block = blocks[1]
-        text_content = section_block.text.text
-
+        text = self.mock_post.call_args_list[0].kwargs["text"]
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
-            in text_content
+            in text
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):

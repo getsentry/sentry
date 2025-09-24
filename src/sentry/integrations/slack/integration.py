@@ -3,9 +3,8 @@ from __future__ import annotations
 import logging
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
-from typing import Any, Protocol
+from typing import Any
 
-import sentry_sdk
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -19,24 +18,15 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.team import Team
-from sentry.notifications.platform.slack.provider import (
-    SlackNotificationData,
-    SlackRenderable,
-    SlackRenderer,
-)
+from sentry.notifications.platform.provider import IntegrationNotificationClient
+from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.types import (
-    NotificationProviderKey,
-    NotificationRenderedTemplate,
-    NotificationTargetResourceType,
-)
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
@@ -70,10 +60,6 @@ FEATURES = [
         IntegrationFeatures.ALERT_RULE,
     ),
 ]
-SUCCESS_UNLINKED_TEAM_TITLE = "Team unlinked"
-SUCCESS_UNLINKED_TEAM_MESSAGE = (
-    "This channel will no longer receive issue alert notifications for the {team} team."
-)
 
 setup_alert = {
     "type": "info",
@@ -91,13 +77,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class IntegrationNotificationClient[RenderableT](Protocol):
-    def send_notification(
-        self, target: IntegrationNotificationTarget, payload: RenderableT
-    ) -> None: ...
-
-
-class SlackIntegration(IntegrationInstallation, IntegrationNotificationClient[SlackRenderable]):
+class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> SlackSdkClient:
         return SlackSdkClient(integration_id=self.model.id)
 
@@ -109,6 +89,14 @@ class SlackIntegration(IntegrationInstallation, IntegrationNotificationClient[Sl
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
+    def send_message(self, channel_id: str, message: str) -> None:
+        client = self.get_client()
+
+        try:
+            client.chat_postMessage(channel=channel_id, text=message)
+        except SlackApiError:
+            pass
+
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: SlackRenderable
     ) -> None:
@@ -118,49 +106,6 @@ class SlackIntegration(IntegrationInstallation, IntegrationNotificationClient[Sl
             client.chat_postMessage(channel=target.resource_id, blocks=payload["blocks"])
         except SlackApiError:
             pass
-
-    def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
-        """
-        Notify through the integration that an external team has been removed.
-        """
-        if not external_team.external_id:
-            _logger.info(
-                "notify.external_team_missing_external_id",
-                extra={
-                    "external_team_id": external_team.id,
-                    "team_id": team.id,
-                    "team_slug": team.slug,
-                },
-            )
-            sentry_sdk.capture_message(
-                f"External team {external_team.id} has no external_id",
-                level="warning",
-            )
-            return
-
-        # Shim the logic to fit with notification platform interface
-        rendered_template = NotificationRenderedTemplate(
-            subject=SUCCESS_UNLINKED_TEAM_TITLE,
-            body=SUCCESS_UNLINKED_TEAM_MESSAGE.format(team=team.slug),
-            actions=[],
-            footer=None,
-            chart=None,
-        )
-        data = SlackNotificationData(source="notify_remove_external_team")
-        slack_renderable = SlackRenderer.render(
-            data=data,
-            rendered_template=rendered_template,
-        )
-
-        target = IntegrationNotificationTarget(
-            provider_key=NotificationProviderKey.SLACK,
-            resource_type=NotificationTargetResourceType.CHANNEL,
-            resource_id=external_team.external_id,
-            integration_id=self.model.id,
-            organization_id=self.organization_id,
-        )
-
-        self.send_notification(target=target, payload=slack_renderable)
 
 
 class SlackIntegrationProvider(IntegrationProvider):

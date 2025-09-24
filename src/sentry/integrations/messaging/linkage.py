@@ -570,7 +570,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
     def execute(
         self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
-        from sentry.integrations.slack.integration import (
+        from sentry.integrations.mixins import (
             SUCCESS_UNLINKED_TEAM_MESSAGE,
             SUCCESS_UNLINKED_TEAM_TITLE,
         )
