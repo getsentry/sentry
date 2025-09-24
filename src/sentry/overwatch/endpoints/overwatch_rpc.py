@@ -157,7 +157,12 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
 
         organizations = Organization.objects.filter(id__in=organization_ids)
 
-        # Filter out all orgs that didn't give us consent to use AI features
+        # Return all orgs with their consent status for AI features
         return Response(
-            data={"org_ids": [org.id for org in organizations if _can_use_prevent_ai_features(org)]}
+            data={
+                "organizations": [
+                    {"org_id": org.id, "has_consent": _can_use_prevent_ai_features(org)}
+                    for org in organizations
+                ]
+            }
         )
