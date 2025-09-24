@@ -111,7 +111,8 @@ class DataForwarderSerializer(Serializer):
             raise ValidationError(f"Missing required Splunk fields: {', '.join(missing_fields)}")
 
         splunk_url_pattern = r"^https?://[a-zA-Z0-9\-\.]+(?::\d+)?(?:/.*)?$"
-        if not re.match(splunk_url_pattern, config.get("instance_URL")):
+        instance_url = config.get("instance_URL")
+        if not isinstance(instance_url, str) or not re.match(splunk_url_pattern, instance_url):
             raise ValidationError(
                 "instance_URL must be a valid URL starting with http:// or https://"
             )
