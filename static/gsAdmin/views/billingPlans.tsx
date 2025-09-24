@@ -39,6 +39,7 @@ interface PriceTier {
   annual: number;
   monthly: number;
   od_ppe: number;
+  reserved_ppe: number;
   tier: number;
   volume: number;
 }
@@ -97,7 +98,8 @@ function BillingPlans() {
             '', // Volume (max)
             '', // Monthly
             '', // Annual
-            '', // OD PPE / PAYG PPE
+            '', // Reserved PPE
+            '', // PAYG PPE
             '' // empty column
           );
         });
@@ -117,7 +119,8 @@ function BillingPlans() {
             'Volume (max)',
             'Monthly',
             'Annual',
-            'OD PPE / PAYG PPE',
+            'Reserved PPE',
+            'PAYG PPE',
             ' ' // empty column
           );
         });
@@ -148,7 +151,8 @@ function BillingPlans() {
                 tier.volume.toString(), // Volume (max)
                 formatCurrency(tier.monthly), // Monthly
                 formatCurrency(tier.annual), // Annual
-                displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10}), // OD PPE / PAYG PPE
+                displayUnitPrice({cents: tier.reserved_ppe, minDigits: 2, maxDigits: 10}), // Reserved PPE
+                displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10}), // PAYG PPE
                 ' ' // empty column
               );
             } else {
@@ -158,7 +162,8 @@ function BillingPlans() {
                 ' ', // Volume (max)
                 ' ', // Monthly
                 ' ', // Annual
-                ' ', // OD PPE / PAYG PPE
+                ' ', // Reserved PPE
+                ' ', // PAYG PPE
                 ' ' // empty column
               );
             }
@@ -397,7 +402,8 @@ function PriceTiersTable({
               <th>Volume</th>
               <th>Monthly</th>
               <th>Annual</th>
-              <th>OD PPE / PAYG PPE</th>
+              <th>Reserved PPE</th>
+              <th>PAYG PPE</th>
             </tr>
           </thead>
           <tbody>
@@ -407,6 +413,13 @@ function PriceTiersTable({
                 <td>{Number(tier.volume).toLocaleString('en-US')}</td>
                 <td>{formatCurrency(tier.monthly)}</td>
                 <td>{formatCurrency(tier.annual)}</td>
+                <td>
+                  {displayUnitPrice({
+                    cents: tier.reserved_ppe,
+                    minDigits: 2,
+                    maxDigits: 10,
+                  })}
+                </td>
                 <td>
                   {displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10})}
                 </td>
