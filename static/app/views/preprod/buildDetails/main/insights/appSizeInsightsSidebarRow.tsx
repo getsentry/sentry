@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -40,22 +41,11 @@ export function AppSizeInsightsSidebarRow({
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
-          <Flex
-            align="center"
-            justify="center"
-            padding="2xs"
-            radius="sm"
-            height="20px"
-            minWidth="56px"
-            style={{
-              flexShrink: 0,
-              background: theme.green100,
-            }}
-          >
-            <Text size="xs" variant="success" tabular>
+          <Tag type="success" style={{minWidth: '56px', justifyContent: 'center'}}>
+            <Text size="sm" tabular variant="success">
               {formatPercentage(insight.percentage / 100, 1)}
             </Text>
-          </Flex>
+          </Tag>
         </Flex>
       </Flex>
 
@@ -110,11 +100,11 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
 
   return (
     <FlexAlternatingRow>
-      <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
+      <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
       <Flex align="center" gap="sm">
-        <Text variant="primary" size="sm" tabular>
+        <Text variant="primary" bold size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
         <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
@@ -134,11 +124,11 @@ function OptimizableImageFileRow({
 }) {
   return (
     <FlexAlternatingRow>
-      <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
+      <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
       <Flex align="center" gap="sm">
-        <Text variant="primary" size="sm" tabular>
+        <Text variant="primary" bold size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
         <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>

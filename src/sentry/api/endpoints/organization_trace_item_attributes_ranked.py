@@ -215,8 +215,16 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                         )
                         break
 
-        total_outliers = int(totals_1_result["data"][0]["count(span.duration)"])
-        total_spans = int(totals_2_result["data"][0]["count(span.duration)"])
+        total_outliers = (
+            int(totals_1_result["data"][0]["count(span.duration)"])
+            if totals_1_result.get("data")
+            else 0
+        )
+        total_spans = (
+            int(totals_2_result["data"][0]["count(span.duration)"])
+            if totals_2_result.get("data")
+            else 0
+        )
         total_baseline = total_spans - total_outliers
 
         scored_attrs_rrf = keyed_rrf_score(
@@ -252,6 +260,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
                 "value": function_value if function_value else "N/A",
                 "above": above,
             },
+            "cohort1Total": total_outliers,
+            "cohort2Total": total_baseline,
         }
 
         for i, (attr, _) in enumerate(scored_attrs_rrf):

@@ -89,11 +89,13 @@ def csp_v1(
         violation_component.update(values=["'%s'" % interface.local_script_violation_type])
         uri_component.update(
             contributes=False,
-            hint="violation takes precedence",
+            hint="ignored because violation takes precedence",
             values=[interface.normalized_blocked_uri],
         )
     else:
-        violation_component.update(contributes=False, hint="not a local script violation")
+        violation_component.update(
+            contributes=False, hint="ignored because it's not a local script violation"
+        )
         uri_component.update(values=[interface.normalized_blocked_uri])
 
     return {
