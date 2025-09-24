@@ -1286,7 +1286,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     const connectors: number[] = [];
     let start: BaseNode | null = node.parent;
 
-    if (start && start.isRootNodeChild() && !node.isLastChild()) {
+    if (start?.isRootNodeChild() && !node.isLastChild()) {
       node.connectors = [-TraceTree.Depth(node)];
       return node.connectors;
     }
