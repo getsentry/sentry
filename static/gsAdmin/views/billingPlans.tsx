@@ -414,7 +414,11 @@ function PriceTiersTable({
                 <td>{formatCurrency(tier.monthly)}</td>
                 <td>{formatCurrency(tier.annual)}</td>
                 <td>
-                  {displayUnitPrice({cents: tier.reserved_ppe, minDigits: 2, maxDigits: 10})}
+                  {displayUnitPrice({
+                    cents: tier.reserved_ppe,
+                    minDigits: 2,
+                    maxDigits: 10,
+                  })}
                 </td>
                 <td>
                   {displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10})}

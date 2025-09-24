@@ -64,7 +64,14 @@ const mockPlansResponse: BillingPlansResponse = {
         price_tiers: {
           errors: [
             {tier: 1, volume: 100000, monthly: 0, annual: 0, od_ppe: 0, reserved_ppe: 0},
-            {tier: 2, volume: 1000000, monthly: 10000, annual: 100000, od_ppe: 200, reserved_ppe: 160},
+            {
+              tier: 2,
+              volume: 1000000,
+              monthly: 10000,
+              annual: 100000,
+              od_ppe: 200,
+              reserved_ppe: 160,
+            },
           ],
         },
       },
@@ -276,8 +283,22 @@ describe('BillingPlans Component', () => {
             },
             price_tiers: {
               errors: [
-                {tier: 1, volume: 100000, monthly: 0, annual: 0, od_ppe: 0, reserved_ppe: 0},
-                {tier: 2, volume: 1000000, monthly: 10000, annual: 100000, od_ppe: 200, reserved_ppe: 160},
+                {
+                  tier: 1,
+                  volume: 100000,
+                  monthly: 0,
+                  annual: 0,
+                  od_ppe: 0,
+                  reserved_ppe: 0,
+                },
+                {
+                  tier: 2,
+                  volume: 1000000,
+                  monthly: 10000,
+                  annual: 100000,
+                  od_ppe: 200,
+                  reserved_ppe: 160,
+                },
               ],
             },
           },
