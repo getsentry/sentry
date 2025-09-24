@@ -365,3 +365,27 @@ class DiscoverToExploreTranslationTest(TestCase):
         ]
         assert query["aggregateOrderby"] is None
         assert query["orderby"] == "-timestamp"
+
+    def test_translate_dicover_query_with_count_web_vitals_orderby(self):
+        self.count_web_vitals_query = {
+            "query": "",
+            "range": "14d",
+            "yAxis": ["count_web_vitals(measurements.lcp,good)"],
+            "fields": ["title", "project", "timestamp", "count_web_vitals(measurements.lcp,good)"],
+            "orderby": "-count_web_vitals_measurements_lcp_good",
+        }
+        self.count_web_vitals_saved_query = self.create_discover_query(
+            "Count web vitals query", self.count_web_vitals_query
+        )
+
+        new_explore_query = translate_discover_query_to_explore_query(
+            self.count_web_vitals_saved_query
+        )
+        assert new_explore_query.name == "Count web vitals query"
+
+        query = new_explore_query.query["query"][0]
+        assert query["fields"] == ["id", "transaction", "project", "timestamp"]
+        assert query["query"] == "is_transaction:1"
+        assert query["mode"] == "samples"
+        assert query["aggregateOrderby"] is None
+        assert query["orderby"] is None

@@ -32,6 +32,7 @@ COLUMNS_TO_DROP = (
     "count_web_vitals",
     "last_seen",
     "total.count",
+    "linear_regression",
 )
 
 FIELDS_TO_DROP = ("total.count",)

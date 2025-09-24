@@ -11,7 +11,11 @@ from sentry.discover.translation.mep_to_eap import (
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.integrations.slack.unfurl.discover import is_aggregate
-from sentry.search.events.fields import get_function_alias_with_columns, is_function, parse_function
+from sentry.search.events.fields import (
+    get_function_alias_with_columns,
+    is_function,
+    parse_arguments,
+)
 
 # we're going to keep the chart types from discover
 # bar = 0, line = 1, area = 2
@@ -42,15 +46,17 @@ def _get_translated_orderby_item(orderby, columns, is_negated):
     """
     columns_underscore_list = []
     for column in columns:
-        if is_function(column):
-            aggregate, fields, alias = parse_function(column)
+        if (match := is_function(column)) is not None:
+            aggregate, fields_string = match.group("function"), match.group("columns")
+            fields = parse_arguments(aggregate, fields_string)
             columns_underscore_list.append(get_function_alias_with_columns(aggregate, fields))
         else:
             # non-function columns don't change format
             columns_underscore_list.append(column)
     joined_orderby_item = orderby
-    if is_function(orderby):
-        aggregate, fields, alias = parse_function(orderby)
+    if (match := is_function(orderby)) is not None:
+        aggregate, fields_string = match.group("function"), match.group("columns")
+        fields = parse_arguments(aggregate, fields_string)
         joined_orderby_item = get_function_alias_with_columns(aggregate, fields)
 
     converted_orderby = None
