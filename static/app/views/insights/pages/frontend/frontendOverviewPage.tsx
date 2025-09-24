@@ -30,6 +30,7 @@ import OverviewTimeConsumingRequestsWidget from 'sentry/views/insights/common/co
 import OverviewTransactionDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget';
 import OverviewTransactionThroughputChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TripleRowWidgetWrapper} from 'sentry/views/insights/pages/backend/backendOverviewPage';
@@ -70,6 +71,8 @@ function FrontendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const search = useFrontendQuery({includeWebVitalOps: true});
+
+  useDefaultToAllProjects();
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
   const spanOp: PageSpanOps = getSpanOpFromQuery(
