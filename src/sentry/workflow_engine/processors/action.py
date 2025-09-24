@@ -85,9 +85,12 @@ def process_workflow_action_group_statuses(
     }
     statuses_to_update: set[int] = set()
 
+    zero_timedelta = timedelta(minutes=0)
     for action_id, statuses in action_to_statuses.items():
         for status in statuses:
-            if (now - status.date_updated) > workflow_frequencies.get(status.workflow_id, 0):
+            if (now - status.date_updated) > workflow_frequencies.get(
+                status.workflow_id, zero_timedelta
+            ):
                 # we should fire the workflow for this action
                 action_to_workflow_ids[action_id] = status.workflow_id
                 statuses_to_update.add(status.id)

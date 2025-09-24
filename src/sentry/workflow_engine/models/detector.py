@@ -24,8 +24,6 @@ from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
 
-from .json_config import JSONConfigBase
-
 if TYPE_CHECKING:
     from sentry.workflow_engine.handlers.detector import DetectorHandler
 
@@ -42,7 +40,7 @@ class DetectorManager(BaseManager["Detector"]):
 
 
 @region_silo_model
-class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
+class Detector(DefaultFieldsModel, OwnerModel):
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[DetectorManager] = DetectorManager()
@@ -55,6 +53,16 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     data_sources = models.ManyToManyField(
         "workflow_engine.DataSource", through="workflow_engine.DataSourceDetector"
     )
+
+    config: models.JSONField[dict[str, Any], dict[str, Any]] = models.JSONField(db_default={})
+
+    def validate_config(self, schema: dict[str, Any]) -> None:
+        from jsonschema import ValidationError, validate
+
+        try:
+            validate(self.config, schema)
+        except ValidationError as e:
+            raise ValidationError(f"Invalid config: {e.message}")
 
     # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
     enabled = models.BooleanField(db_default=True)

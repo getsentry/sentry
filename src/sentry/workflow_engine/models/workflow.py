@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -20,8 +20,6 @@ from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 from sentry.workflow_engine.types import WorkflowEventData
 
-from .json_config import JSONConfigBase
-
 logger = logging.getLogger(__name__)
 
 
@@ -34,8 +32,12 @@ class WorkflowManager(BaseManager["Workflow"]):
         )
 
 
+class ConfigDict(TypedDict):
+    frequency: int
+
+
 @region_silo_model
-class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
+class Workflow(DefaultFieldsModel, OwnerModel):
     """
     A workflow is a way to execute actions in a specified order.
     Workflows are initiated after detectors have been processed, driven by changes to their state.
@@ -48,6 +50,16 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
+
+    config: models.JSONField[dict[Any, Any], ConfigDict] = models.JSONField(db_default={})
+
+    def validate_config(self, schema: dict[str, Any]) -> None:
+        from jsonschema import ValidationError, validate
+
+        try:
+            validate(self.config, schema)
+        except ValidationError as e:
+            raise ValidationError(f"Invalid config: {e.message}")
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)

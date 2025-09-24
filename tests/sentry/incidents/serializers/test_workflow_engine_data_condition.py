@@ -122,7 +122,7 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         expected_trigger = self.expected_triggers[0].copy()
         expected_trigger["actions"] = expected_actions
         expected_trigger["alertThreshold"] = translate_data_condition_type(
-            detector.config.get("comparison_delta"),
+            detector.config["comparison_delta"],
             comparison_detector_trigger.type,
             comparison_detector_trigger.comparison,
         )
