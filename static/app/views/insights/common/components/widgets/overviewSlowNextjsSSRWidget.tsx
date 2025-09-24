@@ -28,6 +28,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetProps) {
   const theme = useTheme();
@@ -54,7 +55,7 @@ export default function OverviewSlowNextjsSSRWidget(props: LoadableChartWidgetPr
     {
       ...pageFilterChartParams,
       query: `span.group:[${spansRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
-      groupBy: ['span.group'],
+      groupBy: [SpanFields.SPAN_GROUP],
       yAxis: ['avg(span.duration)'],
       sort: {field: 'avg(span.duration)', kind: 'desc'},
       topEvents: 4,

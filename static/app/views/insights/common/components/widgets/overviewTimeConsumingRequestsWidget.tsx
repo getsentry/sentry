@@ -82,7 +82,7 @@ export default function OverviewTimeConsumingRequestsWidget(
   } = useFetchSpanTimeSeries(
     {
       query: `${SpanFields.SPAN_DOMAIN}:[${requestsListData?.map(item => `"${item[SpanFields.SPAN_DOMAIN]}"`).join(',')}]`,
-      groupBy: [`${groupBy}`], // TODO: Figure out why we can't just do groupBy: [groupBy]
+      groupBy: [groupBy],
       yAxis: [yAxes],
       topEvents: 3,
       enabled: requestsListData?.length > 0,

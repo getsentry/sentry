@@ -26,6 +26,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 function isColumnNotFoundError(error: QueryError | null) {
@@ -61,7 +62,7 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
       ...pageFilterChartParams,
       yAxis: ['cache_miss_rate()'],
       query: search,
-      groupBy: ['transaction'],
+      groupBy: [SpanFields.TRANSACTION],
       topEvents: 4,
       enabled: !!cachesRequest.data,
       pageFilters: props.pageFilters,

@@ -27,12 +27,8 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
-
-function getSeriesName(item: {'span.group': string; transaction: string}) {
-  return `${item.transaction},${item['span.group']}`;
-}
 
 export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidgetProps) {
   const theme = useTheme();
@@ -65,7 +61,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
     {
       ...pageFilterChartParams,
       query: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
-      groupBy: ['transaction', 'span.group'],
+      groupBy: [SpanFields.TRANSACTION, SpanFields.SPAN_GROUP],
       yAxis: ['avg(span.duration)'],
       sort: {field: 'avg(span.duration)', kind: 'desc'},
       topEvents: 3,

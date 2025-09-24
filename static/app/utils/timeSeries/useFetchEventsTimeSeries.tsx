@@ -15,13 +15,14 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import type {SpanProperty} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 
-interface UseFetchEventsTimeSeriesOptions<Field> {
-  yAxis: Field | Field[];
+interface UseFetchEventsTimeSeriesOptions<YAxis, Attributes> {
+  yAxis: YAxis | YAxis[];
   enabled?: boolean;
-  groupBy?: Field[];
+  groupBy?: Attributes[];
   interval?: string;
   /**
    * NOTE: If `pageFilters` are passed in, the implication is that these filters are ready, and have valid data. If present, the query is enabled immediately!
@@ -33,17 +34,21 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   topEvents?: number;
 }
 
-export function useFetchSpanTimeSeries<Fields extends SpanProperty>(
-  options: UseFetchEventsTimeSeriesOptions<Fields>,
-  referrer: string
-) {
-  return useFetchEventsTimeSeries<Fields>(DiscoverDatasets.SPANS, options, referrer);
+export function useFetchSpanTimeSeries<
+  Fields extends SpanProperty,
+  Attributes extends SpanFields,
+>(options: UseFetchEventsTimeSeriesOptions<Fields, Attributes>, referrer: string) {
+  return useFetchEventsTimeSeries<Fields, Attributes>(
+    DiscoverDatasets.SPANS,
+    options,
+    referrer
+  );
 }
 
 /**
  * Fetch time series data from the `/events-timeseries/` endpoint. Returns an array of `TimeSeries` objects.
  */
-export function useFetchEventsTimeSeries<T extends string>(
+export function useFetchEventsTimeSeries<T extends string, Attributes extends string>(
   dataset: DiscoverDatasets,
   {
     yAxis,
@@ -55,7 +60,7 @@ export function useFetchEventsTimeSeries<T extends string>(
     pageFilters,
     sort,
     topEvents,
-  }: UseFetchEventsTimeSeriesOptions<T>,
+  }: UseFetchEventsTimeSeriesOptions<T, Attributes>,
   referrer: string
 ) {
   const organization = useOrganization();

@@ -86,7 +86,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   } = useFetchSpanTimeSeries(
     {
       query: `${SpanFields.SPAN_GROUP}:[${assetListData?.map(item => `"${item[SpanFields.SPAN_GROUP]}"`).join(',')}]`,
-      groupBy: [`${groupBy}`], // TODO: Figure out why we can't just do groupBy: [groupBy]
+      groupBy: [groupBy],
       yAxis: [yAxes],
       topEvents,
       sort: {field: yAxes, kind: 'desc'},
