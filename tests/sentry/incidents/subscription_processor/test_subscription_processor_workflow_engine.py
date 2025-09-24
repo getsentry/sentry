@@ -69,7 +69,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
         value = trigger.alert_threshold + 1
         self.send_update(rule, value)
-        assert mock_logger.info.call_count == 2
+
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra={
@@ -79,6 +79,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 "rule_id": rule.id,
             },
         )
+
         mock_logger.info.assert_any_call(
             "subscription_processor.alert_triggered",
             extra={
@@ -129,7 +130,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
         self.snooze_rule(owner_id=self.user.id, alert_rule=rule)
         self.send_update(rule, trigger.alert_threshold + 1)
-        assert mock_logger.info.call_count == 1
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra={
@@ -184,7 +184,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
         )
-        assert mock_logger.info.call_count == 2
+
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra={
@@ -236,7 +236,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
         )
-        assert mock_logger.info.call_count == 1
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
             extra={
@@ -404,6 +403,59 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         data_packet = mock_process_data_packet.call_args_list[0][0][0]
         assert data_packet.source_id == str(self.sub.id)
         assert data_packet.packet.values == {"value": trigger.alert_threshold + 1}
+
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_process_update__single_processing__sends_metrics(self, mock_metric):
+        # Replicate the rule to a detector
+        self.detector = self.create_detector(type=MetricIssue.slug)
+        self.detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+        self.condition = self.create_data_condition(
+            condition_group=self.detector.workflow_condition_group,
+            type="gt",
+            comparison=100.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        self.data_source = self.create_data_source(source_id=str(self.sub.id))
+        self.data_source.detectors.set([self.detector])
+        self.data_source.save()
+        self.detector.save()
+
+        # Process the rule with single workflow engine processing flag
+        self.send_update(self.rule, self.trigger.alert_threshold + 1)
+
+        # Ensure that single processing metric is sent
+        mock_metric.incr.assert_any_call("incidents.workflow_engine.processing.single")
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_process_update__dual_processing__result_log(self, mock_logger):
+        self.detector = self.create_detector(type=MetricIssue.slug)
+        self.detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+        self.condition = self.create_data_condition(
+            condition_group=self.detector.workflow_condition_group,
+            type="gt",
+            comparison=100.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        self.data_source = self.create_data_source(source_id=str(self.sub.id))
+        self.data_source.detectors.set([self.detector])
+        self.data_source.save()
+        self.detector.save()
+
+        self.send_update(self.rule, self.trigger.alert_threshold + 1)
+
+        # Log should indicate both systems triggered
+        mock_logger.info.assert_any_call(
+            "incidents.workflow_engine.processing",
+            extra={
+                "detector": self.detector,
+                "workflow_engine_triggered": True,
+                "metric_alert_triggered": True,
+            },
+        )
 
 
 @freeze_time()
@@ -648,7 +700,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
             ],
         )
-        assert mock_logger.info.call_count == 4
         mock_logger.info.assert_any_call(
             "subscription_processor.alert_triggered",
             extra={
@@ -718,7 +769,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
             ],
         )
-        assert mock_logger.info.call_count == 3
 
         # this one gets called twice, once per trigger
         mock_logger.info.assert_any_call(
@@ -794,7 +844,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ],
         )
-        assert mock_logger.info.call_count == 4
 
         mock_logger.info.assert_any_call(
             "dual processing results for alert rule",
@@ -877,7 +926,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ],
         )
-        assert mock_logger.info.call_count == 3
 
         # this one gets called twice, once per trigger
         mock_logger.info.assert_any_call(
