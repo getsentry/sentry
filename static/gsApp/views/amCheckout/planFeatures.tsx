@@ -167,7 +167,7 @@ function PlanFeatures({
                 <EventPriceWarning isIncluded={isIncluded} align="center" gap="sm">
                   <IconWarning size="sm" color="yellow300" />
                   <Tooltip
-                    title={tct('Starting at [priceDiffs].', {
+                    title={tct('Starting at [priceDiffs] on [planName].', {
                       priceDiffs: oxfordizeArray(
                         Object.entries(perUnitPriceDiffs).map(([category, diff]) => {
                           const formattedDiff = displayUnitPrice({cents: diff});
@@ -179,6 +179,7 @@ function PlanFeatures({
                           return `+${formattedDiff} / ${formattedCategory}`;
                         })
                       ),
+                      planName,
                     })}
                   >
                     {/* TODO(checkout v3): verify tooltip copy */}
