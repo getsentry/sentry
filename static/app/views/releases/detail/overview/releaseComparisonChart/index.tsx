@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -60,6 +60,7 @@ export type ReleaseComparisonRow = {
   role: 'parent' | 'children' | 'default';
   thisRelease: React.ReactNode;
   type: ReleaseComparisonChartType;
+  tooltip?: React.ReactNode;
 };
 
 type Props = {
@@ -497,7 +498,52 @@ export default function ReleaseComparisonChart({
     charts.push({
       type: ReleaseComparisonChartType.CRASH_FREE_SESSIONS,
       role: 'parent',
-      drilldown: null,
+      drilldown: (
+        <Fragment>
+          {defined(issuesTotals?.handled) ? (
+            <Tooltip title={t('Open in Issues')}>
+              <GlobalSelectionLink
+                to={getReleaseHandledIssuesUrl(
+                  organization.slug,
+                  project.id,
+                  release.version,
+                  {start, end, period: period ?? undefined}
+                )}
+              >
+                {tct('[count] handled [issues]', {
+                  count: issuesTotals?.handled
+                    ? issuesTotals.handled >= 100
+                      ? '99+'
+                      : issuesTotals.handled
+                    : 0,
+                  issues: tn('issue', 'issues', issuesTotals?.handled),
+                })}
+              </GlobalSelectionLink>
+            </Tooltip>
+          ) : null}
+          {defined(issuesTotals?.unhandled) ? (
+            <Tooltip title={t('Open in issues')}>
+              <GlobalSelectionLink
+                to={getReleaseUnhandledIssuesUrl(
+                  organization.slug,
+                  project.id,
+                  release.version,
+                  {start, end, period: period ?? undefined}
+                )}
+              >
+                {tct('[count] unhandled [issues]', {
+                  count: issuesTotals?.unhandled
+                    ? issuesTotals.unhandled >= 100
+                      ? '99+'
+                      : issuesTotals.unhandled
+                    : 0,
+                  issues: tn('issue', 'issues', issuesTotals?.unhandled),
+                })}
+              </GlobalSelectionLink>
+            </Tooltip>
+          ) : null}
+        </Fragment>
+      ),
       thisRelease: defined(releaseCrashFreeSessions)
         ? displaySessionStatusPercent(releaseCrashFreeSessions)
         : null,
@@ -570,28 +616,11 @@ export default function ReleaseComparisonChart({
         },
         {
           type: ReleaseComparisonChartType.ERRORED_SESSIONS,
+          tooltip: t(
+            'An errored sessions is a session where an error was caught by the application and reported to Sentry.'
+          ),
           role: 'children',
-          drilldown: defined(issuesTotals?.handled) ? (
-            <Tooltip title={t('Open in Issues')}>
-              <GlobalSelectionLink
-                to={getReleaseHandledIssuesUrl(
-                  organization.slug,
-                  project.id,
-                  release.version,
-                  {start, end, period: period ?? undefined}
-                )}
-              >
-                {tct('([count] handled [issues])', {
-                  count: issuesTotals?.handled
-                    ? issuesTotals.handled >= 100
-                      ? '99+'
-                      : issuesTotals.handled
-                    : 0,
-                  issues: tn('issue', 'issues', issuesTotals?.handled),
-                })}
-              </GlobalSelectionLink>
-            </Tooltip>
-          ) : null,
+          drilldown: null,
           thisRelease: defined(releaseErroredSessions)
             ? displaySessionStatusPercent(releaseErroredSessions)
             : null,
@@ -614,28 +643,11 @@ export default function ReleaseComparisonChart({
         },
         {
           type: ReleaseComparisonChartType.UNHANDLED_SESSIONS,
+          tooltip: t(
+            'If an error is not specifically handled by application code the session becomes unhandled.'
+          ),
           role: 'children',
-          drilldown: defined(issuesTotals?.handled) ? (
-            <Tooltip title={t('Open in Issues')}>
-              <GlobalSelectionLink
-                to={getReleaseUnhandledIssuesUrl(
-                  organization.slug,
-                  project.id,
-                  release.version,
-                  {start, end, period: period ?? undefined}
-                )}
-              >
-                {tct('([count] unhandled [issues])', {
-                  count: issuesTotals?.handled
-                    ? issuesTotals.handled >= 100
-                      ? '99+'
-                      : issuesTotals.handled
-                    : 0,
-                  issues: tn('issue', 'issues', issuesTotals?.handled),
-                })}
-              </GlobalSelectionLink>
-            </Tooltip>
-          ) : null,
+          drilldown: null,
           thisRelease: defined(releaseUnhandledSessions)
             ? displaySessionStatusPercent(releaseUnhandledSessions)
             : null,
@@ -658,28 +670,11 @@ export default function ReleaseComparisonChart({
         },
         {
           type: ReleaseComparisonChartType.CRASHED_SESSIONS,
+          tooltip: t(
+            'Some languages or frameworks will cause the application to crash when an unhandled error occurs.'
+          ),
           role: 'default',
-          drilldown: defined(issuesTotals?.unhandled) ? (
-            <Tooltip title={t('Open in Issues')}>
-              <GlobalSelectionLink
-                to={getReleaseUnhandledIssuesUrl(
-                  organization.slug,
-                  project.id,
-                  release.version,
-                  {start, end, period: period ?? undefined}
-                )}
-              >
-                {tct('([count] unhandled [issues])', {
-                  count: issuesTotals?.unhandled
-                    ? issuesTotals.unhandled >= 100
-                      ? '99+'
-                      : issuesTotals.unhandled
-                    : 0,
-                  issues: tn('issue', 'issues', issuesTotals?.unhandled),
-                })}
-              </GlobalSelectionLink>
-            </Tooltip>
-          ) : null,
+          drilldown: null,
           thisRelease: defined(releaseCrashedSessions)
             ? displaySessionStatusPercent(releaseCrashedSessions)
             : null,
