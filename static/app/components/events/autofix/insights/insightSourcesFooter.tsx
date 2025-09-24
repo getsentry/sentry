@@ -176,7 +176,7 @@ const SourcesContainer = styled('div')`
 
 const FooterContent = styled('div')`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: ${p => p.theme.space.md};
   width: 100%;
   align-items: stretch;
