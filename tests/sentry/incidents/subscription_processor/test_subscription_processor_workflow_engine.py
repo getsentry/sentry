@@ -404,6 +404,59 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         assert data_packet.source_id == str(self.sub.id)
         assert data_packet.packet.values == {"value": trigger.alert_threshold + 1}
 
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_process_update__single_processing__sends_metrics(self, mock_metric):
+        # Replicate the rule to a detector
+        self.detector = self.create_detector(type=MetricIssue.slug)
+        self.detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+        self.condition = self.create_data_condition(
+            condition_group=self.detector.workflow_condition_group,
+            type="gt",
+            comparison=100.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        self.data_source = self.create_data_source(source_id=str(self.sub.id))
+        self.data_source.detectors.set([self.detector])
+        self.data_source.save()
+        self.detector.save()
+
+        # Process the rule with single workflow engine processing flag
+        self.send_update(self.rule, self.trigger.alert_threshold + 1)
+
+        # Ensure that single processing metric is sent
+        mock_metric.incr.assert_any_call("incidents.workflow_engine.processing.single")
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @patch("sentry.incidents.subscription_processor.logger")
+    def test_process_update__dual_processing__result_log(self, mock_logger):
+        self.detector = self.create_detector(type=MetricIssue.slug)
+        self.detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+        self.condition = self.create_data_condition(
+            condition_group=self.detector.workflow_condition_group,
+            type="gt",
+            comparison=100.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        self.data_source = self.create_data_source(source_id=str(self.sub.id))
+        self.data_source.detectors.set([self.detector])
+        self.data_source.save()
+        self.detector.save()
+
+        self.send_update(self.rule, self.trigger.alert_threshold + 1)
+
+        # Log should indicate both systems triggered
+        mock_logger.info.assert_any_call(
+            "incidents.workflow_engine.processing",
+            extra={
+                "detector": self.detector,
+                "workflow_engine_triggered": True,
+                "metric_alert_triggered": True,
+            },
+        )
+
 
 @freeze_time()
 class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetectionTest):

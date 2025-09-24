@@ -742,8 +742,9 @@ class SubscriptionProcessor:
                         workflow_engine_results,
                     )
 
-                if workflow_engine_results or legacy_results:
-                    # If either the new or old system detect an issue, log the results for both systems
+                if not self._has_workflow_engine_processing_only and (
+                    workflow_engine_results or legacy_results
+                ):
                     logger.info(
                         metric_prefix,
                         extra={
