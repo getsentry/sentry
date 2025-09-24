@@ -32,6 +32,29 @@ import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
+export function getProductCheckoutDescription(
+  product: SelectableProduct,
+  isNewCheckout: boolean,
+  includedBudget: string,
+  withPunctuation: boolean
+) {
+  if (product === SelectableProduct.SEER) {
+    if (isNewCheckout) {
+      return tct('Detect and fix issues faster with our AI agent[punctuation]', {
+        punctuation: withPunctuation ? '.' : '',
+      });
+    }
+    return tct(
+      'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent[punctuation]',
+      {
+        includedBudget,
+        punctuation: withPunctuation ? '.' : '',
+      }
+    );
+  }
+  return '';
+}
+
 function ProductSelect({
   activePlan,
   formData,
@@ -56,14 +79,12 @@ function ProductSelect({
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
       getProductDescription: (includedBudget: string) =>
-        isNewCheckout
-          ? t('Detect and fix issues faster with our AI agent')
-          : tct(
-              'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent',
-              {
-                includedBudget,
-              }
-            ),
+        getProductCheckoutDescription(
+          SelectableProduct.SEER,
+          !!isNewCheckout,
+          includedBudget,
+          false
+        ),
       categoryInfo: {
         [DataCategory.SEER_AUTOFIX]: {
           perEventNameOverride: isNewCheckout ? 'run' : 'fix',
