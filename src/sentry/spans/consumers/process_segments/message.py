@@ -1,7 +1,7 @@
 import logging
 import types
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
 import sentry_sdk
@@ -74,7 +74,7 @@ def process_segment(
     return spans
 
 
-def _verify_compatibility(spans: list[CompatibleSpan]) -> list[list[Any]]:
+def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[list[Any]]:
     all_mismatches = []
     try:
         for span in spans:

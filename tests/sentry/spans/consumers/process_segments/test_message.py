@@ -1,5 +1,6 @@
 import uuid
 from hashlib import md5
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -239,7 +240,7 @@ class TestSpansTask(TestCase):
 
 
 def test_verify_compatibility():
-    spans = [
+    spans: list[dict[str, Any]] = [
         {"data": {"foo": 1}, "attributes": {"foo": {"value": 1}}},
         {"data": {"foo": 1}},
         {"data": {"foo": 1}, "attributes": {"value": {"foo": 2}}},
