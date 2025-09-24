@@ -1,5 +1,5 @@
 ---
-created: '2025-05-12T23:41:15.722000+00:00'
+created: '2025-09-19T05:52:38.210845+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -34,7 +34,7 @@ system:
   hash: null
   contributing component: null
   component:
-    system (exception of app takes precedence)
+    system (ignored because app exception takes precedence)
       exception (ignored because hash matches app variant)
         stacktrace (ignored because it contains no contributing frames)
           frame (ignored by stack trace rule (module:@babel/** -group))

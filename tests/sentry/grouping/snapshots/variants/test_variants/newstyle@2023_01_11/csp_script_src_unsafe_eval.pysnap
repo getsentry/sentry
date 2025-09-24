@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:09.745696+00:00'
+created: '2025-09-19T05:52:36.431885+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ default:
           "script-src"
         violation*
           "'unsafe-eval'"
-        uri (violation takes precedence)
+        uri (ignored because violation takes precedence)
           "'self'"
-      message (csp takes precedence)
+      message (ignored because csp takes precedence)
         "Blocked unsafe eval() 'script'"
