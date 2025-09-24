@@ -650,7 +650,7 @@ class SubscriptionProcessor:
             return True
 
         elif dataset == "generic_metrics" and not features.has(
-            "on-demand-metrics-extraction", organization
+            "organizations:on-demand-metrics-extraction", organization
         ):
             metrics.incr("incidents.alert_rules.ignore_update_missing_on_demand")
             return True
