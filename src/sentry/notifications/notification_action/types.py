@@ -73,7 +73,7 @@ class LegacyRegistryHandler(ABC):
 
 
 EXCEPTION_IGNORE_LIST = (IntegrationFormError, IntegrationConfigurationError, InvalidIdentity)
-RETRIABLE_EXCEPTIONS = (ApiError,)
+RETRYABLE_EXCEPTIONS = (ApiError,)
 
 
 def invoke_future_with_error_handling(
@@ -96,7 +96,7 @@ def invoke_future_with_error_handling(
         # We need to reraise ProcessingDeadlineExceeded for workflow engine to
         # monitor and potentially retry this action.
         raise
-    except RETRIABLE_EXCEPTIONS as e:
+    except RETRYABLE_EXCEPTIONS as e:
         raise RetryError from e
     except Exception as e:
         # This is just a redefinition of the safe_execute util function, as we
