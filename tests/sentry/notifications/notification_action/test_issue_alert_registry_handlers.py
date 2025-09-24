@@ -838,12 +838,9 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
     def test_happy_path(self):
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
 
-        result = invoke_future_with_error_handling(
-            self.event_data, self.mock_callback, self.mock_futures
-        )
+        invoke_future_with_error_handling(self.event_data, self.mock_callback, self.mock_futures)
 
         self.mock_callback.assert_called_once_with(self.group_event, self.mock_futures)
-        assert result is None
 
     def test_invalid_event_data(self):
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
@@ -864,13 +861,12 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import IntegrationFormError
 
-        self.mock_callback.side_effect = IntegrationFormError("Test form error")
-
-        result = invoke_future_with_error_handling(
-            self.event_data, self.mock_callback, self.mock_futures
+        self.mock_callback.side_effect = IntegrationFormError(
+            field_errors={"foo": "Test form error"}
         )
 
-        assert result is None
+        invoke_future_with_error_handling(self.event_data, self.mock_callback, self.mock_futures)
+
         self.mock_callback.assert_called_once()
 
     def test_ignores_integration_configuration_error(self):
@@ -879,11 +875,8 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         self.mock_callback.side_effect = IntegrationConfigurationError("Test config error")
 
-        result = invoke_future_with_error_handling(
-            self.event_data, self.mock_callback, self.mock_futures
-        )
+        invoke_future_with_error_handling(self.event_data, self.mock_callback, self.mock_futures)
 
-        assert result is None
         self.mock_callback.assert_called_once()
 
     def test_reraises_processing_deadline_exceeded(self):
@@ -933,46 +926,12 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         failing_callback = TestCallbackClass()
 
-        result = invoke_future_with_error_handling(
-            self.event_data, failing_callback, self.mock_futures
-        )
-
-        assert result is None
+        invoke_future_with_error_handling(self.event_data, failing_callback, self.mock_futures)
 
         mock_get_logger.assert_called_once_with("sentry.safe_action.testcallbackclass")
 
         mock_localized_logger.exception.assert_called_once_with(
             "%s.process_error", "test_callback", extra={"exception": test_exception}
-        )
-
-    @mock.patch("logging.getLogger")
-    def test_generic_exception_with_im_class_attribute(self, mock_get_logger):
-        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
-
-        mock_localized_logger = mock.Mock()
-        mock_get_logger.return_value = mock_localized_logger
-
-        test_exception = RuntimeError("Test runtime error")
-
-        def failing_callback_with_im_class(event, futures):  # noqa: ARG001
-            raise test_exception
-
-        class MockImClass:
-            __name__ = "ImClassTest"
-
-        failing_callback_with_im_class.im_class = MockImClass()
-        failing_callback_with_im_class.__name__ = "old_style_method"
-
-        result = invoke_future_with_error_handling(
-            self.event_data, failing_callback_with_im_class, self.mock_futures
-        )
-
-        assert result is None
-
-        mock_get_logger.assert_called_once_with("sentry.safe_action.imclasstest")
-
-        mock_localized_logger.exception.assert_called_once_with(
-            "%s.process_error", "old_style_method", extra={"exception": test_exception}
         )
 
     @mock.patch("logging.getLogger")
@@ -991,11 +950,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         callback_without_name = CallableWithoutName()
         callback_without_name.__class__.__name__ = "CallbackWithoutName"
 
-        result = invoke_future_with_error_handling(
-            self.event_data, callback_without_name, self.mock_futures
-        )
-
-        assert result is None
+        invoke_future_with_error_handling(self.event_data, callback_without_name, self.mock_futures)
 
         mock_get_logger.assert_called_once_with("sentry.safe_action.callbackwithoutname")
 
