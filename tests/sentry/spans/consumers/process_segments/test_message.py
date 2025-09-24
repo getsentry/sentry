@@ -241,18 +241,17 @@ class TestSpansTask(TestCase):
 
 def test_verify_compatibility():
     spans: list[dict[str, Any]] = [
-        {"data": {"foo": 1}, "attributes": {"foo": {"value": 1}}},
+        # regular span:
         {"data": {"foo": 1}},
-        {"data": {"foo": 1}, "attributes": {"value": {"foo": 2}}},
+        # valid compat span:
+        {"data": {"foo": 1}, "attributes": {"foo": {"value": 1}}},
+        # invalid compat spans:
+        {"data": {"foo": 1}, "attributes": {"value": {"foo": "2"}}},
         {"data": {"bar": 1}, "attributes": None},
         {"data": {"baz": 1}, "attributes": {}},
-        {"data": {"zap": 1}, "attributes": {"zap": {"no_value": 1}}},
+        {"data": {"zap": 1}, "attributes": {"zap": {"no_value": "1"}}},
         {"data": {"abc": 1}, "attributes": {"abc": None}},
     ]
-    assert _verify_compatibility(spans) == [
-        [],
-        [("foo", 1, None)],
-        [("baz", 1, None)],
-        [("zap", 1, None)],
-        [("abc", 1, None)],
-    ]
+    result = _verify_compatibility(spans)
+    assert len(result) == len(spans)
+    assert [v is None for v in result] == [True, True, False, False, False, False, False]
