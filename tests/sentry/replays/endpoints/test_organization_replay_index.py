@@ -185,7 +185,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response_data["data"][1]["id"] == replay1_id, query
 
     def test_get_replays_browse_screen_fields(self) -> None:
-        """Test replay response with fields requested in production."""
+        """Test replay response with fields requested by the index page in production."""
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -214,27 +214,49 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         )
 
         with self.feature(self.features):
-            response = self.client.get(
-                self.url
-                + "?field=activity&field=count_errors&field=duration&field=finished_at&field=id"
-                "&field=project_id&field=started_at&field=urls&field=user"
-            )
+            fields = [
+                "activity",
+                "browser",
+                "count_dead_clicks",
+                "count_errors",
+                "count_infos",
+                "count_rage_clicks",
+                "count_segments",
+                "count_urls",
+                "count_warnings",
+                "device",
+                "dist",
+                "duration",
+                "environment",
+                "error_ids",
+                "finished_at",
+                "has_viewed",
+                "id",
+                "info_ids",
+                "is_archived",
+                "os",
+                "platform",
+                "project_id",
+                "releases",
+                "sdk",
+                "started_at",
+                "tags",
+                "trace_ids",
+                "urls",
+                "user",
+                "warning_ids",
+            ]
+            qstr = "?" + "&".join([f"field={field}" for field in fields])
+            response = self.client.get(self.url + qstr)
             assert response.status_code == 200
 
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
-            assert len(response_data["data"][0]) == 9
-            assert "activity" in response_data["data"][0]
-            assert "count_errors" in response_data["data"][0]
-            assert "duration" in response_data["data"][0]
-            assert "finished_at" in response_data["data"][0]
-            assert "id" in response_data["data"][0]
-            assert "project_id" in response_data["data"][0]
-            assert "started_at" in response_data["data"][0]
-            assert "urls" in response_data["data"][0]
-            assert "user" in response_data["data"][0]
+            assert len(response_data["data"][0]) == len(fields)
+            for field in fields:
+                assert field in response_data["data"][0], field
 
             assert len(response_data["data"][0]["user"]) == 6
             assert "id" in response_data["data"][0]["user"]
