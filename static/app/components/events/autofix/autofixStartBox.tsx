@@ -59,8 +59,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }}
             />
             <StartTextRow>
-              <IconSeer variant="waiting" color="textColor" size="lg" />
-              <Fragment>{t('Need help digging deeper?')}</Fragment>
+              <IconSeer variant="waiting" color="textColor" size="xl" />
             </StartTextRow>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
@@ -94,7 +93,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }
               analyticsParams={{group_id: groupId}}
             >
-              {t('Start Seer')}
+              {t('Start Root Cause Analysis')}
             </StyledButton>
           </InputWrapper>
         </Container>
@@ -143,6 +142,8 @@ const StartTextRow = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  width: 100%;
+  justify-content: center;
 `;
 
 const BackgroundStar = styled('img')`

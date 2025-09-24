@@ -586,6 +586,7 @@ const CausesContainer = styled('div')`
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
+  background: ${p => p.theme.background};
 `;
 
 const Content = styled('div')`
