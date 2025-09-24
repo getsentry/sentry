@@ -29,6 +29,7 @@ import {
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
 import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
+import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
 import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/steps/volumeSliders';
 import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {
@@ -267,10 +268,16 @@ function SharedSpendLimitPriceTable({
               product as unknown as ReservedBudgetCategoryType
             ];
           const reservedBudget = reservedBudgetInfo?.defaultBudget;
+          const tooltipText = getProductCheckoutDescription(
+            addOnInfo.apiName as unknown as SelectableProduct,
+            true,
+            displayPrice({cents: reservedBudgetInfo?.defaultBudget ?? 0}),
+            true
+          );
 
           return (
             <SharedSpendLimitPriceTableRow key={product}>
-              <Container>
+              <Flex gap="xs" align="center" paddingRight="xs">
                 <Text bold>{capitalize(addOnInfo.productName)}</Text>
                 {reservedBudget && (
                   <Text variant="accent">
@@ -279,7 +286,10 @@ function SharedSpendLimitPriceTable({
                     })}
                   </Text>
                 )}
-              </Container>
+                {tooltipText && (
+                  <QuestionTooltip title={tooltipText} position="top" size="xs" />
+                )}
+              </Flex>
               <DashedBorder />
               <Container>
                 {categories.map((category, index) => {
@@ -480,6 +490,12 @@ function InnerSpendLimitSettings({
                 ]?.defaultBudget ?? 0);
             const reservedType = checkoutState.reservedType ?? 'budget';
             const isLastInList = index === includedAddOns.length - 1;
+            const tooltipText = getProductCheckoutDescription(
+              addOnInfo.apiName as unknown as SelectableProduct,
+              true,
+              displayPrice({cents: reserved}),
+              true
+            );
 
             return (
               <Flex
@@ -491,11 +507,10 @@ function InnerSpendLimitSettings({
                 borderBottom={isLastInList ? undefined : 'primary'}
               >
                 <Flex gap="xs" align="center">
-                  <Text bold>
-                    {toTitleCase(addOnInfo.productName, {
-                      allowInnerUpperCase: true,
-                    })}
-                  </Text>
+                  <Text bold>{upperFirst(addOnInfo.productName)}</Text>
+                  {tooltipText && (
+                    <QuestionTooltip title={tooltipText} position="top" size="xs" />
+                  )}
                   <Text variant="muted">
                     {reserved === 0
                       ? t('None included')
