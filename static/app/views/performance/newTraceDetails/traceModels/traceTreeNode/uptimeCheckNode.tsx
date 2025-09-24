@@ -15,13 +15,14 @@ import {UptimeCheckTimingNode} from './uptimeCheckTimingNode';
 
 export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   constructor(
-    parent: BaseNode<TraceTree.NodeValue>,
+    parent: BaseNode | null,
     value: TraceTree.UptimeCheck,
     extra: TraceTreeNodeExtra
   ) {
     super(parent, value, extra);
     const timingNodes = this._createTimingNodes();
     timingNodes.forEach(timingNode => this.children.push(timingNode));
+    this.isEAPEvent = true;
 
     this.parent?.children.push(this);
   }
@@ -124,7 +125,16 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   }
 
   pathToNode(): TraceTree.NodePath[] {
-    return [`uptime-check-${this.id}`];
+    return [`uptimeCheck-${this.id}`];
+  }
+
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'uptimeCheck' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
   }
 
   analyticsName(): string {

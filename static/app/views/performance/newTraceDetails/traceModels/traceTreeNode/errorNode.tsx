@@ -3,7 +3,10 @@ import type {Theme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import {ErrorNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/error';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isTraceError} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
+  isEAPError,
+  isTraceError,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceErrorRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceErrorRow';
@@ -18,6 +21,8 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     extra: TraceTreeNodeExtra
   ) {
     super(parent, value, extra);
+
+    this.isEAPEvent = isEAPError(value);
 
     if (value) {
       if (isTraceError(value) && value.timestamp) {
@@ -61,6 +66,15 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
 
   printNode(): string {
     return this.id || this.value.level || 'unknown trace error';
+  }
+
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'error' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
   }
 
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(

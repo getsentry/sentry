@@ -1,6 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+
 import {type TraceTreeNodeExtra} from './baseNode';
 import {RootNode} from './rootNode';
 
@@ -27,6 +29,7 @@ describe('RootNode', () => {
       expect(rootNode.errors).toBeInstanceOf(Set);
       expect(rootNode.occurrences).toBeInstanceOf(Set);
       expect(rootNode.profiles).toBeInstanceOf(Set);
+      expect(rootNode.canShowDetails).toBe(false);
     });
   });
 
@@ -118,6 +121,13 @@ describe('RootNode', () => {
   });
 
   describe('matchWithFreeText', () => {
+    it('should match by path', () => {
+      const extra = createMockExtra();
+      const rootNode = new RootNode(null, null, extra);
+
+      expect(rootNode.matchByPath('root' as TraceTree.NodePath)).toBe(false);
+    });
+
     it('should always return false', () => {
       const extra = createMockExtra();
       const rootNode = new RootNode(null, null, extra);

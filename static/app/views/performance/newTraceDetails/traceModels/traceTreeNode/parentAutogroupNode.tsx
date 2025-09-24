@@ -177,6 +177,15 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     return this.head.id === id || this.tail.id === id;
   }
 
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'ag' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
+  }
+
   expand(expanding: boolean, tree: TraceTree): boolean {
     const index = tree.list.indexOf(this as any);
 

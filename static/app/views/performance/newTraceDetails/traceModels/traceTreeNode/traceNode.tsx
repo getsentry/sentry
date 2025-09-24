@@ -10,13 +10,13 @@ import type {RootNode} from './rootNode';
 
 export class TraceNode extends BaseNode<TraceTree.Trace> {
   // We want to enforce the parent to only be a RootNode or null
-
   constructor(
     parent: RootNode | null,
     value: TraceTree.Trace,
     extra: TraceTreeNodeExtra
   ) {
     super(parent, value, extra);
+    this.canShowDetails = false;
 
     this.parent?.children.push(this);
   }
@@ -43,6 +43,10 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
 
   matchById(_id: string): boolean {
     return false;
+  }
+
+  matchByPath(path: TraceTree.NodePath): boolean {
+    return path === 'trace-root';
   }
 
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(

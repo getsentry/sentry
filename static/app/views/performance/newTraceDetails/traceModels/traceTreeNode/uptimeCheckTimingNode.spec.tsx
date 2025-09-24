@@ -95,7 +95,7 @@ describe('UptimeCheckTimingNode', () => {
 
       const node = new UptimeCheckTimingNode(null, timingValue, extra);
 
-      expect(node.pathToNode()).toEqual(['uptime-check-timing-timing-123']);
+      expect(node.pathToNode()).toEqual(['uptimeCheckTiming-timing-123']);
     });
   });
 
@@ -126,6 +126,18 @@ describe('UptimeCheckTimingNode', () => {
   });
 
   describe('matchWithFreeText', () => {
+    it('should match by path', () => {
+      const extra = createMockExtra();
+      const timingValue = makeUptimeCheckTiming({
+        event_id: 'timing123',
+      });
+
+      const node = new UptimeCheckTimingNode(null, timingValue, extra);
+
+      expect(node.matchByPath('uptimeCheckTiming-timing123')).toBe(true);
+      expect(node.matchByPath('uptimeCheckTiming-timing456')).toBe(false);
+    });
+
     it('should match by description', () => {
       const extra = createMockExtra();
       const timingValue = makeUptimeCheckTiming({

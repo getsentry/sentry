@@ -144,6 +144,17 @@ describe('CollapsedNode', () => {
   });
 
   describe('abstract method implementations', () => {
+    it('should return false for matchByPath', () => {
+      const extra = createMockExtra();
+      const parentValue = makeEAPSpan({event_id: 'parent'});
+      const collapsedValue = createCollapsedNodeValue();
+
+      const parentNode = new EapSpanNode(null, parentValue, extra);
+      const node = new CollapsedNode(parentNode, collapsedValue, extra);
+
+      expect(node.matchByPath('collapsed-parent')).toBe(false);
+    });
+
     it('should return empty array for pathToNode', () => {
       const extra = createMockExtra();
       const parentValue = makeEAPSpan({event_id: 'parent'});

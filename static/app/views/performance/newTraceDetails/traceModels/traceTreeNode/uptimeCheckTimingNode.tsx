@@ -20,7 +20,16 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
   }
 
   pathToNode(): TraceTree.NodePath[] {
-    return [`uptime-check-timing-${this.id}`];
+    return [`uptimeCheckTiming-${this.id}`];
+  }
+
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'uptimeCheckTiming' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
   }
 
   analyticsName(): string {

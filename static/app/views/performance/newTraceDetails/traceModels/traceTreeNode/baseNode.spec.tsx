@@ -36,6 +36,15 @@ class TestNode extends BaseNode {
     return [`test-${this.id}` as TraceTree.NodePath];
   }
 
+  matchByPath(path: TraceTree.NodePath): boolean {
+    const [type, id] = path.split('-');
+    if (type !== 'test' || !id) {
+      return false;
+    }
+
+    return this.matchById(id);
+  }
+
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     _props: TraceRowProps<T>
   ): React.ReactNode {
@@ -93,6 +102,8 @@ describe('BaseNode', () => {
       expect(node.errors).toBeInstanceOf(Set);
       expect(node.occurrences).toBeInstanceOf(Set);
       expect(node.profiles).toBeInstanceOf(Set);
+      expect(node.isEAPEvent).toBe(false);
+      expect(node.canShowDetails).toBe(true);
     });
 
     it('should set parent relationship correctly', () => {
@@ -546,6 +557,14 @@ describe('BaseNode', () => {
   });
 
   describe('matching functionality', () => {
+    it('should match by path', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'eventId'}), extra);
+
+      expect(node.matchByPath('test-eventId' as TraceTree.NodePath)).toBe(true);
+      expect(node.matchByPath('span-eventId')).toBe(false);
+    });
+
     it('should match by node ID', () => {
       const extra = createMockExtra();
       const node = new TestNode(
@@ -1169,6 +1188,26 @@ describe('BaseNode', () => {
       expect(child.isLastChild()).toBe(true);
       expect(parent2.isLastChild()).toBe(false);
       expect(parent1.isLastChild()).toBe(false);
+    });
+  });
+
+  describe('isRootNodeChild', () => {
+    it('should return true when node is a child of the root node', () => {
+      const extra = createMockExtra();
+      const root = new TestNode(null, null, extra);
+      const child = new TestNode(root, createMockValue({event_id: 'child'}), extra);
+      child.parent = root;
+
+      expect(child.isRootNodeChild()).toBe(true);
+    });
+
+    it('should return false when node is not a child of the root node', () => {
+      const extra = createMockExtra();
+      const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
+      const child = new TestNode(root, createMockValue({event_id: 'child'}), extra);
+      child.parent = root;
+
+      expect(child.isRootNodeChild()).toBe(false);
     });
   });
 

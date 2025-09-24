@@ -14,6 +14,14 @@ const createMockExtra = (): TraceTreeNodeExtra => ({
 
 describe('UptimeCheckNode', () => {
   describe('constructor', () => {
+    it('should initialize with basic properties', () => {
+      const extra = createMockExtra();
+      const uptimeValue = makeUptimeCheck({});
+      const node = new UptimeCheckNode(null, uptimeValue, extra);
+
+      expect(node.isEAPEvent).toBe(true);
+    });
+
     it('should create timing nodes and add to parent', () => {
       const extra = createMockExtra();
       const uptimeValue = makeUptimeCheck({
@@ -214,13 +222,13 @@ describe('UptimeCheckNode', () => {
     it('should return uptime-check path with event ID', () => {
       const extra = createMockExtra();
       const uptimeValue = makeUptimeCheck({
-        event_id: 'uptime-check-123',
+        event_id: 'check123',
       });
 
       const parentNode = new RootNode(null, null, extra);
       const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
 
-      expect(node.pathToNode()).toEqual(['uptime-check-uptime-check-123']);
+      expect(node.pathToNode()).toEqual(['uptimeCheck-check123']);
     });
   });
 
@@ -251,6 +259,19 @@ describe('UptimeCheckNode', () => {
   });
 
   describe('matchWithFreeText', () => {
+    it('should match by path', () => {
+      const extra = createMockExtra();
+      const uptimeValue = makeUptimeCheck({
+        event_id: 'check123',
+      });
+
+      const parentNode = new RootNode(null, null, extra);
+      const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
+
+      expect(node.matchByPath('uptimeCheck-check123')).toBe(true);
+      expect(node.matchByPath('uptimeCheck-check456')).toBe(false);
+    });
+
     it('should match by operation', () => {
       const extra = createMockExtra();
       const uptimeValue = makeUptimeCheck({

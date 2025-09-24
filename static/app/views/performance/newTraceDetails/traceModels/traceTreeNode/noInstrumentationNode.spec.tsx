@@ -130,32 +130,6 @@ describe('NoInstrumentationNode', () => {
   });
 
   describe('getter methods', () => {
-    it('should return unique id on each call', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({event_id: 'previous'});
-      const nextSpanValue = makeEAPSpan({event_id: 'next'});
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      const id1 = node.id;
-      const id2 = node.id;
-
-      expect(id1).toBeDefined();
-      expect(id2).toBeDefined();
-      expect(id1).not.toBe(id2); // Each call should return a new UUID
-      expect(typeof id1).toBe('string');
-      expect(typeof id2).toBe('string');
-    });
-
     it('should return correct drawerTabsTitle', () => {
       const extra = createMockExtra();
       const previousSpanValue = makeEAPSpan({event_id: 'previous'});

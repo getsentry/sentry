@@ -39,6 +39,7 @@ describe('EapSpanNode', () => {
       expect(node.canAutogroup).toBe(false);
       expect(node.allowNoInstrumentationNodes).toBe(false);
       expect(node.opsBreakdown).toEqual([]);
+      expect(node.isEAPEvent).toBe(true);
     });
 
     it('should initialize with basic properties for span', () => {
@@ -663,6 +664,15 @@ describe('EapSpanNode', () => {
   });
 
   describe('abstract method implementations', () => {
+    it('should return correct matchByPath', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({event_id: 'spanId'});
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.matchByPath('span-spanId')).toBe(true);
+      expect(node.matchByPath('txn-spanId')).toBe(false);
+    });
+
     it('should return correct pathToNode', () => {
       const extra = createMockExtra();
       const value = makeEAPSpan({event_id: 'test-span-id'});

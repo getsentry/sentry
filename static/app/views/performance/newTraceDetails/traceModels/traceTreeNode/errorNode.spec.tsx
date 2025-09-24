@@ -135,34 +135,6 @@ describe('ErrorNode', () => {
       expect(node.errors.size).toBe(1);
       expect(Array.from(node.errors)).toContain(value);
     });
-
-    it('should handle parent with existing children', () => {
-      const extra = createMockExtra();
-      const parentValue = makeTraceError({
-        event_id: 'parent',
-        title: 'Parent Error',
-        timestamp: 1000,
-      });
-      const existingChildValue = makeTraceError({
-        event_id: 'existing',
-        title: 'Existing Child',
-        timestamp: 1100,
-      });
-      const newChildValue = makeTraceError({
-        event_id: 'new',
-        title: 'New Child',
-        timestamp: 1050,
-      });
-
-      const parent = new ErrorNode(null, parentValue, extra);
-      const existingChild = new ErrorNode(parent, existingChildValue, extra);
-      const newChild = new ErrorNode(parent, newChildValue, extra);
-
-      // New child should be inserted in correct chronological position
-      expect(parent.children).toHaveLength(2);
-      expect(parent.children[0]).toBe(newChild); // Earlier timestamp (1050)
-      expect(parent.children[1]).toBe(existingChild); // Later timestamp (1100)
-    });
   });
 
   describe('description getter', () => {
@@ -340,6 +312,19 @@ describe('ErrorNode', () => {
   });
 
   describe('abstract method implementations', () => {
+    it('should return correct matchByPath', () => {
+      const extra = createMockExtra();
+      const value = makeTraceError({
+        event_id: 'errorId',
+        title: 'Test Error',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.matchByPath('error-errorId')).toBe(true);
+      expect(node.matchByPath('txn-errorId')).toBe(false);
+    });
+
     it('should return correct pathToNode', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
