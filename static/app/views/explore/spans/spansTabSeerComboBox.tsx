@@ -51,7 +51,8 @@ export function SpansTabSeerComboBox() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
-  const {currentInputValueRef, query, committedQuery} = useSearchQueryBuilder();
+  const {currentInputValueRef, query, committedQuery, askSeerSuggestedQueryRef} =
+    useSearchQueryBuilder();
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
@@ -120,8 +121,6 @@ export function SpansTabSeerComboBox() {
       };
     },
   });
-
-  const {askSeerSuggestedQueryRef} = useSearchQueryBuilder();
 
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery) => {
