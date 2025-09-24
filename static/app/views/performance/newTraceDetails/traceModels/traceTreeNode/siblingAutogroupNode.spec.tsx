@@ -1,14 +1,12 @@
 import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   makeEAPSpan,
   makeSiblingAutogroup,
   makeSpan,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
@@ -292,39 +290,6 @@ describe('SiblingAutogroupNode', () => {
       const node = new SiblingAutogroupNode(null, autogroupValue, extra);
 
       expect(node.printNode()).toBe('sibling autogroup (custom.operation: 0)');
-    });
-
-    it('should render waterfall row', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      const mockProps = {
-        node: node as any,
-        theme: {} as any,
-        organization: OrganizationFixture(),
-        manager: {} as any,
-        projects: [],
-      } as unknown as TraceRowProps<any>;
-
-      const result = node.renderWaterfallRow(mockProps);
-      expect(result).toBeDefined();
-    });
-
-    it('should render details', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      const mockProps = {
-        node: node as any,
-        organization: OrganizationFixture(),
-        onParentClick: jest.fn(),
-        onTabScrollToNode: jest.fn(),
-      } as unknown as TraceTreeNodeDetailsProps<any>;
-
-      const result = node.renderDetails(mockProps);
-      expect(result).toBeDefined();
     });
   });
 

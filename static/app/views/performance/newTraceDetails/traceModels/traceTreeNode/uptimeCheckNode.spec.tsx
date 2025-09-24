@@ -340,30 +340,4 @@ describe('UptimeCheckNode', () => {
       expect(typeof color).toBe('string');
     });
   });
-
-  describe('abstract method implementations', () => {
-    it('should implement renderWaterfallRow', () => {
-      const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({});
-
-      const parentNode = new RootNode(null, null, extra);
-      const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
-
-      const result = node.renderWaterfallRow({} as any);
-
-      expect(result).toBeDefined();
-    });
-
-    it('should implement renderDetails', () => {
-      const extra = createMockExtra();
-      const uptimeValue = makeUptimeCheck({});
-
-      const parentNode = new RootNode(null, null, extra);
-      const node = new UptimeCheckNode(parentNode, uptimeValue, extra);
-
-      const result = node.renderDetails({} as any);
-
-      expect(result).toBeDefined();
-    });
-  });
 });

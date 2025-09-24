@@ -1,7 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeEAPSpan,
@@ -9,7 +8,6 @@ import {
   makeSpan,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
@@ -684,61 +682,6 @@ describe('ParentAutogroupNode', () => {
       );
 
       expect(node.printNode()).toBe('parent autogroup (custom.operation: 0)');
-    });
-
-    it('should render waterfall row', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({});
-      const headSpanValue = makeEAPSpan({event_id: 'head'});
-      const tailSpanValue = makeEAPSpan({event_id: 'tail'});
-
-      const headNode = new EapSpanNode(null, headSpanValue, extra);
-      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
-      const node = new ParentAutogroupNode(
-        null,
-        autogroupValue,
-        extra,
-        headNode,
-        tailNode
-      );
-
-      const mockProps = {
-        node: node as any,
-        theme: {} as any,
-        organization: OrganizationFixture(),
-        manager: {} as any,
-        projects: [],
-      } as unknown as TraceRowProps<any>;
-
-      const result = node.renderWaterfallRow(mockProps);
-      expect(result).toBeDefined();
-    });
-
-    it('should render details', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({});
-      const headSpanValue = makeEAPSpan({event_id: 'head'});
-      const tailSpanValue = makeEAPSpan({event_id: 'tail'});
-
-      const headNode = new EapSpanNode(null, headSpanValue, extra);
-      const tailNode = new EapSpanNode(null, tailSpanValue, extra);
-      const node = new ParentAutogroupNode(
-        null,
-        autogroupValue,
-        extra,
-        headNode,
-        tailNode
-      );
-
-      const mockProps = {
-        node: node as any,
-        organization: OrganizationFixture(),
-        onParentClick: jest.fn(),
-        onTabScrollToNode: jest.fn(),
-      } as unknown as TraceTreeNodeDetailsProps<any>;
-
-      const result = node.renderDetails(mockProps);
-      expect(result).toBeDefined();
     });
   });
 

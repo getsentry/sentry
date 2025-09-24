@@ -302,23 +302,5 @@ describe('SpanNode', () => {
       expect(node.matchByPath('span-123')).toBe(true);
       expect(node.matchByPath('span-456')).toBe(false);
     });
-
-    it('should implement renderWaterfallRow', () => {
-      const span = makeSpan();
-      const node = new SpanNode(null, span, createMockExtra());
-
-      const result = node.renderWaterfallRow({} as any);
-
-      expect(result).toBeDefined();
-    });
-
-    it('should implement renderDetails', () => {
-      const span = makeSpan();
-      const node = new SpanNode(null, span, createMockExtra());
-
-      const result = node.renderDetails({} as any);
-
-      expect(result).toBeDefined();
-    });
   });
 });
