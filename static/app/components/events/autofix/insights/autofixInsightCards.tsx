@@ -12,7 +12,6 @@ import {InsightSourcesFooter} from './insightSourcesFooter';
 
 interface AutofixInsightCardsProps {
   groupId: string;
-  hasStepAbove: boolean;
   hasStepBelow: boolean;
   insights: AutofixInsight[];
   runId: string;
@@ -23,7 +22,6 @@ interface AutofixInsightCardsProps {
 function AutofixInsightCardsDisplay({
   insights,
   hasStepBelow,
-  hasStepAbove,
   stepIndex,
   groupId,
   runId,

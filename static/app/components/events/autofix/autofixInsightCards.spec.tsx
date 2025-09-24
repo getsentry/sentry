@@ -28,7 +28,6 @@ describe('AutofixInsightCards', () => {
     return render(
       <AutofixInsightCards
         insights={sampleInsights}
-        hasStepAbove={false}
         hasStepBelow={false}
         groupId="1"
         runId="1"

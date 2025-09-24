@@ -92,7 +92,6 @@ function Step({
                 <AutofixInsightCards
                   insights={step.insights}
                   hasStepBelow={hasStepBelow}
-                  hasStepAbove={hasStepAbove}
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
