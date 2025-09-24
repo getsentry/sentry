@@ -89,10 +89,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def trace_id(self) -> str | None:
-        ret_value = None
-        if self.data:
-            ret_value = self.data.get("contexts", {}).get("trace", {}).get("trace_id")
-        return ret_value
+        if not self.data:
+            return None
+        contexts = self.data.get("contexts")
+        trace = contexts.get("trace") if contexts else None
+        return trace.get("trace_id") if trace else None
 
     @property
     def platform(self) -> str | None:
