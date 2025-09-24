@@ -77,6 +77,7 @@ export function RepoSelector() {
   } = usePreventContext();
   const organization = useOrganization();
 
+  const {isSyncing} = useSyncRepos({});
   const [searchValue, setSearchValue] = useState<string | undefined>();
   const {
     data: repositories,
@@ -162,7 +163,8 @@ export function RepoSelector() {
 
   return (
     <CompactSelect
-      loading={isLoading}
+      menuTitle={t('Select a Repository')}
+      loading={isLoading || isSyncing}
       onSearch={handleOnSearch}
       searchable
       disableSearchFilter
