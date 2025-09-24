@@ -6,6 +6,8 @@
 from datetime import datetime
 from typing import Any
 
+from pydantic import Field
+
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.identity.services.identity.model import RpcIdentity, RpcIdentityProvider
@@ -22,7 +24,7 @@ class RpcIntegration(RpcModel):
     provider: str
     external_id: str
     name: str
-    metadata: dict[str, Any]
+    metadata: dict[str, Any] = Field(repr=False)
     status: int
 
     def __hash__(self) -> int:
