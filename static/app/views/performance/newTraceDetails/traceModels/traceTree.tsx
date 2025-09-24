@@ -19,7 +19,6 @@ import {
   isEAPError,
   isEAPSpan,
   isEAPSpanNode,
-  isEAPTraceNode,
   isJavascriptSDKEvent,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
@@ -28,7 +27,6 @@ import {
   isSiblingAutogroupedNode,
   isSpanNode,
   isTraceError,
-  isTraceNode,
   isTraceSplitResult,
   isTransactionNode,
   isUptimeCheck,
@@ -169,7 +167,7 @@ export declare namespace TraceTree {
     name: string;
     occurrences: EAPOccurrence[];
     op: string;
-    parent_span_id: string;
+    parent_span_id: string | null;
     profile_id: string;
     profiler_id: string;
     project_id: number;
@@ -1338,52 +1336,28 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return TraceShape.EMPTY_TRACE;
     }
 
-    let traceStats: {
-      javascript_root_count: number;
-      orphan_errors_count: number;
-      orphan_spans_count: number;
-      roots_count: number;
+    const traceStats = {
+      javascript_root_count: 0,
+      orphan_errors_count: 0,
+      orphan_spans_count: 0,
+      roots_count: 0,
     };
 
-    if (isEAPTraceNode(trace)) {
-      traceStats = {
-        javascript_root_count: trace.value.filter(
-          (v): v is TraceTree.EAPSpan => isEAPSpan(v) && isJavascriptSDKEvent(v)
-        ).length,
-        orphan_spans_count: trace.value.filter(
-          v => isEAPSpan(v) && v.parent_span_id !== null
-        ).length,
-        roots_count: trace.value.filter(
-          v => 'parent_span_id' in v && v.parent_span_id === null
-        ).length,
-        orphan_errors_count: trace.value.filter(v => isEAPError(v)).length,
-      };
-    } else if (isTraceNode(trace)) {
-      traceStats = {
-        ...trace.value.transactions.reduce<{
-          javascript_root_count: number;
-          orphan_spans_count: number;
-          roots_count: number;
-        }>(
-          (stats, transaction) => {
-            if (isRootEvent(transaction)) {
-              stats.roots_count++;
+    trace.children.forEach(node => {
+      if (isRootEvent(node.value)) {
+        traceStats.roots_count++;
 
-              if (isJavascriptSDKEvent(transaction)) {
-                stats.javascript_root_count++;
-              }
-            } else {
-              stats.orphan_spans_count++;
-            }
-            return stats;
-          },
-          {roots_count: 0, orphan_spans_count: 0, javascript_root_count: 0}
-        ),
-        orphan_errors_count: trace.value.orphan_errors.length,
-      };
-    } else {
-      throw new Error('Unknown trace type');
-    }
+        if (isJavascriptSDKEvent(node.value)) {
+          traceStats.javascript_root_count++;
+        }
+      } else {
+        if (isTraceError(node.value) || isEAPError(node.value)) {
+          traceStats.orphan_errors_count++;
+        } else {
+          traceStats.orphan_spans_count++;
+        }
+      }
+    });
 
     if (traceStats.roots_count === 0) {
       if (traceStats.orphan_spans_count > 0) {

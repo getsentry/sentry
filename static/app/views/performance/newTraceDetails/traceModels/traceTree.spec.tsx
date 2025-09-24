@@ -16,7 +16,7 @@ import {
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
-import {TraceTree} from './traceTree';
+import {TraceShape, TraceTree} from './traceTree';
 import {
   assertEAPSpanNode,
   assertTransactionNode,
@@ -1865,7 +1865,7 @@ describe('TraceTree', () => {
       )!;
 
       const path = missingInstrumentationNode.pathToNode();
-      expect(path[0]).toMatch(/^ms-[a-f0-9]{32}$/);
+      expect(path[0]).toMatch(/^ms-0/);
       expect(path[1]).toBe('txn-child-event-id');
     });
   });
@@ -2083,6 +2083,360 @@ describe('TraceTree', () => {
         child => child.value.op === 'http.tcp_connection.duration'
       );
       expect(tcpNode?.value.duration).toBe(0);
+    });
+  });
+
+  describe('shape', () => {
+    describe('regular traces', () => {
+      it('returns EMPTY_TRACE when trace has no transactions or errors', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [],
+            orphan_errors: [],
+          }),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.EMPTY_TRACE);
+      });
+
+      it('returns NO_ROOT when trace has only non-root transactions', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                parent_span_id: 'some-parent-id',
+                children: [],
+              }),
+              makeTransaction({
+                parent_span_id: 'another-parent-id',
+                children: [],
+              }),
+            ],
+            orphan_errors: [],
+          }),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.NO_ROOT);
+      });
+
+      it('returns ONLY_ERRORS when trace has only orphan errors', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [],
+            orphan_errors: [makeTraceError()],
+          }),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.ONLY_ERRORS);
+      });
+
+      it('returns ONE_ROOT when trace has exactly one root transaction', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                parent_span_id: null,
+                children: [],
+              }),
+            ],
+            orphan_errors: [],
+          }),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.ONE_ROOT);
+      });
+
+      it('returns BROKEN_SUBTRACES when trace has one root and orphan spans', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                parent_span_id: null,
+                children: [],
+              }),
+              makeTransaction({
+                parent_span_id: 'non-existent-parent',
+                children: [],
+              }),
+            ],
+            orphan_errors: [],
+          }),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.BROKEN_SUBTRACES);
+      });
+
+      it('returns BROWSER_MULTIPLE_ROOTS when trace has multiple roots including JavaScript SDK events', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                parent_span_id: null,
+                sdk_name: 'sentry.javascript.browser',
+                children: [],
+              }),
+              makeTransaction({
+                parent_span_id: null,
+                sdk_name: 'sentry.python',
+                children: [],
+              }),
+            ],
+            orphan_errors: [],
+          }),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.BROWSER_MULTIPLE_ROOTS);
+      });
+
+      it('returns MULTIPLE_ROOTS when trace has multiple non-JavaScript roots', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                parent_span_id: null,
+                sdk_name: 'sentry.python',
+                children: [],
+              }),
+              makeTransaction({
+                parent_span_id: null,
+                sdk_name: 'sentry.java',
+                children: [],
+              }),
+            ],
+            orphan_errors: [],
+          }),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.MULTIPLE_ROOTS);
+      });
+
+      it('handles complex trace with multiple root types correctly', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                parent_span_id: null,
+                sdk_name: 'sentry.javascript.react',
+                children: [],
+              }),
+              makeTransaction({
+                parent_span_id: null,
+                sdk_name: 'sentry.javascript.node',
+                children: [],
+              }),
+              makeTransaction({
+                parent_span_id: null,
+                sdk_name: 'sentry.python',
+                children: [],
+              }),
+            ],
+            orphan_errors: [],
+          }),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.BROWSER_MULTIPLE_ROOTS);
+      });
+    });
+
+    describe('EAP traces', () => {
+      it('returns EMPTY_TRACE for empty EAP trace', () => {
+        const tree = TraceTree.FromTrace(makeEAPTrace([]), traceOptions);
+
+        expect(tree.shape).toBe(TraceShape.EMPTY_TRACE);
+      });
+
+      it('returns ONLY_ERRORS for EAP trace with only errors', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPError({
+              event_id: 'error-1',
+              description: 'Test error',
+            }),
+            makeEAPError({
+              event_id: 'error-2',
+              description: 'Another error',
+            }),
+          ]),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.ONLY_ERRORS);
+      });
+
+      it('returns NO_ROOT for EAP trace with only non-root spans', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              parent_span_id: 'some-parent',
+              is_transaction: false,
+            }),
+            makeEAPSpan({
+              parent_span_id: 'another-parent',
+              is_transaction: false,
+            }),
+          ]),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.NO_ROOT);
+      });
+
+      it('returns ONE_ROOT for EAP trace with single root span', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              parent_span_id: null,
+              is_transaction: true,
+              children: [
+                makeEAPSpan({
+                  parent_span_id: 'root-span-id',
+                  is_transaction: false,
+                }),
+              ],
+            }),
+          ]),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.ONE_ROOT);
+      });
+
+      it('returns BROKEN_SUBTRACES for EAP trace with root and orphan spans', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              parent_span_id: null,
+              is_transaction: true,
+            }),
+            makeEAPSpan({
+              parent_span_id: 'non-existent-parent',
+              is_transaction: false,
+            }),
+          ]),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.BROKEN_SUBTRACES);
+      });
+
+      it('returns BROWSER_MULTIPLE_ROOTS for EAP trace with multiple roots including JavaScript SDK', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              parent_span_id: null,
+              is_transaction: true,
+              transaction: 'pageload',
+              sdk_name: 'sentry.javascript.browser',
+              op: 'pageload',
+            }),
+            makeEAPSpan({
+              parent_span_id: null,
+              is_transaction: true,
+              transaction: 'backend',
+              op: 'http.server',
+            }),
+          ]),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.BROWSER_MULTIPLE_ROOTS);
+      });
+
+      it('returns MULTIPLE_ROOTS for EAP trace with multiple non-JavaScript roots', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              parent_span_id: null,
+              is_transaction: true,
+              transaction: 'backend-1',
+              op: 'http.server',
+            }),
+            makeEAPSpan({
+              parent_span_id: null,
+              is_transaction: true,
+              transaction: 'backend-2',
+              op: 'db.query',
+            }),
+          ]),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.MULTIPLE_ROOTS);
+      });
+
+      it('handles mixed EAP trace with spans and errors correctly', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              parent_span_id: null,
+              is_transaction: true,
+              children: [],
+            }),
+            makeEAPError({
+              event_id: 'error-1',
+              description: 'Orphan error',
+            }),
+          ]),
+          traceOptions
+        );
+
+        expect(tree.shape).toBe(TraceShape.ONE_ROOT);
+      });
+    });
+
+    describe('edge cases', () => {
+      it('handles trace with no trace node correctly', () => {
+        const tree = TraceTree.FromTrace(makeTrace({transactions: []}), traceOptions);
+
+        // Remove trace node to test empty children scenario
+        tree.root.children = [];
+
+        expect(tree.shape).toBe(TraceShape.EMPTY_TRACE);
+      });
+
+      it('correctly counts JavaScript SDK events in regular traces', () => {
+        const javascriptSdkNames = [
+          'sentry.javascript.browser',
+          'sentry.javascript.node',
+          'sentry.javascript.react',
+          'sentry.javascript.vue',
+          'sentry.javascript.angular',
+          'sentry.javascript.svelte',
+          'sentry.javascript.nextjs',
+          'sentry.javascript.remix',
+        ];
+
+        javascriptSdkNames.forEach(sdkName => {
+          const tree = TraceTree.FromTrace(
+            makeTrace({
+              transactions: [
+                makeTransaction({
+                  parent_span_id: null,
+                  sdk_name: sdkName,
+                  children: [],
+                }),
+                makeTransaction({
+                  parent_span_id: null,
+                  sdk_name: 'sentry.python',
+                  children: [],
+                }),
+              ],
+              orphan_errors: [],
+            }),
+            traceOptions
+          );
+
+          expect(tree.shape).toBe(TraceShape.BROWSER_MULTIPLE_ROOTS);
+        });
+      });
     });
   });
 });
