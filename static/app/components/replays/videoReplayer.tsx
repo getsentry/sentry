@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {Timer} from 'sentry/utils/replays/timer';
 import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
@@ -43,6 +45,7 @@ export class VideoReplayer {
   private _attachments: VideoEvent[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
+  private _fullscreenVideoIndex: number | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: Array<[ts: number, index: number]>;
@@ -135,7 +138,7 @@ export class VideoReplayer {
   }
 
   private addListeners(el: HTMLVideoElement, index: number): void {
-    const handleEnded = () => this.handleSegmentEnd(index);
+    const handleEnded = () => this.handleSegmentEnd(index, el);
 
     const handleLoadedData = (event: any) => {
       // Used to correctly set the dimensions of the first frame
@@ -179,11 +182,33 @@ export class VideoReplayer {
       }
     };
 
+    const handleFullscreenEnd = () => {
+      // For watching mobile replays on mobile browsers where videos play in fullscreen.
+      // When exiting fullscreen, reset the fullscreen video index to its initial value.
+      // We may want to improve this in the future to keep state of the video, but also ensure that timeline is synced.
+      if (
+        document.fullscreenElement ||
+        document.webkitIsFullScreen === true ||
+        document.mozFullScreen ||
+        document.msFullscreenElement
+      ) {
+        this._fullscreenVideoIndex = index;
+        // Reset the video source to the first segment
+        const sourceElement = el.querySelector('source');
+        const attachment = this._attachments[index];
+        if (sourceElement && attachment) {
+          sourceElement.src = `${this._videoApiPrefix}${attachment.id}/`;
+          el.load();
+        }
+      }
+    };
+
     el.addEventListener('ended', handleEnded);
     el.addEventListener('loadeddata', handleLoadedData);
     el.addEventListener('play', handlePlay);
     el.addEventListener('loadedmetadata', handleLoadedMetaData);
     el.addEventListener('seeking', handleSeeking);
+    el.addEventListener('webkitendfullscreen', handleFullscreenEnd);
 
     this._listeners.push(() => {
       el.removeEventListener('ended', handleEnded);
@@ -191,6 +216,7 @@ export class VideoReplayer {
       el.removeEventListener('play', handlePlay);
       el.removeEventListener('loadedmetadata', handleLoadedMetaData);
       el.removeEventListener('seeking', handleSeeking);
+      el.removeEventListener('webkitendfullscreen', handleFullscreenEnd);
     });
   }
 
@@ -301,8 +327,23 @@ export class VideoReplayer {
    * Called when a video finishes playing, so that it can proceed
    * to the next video
    */
-  private async handleSegmentEnd(index: number): Promise<void> {
-    const nextIndex = index + 1;
+  private async handleSegmentEnd(
+    index: number,
+    videoElement: HTMLVideoElement
+  ): Promise<void> {
+    const isFullscreen =
+      document.fullscreenElement ||
+      document.webkitIsFullScreen === true ||
+      document.mozFullScreen ||
+      document.msFullscreenElement;
+    if (isFullscreen && this._fullscreenVideoIndex === undefined) {
+      this._fullscreenVideoIndex = index;
+    }
+
+    const nextIndex =
+      isFullscreen && this._fullscreenVideoIndex !== undefined
+        ? this._fullscreenVideoIndex + 1
+        : index + 1;
 
     // No more segments
     if (nextIndex >= this._attachments.length) {
@@ -316,6 +357,36 @@ export class VideoReplayer {
         return;
       }
       this.stopReplay();
+    }
+
+    // iOS Safari will play the video in fullscreen mode when pressing "play" on the replay.
+    // When the current video ends, in order to continue playing the next segment inside
+    // of the existing video player, we have to update the source of the video to the
+    // URL of the next segment.
+    if (isFullscreen) {
+      const nextAttachment = this._attachments[nextIndex];
+      if (!nextAttachment) {
+        return;
+      }
+
+      // Get the source element from the previous video and update its src
+      const sourceElement = videoElement.querySelector('source');
+      if (!sourceElement) {
+        return;
+      }
+
+      const nextVideoSource = `${this._videoApiPrefix}${nextAttachment.id}/`;
+      sourceElement.src = nextVideoSource;
+      this._fullscreenVideoIndex = nextIndex;
+      // Load the new source and play next video
+      videoElement.load();
+      try {
+        await videoElement.play();
+      } catch (error) {
+        Sentry.captureException(error);
+      }
+
+      return;
     }
 
     // Final check in case replay was stopped immediately after a video
