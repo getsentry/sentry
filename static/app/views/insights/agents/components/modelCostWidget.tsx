@@ -98,7 +98,7 @@ export default function ModelCostWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(ts, {
-              color: ts.groupBy ? colorPalette[index] : theme.chart.neutral,
+              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
               stack: 'stack',
             })
         ),
