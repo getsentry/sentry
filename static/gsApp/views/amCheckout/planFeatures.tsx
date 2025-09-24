@@ -90,13 +90,16 @@ function PlanFeatures({
   // XXX(isabella): this is a hacky way to show the free features
   // without free plan being surfaced in the UI
   // (will be removed when free is surfaced)
-  const planOptionsWithFree = [
-    {
-      ...planOptions[0],
-      name: 'Developer',
-    } as Plan,
-    ...planOptions,
-  ];
+  const planOptionsWithFree =
+    planOptions.length >= 3
+      ? planOptions
+      : [
+          {
+            ...planOptions[0],
+            name: 'Developer',
+          } as Plan,
+          ...planOptions,
+        ];
 
   planOptionsWithFree.forEach((planOption, index) => {
     const planName = planOption.name.toLowerCase();
