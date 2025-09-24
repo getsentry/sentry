@@ -14,11 +14,11 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import type {SpanProperty} from 'sentry/views/insights/types';
+import type {SpanFields, SpanProperty} from 'sentry/views/insights/types';
 
 import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 
-interface UseFetchEventsTimeSeriesOptions<Field> {
+interface UseFetchEventsTimeSeriesOptions<Field, Attributes> {
   /**
    * The fields (or single field) to fetch from the API. e.g., `"p50(span.duration)"`
    */
@@ -30,7 +30,7 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   /**
    * An array of tags by which to group the results. e.g., passing `["transaction"]` will group the results by the `"transaction"` tag. `["env", "transaction"]` will group by both the `"env"` and `"transaction"` tags.
    */
-  groupBy?: Field[];
+  groupBy?: Attributes[];
   /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
@@ -57,17 +57,21 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   topEvents?: number;
 }
 
-export function useFetchSpanTimeSeries<Fields extends SpanProperty>(
-  options: UseFetchEventsTimeSeriesOptions<Fields>,
-  referrer: string
-) {
-  return useFetchEventsTimeSeries<Fields>(DiscoverDatasets.SPANS, options, referrer);
+export function useFetchSpanTimeSeries<
+  Fields extends SpanProperty,
+  Attributes extends SpanFields,
+>(options: UseFetchEventsTimeSeriesOptions<Fields, Attributes>, referrer: string) {
+  return useFetchEventsTimeSeries<Fields, Attributes>(
+    DiscoverDatasets.SPANS,
+    options,
+    referrer
+  );
 }
 
 /**
  * Fetch time series data from the `/events-timeseries/` endpoint. Returns an array of `TimeSeries` objects.
  */
-export function useFetchEventsTimeSeries<T extends string>(
+export function useFetchEventsTimeSeries<T extends string, Y extends string>(
   dataset: DiscoverDatasets,
   {
     yAxis,
@@ -79,7 +83,7 @@ export function useFetchEventsTimeSeries<T extends string>(
     pageFilters,
     sort,
     topEvents,
-  }: UseFetchEventsTimeSeriesOptions<T>,
+  }: UseFetchEventsTimeSeriesOptions<T, Y>,
   referrer: string
 ) {
   const organization = useOrganization();

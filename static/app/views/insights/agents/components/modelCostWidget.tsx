@@ -6,7 +6,9 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -51,32 +53,26 @@ export default function ModelCostWidget() {
     Referrer.MODEL_COST_WIDGET
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const timeSeriesRequest = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: fullQuery,
-      fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'sum(gen_ai.usage.total_cost)'],
+      query: fullQuery,
+      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
       yAxis: ['sum(gen_ai.usage.total_cost)'],
       sort: {field: 'sum(gen_ai.usage.total_cost)', kind: 'desc'},
-      topN: 3,
+      topEvents: 3,
       enabled: !!tokensRequest.data,
     },
     Referrer.MODEL_COST_WIDGET
   );
 
+  const timeSeries = timeSeriesRequest.data?.timeSeries || [];
+
   // We are setting the value type to currency for the time series so that the tooltip and y-axis formatting is correct
-  const timeSeries = (timeSeriesRequest.data || []).map(ts => ({
-    ...ts,
-    meta: {
-      ...ts.meta,
-      fields: Object.fromEntries(
-        Object.entries(ts.meta?.fields || {}).map(([key, value]) => [
-          key,
-          value === 'number' ? 'currency' : value,
-        ])
-      ),
-    } as EventsMetaType,
-  }));
+  // TODO: this should updated so the meta is probably returned from the backend (defined in attributes.py)
+  timeSeries.forEach(ts => {
+    ts.meta.valueType = 'currency';
+  });
 
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;
@@ -111,10 +107,8 @@ export default function ModelCostWidget() {
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Bars(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
-              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
+            new Bars(ts, {
+              color: ts.groupBy ? colorPalette[index] : theme.chart.neutral,
               stack: 'stack',
             })
         ),

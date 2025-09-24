@@ -6,6 +6,10 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
+import {
+  useFetchEventsTimeSeries,
+  useFetchSpanTimeSeries,
+} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -49,20 +53,20 @@ export default function LLMCallsWidget() {
     Referrer.LLM_CALLS_WIDGET
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const timeSeriesRequest = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: fullQuery,
-      fields: ['gen_ai.request.model', 'count(span.duration)'],
+      query: fullQuery,
+      groupBy: ['gen_ai.request.model'],
       yAxis: ['count(span.duration)'],
       sort: {field: 'count(span.duration)', kind: 'desc'},
-      topN: 3,
+      topEvents: 3,
       enabled: !!generationsRequest.data,
     },
     Referrer.LLM_CALLS_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data;
+  const timeSeries = timeSeriesRequest?.data?.timeSeries ?? [];
 
   const isLoading = timeSeriesRequest.isLoading || generationsRequest.isLoading;
   const error = timeSeriesRequest.error || generationsRequest.error;
@@ -94,10 +98,8 @@ export default function LLMCallsWidget() {
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Bars(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
-              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
+            new Bars(ts, {
+              color: ts.groupBy ? colorPalette[index] : theme.chart.neutral,
               stack: 'stack',
             })
         ),
