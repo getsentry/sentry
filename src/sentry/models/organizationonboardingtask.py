@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models import SET_NULL
 from django.utils import timezone
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -20,6 +21,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.utils import metrics
 
 
 # NOTE: There are gaps in the numberation because a
@@ -70,6 +72,15 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
+            if options.get("sentry.send_onboarding_task_metrics"):
+                metrics.incr(
+                    "sentry.onboarding.task.cache_miss",
+                    tags={
+                        "organization_id": organization_id,
+                        "task": task,
+                    },
+                    sample_rate=1.0,
+                )
             defaults = {
                 **kwargs,
                 "status": status,
