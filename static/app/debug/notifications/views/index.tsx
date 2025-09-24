@@ -57,7 +57,7 @@ export default function DebugNotificationsIndex() {
                 <Flex justify="between" wrap="wrap" position="relative" gap="2xl">
                   <Flex direction="column" gap="2xl" position="relative" flex="1">
                     <EmailPreview registration={selectedRegistration} />
-                    <SlackPreview />
+                    <SlackPreview registration={selectedRegistration} />
                     <DiscordPreview />
                     <TeamsPreview />
                   </Flex>
