@@ -121,20 +121,14 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
 
-  const [rawQueries, setRawQueries] = useState<T[]>([]);
-  const [unsupportedReason, setUnsupportedReason] = useState<string | null>(null);
   const {
     mutate: submitQuery,
+    data,
     isPending,
     isError,
   } = useMutation({
     ...props.seerMutationOptions,
-    onSuccess: results => {
-      setUnsupportedReason(results.unsupported_reason ?? null);
-      setRawQueries(results.queries ?? []);
-    },
     onError: error => {
-      setUnsupportedReason(null);
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
     },
   });
@@ -151,8 +145,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           ['feedback.source']: 'trace_explorer_ai_query',
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
-          ['feedback.raw_result']: JSON.stringify(rawQueries).replace(/\n/g, ''),
-          ['feedback.num_queries_returned']: rawQueries?.length ?? 0,
+          ['feedback.raw_result']: JSON.stringify(data?.queries).replace(/\n/g, ''),
+          ['feedback.num_queries_returned']: data?.queries?.length ?? 0,
         },
       });
     } else {
@@ -161,8 +155,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   };
 
   const items: Array<AskSeerSearchItems<T>> = useMemo(() => {
-    if (rawQueries && rawQueries.length > 0) {
-      const results: Array<AskSeerSearchItems<T>> = rawQueries.map((query, index) => ({
+    if (data?.queries && data?.queries.length > 0) {
+      const results: Array<AskSeerSearchItems<T>> = data?.queries.map((query, index) => ({
         ...query,
         key: `${index}-${query.query}`,
       }));
@@ -176,7 +170,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
 
     return [];
-  }, [rawQueries]);
+  }, [data?.queries]);
 
   const state = useComboBoxState({
     ...props,
@@ -196,7 +190,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         trackAnalytics('trace.explorer.ai_query_rejected', {
           organization,
           natural_language_query: searchQuery,
-          num_queries_returned: rawQueries?.length ?? 0,
+          num_queries_returned: data?.queries?.length ?? 0,
         });
         handleNoneOfTheseClick();
         return;
@@ -272,7 +266,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               trackAnalytics('trace.explorer.ai_query_rejected', {
                 organization,
                 natural_language_query: searchQuery,
-                num_queries_returned: rawQueries?.length ?? 0,
+                num_queries_returned: data?.queries?.length ?? 0,
               });
               handleNoneOfTheseClick();
               state.open();
@@ -427,7 +421,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                 title={t('An error occurred while fetching Seer queries')}
               />
             </SeerContent>
-          ) : rawQueries && (rawQueries?.length ?? 0) > 0 ? (
+          ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
             <SeerContent onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
               <AskSeerSearchListBox
@@ -436,10 +430,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                 state={state}
               />
             </SeerContent>
-          ) : unsupportedReason ? (
+          ) : data?.unsupported_reason ? (
             <SeerContent>
               <AskSeerSearchHeader
-                title={unsupportedReason || 'This query is not supported'}
+                title={data?.unsupported_reason || 'This query is not supported'}
               />
             </SeerContent>
           ) : (
