@@ -2,6 +2,7 @@ import base64
 
 import pytest
 from cryptography.fernet import Fernet
+from django.db import connection, models
 from django.test import override_settings
 
 from sentry.db.models.fields.encryption import MARKER_FERNET, MARKER_PLAINTEXT, EncryptedField
@@ -470,3 +471,40 @@ def test_fernet_format_with_plaintext_data(fernet_keys_value):
             result = field.to_python(fake_fernet_with_base64)
             # This should also fall back to the original string since it's not valid Fernet data
             assert result == fake_fernet_with_base64
+
+
+class EncryptedFieldModel(models.Model):
+    id = models.AutoField(primary_key=True)
+    data = EncryptedField(null=True, blank=True)
+
+    class Meta:
+        app_label = "fixtures"
+
+
+@pytest.mark.django_db
+def test_encrypted_field_end_to_end(fernet_key, fernet_keys_value):
+    """Test complete save/retrieve cycle with EncryptedField."""
+
+    with (
+        override_options({"database.encryption.method": "fernet"}),
+        override_settings(DATABASE_ENCRYPTION_FERNET_KEYS=fernet_keys_value),
+    ):
+        test_data = "This is sensitive data that should be encrypted"
+
+        model_instance = EncryptedFieldModel.objects.create(data=test_data)
+        assert model_instance.id is not None
+
+        # Verify the data was correctly encrypted and decrypted
+        retrieved_instance = EncryptedFieldModel.objects.get(id=model_instance.id)
+        assert retrieved_instance.data == test_data.encode()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT data FROM fixtures_encryptedfieldmodel WHERE id = %s",
+                [model_instance.id],
+            )
+            raw_value = cursor.fetchone()[0]
+
+            # Should be in fernet format: enc:fernet:key_id:base64data
+            assert raw_value.startswith(f"{MARKER_FERNET}:")
+            assert test_data not in raw_value

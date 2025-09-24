@@ -114,6 +114,9 @@ class EncryptedField(Field):
         handler = self._encryption_handlers[encryption_method]
         return handler["encrypt"](value)
 
+    def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
+        return self.to_python(value)
+
     def to_python(self, value: Any) -> Any:
         """Decrypt the value when loading from database."""
         if value is None:
