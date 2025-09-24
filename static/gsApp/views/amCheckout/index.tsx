@@ -9,9 +9,11 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -28,6 +30,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -926,16 +929,14 @@ class AMCheckout extends Component<Props, State> {
                   help: (
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
-                  contact: (
-                    <ZendeskLink
-                      subject="Billing Question"
-                      source="checkout"
-                      Component={({onClick}) => (
-                        <Link to={''} onClick={onClick}>
-                          {t('ask Support')}
-                        </Link>
-                      )}
-                    />
+                  contact: hasZendesk() ? (
+                    <ZendeskButton borderless onClick={activateZendesk}>
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </ZendeskButton>
+                  ) : (
+                    <ZendeskLink subject="Billing Question" source="checkout">
+                      {t('ask Support')}
+                    </ZendeskLink>
                   ),
                 })}
               </TextOverflow>
@@ -1104,6 +1105,11 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
         border-top: 2px dashed ${p.theme.border};
       }
     `}
+`;
+
+const ZendeskButton = styled(Button)`
+  padding: 0;
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));
