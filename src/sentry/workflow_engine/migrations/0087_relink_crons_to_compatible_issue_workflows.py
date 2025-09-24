@@ -11,7 +11,6 @@ from django.db.migrations.state import StateApps
 from django.db.models import Prefetch
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -221,20 +220,33 @@ def link_crons_to_compatible_issue_workflows(
     DataSourceDetector = apps.get_model("workflow_engine", "DataSourceDetector")
     Monitor = apps.get_model("monitors", "Monitor")
 
-    rules_by_project = defaultdict(list)
+    cron_detectors_all = Detector.objects.filter(type="monitor_check_in_failure")
+    detectors_by_project = defaultdict(list)
+    for detector in cron_detectors_all:
+        detectors_by_project[detector.project_id].append(detector)
 
-    for rule in RangeQuerySetWrapper(Rule.objects.all(), step=10000):
-        if rule.source == 0:
-            rules_by_project[rule.project_id].append(rule)
-
-    if not rules_by_project:
-        logger.info("No issue rules found, skipping migration")
+    if not detectors_by_project:
+        logger.info("No cron detectors found, skipping migration")
         return
+
+    data_source_detectors = DataSourceDetector.objects.filter(
+        detector__type="monitor_check_in_failure", data_source__type="cron_monitor"
+    ).select_related("data_source")
+
+    detector_to_monitor_id = {}
+    for dsd in data_source_detectors:
+        detector_to_monitor_id[dsd.detector_id] = int(dsd.data_source.source_id)
+
+    monitors_by_id = {m.id: m for m in Monitor.objects.all()}
 
     total_links_created = 0
     total_projects_processed = 0
 
-    for project_id, project_rules in rules_by_project.items():
+    for project_id, cron_detectors in detectors_by_project.items():
+        project_rules = list(Rule.objects.filter(project_id=project_id, source=0))
+        if not project_rules:
+            continue
+
         rule_ids = [r.id for r in project_rules]
         rules_by_id = {r.id: r for r in project_rules}
 
@@ -301,26 +313,6 @@ def link_crons_to_compatible_issue_workflows(
 
         if not workflow_data_list:
             continue
-
-        cron_detectors = list(
-            Detector.objects.filter(type="monitor_check_in_failure", project_id=project_id)
-        )
-
-        if not cron_detectors:
-            continue
-
-        detector_ids = [d.id for d in cron_detectors]
-        data_source_detectors = DataSourceDetector.objects.filter(
-            detector_id__in=detector_ids
-        ).select_related("data_source")
-
-        detector_to_monitor_id = {}
-        for dsd in data_source_detectors:
-            if dsd.data_source.type == "cron_monitor":
-                detector_to_monitor_id[dsd.detector_id] = int(dsd.data_source.source_id)
-
-        monitor_ids = list(detector_to_monitor_id.values())
-        monitors_by_id = {m.id: m for m in Monitor.objects.filter(id__in=monitor_ids)}
 
         # Link cron detectors to compatible workflows in this project
         project_links_created = 0
