@@ -1,14 +1,22 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconCode, IconDownload, IconFile, IconRefresh} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChevron,
+  IconCode,
+  IconDownload,
+  IconFile,
+  IconRefresh,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
@@ -34,6 +42,8 @@ export function SizeCompareMainContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const theme = useTheme();
+  const [isFilesExpanded, setIsFilesExpanded] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useState(true);
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -149,6 +159,21 @@ export function SizeCompareMainContent() {
     return metrics;
   }, [comparisonDataQuery.data]);
 
+  // Filter diff items based on the toggle
+  const filteredDiffItems = useMemo(() => {
+    if (!comparisonDataQuery.data?.diff_items) {
+      return [];
+    }
+
+    if (hideSmallChanges) {
+      return comparisonDataQuery.data.diff_items.filter(
+        item => Math.abs(item.size_diff) >= 500
+      );
+    }
+
+    return comparisonDataQuery.data.diff_items;
+  }, [comparisonDataQuery.data?.diff_items, hideSmallChanges]);
+
   if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
     return (
       <Flex
@@ -257,10 +282,13 @@ export function SizeCompareMainContent() {
       <Grid columns="repeat(3, 1fr)" gap="lg">
         {processedMetrics.map((metric, index) => {
           let variant: 'danger' | 'success' | 'muted' = 'muted';
+          let icon: React.ReactNode | undefined;
           if (metric.diff > 0) {
             variant = 'danger';
+            icon = <IconArrow direction="up" size="xs" />;
           } else if (metric.diff < 0) {
             variant = 'success';
+            icon = <IconArrow direction="down" size="xs" />;
           }
 
           return (
@@ -280,8 +308,8 @@ export function SizeCompareMainContent() {
                 </Flex>
                 <Flex align="end" gap="sm">
                   <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
-                  {/* TODO: Danger/success */}
                   <InlineText variant={variant} size="sm">
+                    {icon}
                     <Text variant={variant} size="sm">
                       {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
                       {formatBytesBase10(Math.abs(metric.diff))}
@@ -319,16 +347,55 @@ export function SizeCompareMainContent() {
       {/* Files Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
-          {/* TODO: Collapsable */}
-          <Flex align="center" gap="sm" padding="xl">
-            <Heading as="h2">{t('Files Changed:')}</Heading>
-            <Heading as="h2" variant="muted">
-              {comparisonDataQuery.data?.diff_items.length}
-            </Heading>
+          <Flex align="center" justify="between" padding="xl">
+            <Flex align="center" gap="sm">
+              <Heading as="h2">{t('Files Changed:')}</Heading>
+              <Heading as="h2" variant="muted">
+                {filteredDiffItems.length}
+              </Heading>
+            </Flex>
+            <Flex align="center" gap="sm">
+              <Button
+                priority="transparent"
+                size="sm"
+                onClick={() => setIsFilesExpanded(!isFilesExpanded)}
+                aria-label={isFilesExpanded ? t('Collapse files') : t('Expand files')}
+              >
+                <IconChevron
+                  direction={isFilesExpanded ? 'up' : 'down'}
+                  size="sm"
+                  style={{
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </Button>
+            </Flex>
           </Flex>
-          <SizeCompareItemDiffTable
-            diffItems={comparisonDataQuery.data?.diff_items || []}
-          />
+          {isFilesExpanded && (
+            <Stack>
+              <Flex
+                align="center"
+                justify="end"
+                gap="sm"
+                paddingRight="xl"
+                paddingBottom="xl"
+              >
+                <Flex align="center" gap="lg">
+                  <Text>{t('Hide small changes (< 500B)')}</Text>
+                  <Switch
+                    checked={hideSmallChanges}
+                    size="sm"
+                    title={t('Hide < 500B')}
+                    onChange={() => setHideSmallChanges(!hideSmallChanges)}
+                    aria-label={
+                      hideSmallChanges ? t('Show small changes') : t('Hide small changes')
+                    }
+                  />
+                </Flex>
+              </Flex>
+              <SizeCompareItemDiffTable diffItems={filteredDiffItems} />
+            </Stack>
+          )}
         </Flex>
       </Container>
     </Flex>
