@@ -15,22 +15,27 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import type {SpanProperty} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 
-interface UseFetchEventsTimeSeriesOptions<Field> {
+interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
   /**
    * The fields (or single field) to fetch from the API. e.g., `"p50(span.duration)"`
    */
-  yAxis: Field | Field[];
+  yAxis: YAxis | YAxis[];
   /**
    * Boolean. If missing, the query is enabled. If supplied, the query will obey the prop as specified.
    */
   enabled?: boolean;
   /**
+   * If true, the query will exclude the "other" group.
+   */
+  excludeOther?: boolean;
+  /**
    * An array of tags by which to group the results. e.g., passing `["transaction"]` will group the results by the `"transaction"` tag. `["env", "transaction"]` will group by both the `"env"` and `"transaction"` tags.
    */
-  groupBy?: Field[];
+  groupBy?: Attribute[];
   /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
@@ -57,20 +62,25 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   topEvents?: number;
 }
 
-export function useFetchSpanTimeSeries<Fields extends SpanProperty>(
-  options: UseFetchEventsTimeSeriesOptions<Fields>,
-  referrer: string
-) {
-  return useFetchEventsTimeSeries<Fields>(DiscoverDatasets.SPANS, options, referrer);
+export function useFetchSpanTimeSeries<
+  Fields extends SpanProperty,
+  Attributes extends SpanFields,
+>(options: UseFetchEventsTimeSeriesOptions<Fields, Attributes>, referrer: string) {
+  return useFetchEventsTimeSeries<Fields, Attributes>(
+    DiscoverDatasets.SPANS,
+    options,
+    referrer
+  );
 }
 
 /**
  * Fetch time series data from the `/events-timeseries/` endpoint. Returns an array of `TimeSeries` objects.
  */
-export function useFetchEventsTimeSeries<T extends string>(
+export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends string>(
   dataset: DiscoverDatasets,
   {
     yAxis,
+    excludeOther,
     enabled,
     groupBy,
     interval,
@@ -79,7 +89,7 @@ export function useFetchEventsTimeSeries<T extends string>(
     pageFilters,
     sort,
     topEvents,
-  }: UseFetchEventsTimeSeriesOptions<T>,
+  }: UseFetchEventsTimeSeriesOptions<YAxis, Attribute>,
   referrer: string
 ) {
   const organization = useOrganization();
@@ -101,7 +111,7 @@ export function useFetchEventsTimeSeries<T extends string>(
       {
         query: {
           partial: 1,
-          excludeOther: 0,
+          excludeOther: excludeOther ? 1 : 0,
           dataset,
           referrer,
           yAxis,

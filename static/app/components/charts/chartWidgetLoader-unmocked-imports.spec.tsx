@@ -8,6 +8,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import type {ChartId} from './chartWidgetLoader';
@@ -19,10 +20,12 @@ function mockDiscoverSeries(seriesName: string) {
   });
 }
 
-function mockTimeSeries(yAxis: string) {
-  return TimeSeriesFixture({
-    yAxis,
-  });
+function mockTimeSeries(yAxis: string, groupBy?: string[]) {
+  const partialTimeseries: Partial<TimeSeries> = {yAxis};
+  if (groupBy) {
+    partialTimeseries.groupBy = groupBy.map(group => ({key: group, value: group}));
+  }
+  return TimeSeriesFixture(partialTimeseries);
 }
 
 // Mock this component so it doesn't yell at us for no plottables
@@ -136,7 +139,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
   })),
 }));
 jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
-  useFetchSpanTimeSeries: jest.fn(() => ({
+  useFetchSpanTimeSeries: jest.fn(({groupBy}: {groupBy?: string[]}) => ({
     data: {
       timeSeries: [
         mockTimeSeries('epm()'),
@@ -144,7 +147,7 @@ jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
         mockTimeSeries('avg(span.duration)'),
         mockTimeSeries('p95(span.duration)'),
         mockTimeSeries('trace_status_rate(internal_error)'),
-        mockTimeSeries('cache_miss_rate()'),
+        mockTimeSeries('cache_miss_rate()', groupBy),
         mockTimeSeries('http_response_rate(3)'),
         mockTimeSeries('http_response_rate(4)'),
         mockTimeSeries('http_response_rate(5)'),

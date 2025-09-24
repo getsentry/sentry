@@ -89,7 +89,7 @@ export default function OverviewTimeConsumingQueriesWidget(
   } = useFetchSpanTimeSeries(
     {
       query: `${SpanFields.SPAN_GROUP}:[${queriesListData?.map(item => `"${item[SpanFields.SPAN_GROUP]}"`).join(',')}]`,
-      groupBy: [groupBy, yAxes],
+      groupBy: [groupBy],
       yAxis: [yAxes],
       topEvents: 3,
       enabled: queriesListData?.length > 0,

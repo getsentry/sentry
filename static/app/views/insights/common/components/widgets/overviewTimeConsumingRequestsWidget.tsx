@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -21,8 +22,6 @@ import {ModalChartContainer} from 'sentry/views/insights/common/components/insig
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
@@ -80,13 +79,14 @@ export default function OverviewTimeConsumingRequestsWidget(
     data: requestSeriesData,
     isLoading: isRequestSeriesLoading,
     error: requestSeriesError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search: `${SpanFields.SPAN_DOMAIN}:[${requestsListData?.map(item => `"${item[SpanFields.SPAN_DOMAIN]}"`).join(',')}]`,
-      fields: [groupBy, yAxes],
+      query: `${SpanFields.SPAN_DOMAIN}:[${requestsListData?.map(item => `"${item[SpanFields.SPAN_DOMAIN]}"`).join(',')}]`,
+      groupBy: [groupBy],
       yAxis: [yAxes],
-      topN: 3,
+      topEvents: 3,
       enabled: requestsListData?.length > 0,
+      excludeOther: true,
       interval,
     },
     referrer
@@ -94,17 +94,16 @@ export default function OverviewTimeConsumingRequestsWidget(
 
   const isLoading = isRequestSeriesLoading || isRequestsListLoading;
   const error = requestSeriesError || requestsListError;
+  const timeSeries = requestSeriesData?.timeSeries ?? [];
 
   const hasData =
-    requestsListData && requestsListData.length > 0 && requestSeriesData.length > 0;
+    requestsListData && requestsListData.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = theme.chart.getColorPalette(requestSeriesData.length - 1);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 1);
 
-  const aliases: Record<string, string> = {};
-
-  requestsListData.forEach(item => {
-    aliases[item[groupBy]] = `${yAxes}, ${item[groupBy]}`;
-  });
+  const plottables = timeSeries.map(
+    (ts, index) => new Line(ts, {color: colorPalette[index]})
+  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -116,13 +115,7 @@ export default function OverviewTimeConsumingRequestsWidget(
       visualizationProps={{
         id: 'overviewTimeConsumingRequestsWidget',
         showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
-        plottables: requestSeriesData.map(
-          (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
-              alias: aliases[ts.seriesName],
-            })
-        ),
+        plottables,
         ...props,
         ...releaseBubbleProps,
       }}
@@ -195,19 +188,22 @@ export default function OverviewTimeConsumingRequestsWidget(
                 exploreUrl={exploreUrl}
                 referrer={referrer}
                 addToDashboardOptions={addToDashboardOptions}
-                alertMenuOptions={requestSeriesData.map(series => ({
-                  key: series.seriesName,
-                  label: aliases[series.seriesName],
-                  to: getAlertsUrl({
-                    project,
-                    aggregate: yAxes,
-                    organization,
-                    pageFilters: selection,
-                    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-                    query: `${SpanFields.SPAN_DOMAIN}:${series.seriesName}`,
-                    referrer,
-                  }),
-                }))}
+                alertMenuOptions={plottables.map(plottable => {
+                  const domain = plottable.timeSeries.groupBy?.[0]?.value;
+                  return {
+                    key: plottable.name,
+                    label: `${plottable.timeSeries.yAxis} : ${domain}`,
+                    to: getAlertsUrl({
+                      project,
+                      aggregate: yAxes,
+                      organization,
+                      pageFilters: selection,
+                      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                      query: `${SpanFields.SPAN_DOMAIN}:${domain}`,
+                      referrer,
+                    }),
+                  };
+                })}
               />
               <Button
                 size="xs"
