@@ -8,6 +8,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -175,6 +176,10 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                 cents: price,
               });
               const formattedReserved = formatReservedWithUnits(reserved, category);
+              const hasPaygForCategory =
+                formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                  ? (formData.onDemandBudget?.budgets?.[category] ?? 0) > 0
+                  : (formData.onDemandBudget?.sharedMaxBudget ?? 0) > 0;
 
               return (
                 <ItemFlex key={category}>
@@ -197,13 +202,25 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                       {formattedPrice}/{shortInterval}
                     </div>
                   ) : (
-                    isPaygOnly && (
+                    isPaygOnly &&
+                    (hasPaygForCategory ? (
                       <Tag>
                         {tct('Available with [budgetTerm]', {
-                          budgetTerm: activePlan.budgetTerm,
+                          budgetTerm:
+                            activePlan.budgetTerm === 'pay-as-you-go'
+                              ? t('PAYG')
+                              : activePlan.budgetTerm,
                         })}
                       </Tag>
-                    )
+                    ) : (
+                      <Tooltip
+                        title={t('This product is only available with a PAYG budget.')}
+                      >
+                        <Tag icon={<IconLock locked size="xs" />}>
+                          {t('Product not available')}
+                        </Tag>
+                      </Tooltip>
+                    ))
                   )}
                 </ItemFlex>
               );
@@ -290,6 +307,29 @@ function SubtotalSummary({
   return (
     <Container borderTop="primary">
       <Flex direction="column" padding="2xl xl" gap="md">
+        <Item data-test-id="summary-item-plan-total">
+          <ItemFlex>
+            <strong>{t('Plan Total')}</strong>
+            {previewDataLoading ? (
+              <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
+            ) : (
+              <span>
+                {utils.displayPrice({cents: recurringSubtotal})}/{shortInterval}
+              </span>
+            )}
+          </ItemFlex>
+          {previewDataLoading ? (
+            <Placeholder height="14px" width="200px" />
+          ) : (
+            renewalDate && (
+              <RenewalDate>
+                {tct('Renews [date]', {
+                  date: moment(renewalDate).format('MMM D, YYYY'),
+                })}
+              </RenewalDate>
+            )
+          )}
+        </Item>
         {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
           !!formData.onDemandMaxSpend && (
             <Item data-test-id="summary-item-spend-limit">
@@ -359,29 +399,6 @@ function SubtotalSummary({
                 </Item>
               );
             })}
-        <Item data-test-id="summary-item-plan-total">
-          <ItemFlex>
-            <strong>{t('Plan Total')}</strong>
-            {previewDataLoading ? (
-              <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
-            ) : (
-              <span>
-                {utils.displayPrice({cents: recurringSubtotal})}/{shortInterval}
-              </span>
-            )}
-          </ItemFlex>
-          {previewDataLoading ? (
-            <Placeholder height="14px" width="200px" />
-          ) : (
-            renewalDate && (
-              <RenewalDate>
-                {tct('Renews [date]', {
-                  date: moment(renewalDate).format('MMM D, YYYY'),
-                })}
-              </RenewalDate>
-            )
-          )}
-        </Item>
       </Flex>
     </Container>
   );
@@ -843,8 +860,9 @@ const Credit = styled('div')`
 
 const StyledButton = styled(Button)`
   display: flex;
-  gap: ${p => p.theme.space.xl};
   flex-grow: 1;
+  align-items: center;
+  justify-content: center;
 `;
 
 const Subtext = styled('div')`

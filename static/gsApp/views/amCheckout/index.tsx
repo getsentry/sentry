@@ -922,11 +922,21 @@ class AMCheckout extends Component<Props, State> {
             <SupportPrompt>
               {t('Have a question?')}
               <TextOverflow>
-                {tct('[help:Find an Answer] or [contact:Ask Support]', {
+                {tct('[help:Find an answer] or [contact]', {
                   help: (
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
-                  contact: <ZendeskLink subject="Billing Question" source="checkout" />,
+                  contact: (
+                    <ZendeskLink
+                      subject="Billing Question"
+                      source="checkout"
+                      Component={({href, onClick}) => (
+                        <LinkButton href={href ?? ''} onClick={onClick}>
+                          {t('ask Support')}
+                        </LinkButton>
+                      )}
+                    />
+                  ),
                 })}
               </TextOverflow>
             </SupportPrompt>
