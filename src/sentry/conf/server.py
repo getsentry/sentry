@@ -1763,10 +1763,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.schedule_auto_transition_to_ongoing",
         "schedule": task_crontab("*/5", "*", "*", "*", "*"),
     },
-    "github_comment_reactions": {
-        "task": "integrations:sentry.integrations.github.tasks.github_comment_reactions",
-        "schedule": task_crontab("0", "4", "*", "*", "*"),
-    },
     "statistical-detectors-detect-regressions": {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
