@@ -1,12 +1,12 @@
 ---
-created: '2025-09-19T05:52:36.260507+00:00'
+created: '2025-09-24T20:27:05.583626+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
+  root_component:
     app (ignored because built-in fingerprint takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
@@ -30,7 +30,7 @@ built_in_fingerprint:
 system:
   hash: null
   contributing component: exception
-  component:
+  root_component:
     system (ignored because built-in fingerprint takes precedence)
       exception*
         stacktrace*
