@@ -107,16 +107,6 @@ class OrganizationDetectorIndexPostTest(APITestCase):
                     "scheduleType": "crontab",
                 },
             },
-            "conditionGroup": {
-                "logicType": "any",
-                "conditions": [
-                    {
-                        "comparison": 1,
-                        "type": "gt",
-                        "conditionResult": "low",
-                    }
-                ],
-            },
         }
         data.update(overrides)
         return data

@@ -204,10 +204,12 @@ export function SizeCompareMainContent() {
     ].includes(mainArtifactComparison.state)
   ) {
     return (
-      <BuildProcessing
-        title={t('Running diff engine')}
-        message={t('Hang tight, this may take a few minutes...')}
-      />
+      <Flex width="100%" justify="center" align="center">
+        <BuildProcessing
+          title={t('Running diff engine')}
+          message={t('Hang tight, this may take a few minutes...')}
+        />
+      </Flex>
     );
   }
 

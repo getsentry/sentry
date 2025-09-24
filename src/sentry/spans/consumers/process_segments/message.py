@@ -1,8 +1,8 @@
 import logging
 import types
 import uuid
-from collections.abc import Sequence
-from typing import cast
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
@@ -74,24 +74,41 @@ def process_segment(
     return spans
 
 
-def _verify_compatibility(spans: list[CompatibleSpan]) -> None:
+def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dict[str, Any]]:
+    result: list[None | dict[str, Any]] = [None for span in spans]
     try:
-        for span in spans:
+        for i, span in enumerate(spans):
             # As soon as compatibility spans are fully rolled out, we can assert that attributes exist here.
             if "attributes" in span:
-                attributes = span["attributes"]
                 metrics.incr("spans.consumers.process_segments.span_v2")
-                data = span.get("data", {})
+
+                attributes = span.get("attributes") or {}
+                data = span.get("data") or {}
                 # Verify that all data exist also in attributes.
                 mismatches = [
                     (key, data_value, attribute_value)
                     for (key, data_value) in data.items()
-                    if data_value != (attribute_value := attributes.get(key, {}).get("value"))
+                    if data_value != (attribute_value := (attributes.get(key) or {}).get("value"))
                 ]
                 if mismatches:
-                    logger.error("Attribute mismatch", extra={"mismatches": mismatches})
+                    redacted = _redact(span)
+                    logger.warning("Attribute mismatch", extra={"span": redacted})
+                    result[i] = redacted
     except Exception as e:
         sentry_sdk.capture_exception(e)
+
+    return result
+
+
+def _redact(data: Any) -> Any:
+    if isinstance(data, list):
+        return [_redact(item) for item in data]
+    elif isinstance(data, dict):
+        return {key: _redact(value) for key, value in data.items()}
+    elif isinstance(data, str):
+        return "[redacted]"
+    else:
+        return data
 
 
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
