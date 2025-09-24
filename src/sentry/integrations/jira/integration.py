@@ -986,6 +986,14 @@ class JiraIntegration(IssueSyncIntegration):
                 error_fields = self.error_fields_from_json(exc.json)
                 if error_fields is not None:
                     raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
+
+            logger.warning(
+                "sentry.jira.raise_error.api_invalid_request_error",
+                extra={
+                    "exception_type": type(exc).__name__,
+                    "exception_message": str(exc),
+                },
+            )
             raise IntegrationConfigurationError(exc.text) from exc
         super().raise_error(exc, identity=identity)
 
