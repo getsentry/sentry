@@ -115,6 +115,11 @@ integrations_control_tasks = app.taskregistry.create_namespace(
     app_feature="integrations",
 )
 
+integrations_control_throttled_tasks = app.taskregistry.create_namespace(
+    "integrations.control.throttled",
+    app_feature="integrations",
+)
+
 notifications_tasks = app.taskregistry.create_namespace(
     "notifications",
     app_feature="shared",
