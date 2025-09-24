@@ -20,6 +20,14 @@ export interface NotificationTemplateRegistration {
       subject: string;
       text_content: string;
     };
+    [NotificationProviderKey.SLACK]: {
+      blocks: Array<{
+        [key: string]: any; // Allow any additional unknown properties
+        type: string;
+        block_id?: string;
+        text?: {text: string; type: 'plain_text' | 'mrkdwn'};
+      }>;
+    };
   };
   source: string;
 }
