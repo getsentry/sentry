@@ -71,6 +71,12 @@ export type TimeSeries = {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
   yAxis: string;
+  /**
+   * Represents the grouping information for the time series, if applicable.
+   * e.g., if the initial request supplied a `groupBy` query param of `"span.op"`, the
+   * `groupBy` of the `TimeSeries` could be `[{key: 'span.op': value: 'db' }]`
+   * If the `excludeOther` query param is `true`, an "other" time series will be part of the response. `TimeSeries.meta.isOther` specifies the "other" time series.
+   */
   groupBy?: TimeSeriesGroupBy[];
 };
 
