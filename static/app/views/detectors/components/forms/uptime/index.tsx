@@ -8,14 +8,20 @@ import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDe
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
 import {
+  UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+  UPTIME_DEFAULT_RECOVERY_THRESHOLD,
   uptimeFormDataToEndpointPayload,
   uptimeSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
+import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
+import {UptimeDetectorFormRespondSection} from 'sentry/views/detectors/components/forms/uptime/respond';
 
 function UptimeDetectorForm() {
   return (
     <FormStack>
       <UptimeDetectorFormDetectSection />
+      <UptimeRegionWarning />
+      <UptimeDetectorFormRespondSection />
       <AssignSection />
       <AutomateSection />
     </FormStack>
@@ -27,7 +33,11 @@ export function NewUptimeDetectorForm() {
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
-      initialFormData={{}}
+      initialFormData={{
+        name: 'New Monitor',
+        downtimeThreshold: UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+        recoveryThreshold: UPTIME_DEFAULT_RECOVERY_THRESHOLD,
+      }}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
