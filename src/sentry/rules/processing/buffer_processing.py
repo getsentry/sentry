@@ -238,8 +238,4 @@ def process_buffer() -> None:
     Process all registered delayed processing types.
     """
     for processing_type, handler in delayed_processing_registry.registrations.items():
-        # If the new scheduling task is enabled and this is delayed_workflow, skip it
-        use_new_scheduling = options.get("workflow_engine.use_new_scheduling_task")
-        if use_new_scheduling and processing_type == "delayed_workflow":
-            continue
         process_buffer_for_type(processing_type, handler)

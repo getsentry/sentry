@@ -6,25 +6,22 @@ from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.base import get_url_from_span
+from sentry.performance_issues.base import DetectorType, PerformanceDetector
 from sentry.performance_issues.detectors.utils import (
+    does_overlap_previous_span,
+    fingerprint_http_spans,
+    get_duration_between_spans,
     get_max_span_duration,
+    get_notification_attachment_body,
+    get_span_duration,
+    get_span_evidence_value,
     get_total_span_duration,
+    get_url_from_span,
     is_filtered_url,
 )
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.safe import get_path
 
-from ..base import (
-    DetectorType,
-    PerformanceDetector,
-    does_overlap_previous_span,
-    fingerprint_http_spans,
-    get_duration_between_spans,
-    get_notification_attachment_body,
-    get_span_duration,
-    get_span_evidence_value,
-)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 

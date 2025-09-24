@@ -120,7 +120,6 @@ export type InitializeUrlStateParams = {
   organization: Organization;
   queryParams: Location['query'];
   router: InjectedRouter;
-  shouldEnforceSingleProject: boolean;
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
   /**
@@ -172,7 +171,6 @@ export function initializeUrlState({
   maxPickableDays,
   shouldPersist = true,
   shouldForceProject,
-  shouldEnforceSingleProject,
   defaultSelection,
   forceProject,
   showAbsolute = true,
@@ -220,7 +218,7 @@ export function initializeUrlState({
    */
   function validateProjectId(projectId: number): boolean {
     if (projectId === ALL_ACCESS_PROJECTS) {
-      return !shouldEnforceSingleProject;
+      return true;
     }
 
     return (
@@ -305,28 +303,6 @@ export function initializeUrlState({
   // regardless if user has access to multi projects
   if (shouldForceProject && forceProject) {
     newProject = [getProjectIdFromProject(forceProject)];
-  } else if (shouldEnforceSingleProject && !shouldForceProject) {
-    // If user does not have access to `global-views` (e.g. multi project
-    // select) *and* there is no `project` URL parameter, then we update URL
-    // params with:
-    //
-    //  1) the first project from the list of requested projects from URL params
-    //  2) first project user is a member of from org
-    //
-    // Note this is intentionally skipped if `shouldForceProject == true` since
-    // we want to initialize store and wait for the forced project
-    //
-    if (projects && projects.length > 0) {
-      // If there is a list of projects from URL params, select first project
-      // from that list
-      newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]!];
-    } else {
-      // When we have finished loading the organization into the props,  i.e.
-      // the organization slug is consistent with the URL param--Sentry will
-      // get the first project from the organization that the user is a member
-      // of.
-      newProject = [...memberProjects].slice(0, 1).map(getProjectIdFromProject);
-    }
   }
 
   if (newProject) {

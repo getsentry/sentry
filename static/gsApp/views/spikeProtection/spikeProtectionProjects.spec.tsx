@@ -47,7 +47,6 @@ describe('project renders and toggles', () => {
     const newData = initializeOrg({
       projects,
       organization: {
-        features: ['global-views'],
         openMembership: true,
         access: ['org:write'],
       },

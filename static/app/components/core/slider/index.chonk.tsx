@@ -126,7 +126,7 @@ const StyledSlider = chonkStyled('input')`
     height: 16px;
     background: transparent;
     border-radius: ${p => p.theme.radius['2xs']};
-    transition: box-shadow 0.1s;
+    transition: box-shadow ${p => p.theme.motion.smooth.fast};
     box-shadow:
       0 0 0 8px transparent,
       0 0 0 10px transparent;
@@ -229,8 +229,8 @@ const SliderOutput = chonkStyled('output')`
     opacity: var(--o);
     transform: translate(var(--tx), var(--ty));
     transition:
-      100ms opacity cubic-bezier(0.23, 1, 0.32, 1),
-      50ms transform cubic-bezier(0.39, 0.575, 0.565, 1);
+      opacity ${p => p.theme.motion.exit.fast},
+      transform ${p => p.theme.motion.smooth.fast};
 `;
 
 const SliderLabel = chonkStyled('span')`

@@ -16,10 +16,11 @@ import type {
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {
+  EChartChartReadyHandler,
   EChartClickHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
-  ReactEchartsRef,
+  ECharts,
 } from 'sentry/types/echarts';
 
 const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
@@ -228,7 +229,6 @@ interface UseIncidentMarkersProps {
 }
 
 interface UseIncidentMarkersResult {
-  connectIncidentMarkerChartRef: (ref: ReactEchartsRef | null) => void;
   incidentMarkerGrid: GridComponentOption;
   incidentMarkerSeries: CustomSeriesOption | null;
   incidentMarkerXAxis: {
@@ -236,6 +236,7 @@ interface UseIncidentMarkersResult {
     offset: number;
   };
   incidentMarkerYAxis: YAXisComponentOption | null;
+  onChartReady: EChartChartReadyHandler;
 }
 
 /**
@@ -251,7 +252,7 @@ export function useIncidentMarkers({
   onClick,
 }: UseIncidentMarkersProps): UseIncidentMarkersResult {
   const theme = useTheme();
-  const chartRef = useRef<ReactEchartsRef | null>(null);
+  const chartRef = useRef<ECharts | null>(null);
 
   const incidentPeriods = useMemo(() => incidents || [], [incidents]);
 
@@ -300,11 +301,9 @@ export function useIncidentMarkers({
   }, [incidentPeriods.length, totalMarkerPaddingY]);
 
   // Chart ref handler
-  const connectIncidentMarkerChartRef = useCallback(
-    (ref: ReactEchartsRef | null) => {
-      chartRef.current = ref;
-
-      const echartsInstance = ref?.getEchartsInstance?.();
+  const onChartReady = useCallback<EChartChartReadyHandler>(
+    echartsInstance => {
+      chartRef.current = echartsInstance;
 
       // Map incident start timestamps to periods for quick lookup on markLine clicks
       const periodByStart = new Map<number, IncidentPeriod>();
@@ -442,7 +441,7 @@ export function useIncidentMarkers({
   ]);
 
   return {
-    connectIncidentMarkerChartRef,
+    onChartReady,
     incidentMarkerSeries,
     incidentMarkerYAxis,
     incidentMarkerGrid,

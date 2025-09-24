@@ -211,8 +211,17 @@ function OnboardingPanel({
               <Image src={emptyTraceImg} />
             </HeaderWrapper>
             <Divider />
+
             <Body>
               <Setup>{children}</Setup>
+              <Preview>
+                <BodyTitle>{t('Preview MCP Insights')}</BodyTitle>
+                <Arcade
+                  src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </Preview>
             </Body>
           </div>
         </AuthTokenGeneratorProvider>
@@ -426,6 +435,12 @@ const Body = styled('div')`
   }
 `;
 
+const BodyTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${space(1)};
+`;
+
 const Image = styled('img')`
   display: block;
   pointer-events: none;
@@ -444,6 +459,18 @@ const Divider = styled('hr')`
   border: none;
   margin-top: 0;
   margin-bottom: 0;
+`;
+
+const Preview = styled('div')`
+  padding: ${space(4)};
+`;
+
+const Arcade = styled('iframe')`
+  width: 750px;
+  max-width: 100%;
+  margin-top: ${space(3)};
+  height: 522px;
+  border: 0;
 `;
 
 const CONTENT_SPACING = space(1);

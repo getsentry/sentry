@@ -15,6 +15,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.project import Project
@@ -71,13 +72,16 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             type=ActivityType.SET_RESOLVED.value,
             user_id=self.user.id,
         )
-        open_period = GroupOpenPeriod.objects.create(
+        open_period = GroupOpenPeriod.objects.get(
             group=group,
             project=project,
+        )
+        open_period.update(
             date_started=before_now(minutes=1),
             date_ended=before_now(minutes=1),
             resolution_activity=activity,
         )
+        open_period.save()
         GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         release = Release.objects.create(version="a" * 32, organization_id=project.organization_id)
@@ -161,7 +165,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
-
         with self.tasks():
             run_scheduled_deletions()
 
@@ -184,6 +187,9 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not Monitor.objects.filter(id=monitor.id).exists()
         assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
         assert not GroupOpenPeriod.objects.filter(id=open_period.id).exists()
+        assert not GroupOpenPeriodActivity.objects.filter(
+            group_open_period_id=open_period.id
+        ).exists()
         assert not Activity.objects.filter(id=activity.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
         assert not QuerySubscription.objects.filter(id=query_sub.id).exists()
