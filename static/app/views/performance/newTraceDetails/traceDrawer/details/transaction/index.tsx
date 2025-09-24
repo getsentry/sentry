@@ -6,7 +6,6 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
-import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import LoadingError from 'sentry/components/loadingError';
@@ -184,10 +183,9 @@ export function TransactionNodeDetails({
           <Entries definedEvent={event} projectSlug={event.projectSlug} />
         ) : null}
 
-        <EventTagsDataSection
+        <TraceDrawerComponents.EventTags
           projectSlug={node.value.project_slug}
           event={event}
-          disableCollapsePersistence
         />
 
         <EventContexts event={event} disableCollapsePersistence />
