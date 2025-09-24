@@ -8,7 +8,7 @@ import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconCode, IconDownload, IconFile, IconRefresh} from 'sentry/icons';
+import {IconArrow, IconCode, IconDownload, IconFile, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
@@ -257,10 +257,13 @@ export function SizeCompareMainContent() {
       <Grid columns="repeat(3, 1fr)" gap="lg">
         {processedMetrics.map((metric, index) => {
           let variant: 'danger' | 'success' | 'muted' = 'muted';
+          let icon: React.ReactNode | undefined;
           if (metric.diff > 0) {
             variant = 'danger';
+            icon = <IconArrow direction="up" size="xs" />;
           } else if (metric.diff < 0) {
             variant = 'success';
+            icon = <IconArrow direction="down" size="xs" />;
           }
 
           return (
@@ -280,8 +283,8 @@ export function SizeCompareMainContent() {
                 </Flex>
                 <Flex align="end" gap="sm">
                   <Heading as="h3">{formatBytesBase10(metric.head)}</Heading>
-                  {/* TODO: Danger/success */}
                   <InlineText variant={variant} size="sm">
+                    {icon}
                     <Text variant={variant} size="sm">
                       {metric.diff > 0 ? '+' : metric.diff < 0 ? '-' : ''}
                       {formatBytesBase10(Math.abs(metric.diff))}
