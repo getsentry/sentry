@@ -48,7 +48,7 @@ from sentry.workflow_engine.typings.notification_action import (
 
 logger = logging.getLogger(__name__)
 
-FutureCallback = Callable[[GroupEvent, Sequence[RuleFuture]], None]
+FutureCallback = Callable[[GroupEvent, Sequence[RuleFuture]], Any]
 
 
 class RuleData(TypedDict):
@@ -79,7 +79,7 @@ RETRIABLE_EXCEPTIONS = (ApiError,)
 def invoke_future_with_error_handling(
     event_data: WorkflowEventData,
     callback: FutureCallback,
-    future: list[RuleFuture],
+    future: Sequence[RuleFuture],
 ) -> None:
     # WorkflowEventData should only ever be a GroupEvent in this context, so we
     # narrow the type here to keep mypy happy.
