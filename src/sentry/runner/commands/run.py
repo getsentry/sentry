@@ -8,11 +8,19 @@ import time
 from typing import Any
 
 import click
+from django.conf import settings
 
 import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
+
+
+def _get_default_rpc_host() -> str:
+
+    port = getattr(settings, "DEVSERVICES_TASKBROKER_GRPC_PORT", 50051)
+    return f"127.0.0.1:{port}"
+
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 logger = logging.getLogger("sentry.runner.commands.run")
@@ -252,7 +260,7 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 @click.option(
     "--rpc-host",
     help="The hostname and port for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
-    default="127.0.0.1:50051",
+    default=None,
 )
 @click.option(
     "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
@@ -312,7 +320,7 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
-    rpc_host: str,
+    rpc_host: str | None,
     num_brokers: int | None,
     rpc_host_list: str | None,
     max_child_task_count: int,
@@ -329,6 +337,9 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
+    if rpc_host is None:
+        rpc_host = _get_default_rpc_host()
+
     from sentry.taskworker.client.client import make_broker_hosts
     from sentry.taskworker.worker import TaskWorker
 

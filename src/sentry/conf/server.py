@@ -785,6 +785,10 @@ SENTRY_MONOLITH_REGION: str = "--monolith--"
 SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
 
 
+DEVSERVICES_TASKBROKER_GRPC_PORT = 50051
+if SILO_DEVSERVER or IS_DEV:
+    DEVSERVICES_TASKBROKER_GRPC_PORT = 50055
+
 # Queue configuration
 from kombu import Exchange, Queue
 
@@ -2963,7 +2967,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "taskbroker": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/taskbroker:latest",
-            "ports": {"50051/tcp": 50051},
+            "ports": {
+                f"{settings.DEVSERVICES_TASKBROKER_GRPC_PORT}/tcp": settings.DEVSERVICES_TASKBROKER_GRPC_PORT
+            },
             "environment": {
                 "TASKBROKER_KAFKA_CLUSTER": (
                     "sentry_kafka"
