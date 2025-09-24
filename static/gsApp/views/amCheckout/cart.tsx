@@ -469,7 +469,7 @@ function TotalSummary({
     }
 
     let subtext = null;
-    if (isDeveloperPlan(activePlan)) {
+    if (isDeveloperPlan(activePlan) || !totalOnDemandBudget) {
       subtext = tct(
         '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate].',
         {
@@ -478,29 +478,16 @@ function TotalSummary({
           renewalDate: moment(renewalDate).format('MMM D, YYYY'),
         }
       );
-    } else if (longInterval === 'yearly') {
-      subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
-        {
-          effectiveDateSubtext,
-          longInterval,
-          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-        }
-      );
     } else {
       subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
+        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional PAYG usage billed monthly (up to [onDemandMaxSpend]/mo).',
         {
           effectiveDateSubtext,
           longInterval,
           renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-          onDemandLimit: totalOnDemandBudget
-            ? tct(' (up to [onDemandMaxSpend]/month)', {
-                onDemandMaxSpend: utils.displayPrice({
-                  cents: totalOnDemandBudget,
-                }),
-              })
-            : '',
+          onDemandMaxSpend: utils.displayPrice({
+            cents: totalOnDemandBudget,
+          }),
         }
       );
     }
@@ -514,12 +501,18 @@ function TotalSummary({
     invoiceItems: previewData?.invoiceItems ?? [],
   });
 
+  const buttonText = isMigratingPartner
+    ? t('Schedule changes')
+    : isDueToday
+      ? t('Confirm and pay')
+      : t('Confirm');
+
   return (
     <Flex direction="column">
       <Flex direction="column" padding="2xl xl 0" gap="md" borderTop="primary">
         {isOpen && (
           <Fragment>
-            {!previewDataLoading && isDueToday && (
+            {!previewDataLoading && (
               <Fragment>
                 {fees.map(item => {
                   const formattedPrice = utils.displayPrice({cents: item.amount});
@@ -557,25 +550,41 @@ function TotalSummary({
         )}
         <Item data-test-id="summary-item-due-today">
           <ItemFlex>
-            <DueToday>{t('Due today')}</DueToday>
+            <Text bold size="lg">
+              {isDueToday
+                ? t('Due today')
+                : tct('Due on [date]', {
+                    date: moment(effectiveDate).format('MMM D, YYYY'),
+                  })}
+            </Text>
             {previewDataLoading ? (
               <Placeholder height="24px" width={PRICE_PLACEHOLDER_WIDTH} />
             ) : (
-              <DueTodayPrice>
-                {originalBilledTotal > billedTotal && (
-                  <DueTodayAmountBeforeDiscount>
+              <Container>
+                {isDueToday ? (
+                  <Fragment>
+                    {originalBilledTotal > billedTotal && (
+                      <Text strikethrough variant="muted" size="2xl" bold>
+                        {utils.displayPrice({
+                          cents: originalBilledTotal,
+                        })}{' '}
+                      </Text>
+                    )}
+                    <Text size="2xl" bold>
+                      {utils.displayPrice({
+                        cents: billedTotal,
+                      })}
+                    </Text>
+                  </Fragment>
+                ) : (
+                  <Text size="2xl" bold>
                     {utils.displayPrice({
-                      cents: originalBilledTotal,
-                    })}{' '}
-                  </DueTodayAmountBeforeDiscount>
+                      cents: billedTotal,
+                    })}
+                  </Text>
                 )}
-                <DueTodayAmount>
-                  {utils.displayPrice({
-                    cents: billedTotal,
-                  })}
-                </DueTodayAmount>
-                <span> USD</span>
-              </DueTodayPrice>
+                <Text size="md"> USD</Text>
+              </Container>
             )}
           </ItemFlex>
         </Item>
@@ -594,17 +603,13 @@ function TotalSummary({
             </StyledButton>
           )}
           <StyledButton
-            aria-label={isMigratingPartner ? t('Schedule changes') : t('Confirm and pay')}
+            aria-label={buttonText}
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
             icon={<IconLock locked />}
           >
-            {isSubmitting
-              ? t('Checking out...')
-              : isMigratingPartner
-                ? t('Schedule changes')
-                : t('Confirm and pay')}
+            {isSubmitting ? t('Checking out...') : buttonText}
           </StyledButton>
         </Flex>
         {previewDataLoading ? (
@@ -666,23 +671,15 @@ function Cart({
             .add(1, 'day')
             .toDate();
 
-          if (atPeriodEnd) {
-            setPreviewState(prev => ({
-              ...prev,
-              originalBilledTotal: 0,
-              billedTotal: 0,
-              effectiveDate: moment(effectiveAt).add(1, 'day').toDate(),
-              renewalDate,
-            }));
-          } else {
-            setPreviewState(prev => ({
-              ...prev,
-              originalBilledTotal: proratedAmount,
-              billedTotal: billedAmount,
-              effectiveDate: null,
-              renewalDate,
-            }));
-          }
+          setPreviewState(prev => ({
+            ...prev,
+            originalBilledTotal: proratedAmount,
+            billedTotal: billedAmount,
+            effectiveDate: atPeriodEnd
+              ? moment(effectiveAt).add(1, 'day').toDate()
+              : null,
+            renewalDate,
+          }));
         } else {
           resetPreviewState();
         }
@@ -854,25 +851,6 @@ const IconContainer = styled('div')`
 
 const RenewalDate = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const DueToday = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const DueTodayPrice = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const DueTodayAmount = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize['2xl']};
-`;
-
-const DueTodayAmountBeforeDiscount = styled(DueTodayAmount)`
-  text-decoration: line-through;
   color: ${p => p.theme.subText};
 `;
 
