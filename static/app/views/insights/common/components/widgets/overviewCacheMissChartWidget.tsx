@@ -63,6 +63,8 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
       yAxis: ['cache_miss_rate()'],
       query: search,
       groupBy: [SpanFields.TRANSACTION],
+      sort: {field: 'cache_miss_rate()', kind: 'desc'},
+
       topEvents: 4,
       enabled: !!cachesRequest.data,
       pageFilters: props.pageFilters,
