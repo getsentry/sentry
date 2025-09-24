@@ -30,6 +30,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
   InvoiceItemType,
   PlanTier,
+  type BillingDetails,
   type EventBucket,
   type InvoiceItem,
   type OnDemandBudgets,
@@ -43,6 +44,7 @@ import {
   getAmPlanTier,
   getSlot,
   hasPartnerMigrationFeature,
+  hasSomeBillingDetails,
   isBizPlanFamily,
   isTeamPlanFamily,
   isTrialPlan,
@@ -985,4 +987,18 @@ export function getCreditApplied({
 // TODO(isabella): clean this up after GA
 export function hasNewCheckout(organization: Organization) {
   return organization.features.includes('checkout-v3');
+}
+
+/**
+ * Returns true if the subscription has either a payment source or some billing details set.
+ */
+export function hasBillingInfo(
+  billingDetails: BillingDetails | undefined,
+  subscription: Subscription,
+  isComplete: boolean
+) {
+  if (isComplete) {
+    return !!subscription.paymentSource && hasSomeBillingDetails(billingDetails);
+  }
+  return !!subscription.paymentSource || hasSomeBillingDetails(billingDetails);
 }

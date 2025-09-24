@@ -12,7 +12,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -91,7 +90,7 @@ export function ChartActionDropdown({
   const addToDashboardOptions: AddToSpanDashboardOptions = {
     chartType,
     yAxes,
-    widgetName: title ?? DEFAULT_WIDGET_NAME,
+    widgetName: title,
     groupBy,
     search,
   };
@@ -110,7 +109,7 @@ type BaseProps = {
   alertMenuOptions: MenuItemProps[];
   exploreUrl: LocationDescriptor;
   referrer: string;
-  addToDashboardOptions?: AddToSpanDashboardOptions;
+  addToDashboardOptions?: AddToSpanDashboardOptions | AddToSpanDashboardOptions[];
 };
 
 export function BaseChartActionDropdown({
@@ -137,6 +136,39 @@ export function BaseChartActionDropdown({
     },
   ];
 
+  if (addToDashboardOptions) {
+    const menuOption: MenuItemProps = {
+      key: 'add-to-dashboard',
+      label: (
+        <Feature
+          hookName="feature-disabled:dashboards-edit"
+          features="organizations:dashboards-edit"
+          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+        >
+          {t('Add to Dashboard')}
+        </Feature>
+      ),
+      textValue: t('Add to Dashboard'),
+      disabled: !hasDashboardEdit,
+    };
+    if (Array.isArray(addToDashboardOptions)) {
+      menuOption.isSubmenu = true;
+      menuOption.children = addToDashboardOptions.map((option, idx) => ({
+        key: `${option.chartType}-${idx}-${option.yAxes}`,
+        label: option.widgetName,
+        onAction: () => {
+          addToSpanDashboard(option);
+        },
+      }));
+    } else {
+      menuOption.isSubmenu = false;
+      menuOption.onAction = () => {
+        addToSpanDashboard(addToDashboardOptions);
+      };
+    }
+    menuOptions.push(menuOption);
+  }
+
   if (alertMenuOptions.length > 0) {
     menuOptions.push({
       key: 'create-alert',
@@ -152,27 +184,6 @@ export function BaseChartActionDropdown({
           });
         },
       })),
-    });
-  }
-
-  if (addToDashboardOptions) {
-    menuOptions.push({
-      key: 'add-to-dashboard',
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      textValue: t('Add to Dashboard'),
-      onAction: () => {
-        addToSpanDashboard(addToDashboardOptions);
-      },
-      isSubmenu: false,
-      disabled: !hasDashboardEdit,
     });
   }
 

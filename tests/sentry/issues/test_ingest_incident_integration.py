@@ -29,7 +29,6 @@ from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@with_feature("organizations:issue-open-periods")
 @with_feature("organizations:workflow-engine-single-process-metric-issues")
 class IncidentGroupOpenPeriodIntegrationTest(TestCase):
     def setUp(self) -> None:

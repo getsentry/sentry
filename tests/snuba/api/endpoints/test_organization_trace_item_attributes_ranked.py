@@ -93,6 +93,8 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             query={"query_1": "span.duration:<=100", "query_2": "span.duration:>100"}
         )
         assert response.status_code == 200, response.data
+        assert "cohort1Total" in response.data
+        assert "cohort2Total" in response.data
         distributions = response.data["rankedAttributes"]
         attribute = next(a for a in distributions if a["attributeName"] == "sentry.device")
         assert attribute
@@ -143,6 +145,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Should succeed (not return 400 error)
         assert response.status_code == 200, response.data
+
+        assert "cohort1Total" in response.data
+        assert "cohort2Total" in response.data
 
         # Should have ranking info but no function value since segmentation was skipped
         assert "rankingInfo" in response.data

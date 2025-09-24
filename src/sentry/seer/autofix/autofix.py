@@ -22,7 +22,10 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_autofix_repos_from_project_code_mappings,
+)
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -446,6 +449,7 @@ def _call_autofix(
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
+    stopping_point: AutofixStoppingPoint | None = None,
 ):
     path = "/v1/automation/autofix/start"
     body = orjson.dumps(
@@ -481,6 +485,7 @@ def _call_autofix(
                 "disable_coding_step": not group.organization.get_option(
                     "sentry:enable_seer_coding", default=True
                 ),
+                "stopping_point": stopping_point,
             },
         },
         option=orjson.OPT_NON_STR_KEYS,
@@ -508,6 +513,7 @@ def trigger_autofix(
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
+    stopping_point: AutofixStoppingPoint | None = None,
 ):
     if not features.has("organizations:gen-ai-features", group.organization, actor=user):
         return _respond_with_error("AI Autofix is not enabled for this project.", 403)
@@ -593,6 +599,7 @@ def trigger_autofix(
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url=pr_to_comment_on_url,
             auto_run_source=auto_run_source,
+            stopping_point=stopping_point,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")

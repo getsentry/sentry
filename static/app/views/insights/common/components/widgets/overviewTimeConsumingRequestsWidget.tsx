@@ -24,6 +24,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
@@ -171,6 +172,16 @@ export default function OverviewTimeConsumingRequestsWidget(
     referrer,
   });
 
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType: ChartType.LINE,
+    yAxes: [yAxes],
+    widgetName: title,
+    groupBy: [groupBy],
+    search,
+    sort: {field: totalTimeField, kind: 'desc'},
+    topEvents: 3,
+  };
+
   return (
     <Widget
       Title={<Widget.WidgetTitle title={title} />}
@@ -183,6 +194,7 @@ export default function OverviewTimeConsumingRequestsWidget(
                 key="time consuming requests widget"
                 exploreUrl={exploreUrl}
                 referrer={referrer}
+                addToDashboardOptions={addToDashboardOptions}
                 alertMenuOptions={requestSeriesData.map(series => ({
                   key: series.seriesName,
                   label: aliases[series.seriesName],
