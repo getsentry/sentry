@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import TypedDict
 
 from slack_sdk.models.blocks import (
@@ -24,11 +23,6 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
-
-
-@dataclass(frozen=True)
-class SlackNotificationData(NotificationData):
-    source: str
 
 
 class SlackRenderable(TypedDict):
