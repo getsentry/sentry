@@ -9,7 +9,7 @@ import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
-import {useUpdateInsightCard} from 'sentry/components/events/autofix/insights/autofixInsightCards';
+import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
