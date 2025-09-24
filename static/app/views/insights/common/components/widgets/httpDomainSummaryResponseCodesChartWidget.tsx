@@ -43,7 +43,7 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
     referrer
   );
 
-  const responseRateField = 'http.response.status_code';
+  const responseRateField = 'tags[http.response.status_code,number]';
   const stringifiedSearch = search.formatString();
   const yAxis = 'count()';
 
