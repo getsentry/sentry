@@ -193,7 +193,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         size="zero"
         borderless
         title={t('Dismiss')}
-        aria-label={t('Dismiss')}
+        aria-label={t('Dismiss trial notice')}
       />
     </ButtonBar>
   );
