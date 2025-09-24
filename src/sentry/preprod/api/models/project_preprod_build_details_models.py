@@ -84,10 +84,7 @@ class BuildDetailsApiResponse(BaseModel):
     size_analysis_state: PreprodArtifactSizeMetrics.SizeAnalysisState | None = None
 
 
-def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType | int) -> Platform:
-    if isinstance(artifact_type, int):
-        artifact_type = PreprodArtifact.ArtifactType(artifact_type)
-
+def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
     match artifact_type:
         case PreprodArtifact.ArtifactType.XCARCHIVE:
             return Platform.IOS
