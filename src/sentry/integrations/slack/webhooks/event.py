@@ -21,7 +21,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.analytics import IntegrationSlackChartUnfurl
+from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -212,7 +212,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             ):
                 try:
                     analytics.record(
-                        IntegrationSlackChartUnfurl(
+                        SlackIntegrationChartUnfurl(
                             organization_id=organization.id,
                             unfurls_count=0,
                         )
