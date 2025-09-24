@@ -100,11 +100,11 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
 
   return (
     <FlexAlternatingRow>
-      <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
+      <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
       <Flex align="center" gap="sm">
-        <Text variant="primary" size="sm" tabular>
+        <Text variant="primary" bold size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
         <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
@@ -124,11 +124,11 @@ function OptimizableImageFileRow({
 }) {
   return (
     <FlexAlternatingRow>
-      <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
+      <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
       <Flex align="center" gap="sm">
-        <Text variant="primary" size="sm" tabular>
+        <Text variant="primary" bold size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
         <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
