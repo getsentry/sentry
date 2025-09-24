@@ -512,6 +512,11 @@ const FancyInput = styled('input')`
   ::-webkit-inner-spin-button {
     -webkit-appearance: none;
   }
+
+  /* Hide Firefox's native number input steppers to prevent duplicate UI with custom increment/decrement buttons */
+  &[type='number'] {
+    -moz-appearance: textfield;
+  }
 `;
 
 const Toggle = styled(NewBooleanField)`

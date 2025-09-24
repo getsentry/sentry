@@ -15,6 +15,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.constants import (
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
+    ObjectStatus,
+)
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -74,6 +81,18 @@ class OverwatchRpcSignatureAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
+def _can_use_prevent_ai_features(org: Organization) -> bool:
+    """Check if organization has opted in to Prevent AI features."""
+    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+    pr_review_test_generation_enabled = bool(
+        org.get_option(
+            "sentry:enable_pr_review_test_generation",
+            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+        )
+    )
+    return not hide_ai_features and pr_review_test_generation_enabled
+
+
 @region_silo_endpoint
 class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
     """
@@ -101,3 +120,44 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
             raise ParseError("Missing required query parameters: ghOrg, repo")
         # Stub: return empty dict for now
         return Response(data={})
+
+
+@region_silo_endpoint
+class PreventPrReviewSentryOrgEndpoint(Endpoint):
+    """
+    Get Sentry organization IDs for a GitHub repository.
+
+    GET /prevent/pr-review/github/sentry-org?repoId={repoId}
+    """
+
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.CODECOV
+    authentication_classes = (OverwatchRpcSignatureAuthentication,)
+    permission_classes = ()
+    enforce_rate_limit = False
+
+    def get(self, request: Request) -> Response:
+        if not request.auth or not isinstance(
+            request.successful_authenticator, OverwatchRpcSignatureAuthentication
+        ):
+            raise PermissionDenied
+
+        repo_id = request.GET.get("repoId")
+
+        if not repo_id:
+            raise ParseError("Missing required query parameter: repoId")
+
+        organization_ids = Repository.objects.filter(
+            external_id=repo_id,
+            provider="integrations:github",
+            status=ObjectStatus.ACTIVE,
+        ).values_list("organization_id", flat=True)
+
+        organizations = Organization.objects.filter(id__in=organization_ids)
+
+        # Filter out all orgs that didn't give us consent to use AI features
+        return Response(
+            data={"org_ids": [org.id for org in organizations if _can_use_prevent_ai_features(org)]}
+        )

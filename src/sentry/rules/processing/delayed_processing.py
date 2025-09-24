@@ -149,16 +149,11 @@ class LogConfig:
 
     # Cached value of features.has("projects:num-events-issue-debugging", project)
     num_events_issue_debugging: bool
-    # Cached value of features.has("organizations:workflow-engine-process-workflows", organization)
-    workflow_engine_process_workflows: bool
 
     @classmethod
     def create(cls, project: Project) -> "LogConfig":
         return cls(
             num_events_issue_debugging=features.has("projects:num-events-issue-debugging", project),
-            workflow_engine_process_workflows=features.has(
-                "organizations:workflow-engine-process-workflows", project.organization
-            ),
         )
 
 
@@ -532,7 +527,7 @@ def fire_rules(
         group_to_groupevent = get_group_to_groupevent(
             log_config, parsed_rulegroup_to_event_data, project_id, groups_to_fire
         )
-        if log_config.num_events_issue_debugging or log_config.workflow_engine_process_workflows:
+        if log_config.num_events_issue_debugging:
             serialized_groups = {
                 group.id: group_event.event_id
                 for group, (group_event, _) in group_to_groupevent.items()
@@ -609,10 +604,7 @@ def fire_rules(
                         rule, group, groupevent.event_id, notification_uuid
                     )
 
-                    if (
-                        log_config.workflow_engine_process_workflows
-                        or log_config.num_events_issue_debugging
-                    ):
+                    if log_config.num_events_issue_debugging:
                         logger.info(
                             "post_process.delayed_processing.triggered_rule",
                             extra={
@@ -732,7 +724,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     ):
         condition_group_results = get_condition_group_results(condition_groups, project)
 
-    if log_config.workflow_engine_process_workflows or log_config.num_events_issue_debugging:
+    if log_config.num_events_issue_debugging:
         serialized_results = (
             {str(query): count_dict for query, count_dict in condition_group_results.items()}
             if condition_group_results
@@ -759,10 +751,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
             rules_to_fire = get_rules_to_fire(
                 condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
             )
-            if (
-                log_config.workflow_engine_process_workflows
-                or log_config.num_events_issue_debugging
-            ):
+            if log_config.num_events_issue_debugging:
                 logger.info(
                     "delayed_processing.rules_to_fire",
                     extra={

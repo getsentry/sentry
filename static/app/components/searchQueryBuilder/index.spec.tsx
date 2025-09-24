@@ -17,6 +17,7 @@ import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -35,7 +36,6 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
-import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -172,6 +172,89 @@ describe('SearchQueryBuilder', () => {
   it('displays a placeholder when empty', async () => {
     render(<SearchQueryBuilder {...defaultProps} placeholder="foo" />);
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
+  });
+
+  describe('rendering search query builder', () => {
+    describe('footer', () => {
+      it('displays wildcard footer when canUseWildcard is true', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+      });
+
+      it('does not display footer when disallowWildcard is true', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            disallowWildcard
+            initialQuery="browser.name:Firefox"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+
+      it('does not display footer when canUseWildcard is false', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="assigned:me" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+
+      it('does not display footer when using a wildcard operator', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {
+            name: 'Edit value for filter: browser.name',
+          })
+        );
+
+        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+
+        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        await userEvent.keyboard('{escape}');
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+
+        await userEvent.click(screen.getByRole('option', {name: 'contains'}));
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          screen.queryByText('Wildcard (*) matching allowed')
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('callbacks', () => {
@@ -4243,7 +4326,7 @@ describe('SearchQueryBuilder', () => {
       it('renders the seer combobox', async () => {
         function AskSeerTestComponent({children}: {children: React.ReactNode}) {
           const {displayAskSeer, query} = useSearchQueryBuilder();
-          return displayAskSeer ? <SeerComboBox initialQuery={query} /> : children;
+          return displayAskSeer ? <AskSeerComboBox initialQuery={query} /> : children;
         }
 
         function AskSeerWrapper({children}: {children: React.ReactNode}) {
