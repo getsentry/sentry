@@ -11,6 +11,7 @@ export {IconBroadcast} from './iconBroadcast';
 export {IconBusiness} from './iconBusiness';
 export {IconBuilding} from './iconBuilding';
 export {IconCalendar} from './iconCalendar';
+export {IconCase} from './iconCase';
 export {IconChat} from './iconChat';
 export {IconCheckmark} from './iconCheckmark';
 export {IconChevron} from './iconChevron';
