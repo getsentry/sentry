@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -10,7 +10,7 @@ import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {CheckoutV3StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
-function BillingCycle({
+function ChooseYourBillingCycle({
   formData,
   onUpdate,
   subscription,
@@ -32,7 +32,7 @@ function BillingCycle({
 
   let previousPlanPrice = 0;
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="sm">
       <StepHeader
         isActive
         isCompleted={false}
@@ -40,12 +40,12 @@ function BillingCycle({
         onToggleStep={setIsOpen}
         isOpen={isOpen}
         stepNumber={stepNumber}
-        title={t('Billing cycle')}
+        title={t('Choose your billing cycle')}
         isNewCheckout
       />
       {isOpen && (
-        <Fragment>
-          <Text as="div">
+        <Flex direction="column" gap="xl">
+          <Text as="div" variant="muted">
             {t('Additional usage is billed separately, at the start of the next cycle')}
           </Text>
           <Grid
@@ -84,10 +84,10 @@ function BillingCycle({
               );
             })}
           </Grid>
-        </Fragment>
+        </Flex>
       )}
     </Flex>
   );
 }
 
-export default BillingCycle;
+export default ChooseYourBillingCycle;

@@ -12,7 +12,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
-describe('BillingCycle', () => {
+describe('ChooseYourBillingCycle', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
@@ -73,7 +73,7 @@ describe('BillingCycle', () => {
     monthlyInfo: string | RegExp;
     yearlyInfo: string | RegExp;
   }) {
-    expect(await screen.findByText('Billing cycle')).toBeInTheDocument();
+    expect(await screen.findByText('Choose your billing cycle')).toBeInTheDocument();
 
     const monthlyOption = screen.getByTestId('billing-cycle-option-monthly');
     expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();
