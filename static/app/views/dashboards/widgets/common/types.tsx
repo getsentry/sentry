@@ -72,9 +72,10 @@ export type TimeSeries = {
   values: TimeSeriesItem[];
   yAxis: string;
   /**
-   * If a a groupBy is present in the data request, it represent what the group is for the time series
-   * for example if we groupBy span.op, the groupBy could be [{key: 'span.op', value: 'db'}], meaning this timeseries is for the db operation
-   * If the `excludeOther` query param is not set to true, an other group is returned and can be checked with `timeseries.meta.isOther`
+   * Represents the grouping information for the time series, if applicable.
+   * e.g., if the initial request supplied a `groupBy` query param of `"span.op"`, the
+   * `groupBy` of the `TimeSeries` could be `[{key: 'span.op': value: 'db' }]`
+   * If the `excludeOther` query param is `true`, an "other" time series will be part of the response. `TimeSeries.meta.isOther` specifies the "other" time series.
    */
   groupBy?: TimeSeriesGroupBy[];
 };
