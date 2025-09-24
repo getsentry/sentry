@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,7 +8,14 @@ import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconArrow, IconCode, IconDownload, IconFile, IconRefresh} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChevron,
+  IconCode,
+  IconDownload,
+  IconFile,
+  IconRefresh,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
@@ -34,6 +41,7 @@ export function SizeCompareMainContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const theme = useTheme();
+  const [isFilesExpanded, setIsFilesExpanded] = useState(true);
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -322,16 +330,33 @@ export function SizeCompareMainContent() {
       {/* Files Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
         <Flex direction="column" gap="0">
-          {/* TODO: Collapsable */}
-          <Flex align="center" gap="sm" padding="xl">
-            <Heading as="h2">{t('Files Changed:')}</Heading>
-            <Heading as="h2" variant="muted">
-              {comparisonDataQuery.data?.diff_items.length}
-            </Heading>
+          <Flex align="center" justify="between" padding="xl">
+            <Flex align="center" gap="sm">
+              <Heading as="h2">{t('Files Changed:')}</Heading>
+              <Heading as="h2" variant="muted">
+                {comparisonDataQuery.data?.diff_items.length}
+              </Heading>
+            </Flex>
+            <Button
+              priority="transparent"
+              size="sm"
+              onClick={() => setIsFilesExpanded(!isFilesExpanded)}
+              aria-label={isFilesExpanded ? t('Collapse files') : t('Expand files')}
+            >
+              <IconChevron
+                direction={isFilesExpanded ? 'up' : 'down'}
+                size="sm"
+                style={{
+                  transition: 'transform 0.2s ease',
+                }}
+              />
+            </Button>
           </Flex>
-          <SizeCompareItemDiffTable
-            diffItems={comparisonDataQuery.data?.diff_items || []}
-          />
+          {isFilesExpanded && (
+            <SizeCompareItemDiffTable
+              diffItems={comparisonDataQuery.data?.diff_items || []}
+            />
+          )}
         </Flex>
       </Container>
     </Flex>
