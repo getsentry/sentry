@@ -170,11 +170,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return conditions
 
 
-@receiver(pre_save, sender=Detector)
-def enforce_config_schema(sender, instance: Detector, **kwargs):
+def enforce_config_schema(instance: Detector) -> None:
     """
     Ensures the detector type is valid in the grouptype registry.
-    This needs to be a signal because the grouptype registry's entries are not available at import time.
+    This needs to be available independently so callers can validate configs
+    without saving.
     """
     group_type = instance.group_type
     if not group_type:
@@ -187,3 +187,11 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
         raise ValidationError("Detector config must be a dictionary")
 
     instance.validate_config(group_type.detector_settings.config_schema)
+
+
+@receiver(pre_save, sender=Detector)
+def enforce_config_schema_signal(sender, instance: Detector, **kwargs):
+    """
+    This needs to be a signal because the grouptype registry's entries are not available at import time.
+    """
+    enforce_config_schema(instance)
