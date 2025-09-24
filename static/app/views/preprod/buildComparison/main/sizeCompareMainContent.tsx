@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
+import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
@@ -42,6 +43,7 @@ export function SizeCompareMainContent() {
   const navigate = useNavigate();
   const theme = useTheme();
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useState(true);
   const {baseArtifactId, headArtifactId, projectId} = useParams<{
     baseArtifactId: string;
     headArtifactId: string;
@@ -156,6 +158,21 @@ export function SizeCompareMainContent() {
 
     return metrics;
   }, [comparisonDataQuery.data]);
+
+  // Filter diff items based on the toggle
+  const filteredDiffItems = useMemo(() => {
+    if (!comparisonDataQuery.data?.diff_items) {
+      return [];
+    }
+
+    if (hideSmallChanges) {
+      return comparisonDataQuery.data.diff_items.filter(
+        item => Math.abs(item.size_diff) >= 500
+      );
+    }
+
+    return comparisonDataQuery.data.diff_items;
+  }, [comparisonDataQuery.data?.diff_items, hideSmallChanges]);
 
   if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
     return (
@@ -334,28 +351,50 @@ export function SizeCompareMainContent() {
             <Flex align="center" gap="sm">
               <Heading as="h2">{t('Files Changed:')}</Heading>
               <Heading as="h2" variant="muted">
-                {comparisonDataQuery.data?.diff_items.length}
+                {filteredDiffItems.length}
               </Heading>
             </Flex>
-            <Button
-              priority="transparent"
-              size="sm"
-              onClick={() => setIsFilesExpanded(!isFilesExpanded)}
-              aria-label={isFilesExpanded ? t('Collapse files') : t('Expand files')}
-            >
-              <IconChevron
-                direction={isFilesExpanded ? 'up' : 'down'}
+            <Flex align="center" gap="sm">
+              <Button
+                priority="transparent"
                 size="sm"
-                style={{
-                  transition: 'transform 0.2s ease',
-                }}
-              />
-            </Button>
+                onClick={() => setIsFilesExpanded(!isFilesExpanded)}
+                aria-label={isFilesExpanded ? t('Collapse files') : t('Expand files')}
+              >
+                <IconChevron
+                  direction={isFilesExpanded ? 'up' : 'down'}
+                  size="sm"
+                  style={{
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </Button>
+            </Flex>
           </Flex>
           {isFilesExpanded && (
-            <SizeCompareItemDiffTable
-              diffItems={comparisonDataQuery.data?.diff_items || []}
-            />
+            <Stack>
+              <Flex
+                align="center"
+                justify="end"
+                gap="sm"
+                paddingRight="xl"
+                paddingBottom="xl"
+              >
+                <Flex align="center" gap="lg">
+                  <Text>{t('Hide small changes (< 500B)')}</Text>
+                  <Switch
+                    checked={hideSmallChanges}
+                    size="sm"
+                    title={t('Hide < 500B')}
+                    onChange={() => setHideSmallChanges(!hideSmallChanges)}
+                    aria-label={
+                      hideSmallChanges ? t('Show small changes') : t('Hide small changes')
+                    }
+                  />
+                </Flex>
+              </Flex>
+              <SizeCompareItemDiffTable diffItems={filteredDiffItems} />
+            </Stack>
           )}
         </Flex>
       </Container>
