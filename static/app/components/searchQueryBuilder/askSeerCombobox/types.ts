@@ -5,7 +5,7 @@ export interface NoneOfTheseItem {
   label: string;
 }
 
-export interface AskSeerSearchItem<S extends string> {
+interface AskSeerSearchItem<S extends string> {
   key: S extends 'none-of-these' ? never : S;
 }
 
