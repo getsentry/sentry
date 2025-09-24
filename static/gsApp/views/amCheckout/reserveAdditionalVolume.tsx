@@ -57,6 +57,7 @@ function ReserveAdditionalVolume({
           organization,
           data_type: category,
           quantity: value,
+          isNewCheckout: true,
         });
       }
     },
@@ -86,7 +87,15 @@ function ReserveAdditionalVolume({
                 ? t('Hide reserved volume sliders')
                 : t('Show reserved volume sliders')
             }
-            onClick={() => setShowSliders(!showSliders)}
+            onClick={() => {
+              setShowSliders(!showSliders);
+              if (showSliders) {
+                trackGetsentryAnalytics('checkout.data_sliders_viewed', {
+                  organization,
+                  isNewCheckout: true,
+                });
+              }
+            }}
           >
             {t('Reserve additional volume')}
           </Button>
