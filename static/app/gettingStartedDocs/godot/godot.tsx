@@ -46,7 +46,7 @@ const onboarding: OnboardingConfig = {
             {
               code: <code />,
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/godot/configuration/options/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/godot/configuration/options/#programmatic-configuration" />
               ),
             }
           ),
