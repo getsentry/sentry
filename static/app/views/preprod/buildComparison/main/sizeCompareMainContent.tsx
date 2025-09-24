@@ -343,7 +343,15 @@ export function SizeCompareMainContent() {
               onClick={() => setIsFilesExpanded(!isFilesExpanded)}
               aria-label={isFilesExpanded ? t('Collapse files') : t('Expand files')}
             >
-              <IconChevron direction={isFilesExpanded ? 'up' : 'down'} size="sm" />
+              <IconChevron
+                direction={isFilesExpanded ? 'up' : 'down'}
+                size="sm"
+                style={{
+                  transition: 'transform 0.2s ease',
+                  color: 'inherit',
+                  transform: isFilesExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
+                }}
+              />
             </Button>
           </Flex>
           {isFilesExpanded && (
