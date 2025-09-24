@@ -392,7 +392,7 @@ class LinkTeamView(TeamLinkageView, ABC):
     def execute(
         self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
-        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
+        from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
         from sentry.integrations.slack.views.link_team import (
             SUCCESS_LINKED_MESSAGE,
             SUCCESS_LINKED_TITLE,
@@ -492,7 +492,7 @@ class LinkTeamView(TeamLinkageView, ABC):
 
         try:
             analytics.record(
-                IntegrationIdentityLinked(
+                SlackIntegrationIdentityLinked(
                     provider=self.provider_slug,
                     actor_id=team.id,
                     actor_type="team",
