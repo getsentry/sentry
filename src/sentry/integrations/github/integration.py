@@ -66,6 +66,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
@@ -217,9 +218,13 @@ class GitHubIntegration(
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubBaseClient:
-        if not self.org_integration:
-            raise IntegrationError("Organization Integration does not exist")
-        return GitHubApiClient(integration=self.model, org_integration_id=self.org_integration.id)
+        try:
+            org_integration = self.org_integration
+            if not org_integration:
+                raise IntegrationError("Organization Integration does not exist")
+            return GitHubApiClient(integration=self.model, org_integration_id=org_integration.id)
+        except OrganizationIntegrationNotFound as e:
+            raise IntegrationError(f"Organization Integration not found: {e}") from e
 
     # IntegrationInstallation methods
 

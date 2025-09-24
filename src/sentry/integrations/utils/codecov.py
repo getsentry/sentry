@@ -56,12 +56,23 @@ def has_codecov_integration(organization: Organization) -> tuple[bool, str | Non
         return False, CodecovIntegrationError.MISSING_GH.value
 
     for integration in integrations:
-        integration_installation = integration.get_installation(organization.id)
-        if not integration_installation:
-            continue
+        try:
+            integration_installation = integration.get_installation(organization.id)
+            if not integration_installation:
+                continue
 
-        repos = integration_installation.get_client().get_repos()
-        if not repos:
+            repos = integration_installation.get_client().get_repos()
+            if not repos:
+                continue
+        except Exception as e:
+            logger.warning(
+                "codecov.integration_client_error",
+                extra={
+                    "error": str(e),
+                    "integration_id": integration.id,
+                    "org_id": organization.id,
+                },
+            )
             continue
 
         owner_username, _ = repos[0].get("full_name").split("/")
