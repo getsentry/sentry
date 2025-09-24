@@ -52,7 +52,9 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
     return response
 
 
-def serialize_slack_preview(template: NotificationTemplate[NotificationData]) -> dict[str, Any]:
+def serialize_slack_preview[T: NotificationData](
+    template: NotificationTemplate[T],
+) -> dict[str, Any]:
     data = template.example_data
     rendered_template = template.render_example()
     message = SlackRenderer.render(data=data, rendered_template=rendered_template)
