@@ -202,12 +202,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/share/issue/:shareId/',
       component: make(() => import('sentry/views/sharedGroupDetails')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/organizations/:orgId/share/issue/:shareId/',
       component: make(() => import('sentry/views/sharedGroupDetails')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/unsubscribe/project/:id/',
