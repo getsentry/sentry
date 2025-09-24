@@ -1,9 +1,9 @@
 import {useEffect, useRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit} from 'sentry/icons';
@@ -132,7 +132,7 @@ export function BuildTable({builds, projectId, isLoading}: BuildTableProps) {
           tableData={tableData}
           columns={COLUMNS}
           aliases={ALIASES}
-          getRenderer={(field, data, meta) => getRenderer(field, data, meta, projectId)}
+          getRenderer={(field, data, meta) => getRenderer(field, data, meta)}
           scrollable
           fit="max-content"
           allowedCellActions={[]}
@@ -143,57 +143,60 @@ export function BuildTable({builds, projectId, isLoading}: BuildTableProps) {
   );
 }
 
-// Custom field renderers
-const createAppRenderer = (projectId: string): FieldRenderer =>
-  function appRenderer(data, baggage) {
-    const appName = data.app_name as string;
-    const appId = data.app_id as string;
-    const platform = data.platform as string;
+const createAppRenderer: FieldRenderer = data => {
+  const appName = data.app_name as string;
+  const appId = data.app_id as string;
+  const platform = data.platform as string;
 
-    return (
-      <Flex direction="column" gap="xs">
-        <Flex align="center" gap="sm">
-          {platform && (
-            <PlatformIcon platform={getPlatformIconFromPlatform(platform as Platform)} />
-          )}
-          <AppName>
-            <TextOverflow>{appName}</TextOverflow>
-          </AppName>
-        </Flex>
-        <AppDetails>
-          <TextOverflow>{appId}</TextOverflow>
-        </AppDetails>
+  return (
+    <Flex direction="column" gap="xs">
+      <Flex align="center" gap="sm">
+        {platform && (
+          <PlatformIcon platform={getPlatformIconFromPlatform(platform as Platform)} />
+        )}
+        <Text size="lg" bold>
+          <TextOverflow>{appName}</TextOverflow>
+        </Text>
       </Flex>
-    );
-  };
+      <Text size="sm" variant="muted">
+        <TextOverflow>{appId}</TextOverflow>
+      </Text>
+    </Flex>
+  );
+};
 
-const createBuildRenderer = (projectId: string): FieldRenderer =>
-  function buildRenderer(data, baggage) {
-    const version = data.version as string;
-    const buildNumber = data.build_number as string;
-    const buildState = data.build_state as number;
-    const commitSha = data.commit_sha as string;
-    const commitRef = data.commit_ref as string;
+const createBuildRenderer: FieldRenderer = data => {
+  const version = data.version as string;
+  const buildNumber = data.build_number as string;
+  const buildState = data.build_state as number;
+  const commitSha = data.commit_sha as string;
+  const commitRef = data.commit_ref as string;
 
-    return (
-      <Flex direction="column" gap="xs">
-        <Flex align="center" gap="xs">
-          <VersionText>
-            <TextOverflow>
-              {version} ({buildNumber})
-            </TextOverflow>
-          </VersionText>
-          {buildState === 3 && <IconCheckmark size="sm" color="green300" />}
-        </Flex>
-        <BuildDetails>
-          <IconCommit size="xs" />
-          <span>#{commitSha.slice(0, 7)}</span>
-          <span>-</span>
+  return (
+    <Flex direction="column" gap="xs">
+      <Flex align="center" gap="xs">
+        <Text size="lg" bold>
+          <TextOverflow>
+            {version} ({buildNumber})
+          </TextOverflow>
+        </Text>
+        {buildState === 3 && <IconCheckmark size="sm" color="green300" />}
+      </Flex>
+      <Flex align="center" gap="xs">
+        <IconCommit size="xs" />
+        <Text size="sm" variant="muted">
+          #{commitSha.slice(0, 7)}
+        </Text>
+        <Text size="sm" variant="muted">
+          -
+        </Text>
+        <Text size="sm" variant="muted">
           <TextOverflow>{commitRef}</TextOverflow>
-        </BuildDetails>
+        </Text>
       </Flex>
-    );
-  };
+    </Flex>
+  );
+};
 
 const installSizeRenderer: FieldRenderer = data => {
   const installSize = data.install_size as string;
@@ -214,17 +217,12 @@ const createdRenderer: FieldRenderer = data => {
   );
 };
 
-const getRenderer = (
-  field: string,
-  _data: any,
-  _meta: any,
-  projectId: string
-): FieldRenderer => {
+const getRenderer = (field: string, _data: any, _meta: any): FieldRenderer => {
   switch (field) {
     case 'app':
-      return createAppRenderer(projectId);
+      return createAppRenderer;
     case 'build':
-      return createBuildRenderer(projectId);
+      return createBuildRenderer;
     case 'install_size':
       return installSizeRenderer;
     case 'download_size':
@@ -249,29 +247,6 @@ const ClickableTableWrapper = styled('div')`
       background-color: ${p => p.theme.backgroundSecondary};
     }
   }
-`;
-
-const AppName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const AppDetails = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const VersionText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const BuildDetails = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
 `;
 
 const DateContainer = styled('div')`
