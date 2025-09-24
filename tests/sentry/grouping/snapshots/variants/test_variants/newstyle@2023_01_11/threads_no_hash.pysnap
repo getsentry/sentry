@@ -1,12 +1,12 @@
 ---
-created: '2025-02-25T04:21:43.518732+00:00'
+created: '2025-09-24T20:27:09.106846+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
+  root_component:
     app
       threads (ignored because it contains neither a single thread nor multiple threads with exactly one crashing or current thread; instead contains 0 crashing, 2 current, and 2 total threads)
 --------------------------------------------------------------------------

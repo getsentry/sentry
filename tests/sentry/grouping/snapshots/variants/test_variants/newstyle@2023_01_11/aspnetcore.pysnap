@@ -1,12 +1,12 @@
 ---
-created: '2025-09-19T05:52:36.190962+00:00'
+created: '2025-09-24T20:27:05.489841+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "228c649a3aa0901622c0a0e66ab0522c"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
@@ -175,7 +175,7 @@ app:
 default:
   hash: null
   contributing component: null
-  component:
+  root_component:
     default (ignored because app/system exception takes precedence)
       message (ignored because app/system exception takes precedence)
         "An unhandled exception has occurred while executing the request."
@@ -183,7 +183,7 @@ default:
 system:
   hash: "4ccd0f1953483581ba360c7518f90332"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
