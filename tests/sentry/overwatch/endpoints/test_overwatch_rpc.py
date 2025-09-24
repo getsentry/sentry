@@ -94,7 +94,7 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
 
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == {"org_ids": []}
+        assert resp.data == {"organizations": []}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -132,8 +132,15 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
 
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        # Should only return the org with consent
-        assert resp.data == {"org_ids": [org_with_consent.id]}
+        expected_data = {
+            "organizations": [
+                {"org_id": org_with_consent.id, "has_ai_consent": True},
+                {"org_id": org_without_consent.id, "has_ai_consent": False},
+            ]
+        }
+        resp.data["organizations"].sort(key=lambda x: x["org_id"])
+        expected_data["organizations"].sort(key=lambda x: x["org_id"])
+        assert resp.data == expected_data
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -162,4 +169,4 @@ class TestPreventPrReviewSentryOrgEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         # Should return empty list as the repository is inactive
-        assert resp.data == {"org_ids": []}
+        assert resp.data == {"organizations": []}
