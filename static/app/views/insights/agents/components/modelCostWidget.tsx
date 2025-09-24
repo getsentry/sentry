@@ -64,12 +64,6 @@ export default function ModelCostWidget() {
 
   const timeSeries = timeSeriesRequest.data?.timeSeries || [];
 
-  // We are setting the value type to currency for the time series so that the tooltip and y-axis formatting is correct
-  // TODO: this should updated so the meta is probably returned from the backend (defined in attributes.py)
-  timeSeries.forEach(ts => {
-    ts.meta.valueType = 'currency';
-  });
-
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;
 
