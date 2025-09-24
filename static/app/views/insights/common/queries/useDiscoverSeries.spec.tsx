@@ -1,32 +1,20 @@
-import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SpanProperty} from 'sentry/views/insights/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('useSpanSeries', () => {
   const organization = OrganizationFixture();
-
-  function Wrapper({children}: {children?: ReactNode}) {
-    return (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  }
 
   jest.mocked(usePageFilters).mockReturnValue(
     PageFilterStateFixture({
@@ -60,7 +48,7 @@ describe('useSpanSeries', () => {
       body: {},
     });
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       ({filters, enabled}) =>
         useSpanSeries(
           {
@@ -70,7 +58,7 @@ describe('useSpanSeries', () => {
           'span-metrics-series'
         ),
       {
-        wrapper: Wrapper,
+        organization,
         initialProps: {
           filters: {
             'span.group': '221aa7ebd216',
@@ -98,14 +86,14 @@ describe('useSpanSeries', () => {
       },
     });
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       ({filters, yAxis}) =>
         useSpanSeries(
           {search: MutableSearch.fromQueryObject(filters), yAxis},
           'span-metrics-series'
         ),
       {
-        wrapper: Wrapper,
+        organization,
         initialProps: {
           filters: {
             'span.group': '221aa7ebd216',
@@ -147,10 +135,10 @@ describe('useSpanSeries', () => {
       body: {},
     });
 
-    const {rerender} = renderHook(
+    const {rerender} = renderHookWithProviders(
       ({yAxis}) => useSpanSeries({yAxis}, 'span-metrics-series'),
       {
-        wrapper: Wrapper,
+        organization,
         initialProps: {
           yAxis: ['avg(span.self_time)', 'epm()'] as SpanProperty[],
         },
@@ -206,10 +194,10 @@ describe('useSpanSeries', () => {
       },
     });
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       ({yAxis}) => useSpanSeries({yAxis}, 'span-metrics-series'),
       {
-        wrapper: Wrapper,
+        organization,
         initialProps: {
           yAxis: ['epm()'] as SpanProperty[],
         },
@@ -273,10 +261,10 @@ describe('useSpanSeries', () => {
       },
     });
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       ({yAxis}) => useSpanSeries({yAxis}, 'span-metrics-series'),
       {
-        wrapper: Wrapper,
+        organization,
         initialProps: {
           yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as SpanProperty[],
         },
@@ -326,10 +314,10 @@ describe('useSpanSeries', () => {
       body: {},
     });
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       ({yAxis}) => useSpanSeries({yAxis}, 'span-metrics-series'),
       {
-        wrapper: Wrapper,
+        organization,
         initialProps: {
           yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as SpanProperty[],
         },
