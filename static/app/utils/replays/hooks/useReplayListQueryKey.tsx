@@ -61,7 +61,7 @@ export default function useReplayListQueryKey({
         query: {
           per_page: 50,
           ...query,
-          fields,
+          field: fields, // Passed as multiple params, e.g. field=a&field=b
           project,
           queryReferrer,
         },
