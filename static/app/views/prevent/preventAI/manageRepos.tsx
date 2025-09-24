@@ -127,8 +127,8 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         key={`${selectedOrg || 'no-org'}-${selectedRepo || 'no-repo'}`}
         collapsed={!isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
-        orgName={selectedOrgData?.name || 'Select Organization'}
-        repoName={selectedRepoData?.name || 'Select Repository'}
+        orgName={selectedOrgData?.name ?? ''}
+        repoName={selectedRepoData?.name ?? ''}
       />
     </Flex>
   );

@@ -1,12 +1,10 @@
 import {Fragment, useMemo} from 'react';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {IconIntegratedOrg} from 'sentry/icons/iconIntegratedOrg';
-import {IconRepository} from 'sentry/icons/iconRepository';
+import {IconBuilding, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
 
@@ -50,16 +48,11 @@ function ManageReposToolbar({
           options={organizationOptions}
           onChange={option => onOrgChange(option?.value ?? '')}
           trigger={(triggerProps, isOpen) => (
-            <DropdownButton isOpen={isOpen} {...triggerProps}>
-              <Flex justify="start" gap="sm" align="center">
-                <Flex align="center" gap="sm">
-                  <IconIntegratedOrg />
-                  <Text size="md" bold>
-                    {organizationOptions.find(opt => opt.value === selectedOrg)?.label ||
-                      t('Select organization')}
-                  </Text>
-                </Flex>
-              </Flex>
+            <DropdownButton isOpen={isOpen} icon={<IconBuilding />} {...triggerProps}>
+              <TriggerLabel>
+                {organizationOptions.find(opt => opt.value === selectedOrg)?.label ||
+                  t('Select organization')}
+              </TriggerLabel>
             </DropdownButton>
           )}
         />
@@ -69,16 +62,11 @@ function ManageReposToolbar({
           options={repositoryOptions}
           onChange={option => onRepoChange(option?.value ?? '')}
           trigger={(triggerProps, isOpen) => (
-            <DropdownButton isOpen={isOpen} {...triggerProps}>
-              <Flex justify="start" gap="sm" align="center">
-                <Flex align="center" gap="sm">
-                  <IconRepository />
-                  <Text size="md" bold>
-                    {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
-                      t('Select repo')}
-                  </Text>
-                </Flex>
-              </Flex>
+            <DropdownButton isOpen={isOpen} icon={<IconRepository />} {...triggerProps}>
+              <TriggerLabel>
+                {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
+                  t('Select repository')}
+              </TriggerLabel>
             </DropdownButton>
           )}
         />
