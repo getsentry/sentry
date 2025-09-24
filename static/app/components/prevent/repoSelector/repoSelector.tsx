@@ -5,7 +5,6 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -184,16 +183,12 @@ export function RepoSelector() {
         return (
           <DropdownButton
             isOpen={isOpen}
+            icon={<IconRepository />}
             data-test-id="page-filter-prevent-repository-selector"
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex align="center" gap="sm">
-                <IconContainer>
-                  <IconRepository />
-                </IconContainer>
-                <TriggerLabel>{defaultLabel}</TriggerLabel>
-              </Flex>
+              <TriggerLabel>{defaultLabel}</TriggerLabel>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -245,11 +240,6 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
-`;
-
-const IconContainer = styled('div')`
-  flex: 1 0 14px;
-  height: 14px;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
