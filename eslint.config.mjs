@@ -464,6 +464,7 @@ export default typescript.config([
       // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
       ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
+      'react/jsx-curly-brace-presence': ['error', 'never'],
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unescaped-entities': 'off',
       'react/no-unknown-property': ['error', {ignore: ['css']}],
