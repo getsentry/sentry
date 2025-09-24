@@ -275,7 +275,7 @@ class ProjectKey(Model):
     def otlp_logs_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return f"{endpoint}/api/{self.project_id}/otlp/v1/logs"
+        return f"{endpoint}/api/{self.project_id}/integration/otlp/v1/logs"
 
     @property
     def unreal_endpoint(self) -> str:
