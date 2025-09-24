@@ -335,7 +335,10 @@ export function generateSourceCards(
       key: `trace-${id}`,
       onClick: () => {
         if (sources?.event_trace_id) {
-          window.open(`/issues/trace/${sources.event_trace_id}?node=txn-${id}`, '_blank');
+          window.open(
+            `/explore/traces/trace/${sources.event_trace_id}/?node=span-${id}&timestamp=${sources.event_trace_timestamp}`,
+            '_blank'
+          );
         }
       },
       icon: <IconSpan size="xs" />,
