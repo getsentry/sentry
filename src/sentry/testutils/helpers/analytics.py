@@ -113,6 +113,11 @@ def get_event_count(
     expected_event_type: type[Event],
     exact: bool = False,
 ) -> int:
+    """
+    Get the number of events recorded for a given event type.
+    If exact is True, only events of the exact type will be counted.
+    If exact is False, events of the exact type or a subclass will be counted.
+    """
     if exact:
         return len(
             [
