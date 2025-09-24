@@ -128,7 +128,12 @@ export default function ReplayLayout({
             key={layout}
             availableSize={height}
             top={{
-              content: <PanelContainer>{video}</PanelContainer>,
+              content: (
+                <PanelContainer>
+                  {video}
+                  {controller}
+                </PanelContainer>
+              ),
               default: (height - DIVIDER_SIZE) * 0.5,
               min: MIN_VIDEO_HEIGHT,
               max: height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT,
@@ -137,7 +142,6 @@ export default function ReplayLayout({
           />
         ) : null}
       </BodySlider>
-      {controller}
     </BodyGrid>
   );
 }
@@ -188,7 +192,10 @@ const VideoSection = styled('div')`
 const PanelContainer = styled('div')`
   position: relative;
   display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
   flex-grow: 1;
+  gap: 20px;
 
   &.disable-iframe-pointer iframe {
     pointer-events: none !important;
