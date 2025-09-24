@@ -177,7 +177,7 @@ export function SizeCompareMainContent() {
 
     // Filter by search query
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.trim().toLowerCase();
       items = items.filter(item => item.path.toLowerCase().includes(query));
     }
 
