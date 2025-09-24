@@ -192,7 +192,6 @@ DETAILED_PROJECT = {
         "require2FA": False,
         "avatar": {"avatarType": "upload", "avatarUuid": "24f6f762f7a7473888b259c566da5adb"},
         "features": [
-            "global-views",
             "discover-basic",
             "incidents",
             "uptime",
