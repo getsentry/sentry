@@ -2,7 +2,7 @@ import logging
 import types
 import uuid
 from collections.abc import Sequence
-from typing import cast
+from typing import Any, cast
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
@@ -74,7 +74,7 @@ def process_segment(
     return spans
 
 
-def _verify_compatibility(spans: list[CompatibleSpan]):
+def _verify_compatibility(spans: list[CompatibleSpan]) -> list[list[Any]]:
     all_mismatches = []
     try:
         for span in spans:
