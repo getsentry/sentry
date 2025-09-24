@@ -105,7 +105,7 @@ class ComponentTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         for variant_name in ["app", "system"]:
-            exception_component = variants[variant_name].component.values[0]
+            exception_component = variants[variant_name].root_component.values[0]
             assert isinstance(exception_component, ExceptionGroupingComponent)
             stacktrace_component = find_given_child_component(
                 exception_component, StacktraceGroupingComponent
@@ -137,7 +137,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].component.values[0]
+        system_exception_component = variants["system"].root_component.values[0]
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
         system_stacktrace_component = find_given_child_component(
             system_exception_component, StacktraceGroupingComponent
@@ -153,7 +153,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_exception_component = variants["app"].component.values[0]
+        app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
@@ -177,7 +177,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].component.values[0]
+        system_exception_component = variants["system"].root_component.values[0]
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
         system_stacktrace_component = find_given_child_component(
             system_exception_component, StacktraceGroupingComponent
@@ -193,7 +193,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_exception_component = variants["app"].component.values[0]
+        app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
@@ -220,7 +220,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].component.values[0]
+        system_exception_component = variants["system"].root_component.values[0]
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
         system_stacktrace_component = find_given_child_component(
             system_exception_component, StacktraceGroupingComponent
@@ -237,7 +237,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_exception_component = variants["app"].component.values[0]
+        app_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         app_stacktrace_component = find_given_child_component(
             app_exception_component, StacktraceGroupingComponent
@@ -266,7 +266,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_threads_component = variants["system"].component.values[0]
+        system_threads_component = variants["system"].root_component.values[0]
         assert isinstance(system_threads_component, ThreadsGroupingComponent)
         system_stacktrace_component = find_given_child_component(
             system_threads_component, StacktraceGroupingComponent
@@ -283,7 +283,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_threads_component = variants["app"].component.values[0]
+        app_threads_component = variants["app"].root_component.values[0]
         assert isinstance(app_threads_component, ThreadsGroupingComponent)
         app_stacktrace_component = find_given_child_component(
             app_threads_component, StacktraceGroupingComponent
@@ -323,7 +323,7 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_chained_exception_component = variants["system"].component.values[0]
+        system_chained_exception_component = variants["system"].root_component.values[0]
         assert isinstance(system_chained_exception_component, ChainedExceptionGroupingComponent)
         system_exception_components = system_chained_exception_component.values
         assert [
@@ -352,7 +352,7 @@ class ComponentTest(TestCase):
 
         # In the app variant, there's no such thing as a contributing system frame, so all the
         # system frames count as non-contributing
-        app_chained_exception_component = variants["app"].component.values[0]
+        app_chained_exception_component = variants["app"].root_component.values[0]
         assert isinstance(app_chained_exception_component, ChainedExceptionGroupingComponent)
         app_exception_components = app_chained_exception_component.values
         assert [
