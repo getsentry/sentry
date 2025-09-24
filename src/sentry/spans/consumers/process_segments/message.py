@@ -45,6 +45,7 @@ outcome_aggregator = OutcomeAggregator()
 def process_segment(
     unprocessed_spans: list[SegmentSpan], skip_produce: bool = False
 ) -> list[CompatibleSpan]:
+    _verify_compatibility(unprocessed_spans)
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
@@ -60,7 +61,6 @@ def process_segment(
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    _verify_compatibility(spans)
     _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
