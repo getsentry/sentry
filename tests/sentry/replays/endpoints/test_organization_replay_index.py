@@ -170,18 +170,19 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay2_id))
 
         with self.feature(self.features):
-            response = self.client.get(self.url)
-            assert response.status_code == 200
+            for query in ["", "?field=id&field=has_viewed"]:
+                response = self.client.get(self.url + query)
+                assert response.status_code == 200
 
-            response_data = response.json()
-            assert "data" in response_data
-            assert len(response_data["data"]) == 2
+                response_data = response.json()
+                assert "data" in response_data, query
+                assert len(response_data["data"]) == 2, query
 
-            # Assert the first replay was viewed and the second replay was not.
-            assert response_data["data"][0]["has_viewed"] is False
-            assert response_data["data"][0]["id"] == replay2_id
-            assert response_data["data"][1]["has_viewed"] is True
-            assert response_data["data"][1]["id"] == replay1_id
+                # Assert the first replay was viewed and the second replay was not.
+                assert response_data["data"][0]["has_viewed"] is False, query
+                assert response_data["data"][0]["id"] == replay2_id, query
+                assert response_data["data"][1]["has_viewed"] is True, query
+                assert response_data["data"][1]["id"] == replay1_id, query
 
     def test_get_replays_browse_screen_fields(self) -> None:
         """Test replay response with fields requested in production."""
