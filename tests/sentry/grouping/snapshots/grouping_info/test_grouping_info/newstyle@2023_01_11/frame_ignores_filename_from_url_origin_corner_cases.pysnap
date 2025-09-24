@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:52:18.284752+00:00'
+created: '2025-09-19T05:53:39.383782+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -7,7 +7,7 @@ source: tests/sentry/grouping/test_grouping_info.py
   "app": {
     "component": {
       "contributes": false,
-      "hint": "stacktrace of system takes precedence",
+      "hint": "ignored because system stacktrace takes precedence",
       "id": "app",
       "name": "in-app",
       "values": [
@@ -132,7 +132,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "discarded because from URL origin and no function",
+                  "hint": "ignored because file path is a URL and function name is missing",
                   "id": "context_line",
                   "name": null,
                   "values": [
@@ -298,7 +298,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "discarded because from URL origin and no function",
+                  "hint": "ignored because file path is a URL and function name is missing",
                   "id": "context_line",
                   "name": null,
                   "values": [

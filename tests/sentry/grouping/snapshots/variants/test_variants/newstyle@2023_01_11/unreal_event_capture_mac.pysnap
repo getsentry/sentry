@@ -1,5 +1,5 @@
 ---
-created: '2025-05-12T23:41:31.153786+00:00'
+created: '2025-09-19T05:52:39.277764+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -138,8 +138,8 @@ default:
   hash: null
   contributing component: null
   component:
-    default (threads of app/system take precedence)
-      message (threads of app/system take precedence)
+    default (ignored because app/system threads take precedence)
+      message (ignored because app/system threads take precedence)
         "Message for scoped event"
 --------------------------------------------------------------------------
 system:

@@ -342,9 +342,9 @@ def _get_variants_from_strategies(
                             if component.contributes
                         )
                     )
-                    precedence_hint = "{} take{} precedence".format(
+                    precedence_hint = "ignored because {} take{} precedence".format(
                         (
-                            f"{strategy.name} of {variant_descriptor}"
+                            f"{variant_descriptor} {strategy.name}"
                             if variant_name != "default"
                             else strategy.name
                         ),
@@ -446,7 +446,7 @@ def get_grouping_variants_for_event(
             )
             fingerprint_source = "custom server" if matched_rule else "custom client"
 
-        hint = f"{fingerprint_source} fingerprint takes precedence"
+        hint = f"ignored because {fingerprint_source} fingerprint takes precedence"
 
         for variant in strategy_component_variants.values():
             variant.component.update(contributes=False, hint=hint)

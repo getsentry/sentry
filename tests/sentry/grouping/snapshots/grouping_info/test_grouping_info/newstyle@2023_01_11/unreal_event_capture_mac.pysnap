@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:20:24.813399+00:00'
+created: '2025-09-19T05:53:41.338300+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -1328,13 +1328,13 @@ source: tests/sentry/grouping/test_grouping_info.py
   "default": {
     "component": {
       "contributes": false,
-      "hint": "threads of app/system take precedence",
+      "hint": "ignored because app/system threads take precedence",
       "id": "default",
       "name": null,
       "values": [
         {
           "contributes": false,
-          "hint": "threads of app/system take precedence",
+          "hint": "ignored because app/system threads take precedence",
           "id": "message",
           "name": "message",
           "values": [

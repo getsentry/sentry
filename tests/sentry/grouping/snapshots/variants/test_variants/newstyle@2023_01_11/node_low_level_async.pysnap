@@ -1,5 +1,5 @@
 ---
-created: '2025-05-12T23:41:21.896373+00:00'
+created: '2025-09-19T05:52:38.777257+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app:
           frame (marked out of app by stack trace rule (function:processTicksAndRejections -app))
             module*
               "task_queues"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
@@ -31,13 +31,13 @@ system:
   hash: null
   contributing component: null
   component:
-    system (exception of app takes precedence)
+    system (ignored because app exception takes precedence)
       exception (ignored because hash matches app variant)
         stacktrace (ignored because it contains no contributing frames)
           frame (ignored by stack trace rule (function:processTicksAndRejections -group))
             module*
               "task_queues"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"

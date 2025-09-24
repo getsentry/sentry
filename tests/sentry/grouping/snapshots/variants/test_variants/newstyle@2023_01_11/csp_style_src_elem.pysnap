@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:09.926990+00:00'
+created: '2025-09-19T05:52:36.475387+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,8 +11,8 @@ default:
       csp*
         salt* (a static salt)
           "style-src-elem"
-        violation (not a local script violation)
+        violation (ignored because it's not a local script violation)
         uri*
           "use.fontawesome.com"
-      message (csp takes precedence)
+      message (ignored because csp takes precedence)
         "Blocked 'style' from '<hostname>'"
