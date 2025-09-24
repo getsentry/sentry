@@ -341,7 +341,7 @@ def _format_bytes_base10(size_bytes: int) -> str:
         return f"{size_bytes} {units[0]}"
 
     u = 0
-    number = size_bytes
+    number = float(size_bytes)
     max_unit = len(units) - 1
     while number >= threshold and u < max_unit:
         number /= threshold
