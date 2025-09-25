@@ -96,7 +96,6 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: [
             {
               language: 'shell',
