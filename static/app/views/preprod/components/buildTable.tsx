@@ -93,26 +93,29 @@ export function BuildTable({builds, projectId, isLoading}: BuildTableProps) {
     [transformedBuilds]
   );
 
-  // Add click handlers to table rows
+  // Add data attributes to table rows and click handlers
   useEffect(() => {
     const tableElement = tableRef.current;
     if (!tableElement) {
       return undefined;
     }
 
+    // Add data attributes to each row so the click handler can find the build_id
+    const rows = tableElement.querySelectorAll('tbody tr');
+    rows.forEach((row, index) => {
+      if (index < transformedBuilds.length) {
+        row.setAttribute('data-build-id', transformedBuilds[index]?.build_id ?? '');
+      }
+    });
+
     const handleRowClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       const row = target.closest('tbody tr');
       if (!row) return;
 
-      const rowIndex = Array.from(row.parentElement?.children || []).indexOf(row);
-      if (rowIndex >= 0 && rowIndex < transformedBuilds.length) {
-        const build = transformedBuilds[rowIndex];
-        if (build?.build_id) {
-          navigate(
-            `/organizations/${organization.slug}/preprod/${projectId}/${build.build_id}`
-          );
-        }
+      const buildId = row.getAttribute('data-build-id');
+      if (buildId) {
+        navigate(`/organizations/${organization.slug}/preprod/${projectId}/${buildId}`);
       }
     };
 
