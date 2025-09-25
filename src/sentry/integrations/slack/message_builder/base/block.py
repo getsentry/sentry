@@ -204,7 +204,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         *args: SlackBlock,
         fallback_text: str | None = None,
         color: str | None = None,
-        block_id: dict[str, Any] | None = None,
+        block_id: str | None = None,
         callback_id: str | None = None,
         skip_fallback: bool = False,
     ) -> SlackBlock:
@@ -216,9 +216,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         if color:
             blocks["color"] = color
 
-        # put the block_id into the first block, JSON-encoding it
+        # put the block_id into the first block
         if block_id:
-            blocks["blocks"][0]["block_id"] = orjson.dumps(block_id).decode()
+            blocks["blocks"][0]["block_id"] = block_id
 
         if callback_id:
             blocks["callback_id"] = callback_id
