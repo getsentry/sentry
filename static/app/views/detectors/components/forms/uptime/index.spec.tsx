@@ -1,4 +1,4 @@
-import {UptimeDetectorFixture} from 'tests/js/fixtures/detectors';
+import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

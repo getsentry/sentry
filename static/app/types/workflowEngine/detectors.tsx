@@ -115,7 +115,8 @@ export type MetricDetectorConfig =
 
 interface UptimeDetectorConfig {
   downtimeThreshold: number;
-  environment: string;
+  environment: string | null;
+  mode: UptimeMonitorMode;
   recoveryThreshold: number;
 }
 
@@ -183,13 +184,6 @@ interface UpdateUptimeDataSourcePayload {
   url: string;
 }
 
-interface UpdateUptimeConfigPayload {
-  downtimeThreshold: number;
-  environment: string | null;
-  mode: UptimeMonitorMode;
-  recoveryThreshold: number;
-}
-
 export interface BaseDetectorUpdatePayload {
   name: string;
   owner: string | null;
@@ -200,7 +194,7 @@ export interface BaseDetectorUpdatePayload {
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
-  config: UpdateUptimeConfigPayload;
+  config: UptimeDetectorConfig;
   dataSource: UpdateUptimeDataSourcePayload;
   type: 'uptime_domain_failure';
 }
