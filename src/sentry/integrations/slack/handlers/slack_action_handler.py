@@ -3,19 +3,14 @@ from sentry.notifications.notification_action.action_handler_registry.base impor
     IntegrationActionHandler,
 )
 from sentry.notifications.notification_action.action_handler_registry.common import (
-    MESSAGING_ACTION_CONFIG_API_SCHEMA,
     MESSAGING_ACTION_CONFIG_SCHEMA,
     NOTES_SCHEMA,
     TAGS_SCHEMA,
 )
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import (
-    ActionHandler,
-    ConfigTransformer,
-    TargetTypeConfigTransformer,
-    WorkflowEventData,
-)
+from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
+from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
 
 
 @action_handler_registry.register(Action.Type.SLACK)
@@ -35,11 +30,10 @@ class SlackActionHandler(IntegrationActionHandler):
         },
         "additionalProperties": False,
     }
-    api_schema = MESSAGING_ACTION_CONFIG_API_SCHEMA
 
     @staticmethod
     def get_config_transformer() -> ConfigTransformer | None:
-        return TargetTypeConfigTransformer(SlackActionHandler.api_schema)
+        return TargetTypeConfigTransformer.from_config_schema(SlackActionHandler.config_schema)
 
     @staticmethod
     def execute(

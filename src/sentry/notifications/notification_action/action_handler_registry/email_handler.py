@@ -3,46 +3,8 @@ from sentry.notifications.notification_action.utils import execute_via_group_typ
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import (
-    ActionHandler,
-    ConfigTransformer,
-    TargetTypeConfigTransformer,
-    WorkflowEventData,
-    action_target_strings,
-)
-
-api_schema = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "description": "The configuration schema for an email Action",
-    "type": "object",
-    "properties": {
-        "target_identifier": {"type": ["string", "null"]},
-        "target_display": {"type": ["null"]},
-        "target_type": {
-            "type": ["string"],
-            "enum": action_target_strings(
-                [ActionTarget.USER, ActionTarget.TEAM, ActionTarget.ISSUE_OWNERS]
-            ),
-        },
-    },
-    "required": ["target_type"],
-    "additionalProperties": False,
-    "allOf": [
-        {
-            "if": {
-                "properties": {
-                    "target_type": {
-                        "enum": action_target_strings([ActionTarget.USER, ActionTarget.TEAM])
-                    }
-                }
-            },
-            "then": {
-                "properties": {"target_identifier": {"type": "string"}},
-                "required": ["target_type", "target_identifier"],
-            },
-        },
-    ],
-}
+from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
+from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, WorkflowEventData
 
 
 @action_handler_registry.register(Action.Type.EMAIL)
@@ -74,6 +36,7 @@ class EmailActionHandler(ActionHandler):
             },
         ],
     }
+
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -91,7 +54,7 @@ class EmailActionHandler(ActionHandler):
 
     @staticmethod
     def get_config_transformer() -> ConfigTransformer | None:
-        return TargetTypeConfigTransformer(api_schema)
+        return TargetTypeConfigTransformer.from_config_schema(EmailActionHandler.config_schema)
 
     @staticmethod
     def execute(
