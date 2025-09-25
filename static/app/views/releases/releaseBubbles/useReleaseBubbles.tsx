@@ -17,7 +17,6 @@ import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
-  EChartClickHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   ReactEchartsRef,
@@ -67,6 +66,7 @@ interface ReleaseBubbleSeriesProps {
     timezone: string;
   };
   theme: Theme;
+  onBucketClick?: (bucket: Bucket) => void;
   yAxisIndex?: number;
 }
 
@@ -82,18 +82,25 @@ function ReleaseBubbleSeries({
   dateFormatOptions,
   alignInMiddle,
   yAxisIndex,
+  onBucketClick,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce(
     (acc, {releases, flags}) => acc + flags.length + releases.length,
     0
   );
   const avgReleases = totalReleases / buckets.length;
-  const data = buckets.map(({start, end, releases, flags}) => ({
-    value: [start, 0, end, releases.length],
-    start,
-    end,
-    releases,
-    flags,
+  const data = buckets.map(bucket => ({
+    value: [bucket.start, 0, bucket.end, bucket.releases.length],
+    start: bucket.start,
+    end: bucket.end,
+    releases: bucket.releases,
+    flags: bucket.flags,
+    onClick: (clickSeries: any) => {
+      if (clickSeries?.seriesId !== BUBBLE_SERIES_ID) {
+        return;
+      }
+      onBucketClick?.(bucket);
+    },
   }));
 
   const formatBucketTimestamp = (timestamp: number) => {
@@ -407,6 +414,35 @@ export function useReleaseBubbles({
     [desiredBuckets, flags, maxTime, minTime, releases, releasesMaxTime]
   );
 
+  const handleBucketClick = useCallback(
+    (bucket: Bucket) => {
+      closeModal();
+
+      navigate({
+        query: {
+          ...cleanReleaseCursors(location.query),
+          [ReleasesDrawerFields.DRAWER]: 'show',
+          [ReleasesDrawerFields.CHART]: chartId,
+          [ReleasesDrawerFields.EVENT_ID]: eventId,
+          [ReleasesDrawerFields.START]: new Date(bucket.start).toISOString(),
+          [ReleasesDrawerFields.END]: new Date(bucket.end).toISOString(),
+          [ReleasesDrawerFields.PROJECT]: projects ?? selection.projects,
+          [ReleasesDrawerFields.ENVIRONMENT]: environments ?? selection.environments,
+        },
+      });
+    },
+    [
+      chartId,
+      eventId,
+      navigate,
+      location.query,
+      projects,
+      environments,
+      selection.projects,
+      selection.environments,
+    ]
+  );
+
   const handleChartRef = useCallback(
     (e: ReactEchartsRef | null) => {
       chartRef.current = e;
@@ -470,32 +506,6 @@ export function useReleaseBubbles({
             dataIndex: bucketIndex,
           });
         }
-      };
-      const handleSeriesClick = (params: Parameters<EChartClickHandler>[0]) => {
-        if (params.seriesId !== BUBBLE_SERIES_ID) {
-          return;
-        }
-
-        // `data` is typed as Record<string, any> by ECharts, with no generics
-        // to override
-        const data = params.data as unknown as Bucket;
-
-        // "Full Screen View" for Insights opens in a modal, close before opening
-        // drawer.
-        closeModal();
-
-        navigate({
-          query: {
-            ...cleanReleaseCursors(location.query),
-            [ReleasesDrawerFields.DRAWER]: 'show',
-            [ReleasesDrawerFields.CHART]: chartId,
-            [ReleasesDrawerFields.EVENT_ID]: eventId,
-            [ReleasesDrawerFields.START]: new Date(data.start).toISOString(),
-            [ReleasesDrawerFields.END]: new Date(data.end).toISOString(),
-            [ReleasesDrawerFields.PROJECT]: projects ?? selection.projects,
-            [ReleasesDrawerFields.ENVIRONMENT]: environments ?? selection.environments,
-          },
-        });
       };
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
@@ -604,8 +614,6 @@ export function useReleaseBubbles({
          * Attach directly to instance to avoid collisions with React props
          */
         // @ts-expect-error not sure what type echarts is expecting here
-        echartsInstance.on('click', handleSeriesClick);
-        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseover', handleMouseOver);
         // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('mouseout', handleMouseOut);
@@ -620,7 +628,6 @@ export function useReleaseBubbles({
           return;
         }
 
-        echartsInstance.off('click', handleSeriesClick);
         echartsInstance.off('mouseover', handleMouseOver);
         echartsInstance.off('mouseout', handleMouseOut);
         echartsInstance.off('globalout', handleGlobalOut);
@@ -629,16 +636,8 @@ export function useReleaseBubbles({
       };
     },
     [
-      location.query,
-      chartId,
-      eventId,
-      navigate,
       alignInMiddle,
       buckets,
-      environments,
-      projects,
-      selection.environments,
-      selection.projects,
       defaultBubbleGrid,
       defaultBubbleXAxis,
       legendSelected,
@@ -672,6 +671,7 @@ export function useReleaseBubbles({
       bubblePadding,
       chartRef,
       theme,
+      onBucketClick: handleBucketClick,
       dateFormatOptions: {
         timezone: options.timezone,
       },
