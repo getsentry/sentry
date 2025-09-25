@@ -904,6 +904,12 @@ class AMCheckout extends Component<Props, State> {
             <BackButton
               aria-label={t('Back to Subscription Overview')}
               to={`/settings/${organization.slug}/billing/`}
+              onClick={() => {
+                trackGetsentryAnalytics('checkout.exit', {
+                  subscription,
+                  organization,
+                });
+              }}
             >
               <Flex gap="sm" align="center">
                 <IconArrow direction="left" />

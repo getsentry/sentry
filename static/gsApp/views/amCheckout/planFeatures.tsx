@@ -63,6 +63,48 @@ const FEATURES: Array<{features: string[]; plan: string}> = [
   },
 ];
 
+// TODO(isabella): Remove this once we've actually surfaced the free plan
+const MODIFIED_FEATURES: Array<{features: string[]; plan: string}> = [
+  {
+    plan: 'developer',
+    features: [
+      t('Unlimited users'),
+      t('50K errors'),
+      t('5GB of logs'),
+      t('5M spans'),
+      t('50 replays'),
+      t('1 cron monitor'),
+      t('1 uptime monitor'),
+      t('1GB of attachments'),
+      t('20 metric alerts'),
+    ],
+  },
+  {
+    plan: 'team',
+    features: [
+      t('Access to UI and Continuous Profiling'),
+      t('Can add event volume to subscription'),
+      t('Third-party integrations'),
+      t('20 custom dashboards'),
+      t('Seer: AI debugging agent (subscription required)'),
+      t('Single Sign-On'),
+      t('Up to 90 day retention'),
+    ],
+  },
+  {
+    plan: 'business',
+    features: [
+      t('Insights (90-day lookback)'),
+      t('Unlimited custom dashboards'),
+      t('Unlimited metric alerts'),
+      t('Advanced quota management'),
+      t('Code Owners support'),
+      t('SAML + SCIM support'),
+      t('BAA'),
+    ],
+  },
+];
+
 function FeatureItem({feature, isIncluded}: {feature: string; isIncluded: boolean}) {
   return (
     <FeatureItemContainer isIncluded={isIncluded} align="start" gap="md">
@@ -104,9 +146,9 @@ function PlanFeatures({
   planOptionsWithFree.forEach((planOption, index) => {
     const planName = planOption.name.toLowerCase();
     const priorPlan = index > 0 ? planOptionsWithFree[index - 1] : null;
-    const featureList = FEATURES.filter(({plan}) => planName.includes(plan)).flatMap(
-      ({features}) => features
-    );
+    const featureList = (planOptions.length >= 3 ? FEATURES : MODIFIED_FEATURES)
+      .filter(({plan}) => planName.includes(plan))
+      .flatMap(({features}) => features);
     const perUnitPriceDiffs =
       !priorPlan || priorPlan?.basePrice === 0
         ? {}
@@ -167,7 +209,7 @@ function PlanFeatures({
                 <EventPriceWarning isIncluded={isIncluded} align="center" gap="sm">
                   <IconWarning size="sm" color="yellow300" />
                   <Tooltip
-                    title={tct('Starting at [priceDiffs] on [planName].', {
+                    title={tct('Starting at [priceDiffs] more on [planName].', {
                       priceDiffs: oxfordizeArray(
                         Object.entries(perUnitPriceDiffs).map(([category, diff]) => {
                           const formattedDiff = displayUnitPrice({cents: diff});

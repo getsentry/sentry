@@ -84,6 +84,7 @@ type GetsentryEventParameters = {
   'checkout.data_slider_changed': {data_type: string; quantity: number} & CheckoutUI;
   // no sub here;
   'checkout.data_sliders_viewed': Record<PropertyKey, unknown> & CheckoutUI;
+  'checkout.exit': HasSub;
   'checkout.ondemand_budget.turned_off': Record<PropertyKey, unknown> & CheckoutUI;
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate & CheckoutUI;
   'checkout.ondemand_changed': {cents: number} & Checkout;
@@ -108,7 +109,7 @@ type GetsentryEventParameters = {
   'checkout.upgrade': Partial<
     Record<DataCategory | `previous_${DataCategory}`, number | undefined>
   > & {previous_plan: string} & Checkout &
-    CheckoutUI;
+    CheckoutUI; // only used for checkout v3
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;
   'data_consent_settings.updated': {setting: string; value: FieldValue};
@@ -290,6 +291,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'checkout.click_continue': 'Checkout: Click Continue',
   'checkout.data_slider_changed': 'Checkout: Data Slider Changed',
   'checkout.data_sliders_viewed': 'Checkout: Data Slider Viewed',
+  'checkout.exit': 'Checkout: Back to Subscription Overview',
   'checkout.upgrade': 'Application: Upgrade',
   'checkout.updated_cc': 'Checkout: Updated CC',
   'checkout.updated_billing_details': 'Checkout: Updated billing details',
