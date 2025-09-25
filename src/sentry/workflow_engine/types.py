@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from sentry.models.environment import Environment
     from sentry.models.group import Group
     from sentry.models.organization import Organization
+    from sentry.notifications.models.notificationaction import ActionTarget
     from sentry.services.eventstore.models import GroupEvent
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -70,6 +72,67 @@ class WorkflowEventData:
     workflow_env: Environment | None = None
 
 
+class ConfigTransformer(ABC):
+    @abstractmethod
+    def from_api(self, config: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def to_api(self, config: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+
+def action_target_strings(lst: list[ActionTarget]) -> list[str]:
+    from sentry.notifications.models.notificationaction import ActionTarget
+
+    action_target_to_string = dict(ActionTarget.as_choices())
+    return [action_target_to_string[a] for a in lst]
+
+
+class TargetTypeConfigTransformer(ConfigTransformer):
+    def __init__(self, api_schema: dict[str, Any]):
+        from sentry.notifications.models.notificationaction import ActionTarget
+
+        self.api_schema = api_schema
+        self.action_target_to_string = dict(ActionTarget.as_choices())
+        self.action_target_from_string = {v: k for k, v in self.action_target_to_string.items()}
+
+    def from_api(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Convert from api_schema format to config_schema format.
+        Main transformation: target_type string -> target_type integer enum
+        """
+        # First validate the input against api_schema
+        from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
+
+        validate_json_schema(config, self.api_schema)
+
+        # Create a copy to avoid mutating the input
+        transformed_config = config.copy()
+
+        # Convert target_type from string to ActionTarget enum value
+        if "target_type" in transformed_config:
+            target_type_str = transformed_config["target_type"]
+            transformed_config["target_type"] = self.action_target_from_string[target_type_str]
+
+        return transformed_config
+
+    def to_api(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Convert from config_schema format to api_schema format.
+        Main transformation: target_type integer enum -> target_type string
+        """
+        # Create a copy to avoid mutating the input
+        transformed_config = config.copy()
+
+        # Convert target_type from ActionTarget enum value to string
+        if "target_type" in transformed_config:
+            target_type_enum = transformed_config["target_type"]
+            transformed_config["target_type"] = self.action_target_to_string[target_type_enum]
+
+        return transformed_config
+
+
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
@@ -80,6 +143,10 @@ class ActionHandler:
         OTHER = "other"
 
     group: ClassVar[Group]
+
+    @staticmethod
+    def get_config_transformer() -> ConfigTransformer | None:
+        return None
 
     @staticmethod
     def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:

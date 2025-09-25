@@ -4,12 +4,18 @@ from sentry.notifications.notification_action.action_handler_registry.base impor
     IntegrationActionHandler,
 )
 from sentry.notifications.notification_action.action_handler_registry.common import (
+    ONCALL_ACTION_CONFIG_API_SCHEMA,
     ONCALL_ACTION_CONFIG_SCHEMA,
 )
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ConfigTransformer,
+    TargetTypeConfigTransformer,
+    WorkflowEventData,
+)
 
 
 @action_handler_registry.register(Action.Type.OPSGENIE)
@@ -18,6 +24,7 @@ class OpsgenieActionHandler(IntegrationActionHandler):
     provider_slug = IntegrationProviderSlug.OPSGENIE
 
     config_schema = ONCALL_ACTION_CONFIG_SCHEMA
+    api_schema = ONCALL_ACTION_CONFIG_API_SCHEMA
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -30,6 +37,10 @@ class OpsgenieActionHandler(IntegrationActionHandler):
             "additionalProperties": False,
         },
     }
+
+    @staticmethod
+    def get_config_transformer() -> ConfigTransformer | None:
+        return TargetTypeConfigTransformer(OpsgenieActionHandler.api_schema)
 
     @staticmethod
     def execute(

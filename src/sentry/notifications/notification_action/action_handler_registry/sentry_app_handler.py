@@ -2,7 +2,13 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ConfigTransformer,
+    TargetTypeConfigTransformer,
+    WorkflowEventData,
+    action_target_strings,
+)
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
@@ -29,6 +35,27 @@ class SentryAppActionHandler(ActionHandler):
         "required": ["target_type", "target_identifier", "sentry_app_identifier"],
         "additionalProperties": False,
     }
+
+    api_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a Sentry App Action",
+        "type": "object",
+        "properties": {
+            "target_identifier": {"type": ["string"]},
+            "target_display": {"type": ["string", "null"]},
+            "target_type": {
+                "type": ["string"],
+                "enum": action_target_strings([ActionTarget.SENTRY_APP]),
+            },
+            "sentry_app_identifier": {
+                "type": ["string"],
+                "enum": [*SentryAppIdentifier],
+            },
+        },
+        "required": ["target_type", "target_identifier", "sentry_app_identifier"],
+        "additionalProperties": False,
+    }
+
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -37,6 +64,10 @@ class SentryAppActionHandler(ActionHandler):
         },
         "additionalProperties": False,
     }
+
+    @staticmethod
+    def get_config_transformer() -> ConfigTransformer | None:
+        return TargetTypeConfigTransformer(SentryAppActionHandler.api_schema)
 
     @staticmethod
     def execute(
