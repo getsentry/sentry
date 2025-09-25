@@ -77,12 +77,14 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
 
     @classmethod
     def send(cls, *, target: NotificationTarget, renderable: SlackRenderable) -> None:
-        from sentry.integrations.slack.sdk_client import SlackSdkClient
+        from sentry.integrations.slack.integration import SlackIntegration
 
         if not isinstance(target, cls.target_class):
             raise NotificationProviderError(
                 f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
             )
 
-        client = SlackSdkClient(integration_id=target.integration_id)
-        client.chat_postMessage(channel=target.resource_id, blocks=renderable["blocks"])
+        installation = SlackIntegration(
+            model=target.integration, organization_id=target.organization_id
+        )
+        installation.send_notification(target=target, payload=renderable)

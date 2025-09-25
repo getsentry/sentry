@@ -8,6 +8,7 @@ from sentry.notifications.platform.slack.provider import SlackNotificationProvid
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
+    prepare_targets,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -89,13 +90,16 @@ class SlackNotificationProviderSendTest(TestCase):
         )
 
     def _create_target(self, resource_id: str = "C1234567890") -> IntegrationNotificationTarget:
-        return IntegrationNotificationTarget(
+        target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
             resource_id=resource_id,
             resource_type=NotificationTargetResourceType.CHANNEL,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
+        # Use prepare_targets to populate integration and organization_integration fields
+        prepare_targets([target])
+        return target
 
     def _create_renderable(self) -> SlackRenderable:
         """Create a sample SlackRenderable for testing"""
@@ -113,7 +117,7 @@ class SlackNotificationProviderSendTest(TestCase):
             ]
         )
 
-    @patch("sentry.notifications.platform.slack.provider.SlackSdkClient")
+    @patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_send_success(self, mock_slack_client: Mock) -> None:
         """Test successful message sending"""
         mock_client_instance = mock_slack_client.return_value
@@ -141,7 +145,7 @@ class SlackNotificationProviderSendTest(TestCase):
         with pytest.raises(NotificationProviderError, match="Target .* is not a valid dataclass"):
             SlackNotificationProvider.send(target=target, renderable=renderable)
 
-    @patch("sentry.notifications.platform.slack.provider.SlackSdkClient")
+    @patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_send_to_direct_message(self, mock_slack_client: Mock) -> None:
         """Test sending message to direct message (user)"""
         mock_client_instance = mock_slack_client.return_value
@@ -154,6 +158,8 @@ class SlackNotificationProviderSendTest(TestCase):
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
+        # Use prepare_targets to populate integration and organization_integration fields
+        prepare_targets([target])
         renderable = self._create_renderable()
 
         SlackNotificationProvider.send(target=target, renderable=renderable)
