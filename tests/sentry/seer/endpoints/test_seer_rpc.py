@@ -10,6 +10,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
@@ -18,9 +19,8 @@ from sentry.seer.endpoints.seer_rpc import (
     get_organization_seer_consent_by_org_name,
     get_sentry_organization_ids,
 )
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -286,7 +286,6 @@ class TestSeerRpcMethods(APITestCase):
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_github_enterprise_integration_config(self, mock_get_jwt) -> None:
         """Test when organization has github enterprise integration"""
@@ -354,7 +353,6 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_jwt.assert_called_once_with(github_id=1, github_private_key=private_key)
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_integration_id(self) -> None:
         # Test with invalid integration_id
         with self._caplog.at_level(logging.ERROR):
@@ -367,7 +365,6 @@ class TestSeerRpcMethods(APITestCase):
         assert "Integration -1 does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_organization_id(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
@@ -399,7 +396,6 @@ class TestSeerRpcMethods(APITestCase):
         assert f"Integration {integration.id} does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_disabled_integration(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
@@ -420,9 +416,10 @@ class TestSeerRpcMethods(APITestCase):
             },
         )
 
-        # Test with disabled integration
-        integration.status = ObjectStatus.DISABLED
-        integration.save()
+        with assume_test_silo_mode_of(Integration):
+            # Test with disabled integration
+            integration.status = ObjectStatus.DISABLED
+            integration.save()
 
         with self._caplog.at_level(logging.ERROR):
             result = get_github_enterprise_integration_config(
@@ -435,7 +432,6 @@ class TestSeerRpcMethods(APITestCase):
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
-    @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_github_enterprise_integration_config_invalid_encrypt_key(
         self, mock_get_jwt
