@@ -100,7 +100,7 @@ def schedule_webhook_delivery() -> None:
 
     Prioritizes webhooks based on provider importance.
 
-    Triggered frequently by task-scheduler.
+    Triggered frequently by celery beat.
     """
     # Se use the replica for any read queries to webhook payload
     WebhookPayloadReplica = WebhookPayload.objects.using_replica()

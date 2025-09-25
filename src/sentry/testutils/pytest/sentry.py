@@ -175,7 +175,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"
-    settings.TASKWORKER_ALWAYS_EAGER = False
+    settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
     settings.SENTRY_METRICS_DISALLOW_BAD_TAGS = True

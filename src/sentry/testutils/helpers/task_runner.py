@@ -5,6 +5,8 @@ from collections.abc import Generator
 from typing import Any, ContextManager, Self
 from unittest import mock
 
+from celery import current_app
+from celery.app.task import Task
 from django.conf import settings
 
 from sentry.taskworker.task import Task as TaskworkerTask
@@ -14,8 +16,15 @@ __all__ = ("BurstTaskRunner", "TaskRunner")
 
 @contextlib.contextmanager
 def TaskRunner() -> Generator[None]:
+    prev = settings.CELERY_ALWAYS_EAGER
+    settings.CELERY_ALWAYS_EAGER = True
+    current_app.conf.CELERY_ALWAYS_EAGER = True
     with mock.patch.object(settings, "TASKWORKER_ALWAYS_EAGER", True):
-        yield
+        try:
+            yield
+        finally:
+            current_app.conf.CELERY_ALWAYS_EAGER = prev
+            settings.CELERY_ALWAYS_EAGER = prev
 
 
 class BurstTaskRunnerRetryError(Exception):
@@ -29,12 +38,34 @@ class BurstTaskRunnerRetryError(Exception):
 class _BurstState:
     def __init__(self) -> None:
         self._active = False
+        self._orig_apply_async = Task.apply_async
         self._orig_signal_send = TaskworkerTask._signal_send
-        self.queue: list[tuple[TaskworkerTask[Any, Any], tuple[Any, ...], dict[str, Any]]] = []
+        self.queue: list[tuple[Task, tuple[Any, ...], dict[str, Any]]] = []
+
+    def _apply_async(
+        self,
+        task: Task,
+        args: tuple[Any, ...] = (),
+        kwargs: dict[str, Any] | None = None,
+        countdown: float | None = None,
+        queue: str | None = None,
+        **options: Any,
+    ) -> None:
+        if not self._active:
+            raise AssertionError("task enqueued to burst runner while burst was not active!")
+
+        try:
+            _start_time = options.pop("__start_time", None)
+            if _start_time and kwargs:
+                kwargs["__start_time"] = _start_time
+        except Exception:
+            pass
+
+        self.queue.append((task, args, {} if kwargs is None else kwargs))
 
     def _signal_send(
         self,
-        task: TaskworkerTask[Any, Any],
+        task: Task,
         args: tuple[Any, ...] = (),
         kwargs: dict[str, Any] | None = None,
     ) -> None:
@@ -47,7 +78,10 @@ class _BurstState:
         if self._active:
             raise AssertionError("nested BurstTaskRunner!")
 
-        with mock.patch.object(TaskworkerTask, "_signal_send", self._signal_send):
+        with (
+            mock.patch.object(Task, "apply_async", self._apply_async),
+            mock.patch.object(TaskworkerTask, "_signal_send", self._signal_send),
+        ):
             self._active = True
             try:
                 yield self
@@ -59,7 +93,10 @@ class _BurstState:
         if not self._active:
             raise AssertionError("cannot disable burst when not active")
 
-        with mock.patch.object(TaskworkerTask, "_signal_send", self._orig_signal_send):
+        with (
+            mock.patch.object(Task, "apply_async", self._orig_apply_async),
+            mock.patch.object(TaskworkerTask, "_signal_send", self._orig_signal_send),
+        ):
             self._active = False
             try:
                 yield

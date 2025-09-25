@@ -1,5 +1,6 @@
 import logging
 
+from celery import Task
 from django.db.models import Subquery
 from django.utils import timezone
 from sentry_sdk import capture_exception
@@ -21,7 +22,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import relocation_control_tasks, relocation_tasks
-from sentry.taskworker.task import Task
 from sentry.types.region import get_local_region
 
 logger = logging.getLogger("sentry.relocation")

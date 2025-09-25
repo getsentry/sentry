@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple, NotRequired, TypedDict
 
 import sentry_sdk
+from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
@@ -49,7 +50,6 @@ from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
-from sentry.taskworker.task import Task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
