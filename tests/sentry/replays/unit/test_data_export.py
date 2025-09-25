@@ -16,6 +16,7 @@ from google.type import date_pb2
 
 from sentry.replays.data_export import (
     create_transfer_job,
+    export_replay_blob_data,
     generate_ninety_days_pairs,
     retry_transfer_job_run,
 )
@@ -186,3 +187,14 @@ def test_generate_ninety_days_pairs():
 
     assert expected_start == datetime(year=2025, month=4, day=1)
     assert expected_end == datetime(year=2025, month=4, day=2)
+
+
+def test_export_replay_blob_data():
+    jobs = []
+    export_replay_blob_data(1, "1", "test", timedelta(days=1), lambda a: jobs.append(a))
+
+    # Assert a job is created for each retention-period.
+    assert len(jobs) == 3
+    assert jobs[0].transfer_job.transfer_spec.gcs_data_source.path == "30/1"
+    assert jobs[1].transfer_job.transfer_spec.gcs_data_source.path == "60/1"
+    assert jobs[2].transfer_job.transfer_spec.gcs_data_source.path == "90/1"
