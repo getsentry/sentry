@@ -1,5 +1,5 @@
 // Add any new providers here e.g., 'github' | 'bitbucket' | 'gitlab'
-type PreventAIProvider = 'github';
+export type PreventAIProvider = 'github';
 
 interface PreventAIRepo {
   fullName: string;
@@ -15,7 +15,7 @@ export interface PreventAIOrg {
   repos: PreventAIRepo[];
 }
 
-type Trigger = 'on_command_phrase' | 'on_ready_for_review' | 'on_new_commit';
+type Trigger = 'on_command_phrase' | 'on_ready_for_review';
 
 export interface PreventAIConfig {
   features: {
