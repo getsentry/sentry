@@ -12,12 +12,8 @@ export default function useProjectReleaseVersionIsSemver({
 
   const {data, isError, isPending} = useApiQuery<Release>(
     [`/organizations/${organization.slug}/releases/${version}/`],
-    {staleTime: 0}
+    {staleTime: 0, enabled: Boolean(version)}
   );
-
-  if (!version) {
-    return false;
-  }
 
   if (isPending || isError) {
     return false;
