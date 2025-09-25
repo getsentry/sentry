@@ -8,6 +8,63 @@ from sentry.workflow_engine.endpoints.validators.utils import validate_json_sche
 from sentry.workflow_engine.types import ConfigTransformer
 
 
+def _tname(t: type | tuple[type, ...]) -> str:
+    if isinstance(t, type):
+        return t.__name__
+    return " | ".join(t.__name__ for t in t)
+
+
+class Result:
+    """
+    A dictpath result. May not be successful.
+    """
+
+    def __init__(
+        self, path: list[str], v: object | None = None, exc: ValueError | None = None
+    ) -> None:
+        self._path = path
+        self._v = v
+        self._exc = exc
+
+    def expect(self, t: type | tuple[type, ...]) -> Result:
+        if self.failed():
+            return self
+        if not isinstance(self._v, t):
+            return Result(
+                self._path,
+                exc=ValueError(
+                    f"{'.'.join(self._path)}: Expected {_tname(t)}, got {_tname(type(self._v))}"
+                ),
+            )
+        return self
+
+    def failed(self) -> bool:
+        return self._exc is not None
+
+    def get(self, fallback: object | None = None) -> object | None:
+        if self._exc:
+            if fallback is not None:
+                return fallback
+            raise self._exc
+        return self._v
+
+
+def dictpath(data: object, *path: str) -> Result:
+    """
+    Traverse an object based on a path and return a result.
+    """
+    current = data
+    history = []
+    for pathelt in path:
+        history.append(pathelt)
+        if not isinstance(current, dict):
+            return Result(history, exc=ValueError(f"{'.'.join(history)} was not a dict!"))
+        if pathelt not in current:
+            return Result(history, exc=ValueError(f"{'.'.join(history)} not found!"))
+        current = current[pathelt]
+    return Result(history, v=current)
+
+
 def action_target_strings(lst: list[ActionTarget]) -> list[str]:
     """Convert a list of ActionTarget enums to their string representations."""
     action_target_to_string = dict(ActionTarget.as_choices())
@@ -27,23 +84,11 @@ def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) ->
     Raises:
         ValueError: If target_type field is malformed or contains invalid enum values
     """
-    properties = config_schema.get("properties")
-    if properties is None:
-        raise ValueError("config_schema must have 'properties' dict")
+    target_type_spec = dictpath(config_schema, "properties", "target_type").expect(dict).get()
+    assert isinstance(target_type_spec, dict)
 
-    if not isinstance(properties, dict):
-        raise ValueError("config_schema must have 'properties' dict")
-
-    # Look for target_type field
-    target_type_spec = properties.get("target_type")
-    if target_type_spec is None:
-        raise ValueError("target_type field not found in config_schema")
-
-    # Ensure target_type is an integer type
-    if not isinstance(target_type_spec, dict):
-        raise ValueError("target_type field specification must be a dict")
-
-    type_spec = target_type_spec.get("type")
+    # Extract type specification
+    type_spec = dictpath(target_type_spec, "type").get()
     if type_spec is None:
         raise ValueError("target_type field must have a 'type' specification")
 
@@ -55,11 +100,9 @@ def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) ->
         raise ValueError("target_type field must be of type 'integer'")
 
     # Extract enum values
-    enum_values = target_type_spec.get("enum")
-    if enum_values is None:
-        raise ValueError("target_type field must have 'enum' values specified")
-
-    if not isinstance(enum_values, list) or len(enum_values) == 0:
+    enum_values = dictpath(target_type_spec, "enum").expect(list).get()
+    assert isinstance(enum_values, list)  # For mypy, already validated by expect(list)
+    if len(enum_values) == 0:
         raise ValueError("target_type enum must be a non-empty list")
 
     # Convert integer enum values to ActionTarget instances for validation
@@ -85,6 +128,7 @@ def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) ->
 
     # Replace target_type specification with string version
     api_target_type_spec = copy.deepcopy(target_type_spec)
+    assert isinstance(api_target_type_spec, dict)  # For mypy
 
     # Convert type from integer to string
     if isinstance(type_spec, list):
@@ -114,13 +158,8 @@ class TargetTypeConfigTransformer(ConfigTransformer):
         """
         Analyze a config schema and generate a TargetTypeConfigTransformer if target_type field is found.
         """
-        properties = config_schema.get("properties", {})
-        if not isinstance(properties, dict):
-            return None
-
-        # Look for target_type field
-        target_type_spec = properties.get("target_type")
-        if target_type_spec is None:
+        target_type_result = dictpath(config_schema, "properties", "target_type")
+        if target_type_result.failed():
             return None
 
         # Use the extracted transformation function

@@ -96,7 +96,7 @@ class TestTransformConfigSchemaTargetTypeToApi(TestCase):
         """Test schema without properties should raise ValueError."""
         config_schema = {"type": "object"}
 
-        with pytest.raises(ValueError, match="config_schema must have 'properties' dict"):
+        with pytest.raises(ValueError):
             transform_config_schema_target_type_to_api(config_schema)
 
     def test_no_target_type(self) -> None:
@@ -106,7 +106,7 @@ class TestTransformConfigSchemaTargetTypeToApi(TestCase):
             "properties": {"other_field": {"type": "string"}},
         }
 
-        with pytest.raises(ValueError, match="target_type field not found"):
+        with pytest.raises(ValueError):
             transform_config_schema_target_type_to_api(config_schema)
 
     def test_invalid_target_type_spec(self) -> None:
@@ -118,7 +118,7 @@ class TestTransformConfigSchemaTargetTypeToApi(TestCase):
             },
         }
 
-        with pytest.raises(ValueError, match="target_type field specification must be a dict"):
+        with pytest.raises(ValueError):
             transform_config_schema_target_type_to_api(config_schema)
 
     def test_missing_type(self) -> None:
@@ -133,7 +133,7 @@ class TestTransformConfigSchemaTargetTypeToApi(TestCase):
             },
         }
 
-        with pytest.raises(ValueError, match="target_type field must have a 'type' specification"):
+        with pytest.raises(ValueError):
             transform_config_schema_target_type_to_api(config_schema)
 
     def test_wrong_type(self) -> None:
@@ -178,7 +178,7 @@ class TestTransformConfigSchemaTargetTypeToApi(TestCase):
             },
         }
 
-        with pytest.raises(ValueError, match="target_type field must have 'enum' values specified"):
+        with pytest.raises(ValueError):
             transform_config_schema_target_type_to_api(config_schema)
 
     def test_empty_enum(self) -> None:
