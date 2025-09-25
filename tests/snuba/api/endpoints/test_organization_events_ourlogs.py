@@ -7,8 +7,6 @@ from sentry.constants import DataCategory
 from sentry.search.eap import constants
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.helpers import parse_link_header
-
-# from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.cursors import Cursor
 from sentry.utils.outcomes import Outcome
