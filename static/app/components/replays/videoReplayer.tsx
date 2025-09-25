@@ -203,7 +203,7 @@ export class VideoReplayer {
     sourceEl.setAttribute('type', 'video/mp4');
     sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
     el.setAttribute('muted', '');
-    el.setAttribute('playinline', '');
+    el.setAttribute('playsinline', '');
     el.setAttribute('preload', 'auto');
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
