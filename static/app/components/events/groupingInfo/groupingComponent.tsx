@@ -33,11 +33,10 @@ function GroupingComponent({component, showNonContributing}: Props) {
         <CollapseButton
           folded={folded}
           className="collapse-button"
-          size="xs"
           priority="link"
           icon={<IconChevron direction={folded ? 'right' : 'down'} legacySize="10px" />}
           onClick={() => setFolded(!folded)}
-          aria-label={folded ? t('expand stacktrace') : t('collapse stacktrace')}
+          aria-label={folded ? t('expand') : t('collapse')}
         />
       )}
 
@@ -72,13 +71,10 @@ const CollapseButtonWrapper = styled('div')`
 const CollapseButton = styled(Button)<{folded: boolean}>`
   grid-column: 1;
   border: none;
-  opacity: ${p => (p.folded ? 1 : 0)};
+  opacity: ${p => (p.folded ? 1 : 0.25)};
   transition: opacity 0.2s ease;
   align-self: ${p => (p.folded ? 'center' : 'baseline')};
-
-  &:hover {
-    opacity: 1;
-  }
+  color: ${p => (p.folded ? p.theme.blue300 : p.theme.subText)};
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
