@@ -4,7 +4,6 @@ from typing import Any
 
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
-from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import EnrichedSpan, attribute_value, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
@@ -110,22 +109,6 @@ class TreeEnricher:
                     ret[key] = value
 
         return ret
-
-    def _sentry_tags(self, data: dict[str, Any]) -> dict[str, str]:
-        """Backfill sentry tags used in performance issue detection.
-
-        Once performance issue detection is only called from process_segments,
-        (not from event_manager), the performance issues code can be refactored to access
-        span attributes instead of sentry_tags.
-        """
-        sentry_tags = {}
-        for tag_key in PerformanceIssuesSentryTags.__mutable_keys__:
-            data_key = (
-                "sentry.normalized_description" if tag_key == "description" else f"sentry.{tag_key}"
-            )
-            if data_key in data:
-                sentry_tags[tag_key] = data[data_key]
-        return sentry_tags
 
     def _exclusive_time(self, span: SegmentSpan) -> float:
         """
