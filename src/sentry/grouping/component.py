@@ -17,7 +17,7 @@ from sentry.utils.env import in_test_environment
 KNOWN_MAJOR_COMPONENT_NAMES = {
     "app": "in-app",
     "exception": "exception",
-    "stacktrace": "stack-trace",
+    "stacktrace": "stacktrace",
     "threads": "thread",
     "hostname": "hostname",
     "violation": "violation",
