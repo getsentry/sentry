@@ -100,6 +100,10 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     selectedContentParam === 'treemap' || selectedContentParam === 'categories'
       ? selectedContentParam
       : 'treemap';
+
+  const handleContentChange = (value: 'treemap' | 'categories') => {
+    setSelectedContentParam(value === 'treemap' ? undefined : value);
+  };
   const [searchQuery, setSearchQuery] = useQueryParamState<string>({
     fieldName: 'search',
   });
@@ -235,13 +239,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     <Flex direction="column" gap="lg" minHeight="700px">
       <Flex align="center" gap="md">
         {categoriesEnabled && (
-          <SegmentedControl value={selectedContent} onChange={setSelectedContentParam}>
-            <SegmentedControl.Item key="treemap" value="treemap" icon={<IconGrid />} />
-            <SegmentedControl.Item
-              key="categories"
-              value="categories"
-              icon={<IconGraphCircle />}
-            />
+          <SegmentedControl value={selectedContent} onChange={handleContentChange}>
+            <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
+            <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
           </SegmentedControl>
         )}
         {selectedContent === 'treemap' && (
