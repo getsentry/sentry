@@ -51,7 +51,7 @@ export function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
           // Return default config if nothing stored
           return {
             features: {
-              vanilla_pr_review: {enabled: false},
+              vanilla: {enabled: false},
               test_generation: {enabled: false},
               bug_prediction: {
                 enabled: false,

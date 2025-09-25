@@ -94,4 +94,25 @@ describe('ManageReposPanel', () => {
     render(<ManageReposPanel {...defaultProps} />);
     expect(await screen.findByText(/Could not update settings/i)).toBeInTheDocument();
   });
+
+  it('calls refetch after enableFeature is called', async () => {
+    const mockRefetch = jest.fn();
+    mockPreventAIConfigReturn = getMockConfig({refetch: mockRefetch});
+    mockUpdatePreventAIFeatureReturn = {
+      enableFeature: jest.fn().mockResolvedValue({success: true}),
+      isLoading: false,
+      error: null,
+    };
+
+    render(<ManageReposPanel {...defaultProps} />);
+
+    const prReviewToggle = await screen.findByLabelText(/PR Review/i);
+    await userEvent.click(prReviewToggle);
+
+    expect(mockUpdatePreventAIFeatureReturn.enableFeature).toHaveBeenCalledWith({
+      feature: 'vanilla',
+      enabled: false, // Toggle from true to false
+    });
+    expect(mockRefetch).toHaveBeenCalled();
+  });
 });

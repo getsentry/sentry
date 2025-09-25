@@ -1,6 +1,6 @@
-import {useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
 
 type PreventAIConfigResult = {
@@ -58,15 +58,16 @@ export function usePreventAIConfig(
   orgName?: string,
   repoName?: string
 ): PreventAIConfigResult {
+  // Note: All below is dummy placeholder behavior until the api is hooked up
+
   const storageKey = useMemo(
     () => `prevent-ai-config-${orgName}-${repoName}`,
     [orgName, repoName]
   );
 
-  const [stored] = useLocalStorageState(storageKey, undefined);
-
-  const config = useMemo(() => {
+  const [config, setConfig] = useState<PreventAIConfig>(() => {
     try {
+      const stored = localStorageWrapper.getItem(storageKey);
       if (stored) {
         return mergeConfig(JSON.parse(stored));
       }
@@ -74,12 +75,30 @@ export function usePreventAIConfig(
       // ignore (we are using local storage for a dummy UI until the api is hooked up)
     }
     return DEFAULT_CONFIG;
-  }, [stored]);
+  });
+
+  const refetch = useCallback(() => {
+    try {
+      const latestStored = localStorageWrapper.getItem(storageKey);
+      if (latestStored) {
+        setConfig(mergeConfig(JSON.parse(latestStored)));
+      } else {
+        setConfig(DEFAULT_CONFIG);
+      }
+    } catch {
+      setConfig(DEFAULT_CONFIG);
+    }
+  }, [storageKey]);
+
+  // Re-fetch config when storage key changes (org/repo changes)
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   return {
     data: config,
     isLoading: false,
     isError: false,
-    refetch: () => {},
+    refetch,
   };
 }
