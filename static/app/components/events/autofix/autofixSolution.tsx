@@ -593,7 +593,7 @@ function AutofixSolutionDisplay({
             <InstructionsInput
               type="text"
               name="additional-instructions"
-              placeholder={t('Add more instructions...')}
+              placeholder={t('Add to the solution plan...')}
               value={instructions}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setInstructions(e.target.value)
@@ -741,6 +741,8 @@ const InstructionsInputWrapper = styled('form')`
   display: flex;
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
+  margin-left: ${p => p.theme.space['3xl']};
+  width: 250px;
 `;
 
 const InstructionsInput = styled(Input)`
@@ -772,8 +774,9 @@ const BottomFooter = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.lg};
   padding: ${p => p.theme.space.xl} 0 0 0;
+  justify-content: flex-end;
 `;
 
 const AddInstructionWrapper = styled('div')`
-  flex: 1;
+  flex: 0;
 `;

@@ -294,7 +294,7 @@ export function generateSourceCards(
           });
           requestAnimationFrame(() => {
             document
-              .getElementById(SectionKey.REQUEST)
+              .getElementById(SectionKey.BREADCRUMBS)
               ?.scrollIntoView({block: 'start', behavior: 'smooth'});
           });
         }

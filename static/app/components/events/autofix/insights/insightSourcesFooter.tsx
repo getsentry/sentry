@@ -53,7 +53,7 @@ export function InsightSourcesFooter({
   const sourceCards = generateSourceCards(deduplicatedSources, undefined, {
     location,
     navigate,
-  });
+  }).sort((a, b) => a.label.localeCompare(b.label));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,9 +114,7 @@ export function InsightSourcesFooter({
       <BottomDivider />
       <FooterContainer>
         <FooterContent>
-          {sourceCards.length > 0 && (
-            <SourcesContainer>{renderedSourceCards}</SourcesContainer>
-          )}
+          <SourcesContainer>{renderedSourceCards}</SourcesContainer>
           <FooterInputContainer>
             <FooterInputWrapper onSubmit={handleSubmit}>
               <FooterInput
@@ -185,7 +183,7 @@ const FooterContent = styled('div')`
 
 const FooterInputContainer = styled('div')`
   width: 50%;
-  max-width: 50%;
+  max-width: 250px;
   align-self: flex-end;
 `;
 

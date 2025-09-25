@@ -73,7 +73,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                   handleSubmit(e);
                 }
               }}
-              placeholder="(Optional) Share helpful context here..."
+              placeholder="Share helpful context here..."
               maxLength={4096}
               maxRows={10}
               size="sm"
@@ -161,8 +161,8 @@ const StyledArrow = styled(IconArrow)`
 
 const InputWrapper = styled('form')`
   display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.25)};
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
 `;
 
 const StyledInput = styled(TextArea)`

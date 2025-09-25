@@ -315,7 +315,7 @@ export function AutofixOutputStream({
                 onChange={e => setMessage(e.target.value)}
                 maxLength={4096}
                 placeholder={
-                  responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
+                  responseRequired ? 'Please answer to continue...' : 'Add context...'
                 }
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
