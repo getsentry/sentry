@@ -226,15 +226,6 @@ export function getOnboardingTasks({
       skippable: true,
       actionType: 'action',
       action: router => {
-        // Use `features?.` because getsentry has a different `Organization` type/payload
-        if (!organization.features?.includes('performance-onboarding-checklist')) {
-          window.open(
-            'https://docs.sentry.io/product/performance/getting-started/',
-            '_blank'
-          );
-          return;
-        }
-
         // TODO: add analytics here for this specific action.
 
         if (!projects) {

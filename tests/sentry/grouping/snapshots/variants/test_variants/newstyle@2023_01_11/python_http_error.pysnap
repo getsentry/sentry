@@ -1,12 +1,12 @@
 ---
-created: '2025-09-19T05:52:38.840352+00:00'
+created: '2025-09-24T20:27:08.732319+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "d59239f5aad3304d60beb1fde3369b78"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace*
@@ -45,7 +45,7 @@ app:
 default:
   hash: null
   contributing component: null
-  component:
+  root_component:
     default (ignored because app/system exception takes precedence)
       message (ignored because app/system exception takes precedence)
         "%s.process_error"
@@ -53,7 +53,7 @@ default:
 system:
   hash: "133db3f366b1327dab4e661f66dfb961"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*
