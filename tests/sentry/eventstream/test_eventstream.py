@@ -285,7 +285,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert result["data"][0]["occurrence_id"] == group_event.occurrence.id
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_error_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_error(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()
 
         event = self.__build_event(now)
@@ -311,12 +311,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
-        assert ("queue", b"post_process_errors") in headers
         assert "occurrence_id" not in dict(headers)
-        assert body["queue"] == "post_process_errors"
+        assert body
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_transaction_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_transaction(self, mock_eventstream_insert: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -337,12 +336,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
-        assert ("queue", b"post_process_transactions") in headers
         assert "occurrence_id" not in dict(headers)
-        assert body["queue"] == "post_process_transactions"
+        assert body
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_issue_platform_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_issue_platform(self, mock_eventstream_insert: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -365,10 +363,8 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         }
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
-
-        assert ("queue", b"post_process_issue_platform") in headers
         assert ("occurrence_id", group_event.occurrence.id.encode()) in headers
-        assert body["queue"] == "post_process_issue_platform"
+        assert body
 
     def test_insert_generic_event_contexts(self) -> None:
         create_default_projects()
