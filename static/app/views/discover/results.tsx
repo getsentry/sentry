@@ -44,7 +44,6 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
-  DatasetSource,
   DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -70,7 +69,6 @@ import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
 import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
-import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,

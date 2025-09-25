@@ -70,7 +70,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {
   DashboardFilters,
   DashboardPermissions,
@@ -85,7 +84,6 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-  hasDatasetSelector,
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
@@ -801,7 +799,6 @@ function WidgetViewerModal(props: Props) {
                   <WidgetHeader>
                     <WidgetTitleRow>
                       <h3>{widget.title}</h3>
-                      <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip

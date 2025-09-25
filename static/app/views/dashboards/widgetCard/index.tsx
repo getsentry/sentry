@@ -153,7 +153,6 @@ function WidgetCard(props: Props) {
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
-    onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
     disableFullscreen,
