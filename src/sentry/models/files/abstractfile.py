@@ -375,7 +375,9 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         return results
 
     @abc.abstractmethod
-    def _create_blobs_from_files_bulk(self, files_with_checksums: list[tuple[Any, str, int]], logger: Any) -> list[BlobType]: ...
+    def _create_blobs_from_files_bulk(
+        self, files_with_checksums: list[tuple[Any, str, int]], logger: Any
+    ) -> list[BlobType]: ...
 
     @sentry_sdk.tracing.trace
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum):

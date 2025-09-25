@@ -89,10 +89,7 @@ def get_and_optionally_update_blobs(
     # Update timestamps for blobs that need it (debounced)
     now = timezone.now()
     threshold = now - HALF_DAY
-    blobs_to_update = [
-        blob.id for blob in existing_blobs
-        if blob.timestamp <= threshold
-    ]
+    blobs_to_update = [blob.id for blob in existing_blobs if blob.timestamp <= threshold]
 
     if blobs_to_update:
         file_blob_model.objects.filter(id__in=blobs_to_update).update(timestamp=now)

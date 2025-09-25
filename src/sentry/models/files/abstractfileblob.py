@@ -217,7 +217,9 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_files_bulk(cls, files_with_checksums: list[tuple[Any, str, int]], logger=nooplogger) -> list[Self]:
+    def from_files_bulk(
+        cls, files_with_checksums: list[tuple[Any, str, int]], logger=nooplogger
+    ) -> list[Self]:
         """
         Bulk version of from_file that processes multiple files efficiently.
         Takes a list of tuples: (fileobj, checksum, size)
