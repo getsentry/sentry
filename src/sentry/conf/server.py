@@ -872,7 +872,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
-    "sentry.tasks.update_user_reports",
+    "sentry.feedback.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.tempest.tasks",
     "sentry.profiles.task",
@@ -1258,7 +1258,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 30},
     },
     "update-user-reports": {
-        "task": "sentry.tasks.update_user_reports",
+        "task": "sentry.feedback.tasks.update_user_reports",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 300},
@@ -1601,7 +1601,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
-    "sentry.tasks.update_user_reports",
+    "sentry.feedback.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
@@ -1672,7 +1672,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "update-user-reports": {
-        "task": "issues:sentry.tasks.update_user_reports",
+        "task": "issues:sentry.feedback.tasks.update_user_reports",
         "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-auto-resolution": {

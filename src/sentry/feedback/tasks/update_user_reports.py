@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.update_user_reports",
+    name="sentry.feedback.tasks.update_user_reports",
     queue="update",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
@@ -37,7 +37,6 @@ def update_user_reports(
 ) -> None:
     """
     Scheduled task to update user report -> event links that were missed during ingestion.
-    See TASKWORKER_REGION_SCHEDULES setting for schedule.
     """
 
     now = timezone.now()
