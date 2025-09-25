@@ -102,9 +102,9 @@ class TestWorkflowEngineSerializer(TestCase):
             "owner": self.detector.owner_user_id,
             "dateModified": self.detector.date_updated,
             "dateCreated": self.detector.date_added,
-            "createdBy": {},
+            "createdBy": None,
             "description": self.detector.description or "",
-            "detectionType": self.detector.type,
+            "detectionType": self.detector.config.get("detectionType"),
         }
 
     def add_warning_trigger(self) -> None:

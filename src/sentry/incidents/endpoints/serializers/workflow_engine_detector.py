@@ -152,7 +152,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             if detector.created_by_id:
                 rpc_user = user_by_user_id.get(detector.created_by_id)
             if not rpc_user:
-                result[detector]["created_by"] = {}
+                result[detector]["created_by"] = None
             else:
                 created_by = dict(
                     id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
@@ -332,7 +332,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_detector_id),
             "name": obj.name,
-            "organizationId": obj.project.organization_id,
+            "organizationId": str(obj.project.organization_id),
             "status": (
                 AlertRuleStatus.PENDING.value
                 if obj.enabled is True
