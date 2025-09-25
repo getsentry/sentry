@@ -605,6 +605,13 @@ function TotalSummary({
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
+            title={
+              buttonDisabled
+                ? t(
+                    'Please provide your billing information, including your business address and payment method'
+                  )
+                : null
+            }
             icon={<IconLock locked />}
           >
             {isSubmitting ? t('Checking out...') : buttonText}
@@ -642,6 +649,9 @@ function Cart({
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
   const fetchPreview = useCallback(async () => {
+    if (!hasCompleteBillingInfo) {
+      return;
+    }
     await utils.fetchPreviewData(
       organization,
       api,
@@ -687,7 +697,13 @@ function Cart({
         resetPreviewState();
       }
     );
-  }, [api, formDataForPreview, organization, subscription.contractPeriodEnd]);
+  }, [
+    api,
+    formDataForPreview,
+    organization,
+    subscription.contractPeriodEnd,
+    hasCompleteBillingInfo,
+  ]);
 
   useEffect(() => {
     fetchPreview();
