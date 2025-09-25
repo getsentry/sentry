@@ -9,9 +9,11 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex, Grid, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -28,6 +30,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -194,7 +197,7 @@ class AMCheckout extends Component<Props, State> {
   state: State;
 
   componentDidMount() {
-    const {subscription, organization} = this.props;
+    const {subscription, organization, isNewCheckout} = this.props;
     /**
      * Preload Stripe so it's ready when the subscription + cc form becomes
      * available. `loadStripe` ensures Stripe is not loaded multiple times
@@ -208,8 +211,13 @@ class AMCheckout extends Component<Props, State> {
     }
 
     if (organization) {
-      trackGetsentryAnalytics('am_checkout.viewed', {organization, subscription});
+      trackGetsentryAnalytics('am_checkout.viewed', {
+        organization,
+        subscription,
+        isNewCheckout: !!isNewCheckout,
+      });
     }
+    Sentry.getReplay()?.start();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -223,6 +231,10 @@ class AMCheckout extends Component<Props, State> {
     } else {
       this.handleRedirect();
     }
+  }
+
+  componentWillUnmount() {
+    Sentry.getReplay()?.stop();
   }
 
   readonly initialStep: number;
@@ -614,7 +626,7 @@ class AMCheckout extends Component<Props, State> {
   };
 
   handleUpdate = (updatedData: any) => {
-    const {organization, subscription, checkoutTier} = this.props;
+    const {organization, subscription, checkoutTier, isNewCheckout} = this.props;
     const {formData, formDataForPreview} = this.state;
 
     const data = {...formData, ...updatedData};
@@ -636,18 +648,20 @@ class AMCheckout extends Component<Props, State> {
       plan: plan.id,
     };
 
-    if (this.state.currentStep === 1) {
-      trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
-    } else if (
-      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
-      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
-    ) {
-      trackGetsentryAnalytics('checkout.ondemand_changed', {
-        ...analyticsParams,
-        cents: validData.onDemandMaxSpend || 0,
-      });
-    } else if (this.state.currentStep === 4) {
-      trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
+    if (!isNewCheckout) {
+      if (this.state.currentStep === 1) {
+        trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
+      } else if (
+        (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
+        (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
+      ) {
+        trackGetsentryAnalytics('checkout.ondemand_changed', {
+          ...analyticsParams,
+          cents: validData.onDemandMaxSpend || 0,
+        });
+      } else if (this.state.currentStep === 4) {
+        trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
+      }
     }
 
     if (!isEqual(validData.reserved, data.reserved)) {
@@ -663,16 +677,18 @@ class AMCheckout extends Component<Props, State> {
    * Complete step and all previous steps
    */
   handleCompleteStep = (stepNumber: number) => {
-    const {organization, subscription} = this.props;
+    const {organization, subscription, isNewCheckout} = this.props;
     const previousSteps = Array.from({length: stepNumber}, (_, idx) => idx + 1);
 
-    trackGetsentryAnalytics('checkout.click_continue', {
-      organization,
-      subscription,
-      step_number: stepNumber,
-      plan: this.activePlan.id,
-      checkoutType: CheckoutType.STANDARD,
-    });
+    if (!isNewCheckout) {
+      trackGetsentryAnalytics('checkout.click_continue', {
+        organization,
+        subscription,
+        step_number: stepNumber,
+        plan: this.activePlan.id,
+        checkoutType: CheckoutType.STANDARD,
+      });
+    }
 
     this.setState(state => ({
       currentStep: state.currentStep + 1,
@@ -926,16 +942,14 @@ class AMCheckout extends Component<Props, State> {
                   help: (
                     <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
                   ),
-                  contact: (
-                    <ZendeskLink
-                      subject="Billing Question"
-                      source="checkout"
-                      Component={({href, onClick}) => (
-                        <LinkButton href={href ?? ''} onClick={onClick}>
-                          {t('ask Support')}
-                        </LinkButton>
-                      )}
-                    />
+                  contact: hasZendesk() ? (
+                    <ZendeskButton borderless onClick={activateZendesk}>
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </ZendeskButton>
+                  ) : (
+                    <ZendeskLink subject="Billing Question" source="checkout">
+                      {t('ask Support')}
+                    </ZendeskLink>
                   ),
                 })}
               </TextOverflow>
@@ -1104,6 +1118,11 @@ const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
         border-top: 2px dashed ${p.theme.border};
       }
     `}
+`;
+
+const ZendeskButton = styled(Button)`
+  padding: 0;
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));
