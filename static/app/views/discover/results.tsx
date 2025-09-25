@@ -654,44 +654,6 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
-  renderForcedDatasetBanner() {
-    const {organization, savedQuery} = this.props;
-    if (
-      hasDatasetSelector(organization) &&
-      this.state.showForcedDatasetAlert &&
-      (this.state.splitDecision || savedQuery?.datasetSource === DatasetSource.FORCED)
-    ) {
-      const splitDecision = this.state.splitDecision ?? savedQuery?.queryDataset;
-      if (!splitDecision) {
-        return null;
-      }
-      return (
-        <Alert.Container>
-          <Alert
-            type="warning"
-            trailingItems={
-              <StyledCloseButton
-                icon={<IconClose size="sm" />}
-                aria-label={t('Close')}
-                onClick={() => {
-                  this.setState({showForcedDatasetAlert: false});
-                }}
-                size="zero"
-                borderless
-              />
-            }
-          >
-            {tct(
-              "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-              {splitDecision: DATASET_LABEL_MAP[splitDecision]}
-            )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
-    return null;
-  }
-
   renderTransactionsDatasetDeprecationBanner() {
     const {savedQueryDataset} = this.state;
     const {location, organization} = this.props;
@@ -846,7 +808,6 @@ export class Results extends Component<Props, State> {
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 {this.renderTips()}
-                {this.renderForcedDatasetBanner()}
                 {this.renderQueryIncompatibleWithDatasetBanner()}
                 {this.renderTransactionsDatasetDeprecationBanner()}
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}

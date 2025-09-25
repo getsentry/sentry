@@ -922,23 +922,12 @@ function OpenButton({
       break;
   }
 
-  const buttonDisabled =
-    hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
-
   return (
-    <Tooltip
-      title={
-        disabledTooltip ??
-        t(
-          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-        )
-      }
-      disabled={defined(disabled) ? !disabled : !buttonDisabled}
-    >
+    <Tooltip title={disabledTooltip} disabled={defined(disabled) && !disabled}>
       <LinkButton
         to={path}
         priority="primary"
-        disabled={disabled || buttonDisabled}
+        disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,

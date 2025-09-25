@@ -95,11 +95,7 @@ export function getMenuOptions(
           : widget.queries.length === 1
             ? discoverPath
             : undefined,
-        tooltip: isUsingPerformanceScore(widget)
-          ? performanceScoreTooltip
-          : t(
-              'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-            ),
+        tooltip: isUsingPerformanceScore(widget) ? performanceScoreTooltip : null,
         tooltipOptions: {disabled: !optionDisabled},
         disabled: optionDisabled,
         showDetailsInOverlay: true,

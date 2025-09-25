@@ -808,36 +808,4 @@ describe('Dashboards > WidgetCard', () => {
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
   });
-
-  it('displays the discover split warning icon when the dataset source is forced', async () => {
-    const testWidget = {
-      ...WidgetFixture(),
-      datasetSource: DatasetSource.FORCED,
-      widgetType: WidgetType.ERRORS,
-    };
-
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={testWidget}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        isPreview
-        widgetLegendState={widgetLegendState}
-      />
-    );
-
-    await userEvent.hover(screen.getByLabelText('Widget warnings'));
-
-    expect(
-      await screen.findByText(/We're splitting our datasets up/)
-    ).toBeInTheDocument();
-  });
 });
