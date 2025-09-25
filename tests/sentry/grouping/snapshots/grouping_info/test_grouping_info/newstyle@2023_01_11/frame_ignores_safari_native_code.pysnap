@@ -15,7 +15,7 @@ source: tests/sentry/grouping/test_grouping_info.py
           "contributes": false,
           "hint": "ignored because it contains no in-app frames",
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": false,
@@ -90,7 +90,7 @@ source: tests/sentry/grouping/test_grouping_info.py
           "contributes": true,
           "hint": null,
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": true,
@@ -149,7 +149,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "stack-trace",
+    "description": "stacktrace",
     "hash": "30eb5001914d29dd8461898b5b8094fe",
     "key": "system",
     "type": "component"

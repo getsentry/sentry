@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -514,7 +514,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app thread stack-trace",
+    "description": "in-app thread stacktrace",
     "hash": "7c8a196d16b94be382add324be2605ee",
     "key": "app",
     "type": "component"
@@ -579,7 +579,7 @@ source: tests/sentry/grouping/test_grouping_info.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -1072,7 +1072,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "thread stack-trace",
+    "description": "thread stacktrace",
     "hash": "cd7f51d716fd57adc1a5ce1c112e538f",
     "key": "system",
     "type": "component"
