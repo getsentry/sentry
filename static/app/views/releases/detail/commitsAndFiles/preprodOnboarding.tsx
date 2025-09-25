@@ -83,7 +83,7 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
     <MethodContent>
       {!isAndroid && (
         <Alert type="info" showIcon>
-          {t('Gradle Plugin is for Android only.')}
+          {t('Gradle Plugin is for Android applications only')}
         </Alert>
       )}
       <div>
