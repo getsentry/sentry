@@ -133,7 +133,7 @@ function PlanFeatures({
   // without free plan being surfaced in the UI
   // (will be removed when free is surfaced)
   const planOptionsWithFree =
-    planOptions.length >= 3
+    planOptions.length >= FEATURES.length
       ? planOptions
       : [
           {
