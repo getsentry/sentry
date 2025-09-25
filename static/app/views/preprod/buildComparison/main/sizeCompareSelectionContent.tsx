@@ -9,13 +9,16 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconCode, IconCommit, IconDownload, IconSearch} from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -51,11 +54,18 @@ export function SizeCompareSelectionContent({
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const {cursor} = useLocationQuery({
+    fields: {
+      cursor: decodeScalar,
+    },
+  });
+
   const queryParams: Record<string, any> = {
     per_page: 25,
     state: BuildDetailsState.PROCESSED,
     app_id: headBuildDetails.app_info?.app_id,
     build_configuration: headBuildDetails.app_info?.build_configuration,
+    cursor,
     ...(searchQuery && {query: searchQuery}),
   };
 
@@ -70,6 +80,8 @@ export function SizeCompareSelectionContent({
         enabled: !!projectId,
       }
     );
+
+  const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<
     void,
@@ -145,6 +157,8 @@ export function SizeCompareSelectionContent({
               />
             );
           })}
+
+          <Pagination pageLinks={pageLinks} />
         </Stack>
       )}
     </Stack>
