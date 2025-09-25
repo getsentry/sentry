@@ -893,6 +893,8 @@ def get_github_enterprise_integration_config(
         organization_id=organization_id,
     )
 
+    assert integration is not None, "Integration should have existed given previous checks"
+
     access_token = integration.metadata["access_token"]
     permissions = integration.metadata["permissions"]
 
