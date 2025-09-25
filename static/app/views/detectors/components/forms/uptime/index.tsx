@@ -19,8 +19,8 @@ import {UptimeDetectorFormRespondSection} from 'sentry/views/detectors/component
 function UptimeDetectorForm() {
   return (
     <FormStack>
-      <UptimeDetectorFormDetectSection />
       <UptimeRegionWarning />
+      <UptimeDetectorFormDetectSection />
       <UptimeDetectorFormRespondSection />
       <AssignSection />
       <AutomateSection />
