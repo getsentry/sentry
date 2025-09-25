@@ -286,17 +286,17 @@ export function PreprodOnboarding({
                   {projectPlatform && <PlatformIcon platform={projectPlatform} />}
                   Uploading Builds
                 </SectionTitle>
-                <TabsContainer>
-                  {availableMethods.map(method => (
-                    <Tab
-                      key={method.value}
-                      active={selectedMethod === method.value}
-                      onClick={() => setSelectedMethod(method.value)}
-                    >
-                      {method.label}
-                    </Tab>
-                  ))}
-                </TabsContainer>
+                <TabsWrapper>
+                  <Tabs value={selectedMethod} onChange={setSelectedMethod}>
+                    <TabList>
+                      {availableMethods.map(method => (
+                        <TabList.Item key={method.value} textValue={method.label}>
+                          {method.label}
+                        </TabList.Item>
+                      ))}
+                    </TabList>
+                  </Tabs>
+                </TabsWrapper>
                 {renderMethodContent()}
               </Section>
 
@@ -443,28 +443,9 @@ const MethodContent = styled('div')`
   gap: ${p => p.theme.space['2xl']};
 `;
 
-const TabsContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  margin-bottom: ${p => p.theme.space.xl};
+const TabsWrapper = styled('div')`
+  margin-bottom: ${p => p.theme.space['2xl']};
   border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const Tab = styled('button')<{active: boolean}>`
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  background: none;
-  border: none;
-  border-bottom: 2px solid ${p => (p.active ? p.theme.active : 'transparent')};
-  color: ${p => (p.active ? p.theme.textColor : p.theme.subText)};
-  cursor: pointer;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => (p.active ? 600 : 400)};
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: ${p => p.theme.textColor};
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
 `;
 
 const StepDescription = styled('p')`
