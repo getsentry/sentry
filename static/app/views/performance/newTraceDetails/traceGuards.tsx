@@ -191,18 +191,11 @@ export function isTransactionNodeEquivalent(
   return isTransactionNode(node) || isEAPTransaction(node.value);
 }
 
-export function isServerRequestHandlerTransactionNode(node: BaseNode): boolean {
-  return (
-    (isTransactionNode(node) && node.value['transaction.op'] === 'http.server') ||
-    (isEAPTransactionNode(node) && node.value.op === 'http.server')
-  );
-}
-
-export function isBrowserRequestSpan(value: TraceTree.Span | TraceTree.EAPSpan): boolean {
+export function isBrowserRequestNode(node: BaseNode): boolean {
   return (
     // Adjust for SDK changes in https://github.com/getsentry/sentry-javascript/pull/13527
-    value.op === 'browser.request' ||
-    (value.op === 'browser' && value.description === 'request')
+    node.op === 'browser.request' ||
+    (node.op === 'browser' && node.description === 'request')
   );
 }
 

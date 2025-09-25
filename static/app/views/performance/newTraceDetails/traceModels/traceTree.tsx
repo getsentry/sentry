@@ -15,15 +15,13 @@ import type {
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
-  isBrowserRequestSpan,
+  isBrowserRequestNode,
   isEAPError,
   isEAPSpan,
-  isEAPSpanNode,
   isJavascriptSDKEvent,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isRootEvent,
-  isServerRequestHandlerTransactionNode,
   isSiblingAutogroupedNode,
   isSpanNode,
   isTraceError,
@@ -274,7 +272,6 @@ export declare namespace TraceTree {
     op: string;
     span_id: string;
     description?: string;
-    name?: string;
   }
 
   interface SiblingAutogroup extends BaseAutogroup {
@@ -452,6 +449,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
           organization: options.organization,
           replayTraceSlug: options.replayTraceSlug,
         });
+
+        tree.eap_spans_count++;
       } else if (isUptimeCheck(value)) {
         node = new UptimeCheckNode(parent, value, {
           organization: options.organization,
@@ -479,10 +478,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (node.canFetchChildren || !node.expanded) {
         tree.collapsed_nodes++;
-      }
-
-      if (isEAPSpanNode(node)) {
-        tree.eap_spans_count++;
       }
 
       if (node.value && 'children' in node.value) {
@@ -685,9 +680,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.errors.add(error);
         }
 
-        if (isBrowserRequestSpan(c.value)) {
-          const serverRequestHandler = c.parent?.children.find(n =>
-            isServerRequestHandlerTransactionNode(n)
+        if (isBrowserRequestNode(c)) {
+          const serverRequestHandler = c.parent?.children.find(
+            n => n.op === 'http.server'
           );
 
           if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
@@ -920,6 +915,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         head,
         tail
       );
+
       autogroupCount++;
 
       if (!node.parent) {
@@ -1017,6 +1013,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         if (
           next &&
           next.canAutogroup &&
+          current.canAutogroup &&
           next.children.length === 0 &&
           current.children.length === 0 &&
           // skip `op: default` spans as `default` is added to op-less spans

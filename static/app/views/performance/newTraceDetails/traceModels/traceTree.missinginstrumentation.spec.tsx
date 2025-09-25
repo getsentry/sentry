@@ -181,9 +181,7 @@ describe('missing instrumentation', () => {
     TraceTree.DetectMissingInstrumentation(tree.root);
 
     // Assert that missing instrumentation nodes exist
-    expect(
-      TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))
-    ).not.toBeNull();
+    expect(tree.root.findChild(c => isMissingInstrumentationNode(c))).not.toBeNull();
 
     // Remove it and assert that the tree is back to the original state
     TraceTree.RemoveMissingInstrumentationNodes(tree.root);
@@ -202,7 +200,7 @@ describe('missing instrumentation', () => {
 
     TraceTree.DetectMissingInstrumentation(tree.root);
 
-    expect(TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))).toBeNull();
+    expect(tree.root.findChild(c => isMissingInstrumentationNode(c))).toBeNull();
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -255,9 +253,7 @@ describe('missing instrumentation', () => {
       TraceTree.DetectMissingInstrumentation(tree.root);
 
       // Assert that missing instrumentation nodes exist
-      expect(
-        TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))
-      ).not.toBeNull();
+      expect(tree.root.findChild(c => isMissingInstrumentationNode(c))).not.toBeNull();
 
       // Remove it and assert that the tree is back to the original state
       TraceTree.RemoveMissingInstrumentationNodes(tree.root);
