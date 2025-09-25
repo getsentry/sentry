@@ -246,10 +246,12 @@ class TestGetRateLimitValue(TestCase):
         """Override one or more of the default rate limits"""
 
         class TestEndpoint(Endpoint):
-            rate_limits = {
-                "GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)},
-                "POST": {RateLimitCategory.USER: RateLimit(limit=20, window=4)},
-            }
+            rate_limits = RateLimitConfig(
+                limit_overrides={
+                    "GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)},
+                    "POST": {RateLimitCategory.USER: RateLimit(limit=20, window=4)},
+                }
+            )
 
         view = TestEndpoint.as_view()
         rate_limit_config = get_rate_limit_config(view.view_class)
@@ -274,7 +276,9 @@ class RateLimitHeaderTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     enforce_rate_limit = True
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=2, window=100)}}
+    rate_limits = RateLimitConfig(
+        limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=2, window=100)}}
+    )
 
     def inject_call(self):
         return
@@ -288,7 +292,9 @@ class RaceConditionEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     enforce_rate_limit = False
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=40, window=100)}}
+    rate_limits = RateLimitConfig(
+        limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=40, window=100)}}
+    )
 
     def get(self, request):
         return Response({"ok": True})
