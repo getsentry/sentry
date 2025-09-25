@@ -64,7 +64,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "provider" in serializer.errors
 
     def test_provider_choice_validation(self) -> None:
-        # Valid providers with minimal valid configs
+        # Valid providers
         provider_configs = {
             "segment": {"write_key": "test_key"},
             "sqs": {
@@ -167,7 +167,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "queue_url must be a valid SQS URL format" in str(serializer.errors["config"])
 
     def test_sqs_config_validation_invalid_region(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
             "region": "invalid_region!",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
@@ -205,7 +205,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "secret_key must be a non-empty string" in error_msg
 
     def test_sqs_config_validation_fifo_queue_without_message_group_id(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue-fifo",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
@@ -223,7 +223,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "message_group_id is required for FIFO queues" in str(serializer.errors["config"])
 
     def test_sqs_config_validation_fifo_queue_with_message_group_id(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue-fifo",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
@@ -240,7 +240,7 @@ class DataForwarderSerializerTest(TestCase):
         assert serializer.is_valid()
 
     def test_sqs_config_validation_s3_bucket_valid(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
@@ -257,7 +257,7 @@ class DataForwarderSerializerTest(TestCase):
         assert serializer.is_valid()
 
     def test_sqs_config_validation_s3_bucket_invalid(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
@@ -276,7 +276,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "s3_bucket must be a valid S3 bucket name" in str(serializer.errors["config"])
 
     def test_segment_config_validation_valid(self) -> None:
-        config = {"write_key": "test_write_key_123"}
+        config: dict[str, str] = {"write_key": "test_write_key_123"}
         serializer = DataForwarderSerializer(
             data={
                 "organization_id": self.organization.id,
@@ -287,7 +287,7 @@ class DataForwarderSerializerTest(TestCase):
         assert serializer.is_valid()
 
     def test_segment_config_validation_missing_write_key(self) -> None:
-        config = {}
+        config: dict[str, str] = {}
         serializer = DataForwarderSerializer(
             data={
                 "organization_id": self.organization.id,
@@ -300,7 +300,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "Missing required Segment fields: write_key" in str(serializer.errors["config"])
 
     def test_segment_config_validation_invalid_write_key_format(self) -> None:
-        config = {"write_key": "invalid key with spaces!"}
+        config: dict[str, str] = {"write_key": "invalid key with spaces!"}
         serializer = DataForwarderSerializer(
             data={
                 "organization_id": self.organization.id,
@@ -331,7 +331,7 @@ class DataForwarderSerializerTest(TestCase):
         assert serializer.is_valid()
 
     def test_splunk_config_validation_missing_required_fields(self) -> None:
-        config = {"instance_URL": "https://splunk.example.com:8089"}
+        config: dict[str, str] = {"instance_URL": "https://splunk.example.com:8089"}
         serializer = DataForwarderSerializer(
             data={
                 "organization_id": self.organization.id,
@@ -344,7 +344,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "Missing required Splunk fields" in str(serializer.errors["config"])
 
     def test_splunk_config_validation_invalid_url(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "instance_URL": "invalid-url",
             "index": "main",
             "source": "sentry",
@@ -384,7 +384,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "source must be a non-empty string" in error_msg
 
     def test_splunk_config_validation_invalid_token_format(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "instance_URL": "https://splunk.example.com:8089",
             "index": "main",
             "source": "sentry",
