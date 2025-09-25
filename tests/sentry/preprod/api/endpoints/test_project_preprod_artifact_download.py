@@ -69,3 +69,18 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
 
         assert response.status_code == 404
         assert "file not available" in response.json()["error"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_head_preprod_artifact_success(self) -> None:
+        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.preprod_artifact.id}/"
+
+        headers = self._get_authenticated_request_headers(url)
+
+        response = self.client.head(url, **headers)
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/octet-stream"
+        assert response["Content-Length"] == str(self.file.size)
+        assert response["Accept-Ranges"] == "bytes"
+        assert "attachment" in response["Content-Disposition"]
+        assert not response.content
