@@ -245,6 +245,7 @@ function PlanSelect({
                       organization,
                       subscription,
                       source: 'checkout.plan_select',
+                      isNewCheckout: false,
                     });
                   }}
                 />

@@ -341,7 +341,7 @@ describe('OrganizationSettingsForm', () => {
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
         name: 'us',
         displayName: 'United States of America (US)',
-        url: 'https://sentry.de.example.com',
+        url: 'https://sentry.example.com',
       });
 
       render(
@@ -375,6 +375,65 @@ describe('OrganizationSettingsForm', () => {
       );
 
       const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeDisabled();
+    });
+
+    it('is enabled when user is an admin (has org:write access)', () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({
+            hideAiFeatures: true,
+          })}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            ...organization,
+            access: ['org:write'],
+          },
+        }
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeEnabled();
+    });
+
+    it('is disabled when user is a member (does not have org:write access)', async () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({
+            hideAiFeatures: true,
+          })}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            access: ['org:read'],
+          },
+        }
+      );
+
+      const preventAiField = await screen.findByRole('checkbox', {
         name: /Enable AI Code Review/i,
       });
       expect(preventAiField).toBeInTheDocument();
