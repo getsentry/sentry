@@ -60,9 +60,9 @@ def test_export_clickhouse_rows(replay_store):
 @pytest.mark.snuba
 @requires_snuba
 def test_export_replay_row_set(replay_store):
-    replay1_id = str(uuid.uuid4())
-    replay2_id = str(uuid.uuid4())
-    replay3_id = str(uuid.uuid4())
+    replay1_id = "030c5419-9e0f-46eb-ae18-bfe5fd0331b5"
+    replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
+    replay3_id = "ff08c103-a9a4-47c0-9c29-73b932c2da34"
     t0 = datetime.datetime.now()
     t1 = t0 + datetime.timedelta(seconds=30)
     t2 = t0 + datetime.timedelta(minutes=1)
