@@ -15,6 +15,17 @@ import type {
   ProcessedInsightFile,
 } from 'sentry/views/preprod/utils/insightProcessing';
 
+export function formatUpside(percentage: number): string {
+  // percentage is between 0 and 1.
+  if (percentage >= 0.001) {
+    // Can't use formatPercentage minimumValue here since it doesn't
+    // quite work with negative numbers.
+    return `-${formatPercentage(percentage, 1)}`;
+  }
+  // Format smaller than 0.001 (so 0.1%) as "(~0%)"
+  return `~0%`;
+}
+
 export function AppSizeInsightsSidebarRow({
   insight,
   isExpanded,
@@ -108,7 +119,7 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
           -{formatBytesBase10(file.savings)}
         </Text>
         <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-          (-{formatPercentage(file.percentage / 100, 1)})
+          ({formatUpside(file.percentage / 100)})
         </Text>
       </Flex>
     </FlexAlternatingRow>
@@ -132,7 +143,7 @@ function OptimizableImageFileRow({
           -{formatBytesBase10(file.savings)}
         </Text>
         <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-          (-{formatPercentage(file.percentage / 100, 1)})
+          ({formatUpside(file.percentage / 100)})
         </Text>
       </Flex>
     </FlexAlternatingRow>
