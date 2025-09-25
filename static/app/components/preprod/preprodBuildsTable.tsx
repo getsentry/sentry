@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -54,45 +54,55 @@ export function PreprodBuildsTable({
         <FullRowLink to={linkUrl}>
           <InteractionStateLayer />
           <SimpleTable.RowCell justify="flex-start">
-            <Flex direction="column" gap="xs">
-              <Flex align="center" gap="sm">
-                {build.app_info?.platform && (
-                  <PlatformIcon
-                    platform={getPlatformIconFromPlatform(build.app_info.platform)}
-                  />
-                )}
-                <Text size="lg" bold>
-                  {build.app_info?.name || 'Unknown App'}
+            {build.app_info?.name || build.app_info?.app_id ? (
+              <Flex direction="column" gap="xs">
+                <Flex align="center" gap="sm">
+                  {build.app_info?.platform && (
+                    <PlatformIcon
+                      platform={getPlatformIconFromPlatform(build.app_info.platform)}
+                    />
+                  )}
+                  <Text size="lg" bold>
+                    {build.app_info?.name || '--'}
+                  </Text>
+                </Flex>
+                <Text size="sm" variant="muted">
+                  {build.app_info?.app_id || '--'}
                 </Text>
               </Flex>
-              <Text size="sm" variant="muted">
-                {build.app_info?.app_id || 'Unknown ID'}
-              </Text>
-            </Flex>
+            ) : null}
           </SimpleTable.RowCell>
 
           <SimpleTable.RowCell justify="flex-start">
             <Flex direction="column" gap="xs">
               <Flex align="center" gap="xs">
-                <Text size="lg" bold>
-                  {build.app_info?.version || 'Unknown'}
-                </Text>
-                <Text size="lg" bold>
-                  ({build.app_info?.build_number || 'Unknown'})
-                </Text>
+                {build.app_info?.version !== null && (
+                  <Text size="lg" bold>
+                    {build.app_info?.version}
+                  </Text>
+                )}
+                {build.app_info?.build_number !== null && (
+                  <Text size="lg" variant="muted">
+                    ({build.app_info?.build_number})
+                  </Text>
+                )}
                 {build.state === 3 && <IconCheckmark size="sm" color="green300" />}
               </Flex>
               <Flex align="center" gap="xs">
                 <IconCommit size="xs" />
-                <Text size="sm" variant="muted">
-                  #{build.vcs_info?.head_sha?.slice(0, 7) || 'N/A'}
+                <Text size="sm" variant="muted" monospace>
+                  #{(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
                 </Text>
-                <Text size="sm" variant="muted">
-                  -
-                </Text>
-                <Text size="sm" variant="muted">
-                  {build.vcs_info?.head_ref || 'main'}
-                </Text>
+                {build.vcs_info?.head_ref !== null && (
+                  <React.Fragment>
+                    <Text size="sm" variant="muted">
+                      –
+                    </Text>
+                    <Text size="sm" variant="muted">
+                      {build.vcs_info?.head_ref || '--'}
+                    </Text>
+                  </React.Fragment>
+                )}
               </Flex>
             </Flex>
           </SimpleTable.RowCell>
@@ -129,7 +139,9 @@ export function PreprodBuildsTable({
   } else if (builds.length === 0) {
     tableContent = (
       <SimpleTable.Empty>
-        <p>{t('There are no preprod builds associated with this project.')}</p>
+        <Text as="p">
+          {t('There are no preprod builds associated with this project.')}
+        </Text>
       </SimpleTable.Empty>
     );
   } else {
