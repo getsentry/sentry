@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
 from collections.abc import Callable
@@ -17,6 +18,8 @@ from django.utils import timezone
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
+
+logger = logging.getLogger("sentry.cleanup")
 
 
 def get_project(value: str) -> int | None:
@@ -63,17 +66,28 @@ def debug_output(msg: str) -> None:
 
 def multiprocess_worker(task_queue: _WorkQueue) -> None:
     # Configure within each Process
-    import logging
-
-    from sentry.utils.imports import import_string
-
-    logger = logging.getLogger("sentry.cleanup")
-
     from sentry.runner import configure
 
     configure()
 
+    while True:
+        j = task_queue.get()
+        if j == _STOP_WORKER:
+            task_queue.task_done()
+            return
+
+        model_name, chunk = j
+        try:
+            process_deletion_task(model_name, chunk)
+        except Exception:
+            logger.exception("Error in process_deletion_task")
+        finally:
+            task_queue.task_done()
+
+
+def process_deletion_task(model_name: str, chunk: list[int]) -> None:
     from sentry import deletions, models, similarity
+    from sentry.utils.imports import import_string
 
     skip_models = [
         # Handled by other parts of cleanup
@@ -86,30 +100,17 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
         similarity,
     ]
 
+    model = import_string(model_name)
+    task = deletions.get(
+        model=model,
+        query={"id__in": chunk},
+        skip_models=skip_models,
+        transaction_id=uuid4().hex,
+    )
+
     while True:
-        j = task_queue.get()
-        if j == _STOP_WORKER:
-            task_queue.task_done()
-
-            return
-
-        model_name, chunk = j
-        model = import_string(model_name)
-        try:
-            task = deletions.get(
-                model=model,
-                query={"id__in": chunk},
-                skip_models=skip_models,
-                transaction_id=uuid4().hex,
-            )
-
-            while True:
-                if not task.chunk(apply_filter=True):
-                    break
-        except Exception as e:
-            logger.exception(e)
-        finally:
-            task_queue.task_done()
+        if not task.chunk(apply_filter=True):
+            break
 
 
 @click.command()
@@ -137,14 +138,14 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 )
 @log_options()
 def cleanup(
-    days: int,
-    project: str | None,
-    organization: str | None,
-    concurrency: int,
-    silent: bool,
     model: tuple[str, ...],
-    router: str | None,
-    timed: bool,
+    days: int = 30,
+    project: str | None = None,
+    organization: str | None = None,
+    concurrency: int = 1,
+    silent: bool = False,
+    router: str | None = None,
+    timed: bool = False,
 ) -> None:
     """Delete a portion of trailing data based on creation date.
 
@@ -154,6 +155,35 @@ def cleanup(
     this can be done with the `--project` or `--organization` flags respectively,
     which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
     """
+    # Tests already configure the app before calling _cleanup(),
+    # thus, we do it here to avoid conflicts when running tests
+    from sentry.runner import configure
+
+    configure()
+
+    _cleanup(
+        model=model,
+        days=days,
+        project=project,
+        organization=organization,
+        concurrency=concurrency,
+        silent=silent,
+        router=router,
+        timed=timed,
+    )
+
+
+def _cleanup(
+    model: tuple[str, ...],
+    days: int = 30,
+    project: str | None = None,
+    organization: str | None = None,
+    concurrency: int = 1,
+    silent: bool = False,
+    router: str | None = None,
+    timed: bool = False,
+    disable_multiprocessing: bool = False,
+) -> None:
     import logging
 
     logger = logging.getLogger("sentry.cleanup")
@@ -166,21 +196,18 @@ def cleanup(
     if silent:
         os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
-    # Make sure we fork off multiprocessing pool
-    # before we import or configure the app
-
-    pool = []
-    task_queue: _WorkQueue = Queue(1000)
-    for _ in range(concurrency):
-        p = Process(target=multiprocess_worker, args=(task_queue,))
-        p.daemon = True
-        p.start()
-        pool.append(p)
+    if disable_multiprocessing:
+        # Make sure we fork off multiprocessing pool
+        # before we import or configure the app
+        pool = []
+        task_queue: _WorkQueue = Queue(1000)
+        for _ in range(concurrency):
+            p = Process(target=multiprocess_worker, args=(task_queue,))
+            p.daemon = True
+            p.start()
+            pool.append(p)
 
     try:
-        from sentry.runner import configure
-
-        configure()
 
         from django.db import router as db_router
 
@@ -271,9 +298,13 @@ def cleanup(
                 )
 
                 for chunk in q.iterator(chunk_size=100):
-                    task_queue.put((imp, chunk))
+                    if disable_multiprocessing:
+                        process_deletion_task(imp, chunk)
+                    else:
+                        task_queue.put((imp, chunk))
 
-                task_queue.join()
+                if disable_multiprocessing:
+                    task_queue.join()
 
         project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
             project, project_id, is_filtered
@@ -300,11 +331,14 @@ def cleanup(
                         project_id=project_id_for_deletion,
                         order_by=order_by,
                     )
-
                     for chunk in q.iterator(chunk_size=100):
-                        task_queue.put((imp, chunk))
+                        if disable_multiprocessing:
+                            process_deletion_task(imp, chunk)
+                        else:
+                            task_queue.put((imp, chunk))
 
-            task_queue.join()
+            if disable_multiprocessing:
+                task_queue.join()
 
         organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
             organization, organization_id, is_filtered
@@ -333,20 +367,25 @@ def cleanup(
                     )
 
                     for chunk in q.iterator(chunk_size=100):
-                        task_queue.put((imp, chunk))
+                        if disable_multiprocessing:
+                            process_deletion_task(imp, chunk)
+                        else:
+                            task_queue.put((imp, chunk))
 
-        task_queue.join()
+        if disable_multiprocessing:
+            task_queue.join()
 
         remove_file_blobs(is_filtered, silent, models_attempted)
 
     finally:
-        # Shut down our pool
-        for _ in pool:
-            task_queue.put(_STOP_WORKER)
+        if disable_multiprocessing:
+            # Shut down our pool
+            for _ in pool:
+                task_queue.put(_STOP_WORKER)
 
-        # And wait for it to drain
-        for p in pool:
-            p.join()
+            # And wait for it to drain
+            for p in pool:
+                p.join()
 
     if timed and start_time:
         duration = int(time.time() - start_time)
