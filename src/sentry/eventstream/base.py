@@ -54,6 +54,9 @@ class EventStream(Service):
         "_get_event_type",
     )
 
+    def __init__(self, **options: Any) -> None:
+        pass
+
     def _dispatch_post_process_group_task(
         self,
         event_id: str,
