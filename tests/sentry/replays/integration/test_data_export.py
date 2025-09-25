@@ -1,3 +1,4 @@
+import csv
 import datetime
 import uuid
 
@@ -59,23 +60,34 @@ def test_export_clickhouse_rows(replay_store):
 @pytest.mark.snuba
 @requires_snuba
 def test_export_replay_row_set(replay_store):
-    replay_id = uuid.uuid4().hex
+    replay1_id = str(uuid.uuid4())
+    replay2_id = str(uuid.uuid4())
+    replay3_id = str(uuid.uuid4())
     t0 = datetime.datetime.now()
-    t1 = t0 + datetime.timedelta(minutes=1)
+    t1 = t0 + datetime.timedelta(seconds=30)
+    t2 = t0 + datetime.timedelta(minutes=1)
 
-    replay_store.save(mock_replay(t0, 1, replay_id, segment_id=0))
+    replay_store.save(mock_replay(t0, 1, replay1_id, segment_id=0))
+    replay_store.save(mock_replay(t1, 1, replay2_id, segment_id=0))
+    replay_store.save(mock_replay(t2, 1, replay3_id, segment_id=0))
 
     class Sink:
         def __init__(self):
-            self.file_name = None
-            self.query_data = None
+            self.filename = None
+            self.contents = None
 
-        def __call__(self, file_name: str, query_data: str) -> None:
-            self.file_name = file_name
-            self.query_data = query_data
+        def __call__(self, filename: str, contents: str) -> None:
+            self.filename = filename
+            self.contents = contents
 
     sink = Sink()
-    export_replay_row_set(1, t0, t1, limit=1, initial_offset=0, write_to_sink=sink)
+    export_replay_row_set(1, t0, t2, limit=1, initial_offset=0, write_to_sink=sink)
 
-    assert sink.file_name is not None
-    assert sink.query_data is not None
+    assert sink.filename is not None
+    assert sink.contents is not None
+
+    csvfile = csv.reader(sink.contents.splitlines())
+    rows = [r for r in csvfile]
+    assert len(rows) == 3
+    assert rows[1][0] == replay1_id
+    assert rows[2][0] == replay2_id
