@@ -83,7 +83,6 @@ function EAPMobileOverviewPage() {
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
     withStaticFilters,
-    organization,
     true
   );
 

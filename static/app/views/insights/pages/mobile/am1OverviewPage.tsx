@@ -99,8 +99,7 @@ export function Am1MobileOverviewPage() {
     location,
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
-    withStaticFilters,
-    organization
+    withStaticFilters
   );
   const searchBarEventView = eventView.clone();
 

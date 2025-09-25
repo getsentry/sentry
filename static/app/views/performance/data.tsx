@@ -306,7 +306,6 @@ export function generateMobilePerformanceEventView(
   projects: Project[],
   genericEventView: EventView,
   withStaticFilters: boolean,
-  organization: Organization,
   useEap = false
 ): EventView {
   const {query} = location;
@@ -502,8 +501,7 @@ export function generatePerformanceEventView(
         location,
         projects,
         eventView,
-        withStaticFilters,
-        organization
+        withStaticFilters
       );
     default:
       return eventView;
