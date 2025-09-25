@@ -333,7 +333,21 @@ class RPCBase:
         if debug:
             set_debug_meta(final_meta, rpc_response.meta, table_request.rpc_request)
 
-        return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
+        response: EAPResponse = {
+            "data": final_data,
+            "meta": final_meta,
+            "confidence": final_confidence,
+        }
+
+        # when using `MODE_HIGHEST_ACCURACY_FLEXTIME`, we need to pass back the page token
+        # so it can be used to fetch the next page of results
+        if (
+            table_request.rpc_request.meta.downsampled_storage_config.mode
+            == DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
+        ):
+            response["page_token"] = rpc_response.page_token
+
+        return response
 
     """ Timeseries Methods """
 

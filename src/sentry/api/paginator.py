@@ -1,3 +1,4 @@
+import base64
 import bisect
 import functools
 import logging
@@ -811,3 +812,24 @@ class CallbackPaginator:
             results = self.on_results(results)
 
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
+class EAPPageTokenPaginator:
+    def __init__(self, data_fn):
+        self.data_fn = data_fn
+
+    def get_result(self, limit, cursor=None):
+        assert limit > 0
+
+        data = self.data_fn(cursor)
+
+        page_token = data.pop("page_token")
+        has_more = not page_token.HasField("end_pagination") or not page_token.end_pagination
+
+        encoded = base64.b64encode(page_token.SerializeToString()).decode("utf-8")
+
+        return CursorResult(
+            results=data,
+            prev=Cursor("", 0, True, False),
+            next=Cursor(encoded, 0, False, has_more),
+        )
