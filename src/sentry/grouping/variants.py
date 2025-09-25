@@ -133,6 +133,10 @@ class ComponentVariant(BaseVariant):
     def contributes(self) -> bool:
         return self.root_component.contributes
 
+    @property
+    def hint(self) -> str | None:
+        return self.root_component.hint
+
     def get_hash(self) -> str | None:
         return self.root_component.get_hash()
 
