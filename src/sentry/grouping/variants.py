@@ -42,13 +42,22 @@ class BaseVariant(ABC):
     def description(self) -> str:
         return self.type
 
+    @property
+    def hint(self) -> str | None:
+        return None
+
     # This has to return `Mapping` rather than `dict` so that subtypes can override the return value
     # with a TypedDict if they choose. See https://github.com/python/mypy/issues/4976.
     def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {}
 
     def as_dict(self) -> dict[str, Any]:
-        rv = {"type": self.type, "description": self.description, "hash": self.get_hash()}
+        rv = {
+            "type": self.type,
+            "description": self.description,
+            "hash": self.get_hash(),
+            "hint": self.hint,
+        }
         rv.update(self._get_metadata_as_dict())
         return rv
 
