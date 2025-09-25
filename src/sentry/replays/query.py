@@ -644,7 +644,8 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
     "viewed_by_ids": ["viewed_by_ids"],
-    "has_viewed": ["viewed_by_ids"],
+    # queried through compute_has_viewed, which is a function of viewed_by_ids and request_user_id.
+    "has_viewed": [],
 }
 
 
@@ -868,13 +869,15 @@ def collect_aliases(fields: list[str]) -> list[str]:
 
 
 def select_from_fields(fields: list[str], user_id: int | None) -> list[Column | Function]:
-    """Return a list of columns to select."""
+    """Return a list of selections from the requested fields. If no fields are requested, return all."""
+    if not fields:
+        return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(user_id)]
+
     selection = []
     for alias in collect_aliases(fields):
-        if alias == "has_viewed":
-            selection.append(compute_has_viewed(user_id))
-        else:
-            selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+        selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+    if "has_viewed" in fields:
+        selection.append(compute_has_viewed(user_id))
 
     return selection
 
