@@ -8,6 +8,7 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {SuspectAttributesResult} from 'sentry/views/explore/hooks/useSuspectAttributes';
@@ -276,23 +277,25 @@ function Chart({
   return (
     <div ref={virtualizer.measureElement} data-index={index}>
       <ChartWrapper>
-        <ChartHeader>
-          <ChartTitle>{attribute.attributeName}</ChartTitle>
-          <PopulationIndicators>
-            <PopulationIndicator
-              color={cohort1Color}
-              title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
-            >
-              {populationPercentages.selected.toFixed(0)}%
-            </PopulationIndicator>
-            <PopulationIndicator
-              color={cohort2Color}
-              title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
-            >
-              {populationPercentages.baseline.toFixed(0)}%
-            </PopulationIndicator>
-          </PopulationIndicators>
-        </ChartHeader>
+        <ChartHeaderWrapper>
+          <Flex justify="space-between" align="center">
+            <ChartTitle>{attribute.attributeName}</ChartTitle>
+            <Flex gap="sm">
+              <PopulationIndicator
+                color={cohort1Color}
+                title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
+              >
+                {populationPercentages.selected.toFixed(0)}%
+              </PopulationIndicator>
+              <PopulationIndicator
+                color={cohort2Color}
+                title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
+              >
+                {populationPercentages.baseline.toFixed(0)}%
+              </PopulationIndicator>
+            </Flex>
+          </Flex>
+        </ChartHeaderWrapper>
         <BaseChart
           ref={chartRef}
           autoHeightResize
@@ -383,10 +386,7 @@ const ChartWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
-const ChartHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const ChartHeaderWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
@@ -394,11 +394,6 @@ const ChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   color: ${p => p.theme.gray500};
-`;
-
-const PopulationIndicators = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const PopulationIndicator = styled('div')<{color?: string}>`
