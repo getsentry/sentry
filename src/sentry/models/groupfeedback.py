@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -28,27 +27,36 @@ class GroupFeedback(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    project_id = FlexibleForeignKey("sentry.Project")
+    feedback = models.BooleanField()
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    group = FlexibleForeignKey("sentry.Group", null=True, on_delete=models.CASCADE)
     commit_sha = models.CharField(max_length=64, null=True)
-    group_id = FlexibleForeignKey("sentry.Group", null=True)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-
-    feedback_type = models.CharField(
-        max_length=20,
-        choices=[
-            ("pos", "Positive"),
-            ("neg", "Negative"),
-        ],
-    )
-
-    def save(self, *args, **kwargs):
-        if not self.commit_sha and not self.group_id:
-            raise ValidationError("Either commit_sha or group_id must be provided")
-        super().save(*args, **kwargs)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupfeedback"
-        unique_together = [("project_id", "commit_sha", "group_id", "user_id", "feedback_type")]
+        constraints = [
+            # Ensure at least one of commit_sha or group_id is provided
+            models.CheckConstraint(
+                condition=~models.Q(commit_sha__isnull=True, group_id__isnull=True),
+                name="commit_sha_or_group_id_required",
+            ),
+            models.UniqueConstraint(
+                fields=["project_id", "commit_sha", "group_id", "user_id"],
+                condition=models.Q(commit_sha__isnull=False, group_id__isnull=False),
+                name="unique_commit_group_feedback",
+            ),
+            models.UniqueConstraint(
+                fields=["project_id", "commit_sha", "user_id"],
+                condition=models.Q(commit_sha__isnull=False, group_id__isnull=True),
+                name="unique_project_commit_feedback",
+            ),
+            models.UniqueConstraint(
+                fields=["project_id", "group_id", "user_id"],
+                condition=models.Q(commit_sha__isnull=True, group_id__isnull=False),
+                name="unique_group_exclusion_feedback",
+            ),
+        ]
 
-    __repr__ = sane_repr("project_id", "commit_sha", "group_id", "user_id", "feedback_type")
+    __repr__ = sane_repr("project_id", "commit_sha", "group_id", "user_id", "feedback")
