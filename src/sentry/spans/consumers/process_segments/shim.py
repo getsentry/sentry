@@ -11,7 +11,12 @@ from typing import Any, cast
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import _SentryExtractedTags
 
 from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
-from sentry.spans.consumers.process_segments.types import CompatibleSpan, EnrichedSpan, get_span_op
+from sentry.spans.consumers.process_segments.types import (
+    CompatibleSpan,
+    EnrichedSpan,
+    attribute_value,
+    get_span_op,
+)
 from sentry.utils.dates import to_datetime
 
 
@@ -25,7 +30,7 @@ def make_compatible(span: EnrichedSpan) -> CompatibleSpan:
     # logic.
     ret: CompatibleSpan = {
         **span,
-        "sentry_tags": _sentry_tags(span.get("data") or {}),
+        "sentry_tags": _sentry_tags(span.get("attributes") or {}),
         "op": get_span_op(span),
         # Note: Event protocol spans expect `exclusive_time` while EAP expects
         # `exclusive_time_ms`. Both are the same value in milliseconds
@@ -35,7 +40,7 @@ def make_compatible(span: EnrichedSpan) -> CompatibleSpan:
     return ret
 
 
-def _sentry_tags(data: dict[str, Any]) -> _SentryExtractedTags:
+def _sentry_tags(attributes: dict[str, Any]) -> _SentryExtractedTags:
     """Backfill sentry tags used in performance issue detection.
 
     Once performance issue detection is only called from process_segments,
@@ -44,11 +49,11 @@ def _sentry_tags(data: dict[str, Any]) -> _SentryExtractedTags:
     """
     sentry_tags: _SentryExtractedTags = {}
     for tag_key in PerformanceIssuesSentryTags.__mutable_keys__:
-        data_key = (
+        attribute_key = (
             "sentry.normalized_description" if tag_key == "description" else f"sentry.{tag_key}"
         )
-        if data_key in data:
-            sentry_tags[tag_key] = data[data_key]  # type: ignore[literal-required]
+        if attribute_key in attributes:
+            sentry_tags[tag_key] = (attributes[attribute_key] or {}).get("value")
 
     return sentry_tags
 
@@ -57,7 +62,6 @@ def build_shim_event_data(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan]
 ) -> dict[str, Any]:
     """Create a shimmed event payload for performance issue detection."""
-    data = segment_span.get("data", {})
 
     event: dict[str, Any] = {
         "type": "transaction",
@@ -66,19 +70,19 @@ def build_shim_event_data(
             "trace": {
                 "trace_id": segment_span["trace_id"],
                 "type": "trace",
-                "op": data.get("sentry.transaction.op"),
+                "op": attribute_value(segment_span, "sentry.transaction.op"),
                 "span_id": segment_span["span_id"],
                 "hash": segment_span["hash"],
             },
         },
         "event_id": uuid.uuid4().hex,
         "project_id": segment_span["project_id"],
-        "transaction": data.get("sentry.transaction"),
-        "release": data.get("sentry.release"),
-        "dist": data.get("sentry.dist"),
-        "environment": data.get("sentry.environment"),
-        "platform": data.get("sentry.platform"),
-        "tags": [["environment", data.get("sentry.environment")]],
+        "transaction": attribute_value(segment_span, "sentry.transaction"),
+        "release": attribute_value(segment_span, "sentry.release"),
+        "dist": attribute_value(segment_span, "sentry.dist"),
+        "environment": attribute_value(segment_span, "sentry.environment"),
+        "platform": attribute_value(segment_span, "sentry.platform"),
+        "tags": [["environment", attribute_value(segment_span, "sentry.environment")]],
         "received": segment_span["received"],
         "timestamp": segment_span["end_timestamp_precise"],
         "start_timestamp": segment_span["start_timestamp_precise"],

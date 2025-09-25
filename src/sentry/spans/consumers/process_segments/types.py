@@ -1,5 +1,6 @@
-from typing import NotRequired
+from typing import Any, NotRequired
 
+import sentry_sdk
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 # The default span.op to assume if it is missing on the span. This should be
@@ -9,7 +10,7 @@ DEFAULT_SPAN_OP = "default"
 
 
 def get_span_op(span: SegmentSpan) -> str:
-    return span.get("data", {}).get("sentry.op") or DEFAULT_SPAN_OP
+    return attribute_value(span, "sentry.op") or DEFAULT_SPAN_OP
 
 
 class EnrichedSpan(SegmentSpan, total=True):
@@ -31,3 +32,11 @@ class CompatibleSpan(EnrichedSpan, total=True):
 
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
+
+
+def attribute_value(span: SegmentSpan, key) -> Any:
+    attributes = span.get("attributes") or {}
+    try:
+        return attributes.get(key)["value"]
+    except Exception as e:
+        sentry_sdk.capture_exception(e)

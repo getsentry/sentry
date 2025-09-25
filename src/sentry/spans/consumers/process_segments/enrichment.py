@@ -5,7 +5,7 @@ from typing import Any
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
 
 from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
-from sentry.spans.consumers.process_segments.types import EnrichedSpan, get_span_op
+from sentry.spans.consumers.process_segments.types import EnrichedSpan, attribute_value, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -79,16 +79,16 @@ class TreeEnricher:
                 interval = _span_interval(span)
                 self._span_map.setdefault(parent_span_id, []).append(interval)
 
-    def _data(self, span: SegmentSpan) -> dict[str, Any]:
-        ret = {**span.get("data", {})}
+    def _attributes(self, span: SegmentSpan) -> dict[str, Any]:
+        ret = {**span.get("attributes", {})}
         if self._segment_span is not None:
             # Assume that Relay has extracted the shared tags into `data` on the
             # root span. Once `sentry_tags` is removed, the logic from
             # `extract_shared_tags` should be moved here.
-            segment_fields = self._segment_span.get("data", {})
-            shared_tags = {k: v for k, v in segment_fields.items() if k in SHARED_SENTRY_ATTRIBUTES}
+            segment_attrs = self._segment_span.get("attributes", {})
+            shared_tags = {k: v for k, v in segment_attrs.items() if k in SHARED_SENTRY_ATTRIBUTES}
 
-            is_mobile = segment_fields.get("sentry.mobile") == "true"
+            is_mobile = attribute_value(span, "sentry.mobile") == "true"
             mobile_start_type = _get_mobile_start_type(self._segment_span)
 
             if is_mobile:
@@ -157,10 +157,10 @@ class TreeEnricher:
 
     def enrich_span(self, span: SegmentSpan) -> EnrichedSpan:
         exclusive_time = self._exclusive_time(span)
-        data = self._data(span)
+        attributes = self._attributes(span)
         return {
             **span,
-            "data": data,
+            "attributes": attributes,
             "exclusive_time_ms": exclusive_time,
         }
 
@@ -184,11 +184,11 @@ def _get_mobile_start_type(segment: SegmentSpan) -> str | None:
     Check the measurements on the span to determine what kind of start type the
     event is.
     """
-    data = segment.get("data") or {}
+    attributes = segment.get("attributes") or {}
 
-    if "app_start_cold" in data:
+    if "app_start_cold" in attributes:
         return "cold"
-    if "app_start_warm" in data:
+    if "app_start_warm" in attributes:
         return "warm"
 
     return None
@@ -215,7 +215,7 @@ def _us(timestamp: float) -> int:
 def compute_breakdowns(
     spans: Sequence[SegmentSpan],
     breakdowns_config: dict[str, dict[str, Any]],
-) -> dict[str, float]:
+) -> dict[str, Any]:
     """
     Computes breakdowns from all spans and writes them to the segment span.
 
@@ -234,7 +234,7 @@ def compute_breakdowns(
             continue
 
         for key, value in breakdowns.items():
-            ret[f"{breakdown_name}.{key}"] = value
+            ret[f"{breakdown_name}.{key}"] = {"value": value}
 
     return ret
 

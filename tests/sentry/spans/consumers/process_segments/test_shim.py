@@ -9,7 +9,7 @@ def test_make_compatible():
     message = cast(EnrichedSpan, {**SPAN_KAFKA_MESSAGE, "sentry_tags": {"ignored": "tags"}})
     compatible = make_compatible(message)
     assert compatible["exclusive_time"] == message["exclusive_time_ms"]
-    assert compatible["op"] == message["data"]["sentry.op"]
+    assert compatible["op"] == message["attributes"]["sentry.op"]["value"]
 
     # Pre-existing tags got overwritten:
     assert compatible["sentry_tags"] == {
