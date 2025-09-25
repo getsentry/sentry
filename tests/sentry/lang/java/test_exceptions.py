@@ -1,3 +1,5 @@
+import re
+
 from sentry.lang.java.exceptions import Exceptions
 
 
@@ -106,7 +108,9 @@ def test_deobfuscate_value_replaces_longest_tokens_first():
 
     # The longer token must be replaced without being broken by the shorter one
     assert exc["value"].count("alpha.beta.C$1") == 1
-    assert exc["value"].count("alpha.beta.C") == 1
+    # Count standalone occurrences of alpha.beta.C (not those that are part of alpha.beta.C$1)
+    standalone = re.findall(r"(?<![\w$])alpha\.beta\.C(?![\w$])", exc["value"])
+    assert len(standalone) == 1
     assert "a.b$c$1" not in exc["value"]
     assert "a.b$c" not in exc["value"]
     assert exc["raw_value"].startswith("Found both inner a.b$c$1")
