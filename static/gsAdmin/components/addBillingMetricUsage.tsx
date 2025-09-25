@@ -154,7 +154,7 @@ function AddBillingMetricUsageModal({
       <Body>
         <div>Create and add mock billing metric usage for testing purposes.</div>
         <br />
-        <Form onSubmit={onSubmit} submitLabel={'Create'} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel="Create" onCancel={closeModal}>
           <SelectField
             inline={false}
             stacked

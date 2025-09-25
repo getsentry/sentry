@@ -25,5 +25,5 @@ export function ErrorCell({
 }
 
 export function NumberPlaceholder() {
-  return <Placeholder style={{marginLeft: 'auto'}} height={'14px'} width={'50px'} />;
+  return <Placeholder style={{marginLeft: 'auto'}} height="14px" width="50px" />;
 }

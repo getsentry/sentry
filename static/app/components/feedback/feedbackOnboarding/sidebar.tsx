@@ -290,7 +290,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           ]}
           value={setupMode()}
           onChange={setSetupMode}
-          tooltipPosition={'top-start'}
+          tooltipPosition="top-start"
         />
       ) : (
         (newDocs?.platformOptions?.siblingOption ||
