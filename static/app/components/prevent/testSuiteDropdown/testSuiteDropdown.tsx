@@ -65,7 +65,7 @@ export function TestSuiteDropdown() {
   );
 
   function getEmptyMessage() {
-    if (testSuites.length) {
+    if (options.length) {
       return '';
     }
 

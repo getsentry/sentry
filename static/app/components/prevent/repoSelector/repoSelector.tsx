@@ -127,7 +127,10 @@ export function RepoSelector() {
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    const repoSet = new Set([...(repository ? [repository] : []), ...displayedRepos]);
+    const repoSet = new Set([
+      ...(repository && !searchValue ? [repository] : []),
+      ...displayedRepos,
+    ]);
 
     return [...repoSet].map((value): SelectOption<string> => {
       return {
@@ -138,7 +141,7 @@ export function RepoSelector() {
         textValue: value,
       };
     });
-  }, [displayedRepos, repository]);
+  }, [displayedRepos, repository, searchValue]);
 
   function getEmptyMessage() {
     if (isFetching) {
@@ -146,7 +149,11 @@ export function RepoSelector() {
     }
 
     if (searchValue && !repositories?.length) {
-      return t('No repositories found. Please enter at least 3 characters to search.');
+      if (searchValue.length < 3) {
+        return t('No repositories found. Please try entering more characters to search.');
+      }
+
+      return t('No repositories found');
     }
 
     return t('No repositories found');
