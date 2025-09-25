@@ -1,10 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UnsubscribeProject from 'sentry/views/unsubscribe/project';
 
 describe('UnsubscribeProject', () => {
-  const params = {orgId: 'acme', id: '9876'};
   let mockUpdate: jest.Mock;
   let mockGet: jest.Mock;
   beforeEach(() => {
