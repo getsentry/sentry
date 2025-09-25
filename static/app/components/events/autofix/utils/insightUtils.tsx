@@ -19,6 +19,7 @@ export function deduplicateSources(insights: AutofixInsight[]): InsightSources {
     thoughts: '',
     trace_event_ids_used: [],
     event_trace_id: undefined,
+    event_trace_timestamp: undefined,
   };
 
   const seenUrls = new Set<string>();
@@ -38,6 +39,11 @@ export function deduplicateSources(insights: AutofixInsight[]): InsightSources {
     // Use the first available event_trace_id
     if (!allSources.event_trace_id && sources.event_trace_id) {
       allSources.event_trace_id = sources.event_trace_id;
+    }
+
+    // Use the first available event_trace_timestamp
+    if (!allSources.event_trace_timestamp && sources.event_trace_timestamp) {
+      allSources.event_trace_timestamp = sources.event_trace_timestamp;
     }
 
     // Deduplicate URLs
