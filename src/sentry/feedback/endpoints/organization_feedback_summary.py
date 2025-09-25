@@ -20,7 +20,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -136,8 +136,9 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             :MAX_FEEDBACKS_TO_SUMMARIZE
         ]
 
-        if groups.count() < MIN_FEEDBACKS_TO_SUMMARIZE:
-            logger.error("Too few feedbacks to summarize")
+        group_count = groups.count()
+        if group_count < MIN_FEEDBACKS_TO_SUMMARIZE:
+            metrics.distribution("feedback.summary.too_few_feedbacks", group_count)
             return Response(
                 {
                     "summary": None,
