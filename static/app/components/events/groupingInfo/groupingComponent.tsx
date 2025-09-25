@@ -28,7 +28,7 @@ function GroupingComponent({component, showNonContributing}: Props) {
   const canFold = component.values.length > 1;
 
   return (
-    <Test>
+    <CollapseButtonWrapper>
       {canFold && (
         <CollapseButton
           folded={folded}
@@ -57,53 +57,45 @@ function GroupingComponent({component, showNonContributing}: Props) {
           </GroupingComponentList>
         )}
       </GroupingComponentWrapper>
-    </Test>
+    </CollapseButtonWrapper>
   );
 }
 
 const CHEVRON_COL = '12px'; // narrower chevron column
 
-const Test = styled('div')`
+const CollapseButtonWrapper = styled('div')`
   display: grid;
   grid-template-columns: ${CHEVRON_COL} minmax(auto, max-content);
   align-items: baseline;
 `;
 
-// keep alignment; make the button visually smaller and tighter
 const CollapseButton = styled(Button)<{folded: boolean}>`
   grid-column: 1;
-  min-height: auto;
   border: none;
-  padding: 0;
-
-  margin-left: -5px;
   opacity: ${p => (p.folded ? 1 : 0)};
-  align-self: ${p => (p.folded ? 'center' : 'top')};
   transition: opacity 0.2s ease;
+  align-self: ${p => (p.folded ? 'center' : 'baseline')};
 
   &:hover {
     opacity: 1;
   }
 `;
 
-// text wrapper column
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
   grid-column: 2;
   color: ${p => (p.isContributing ? p.theme.textColor : p.theme.subText)};
-  font-size: 13px;
-  line-height: 1.3;
-  max-width: max-content; /* shrink-wrap to text width instead of stretching full width */
 `;
 
 export const GroupingHint = styled('small')`
-  font-size: 0.85em;
-  opacity: 0.9;
+  font-size: 0.8em;
 `;
 
 const GroupingComponentList = styled('ul')<{hasFold: boolean; isInline: boolean}>`
-  padding: 0;
-  margin: 0;
   list-style: none;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
 
   &,
   & > li {
