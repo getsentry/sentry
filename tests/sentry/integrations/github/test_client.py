@@ -29,6 +29,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -1270,6 +1271,48 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             "ref_0_0": "master",
             "path_0_0_0": "src/sentry/integrations/github/client.py",
         }
+
+    @override_options({"github.blame-queries.batch-by-repo-rollout": 1.0})
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_files_batch_rollout_enabled(self, get_jwt) -> None:
+        """Test that we query by repo when rollout is enabled and multiple repos present"""
+        repo_2 = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/bar",
+            url="https://github.com/Test-Organization/bar",
+            provider="integrations:github",
+            external_id=456,
+            integration_id=self.integration.id,
+        )
+
+        files = [
+            SourceLineInfo(
+                path="src/app.py", lineno=10, ref="main", repo=self.repo_1, code_mapping=None
+            ),
+            SourceLineInfo(
+                path="src/utils.py", lineno=20, ref="main", repo=repo_2, code_mapping=None
+            ),
+        ]
+
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={"data": {}},
+            status=200,
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={"data": {}},
+            status=200,
+        )
+
+        result = self.github_client.get_blame_for_files(files, extra={})
+
+        # Should make 2 separate GraphQL calls (one per repo) plus 1 auth call
+        assert len(responses.calls) == 3
+        assert result == []
 
 
 class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
