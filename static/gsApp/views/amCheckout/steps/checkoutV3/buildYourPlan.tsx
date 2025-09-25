@@ -1,6 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -18,7 +17,6 @@ import {
   isTrialPlan,
 } from 'getsentry/utils/billing';
 import PlanFeatures from 'getsentry/views/amCheckout/planFeatures';
-import {getHighlightedFeatures} from 'getsentry/views/amCheckout/steps/planSelect';
 import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
@@ -39,7 +37,6 @@ interface PlanSubstepProps extends BaseSubstepProps {
   organization: Organization;
   subscription: Subscription;
   checkoutTier?: PlanTier;
-  referrer?: string;
 }
 
 interface AdditionalProductsSubstepProps extends BaseSubstepProps {}
@@ -50,7 +47,6 @@ function PlanSubstep({
   formData,
   subscription,
   organization,
-  referrer,
   onUpdate,
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
@@ -106,17 +102,7 @@ function PlanSubstep({
           );
           const basePrice = utils.formatPrice({cents: plan.basePrice}); // TODO(isabella): confirm discountInfo is no longer used
 
-          let planContent = utils.getContentForPlan(plan);
-          const highlightedFeatures = getHighlightedFeatures(referrer);
-
-          // Additional members is available on any paid plan
-          // but it's so impactful it doesn't hurt to add it in for the business plan
-          // if the user is coming from a deactivated member header CTA
-          if (isBizPlanFamily(plan) && referrer === 'deactivated_member_header') {
-            highlightedFeatures.push('deactivated_member_header');
-            planContent = cloneDeep(planContent);
-            planContent.features.deactivated_member_header = t('Unlimited members');
-          }
+          const planContent = utils.getContentForPlan(plan, true);
 
           const planIcon = getPlanIcon(plan);
           const badge = getBadge(plan);
@@ -131,7 +117,6 @@ function PlanSubstep({
               planName={plan.name}
               price={basePrice}
               planContent={planContent}
-              highlightedFeatures={highlightedFeatures}
               planIcon={planIcon}
               shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
               badge={badge}
@@ -170,7 +155,6 @@ function BuildYourPlan({
   organization,
   subscription,
   formData,
-  referrer,
   onEdit,
   onUpdate,
   stepNumber,
@@ -198,7 +182,6 @@ function BuildYourPlan({
             formData={formData}
             onUpdate={onUpdate}
             organization={organization}
-            referrer={referrer}
             subscription={subscription}
             checkoutTier={checkoutTier}
           />

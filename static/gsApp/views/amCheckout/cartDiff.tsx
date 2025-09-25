@@ -34,7 +34,9 @@ type CheckoutChange<K, V> = {
   newValue: V | null;
 };
 
-type PlanChange = CheckoutChange<'plan' | 'contractInterval', string>;
+type PlanChange = CheckoutChange<'plan', string>;
+
+type CycleChange = CheckoutChange<'contractInterval', string>;
 
 type ProductChange = CheckoutChange<SelectableProduct, boolean>;
 
@@ -83,13 +85,15 @@ function PlanDiff({
   newPlan,
   planChanges,
   productChanges,
+  cycleChanges,
 }: {
   currentPlan: Plan;
+  cycleChanges: CycleChange[];
   newPlan: Plan;
   planChanges: PlanChange[];
   productChanges: ProductChange[];
 }) {
-  const changes = [...planChanges, ...productChanges];
+  const changes = [...planChanges, ...productChanges, ...cycleChanges];
   return (
     <ChangeSection data-test-id="plan-diff">
       <ChangeGrid>
@@ -101,7 +105,8 @@ function PlanDiff({
           }
           let formattingFunction = (value: any) => value;
           if (key === 'plan' || key === 'contractInterval') {
-            formattingFunction = (value: any) => (value ? capitalize(value) : null);
+            formattingFunction = (value: any) =>
+              value === 'annual' ? t('Yearly') : value ? capitalize(value) : null;
           } else {
             formattingFunction = (value: any) =>
               value
@@ -192,7 +197,11 @@ function OnDemandDiff({
               let leftComponent = <div />;
               if (index === 0) {
                 leftComponent = (
-                  <ChangeSectionTitle>{t('Shared spend limit')}</ChangeSectionTitle>
+                  <ChangeSectionTitle>
+                    {newPlan.budgetTerm === 'pay-as-you-go'
+                      ? t('PAYG spend limit')
+                      : t('Shared spend limit')}
+                  </ChangeSectionTitle>
                 );
               }
               return (
@@ -272,24 +281,29 @@ function CartDiff({
   const newBudgetMode = newOnDemandBudget.budgetMode;
 
   const getPlanChanges = useCallback((): PlanChange[] => {
-    const changes: PlanChange[] = [];
     if (activePlan.name !== currentPlan.name) {
-      changes.push({
-        key: 'plan',
-        currentValue: currentPlan.name,
-        newValue: activePlan.name,
-      });
+      return [
+        {
+          key: 'plan',
+          currentValue: currentPlan.name,
+          newValue: activePlan.name,
+        },
+      ];
     }
+    return [];
+  }, [activePlan, currentPlan]);
 
+  const getCycleChanges = useCallback((): CycleChange[] => {
     if (activePlan.contractInterval !== currentPlan.contractInterval) {
-      changes.push({
-        key: 'contractInterval',
-        currentValue: currentPlan.contractInterval,
-        newValue: activePlan.contractInterval,
-      });
+      return [
+        {
+          key: 'contractInterval',
+          currentValue: currentPlan.contractInterval,
+          newValue: activePlan.contractInterval,
+        },
+      ];
     }
-
-    return changes;
+    return [];
   }, [activePlan, currentPlan]);
 
   const getProductChanges = useCallback((): ProductChange[] => {
@@ -466,6 +480,7 @@ function CartDiff({
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
   const planChanges = useMemo(() => getPlanChanges(), [getPlanChanges]);
+  const cycleChanges = useMemo(() => getCycleChanges(), [getCycleChanges]);
   const productChanges = useMemo(() => getProductChanges(), [getProductChanges]);
   const reservedChanges = useMemo(() => getReservedChanges(), [getReservedChanges]);
   const sharedOnDemandChanges = useMemo(
@@ -481,6 +496,7 @@ function CartDiff({
     () => [
       ...planChanges,
       ...productChanges,
+      ...cycleChanges,
       ...reservedChanges,
       ...sharedOnDemandChanges,
       ...perCategoryOnDemandChanges,
@@ -488,6 +504,7 @@ function CartDiff({
     [
       planChanges,
       productChanges,
+      cycleChanges,
       reservedChanges,
       sharedOnDemandChanges,
       perCategoryOnDemandChanges,
@@ -518,12 +535,13 @@ function CartDiff({
       </Flex>
       {isOpen && (
         <ChangesContainer>
-          {planChanges.length + productChanges.length > 0 && (
+          {planChanges.length + productChanges.length + cycleChanges.length > 0 && (
             <PlanDiff
               currentPlan={currentPlan}
               newPlan={activePlan}
               planChanges={planChanges}
               productChanges={productChanges}
+              cycleChanges={cycleChanges}
             />
           )}
           {reservedChanges.length > 0 && (

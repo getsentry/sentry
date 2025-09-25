@@ -2420,6 +2420,10 @@ function buildRoutes(): RouteObject[] {
               path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
             },
+            {
+              path: 'home/',
+              component: make(() => import('sentry/views/prevent/preventAI/index')),
+            },
           ],
         },
       ],
@@ -2445,7 +2449,7 @@ function buildRoutes(): RouteObject[] {
 
   const preprodChildren: SentryRouteObject[] = [
     {
-      path: 'builds/',
+      index: true,
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
     {

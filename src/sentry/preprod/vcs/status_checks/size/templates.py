@@ -326,13 +326,25 @@ def _calculate_size_change(head_size: int | None, base_size: int | None) -> str:
 
 
 def _format_file_size(size_bytes: int | None) -> str:
-    """Format file size in human readable format."""
+    """Format file size with null handling for display in templates."""
     if size_bytes is None:
         return "Unknown"
+    return _format_bytes_base10(size_bytes)
 
-    if size_bytes >= 1024 * 1024:  # MB
-        return f"{size_bytes / (1024 * 1024):.1f} MB"
-    elif size_bytes >= 1024:  # KB
-        return f"{size_bytes / 1024:.1f} KB"
-    else:  # B
-        return f"{size_bytes} B"
+
+def _format_bytes_base10(size_bytes: int) -> str:
+    """Format file size using decimal (base-10) units. Matches the frontend implementation of formatBytesBase10."""
+    units = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+    threshold = 1000
+
+    if size_bytes < threshold:
+        return f"{size_bytes} {units[0]}"
+
+    u = 0
+    number = float(size_bytes)
+    max_unit = len(units) - 1
+    while number >= threshold and u < max_unit:
+        number /= threshold
+        u += 1
+
+    return f"{number:.1f} {units[u]}"

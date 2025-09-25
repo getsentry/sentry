@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:52:17.452681+00:00'
+created: '2025-09-19T05:53:38.797768+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -72,7 +72,7 @@ source: tests/sentry/grouping/test_grouping_info.py
         },
         {
           "contributes": false,
-          "hint": "exception of app takes precedence",
+          "hint": "ignored because app exception takes precedence",
           "id": "threads",
           "name": "thread",
           "values": [
@@ -829,13 +829,13 @@ source: tests/sentry/grouping/test_grouping_info.py
   "system": {
     "component": {
       "contributes": false,
-      "hint": "exception of app takes precedence",
+      "hint": "ignored because app exception takes precedence",
       "id": "system",
       "name": null,
       "values": [
         {
           "contributes": false,
-          "hint": "exception of app takes precedence",
+          "hint": "ignored because app exception takes precedence",
           "id": "threads",
           "name": "thread",
           "values": [
