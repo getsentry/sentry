@@ -234,7 +234,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/organizations/new/',
       component: make(() => import('sentry/views/organizationCreate')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/data-export/:dataExportId',
@@ -250,7 +249,6 @@ function buildRoutes(): RouteObject[] {
           path: '/disabled-member/',
           component: make(() => import('sentry/views/disabledMember')),
           withOrgPath: true,
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -258,12 +256,10 @@ function buildRoutes(): RouteObject[] {
       path: '/restore/',
       component: make(() => import('sentry/views/organizationRestore')),
       customerDomainOnlyRoute: true,
-      deprecatedRouteProps: true,
     },
     {
       path: '/organizations/:orgId/restore/',
       component: make(() => import('sentry/views/organizationRestore')),
-      deprecatedRouteProps: true,
     },
     {
       path: '/join-request/',
@@ -511,7 +507,6 @@ function buildRoutes(): RouteObject[] {
               component: make(
                 () => import('sentry/views/settings/account/apiApplications/details')
               ),
-              deprecatedRouteProps: true,
             },
           ],
         },
@@ -1336,7 +1331,6 @@ function buildRoutes(): RouteObject[] {
       {
         index: true,
         component: make(() => import('sentry/views/settings/settingsIndex')),
-        deprecatedRouteProps: true,
       },
       accountSettingsRoutes,
       {
