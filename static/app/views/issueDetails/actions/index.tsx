@@ -59,6 +59,7 @@ import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import useProjectReleaseVersionIsSemver from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
@@ -93,6 +94,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
   const hasRelease = !!project.features?.includes('releases');
+
+  const hasSemverRelease = useProjectReleaseVersionIsSemver({
+    version: project.latestRelease?.version,
+  });
+  const hasSemverReleaseFeature =
+    organization.features?.includes('resolve-in-semver-release') && hasSemverRelease;
+
   const isResolved = group.status === 'resolved';
   const isAutoResolved =
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
@@ -436,6 +444,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 disableDropdown={disabled}
                 hasRelease={hasRelease}
                 latestRelease={project.latestRelease}
+                hasSemverReleaseFeature={hasSemverReleaseFeature}
                 onUpdate={onUpdate}
                 projectSlug={project.slug}
                 isResolved={isResolved}
