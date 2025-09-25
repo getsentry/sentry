@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterable
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
@@ -584,3 +585,27 @@ class DatabaseBackedIntegrationService(IntegrationService):
             identity=identity,
             user=user,
         )
+
+    def refresh_github_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcIntegration | None:
+        integration = Integration.objects.get(
+            id=integration_id,
+            provider__in=["github", "github_enterprise"],
+            status=ObjectStatus.ACTIVE,
+        )
+
+        if integration is None:
+            return None
+
+        installation = integration.get_installation(organization_id=organization_id)
+
+        if installation is None:
+            return None
+
+        installation.get_client().get_access_token(
+            token_minimum_validity_time=timedelta(minutes=10)
+        )
+        integration.refresh_from_db()
+
+        return serialize_integration(integration)
