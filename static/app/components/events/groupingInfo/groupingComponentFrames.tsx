@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,23 +8,22 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface GroupingComponentFramesProps {
-  collapsed: boolean;
+  initialCollapsed: boolean;
   items: React.ReactNode[];
   maxVisibleItems?: number;
-  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 function GroupingComponentFrames({
   items,
   maxVisibleItems = 2,
-  onCollapsedChange,
-  collapsed,
+  initialCollapsed,
 }: GroupingComponentFramesProps) {
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
   const isCollapsible = items.length > maxVisibleItems;
 
-  const setCollapsed = (next: boolean) => {
-    onCollapsedChange?.(next);
-  };
+  useEffect(() => {
+    setCollapsed(initialCollapsed);
+  }, [initialCollapsed]);
 
   return (
     <Fragment>

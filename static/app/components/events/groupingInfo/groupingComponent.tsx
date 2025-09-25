@@ -55,13 +55,12 @@ function GroupingComponent({component, showNonContributing}: Props) {
           onCollapsedChange: handleCollapsedChange,
         }
       : {};
+  const canFold = component.values.length > 1 && component.id !== 'frame';
 
   return (
     <GroupingComponentWrapper isContributing={component.contributes}>
       <span>
-        {component.name || component.id}
-        {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
-        {component.id === 'stacktrace' && isStacktraceCollapsible && (
+        {canFold && (
           <CollapseButton
             size="xs"
             priority="link"
@@ -72,6 +71,9 @@ function GroupingComponent({component, showNonContributing}: Props) {
             aria-label={isCollapsed ? t('expand stacktrace') : t('collapse stacktrace')}
           />
         )}
+        {component.name || component.id}
+
+        {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
       </span>
 
       <GroupingComponentList isInline={shouldInlineValue}>
