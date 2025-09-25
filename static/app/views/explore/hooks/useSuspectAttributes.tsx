@@ -14,6 +14,8 @@ import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelec
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export type SuspectAttributesResult = {
+  cohort1Total: number;
+  cohort2Total: number;
   rankedAttributes: Array<{
     attributeName: string;
     cohort1: Array<{
