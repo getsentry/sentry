@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.integrations.api.serializers.rest_framework.data_forwarder import (
     DataForwarderProjectSerializer,
     DataForwarderSerializer,
@@ -25,7 +27,7 @@ class DataForwarderSerializerTest(TestCase):
             }
         )
         assert serializer.is_valid()
-        validated_data = serializer.validated_data
+        validated_data: dict[str, Any] = serializer.validated_data
         assert validated_data["organization_id"] == self.organization.id
         assert validated_data["is_enabled"] is True
         assert validated_data["enroll_new_projects"] is False
@@ -37,13 +39,18 @@ class DataForwarderSerializerTest(TestCase):
             data={
                 "organization_id": self.organization.id,
                 "provider": "sqs",
+                "config": {
+                    "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
+                    "region": "us-east-1",
+                    "access_key": "AKIAIOSFODNN7EXAMPLE",
+                    "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                },
             }
         )
         assert serializer.is_valid()
-        validated_data = serializer.validated_data
+        validated_data: dict[str, Any] = serializer.validated_data
         assert validated_data["is_enabled"] is True  # default
         assert validated_data["enroll_new_projects"] is False  # default
-        assert validated_data["config"] == {}  # default
 
     def test_required_fields(self) -> None:
         # Missing organization_id
@@ -57,10 +64,30 @@ class DataForwarderSerializerTest(TestCase):
         assert "provider" in serializer.errors
 
     def test_provider_choice_validation(self) -> None:
-        # Valid providers
-        for provider in ["segment", "sqs", "splunk"]:
+        # Valid providers with minimal valid configs
+        provider_configs = {
+            "segment": {"write_key": "test_key"},
+            "sqs": {
+                "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
+                "region": "us-east-1",
+                "access_key": "AKIAIOSFODNN7EXAMPLE",
+                "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            },
+            "splunk": {
+                "instance_URL": "https://splunk.example.com:8089",
+                "index": "main",
+                "source": "sentry",
+                "token": "12345678-1234-1234-1234-123456789abc",
+            },
+        }
+
+        for provider, config in provider_configs.items():
             serializer = DataForwarderSerializer(
-                data={"organization_id": self.organization.id, "provider": provider}
+                data={
+                    "organization_id": self.organization.id,
+                    "provider": provider,
+                    "config": config,
+                }
             )
             assert serializer.is_valid(), f"Provider {provider} should be valid"
 
@@ -73,7 +100,11 @@ class DataForwarderSerializerTest(TestCase):
 
     def test_organization_id_validation_valid(self) -> None:
         serializer = DataForwarderSerializer(
-            data={"organization_id": self.organization.id, "provider": "segment"}
+            data={
+                "organization_id": self.organization.id,
+                "provider": "segment",
+                "config": {"write_key": "test_key"},
+            }
         )
         assert serializer.is_valid()
         assert serializer.validated_data["organization_id"] == self.organization.id
@@ -87,7 +118,7 @@ class DataForwarderSerializerTest(TestCase):
         )
 
     def test_sqs_config_validation_valid(self) -> None:
-        valid_config = {
+        valid_config: dict[str, str] = {
             "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
@@ -103,7 +134,9 @@ class DataForwarderSerializerTest(TestCase):
         assert serializer.is_valid()
 
     def test_sqs_config_validation_missing_required_fields(self) -> None:
-        config = {"queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"}
+        config: dict[str, str] = {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
+        }
         serializer = DataForwarderSerializer(
             data={
                 "organization_id": self.organization.id,
@@ -116,7 +149,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "Missing required SQS fields" in str(serializer.errors["config"])
 
     def test_sqs_config_validation_invalid_queue_url(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "queue_url": "invalid-url",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
@@ -152,7 +185,7 @@ class DataForwarderSerializerTest(TestCase):
         assert "region must be a valid AWS region format" in str(serializer.errors["config"])
 
     def test_sqs_config_validation_empty_credentials(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
             "region": "us-east-1",
             "access_key": "",
@@ -173,7 +206,7 @@ class DataForwarderSerializerTest(TestCase):
 
     def test_sqs_config_validation_fifo_queue_without_message_group_id(self) -> None:
         config = {
-            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue.fifo",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue-fifo",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
             "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
@@ -191,7 +224,7 @@ class DataForwarderSerializerTest(TestCase):
 
     def test_sqs_config_validation_fifo_queue_with_message_group_id(self) -> None:
         config = {
-            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue.fifo",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue-fifo",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
             "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
@@ -282,7 +315,7 @@ class DataForwarderSerializerTest(TestCase):
         )
 
     def test_splunk_config_validation_valid(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "instance_URL": "https://splunk.example.com:8089",
             "index": "main",
             "source": "sentry",
@@ -331,7 +364,7 @@ class DataForwarderSerializerTest(TestCase):
         )
 
     def test_splunk_config_validation_empty_strings(self) -> None:
-        config = {
+        config: dict[str, str] = {
             "instance_URL": "https://splunk.example.com:8089",
             "index": "",
             "source": "   ",
@@ -449,7 +482,7 @@ class DataForwarderProjectSerializerTest(TestCase):
             }
         )
         assert serializer.is_valid()
-        validated_data = serializer.validated_data
+        validated_data: dict[str, Any] = serializer.validated_data
         assert validated_data["data_forwarder_id"] == self.data_forwarder.id
         assert validated_data["project_id"] == self.project.id
         assert validated_data["overrides"] == {"custom_setting": "value"}

@@ -78,11 +78,10 @@ class DataForwarderSerializer(Serializer):
             errors.append("secret_key must be a non-empty string")
 
         message_group_id = config.get("message_group_id")
-        if message_group_id is not None:
-            if not isinstance(message_group_id, str):
-                errors.append("message_group_id must be a string or null")
-            if "fifo" in queue_url.lower() and not message_group_id:
-                errors.append("message_group_id is required for FIFO queues")
+        if message_group_id is not None and not isinstance(message_group_id, str):
+            errors.append("message_group_id must be a string or null")
+        if isinstance(queue_url, str) and "fifo" in queue_url.lower() and not message_group_id:
+            errors.append("message_group_id is required for FIFO queues")
 
         s3_bucket = config.get("s3_bucket")
         if s3_bucket is not None:
