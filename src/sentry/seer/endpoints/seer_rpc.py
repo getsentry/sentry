@@ -43,7 +43,7 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.constants import (
@@ -164,7 +164,6 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
-@region_silo_endpoint
 class SeerRpcServiceEndpoint(Endpoint):
     """
     RPC endpoint for seer microservice to call. Authenticated with a shared secret.
@@ -888,16 +887,20 @@ def get_github_enterprise_integration_config(
     installation = integration.get_installation(organization_id=organization_id)
     assert isinstance(installation, GitHubEnterpriseIntegration)
 
-    client = installation.get_client()
-    access_token_data = client.get_access_token()
+    integration = integration_service.refresh_github_access_token(
+        integration_id=integration.id,
+        organization_id=organization_id,
+    )
 
-    if not access_token_data:
+    access_token = integration.metadata["access_token"]
+    permissions = integration.metadata["permissions"]
+
+    if not access_token:
         logger.error("No access token found for integration %s", integration.id)
         return {"success": False}
 
     try:
         fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        access_token = access_token_data["access_token"]
         encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
         logger.exception("Failed to encrypt access token")
@@ -908,7 +911,7 @@ def get_github_enterprise_integration_config(
         "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,
-        "permissions": access_token_data["permissions"],
+        "permissions": permissions,
     }
 
 
