@@ -38,6 +38,7 @@ describe('EapSpanNode', () => {
       expect(node.allowNoInstrumentationNodes).toBe(false);
       expect(node.opsBreakdown).toEqual([]);
       expect(node.isEAPEvent).toBe(true);
+      expect(node.searchPriority).toBe(2);
     });
 
     it('should initialize with basic properties for span', () => {

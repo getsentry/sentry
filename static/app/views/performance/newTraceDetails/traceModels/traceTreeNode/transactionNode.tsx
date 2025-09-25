@@ -28,6 +28,8 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
   extra: TraceTreeNodeExtra;
 
+  searchPriority = 2;
+
   constructor(
     parent: BaseNode | null,
     value: TraceTree.Transaction,

@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
+  isBrowserRequestNode,
   isEAPSpan,
   isEAPSpanNode,
   isEAPTransaction,
@@ -18,6 +19,7 @@ import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {traceChronologicalSort} from './utils';
 
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
+  searchPriority = 2;
   /**
    * The breakdown of the node's children's operations by count.
    */
@@ -169,22 +171,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
   }
 
-  private _reparentSSRUnderBrowserRequestSpan(node: EapSpanNode) {
-    if (
-      // Adjust for SDK changes in https://github.com/getsentry/sentry-javascript/pull/13527
-      node.op === 'browser.request' ||
-      (node.op === 'browser' && node.description === 'request')
-    ) {
-      const serverRequestHandler = node.parent?.children.find(
-        n => isEAPSpan(n.value) && n.value.is_transaction && node.op === 'http.server'
-      );
+  private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {
+    const serverRequestHandler = node.parent?.children.find(n => n.op === 'http.server');
 
-      if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
-        serverRequestHandler.parent!.children =
-          serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
-        node.children.push(serverRequestHandler);
-        serverRequestHandler.parent = node;
-      }
+    if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
+      serverRequestHandler.parent!.children =
+        serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
+      node.children.push(serverRequestHandler);
+      serverRequestHandler.parent = node;
     }
   }
 
@@ -219,9 +213,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
             })
         );
 
-        const browserRequestSpan = this.children.find(
-          c => isEAPSpan(c.value) && c.value.is_transaction && this.op === 'http.server'
-        ) as EapSpanNode | undefined;
+        const browserRequestSpan = this.children.find(c => isBrowserRequestNode(c));
         if (browserRequestSpan) {
           this._reparentSSRUnderBrowserRequestSpan(browserRequestSpan);
         }

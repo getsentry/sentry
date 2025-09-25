@@ -119,6 +119,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   isEAPEvent = false;
 
   /**
+   * The priority of the node in when we find multiple nodes matching the same search query.
+   */
+  searchPriority = 0;
+
+  /**
    * The maximum severity of the node's issues.
    */
   private _max_severity: keyof Theme['level'] | undefined;
@@ -190,6 +195,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.value && 'project_slug' in this.value
       ? this.value.project_slug
       : undefined;
+  }
+
+  get projectId(): number | undefined {
+    return this.value && 'project_id' in this.value ? this.value.project_id : undefined;
   }
 
   get description(): string | undefined {

@@ -17,6 +17,7 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   event: EventTransaction | null = null;
   canAutogroup = true;
   allowNoInstrumentationNodes = true;
+  searchPriority = 1;
 
   constructor(
     parent: BaseNode | null,
@@ -64,6 +65,10 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
       title: this.op || t('Trace'),
       subtitle: this.value.description,
     };
+  }
+
+  get sdkName(): string | undefined {
+    return this.event?.sdk?.name ?? undefined;
   }
 
   makeBarColor(theme: Theme): string {

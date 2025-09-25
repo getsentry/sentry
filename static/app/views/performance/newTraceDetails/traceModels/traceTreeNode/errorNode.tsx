@@ -15,6 +15,7 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
+  searchPriority = 3;
   constructor(
     parent: BaseNode | null,
     value: TraceTree.TraceErrorIssue,

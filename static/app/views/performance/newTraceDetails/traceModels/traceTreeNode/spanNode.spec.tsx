@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
+  makeEventTransaction,
   makeSpan,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
@@ -29,6 +30,7 @@ describe('SpanNode', () => {
       expect(node.canAutogroup).toBe(true);
       expect(node.allowNoInstrumentationNodes).toBe(true);
       expect(node.space).toEqual([1000 * 1e3, (2000 - 1000) * 1e3]);
+      expect(node.searchPriority).toBe(1);
     });
 
     it('should collapse Android HTTP client spans by default', () => {
@@ -62,6 +64,22 @@ describe('SpanNode', () => {
       const node = new SpanNode(null, span, createMockExtra());
 
       expect(node.id).toBe('test-span-id');
+    });
+
+    it('should return sdk_name as sdkName', () => {
+      const span = makeSpan({
+        span_id: 'test-span-id',
+      });
+      const node = new SpanNode(null, span, createMockExtra());
+      const event = makeEventTransaction({
+        sdk: {
+          name: 'sentry.javascript.browser',
+          version: '1.0.0',
+        },
+      });
+      node.event = event;
+
+      expect(node.sdkName).toBe('sentry.javascript.browser');
     });
 
     it('should return description from span', () => {
