@@ -136,6 +136,7 @@ export function BranchSelector() {
       onSearch={handleOnSearch}
       disableSearchFilter
       searchPlaceholder={t('search by branch name')}
+      menuTitle={t('Filter to branch')}
       options={options}
       value={branch ?? ALL_BRANCHES}
       onChange={handleChange}
