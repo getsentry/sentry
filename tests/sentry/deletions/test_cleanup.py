@@ -15,11 +15,11 @@ MORE_THAN_RETENTION_DAYS = before_now(days=RETENTION_DAYS + 1).isoformat()
 class TestGroupDeletion(TransactionTestCase):
     """Test the group deletion functionality."""
 
-    def create_group(
+    def _create_group(
         self,
         fingerprint: str,
         timestamp: str,
-        status: GroupStatus = GroupStatus.UNRESOLVED,
+        status: int = GroupStatus.UNRESOLVED,
         project_id: int | None = None,
     ) -> Event:
         if project_id is None:
@@ -40,9 +40,10 @@ class TestGroupDeletion(TransactionTestCase):
 
     def test_only_deletes_old_groups(self) -> None:
         """Test cleanup only deletes old groups."""
-        young_event = self.create_group("group1", LESS_THAN_RETENTION_DAYS)
+        young_event = self._create_group("group1", LESS_THAN_RETENTION_DAYS)
+        assert young_event.group is not None
         group_id = young_event.group.id
-        self.create_group("group2", MORE_THAN_RETENTION_DAYS)
+        self._create_group("group2", MORE_THAN_RETENTION_DAYS)
         assert Group.objects.count() == 2
         assert GroupHash.objects.count() == 2
 
@@ -60,7 +61,7 @@ class TestGroupDeletion(TransactionTestCase):
 
     def test_delete_old_pending_groups(self) -> None:
         """Test cleanup does not delete pending deletion groups."""
-        self.create_group("group1", MORE_THAN_RETENTION_DAYS, GroupStatus.PENDING_DELETION)
+        self._create_group("group1", MORE_THAN_RETENTION_DAYS, GroupStatus.PENDING_DELETION)
 
         assert GroupHash.objects.count() == 1
         assert Group.objects.count() == 1
@@ -78,9 +79,9 @@ class TestGroupDeletion(TransactionTestCase):
 
     def test_delete_old_pending_groups_for_multiple_projects(self) -> None:
         """Test cleanup deletes old pending groups for multiple projects."""
-        self.create_group("group1", MORE_THAN_RETENTION_DAYS, GroupStatus.PENDING_DELETION)
+        self._create_group("group1", MORE_THAN_RETENTION_DAYS, GroupStatus.PENDING_DELETION)
         project2 = self.create_project(name="Project 2")
-        self.create_group(
+        self._create_group(
             "group1", MORE_THAN_RETENTION_DAYS, GroupStatus.PENDING_DELETION, project2.id
         )
 

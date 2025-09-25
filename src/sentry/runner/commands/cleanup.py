@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
@@ -55,7 +55,7 @@ _WorkQueue: TypeAlias = (
     "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | tuple[str, tuple[int, ...]]]"
 )
 
-API_TOKEN_TTL_IN_DAYS = 30
+API_TOKEN_TTL_IN_DAYS: Final[int] = 30
 
 
 def debug_output(msg: str) -> None:
@@ -71,12 +71,12 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     configure()
 
     while True:
-        j = task_queue.get()
-        if j == _STOP_WORKER:
+        task = task_queue.get()
+        if task == _STOP_WORKER:
             task_queue.task_done()
             return
 
-        model_name, chunk = j
+        model_name, chunk = task
         try:
             process_deletion_task(model_name, chunk)
         except Exception:
@@ -85,11 +85,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
 
 
-def process_deletion_task(model_name: str, chunk: list[int]) -> None:
+def process_deletion_task(model_name: str, chunk: Sequence[int]) -> None:
     from sentry import deletions, models, similarity
     from sentry.utils.imports import import_string
 
-    skip_models = [
+    skip_models: list[Any] = [
         # Handled by other parts of cleanup
         models.EventAttachment,
         models.UserReport,
@@ -196,10 +196,10 @@ def _cleanup(
     if silent:
         os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
-    if disable_multiprocessing:
+    if not disable_multiprocessing:
         # Make sure we fork off multiprocessing pool
         # before we import or configure the app
-        pool = []
+        pool: list[Process] = []
         task_queue: _WorkQueue = Queue(1000)
         for _ in range(concurrency):
             p = Process(target=multiprocess_worker, args=(task_queue,))
@@ -215,11 +215,11 @@ def _cleanup(
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
-        start_time = None
+        start_time: float | None = None
         if timed:
             start_time = time.time()
 
-        transaction = None
+        transaction: Any = None
         # Making sure we're not running in local dev to prevent a local error
         if not os.environ.get("SENTRY_DEVENV_HOME"):
             transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
@@ -298,12 +298,12 @@ def _cleanup(
                 )
 
                 for chunk in q.iterator(chunk_size=100):
-                    if disable_multiprocessing:
-                        process_deletion_task(imp, chunk)
-                    else:
+                    if not disable_multiprocessing:
                         task_queue.put((imp, chunk))
+                    else:
+                        process_deletion_task(imp, chunk)
 
-                if disable_multiprocessing:
+                if not disable_multiprocessing:
                     task_queue.join()
 
         project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
@@ -332,12 +332,12 @@ def _cleanup(
                         order_by=order_by,
                     )
                     for chunk in q.iterator(chunk_size=100):
-                        if disable_multiprocessing:
-                            process_deletion_task(imp, chunk)
-                        else:
+                        if not disable_multiprocessing:
                             task_queue.put((imp, chunk))
+                        else:
+                            process_deletion_task(imp, chunk)
 
-            if disable_multiprocessing:
+            if not disable_multiprocessing:
                 task_queue.join()
 
         organization_deletion_query, to_delete_by_organization = prepare_deletes_by_organization(
@@ -367,18 +367,18 @@ def _cleanup(
                     )
 
                     for chunk in q.iterator(chunk_size=100):
-                        if disable_multiprocessing:
-                            process_deletion_task(imp, chunk)
-                        else:
+                        if not disable_multiprocessing:
                             task_queue.put((imp, chunk))
+                        else:
+                            process_deletion_task(imp, chunk)
 
-        if disable_multiprocessing:
+        if not disable_multiprocessing:
             task_queue.join()
 
         remove_file_blobs(is_filtered, silent, models_attempted)
 
     finally:
-        if disable_multiprocessing:
+        if not disable_multiprocessing:
             # Shut down our pool
             for _ in pool:
                 task_queue.put(_STOP_WORKER)
