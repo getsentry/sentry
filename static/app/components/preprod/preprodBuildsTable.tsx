@@ -160,6 +160,7 @@ export function PreprodBuildsTable({
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`
+  overflow-x: auto;
   overflow-y: auto;
   grid-template-columns:
     minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr)
