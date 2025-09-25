@@ -95,6 +95,11 @@ export default function PreprodBuilds() {
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
 
+  const shouldShowSearchBar = builds.length > 0 || !!urlSearchQuery?.trim();
+  const emptyStateMessage = shouldShowSearchBar
+    ? t('No builds found for your search')
+    : t('No preprod builds found for this release');
+
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -104,13 +109,15 @@ export default function PreprodBuilds() {
           projectSlug={projectSlug}
         />
         {buildsError && <LoadingError onRetry={refetch} />}
-        <Container paddingBottom="md">
-          <SearchBar
-            placeholder={t('Search by build, SHA, branch name, or pull request')}
-            onChange={handleSearch}
-            query={localSearchQuery}
-          />
-        </Container>
+        {shouldShowSearchBar && (
+          <Container paddingBottom="md">
+            <SearchBar
+              placeholder={t('Search by build, SHA, branch name, or pull request')}
+              onChange={handleSearch}
+              query={localSearchQuery}
+            />
+          </Container>
+        )}
         <PreprodBuildsTable
           builds={builds}
           isLoading={isLoadingBuilds}
@@ -118,6 +125,7 @@ export default function PreprodBuilds() {
           pageLinks={pageLinks}
           organizationSlug={organization.slug}
           projectSlug={projectSlug}
+          emptyStateMessage={emptyStateMessage}
         />
       </Layout.Main>
     </Layout.Body>
