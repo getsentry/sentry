@@ -39,26 +39,22 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     for k, v in (span.get("attributes") or {}).items():
         try:
-            v = v["value"]
+            # NOTE: This ignores the `type` field of the attribute itself
+            value = v["value"]
+            attributes[k] = _anyvalue(value)
         except Exception:
             sentry_sdk.capture_exception()
-            continue
-        if v is not None:
-            try:
-                attributes[k] = _anyvalue(v)
-            except Exception:
-                sentry_sdk.capture_exception()
-            else:
-                if k == "sentry.client_sample_rate":
-                    try:
-                        client_sample_rate = float(v)
-                    except ValueError:
-                        pass
-                elif k == "sentry.server_sample_rate":
-                    try:
-                        server_sample_rate = float(v)
-                    except ValueError:
-                        pass
+        else:
+            if k == "sentry.client_sample_rate":
+                try:
+                    client_sample_rate = float(value)
+                except ValueError:
+                    pass
+            elif k == "sentry.server_sample_rate":
+                try:
+                    server_sample_rate = float(value)
+                except ValueError:
+                    pass
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
         v = span.get(field_name)

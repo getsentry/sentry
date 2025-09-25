@@ -1,9 +1,7 @@
-from typing import NotRequired
+from typing import Any, NotRequired
 
 import sentry_sdk
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan
-
-from sentry.spans.consumers.process_segments.convert import Any
 
 # The default span.op to assume if it is missing on the span. This should be
 # normalized by Relay, but we defensively apply the same fallback as the op is

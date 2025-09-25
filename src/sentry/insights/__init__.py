@@ -30,9 +30,9 @@ class FilterSpan(NamedTuple):
         """Get relevant fields from `span.data`."""
         return cls(
             op=(attributes.get("sentry.op") or {}).get("value"),
-            category=attributes.get("sentry.category" or {}).get("value"),
-            description=attributes.get("sentry.description" or {}).get("value"),
-            transaction_op=attributes.get("sentry.transaction_op" or {}).get("value"),
+            category=(attributes.get("sentry.category") or {}).get("value"),
+            description=(attributes.get("sentry.description") or {}).get("value"),
+            transaction_op=(attributes.get("sentry.transaction_op") or {}).get("value"),
         )
 
 

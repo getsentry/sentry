@@ -369,10 +369,10 @@ def test_emit_ops_breakdown() -> None:
     _ = TreeEnricher.enrich_spans(spans)
     updates = compute_breakdowns(spans, breakdowns_config)
 
-    assert updates["span_ops.ops.http"] == 3600000.0
-    assert updates["span_ops.ops.db"] == 7200000.0
-    assert updates["span_ops_2.ops.http"] == 3600000.0
-    assert updates["span_ops_2.ops.db"] == 7200000.0
+    assert updates["span_ops.ops.http"]["value"] == 3600000.0
+    assert updates["span_ops.ops.db"]["value"] == 7200000.0
+    assert updates["span_ops_2.ops.http"]["value"] == 3600000.0
+    assert updates["span_ops_2.ops.db"]["value"] == 7200000.0
 
     # NOTE: Relay used to extract a total.time breakdown, which is no longer
     # included in span breakdowns.
@@ -384,20 +384,22 @@ def test_write_tags_for_performance_issue_detection():
     segment_span = _mock_performance_issue_span(
         is_segment=True,
         span_id="ffffffffffffffff",
-        data={
-            "sentry.sdk.name": "sentry.php.laravel",
-            "sentry.environment": "production",
-            "sentry.release": "1.0.0",
-            "sentry.platform": "php",
+        attributes={
+            "sentry.sdk.name": {"value": "sentry.php.laravel"},
+            "sentry.environment": {"value": "production"},
+            "sentry.release": {"value": "1.0.0"},
+            "sentry.platform": {"value": "php"},
         },
     )
 
     spans = [
         _mock_performance_issue_span(
             is_segment=False,
-            data={
-                "sentry.system": "mongodb",
-                "sentry.normalized_description": '{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}',
+            attributes={
+                "sentry.system": {"value": "mongodb"},
+                "sentry.normalized_description": {
+                    "value": '{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}'
+                },
             },
         ),
         segment_span,
@@ -425,7 +427,7 @@ def test_write_tags_for_performance_issue_detection():
     }
 
 
-def _mock_performance_issue_span(is_segment, data, **fields):
+def _mock_performance_issue_span(is_segment, attributes, **fields):
     return {
         "description": "OrganizationNPlusOne",
         "duration_ms": 107,
@@ -438,7 +440,7 @@ def _mock_performance_issue_span(is_segment, data, **fields):
         "received": 1707953019.044972,
         "retention_days": 90,
         "segment_id": "a49b42af9fb69da0",
-        "data": data,
+        "attributes": attributes,
         "span_id": "a49b42af9fb69da0",
         "start_timestamp_ms": 1707953018865,
         "start_timestamp_precise": 1707953018.865,
