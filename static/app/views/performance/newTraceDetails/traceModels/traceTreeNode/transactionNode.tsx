@@ -195,19 +195,9 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   }
 
   matchWithFreeText(query: string): boolean {
-    if (this.op?.includes(query)) {
-      return true;
-    }
-
-    if (this.value.transaction?.includes(query)) {
-      return true;
-    }
-
-    if (this.value.event_id === query) {
-      return true;
-    }
-
-    return false;
+    return (
+      this.op?.includes(query) || this.description?.includes(query) || this.id === query
+    );
   }
 
   fetchChildren(

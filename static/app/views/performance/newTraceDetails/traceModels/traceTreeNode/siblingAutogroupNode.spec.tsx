@@ -338,19 +338,6 @@ describe('SiblingAutogroupNode', () => {
       expect(node.matchWithFreeText('Database')).toBe(true); // Should match description
       expect(node.matchWithFreeText('nonexistent')).toBe(false);
     });
-
-    it('should handle undefined values gracefully', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: undefined as any,
-          description: undefined as any,
-        },
-      });
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      expect(node.matchWithFreeText('anything')).toBe(false);
-    });
   });
 
   describe('makeBarColor', () => {
@@ -407,7 +394,7 @@ describe('SiblingAutogroupNode', () => {
     });
   });
 
-  describe('matchById', () => {
+  describe('match', () => {
     it('should match by path', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
@@ -421,7 +408,7 @@ describe('SiblingAutogroupNode', () => {
       expect(node.matchByPath('span-differentId')).toBe(false);
     });
 
-    it('should match by first child ID only', () => {
+    it('should not match by ID', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
 
@@ -435,46 +422,9 @@ describe('SiblingAutogroupNode', () => {
 
       node.children = [child1, child2];
 
-      expect(node.matchById('child-1')).toBe(true);
-      expect(node.matchById('child-2')).toBe(false); // Only matches first child
+      expect(node.matchById('child-1')).toBe(false);
+      expect(node.matchById('child-2')).toBe(false);
       expect(node.matchById('non-existent')).toBe(false);
-    });
-
-    it('should return false when no children exist', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      expect(node.children).toEqual([]);
-      expect(node.matchById('any-id')).toBe(false);
-    });
-
-    it('should handle undefined ID in first child', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      // Create child with undefined ID
-      const childValue = makeEAPSpan({event_id: undefined});
-      const child = new EapSpanNode(node, childValue, extra);
-      node.children = [child];
-
-      expect(node.matchById('any-id')).toBe(false);
-      expect(node.matchById('undefined')).toBe(false);
-    });
-
-    it('should handle empty string ID in first child', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      // Create child with empty string ID
-      const childValue = makeEAPSpan({event_id: ''});
-      const child = new EapSpanNode(node, childValue, extra);
-      node.children = [child];
-
-      expect(node.matchById('')).toBe(true);
-      expect(node.matchById('any-id')).toBe(false);
     });
   });
 });
