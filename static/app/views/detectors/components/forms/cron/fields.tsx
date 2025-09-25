@@ -95,7 +95,7 @@ export function cronSavedDetectorToFormData(
 
   const common = {
     name: detector.name,
-    owner: detector.owner || '',
+    owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
     projectId: detector.projectId,
   };
 

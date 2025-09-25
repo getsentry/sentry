@@ -22,7 +22,7 @@ describe('Dashboards - DashboardTable', () => {
   let dashboardUpdateMock: jest.Mock;
   let createMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   const {router} = initializeOrg();
@@ -280,7 +280,7 @@ describe('Dashboards - DashboardTable', () => {
 
   it('renders access column', async () => {
     const organizationWithEditAccess = OrganizationFixture({
-      features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
 
     render(
@@ -306,7 +306,7 @@ describe('Dashboards - DashboardTable', () => {
     });
 
     const organizationWithFavorite = OrganizationFixture({
-      features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
 
     render(
@@ -321,11 +321,11 @@ describe('Dashboards - DashboardTable', () => {
       }
     );
 
-    expect(screen.getByLabelText('Favorite Column')).toBeInTheDocument();
-    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
-    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+    expect(screen.getByLabelText('Star Column')).toBeInTheDocument();
+    expect(screen.queryAllByLabelText('Star')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('Unstar')).toHaveLength(1);
 
-    await userEvent.click(screen.queryAllByLabelText('Favorite')[0]!);
-    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(2);
+    await userEvent.click(screen.queryAllByLabelText('Star')[0]!);
+    expect(screen.queryAllByLabelText('Unstar')).toHaveLength(2);
   });
 });

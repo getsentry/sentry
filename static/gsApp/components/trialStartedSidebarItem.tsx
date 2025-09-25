@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import testableTransition from 'sentry/utils/testableTransition';
 import withApi from 'sentry/utils/withApi';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -31,40 +30,41 @@ type Props = {
   className?: string;
 };
 
-type State = {
-  animationComplete: boolean;
-  trialRequested: boolean;
-};
-
-class TrialStartedSidebarItem extends Component<Props, State> {
-  state: State = {
-    animationComplete: !!hasJustStartedPlanTrial(this.props.subscription),
-    trialRequested: TrialRequestedStore.getTrialRequstedState(),
-  };
-
-  componentWillUnmount() {
-    this.unsubscribe();
-  }
-
-  unsubscribe = TrialRequestedStore.listen(
-    () => this.setState({trialRequested: TrialRequestedStore.getTrialRequstedState()}),
-    undefined
+function TrialStartedSidebarItem({
+  className,
+  theme,
+  subscription,
+  organization,
+  children,
+}: Props) {
+  const [animationComplete, setAnimationComplete] = useState<boolean>(
+    !!hasJustStartedPlanTrial(subscription)
+  );
+  const [trialRequested, setTrialRequested] = useState<boolean>(
+    TrialRequestedStore.getTrialRequstedState()
   );
 
-  dismissNotification = () => {
-    SubscriptionStore.clearStartedTrial(this.props.organization.slug);
+  useEffect(() => {
+    const unsubscribe = TrialRequestedStore.listen(
+      () => setTrialRequested(TrialRequestedStore.getTrialRequstedState()),
+      undefined
+    );
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const dismissNotification = () => {
+    SubscriptionStore.clearStartedTrial(organization.slug);
     TrialRequestedActions.clearNotification();
   };
 
-  renderTrialStartedHovercardBody() {
+  const renderTrialStartedHovercardBody = () => {
     return (
       <HovercardBody>
         <HovercardHeader>
           <div>{t('Trial Started')}</div>
-          <TrialBadge
-            subscription={this.props.subscription}
-            organization={this.props.organization}
-          />
+          <TrialBadge subscription={subscription} organization={organization} />
         </HovercardHeader>
         <p>{t('Check out these great new features')}</p>
 
@@ -79,14 +79,14 @@ class TrialStartedSidebarItem extends Component<Props, State> {
           {t('Additional Integrations')}
         </Bullets>
 
-        <Button onClick={this.dismissNotification} size="xs">
+        <Button onClick={dismissNotification} size="xs">
           {t('Awesome, got it!')}
         </Button>
       </HovercardBody>
     );
-  }
+  };
 
-  renderTrialRequestedHovercardBody() {
+  const renderTrialRequestedHovercardBody = () => {
     return (
       <HovercardBody>
         <HovercardHeader>{t('Trial Requested')}</HovercardHeader>
@@ -96,99 +96,76 @@ class TrialStartedSidebarItem extends Component<Props, State> {
           )}
         </p>
 
-        <Button onClick={this.dismissNotification} size="xs">
+        <Button onClick={dismissNotification} size="xs">
           {t('Awesome, got it!')}
         </Button>
       </HovercardBody>
     );
-  }
+  };
 
-  renderWithHovercard(hovercardBody: React.ReactNode) {
-    const prefersNewNav = prefersStackedNav(this.props.organization);
-
+  const renderWithHovercard = (hovercardBody: React.ReactNode) => {
     return (
-      <StyledHovercard
-        forceVisible
-        position="right"
-        body={hovercardBody}
-        prefersNewNav={prefersNewNav}
-      >
-        {this.props.children}
+      <StyledHovercard forceVisible position="right" body={hovercardBody}>
+        {children}
       </StyledHovercard>
     );
-  }
+  };
 
-  get trialRequestedOrStarted() {
-    const {trialRequested} = this.state;
-    return hasJustStartedPlanTrial(this.props.subscription) || trialRequested;
-  }
+  const trialRequestedOrStarted = useMemo(() => {
+    return hasJustStartedPlanTrial(subscription) || trialRequested;
+  }, [subscription, trialRequested]);
 
-  render() {
-    const {animationComplete, trialRequested} = this.state;
-    const {className, theme} = this.props;
+  const animate =
+    animationComplete && !trialRequestedOrStarted
+      ? 'dismissed'
+      : trialRequestedOrStarted
+        ? 'started'
+        : 'initial';
 
-    const animate =
-      animationComplete && !this.trialRequestedOrStarted
-        ? 'dismissed'
-        : this.trialRequestedOrStarted
-          ? 'started'
-          : 'initial';
+  let wrappedChildren = children;
 
-    let children = this.props.children;
-
-    if (animationComplete) {
-      if (hasJustStartedPlanTrial(this.props.subscription)) {
-        children = this.renderWithHovercard(this.renderTrialStartedHovercardBody());
-      } else if (trialRequested) {
-        children = this.renderWithHovercard(this.renderTrialRequestedHovercardBody());
-      }
+  if (animationComplete) {
+    if (hasJustStartedPlanTrial(subscription)) {
+      wrappedChildren = renderWithHovercard(renderTrialStartedHovercardBody());
+    } else if (trialRequested) {
+      wrappedChildren = renderWithHovercard(renderTrialRequestedHovercardBody());
     }
-
-    const prefersNewNav = prefersStackedNav(this.props.organization);
-
-    const content = (
-      <Wrapper
-        className={className}
-        initial={animate}
-        onAnimationComplete={() =>
-          setTimeout(() => this.setState({animationComplete: true}), 500)
-        }
-        animate={animate}
-        variants={{
-          initial: {
-            backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
-          },
-          started: {
-            backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 100%, transparent 0%)`,
-
-            // We flip the gradient direction so that on dismiss we can animate in the
-            // opposite direction.
-            transitionEnd: {
-              backgroundImage: `linear-gradient(45deg, ${theme.purple400} 100%, transparent 0%)`,
-            },
-
-            color: theme.button.primary.color,
-
-            transition: testableTransition({
-              duration: 0.35,
-              delay: 1,
-            }),
-          },
-          dismissed: {
-            backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
-          },
-        }}
-      >
-        {children}
-      </Wrapper>
-    );
-
-    if (prefersNewNav) {
-      return content;
-    }
-
-    return <BoxShadowHider>{content}</BoxShadowHider>;
   }
+
+  return (
+    <Wrapper
+      className={className}
+      initial={animate}
+      onAnimationComplete={() => setTimeout(() => setAnimationComplete(true), 500)}
+      animate={animate}
+      variants={{
+        initial: {
+          backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
+        },
+        started: {
+          backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 100%, transparent 0%)`,
+
+          // We flip the gradient direction so that on dismiss we can animate in the
+          // opposite direction.
+          transitionEnd: {
+            backgroundImage: `linear-gradient(45deg, ${theme.purple400} 100%, transparent 0%)`,
+          },
+
+          color: theme.button.primary.color,
+
+          transition: testableTransition({
+            duration: 0.35,
+            delay: 1,
+          }),
+        },
+        dismissed: {
+          backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
+        },
+      }}
+    >
+      {wrappedChildren}
+    </Wrapper>
+  );
 }
 
 const startedStyle = (theme: Theme) => css`
@@ -222,22 +199,11 @@ const Wrapper = styled(motion.div)`
   }
 `;
 
-const BoxShadowHider = styled('div')`
-  margin: -20px;
-  padding: 20px;
-  overflow: hidden;
-`;
-
 // We specifically set the z-index lower than the modal here, since it will be
 // common to start a trial with the upsell modal open.
-const StyledHovercard = styled(Hovercard)<{prefersNewNav: boolean}>`
+const StyledHovercard = styled(Hovercard)`
   width: 310px;
   z-index: ${p => p.theme.zIndex.modal - 1};
-  ${p =>
-    !p.prefersNewNav &&
-    css`
-      margin-left: 30px;
-    `}
 `;
 
 const HovercardBody = styled('div')`

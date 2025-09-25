@@ -28,7 +28,7 @@ describe('OrganizationStats', () => {
   };
   const projects = ['1', '2', '3'].map(id => ProjectFixture({id, slug: `proj-${id}`}));
   const {organization, router} = initializeOrg({
-    organization: {features: ['global-views', 'team-insights']},
+    organization: {features: ['team-insights']},
     projects,
     router: undefined,
   });
@@ -252,22 +252,9 @@ describe('OrganizationStats', () => {
   /**
    * Project Selection
    */
-  it('renders single project without global-views', async () => {
+  it('renders default projects', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = ['team-insights'];
-
-    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      organization: newOrg.organization,
-    });
-
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
-    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.queryByText('usage-stats-table')).not.toBeInTheDocument();
-  });
-
-  it('renders default projects with global-views', async () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['global-views', 'team-insights'];
     OrganizationStore.onUpdate(newOrg.organization, {replace: true});
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       organization: newOrg.organization,
@@ -289,7 +276,7 @@ describe('OrganizationStats', () => {
 
   it('renders with multiple projects selected', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = ['global-views', 'team-insights'];
+    newOrg.organization.features = ['team-insights'];
 
     const selectedProjects = [1, 2];
     const newSelection = {
@@ -330,7 +317,7 @@ describe('OrganizationStats', () => {
 
   it('renders with a single project selected', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = ['global-views', 'team-insights'];
+    newOrg.organization.features = ['team-insights'];
     const selectedProject = [1];
     const newSelection = {
       ...defaultSelection,
@@ -371,7 +358,7 @@ describe('OrganizationStats', () => {
 
   it('renders a project when its graph icon is clicked', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = ['global-views', 'team-insights'];
+    newOrg.organization.features = ['team-insights'];
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       organization: newOrg.organization,
     });
@@ -417,7 +404,7 @@ describe('OrganizationStats', () => {
   it('shows only profile duration category with continuous-profiling-stats feature', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'team-insights', 'continuous-profiling-stats'],
+        features: ['team-insights', 'continuous-profiling-stats'],
       },
     });
 
@@ -436,7 +423,7 @@ describe('OrganizationStats', () => {
   it('shows both profile hours and profiles categories with continuous-profiling feature', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'team-insights', 'continuous-profiling'],
+        features: ['team-insights', 'continuous-profiling'],
       },
     });
 
@@ -455,7 +442,7 @@ describe('OrganizationStats', () => {
   it('shows both profile hours without continuous-profiling feature', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'team-insights'],
+        features: ['team-insights'],
       },
     });
 
@@ -478,12 +465,7 @@ describe('OrganizationStats', () => {
   it('shows only profile duration category when both profiling features are enabled', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: [
-          'global-views',
-          'team-insights',
-          'continuous-profiling-stats',
-          'continuous-profiling',
-        ],
+        features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
       },
     });
 
@@ -502,7 +484,7 @@ describe('OrganizationStats', () => {
   it('shows only Profiles category without profiling features', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'team-insights'],
+        features: ['team-insights'],
       },
     });
 
@@ -521,7 +503,7 @@ describe('OrganizationStats', () => {
   it('shows Seer categories when seer-billing feature flag is enabled', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'team-insights', 'seer-billing'],
+        features: ['team-insights', 'seer-billing'],
       },
     });
 
@@ -535,7 +517,7 @@ describe('OrganizationStats', () => {
   it('does not show Seer categories when seer-billing feature flag is disabled', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: ['global-views', 'team-insights'],
+        features: ['team-insights'],
       },
     });
 
@@ -559,12 +541,7 @@ describe('OrganizationStats', () => {
   it('shows estimation text when profile duration category is selected', async () => {
     const newOrg = initializeOrg({
       organization: {
-        features: [
-          'global-views',
-          'team-insights',
-          'continuous-profiling-stats',
-          'continuous-profiling',
-        ],
+        features: ['team-insights', 'continuous-profiling-stats', 'continuous-profiling'],
       },
     });
 

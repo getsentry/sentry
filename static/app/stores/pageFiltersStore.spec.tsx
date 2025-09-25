@@ -1,7 +1,6 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
-  pinFilter,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
@@ -149,22 +148,5 @@ describe('PageFiltersStore', () => {
     updatePersistence(false);
     await tick();
     expect(PageFiltersStore.getState().shouldPersist).toBe(false);
-  });
-
-  it('can mark filters as pinned', async () => {
-    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set());
-    pinFilter('projects', true);
-    await tick();
-    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['projects']));
-
-    pinFilter('environments', true);
-    await tick();
-    expect(PageFiltersStore.getState().pinnedFilters).toEqual(
-      new Set(['projects', 'environments'])
-    );
-
-    pinFilter('projects', false);
-    await tick();
-    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['environments']));
   });
 });

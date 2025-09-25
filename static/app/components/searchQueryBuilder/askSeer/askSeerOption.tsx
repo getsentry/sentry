@@ -1,19 +1,16 @@
-import {useRef, useState} from 'react';
+import {useRef} from 'react';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {
   AskSeerLabel,
   AskSeerListItem,
 } from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -22,35 +19,21 @@ export const ASK_SEER_ITEM_KEY = 'ask_seer';
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
-  const {setDisplayAskSeer, gaveSeerConsent} = useSearchQueryBuilder();
-
-  const [optionDisableOverride, setOptionDisableOverride] = useState(false);
+  const {setDisplayAskSeer} = useSearchQueryBuilder();
 
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
       key: ASK_SEER_ITEM_KEY,
-      'aria-label': 'Ask Seer',
+      'aria-label': 'Ask Seer to build your query',
       shouldFocusOnHover: true,
       shouldSelectOnPressUp: true,
-      isDisabled: optionDisableOverride,
+      isDisabled: false,
     },
     state,
     ref
   );
 
   const handleClick = () => {
-    if (optionDisableOverride) return;
-
-    if (!gaveSeerConsent) {
-      trackAnalytics('trace.explorer.ai_query_interface', {
-        organization,
-        action: 'consent_accepted',
-      });
-      seerAcknowledgeMutate();
-      return;
-    }
-
     trackAnalytics('trace.explorer.ai_query_interface', {
       organization,
       action: 'opened',
@@ -63,25 +46,7 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
       <AskSeerLabel {...labelProps}>
-        <Tooltip
-          title={tct(
-            'The assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
-            {
-              dataProcessingPolicy: (
-                <ExternalLink
-                  onMouseOver={() => setOptionDisableOverride(true)}
-                  onMouseOut={() => setOptionDisableOverride(false)}
-                  href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features"
-                />
-              ),
-            }
-          )}
-          isHoverable
-          showUnderline
-        >
-          {t('Ask Seer')}
-        </Tooltip>
-        <FeatureBadge type="beta" />
+        {t('Ask Seer to build your query')} <FeatureBadge type="beta" />
       </AskSeerLabel>
     </AskSeerListItem>
   );

@@ -18,6 +18,16 @@ GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_failure"
 The GroupType slug for UptimeDomainCheckFailure GroupTypes.
 """
 
+DEFAULT_RECOVERY_THRESHOLD = 1
+"""
+Default number of consecutive successful checks required to mark monitor as recovered.
+"""
+
+DEFAULT_DOWNTIME_THRESHOLD = 3
+"""
+Default number of consecutive failed checks required to mark monitor as down.
+"""
+
 RegionScheduleMode = Literal["round_robin"]
 """
 Defines how we'll schedule checks based on other active regions.

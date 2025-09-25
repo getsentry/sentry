@@ -5,20 +5,19 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useInfiniteRepositories} from 'sentry/components/prevent/repoSelector/useInfiniteRepositories';
 import {IconInfo, IconSync} from 'sentry/icons';
+import {IconRepository} from 'sentry/icons/iconRepository';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {IconRepository} from './iconRepository';
 import {useSyncRepos} from './useSyncRepos';
 
 function SyncRepoButton({searchValue}: {searchValue?: string}) {
@@ -68,9 +67,13 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 }
 
 export function RepoSelector() {
-  const {repository, integratedOrgId, preventPeriod, changeContextValue} =
-    usePreventContext();
-  const [displayedRepos, setDisplayedRepos] = useState<string[]>([]);
+  const {
+    repository,
+    integratedOrgId,
+    integratedOrgName,
+    preventPeriod,
+    changeContextValue,
+  } = usePreventContext();
   const organization = useOrganization();
 
   const [searchValue, setSearchValue] = useState<string | undefined>();
@@ -102,11 +105,12 @@ export function RepoSelector() {
     (selectedOption: SelectOption<string>) => {
       changeContextValue({
         integratedOrgId,
+        integratedOrgName,
         preventPeriod,
         repository: selectedOption.value,
       });
     },
-    [changeContextValue, integratedOrgId, preventPeriod]
+    [changeContextValue, integratedOrgName, integratedOrgId, preventPeriod]
   );
 
   const handleOnSearch = useMemo(
@@ -115,6 +119,11 @@ export function RepoSelector() {
         setSearchValue(value);
       }, 300),
     [setSearchValue]
+  );
+
+  const displayedRepos = useMemo(
+    () => (isFetching ? [] : (repositories?.map(item => item.name) ?? [])),
+    [repositories, isFetching]
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
@@ -142,13 +151,6 @@ export function RepoSelector() {
 
     return t('No repositories found');
   }
-
-  useEffect(() => {
-    // Only update displayedRepos if the hook returned something non-empty
-    if (!isFetching) {
-      setDisplayedRepos((repositories ?? []).map(item => item.name));
-    }
-  }, [isFetching, repositories]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
@@ -181,16 +183,12 @@ export function RepoSelector() {
         return (
           <DropdownButton
             isOpen={isOpen}
+            icon={<IconRepository />}
             data-test-id="page-filter-prevent-repository-selector"
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex align="center" gap="sm">
-                <IconContainer>
-                  <IconRepository />
-                </IconContainer>
-                <TriggerLabel>{defaultLabel}</TriggerLabel>
-              </Flex>
+              <TriggerLabel>{defaultLabel}</TriggerLabel>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -242,11 +240,6 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
-`;
-
-const IconContainer = styled('div')`
-  flex: 1 0 14px;
-  height: 14px;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

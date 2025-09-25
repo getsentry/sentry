@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
+import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -78,12 +78,12 @@ export function FrontendVersionProvider({children, force, releaseVersion}: Props
     //
     // We only make stale version assessments when the frontend is running a
     // production build.
-    process.env.NODE_ENV === 'production' &&
+    NODE_ENV === 'production' &&
     //
     // We do not make stale version assessments when running deployment
     // previews, these are inherinetly a differning version from what is
     // deployed in production SAAS.
-    DEPLOY_PREVIEW_CONFIG === undefined;
+    !DEPLOY_PREVIEW_CONFIG;
 
   const {data: frontendVersionData} = useApiQuery<FrontendVersionResponse>(
     ['/internal/frontend-version/'],

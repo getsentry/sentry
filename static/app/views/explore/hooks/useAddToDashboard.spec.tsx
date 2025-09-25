@@ -7,10 +7,10 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   PageParamsProvider,
   useSetExploreMode,
-  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {useSetQueryParamsVisualizes} from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -26,11 +26,11 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('AddToDashboardButton', () => {
   let setMode: ReturnType<typeof useSetExploreMode>;
-  let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
+  let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function TestPage({visualizeIndex}: {visualizeIndex: number}) {
     setMode = useSetExploreMode();
-    setVisualizes = useSetExploreVisualizes();
+    setVisualizes = useSetQueryParamsVisualizes();
     const {addToDashboard} = useAddToDashboard();
     return (
       <button onClick={() => addToDashboard(visualizeIndex)}>Add to Dashboard</button>

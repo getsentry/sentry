@@ -161,29 +161,16 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    # Route to summarization URL first
-    try:
-        response = requests.post(
-            f"{settings.SEER_SUMMARIZATION_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-        )
-        response.raise_for_status()
-    except Exception:
-        # If the new pod fails, fall back to the old pod
-        logger.warning("New Summarization pod connection failed", exc_info=True)
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-        )
-        response.raise_for_status()
+    # Route to summarization URL
+    response = requests.post(
+        f"{settings.SEER_SUMMARIZATION_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(body),
+        },
+    )
+    response.raise_for_status()
 
     return SummarizeIssueResponse.validate(response.json())
 

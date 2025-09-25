@@ -7,6 +7,7 @@ import {space} from 'sentry/styles/space';
 
 import SlashCommands, {type SlashCommand} from './slashCommands';
 import type {Block} from './types';
+import {getToolsStringFromBlock} from './utils';
 
 interface MinimizedStripProps {
   blocks: Block[];
@@ -39,7 +40,9 @@ function MinimizedStrip({
   const lastAssistantMessage = blocks
     .slice()
     .reverse()
-    .find(block => block.message.role === 'assistant');
+    .find(
+      block => block.message.role === 'assistant' || block.message.role === 'tool_use'
+    );
 
   useEffect(() => {
     if (isInputMode && inputRef.current) {
@@ -189,7 +192,9 @@ function MinimizedStrip({
       return 'Ask Seer anything about your app...';
     }
 
-    const content = lastAssistantMessage.message.content;
+    const content =
+      lastAssistantMessage.message.content ||
+      getToolsStringFromBlock(lastAssistantMessage).join(', ');
     // Remove markdown and limit to one line
     const cleanContent = content
       .replace(/[#*`\n]/g, ' ')
@@ -207,6 +212,7 @@ function MinimizedStrip({
       transition={{duration: 0.2, ease: 'easeInOut'}}
       onClick={handleStripClick}
       isInputMode={isInputMode}
+      data-seer-explorer-root=""
     >
       {isInputMode ? (
         <InputRow>

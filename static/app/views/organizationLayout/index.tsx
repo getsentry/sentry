@@ -11,17 +11,14 @@ import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboa
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
@@ -43,12 +40,6 @@ function OrganizationLayout({children}: Props) {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const prefersStackedNav = usePrefersStackedNav();
-  const App = prefersStackedNav ? AppLayout : LegacyAppLayout;
-
-  useRouteAnalyticsParams({
-    prefers_stacked_navigation: prefersStackedNav,
-  });
 
   useInitSentryToolbar(organization);
 
@@ -56,7 +47,7 @@ function OrganizationLayout({children}: Props) {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
         <GlobalDrawer>
-          <App organization={organization}>{children}</App>
+          <AppLayout organization={organization}>{children}</AppLayout>
         </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
@@ -96,22 +87,6 @@ function AppLayout({children, organization}: LayoutProps) {
       </AppContainer>
       {organization ? <AppDrawers /> : null}
     </NavContextProvider>
-  );
-}
-
-function LegacyAppLayout({children, organization}: LayoutProps) {
-  useReleasesDrawer();
-
-  return (
-    <div className="app">
-      <DemoHeader />
-      {organization && <OrganizationHeader organization={organization} />}
-      <Sidebar />
-      <AppBodyContent>
-        <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
-      </AppBodyContent>
-      <Footer />
-    </div>
   );
 }
 

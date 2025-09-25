@@ -2,6 +2,7 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Container} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
@@ -61,10 +62,10 @@ function PaymentHistory({organization, subscription}: Props) {
 
   if (isPending) {
     return (
-      <Fragment>
+      <Container>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </Container>
     );
   }
 
@@ -78,7 +79,7 @@ function PaymentHistory({organization, subscription}: Props) {
   }
 
   return (
-    <Fragment>
+    <Container>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div className="ref-payment-list" data-test-id="payment-list">
         <PanelTable
@@ -132,7 +133,7 @@ function PaymentHistory({organization, subscription}: Props) {
 
         {paymentsPageLinks && <Pagination pageLinks={paymentsPageLinks} />}
       </div>
-    </Fragment>
+    </Container>
   );
 }
 
