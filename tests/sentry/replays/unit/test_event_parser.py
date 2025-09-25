@@ -920,6 +920,25 @@ def test_which() -> None:
     }
     assert which(event) == EventType.MUTATIONS
 
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "category": "ui.tap",
+                "timestamp": 17585239875.928,
+                "message": "add_attachment",
+                "data": {
+                    "view.class": "androidx.appcompat.widget.AppCompatButton",
+                    "view.id": "add_attachment",
+                },
+            },
+        },
+    }
+
+    assert which(event) == EventType.TAP
+
     assert which({}) == EventType.UNKNOWN
 
 

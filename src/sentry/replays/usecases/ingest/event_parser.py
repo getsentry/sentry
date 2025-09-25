@@ -75,7 +75,7 @@ class ParsedEventMeta:
     mutation_events: list[MutationEvent]
     options_events: list[dict[str, Any]]
     request_response_sizes: list[tuple[Any, Any]]
-    taps: list[TapEvent]
+    tap_events: list[TapEvent]
 
 
 class EventContext(TypedDict):
