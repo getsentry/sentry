@@ -65,11 +65,6 @@ def debug_output(msg: str) -> None:
 
 
 def multiprocess_worker(task_queue: _WorkQueue) -> None:
-    # Configure within each Process
-    from sentry.runner import configure
-
-    configure()
-
     while True:
         task = task_queue.get()
         if task == _STOP_WORKER:
