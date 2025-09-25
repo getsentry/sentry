@@ -17,6 +17,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.constants import ObjectStatus, SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -589,18 +590,22 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
-        integration = Integration.objects.get(
-            id=integration_id,
-            provider__in=["github", "github_enterprise"],
-            status=ObjectStatus.ACTIVE,
-        )
-
-        if integration is None:
+        try:
+            integration = Integration.objects.get(
+                id=integration_id,
+                provider__in=["github", "github_enterprise"],
+                status=ObjectStatus.ACTIVE,
+            )
+        except Integration.DoesNotExist:
             return None
 
         installation = integration.get_installation(organization_id=organization_id)
-
-        if installation is None:
+        # Get installation doesn't actually check if the integration is
+        # associated with the organization, so this validates that it does,
+        # and caches the org_integration preemptively.
+        try:
+            installation.org_integration
+        except OrganizationIntegrationNotFound:
             return None
 
         installation.get_client().get_access_token(
