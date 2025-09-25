@@ -81,6 +81,16 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
 
 def process_deletion_task(model_name: str, chunk: Sequence[int]) -> None:
+    # Configure sentry if we're not running inside of pytest
+    # Tests already configure the app before calling _cleanup(),
+    # thus, we do it here to avoid conflicts when running tests
+    import sys
+
+    if "pytest" not in sys.modules:
+        from sentry.runner import configure
+
+        configure()
+
     from sentry import deletions, models, similarity
     from sentry.utils.imports import import_string
 
@@ -194,13 +204,7 @@ def _cleanup(
     if not disable_multiprocessing:
         # Make sure we fork off multiprocessing pool
         # before we import or configure the app
-        pool: list[Process] = []
-        task_queue: _WorkQueue = Queue(1000)
-        for _ in range(concurrency):
-            p = Process(target=multiprocess_worker, args=(task_queue,))
-            p.daemon = True
-            p.start()
-            pool.append(p)
+        pool, task_queue = start_pool(concurrency)
 
     try:
 
@@ -374,13 +378,7 @@ def _cleanup(
 
     finally:
         if not disable_multiprocessing:
-            # Shut down our pool
-            for _ in pool:
-                task_queue.put(_STOP_WORKER)
-
-            # And wait for it to drain
-            for p in pool:
-                p.join()
+            stop_pool(pool, task_queue)
 
     if timed and start_time:
         duration = int(time.time() - start_time)
@@ -406,6 +404,26 @@ def _cleanup(
 
     if transaction:
         transaction.__exit__(None, None, None)
+
+
+def start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
+    pool: list[Process] = []
+    task_queue: _WorkQueue = Queue(1000)
+    for _ in range(concurrency):
+        p = Process(target=multiprocess_worker, args=(task_queue,))
+        p.daemon = True
+        p.start()
+        pool.append(p)
+    return pool, task_queue
+
+
+def stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
+    # Stop the pool
+    for _ in pool:
+        task_queue.put(_STOP_WORKER)
+    # And wait for it to drain
+    for p in pool:
+        p.join()
 
 
 def remove_expired_values_for_lost_passwords(
