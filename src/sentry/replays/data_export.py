@@ -27,6 +27,8 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
+from sentry.models.files.utils import get_storage
 from sentry.utils.retries import ConditionalRetryPolicy
 from sentry.utils.snuba import raw_snql_query
 
@@ -409,6 +411,18 @@ def generate_ninety_days_pairs(dt: datetime) -> Iterator[tuple[datetime, datetim
         end = end + timedelta(days=1)
 
 
+def save_to_gcs(destination_bucket: str, filename: str, contents: str) -> None:
+    backend = options.get("replay.storage.backend")
+    if backend:
+        storage_options = {"backend": backend, "options": options.get("replay.storage.options")}
+    else:
+        storage_options = None
+
+    storage = get_storage(storage_options)
+    storage.bucket_name = destination_bucket
+    storage.save(filename, io.BytesIO(contents.encode()))
+
+
 @instrumented_task
 def export_replay_row_set_async(
     project_id: int,
@@ -419,8 +433,8 @@ def export_replay_row_set_async(
     destination_bucket: str,
     num_pages: int,
 ):
-    gcs_bucket_writer = lambda a, b: None
-    export_replay_row_set(project_id, start, end, limit, offset, gcs_bucket_writer, num_pages)
+    writer_fn = lambda filename, contents: save_to_gcs(destination_bucket, filename, contents)
+    export_replay_row_set(project_id, start, end, limit, offset, writer_fn, num_pages)
 
 
 @instrumented_task
@@ -464,19 +478,6 @@ def export_replay_blob_data[T](
             job_duration=job_duration,
             do_create_transfer_job=do_create_transfer_job,
         )
-
-
-def get_organization(organization_id: int) -> Organization | None:
-    try:
-        return Organization.objects.filter(organization_id=organization_id).get()
-    except Organization.DoesNotExist:
-        return None
-
-
-def get_projects(organization_id: int) -> list[Project]:
-    return Project.objects.filter(
-        organization_id=organization_id, flags=F("flags").bitor(Project.flags.has_replays)
-    )
 
 
 def export_replay_data(
