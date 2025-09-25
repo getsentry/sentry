@@ -25,6 +25,12 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export const DATASET_PARAM = 'queryDataset';
 
+const DATASET_LABEL_MAP = {
+  [SavedQueryDatasets.ERRORS]: t('Errors'),
+  [SavedQueryDatasets.TRANSACTIONS]: t('Transactions'),
+  [SavedQueryDatasets.DISCOVER]: t('Unknown'),
+};
+
 type Props = {
   eventView: EventView;
   isHomepage: boolean | undefined;
