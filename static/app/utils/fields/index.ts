@@ -292,6 +292,7 @@ export enum FieldValueType {
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
+  CURRENCY = 'currency',
 }
 
 export enum WebVital {

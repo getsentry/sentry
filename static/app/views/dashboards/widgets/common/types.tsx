@@ -14,6 +14,7 @@ type AttributeValueType =
   | 'size'
   | 'rate'
   | 'score'
+  | 'currency'
   | null;
 
 type AttributeValueUnit = DataUnit | null;
