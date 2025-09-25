@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T19:48:24.238693+00:00'
+created: '2025-09-25T07:58:54.496647+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -21,11 +21,13 @@ variants:
     component:
       contributes: false
       hint: ignored because custom server fingerprint takes precedence
+    hint: ignored because custom server fingerprint takes precedence
     type: component
   custom_fingerprint:
     client_values:
     - my-route
     - '{{ default }}'
+    hint: null
     matched_rule: release:"foo.bar@*" -> "foo.bar-release"
     type: custom_fingerprint
     values:
@@ -34,4 +36,5 @@ variants:
     component:
       contributes: false
       hint: ignored because custom server fingerprint takes precedence
+    hint: ignored because custom server fingerprint takes precedence
     type: component

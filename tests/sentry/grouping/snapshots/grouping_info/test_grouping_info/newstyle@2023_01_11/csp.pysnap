@@ -1,5 +1,5 @@
 ---
-created: '2025-09-19T05:53:38.718855+00:00'
+created: '2025-09-24T22:53:02.525237+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -77,6 +77,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "URL",
     "hash": "666766514295bb52812324097cdaf53e",
+    "hint": null,
     "key": "default",
     "type": "component"
   }
