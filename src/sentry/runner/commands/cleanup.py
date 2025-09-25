@@ -196,8 +196,9 @@ def _cleanup(
     if silent:
         os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
+    pool = None
+    task_queue = None
     if not disable_multiprocessing:
-
         pool, task_queue = start_pool(concurrency)
 
     try:
@@ -410,7 +411,9 @@ def start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
     return pool, task_queue
 
 
-def stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
+def stop_pool(pool: Sequence[Process] | None, task_queue: _WorkQueue | None) -> None:
+    if pool is None or task_queue is None:
+        return
     # Stop the pool
     for _ in pool:
         task_queue.put(_STOP_WORKER)
@@ -520,7 +523,9 @@ def remove_cross_project_models(
     from sentry.models.artifactbundle import ArtifactBundle
 
     # These models span across projects, so let's skip them
-    deletes.remove((ArtifactBundle, "date_added", "date_added"))
+    artifact_bundle_entry = (ArtifactBundle, "date_added", "date_added")
+    if artifact_bundle_entry in deletes:
+        deletes.remove(artifact_bundle_entry)
     return deletes
 
 
@@ -710,4 +715,9 @@ def cleanup_unused_files(quiet: bool = False) -> None:
             continue
         if File.objects.filter(blob=blob).exists():
             continue
-        blob.delete()
+        # Handle concurrent deletion gracefully
+        try:
+            blob.delete()
+        except FileBlob.DoesNotExist:
+            # Already deleted by another process, skip
+            continue
