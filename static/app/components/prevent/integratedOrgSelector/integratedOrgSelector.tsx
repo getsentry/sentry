@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 
-const DEFAULT_ORG_LABEL = 'Select Integrated Org';
+const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 
 function AddIntegratedOrgButton() {
   return (
@@ -25,7 +25,7 @@ function AddIntegratedOrgButton() {
       priority="default"
       external
     >
-      {t('Integrated Organization')}
+      {t('GitHub Organization')}
     </LinkButton>
   );
 }
@@ -39,13 +39,13 @@ function OrgFooterMessage() {
         <IconInfo size="sm" style={{margin: '2px 0'}} />
         <div>
           <FooterInfoHeading>
-            To access{' '}
+            Access{' '}
             <ExternalLink href="https://github.com/apps/sentry-io">
-              Integrated Organization
+              GitHub Organization
             </ExternalLink>
           </FooterInfoHeading>
           <FooterInfoSubheading>
-            Ensure admins approve the installation.
+            Ensure admins approve the installation
           </FooterInfoSubheading>
         </div>
       </Flex>
