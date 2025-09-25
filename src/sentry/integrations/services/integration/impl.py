@@ -600,7 +600,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             return None
 
         installation = integration.get_installation(organization_id=organization_id)
-        # Get installation doesn't actually check if the integration is
+        # get_installation doesn't actually check if the integration is
         # associated with the organization, so this validates that it does,
         # and caches the org_integration preemptively.
         try:
