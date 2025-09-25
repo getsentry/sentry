@@ -326,7 +326,7 @@ const Container = styled('div')`
 
 Alert.Container = Container;
 
-type DistributiveOmit<TObject, TKey extends keyof TObject> = TObject extends any
+type DistributiveOmit<TObject, TKey extends keyof TObject> = TObject extends unknown
   ? Omit<TObject, TKey>
   : never;
 
