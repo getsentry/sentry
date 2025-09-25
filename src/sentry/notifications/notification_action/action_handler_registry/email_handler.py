@@ -9,6 +9,7 @@ from sentry.workflow_engine.types import ActionHandler, ConfigTransformer, Workf
 
 @action_handler_registry.register(Action.Type.EMAIL)
 class EmailActionHandler(ActionHandler):
+    _config_transformer: ConfigTransformer | None = None
 
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -52,9 +53,13 @@ class EmailActionHandler(ActionHandler):
 
     group = ActionHandler.Group.NOTIFICATION
 
-    @staticmethod
-    def get_config_transformer() -> ConfigTransformer | None:
-        return TargetTypeConfigTransformer.from_config_schema(EmailActionHandler.config_schema)
+    @classmethod
+    def get_config_transformer(cls) -> ConfigTransformer | None:
+        if cls._config_transformer is None:
+            cls._config_transformer = TargetTypeConfigTransformer.from_config_schema(
+                cls.config_schema
+            )
+        return cls._config_transformer
 
     @staticmethod
     def execute(

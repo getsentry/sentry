@@ -94,14 +94,14 @@ class TestTransformConfigSchemaTargetTypeToApi(TestCase):
         assert result["properties"]["target_type"]["enum"] == ["specific"]
 
     def test_no_properties(self) -> None:
-        """Test schema without properties should raise ValueError."""
+        """Test schema without properties raises ValueError."""
         config_schema = {"type": "object"}
 
         with pytest.raises(ValueError):
             transform_config_schema_target_type_to_api(config_schema)
 
     def test_no_target_type(self) -> None:
-        """Test schema without target_type should raise ValueError."""
+        """Test schema without target_type raises ValueError."""
         config_schema = {
             "type": "object",
             "properties": {"other_field": {"type": "string"}},
@@ -111,31 +111,36 @@ class TestTransformConfigSchemaTargetTypeToApi(TestCase):
             transform_config_schema_target_type_to_api(config_schema)
 
     def test_invalid_target_type_spec(self) -> None:
-        """Test invalid target_type specification."""
+        """Test invalid target_type specification raises error."""
         config_schema = {
             "type": "object",
             "properties": {
-                "target_type": "invalid",  # Should be a dict
+                "target_type": "invalid",  # Should be a dict, but we ignore non-dict values
             },
         }
 
+        # Should raise error since no transformation occurred
         with pytest.raises(ValueError):
             transform_config_schema_target_type_to_api(config_schema)
 
     def test_missing_type(self) -> None:
-        """Test target_type without type specification."""
+        """Test target_type without type specification (allowed for nested schemas)."""
         config_schema = {
             "type": "object",
             "properties": {
                 "target_type": {
                     "enum": [ActionTarget.SPECIFIC.value],
-                    # Missing "type"
+                    # Missing "type" - this is allowed for nested schemas like allOf.if.properties
                 },
             },
         }
 
-        with pytest.raises(ValueError):
-            transform_config_schema_target_type_to_api(config_schema)
+        result = transform_config_schema_target_type_to_api(config_schema)
+
+        # Should still transform the enum values
+        assert result["properties"]["target_type"]["enum"] == ["specific"]
+        # Should not have a type field since it wasn't present originally
+        assert "type" not in result["properties"]["target_type"]
 
     def test_wrong_type(self) -> None:
         """Test target_type with non-integer type."""
@@ -227,6 +232,92 @@ class TestTransformConfigSchemaTargetTypeToApi(TestCase):
         with pytest.raises(ValueError, match="Unknown ActionTarget value: 999"):
             transform_config_schema_target_type_to_api(config_schema)
 
+    def test_transform_nested_allof_schema(self) -> None:
+        """Test transforming schema with target_type in allOf.if.properties."""
+        config_schema = {
+            "type": "object",
+            "properties": {
+                "target_identifier": {"type": ["string", "null"]},
+                "target_display": {"type": ["null"]},
+                "target_type": {
+                    "type": ["integer"],
+                    "enum": [
+                        ActionTarget.USER.value,
+                        ActionTarget.TEAM.value,
+                        ActionTarget.ISSUE_OWNERS.value,
+                    ],
+                },
+            },
+            "required": ["target_type"],
+            "additionalProperties": False,
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "target_type": {
+                                "enum": [ActionTarget.USER.value, ActionTarget.TEAM.value]
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {"target_identifier": {"type": "string"}},
+                        "required": ["target_type", "target_identifier"],
+                    },
+                },
+            ],
+        }
+
+        result = transform_config_schema_target_type_to_api(config_schema)
+
+        # Check main properties target_type is transformed
+        assert result["properties"]["target_type"]["type"] == ["string"]
+        assert set(result["properties"]["target_type"]["enum"]) == {"user", "team", "issue_owners"}
+
+        # Check nested allOf.if.properties.target_type is transformed
+        nested_target_type = result["allOf"][0]["if"]["properties"]["target_type"]
+        assert nested_target_type["enum"] == ["user", "team"]
+
+        # Verify other parts are preserved
+        assert result["properties"]["target_identifier"] == {"type": ["string", "null"]}
+        assert result["required"] == ["target_type"]
+        assert result["additionalProperties"] is False
+
+    def test_transform_multiple_allof_conditions(self) -> None:
+        """Test transforming schema with multiple allOf conditions."""
+        config_schema = {
+            "type": "object",
+            "properties": {
+                "target_type": {
+                    "type": "integer",
+                    "enum": [ActionTarget.SPECIFIC.value],
+                },
+            },
+            "allOf": [
+                {
+                    "if": {"properties": {"target_type": {"enum": [ActionTarget.USER.value]}}},
+                    "then": {"properties": {"extra_field": {"type": "string"}}},
+                },
+                {
+                    "if": {"properties": {"target_type": {"enum": [ActionTarget.TEAM.value]}}},
+                    "then": {"properties": {"another_field": {"type": "number"}}},
+                },
+            ],
+        }
+
+        result = transform_config_schema_target_type_to_api(config_schema)
+
+        # Check main properties target_type is transformed
+        assert result["properties"]["target_type"]["enum"] == ["specific"]
+        assert result["properties"]["target_type"]["type"] == "string"
+
+        # Check both allOf conditions are transformed
+        assert result["allOf"][0]["if"]["properties"]["target_type"]["enum"] == ["user"]
+        assert result["allOf"][1]["if"]["properties"]["target_type"]["enum"] == ["team"]
+
+        # Verify other parts are preserved
+        assert result["allOf"][0]["then"]["properties"]["extra_field"]["type"] == "string"
+        assert result["allOf"][1]["then"]["properties"]["another_field"]["type"] == "number"
+
 
 class TestTargetTypeConfigTransformerFromConfigSchema(TestCase):
     def test_from_config_schema_success(self) -> None:
@@ -248,7 +339,7 @@ class TestTargetTypeConfigTransformerFromConfigSchema(TestCase):
         assert transformer.api_schema["properties"]["target_type"]["enum"] == ["specific"]
 
     def test_from_config_schema_no_target_type(self) -> None:
-        """Test returns None when no target_type field."""
+        """Test raises error when no target_type field."""
         config_schema = {
             "type": "object",
             "properties": {
@@ -260,7 +351,7 @@ class TestTargetTypeConfigTransformerFromConfigSchema(TestCase):
             TargetTypeConfigTransformer.from_config_schema(config_schema)
 
     def test_from_config_schema_invalid_structure(self) -> None:
-        """Test returns None for invalid structure."""
+        """Test raises errors for schemas without target_type fields."""
         # No properties
         with pytest.raises(ValueError):
             TargetTypeConfigTransformer.from_config_schema({"type": "object"})

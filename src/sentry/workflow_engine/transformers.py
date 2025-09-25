@@ -15,30 +15,33 @@ def action_target_strings(lst: list[ActionTarget]) -> list[str]:
     return [action_target_to_string[a] for a in lst]
 
 
-def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) -> dict[str, Any]:
+def _transform_target_type_spec(target_type_spec: dict[str, Any]) -> dict[str, Any]:
     """
-    Transform a config schema's target_type field from integer enum to string enum.
+    Transform a single target_type field specification from integer enum to string enum.
 
     Args:
-        config_schema: Schema with integer target_type field
+        target_type_spec: Target type specification dict
 
     Returns:
-        New schema with string target_type field
-
-    Raises:
-        ValueError: If target_type field is malformed or contains invalid enum values
+        Transformed target type specification with string enums
     """
-    target_type_spec = dictpath.walk(config_schema, "properties", "target_type").is_type(dict).get()
+    # Extract type specification (may not be present in some nested contexts)
+    type_spec_result = dictpath.walk(target_type_spec, "type")
 
-    # Extract type specification
-    type_spec = dictpath.walk(target_type_spec, "type").get()
+    # Handle cases where type is not specified (e.g., in allOf.if.properties)
+    if type_spec_result.failed():
+        type_spec = None
+    else:
+        type_spec = type_spec_result.get()
 
-    # Handle both single type and list of types
-    if isinstance(type_spec, list):
-        if "integer" not in type_spec:
-            raise ValueError("target_type field must include 'integer' type")
-    elif type_spec != "integer":
-        raise ValueError("target_type field must be of type 'integer'")
+    # Validate type if present
+    if type_spec is not None:
+        # Handle both single type and list of types
+        if isinstance(type_spec, list):
+            if "integer" not in type_spec:
+                raise ValueError("target_type field must include 'integer' type")
+        elif type_spec != "integer":
+            raise ValueError("target_type field must be of type 'integer'")
 
     # Extract enum values
     enum_values = dictpath.walk(target_type_spec, "enum").list_of(int).get()
@@ -58,25 +61,75 @@ def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) ->
             raise ValueError(f"Unknown ActionTarget value: {val}")
         action_targets.append(matching_target)
 
-    # Generate API schema by copying config schema and transforming target_type field
-    api_schema = copy.deepcopy(config_schema)
-
-    # Replace target_type specification with string version
+    # Create transformed specification
     api_target_type_spec = copy.deepcopy(target_type_spec)
 
-    # Convert type from integer to string
-    if isinstance(type_spec, list):
-        # Replace "integer" with "string" in the type list
-        api_type_spec: list[str] | str = [t if t != "integer" else "string" for t in type_spec]
-    else:
-        api_type_spec = "string"
+    # Convert type from integer to string if present
+    if type_spec is not None:
+        if isinstance(type_spec, list):
+            # Replace "integer" with "string" in the type list
+            api_type_spec: list[str] | str = [t if t != "integer" else "string" for t in type_spec]
+        else:
+            api_type_spec = "string"
+        api_target_type_spec["type"] = api_type_spec
 
-    api_target_type_spec["type"] = api_type_spec
+    # Always convert enum values to strings
     api_target_type_spec["enum"] = action_target_strings(action_targets)
 
-    api_schema["properties"]["target_type"] = api_target_type_spec
+    return api_target_type_spec
 
-    return api_schema
+
+def _transform_target_type_in_specific_locations(
+    schema_dict: dict[str, Any],
+) -> tuple[dict[str, Any], bool]:
+    """
+    Transform target_type fields in specific known locations:
+    1. Top-level properties.target_type
+    2. allOf[].if.properties.target_type
+    """
+    result = copy.deepcopy(schema_dict)
+    transformed = False
+
+    # 1. Transform top-level properties.target_type
+    if (
+        target_type_spec := dictpath.walk(result, "properties", "target_type")
+        .is_type(dict)
+        .get_or_none()
+    ):
+        result["properties"]["target_type"] = _transform_target_type_spec(target_type_spec)
+        transformed = True
+
+    # 2. Transform allOf[].if.properties.target_type
+    if all_of_list := dictpath.walk(result, "allOf").list_of(dict).get_or_none():
+        for i, item in enumerate(all_of_list):
+            if (
+                target_type_spec := dictpath.walk(item, "if", "properties", "target_type")
+                .is_type(dict)
+                .get_or_none()
+            ):
+                result["allOf"][i]["if"]["properties"]["target_type"] = _transform_target_type_spec(
+                    target_type_spec
+                )
+                transformed = True
+
+    return result, transformed
+
+
+def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) -> dict[str, Any]:
+    """
+    Transform a config schema's target_type fields from integer enum to string enum.
+    Raises:
+        ValueError: If no target_type fields found or target_type field is malformed
+    """
+    transformed_schema, transformation_occurred = _transform_target_type_in_specific_locations(
+        config_schema
+    )
+
+    # Check if any transformation actually occurred
+    if not transformation_occurred:
+        raise ValueError("No target_type fields found to transform - transformer is unnecessary")
+
+    return transformed_schema
 
 
 class TargetTypeConfigTransformer(ConfigTransformer):

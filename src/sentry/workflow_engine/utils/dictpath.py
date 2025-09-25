@@ -29,6 +29,10 @@ class Result[T](Protocol):
         """Extract the value, raising an exception on failure unless fallback is provided."""
         ...
 
+    def get_or_none(self) -> T | None:
+        """Extract the value, returning None on failure."""
+        ...
+
     def list_of[V](self, t: type[V]) -> Result[list[V]]:
         """Validate that the contained value is a list of the expected type."""
         ...
@@ -45,6 +49,9 @@ class _FailedResultImpl[T]:
         if fallback is not None:
             return fallback
         raise self._exc
+
+    def get_or_none(self) -> T | None:
+        return None
 
     def is_type[V](self, t: type[V]) -> Result[V]:
         return cast(Result[V], self)
@@ -71,6 +78,9 @@ class _SuccessResultImpl[T]:
         return False
 
     def get(self, fallback: T | None = None) -> T:
+        return self._v
+
+    def get_or_none(self) -> T | None:
         return self._v
 
     def is_type[V](self, t: type[V]) -> Result[V]:

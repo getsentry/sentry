@@ -96,9 +96,9 @@ class ActionHandler:
 
     group: ClassVar[Group]
 
-    @staticmethod
-    def get_config_transformer() -> ConfigTransformer | None:
-        raise NotImplementedError
+    @classmethod
+    def get_config_transformer(cls) -> ConfigTransformer | None:
+        return None
 
     @staticmethod
     def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
