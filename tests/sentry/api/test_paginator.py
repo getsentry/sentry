@@ -965,7 +965,7 @@ class TestEAPPageTokenPaginator:
     cls = EAPPageTokenPaginator
 
     def test_first_page_empty(self) -> None:
-        def data_fn(cursor):
+        def data_fn(limit, page_token):
             return {
                 "data": [],
                 "page_token": PageToken(end_pagination=True),
@@ -978,7 +978,7 @@ class TestEAPPageTokenPaginator:
         assert page.next.has_results is False
 
     def test_first_page_all_data(self) -> None:
-        def data_fn(cursor):
+        def data_fn(limit, page_token):
             return {
                 "data": [1, 2, 3],
                 "page_token": PageToken(end_pagination=True),
@@ -991,12 +991,18 @@ class TestEAPPageTokenPaginator:
         assert page.next.has_results is False
 
     def test_first_page_partial_data(self) -> None:
-        page_token = PageToken(filter_offset=TraceItemFilter(and_filter=AndFilter()))
+        expected_page_token = PageToken(filter_offset=TraceItemFilter(and_filter=AndFilter()))
 
-        def data_fn(cursor):
+        def data_fn(limit, page_token):
+            if page_token is None:
+                return {
+                    "data": [1, 2, 3],
+                    "page_token": expected_page_token,
+                }
+
             return {
-                "data": [1, 2, 3],
-                "page_token": page_token,
+                "data": [4, 5],
+                "page_token": PageToken(end_pagination=True),
             }
 
         paginator = self.cls(data_fn=data_fn)
@@ -1005,6 +1011,8 @@ class TestEAPPageTokenPaginator:
         assert page.prev.has_results is False
         assert page.next.has_results is True
 
-        next_page_token = PageToken()
-        next_page_token.ParseFromString(base64.b64decode(page.next.value.encode("utf-8")))
-        assert next_page_token == page_token
+        actual_page_token = PageToken()
+        actual_page_token.ParseFromString(base64.b64decode(page.next.value.encode("utf-8")))
+        assert actual_page_token == expected_page_token
+
+        page = paginator.get_result(limit=3, cursor=page.next)
