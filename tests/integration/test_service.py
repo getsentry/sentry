@@ -66,6 +66,7 @@ class IntegrationServiceTest(TestCase):
             organization_id=self.organization.id,
         )
 
+        assert rpc_integration is not None
         assert rpc_integration.metadata["access_token"] == "token_2"
         assert rpc_integration.metadata["expires_at"] == "2025-01-01T06:22:00"
         assert rpc_integration.metadata["permissions"] == {
@@ -104,6 +105,7 @@ class IntegrationServiceTest(TestCase):
             organization_id=self.organization.id,
         )
 
+        assert rpc_integration is not None
         assert rpc_integration.metadata["access_token"] == "token_refreshed"
         assert rpc_integration.metadata["expires_at"] == "2025-01-01T06:32:00"
         assert rpc_integration.metadata["permissions"] == {
@@ -127,6 +129,7 @@ class IntegrationServiceTest(TestCase):
             organization_id=self.organization.id,
         )
 
+        assert rpc_integration is not None
         assert rpc_integration.metadata["access_token"] == "token_valid"
         assert rpc_integration.metadata["expires_at"] == "2025-01-01T05:32:01Z"
         assert rpc_integration.metadata["permissions"] == {
@@ -165,6 +168,7 @@ class IntegrationServiceTest(TestCase):
             organization_id=self.organization.id,
         )
 
+        assert rpc_integration is not None
         assert rpc_integration.metadata["access_token"] == "token_new"
         assert rpc_integration.metadata["expires_at"] == "2025-01-01T06:22:00"
         assert rpc_integration.metadata["permissions"] == {
