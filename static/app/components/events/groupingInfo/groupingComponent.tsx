@@ -35,7 +35,7 @@ function GroupingComponent({component, showNonContributing}: Props) {
           className="collapse-button"
           size="xs"
           priority="link"
-          icon={<IconChevron direction={folded ? 'right' : 'down'} legacySize="12px" />}
+          icon={<IconChevron direction={folded ? 'right' : 'down'} legacySize="10px" />}
           onClick={() => setFolded(!folded)}
           aria-label={folded ? t('expand stacktrace') : t('collapse stacktrace')}
         />
