@@ -142,33 +142,37 @@ def update_subscription_in_snuba(
         aggregate = (
             old_aggregate if old_aggregate is not None else subscription.snuba_query.aggregate
         )
-        old_entity_subscription = get_entity_subscription(
-            query_type,
-            dataset,
-            aggregate,
-            subscription.snuba_query.time_window,
-            extra_fields={
-                "org_id": subscription.project.organization_id,
-                "event_types": subscription.snuba_query.event_types,
-            },
-        )
-        old_entity_key = (
-            EntityKey.EAPItems
-            if dataset == Dataset.EventsAnalyticsPlatform
-            else get_entity_key_from_query_builder(
-                old_entity_subscription.build_query_builder(
-                    query,
-                    [subscription.project_id],
-                    None,
-                    {"organization_id": subscription.project.organization_id},
-                ),
+
+        try:
+            old_entity_subscription = get_entity_subscription(
+                query_type,
+                dataset,
+                aggregate,
+                subscription.snuba_query.time_window,
+                extra_fields={
+                    "org_id": subscription.project.organization_id,
+                    "event_types": subscription.snuba_query.event_types,
+                },
             )
-        )
-        _delete_from_snuba(
-            Dataset(dataset),
-            subscription.subscription_id,
-            old_entity_key,
-        )
+            old_entity_key = (
+                EntityKey.EAPItems
+                if dataset == Dataset.EventsAnalyticsPlatform
+                else get_entity_key_from_query_builder(
+                    old_entity_subscription.build_query_builder(
+                        query,
+                        [subscription.project_id],
+                        None,
+                        {"organization_id": subscription.project.organization_id},
+                    ),
+                )
+            )
+            _delete_from_snuba(
+                Dataset(dataset),
+                subscription.subscription_id,
+                old_entity_key,
+            )
+        except Exception:
+            pass
 
     subscription_id = _create_in_snuba(subscription)
     subscription.update(
