@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
@@ -59,8 +59,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }}
             />
             <StartTextRow>
-              <IconSeer variant="waiting" color="textColor" size="lg" />
-              <Fragment>{t('Need help digging deeper?')}</Fragment>
+              <IconSeer variant="waiting" color="textColor" size="xl" />
             </StartTextRow>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
@@ -74,7 +73,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                   handleSubmit(e);
                 }
               }}
-              placeholder="(Optional) Share helpful context here..."
+              placeholder="Share helpful context here..."
               maxLength={4096}
               maxRows={10}
               size="sm"
@@ -94,7 +93,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }
               analyticsParams={{group_id: groupId}}
             >
-              {t('Start Seer')}
+              {t('Start Root Cause Analysis')}
             </StyledButton>
           </InputWrapper>
         </Container>
@@ -143,6 +142,8 @@ const StartTextRow = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  width: 100%;
+  justify-content: center;
 `;
 
 const BackgroundStar = styled('img')`
@@ -160,8 +161,8 @@ const StyledArrow = styled(IconArrow)`
 
 const InputWrapper = styled('form')`
   display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.25)};
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
 `;
 
 const StyledInput = styled(TextArea)`

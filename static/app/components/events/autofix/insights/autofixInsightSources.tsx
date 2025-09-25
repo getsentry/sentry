@@ -20,6 +20,8 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 interface AutofixInsightSourcesProps {
@@ -71,6 +73,8 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
   const [showThoughtsPopup, setShowThoughtsPopup] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const thoughtsButtonRef = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -93,161 +97,23 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
     return null;
   }
 
-  const sourceCards = [];
+  // Generate source cards using the reusable function
+  const sourceCardData = generateSourceCards(sources, codeUrls, {location, navigate});
 
-  // Stacktrace Card
-  if (sources?.stacktrace_used) {
-    sourceCards.push(
-      <SourceCard
-        key="stacktrace"
-        onClick={() => {
-          window.location.hash = '';
-          window.location.hash = SectionKey.EXCEPTION;
-        }}
-        size="xs"
-        icon={<IconStack size="xs" />}
-      >
-        {t('Stacktrace')}
-      </SourceCard>
-    );
-  }
+  // Convert to JSX elements
+  const sourceCards = sourceCardData.map(sourceCard => (
+    <SourceCard
+      key={sourceCard.key}
+      onClick={sourceCard.onClick}
+      size="xs"
+      icon={sourceCard.icon}
+      priority={sourceCard.isPrimary ? 'primary' : 'default'}
+    >
+      {sourceCard.label}
+    </SourceCard>
+  ));
 
-  // Breadcrumbs Card
-  if (sources?.breadcrumbs_used) {
-    sourceCards.push(
-      <SourceCard
-        key="breadcrumbs"
-        onClick={() => {
-          window.location.hash = '';
-          window.location.hash = SectionKey.BREADCRUMBS;
-        }}
-        size="xs"
-        icon={<IconList size="xs" />}
-      >
-        {t('Breadcrumbs')}
-      </SourceCard>
-    );
-  }
-
-  // HTTP Request Card
-  if (sources?.http_request_used) {
-    sourceCards.push(
-      <SourceCard
-        key="http-request"
-        onClick={() => {
-          window.location.hash = '';
-          window.location.hash = SectionKey.REQUEST;
-        }}
-        size="xs"
-        icon={<IconGlobe size="xs" />}
-      >
-        {t('HTTP Request')}
-      </SourceCard>
-    );
-  }
-
-  // Trace Event Cards
-  sources?.trace_event_ids_used?.forEach(id => {
-    sourceCards.push(
-      <SourceCard
-        key={`trace-${id}`}
-        onClick={() => {
-          if (sources?.event_trace_id) {
-            window.open(
-              `/issues/trace/${sources.event_trace_id}?node=txn-${id}`,
-              '_blank'
-            );
-          }
-        }}
-        size="xs"
-        icon={<IconSpan size="xs" />}
-      >
-        {t('Trace: %s', id.substring(0, 7))}
-      </SourceCard>
-    );
-  });
-
-  // Profile ID Cards
-  sources?.profile_ids_used?.forEach(id => {
-    sourceCards.push(
-      <SourceCard
-        key={`profile-${id}`}
-        size="xs"
-        icon={<IconProfiling size="xs" />}
-        onClick={() =>
-          window.open(`/explore/profiling/profile/${id}/flamegraph`, '_blank')
-        }
-      >
-        {t('Profile: %s', id.substring(0, 7))}
-      </SourceCard>
-    );
-  });
-
-  // Connected Error ID Cards
-  sources?.connected_error_ids_used?.forEach(id => {
-    sourceCards.push(
-      <SourceCard
-        key={`error-${id}`}
-        size="xs"
-        onClick={() => {
-          if (sources?.event_trace_id) {
-            window.open(
-              `/issues/trace/${sources.event_trace_id}?node=error-${id}`,
-              '_blank'
-            );
-          }
-        }}
-        icon={<IconFatal size="xs" />}
-      >
-        {t('Error: %s', id.substring(0, 7))}
-      </SourceCard>
-    );
-  });
-
-  // Code URL Cards
-  sources?.code_used_urls?.forEach((url, index) => {
-    sourceCards.push(
-      <SourceCard
-        key={`code-${index}`}
-        onClick={() => window.open(url, '_blank')}
-        size="xs"
-        icon={<IconCode size="xs" />}
-      >
-        {getCodeSourceName(url)}
-      </SourceCard>
-    );
-  });
-
-  if (codeUrls) {
-    codeUrls.forEach((url, index) => {
-      sourceCards.push(
-        <SourceCard
-          key={`passed-code-${index}`}
-          onClick={() => window.open(url, '_blank')}
-          size="xs"
-          icon={<IconCode size="xs" />}
-        >
-          {getCodeSourceName(url)}
-        </SourceCard>
-      );
-    });
-  }
-
-  // Diff URL Cards
-  sources?.diff_urls?.forEach((url, index) => {
-    sourceCards.push(
-      <SourceCard
-        key={`diff-${index}`}
-        onClick={() => window.open(url, '_blank')}
-        size="xs"
-        icon={<IconCommit size="xs" />}
-      >
-        {t('Commit %s', getCodeSourceName(url))}
-      </SourceCard>
-    );
-  });
-
-  // Thoughts Card
+  // Add thoughts card separately since it needs special handling (ref and popup)
   if (defined(sources?.thoughts) && sources?.thoughts.length > 0) {
     sourceCards.push(
       <SourceCard
@@ -312,12 +178,12 @@ const CardsContainer = styled('div')`
   width: 100%;
 `;
 
-const SourceCard = styled(Button)`
+export const SourceCard = styled(Button)<{isHighlighted?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   font-weight: ${p => p.theme.fontWeight.normal};
-
+  color: ${p => (p.isHighlighted ? p.theme.button.primary.colorActive : p.theme.subText)};
   white-space: nowrap;
   flex-shrink: 0;
 `;
@@ -374,5 +240,177 @@ const InsightTitle = styled('div')`
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
 `;
+
+export function generateSourceCards(
+  sources?: InsightSources,
+  codeUrls?: string[],
+  options?: {
+    isPrimary?: boolean;
+    location?: ReturnType<typeof useLocation>;
+    navigate?: ReturnType<typeof useNavigate>;
+  }
+) {
+  if (!sources && !codeUrls) {
+    return [];
+  }
+
+  const sourceCards = [];
+  const {isPrimary = false, location, navigate} = options || {};
+
+  // Stacktrace Card
+  if (sources?.stacktrace_used) {
+    sourceCards.push({
+      key: 'stacktrace',
+      onClick: () => {
+        if (navigate && location) {
+          navigate({
+            pathname: location.pathname,
+            query: location.query,
+            hash: SectionKey.EXCEPTION,
+          });
+          requestAnimationFrame(() => {
+            document
+              .getElementById(SectionKey.EXCEPTION)
+              ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+          });
+        }
+      },
+      icon: <IconStack size="xs" />,
+      label: t('Stacktrace'),
+      isPrimary,
+    });
+  }
+
+  // Breadcrumbs Card
+  if (sources?.breadcrumbs_used) {
+    sourceCards.push({
+      key: 'breadcrumbs',
+      onClick: () => {
+        if (navigate && location) {
+          navigate({
+            pathname: location.pathname,
+            query: location.query,
+            hash: SectionKey.REQUEST,
+          });
+          requestAnimationFrame(() => {
+            document
+              .getElementById(SectionKey.BREADCRUMBS)
+              ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+          });
+        }
+      },
+      icon: <IconList size="xs" />,
+      label: t('Breadcrumbs'),
+      isPrimary,
+    });
+  }
+
+  // HTTP Request Card
+  if (sources?.http_request_used) {
+    sourceCards.push({
+      key: 'http-request',
+      onClick: () => {
+        if (navigate && location) {
+          navigate({
+            pathname: location.pathname,
+            query: location.query,
+            hash: SectionKey.REQUEST,
+          });
+          requestAnimationFrame(() => {
+            document
+              .getElementById(SectionKey.REQUEST)
+              ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+          });
+        }
+      },
+      icon: <IconGlobe size="xs" />,
+      label: t('HTTP Request'),
+      isPrimary,
+    });
+  }
+
+  // Trace Event Cards
+  sources?.trace_event_ids_used?.forEach(id => {
+    sourceCards.push({
+      key: `trace-${id}`,
+      onClick: () => {
+        if (sources?.event_trace_id) {
+          window.open(
+            `/explore/traces/trace/${sources.event_trace_id}/?node=span-${id}&timestamp=${sources.event_trace_timestamp}`,
+            '_blank'
+          );
+        }
+      },
+      icon: <IconSpan size="xs" />,
+      label: t('Trace: %s', id.substring(0, 7)),
+      isPrimary,
+    });
+  });
+
+  // Profile ID Cards
+  sources?.profile_ids_used?.forEach(id => {
+    sourceCards.push({
+      key: `profile-${id}`,
+      icon: <IconProfiling size="xs" />,
+      onClick: () => window.open(`/explore/profiling/profile/${id}/flamegraph`, '_blank'),
+      label: t('Profile: %s', id.substring(0, 7)),
+      isPrimary,
+    });
+  });
+
+  // Connected Error ID Cards
+  sources?.connected_error_ids_used?.forEach(id => {
+    sourceCards.push({
+      key: `error-${id}`,
+      onClick: () => {
+        if (sources?.event_trace_id) {
+          window.open(
+            `/issues/trace/${sources.event_trace_id}?node=error-${id}`,
+            '_blank'
+          );
+        }
+      },
+      icon: <IconFatal size="xs" />,
+      label: t('Error: %s', id.substring(0, 7)),
+      isPrimary,
+    });
+  });
+
+  // Code URL Cards
+  sources?.code_used_urls?.forEach(url => {
+    sourceCards.push({
+      key: `code-${url}`,
+      onClick: () => window.open(url, '_blank'),
+      icon: <IconCode size="xs" />,
+      label: getCodeSourceName(url),
+      isPrimary,
+    });
+  });
+
+  if (codeUrls) {
+    codeUrls.forEach(url => {
+      sourceCards.push({
+        key: `passed-code-${url}`,
+        onClick: () => window.open(url, '_blank'),
+        icon: <IconCode size="xs" />,
+        label: getCodeSourceName(url),
+        isPrimary,
+      });
+    });
+  }
+
+  // Diff URL Cards
+  sources?.diff_urls?.forEach(url => {
+    sourceCards.push({
+      key: `diff-${url}`,
+      onClick: () => window.open(url, '_blank'),
+      icon: <IconCommit size="xs" />,
+      label: t('Commit %s', getCodeSourceName(url)),
+      isPrimary,
+    });
+  });
+
+  return sourceCards;
+}
 
 export default AutofixInsightSources;

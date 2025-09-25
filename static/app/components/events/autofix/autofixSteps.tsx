@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
-import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixOutputStream} from 'sentry/components/events/autofix/autofixOutputStream';
 import {
   AutofixRootCause,
@@ -11,6 +10,7 @@ import {
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import CodingAgentCard from 'sentry/components/events/autofix/codingAgentCard';
+import AutofixInsightCards from 'sentry/components/events/autofix/insights/autofixInsightCards';
 import {
   AutofixStepType,
   type AutofixData,
@@ -92,7 +92,6 @@ function Step({
                 <AutofixInsightCards
                   insights={step.insights}
                   hasStepBelow={hasStepBelow}
-                  hasStepAbove={hasStepAbove}
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}

@@ -364,7 +364,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
   padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
   justify-content: space-between;
 `;
@@ -386,7 +386,7 @@ const CardTitleText = styled('p')`
 const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
 `;
 
 const CardContent = styled('div')`
