@@ -1,11 +1,10 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponentChildren from './groupingComponentChildren';
@@ -75,6 +74,8 @@ const CollapseButton = styled(Button)<{folded: boolean}>`
   transition: opacity 0.2s ease;
   align-self: ${p => (p.folded ? 'center' : 'baseline')};
   color: ${p => (p.folded ? p.theme.blue300 : p.theme.subText)};
+
+  transform: ${p => (p.folded ? 'translateY(1px)' : 'translateY(2px)')};
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
