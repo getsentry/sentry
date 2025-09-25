@@ -155,7 +155,7 @@ function mergeCodeUrls(urls: string[]): Map<string, string> {
  * Deduplicates sources across multiple insights, combining boolean flags
  * and removing duplicate URLs and IDs. Also merges code URLs with overlapping ranges.
  */
-export function deduplicateSources(insights: AutofixInsight[]): InsightSources {
+function deduplicateSources(insights: AutofixInsight[]): InsightSources {
   const allSources: InsightSources = {
     breadcrumbs_used: false,
     code_used_urls: [],
@@ -250,9 +250,7 @@ export function deduplicateSources(insights: AutofixInsight[]): InsightSources {
  * Updates insights to use merged URLs from deduplication.
  * Returns a new array of insights with updated sources.
  */
-export function updateInsightsWithMergedUrls(
-  insights: AutofixInsight[]
-): AutofixInsight[] {
+function updateInsightsWithMergedUrls(insights: AutofixInsight[]): AutofixInsight[] {
   // Collect all URLs first
   const allCodeUrls: string[] = [];
   const allDiffUrls: string[] = [];
