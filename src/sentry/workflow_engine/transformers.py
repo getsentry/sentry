@@ -28,7 +28,7 @@ def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) ->
     Raises:
         ValueError: If target_type field is malformed or contains invalid enum values
     """
-    target_type_spec = dictpath.walk(config_schema, "properties", "target_type").expect(dict).get()
+    target_type_spec = dictpath.walk(config_schema, "properties", "target_type").is_type(dict).get()
 
     # Extract type specification
     type_spec = dictpath.walk(target_type_spec, "type").get()
@@ -41,15 +41,13 @@ def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) ->
         raise ValueError("target_type field must be of type 'integer'")
 
     # Extract enum values
-    enum_values = dictpath.walk(target_type_spec, "enum").expect(list).get()
+    enum_values = dictpath.walk(target_type_spec, "enum").list_of(int).get()
     if len(enum_values) == 0:
         raise ValueError("target_type enum must be a non-empty list")
 
     # Convert integer enum values to ActionTarget instances for validation
     action_targets = []
     for val in enum_values:
-        if not isinstance(val, int):
-            raise ValueError(f"All enum values must be integers, got: {val}")
         # Find the ActionTarget that matches this integer value
         matching_target = None
         for target in ActionTarget:

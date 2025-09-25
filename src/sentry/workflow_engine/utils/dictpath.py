@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, cast
 
 
 def _tname(t: type | tuple[type, ...]) -> str:
@@ -17,17 +17,21 @@ class Result[T](Protocol):
     with automatic error propagation and type-safe value extraction.
     """
 
-    def expect[V](self, t: type[V]) -> Result[V]:
+    def is_type[V](self, t: type[V]) -> Result[V]:
         """Validate that the contained value is of the expected type."""
-        raise NotImplementedError
+        ...
 
     def failed(self) -> bool:
         """Check if this result represents a failure."""
-        raise NotImplementedError
+        ...
 
     def get(self, fallback: T | None = None) -> T:
         """Extract the value, raising an exception on failure unless fallback is provided."""
-        raise NotImplementedError
+        ...
+
+    def list_of[V](self, t: type[V]) -> Result[list[V]]:
+        """Validate that the contained value is a list of the expected type."""
+        ...
 
 
 class _FailedResultImpl[T]:
@@ -42,8 +46,12 @@ class _FailedResultImpl[T]:
             return fallback
         raise self._exc
 
-    def expect[V](self, t: type[V]) -> Result[V]:
-        return _FailedResultImpl[V](self._exc)
+    def is_type[V](self, t: type[V]) -> Result[V]:
+        return cast(Result[V], self)
+        # return _FailedResultImpl[V](self._exc)
+
+    def list_of[V](self, t: type[V]) -> Result[list[V]]:
+        return _FailedResultImpl[list[V]](self._exc)
 
 
 def _dictpath_error(path: list[str], msg: str) -> ValueError:
@@ -65,12 +73,20 @@ class _SuccessResultImpl[T]:
     def get(self, fallback: T | None = None) -> T:
         return self._v
 
-    def expect[V](self, t: type[V]) -> Result[V]:
+    def is_type[V](self, t: type[V]) -> Result[V]:
         v = self._v
         if not isinstance(v, t):
             return _failure(self._path, f"Expected {_tname(t)}, got {_tname(type(v))}")
-        # TODO: can we reuse self?
-        return _SuccessResultImpl[V](self._path, v)
+        return cast(Result[V], self)
+
+    def list_of[V](self, t: type[V]) -> Result[list[V]]:
+        rr = self.is_type(list)
+        if rr.failed():
+            return rr
+        v = rr.get()
+        if not all(isinstance(item, t) for item in v):
+            return _failure(self._path, f"Expected list of {_tname(t)}, got {_tname(type(v))}")
+        return cast(Result[list[V]], self)
 
 
 def _success[T](path: list[str], v: T) -> Result[T]:

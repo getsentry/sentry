@@ -62,7 +62,7 @@ class TestActionSerializer(TestCase):
             integration_id=self.integration.id,
             config={
                 "target_identifier": "123",
-                "target_type": ActionTarget.SPECIFIC.value,
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
 
