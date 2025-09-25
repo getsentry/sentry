@@ -1,0 +1,106 @@
+{
+  "files.exclude": {
+    "*.egg-info": true,
+    "*.log": false,
+    "**/*.js.map": true,
+    "**/*.min.js": true,
+    "**/*.pyc": true,
+    "build": true,
+    "htmlcov": true,
+    "model-manifest.json": true,
+    "node_modules": true,
+    "src/sentry/locale": true,
+    "src/sentry/static/sentry/dist/": true
+  },
+  "search.followSymlinks": false,
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true,
+  "files.insertFinalNewline": true,
+
+  "[javascript][typescript][javascriptreact][typescriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+
+  "[python]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.unusedImports": "explicit"
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+
+  // auto-formatting breaks Django templates
+  // see https://github.com/Microsoft/vscode/issues/44342
+  "[html]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": false
+  },
+
+  "[less]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+
+  "[json]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "[markdown]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+
+  "[dockerfile]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true
+  },
+
+  // Exclude Specific Files from Auto-Imports
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "**/config/chartcuterie/*",
+    "**/node_modules/@testing-library/*",
+    "**/node_modules/@tanstack/react-query",
+    "**/react-dom/test-utils/*"
+  ],
+  // Avoid relative imports
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "editor.tabSize": 4,
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
+  "python.testing.pytestArgs": ["tests"],
+  "python.analysis.autoImportCompletions": true,
+  "prettier.configPath": "prettier.config.mjs",
+  "biome.enabled": false,
+  "cursorpyright.analysis.autoImportCompletions": true,
+  "python.REPL.enableREPLSmartSend": false
+}
