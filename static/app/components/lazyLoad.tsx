@@ -120,7 +120,7 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
   handleRetry = () => this.setState({hasError: false});
 
   render() {
-    if (!this.state.hasError) {
+    if (this.state.hasError) {
       return (
         <Container flex="1">
           <LoadingError
