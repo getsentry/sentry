@@ -1,5 +1,5 @@
 ---
-created: '2025-09-19T05:53:38.431494+00:00'
+created: '2025-09-24T22:53:02.095327+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -144,6 +144,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "in-app thread stack-trace",
     "hash": "ff6c4ee7c54f118a9647ee86f0c2b0b0",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
@@ -187,6 +188,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "default",
     "hash": null,
+    "hint": "ignored because app threads take precedence",
     "key": "default",
     "type": "component"
   },
@@ -330,6 +332,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "system",
     "hash": null,
+    "hint": "ignored because app threads take precedence",
     "key": "system",
     "type": "component"
   }

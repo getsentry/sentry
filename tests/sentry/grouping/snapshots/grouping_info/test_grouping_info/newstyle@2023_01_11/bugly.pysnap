@@ -1,5 +1,5 @@
 ---
-created: '2025-09-19T05:53:38.450228+00:00'
+created: '2025-09-24T22:53:02.113693+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -307,6 +307,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "in-app",
     "hash": null,
+    "hint": "ignored because system exception takes precedence",
     "key": "app",
     "type": "component"
   },
@@ -613,6 +614,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "exception stack-trace",
     "hash": "d9c9b0f9ba46e32fddd7cd1512fad235",
+    "hint": null,
     "key": "system",
     "type": "component"
   }
