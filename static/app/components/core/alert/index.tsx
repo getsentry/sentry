@@ -332,7 +332,7 @@ type DistributiveOmit<TObject, TKey extends keyof TObject> = TObject extends any
 
 function AlertButton(props: DistributiveOmit<ButtonProps, 'size'>) {
   const theme = useTheme();
-  return <Button size={theme.isChonk ? 'zero' : 'sm'} {...props} />;
+  return <Button {...props} size={theme.isChonk ? 'zero' : 'sm'} />;
 }
 
 Alert.Button = AlertButton;
