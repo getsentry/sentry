@@ -66,6 +66,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1000,
+            max_download_size=500,
         )
 
         # Create size metrics for base artifact
@@ -75,6 +77,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier="main",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1000,
+            max_download_size=500,
         )
 
     def _get_url(self, head_artifact_id=None, base_artifact_id=None):
@@ -105,8 +109,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         )
 
         data = response.data
-        assert data["head_artifact_id"] == self.head_artifact.id
-        assert data["base_artifact_id"] == self.base_artifact.id
+        assert data["head_build_details"]["id"] == str(self.head_artifact.id)
+        assert data["base_build_details"]["id"] == str(self.base_artifact.id)
         assert len(data["comparisons"]) == 1
 
         comparison_data = data["comparisons"][0]
@@ -357,8 +361,10 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         )
         mock_apply_async.assert_called_once_with(
             kwargs={
-                "head_size_metric_id": self.head_size_metric.id,
-                "base_size_metric_id": self.base_size_metric.id,
+                "project_id": self.project.id,
+                "org_id": self.organization.id,
+                "head_artifact_id": self.head_artifact.id,
+                "base_artifact_id": self.base_artifact.id,
             }
         )
 
@@ -528,7 +534,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
     def test_post_comparison_multiple_metrics(self, mock_apply_async):
         """Test POST endpoint handles multiple size metrics correctly"""
         # Create additional size metrics
-        head_watch_metric = PreprodArtifactSizeMetrics.objects.create(
+        PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.head_artifact,
             analysis_file_id=self.head_analysis_file.id,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -536,7 +542,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        base_watch_metric = PreprodArtifactSizeMetrics.objects.create(
+        PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=self.base_artifact,
             analysis_file_id=self.base_analysis_file.id,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -547,31 +553,15 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         response = self.client.post(self._get_url())
 
         assert response.status_code == 200
-        # Should be called twice - once for main artifact, once for watch artifact
-        assert mock_apply_async.call_count == 2
 
-        # Check the calls
-        calls = mock_apply_async.call_args_list
-        call_kwargs = [call[1]["kwargs"] for call in calls]
-
-        # Should have calls for both main and watch metrics
-        main_call = next(
-            (
-                call
-                for call in call_kwargs
-                if call["head_size_metric_id"] == self.head_size_metric.id
-            ),
-            None,
+        mock_apply_async.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "org_id": self.organization.id,
+                "head_artifact_id": self.head_artifact.id,
+                "base_artifact_id": self.base_artifact.id,
+            }
         )
-        watch_call = next(
-            (call for call in call_kwargs if call["head_size_metric_id"] == head_watch_metric.id),
-            None,
-        )
-
-        assert main_call is not None
-        assert watch_call is not None
-        assert main_call["base_size_metric_id"] == self.base_size_metric.id
-        assert watch_call["base_size_metric_id"] == base_watch_metric.id
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_no_matching_base_metric(self):

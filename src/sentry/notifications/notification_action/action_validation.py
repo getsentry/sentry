@@ -13,9 +13,12 @@ from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import action_validator_registry
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
+from sentry.rules.actions.notify_event_service import NotifyEventServiceForm
 from sentry.rules.actions.sentry_apps.utils import validate_sentry_app_action
+from sentry.sentry_apps.services.app.service import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.processors.action import get_notification_plugins_for_org
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 from .types import BaseActionValidatorHandler
@@ -220,3 +223,31 @@ class SentryAppActionValidatorHandler:
             return self.validated_data
         except SentryAppBaseError as e:
             raise ValidationError(e.message) from e
+
+
+@action_validator_registry.register(Action.Type.WEBHOOK)
+class WebhookActionValidatorHandler(BaseActionValidatorHandler):
+    provider = Action.Type.WEBHOOK
+    notify_action_form = NotifyEventServiceForm
+
+    def _get_services(self) -> list[Any]:
+        plugins = get_notification_plugins_for_org(self.organization)
+        sentry_apps = app_service.find_alertable_services(organization_id=self.organization.id)
+        return [
+            *plugins,
+            *sentry_apps,
+        ]
+
+    def generate_action_form_payload(self) -> dict[str, Any]:
+        return {
+            "services": self._get_services(),
+            "data": self.generate_action_form_data(),
+        }
+
+    def generate_action_form_data(self) -> dict[str, Any]:
+        return {
+            "service": self.validated_data["config"]["target_identifier"],
+        }
+
+    def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
+        return self.validated_data

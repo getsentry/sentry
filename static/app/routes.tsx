@@ -2420,6 +2420,10 @@ function buildRoutes(): RouteObject[] {
               path: 'new/',
               component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
             },
+            {
+              path: 'home/',
+              component: make(() => import('sentry/views/prevent/preventAI/index')),
+            },
           ],
         },
       ],
@@ -2445,7 +2449,7 @@ function buildRoutes(): RouteObject[] {
 
   const preprodChildren: SentryRouteObject[] = [
     {
-      path: 'builds/',
+      index: true,
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
     {
@@ -2455,19 +2459,23 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':artifactId/install/',
       component: make(() => import('sentry/views/preprod/install/installPage')),
-      deprecatedRouteProps: true,
     },
     {
-      path: 'compare/:headArtifactId/',
-      component: make(
-        () => import('sentry/views/preprod/buildComparison/buildComparison')
-      ),
-    },
-    {
-      path: 'compare/:headArtifactId/:baseArtifactId/',
-      component: make(
-        () => import('sentry/views/preprod/buildComparison/buildComparison')
-      ),
+      path: 'compare/',
+      children: [
+        {
+          path: ':headArtifactId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+        {
+          path: ':headArtifactId/:baseArtifactId/',
+          component: make(
+            () => import('sentry/views/preprod/buildComparison/buildComparison')
+          ),
+        },
+      ],
     },
   ];
   const preprodRoutes: SentryRouteObject = {
@@ -2475,6 +2483,7 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
+    deprecatedRouteProps: true,
   };
 
   const feedbackV2Children: SentryRouteObject[] = [

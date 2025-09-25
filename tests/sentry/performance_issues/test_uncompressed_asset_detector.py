@@ -20,15 +20,15 @@ from sentry.testutils.performance_issues.span_builder import SpanBuilder
 
 
 def create_asset_span(
-    op="resource.script",
-    desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    duration=1000.0,
-    data=None,
+    op: str = "resource.script",
+    desc: str = "https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    duration: float = 1000.0,
+    data: dict[str, Any] | None = None,
 ) -> SpanBuilder:
     return create_span("resource.script", desc=desc, duration=duration, data=data)
 
 
-def create_compressed_asset_span():
+def create_compressed_asset_span() -> SpanBuilder:
     return create_asset_span(
         desc="https://someothersite.example.com/app.js",
         duration=1.0,

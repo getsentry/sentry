@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 2
       - name: Set up Python 3.11
@@ -32,12 +32,9 @@ jobs:
         run: |
           pytest --cov --junitxml=junit.xml
       # Copy and paste the getsentry/prevent-action here
-      - name: Upload test results to Prevent
+      - name: Upload test results to Sentry Prevent
         if: \${{ !cancelled() }}
-        uses: getsentry/prevent-action
-
-      - name: Upload coverage to Prevent
-        uses: getsentry/prevent-action
+        uses: getsentry/prevent-action@v0
 `;
 
 export function GHAWorkflowExpandable() {

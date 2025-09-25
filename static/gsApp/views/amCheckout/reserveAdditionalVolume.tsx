@@ -57,6 +57,7 @@ function ReserveAdditionalVolume({
           organization,
           data_type: category,
           quantity: value,
+          isNewCheckout: true,
         });
       }
     },
@@ -73,14 +74,7 @@ function ReserveAdditionalVolume({
   );
 
   return (
-    <Flex
-      direction="column"
-      gap="xl"
-      padding="xl"
-      background="primary"
-      border="primary"
-      radius="lg"
-    >
+    <Flex direction="column" gap="md">
       <Flex gap="md" align="center" justify="between" width="100%" height="28px">
         <Flex align="center" gap="md">
           <Button
@@ -93,7 +87,15 @@ function ReserveAdditionalVolume({
                 ? t('Hide reserved volume sliders')
                 : t('Show reserved volume sliders')
             }
-            onClick={() => setShowSliders(!showSliders)}
+            onClick={() => {
+              setShowSliders(!showSliders);
+              if (showSliders) {
+                trackGetsentryAnalytics('checkout.data_sliders_viewed', {
+                  organization,
+                  isNewCheckout: true,
+                });
+              }
+            }}
           >
             {t('Reserve additional volume')}
           </Button>
@@ -111,19 +113,24 @@ function ReserveAdditionalVolume({
         )}
       </Flex>
       {showSliders && (
-        <Flex direction="column" gap="md">
-          <Separator orientation="horizontal" border="primary" />
-          <VolumeSliders
-            checkoutTier={checkoutTier}
-            activePlan={activePlan}
-            organization={organization}
-            onUpdate={onUpdate}
-            formData={formData}
-            subscription={subscription}
-            isLegacy={isLegacy}
-            isNewCheckout
-            onReservedChange={debouncedReservedChange}
-          />
+        <Flex direction="column" gap="xl">
+          <Text variant="muted">
+            {t('Prepay for usage by reserving volumes and save up to 20%')}
+          </Text>
+          <Flex direction="column" gap="md">
+            <Separator orientation="horizontal" border="primary" />
+            <VolumeSliders
+              checkoutTier={checkoutTier}
+              activePlan={activePlan}
+              organization={organization}
+              onUpdate={onUpdate}
+              formData={formData}
+              subscription={subscription}
+              isLegacy={isLegacy}
+              isNewCheckout
+              onReservedChange={debouncedReservedChange}
+            />
+          </Flex>
         </Flex>
       )}
     </Flex>

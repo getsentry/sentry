@@ -348,11 +348,24 @@ def devserver(
             if occurrence_ingest:
                 kafka_consumers.add("ingest-occurrences")
 
-        # Create all topics if the Kafka eventstream is selected
+        # Check if Kafka is available and create all topics if it is running
+        use_old_devservices = os.environ.get("USE_OLD_DEVSERVICES") == "1"
+        valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
+        kafka_container_name = "sentry_kafka" if use_old_devservices else "kafka-kafka-1"
+        kafka_is_running = any(name in containers for name in valid_kafka_container_names)
+
+        if kafka_is_running:
+            from sentry_kafka_schemas import list_topics
+
+            from sentry.utils.batching_kafka_consumer import create_topics
+            from sentry.utils.kafka_config import get_topic_definition_from_name
+
+            for topic in list_topics():
+                topic_defn = get_topic_definition_from_name(topic)
+                create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
+
+        # Set up Kafka consumers if they are configured
         if kafka_consumers:
-            use_old_devservices = os.environ.get("USE_OLD_DEVSERVICES") == "1"
-            valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
-            kafka_container_name = "sentry_kafka" if use_old_devservices else "kafka-kafka-1"
             kafka_container_warning_message = (
                 f"""
     Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
@@ -362,11 +375,11 @@ def devserver(
     Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
     Please run `devservices up` to start it."""
             )
-            if not any(name in containers for name in valid_kafka_container_names):
+            if not kafka_is_running:
                 raise click.ClickException(
                     f"""
     Devserver is configured to start some kafka consumers, but Kafka
-    don't seem to be running.
+    doesn't seem to be running.
 
     The following consumers were intended to be started: {kafka_consumers}
 
@@ -383,15 +396,6 @@ def devserver(
     Alternatively, run without --workers.
             """
                 )
-
-            from sentry_kafka_schemas import list_topics
-
-            from sentry.utils.batching_kafka_consumer import create_topics
-            from sentry.utils.kafka_config import get_topic_definition_from_name
-
-            for topic in list_topics():
-                topic_defn = get_topic_definition_from_name(topic)
-                create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
             if dev_consumer:
                 daemons.append(

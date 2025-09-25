@@ -1,5 +1,5 @@
 ---
-created: '2024-12-06T19:45:39.610879+00:00'
+created: '2025-09-24T19:48:24.290070+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -37,7 +37,7 @@ variants:
     - '{{ default }}'
     component:
       contributes: false
-      hint: exception of app takes precedence
+      hint: ignored because app exception takes precedence
     type: salted_component
     values:
     - my-route
