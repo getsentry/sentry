@@ -2449,7 +2449,7 @@ function buildRoutes(): RouteObject[] {
 
   const preprodChildren: SentryRouteObject[] = [
     {
-      path: 'builds/',
+      index: true,
       component: make(() => import('sentry/views/preprod/buildList/buildList')),
     },
     {
