@@ -1,6 +1,7 @@
 from typing import Protocol
 
 from sentry.notifications.platform.renderer import NotificationRenderer
+from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
@@ -13,6 +14,12 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 
 class NotificationProviderError(Exception):
     pass
+
+
+class IntegrationNotificationClient[RenderableT](Protocol):
+    def send_notification(
+        self, target: IntegrationNotificationTarget, payload: RenderableT
+    ) -> None: ...
 
 
 class NotificationProvider[RenderableT](Protocol):
