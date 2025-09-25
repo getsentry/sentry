@@ -58,12 +58,12 @@ export function ProjectChart({
       xAxisIndex: 1,
       yAxisIndex: 1,
       itemStyle: {
-        color: theme.gray200,
+        color: theme.chart.neutral,
         opacity: 0.8,
       },
       emphasis: {
         itemStyle: {
-          color: theme.gray200,
+          color: theme.chart.neutral,
           opacity: 1.0,
         },
       },
