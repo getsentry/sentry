@@ -240,7 +240,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                         <Link
                           to={{
                             pathname: `/settings/${organization.slug}/`,
-                            hash: '#hideAiFeatures',
+                            hash: 'hideAiFeatures',
                           }}
                         />
                       ),

@@ -188,7 +188,12 @@ export default function PreventAIOnboarding() {
                     </Text>
                   ),
                   organizationSettingsLink: (
-                    <Link to={`/settings/${organization.slug}/#hideAiFeatures`} />
+                    <Link
+                      to={{
+                        pathname: `/settings/${organization.slug}/`,
+                        hash: 'hideAiFeatures',
+                      }}
+                    />
                   ),
                 }
               )}
