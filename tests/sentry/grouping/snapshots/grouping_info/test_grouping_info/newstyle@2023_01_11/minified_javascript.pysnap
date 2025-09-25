@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T21:52:20.042661+00:00'
+created: '2025-09-19T05:53:40.673115+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -7,7 +7,7 @@ source: tests/sentry/grouping/test_grouping_info.py
   "app": {
     "component": {
       "contributes": false,
-      "hint": "exception of system takes precedence",
+      "hint": "ignored because system exception takes precedence",
       "id": "app",
       "name": "in-app",
       "values": [
@@ -58,7 +58,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -102,7 +102,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -146,7 +146,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -190,7 +190,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -234,7 +234,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -278,7 +278,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -322,7 +322,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -366,7 +366,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -410,7 +410,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -454,7 +454,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -498,7 +498,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -542,7 +542,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -586,7 +586,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -630,7 +630,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -674,7 +674,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -718,7 +718,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -762,7 +762,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -806,7 +806,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -850,7 +850,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -894,7 +894,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -938,7 +938,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -982,7 +982,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1092,7 +1092,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1136,7 +1136,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1180,7 +1180,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1224,7 +1224,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1268,7 +1268,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1312,7 +1312,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1356,7 +1356,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1400,7 +1400,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1444,7 +1444,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1488,7 +1488,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1532,7 +1532,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1576,7 +1576,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1620,7 +1620,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1664,7 +1664,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1708,7 +1708,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1752,7 +1752,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1796,7 +1796,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1840,7 +1840,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1884,7 +1884,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1928,7 +1928,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -1972,7 +1972,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [
@@ -2016,7 +2016,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                     },
                     {
                       "contributes": false,
-                      "hint": "discarded because line too long",
+                      "hint": "ignored because line is too long",
                       "id": "context_line",
                       "name": null,
                       "values": [

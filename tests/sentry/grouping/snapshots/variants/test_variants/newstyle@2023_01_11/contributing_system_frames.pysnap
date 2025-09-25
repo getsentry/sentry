@@ -1,13 +1,13 @@
 ---
-created: '2025-09-11T18:38:49.476934+00:00'
+created: '2025-09-24T20:27:05.733302+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (exception of system takes precedence)
+  root_component:
+    app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no contributing frames)
           frame (marked out of app by stack trace rule (function:runApp -app))
@@ -39,7 +39,7 @@ app:
 system:
   hash: "fe92cff6711f8a0a30cabb8b9245b1d6"
   contributing component: exception
-  component:
+  root_component:
     system*
       exception*
         stacktrace*

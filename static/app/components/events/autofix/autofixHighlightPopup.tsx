@@ -45,6 +45,7 @@ interface Props {
   selectedText: string;
   stepIndex: number;
   blockName?: string;
+  hasUserSelection?: boolean;
   isAgentComment?: boolean;
   onShouldPersistChange?: (shouldPersist: boolean) => void;
 }
@@ -198,6 +199,7 @@ function AutofixHighlightPopupContent({
   isAgentComment,
   blockName,
   isFocused,
+  hasUserSelection,
   onShouldPersistChange,
 }: Props & {isFocused?: boolean}) {
   const organization = useOrganization();
@@ -488,7 +490,7 @@ function AutofixHighlightPopupContent({
                 onChange={e => setComment(e.target.value)}
                 maxLength={4096}
                 size="sm"
-                autoFocus={!isAgentComment}
+                autoFocus={!isAgentComment && !hasUserSelection}
                 maxRows={5}
                 autosize
                 onKeyDown={e => {
