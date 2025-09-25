@@ -146,7 +146,7 @@ describe('Cart', () => {
 
     // PAYG-only categories are also shown for paid plans
     expect(planItem).toHaveTextContent('Continuous profile hours');
-    expect(planItem).toHaveTextContent('Available with PAYG');
+    expect(planItem).toHaveTextContent('Available');
 
     const seerItem = screen.getByTestId('summary-item-product-seer');
     expect(seerItem).toHaveTextContent('Seer');

@@ -105,7 +105,8 @@ function PlanDiff({
           }
           let formattingFunction = (value: any) => value;
           if (key === 'plan' || key === 'contractInterval') {
-            formattingFunction = (value: any) => (value ? capitalize(value) : null);
+            formattingFunction = (value: any) =>
+              value === 'annual' ? t('Yearly') : value ? capitalize(value) : null;
           } else {
             formattingFunction = (value: any) =>
               value
