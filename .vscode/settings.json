@@ -101,6 +101,5 @@
   "python.analysis.autoImportCompletions": true,
   "prettier.configPath": "prettier.config.mjs",
   "biome.enabled": false,
-  "cursorpyright.analysis.autoImportCompletions": true,
-  "python.REPL.enableREPLSmartSend": false
+  "cursorpyright.analysis.autoImportCompletions": true
 }
