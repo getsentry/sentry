@@ -52,9 +52,55 @@ export function useBuildDetailsActions({
     });
   };
 
-  const handleDownloadAction = () => {
+  const handleDownloadAction = async () => {
+    const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
+
     try {
-      const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
+      const response = await fetch(downloadUrl, {
+        method: 'HEAD',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Download failed (${response.status})`;
+
+        try {
+          const errorResponse = await fetch(downloadUrl, {
+            method: 'GET',
+            credentials: 'include',
+          });
+
+          if (!errorResponse.ok) {
+            const errorText = await errorResponse.text();
+            try {
+              const errorJson = JSON.parse(errorText);
+              if (errorJson.detail) {
+                if (typeof errorJson.detail === 'string') {
+                  errorMessage = errorJson.detail;
+                } else if (errorJson.detail.message) {
+                  errorMessage = errorJson.detail.message;
+                } else if (errorJson.detail.code) {
+                  errorMessage = `${errorJson.detail.code}: ${errorJson.detail.message || 'Authentication required'}`;
+                }
+              }
+            } catch {
+              errorMessage = errorText || errorMessage;
+            }
+          }
+        } catch {
+          if (response.status === 403) {
+            errorMessage = 'Access denied. You may need to re-authenticate as staff.';
+          } else if (response.status === 404) {
+            errorMessage = 'Build file not found.';
+          } else if (response.status === 401) {
+            errorMessage = 'Authentication required.';
+          }
+        }
+
+        addErrorMessage(t('Download failed: %s', errorMessage));
+        return;
+      }
+
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = `preprod_artifact_${artifactId}.zip`;
@@ -62,9 +108,10 @@ export function useBuildDetailsActions({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      addSuccessMessage(t('Build downloaded successfully'));
+
+      addSuccessMessage(t('Build download started'));
     } catch (error) {
-      addErrorMessage(t('Failed to download build'));
+      addErrorMessage(t('Download failed: %s', String(error)));
     }
   };
 
