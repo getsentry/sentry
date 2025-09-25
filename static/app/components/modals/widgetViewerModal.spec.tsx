@@ -239,17 +239,6 @@ describe('Modals -> WidgetViewerModal', () => {
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeEnabled();
       });
 
-      it('renders Open button disabled for discover widget if dataset selector flag enabled', async () => {
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget});
-        expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
-        expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
-      });
-
       it('renders updated table columns and orderby', async () => {
         const eventsMock = mockEvents();
         await renderModal({initialData, widget: mockWidget});

@@ -920,7 +920,7 @@ function OpenButton({
   }
 
   return (
-    <Tooltip title={disabledTooltip} disabled={defined(disabled) && !disabled}>
+    <Tooltip title={disabledTooltip} disabled={disabled}>
       <LinkButton
         to={path}
         priority="primary"
