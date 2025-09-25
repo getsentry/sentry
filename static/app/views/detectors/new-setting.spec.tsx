@@ -1,5 +1,5 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {MetricDetectorFixture, UptimeDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -235,14 +235,11 @@ describe('DetectorEdit', () => {
       },
     };
 
-    it('shows respond fields and submits default thresholds', async () => {
+    it('shows detect and resolve fields and submits default thresholds', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/`,
         method: 'POST',
-        body: {
-          id: 'abc',
-          type: 'uptime_domain_failure',
-        },
+        body: UptimeDetectorFixture(),
       });
 
       render(<DetectorNewSettings />, {
@@ -258,9 +255,6 @@ describe('DetectorEdit', () => {
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
       );
-
-      expect(screen.getByRole('spinbutton', {name: 'Failure Tolerance'})).toHaveValue(3);
-      expect(screen.getByRole('spinbutton', {name: 'Recovery Tolerance'})).toHaveValue(1);
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
@@ -297,10 +291,7 @@ describe('DetectorEdit', () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/`,
         method: 'POST',
-        body: {
-          id: 'def',
-          type: 'uptime_domain_failure',
-        },
+        body: UptimeDetectorFixture(),
       });
 
       render(<DetectorNewSettings />, {
@@ -313,15 +304,15 @@ describe('DetectorEdit', () => {
         'https://uptime-custom.example.com'
       );
 
-      await userEvent.clear(screen.getByRole('spinbutton', {name: 'Failure Tolerance'}));
+      await userEvent.clear(screen.getByRole('spinbutton', {name: 'Failure Threshold'}));
       await userEvent.type(
-        screen.getByRole('spinbutton', {name: 'Failure Tolerance'}),
+        screen.getByRole('spinbutton', {name: 'Failure Threshold'}),
         '5'
       );
 
-      await userEvent.clear(screen.getByRole('spinbutton', {name: 'Recovery Tolerance'}));
+      await userEvent.clear(screen.getByRole('spinbutton', {name: 'Recovery Threshold'}));
       await userEvent.type(
-        screen.getByRole('spinbutton', {name: 'Recovery Tolerance'}),
+        screen.getByRole('spinbutton', {name: 'Recovery Threshold'}),
         '4'
       );
 
