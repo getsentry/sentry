@@ -6,6 +6,7 @@ from sentry.models.files.file import File
 from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.response import close_streaming_response
 
 
 class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
@@ -43,6 +44,8 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
         assert response.status_code == 200
         assert response["Content-Type"] == "application/octet-stream"
         assert "attachment" in response["Content-Disposition"]
+
+        close_streaming_response(response)
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_download_preprod_artifact_not_found(self) -> None:

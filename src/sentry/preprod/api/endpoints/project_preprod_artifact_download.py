@@ -1,4 +1,4 @@
-from django.http.response import HttpResponse, HttpResponseBase
+from django.http.response import FileResponse, HttpResponse, HttpResponseBase
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -147,15 +147,11 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
 
         try:
             fp = file_obj.getfile()
-            try:
-                file_content = fp.read()
-            finally:
-                fp.close()
         except Exception:
             return Response({"error": "Failed to retrieve preprod artifact file"}, status=500)
 
-        response = HttpResponse(
-            file_content,
+        response = FileResponse(
+            fp,
             content_type="application/octet-stream",
         )
 
