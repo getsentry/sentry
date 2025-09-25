@@ -244,6 +244,9 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     @abc.abstractmethod
     def _delete_unreferenced_blob_task(self) -> SentryTask: ...
 
+    @abc.abstractmethod
+    def _get_blob_model(self) -> type[BlobType]: ...
+
     def _get_chunked_blob(self, mode=None, prefetch=False, prefetch_to=None, delete=True):
         return ChunkedFileBlobIndexWrapper(
             self._blob_index_records(),
@@ -323,6 +326,75 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             offset += blob.size
         self.size = offset
         self.checksum = checksum.hexdigest()
+        metrics.distribution("filestore.file-size", offset, unit="byte")
+        if commit:
+            self.save()
+        return results
+
+    @sentry_sdk.tracing.trace
+    def putfile_batched(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+        """
+        Save a fileobj into a number of chunks using batched blob lookups to avoid N+1 queries.
+
+        Returns a list of `FileBlobIndex` items.
+
+        >>> indexes = file.putfile_batched(fileobj)
+        """
+        from sentry.models.files.utils import get_and_optionally_update_blobs, get_size_and_checksum, get_storage
+
+        results = []
+        offset = 0
+        file_checksum = sha1(b"")
+
+        # First pass: collect all chunks and their checksums
+        chunks = []
+        while True:
+            contents = fileobj.read(blob_size)
+            if not contents:
+                break
+            file_checksum.update(contents)
+
+            blob_fileobj = ContentFile(contents)
+            size, chunk_checksum = get_size_and_checksum(blob_fileobj)
+            chunks.append({
+                'contents': contents,
+                'size': size,
+                'checksum': chunk_checksum,
+                'offset': offset
+            })
+            offset += len(contents)
+
+        # Batch lookup existing blobs
+        checksums = [chunk['checksum'] for chunk in chunks]
+        existing_blobs = get_and_optionally_update_blobs(self._get_blob_model(), checksums)
+
+        # Second pass: create blobs and indices
+        for chunk in chunks:
+            if chunk['checksum'] in existing_blobs:
+                # Use existing blob
+                blob = existing_blobs[chunk['checksum']]
+            else:
+                # Create new blob
+                blob = self._get_blob_model()(size=chunk['size'], checksum=chunk['checksum'])
+                blob.path = self._get_blob_model().generate_unique_path()
+                storage = get_storage(self._get_blob_model()._storage_config())
+                blob_fileobj = ContentFile(chunk['contents'])
+                storage.save(blob.path, blob_fileobj)
+                try:
+                    blob.save()
+                except IntegrityError:
+                    # Handle race condition - another process created the same blob
+                    metrics.incr("filestore.upload_race", sample_rate=1.0)
+                    saved_path = blob.path
+                    blob = self._get_blob_model().objects.get(checksum=chunk['checksum'])
+                    storage.delete(saved_path)
+
+                metrics.distribution("filestore.blob-size", chunk['size'], unit="byte")
+
+            results.append(self._create_blob_index(blob=blob, offset=chunk['offset']))
+
+        self.size = offset
+        self.checksum = file_checksum.hexdigest()
         metrics.distribution("filestore.file-size", offset, unit="byte")
         if commit:
             self.save()
