@@ -1,5 +1,5 @@
 ---
-created: '2025-09-19T05:53:38.483900+00:00'
+created: '2025-09-24T22:53:02.166722+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -104,12 +104,14 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "in-app",
     "hash": null,
+    "hint": "ignored because built-in fingerprint takes precedence",
     "key": "app",
     "type": "component"
   },
   "built_in_fingerprint": {
     "description": "Sentry defined fingerprint",
     "hash": "5d731dcf8ecc4f042eeacf528d8d8da9",
+    "hint": null,
     "key": "built_in_fingerprint",
     "matched_rule": "family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\"",
     "type": "built_in_fingerprint",
@@ -217,6 +219,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "exception stacktrace",
     "hash": null,
+    "hint": "ignored because built-in fingerprint takes precedence",
     "key": "system",
     "type": "component"
   }

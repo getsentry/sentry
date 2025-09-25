@@ -1,5 +1,5 @@
 ---
-created: '2025-09-19T05:53:38.750035+00:00'
+created: '2025-09-24T22:53:02.571090+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -817,6 +817,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "in-app exception stacktrace",
     "hash": null,
+    "hint": "ignored because custom client fingerprint takes precedence",
     "key": "app",
     "type": "component"
   },
@@ -828,6 +829,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     ],
     "description": "custom fingerprint",
     "hash": "f30afa00b85f5cac5ee0bce01b31f08d",
+    "hint": null,
     "key": "custom_fingerprint",
     "type": "custom_fingerprint",
     "values": [
@@ -1649,6 +1651,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "exception stacktrace",
     "hash": null,
+    "hint": "ignored because custom client fingerprint takes precedence",
     "key": "system",
     "type": "component"
   }

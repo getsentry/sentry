@@ -1,5 +1,5 @@
 ---
-created: '2025-09-19T05:53:40.127693+00:00'
+created: '2025-09-24T22:53:04.367237+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -822,6 +822,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "modified in-app exception stacktrace",
     "hash": "19163f3ca34f5995c69d85351ce3d697",
+    "hint": null,
     "key": "app",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
     "type": "salted_component",
@@ -1648,6 +1649,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "description": "modified exception stacktrace",
     "hash": "847950eb44d280e6758d136c763d6ddc",
+    "hint": null,
     "key": "system",
     "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
     "type": "salted_component",
