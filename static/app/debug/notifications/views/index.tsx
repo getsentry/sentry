@@ -54,12 +54,18 @@ export default function DebugNotificationsIndex() {
                     <Tag type="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Flex justify="between" wrap="wrap" position="relative" gap="2xl">
-                  <Flex direction="column" gap="2xl" position="relative" flex="1">
+                <Flex justify="between" wrap="nowrap" position="relative" gap="2xl">
+                  <Flex
+                    direction="column"
+                    gap="2xl"
+                    position="relative"
+                    flex="1"
+                    minWidth="0"
+                  >
                     <EmailPreview registration={selectedRegistration} />
                     <SlackPreview />
                     <DiscordPreview />
-                    <TeamsPreview />
+                    <TeamsPreview registration={selectedRegistration} />
                   </Flex>
                   <ExampleContainer>
                     <DebugNotificationsExample registration={selectedRegistration} />
