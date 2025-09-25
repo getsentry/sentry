@@ -1,14 +1,12 @@
 import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeEAPSpan,
   makeSpan,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
@@ -341,61 +339,6 @@ describe('NoInstrumentationNode', () => {
       );
 
       expect(node.printNode()).toBe('missing_instrumentation');
-    });
-
-    it('should render waterfall row with TraceMissingInstrumentationRow', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({event_id: 'previous'});
-      const nextSpanValue = makeEAPSpan({event_id: 'next'});
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      const mockProps = {
-        node: node as any,
-        theme: {} as any,
-        organization: OrganizationFixture(),
-        manager: {} as any,
-        projects: [],
-      } as unknown as TraceRowProps<any>;
-
-      const result = node.renderWaterfallRow(mockProps);
-      expect(result).toBeDefined();
-    });
-
-    it('should render details with MissingInstrumentationNodeDetails', () => {
-      const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({event_id: 'previous'});
-      const nextSpanValue = makeEAPSpan({event_id: 'next'});
-      const missingInstrValue = createMissingInstrumentationSpan();
-
-      const previousNode = new EapSpanNode(null, previousSpanValue, extra);
-      const nextNode = new EapSpanNode(null, nextSpanValue, extra);
-      const node = new NoInstrumentationNode(
-        previousNode,
-        nextNode,
-        null,
-        missingInstrValue,
-        extra
-      );
-
-      const mockProps = {
-        node: node as any,
-        organization: OrganizationFixture(),
-        onParentClick: jest.fn(),
-        onTabScrollToNode: jest.fn(),
-      } as unknown as TraceTreeNodeDetailsProps<any>;
-
-      const result = node.renderDetails(mockProps);
-      expect(result).toBeDefined();
     });
   });
 

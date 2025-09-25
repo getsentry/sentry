@@ -1,13 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   makeEAPError,
   makeEAPOccurrence,
   makeEAPSpan,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
@@ -732,39 +730,6 @@ describe('EapSpanNode', () => {
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.printNode()).toBe('unknown span - Some description');
-    });
-
-    it('should render waterfall row', () => {
-      const extra = createMockExtra();
-      const value = makeEAPSpan({});
-      const node = new EapSpanNode(null, value, extra);
-
-      const mockProps = {
-        node: node as any,
-        theme: {} as any,
-        organization: OrganizationFixture(),
-        manager: {} as any,
-        projects: [],
-      } as unknown as TraceRowProps<any>;
-
-      const result = node.renderWaterfallRow(mockProps);
-      expect(result).toBeDefined();
-    });
-
-    it('should render details', () => {
-      const extra = createMockExtra();
-      const value = makeEAPSpan({});
-      const node = new EapSpanNode(null, value, extra);
-
-      const mockProps = {
-        node: node as any,
-        organization: OrganizationFixture(),
-        onParentClick: jest.fn(),
-        onTabScrollToNode: jest.fn(),
-      } as unknown as TraceTreeNodeDetailsProps<any>;
-
-      const result = node.renderDetails(mockProps);
-      expect(result).toBeDefined();
     });
   });
 

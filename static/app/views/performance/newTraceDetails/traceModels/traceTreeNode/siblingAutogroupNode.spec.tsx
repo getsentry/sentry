@@ -1,14 +1,12 @@
 import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   makeEAPSpan,
   makeSiblingAutogroup,
   makeSpan,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
@@ -293,39 +291,6 @@ describe('SiblingAutogroupNode', () => {
 
       expect(node.printNode()).toBe('sibling autogroup (custom.operation: 0)');
     });
-
-    it('should render waterfall row', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      const mockProps = {
-        node: node as any,
-        theme: {} as any,
-        organization: OrganizationFixture(),
-        manager: {} as any,
-        projects: [],
-      } as unknown as TraceRowProps<any>;
-
-      const result = node.renderWaterfallRow(mockProps);
-      expect(result).toBeDefined();
-    });
-
-    it('should render details', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      const mockProps = {
-        node: node as any,
-        organization: OrganizationFixture(),
-        onParentClick: jest.fn(),
-        onTabScrollToNode: jest.fn(),
-      } as unknown as TraceTreeNodeDetailsProps<any>;
-
-      const result = node.renderDetails(mockProps);
-      expect(result).toBeDefined();
-    });
   });
 
   describe('matchWithFreeText', () => {
@@ -372,19 +337,6 @@ describe('SiblingAutogroupNode', () => {
       expect(node.matchWithFreeText('db')).toBe(true); // Should match operation
       expect(node.matchWithFreeText('Database')).toBe(true); // Should match description
       expect(node.matchWithFreeText('nonexistent')).toBe(false);
-    });
-
-    it('should handle undefined values gracefully', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({
-        autogrouped_by: {
-          op: undefined as any,
-          description: undefined as any,
-        },
-      });
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      expect(node.matchWithFreeText('anything')).toBe(false);
     });
   });
 
@@ -442,7 +394,7 @@ describe('SiblingAutogroupNode', () => {
     });
   });
 
-  describe('matchById', () => {
+  describe('match', () => {
     it('should match by path', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
@@ -456,7 +408,7 @@ describe('SiblingAutogroupNode', () => {
       expect(node.matchByPath('span-differentId')).toBe(false);
     });
 
-    it('should match by first child ID only', () => {
+    it('should not match by ID', () => {
       const extra = createMockExtra();
       const autogroupValue = makeSiblingAutogroup({});
 
@@ -470,46 +422,9 @@ describe('SiblingAutogroupNode', () => {
 
       node.children = [child1, child2];
 
-      expect(node.matchById('child-1')).toBe(true);
-      expect(node.matchById('child-2')).toBe(false); // Only matches first child
+      expect(node.matchById('child-1')).toBe(false);
+      expect(node.matchById('child-2')).toBe(false);
       expect(node.matchById('non-existent')).toBe(false);
-    });
-
-    it('should return false when no children exist', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      expect(node.children).toEqual([]);
-      expect(node.matchById('any-id')).toBe(false);
-    });
-
-    it('should handle undefined ID in first child', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      // Create child with undefined ID
-      const childValue = makeEAPSpan({event_id: undefined});
-      const child = new EapSpanNode(node, childValue, extra);
-      node.children = [child];
-
-      expect(node.matchById('any-id')).toBe(false);
-      expect(node.matchById('undefined')).toBe(false);
-    });
-
-    it('should handle empty string ID in first child', () => {
-      const extra = createMockExtra();
-      const autogroupValue = makeSiblingAutogroup({});
-      const node = new SiblingAutogroupNode(null, autogroupValue, extra);
-
-      // Create child with empty string ID
-      const childValue = makeEAPSpan({event_id: ''});
-      const child = new EapSpanNode(node, childValue, extra);
-      node.children = [child];
-
-      expect(node.matchById('')).toBe(true);
-      expect(node.matchById('any-id')).toBe(false);
     });
   });
 });

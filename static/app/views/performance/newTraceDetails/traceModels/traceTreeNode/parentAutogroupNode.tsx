@@ -109,23 +109,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   }
 
   matchWithFreeText(query: string): boolean {
-    if (this.op?.includes(query)) {
-      return true;
-    }
-
-    if (this.description?.includes(query)) {
-      return true;
-    }
-
-    if (
-      'name' in this.value &&
-      typeof this.value.name === 'string' &&
-      this.value.name.includes(query)
-    ) {
-      return true;
-    }
-
-    return false;
+    return this.op?.includes(query);
   }
 
   get traceHeaderTitle(): {
@@ -173,8 +157,8 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     return [this.head];
   }
 
-  matchById(id: string): boolean {
-    return this.head.id === id || this.tail.id === id;
+  matchById(_id: string): boolean {
+    return false;
   }
 
   matchByPath(path: TraceTree.NodePath): boolean {
@@ -183,7 +167,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
       return false;
     }
 
-    return this.matchById(id);
+    return this.head.id === id || this.tail.id === id;
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {

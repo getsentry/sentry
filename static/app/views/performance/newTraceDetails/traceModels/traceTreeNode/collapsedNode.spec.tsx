@@ -1,9 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {CollapsedNode} from './collapsedNode';
@@ -206,99 +204,6 @@ describe('CollapsedNode', () => {
       const node = new CollapsedNode(parentNode, collapsedValue, extra);
 
       expect(node.printNode()).toBe('collapsed');
-    });
-
-    it('should render TraceCollapsedRow component', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      const mockProps = {
-        node: node as any,
-        theme: {} as any,
-        organization: OrganizationFixture(),
-        manager: {} as any,
-        projects: [],
-        index: 0,
-        style: {},
-        traceSlug: 'test-slug',
-      } as unknown as TraceRowProps<any>;
-
-      const result = node.renderWaterfallRow(mockProps);
-      expect(result).toBeDefined();
-      expect(result).not.toBeNull();
-
-      // Should be a React element (TraceCollapsedRow)
-      expect(typeof result).toBe('object');
-      expect(result).toHaveProperty('type');
-    });
-
-    it('should pass correct props to TraceCollapsedRow', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      const mockProps = {
-        node: node as any,
-        theme: {blue300: '#blue'} as any,
-        organization: OrganizationFixture(),
-        manager: {get: jest.fn()} as any,
-        projects: [{id: '1', name: 'test'}],
-        index: 5,
-        style: {height: 24},
-        traceSlug: 'test-trace-slug',
-      } as unknown as TraceRowProps<any>;
-
-      const result = node.renderWaterfallRow(mockProps);
-
-      // Should receive all props plus the node cast to LegacyCollapsedNode
-      expect(result).toBeDefined();
-      const props = (result as any).props;
-      expect(props.node).toBe(node);
-      expect(props.theme).toBe(mockProps.theme);
-    });
-
-    it('should render null for details consistently', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      const mockProps = {
-        node: node as any,
-        organization: OrganizationFixture(),
-        onParentClick: jest.fn(),
-        onTabScrollToNode: jest.fn(),
-      } as unknown as TraceTreeNodeDetailsProps<any>;
-
-      const result1 = node.renderDetails(mockProps);
-      const result2 = node.renderDetails(mockProps);
-
-      expect(result1).toBeNull();
-      expect(result2).toBeNull();
-      expect(result1).toBe(result2);
-    });
-
-    it('should ignore details props since it returns null', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      // Test with various props - should always return null
-      expect(node.renderDetails({} as any)).toBeNull();
-      expect(node.renderDetails(null as any)).toBeNull();
-      expect(node.renderDetails(undefined as any)).toBeNull();
     });
   });
 

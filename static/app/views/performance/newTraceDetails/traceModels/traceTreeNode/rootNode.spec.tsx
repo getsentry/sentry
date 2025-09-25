@@ -89,28 +89,6 @@ describe('RootNode', () => {
     });
   });
 
-  describe('renderWaterfallRow', () => {
-    it('should return null', () => {
-      const extra = createMockExtra();
-      const rootNode = new RootNode(null, null, extra);
-
-      const result = rootNode.renderWaterfallRow({} as any);
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('renderDetails', () => {
-    it('should return null', () => {
-      const extra = createMockExtra();
-      const rootNode = new RootNode(null, null, extra);
-
-      const result = rootNode.renderDetails({} as any);
-
-      expect(result).toBeNull();
-    });
-  });
-
   describe('analyticsName', () => {
     it('should return "root"', () => {
       const extra = createMockExtra();

@@ -107,8 +107,8 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     );
   }
 
-  matchById(id: string): boolean {
-    return this.children[0]?.id === id;
+  matchById(_id: string): boolean {
+    return false;
   }
 
   matchByPath(path: TraceTree.NodePath): boolean {
@@ -117,27 +117,11 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
       return false;
     }
 
-    return this.matchById(id);
+    return this.id === id;
   }
 
   matchWithFreeText(query: string): boolean {
-    if (this.op?.includes(query)) {
-      return true;
-    }
-
-    if (this.description?.includes(query)) {
-      return true;
-    }
-
-    if (
-      'name' in this.value &&
-      typeof this.value.name === 'string' &&
-      this.value.name.includes(query)
-    ) {
-      return true;
-    }
-
-    return false;
+    return this.op?.includes(query) || this.description?.includes(query);
   }
 
   makeBarColor(theme: Theme): string {

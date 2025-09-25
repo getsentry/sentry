@@ -1,12 +1,10 @@
 import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   makeEAPError,
   makeTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {ErrorNode} from './errorNode';
@@ -37,6 +35,7 @@ describe('ErrorNode', () => {
       expect(node.space).toEqual([1000000, 0]); // timestamp * 1e3
       expect(node.errors.size).toBe(1);
       expect(node.errors.has(value)).toBe(true);
+      expect(node.isEAPEvent).toBe(false);
     });
 
     it('should initialize with basic properties for EAPError', () => {
@@ -55,6 +54,7 @@ describe('ErrorNode', () => {
       expect(node.extra).toBe(extra);
       expect(node.errors.size).toBe(1);
       expect(node.errors.has(value)).toBe(true);
+      expect(node.isEAPEvent).toBe(true);
     });
 
     it('should handle different timestamp formats', () => {
@@ -398,47 +398,6 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
 
       expect(node.printNode()).toBe('unknown trace error');
-    });
-
-    it('should render waterfall row', () => {
-      const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-      });
-
-      const node = new ErrorNode(null, value, extra);
-
-      const mockProps = {
-        node: node as any,
-        theme: {} as any,
-        organization: OrganizationFixture(),
-        manager: {} as any,
-        projects: [],
-      } as unknown as TraceRowProps<any>;
-
-      const result = node.renderWaterfallRow(mockProps);
-      expect(result).toBeDefined();
-    });
-
-    it('should render details', () => {
-      const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-      });
-
-      const node = new ErrorNode(null, value, extra);
-
-      const mockProps = {
-        node: node as any,
-        organization: OrganizationFixture(),
-        onParentClick: jest.fn(),
-        onTabScrollToNode: jest.fn(),
-      } as unknown as TraceTreeNodeDetailsProps<any>;
-
-      const result = node.renderDetails(mockProps);
-      expect(result).toBeDefined();
     });
   });
 

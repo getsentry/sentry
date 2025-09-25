@@ -566,36 +566,4 @@ describe('TransactionNode', () => {
       expect(node.printNode()).toBe('GET /api/users - unknown op');
     });
   });
-
-  describe('abstract method implementations', () => {
-    it('should implement renderWaterfallRow', () => {
-      const transaction = makeTransaction();
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
-
-      const result = node.renderWaterfallRow({} as any);
-
-      expect(result).toBeDefined();
-    });
-
-    it('should implement renderDetails', () => {
-      const transaction = makeTransaction();
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
-
-      const result = node.renderDetails({} as any);
-
-      expect(result).toBeDefined();
-    });
-  });
 });

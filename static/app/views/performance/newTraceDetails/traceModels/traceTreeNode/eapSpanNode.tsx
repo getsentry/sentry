@@ -100,14 +100,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get directChildren(): Array<BaseNode<TraceTree.NodeValue>> {
-    if (isEAPTransaction(this.value)) {
-      if (!this.expanded) {
-        // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
-        // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
-        return this.children.filter(child => isEAPTransaction(child.value));
-      }
-
-      return this.children;
+    if (isEAPTransaction(this.value) && !this.expanded) {
+      // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
+      // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
+      return this.children.filter(child => isEAPTransaction(child.value));
     }
 
     return this.children;
