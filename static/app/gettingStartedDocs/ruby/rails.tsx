@@ -84,18 +84,28 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'The Sentry SDK for Rails comes as two gems that should be added to your [gemfileCode:Gemfile]:',
+      content: [
         {
-          gemfileCode: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'The Sentry SDK for Rails comes as two gems that should be added to your [gemfileCode:Gemfile]:',
+            {
+              gemfileCode: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'ruby',
           code: getInstallSnippet(params),
-          additionalInfo: params.isProfilingSelected
-            ? tct(
+        },
+        {
+          type: 'conditional',
+          condition: params.isProfilingSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
                 'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
@@ -103,11 +113,16 @@ const onboarding: OnboardingConfig = {
                   ),
                   code: <code />,
                 }
-              )
-            : undefined,
+              ),
+            },
+          ],
         },
         {
-          description: t('After adding the gems, run the following to install the SDK:'),
+          type: 'text',
+          text: t('After adding the gems, run the following to install the SDK:'),
+        },
+        {
+          type: 'code',
           language: 'ruby',
           code: 'bundle install',
         },
@@ -117,21 +132,27 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Run the following Rails generator to create the initializer file [code:config/initializers/sentry.rb].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Run the following Rails generator to create the initializer file [code:config/initializers/sentry.rb].',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
+          type: 'code',
           language: 'ruby',
           code: generatorSnippet,
         },
         {
-          description: t('You can then change the Sentry configuration as follows:'),
+          type: 'text',
+          text: t('You can then change the Sentry configuration as follows:'),
         },
         {
+          type: 'code',
           language: 'ruby',
           code: getConfigureSnippet(params),
         },
@@ -141,15 +162,18 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'ruby',
-              value: 'ruby',
               language: 'ruby',
               code: getVerifySnippet(),
             },
