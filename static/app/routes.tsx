@@ -365,6 +365,7 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/account/notifications/notificationSettingsController'
               )
           ),
+          deprecatedRouteProps: true,
         },
         {
           path: ':fineTuneType/',
