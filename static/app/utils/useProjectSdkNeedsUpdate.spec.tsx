@@ -1,24 +1,12 @@
-import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const MOCK_ORG = OrganizationFixture();
 const MOCK_PROJECT = ProjectFixture();
-
-function wrapper({children}: {children?: ReactNode}) {
-  return (
-    <OrganizationContext value={MOCK_ORG}>
-      <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
-    </OrganizationContext>
-  );
-}
 
 function mockCurrentVersion(
   mockUpdates: Array<{
@@ -46,8 +34,8 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     ]);
 
-    const {result} = renderHook(useProjectSdkNeedsUpdate, {
-      wrapper,
+    const {result} = renderHookWithProviders(useProjectSdkNeedsUpdate, {
+      organization: MOCK_ORG,
       initialProps: {
         minVersion: '1.0.0',
         projectId: [MOCK_PROJECT.id],
@@ -69,8 +57,8 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     ]);
 
-    const {result} = renderHook(useProjectSdkNeedsUpdate, {
-      wrapper,
+    const {result} = renderHookWithProviders(useProjectSdkNeedsUpdate, {
+      organization: MOCK_ORG,
       initialProps: {
         minVersion: '8.0.0',
         projectId: [MOCK_PROJECT.id],
@@ -95,8 +83,8 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     ]);
 
-    const {result} = renderHook(useProjectSdkNeedsUpdate, {
-      wrapper,
+    const {result} = renderHookWithProviders(useProjectSdkNeedsUpdate, {
+      organization: MOCK_ORG,
       initialProps: {
         minVersion: '8.0.0',
         projectId: ['1', '2'],
@@ -122,8 +110,8 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     ]);
 
-    const {result} = renderHook(useProjectSdkNeedsUpdate, {
-      wrapper,
+    const {result} = renderHookWithProviders(useProjectSdkNeedsUpdate, {
+      organization: MOCK_ORG,
       initialProps: {
         minVersion: '8.0.0',
         projectId: ['1', '2'],

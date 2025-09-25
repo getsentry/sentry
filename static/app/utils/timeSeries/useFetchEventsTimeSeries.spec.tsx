@@ -1,15 +1,11 @@
-import type {ReactNode} from 'react';
-import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';
 
@@ -17,18 +13,6 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('useFetchEventsTimeSeries', () => {
   const organization = OrganizationFixture();
-
-  function Wrapper({children}: {children?: ReactNode}) {
-    return (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  }
-
-  const hookOptions = {
-    wrapper: Wrapper,
-  };
 
   beforeEach(() => {
     jest.mocked(usePageFilters).mockReturnValue(
@@ -58,16 +42,14 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHook(
-      () =>
-        useFetchEventsTimeSeries(
-          DiscoverDatasets.SPANS,
-          {
-            yAxis: 'epm()',
-          },
-          REFERRER
-        ),
-      hookOptions
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {
+          yAxis: 'epm()',
+        },
+        REFERRER
+      )
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
@@ -89,17 +71,15 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHook(
-      () =>
-        useFetchEventsTimeSeries(
-          DiscoverDatasets.SPANS,
-          {
-            yAxis: ['epm()'],
-            enabled: false,
-          },
-          REFERRER
-        ),
-      hookOptions
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {
+          yAxis: ['epm()'],
+          enabled: false,
+        },
+        REFERRER
+      )
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(true));
@@ -110,19 +90,15 @@ describe('useFetchEventsTimeSeries', () => {
 
   it('requires a referrer', () => {
     expect(() => {
-      renderHook(
-        () =>
-          useFetchEventsTimeSeries(
-            DiscoverDatasets.SPANS,
-            {
-              yAxis: ['epm()'],
-              enabled: false,
-            },
-            ''
-          ),
-        {
-          wrapper: Wrapper,
-        }
+      renderHookWithProviders(() =>
+        useFetchEventsTimeSeries(
+          DiscoverDatasets.SPANS,
+          {
+            yAxis: ['epm()'],
+            enabled: false,
+          },
+          ''
+        )
       );
     }).toThrow();
   });
@@ -134,17 +110,15 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHook(
-      () =>
-        useFetchEventsTimeSeries(
-          DiscoverDatasets.SPANS,
-          {
-            yAxis: 'p50(span.duration)',
-            query: new MutableSearch('span.op:db*'),
-          },
-          REFERRER
-        ),
-      hookOptions
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {
+          yAxis: 'p50(span.duration)',
+          query: new MutableSearch('span.op:db*'),
+        },
+        REFERRER
+      )
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
@@ -178,27 +152,25 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHook(
-      () =>
-        useFetchEventsTimeSeries(
-          DiscoverDatasets.SPANS,
-          {
-            yAxis: 'p50(span.duration)',
-            interval: '2h',
-            pageFilters: {
-              environments: ['dev'],
-              projects: [420],
-              datetime: {
-                start: '2020-01-01',
-                end: '2020-01-02',
-                period: null,
-                utc: true,
-              },
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {
+          yAxis: 'p50(span.duration)',
+          interval: '2h',
+          pageFilters: {
+            environments: ['dev'],
+            projects: [420],
+            datetime: {
+              start: '2020-01-01',
+              end: '2020-01-02',
+              period: null,
+              utc: true,
             },
           },
-          REFERRER
-        ),
-      hookOptions
+        },
+        REFERRER
+      )
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
@@ -233,22 +205,20 @@ describe('useFetchEventsTimeSeries', () => {
       body: [],
     });
 
-    const {result} = renderHook(
-      () =>
-        useFetchEventsTimeSeries(
-          DiscoverDatasets.SPANS,
-          {
-            yAxis: 'p50(span.duration)',
-            topEvents: 5,
-            groupBy: ['span.category', 'transaction'],
-            sort: {
-              field: 'p50(span.duration)',
-              kind: 'desc',
-            },
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {
+          yAxis: 'p50(span.duration)',
+          topEvents: 5,
+          groupBy: ['span.category', 'transaction'],
+          sort: {
+            field: 'p50(span.duration)',
+            kind: 'desc',
           },
-          REFERRER
-        ),
-      hookOptions
+        },
+        REFERRER
+      )
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
