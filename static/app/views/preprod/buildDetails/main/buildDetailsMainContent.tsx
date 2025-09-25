@@ -91,9 +91,18 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const {isPending: isBuildDetailsPending, data: buildDetailsData} =
     props.buildDetailsQuery;
 
-  const [selectedContent, setSelectedContent] = useState<'treemap' | 'categories'>(
-    'treemap'
-  );
+  const [selectedContentParam, setSelectedContentParam] = useQueryParamState<
+    'treemap' | 'categories'
+  >({
+    fieldName: 'view',
+  });
+  const selectedContent =
+    selectedContentParam === 'treemap' || selectedContentParam === 'categories'
+      ? selectedContentParam
+      : 'treemap';
+  const setSelectedContent = (value: 'treemap' | 'categories') => {
+    setSelectedContentParam(value);
+  };
   const [searchQuery, setSearchQuery] = useQueryParamState<string>({
     fieldName: 'search',
   });
@@ -235,8 +244,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
               setSelectedContent(value);
             }}
           >
-            <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
-            <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
+            <SegmentedControl.Item key="treemap" value="treemap" icon={<IconGrid />} />
+            <SegmentedControl.Item
+              key="categories"
+              value="categories"
+              icon={<IconGraphCircle />}
+            />
           </SegmentedControl>
         )}
         {selectedContent === 'treemap' && (
