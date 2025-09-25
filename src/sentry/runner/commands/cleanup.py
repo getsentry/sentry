@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import time
 from collections.abc import Callable, Sequence
 from datetime import timedelta
@@ -16,9 +17,11 @@ from django.conf import settings
 from django.db.models import Model, QuerySet
 from django.utils import timezone
 
+from sentry.runner import configure
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
 
+PYTEST_IN_MODULES = "pytest" in sys.modules
 logger = logging.getLogger("sentry.cleanup")
 
 
@@ -81,6 +84,13 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
 
 def process_deletion_task(model_name: str, chunk: Sequence[int]) -> None:
+    # Configure sentry if we're not running inside of pytest
+    # Tests already configure the app before calling _cleanup(),
+    # thus, we do it here to avoid conflicts when running tests
+    if not PYTEST_IN_MODULES:
+        # We need to do this for processes spawned by multiprocessing
+        configure()
+
     from sentry import deletions, models, similarity
     from sentry.utils.imports import import_string
 
@@ -150,6 +160,7 @@ def cleanup(
     this can be done with the `--project` or `--organization` flags respectively,
     which accepts a project/organization ID or a string with the form `org/project` where both are slugs.
     """
+    configure()
     _cleanup(
         model=model,
         days=days,
@@ -186,15 +197,6 @@ def _cleanup(
         os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
     if not disable_multiprocessing:
-        # Configure sentry if we're not running inside of pytest
-        # Tests already configure the app before calling _cleanup(),
-        # thus, we do it here to avoid conflicts when running tests
-        import sys
-
-        if "pytest" not in sys.modules:
-            from sentry.runner import configure
-
-            configure()
 
         pool, task_queue = start_pool(concurrency)
 
