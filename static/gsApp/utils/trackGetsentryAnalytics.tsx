@@ -84,6 +84,7 @@ type GetsentryEventParameters = {
   'checkout.data_slider_changed': {data_type: string; quantity: number} & CheckoutUI;
   // no sub here;
   'checkout.data_sliders_viewed': Record<PropertyKey, unknown> & CheckoutUI;
+  // only used for checkout v3
   'checkout.exit': HasSub;
   'checkout.ondemand_budget.turned_off': Record<PropertyKey, unknown> & CheckoutUI;
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate & CheckoutUI;
@@ -109,7 +110,7 @@ type GetsentryEventParameters = {
   'checkout.upgrade': Partial<
     Record<DataCategory | `previous_${DataCategory}`, number | undefined>
   > & {previous_plan: string} & Checkout &
-    CheckoutUI; // only used for checkout v3
+    CheckoutUI;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;
   'data_consent_settings.updated': {setting: string; value: FieldValue};
