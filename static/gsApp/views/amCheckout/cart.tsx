@@ -213,7 +213,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                           {tct('Unlock with [budgetTerm]', {
                             budgetTerm:
                               activePlan.budgetTerm === 'pay-as-you-go'
-                                ? t('PAYG')
+                                ? 'PAYG'
                                 : activePlan.budgetTerm,
                           })}
                         </Tag>
