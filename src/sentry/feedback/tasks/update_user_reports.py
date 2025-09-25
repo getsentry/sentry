@@ -35,6 +35,11 @@ def update_user_reports(
     max_events: int | None = None,
     event_lookback_days: int | None = None,
 ) -> None:
+    """
+    Scheduled task to update user report -> event links that were missed during ingestion.
+    See TASKWORKER_REGION_SCHEDULES setting for schedule.
+    """
+
     now = timezone.now()
     start = now - timedelta(days=1)
     # +5 minutes just to catch clock skew
