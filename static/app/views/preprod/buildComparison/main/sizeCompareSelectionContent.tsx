@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Stack} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Radio} from 'sentry/components/core/radio';
 import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconCode, IconCommit, IconDownload} from 'sentry/icons';
+import {IconCalendar, IconCode, IconCommit, IconDownload, IconSearch} from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -48,12 +49,14 @@ export function SizeCompareSelectionContent({
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const queryParams: Record<string, any> = {
     per_page: 25,
     state: BuildDetailsState.PROCESSED,
     app_id: headBuildDetails.app_info?.app_id,
     build_configuration: headBuildDetails.app_info?.build_configuration,
+    ...(searchQuery && {query: searchQuery}),
   };
 
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
@@ -112,6 +115,17 @@ export function SizeCompareSelectionContent({
           });
         }}
       />
+
+      <InputGroup>
+        <InputGroup.LeadingItems disablePointerEvents>
+          <IconSearch />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input
+          placeholder={t('Search builds')}
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+      </InputGroup>
 
       {buildsQuery.isLoading && <LoadingIndicator />}
       {buildsQuery.isError && <Alert type="error">{buildsQuery.error?.message}</Alert>}
