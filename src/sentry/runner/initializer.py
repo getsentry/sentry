@@ -325,11 +325,11 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
-    if settings.TASKWORKER_ALWAYS_EAGER and not settings.DEBUG:
+    if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
         warnings.warn(
             "Sentry is configured to run asynchronous tasks in-process. "
             "This is not recommended within production environments. "
-            "See https://develop.sentry.dev/backend/application/domains/tasks/ for more information."
+            "See https://develop.sentry.dev/services/queue/ for more information."
         )
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -521,6 +521,17 @@ def bind_cache_to_option_store() -> None:
 
 def apply_legacy_settings(settings: Any) -> None:
     from sentry import options
+
+    # SENTRY_USE_QUEUE used to determine if Celery was eager or not
+    if hasattr(settings, "SENTRY_USE_QUEUE"):
+        warnings.warn(
+            DeprecatedSettingWarning(
+                "SENTRY_USE_QUEUE",
+                "CELERY_ALWAYS_EAGER",
+                "https://develop.sentry.dev/services/queue/",
+            )
+        )
+        settings.CELERY_ALWAYS_EAGER = not settings.SENTRY_USE_QUEUE
 
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
