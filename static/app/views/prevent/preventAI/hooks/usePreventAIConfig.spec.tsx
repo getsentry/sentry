@@ -23,7 +23,6 @@ describe('usePreventAIConfig', () => {
           triggers: {
             on_command_phrase: false,
             on_ready_for_review: false,
-            on_new_commit: false,
           },
         },
       },
