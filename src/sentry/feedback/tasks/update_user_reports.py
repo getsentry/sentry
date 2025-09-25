@@ -19,8 +19,6 @@ from sentry.utils.iterators import chunked
 
 logger = logging.getLogger(__name__)
 
-# Task name should be kept for backwards compatibility, do not rename.
-
 
 @instrumented_task(
     name="sentry.tasks.update_user_reports",
