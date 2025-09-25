@@ -278,7 +278,7 @@ function Chart({
     <div ref={virtualizer.measureElement} data-index={index}>
       <ChartWrapper>
         <ChartHeaderWrapper>
-          <Flex justify="space-between" align="center">
+          <Flex justify="between" align="center">
             <ChartTitle>{attribute.attributeName}</ChartTitle>
             <Flex gap="sm">
               <PopulationIndicator
