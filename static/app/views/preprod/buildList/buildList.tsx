@@ -1,3 +1,4 @@
+import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
@@ -59,7 +60,9 @@ export default function BuildList() {
           <Layout.Main fullWidth>
             <Flex direction="column" gap="md">
               {error ? (
-                <div>{t('Error loading builds')}</div>
+                <Alert type="error">
+                  {t('Failed to load builds. Please try again.')}
+                </Alert>
               ) : (
                 <BuildTable builds={builds} projectId={projectId} isLoading={isLoading} />
               )}

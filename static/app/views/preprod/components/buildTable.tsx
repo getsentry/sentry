@@ -1,13 +1,15 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {
   TabularColumn,
@@ -35,11 +37,11 @@ const COLUMNS: TabularColumn[] = [
 ];
 
 const ALIASES: Record<string, string> = {
-  app: 'APP',
-  build: 'BUILD',
-  install_size: 'INSTALL SIZE',
-  download_size: 'DOWNLOAD SIZE',
-  created: 'CREATED',
+  app: 'App',
+  build: 'Build',
+  install_size: 'Install Size',
+  download_size: 'Download Size',
+  created: 'Created',
 };
 
 interface BuildTableProps {
@@ -50,38 +52,46 @@ interface BuildTableProps {
 
 export function BuildTable({builds, projectId, isLoading}: BuildTableProps) {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const tableRef = useRef<HTMLDivElement>(null);
 
-  // Transform builds data for table
-  const transformedBuilds = builds.map((build: BuildDetailsApiResponse) => ({
-    id: build.id,
-    app_name: build.app_info?.name || 'Unknown App',
-    app_id: build.app_info?.app_id || 'Unknown ID',
-    platform: build.app_info?.platform || '',
-    version: build.app_info?.version || 'Unknown',
-    build_number: build.app_info?.build_number || 'Unknown',
-    build_state: build.state,
-    commit_sha: build.vcs_info?.head_sha || 'N/A',
-    commit_ref: build.vcs_info?.head_ref || 'main',
-    install_size: formattedInstallSize(build),
-    download_size: formattedDownloadSize(build),
-    date_added: build.app_info?.date_added || null,
-    build_id: build.id, // Keep reference to original build ID for navigation
-  }));
+  // Transform builds data for table - memoized to prevent unnecessary recalculations
+  const transformedBuilds = useMemo(
+    () =>
+      builds.map((build: BuildDetailsApiResponse) => ({
+        id: build.id,
+        app_name: build.app_info?.name || 'Unknown App',
+        app_id: build.app_info?.app_id || null,
+        platform: build.app_info?.platform || null,
+        version: build.app_info?.version || null,
+        build_number: build.app_info?.build_number || null,
+        build_state: build.state,
+        commit_sha: build.vcs_info?.head_sha || null,
+        commit_ref: build.vcs_info?.head_ref || null,
+        install_size: formattedInstallSize(build),
+        download_size: formattedDownloadSize(build),
+        date_added: build.app_info?.date_added || null,
+        build_id: build.id,
+      })),
+    [builds]
+  );
 
-  const tableData: TabularData = {
-    data: transformedBuilds,
-    meta: {
-      fields: {
-        app: 'string',
-        build: 'string',
-        install_size: 'string',
-        download_size: 'string',
-        created: 'date',
-      },
-      units: {},
-    } as TabularMeta,
-  };
+  const tableData: TabularData = useMemo(
+    () => ({
+      data: transformedBuilds,
+      meta: {
+        fields: {
+          app: 'string',
+          build: 'string',
+          install_size: 'string',
+          download_size: 'string',
+          created: 'date',
+        },
+        units: {},
+      } as TabularMeta,
+    }),
+    [transformedBuilds]
+  );
 
   // Add click handlers to table rows
   useEffect(() => {
@@ -99,7 +109,9 @@ export function BuildTable({builds, projectId, isLoading}: BuildTableProps) {
       if (rowIndex >= 0 && rowIndex < transformedBuilds.length) {
         const build = transformedBuilds[rowIndex];
         if (build?.build_id) {
-          window.location.href = `/organizations/${organization.slug}/preprod/${projectId}/${build.build_id}`;
+          navigate(
+            `/organizations/${organization.slug}/preprod/${projectId}/${build.build_id}`
+          );
         }
       }
     };
@@ -108,7 +120,7 @@ export function BuildTable({builds, projectId, isLoading}: BuildTableProps) {
     return () => {
       tableElement.removeEventListener('click', handleRowClick);
     };
-  }, [transformedBuilds, organization.slug, projectId]);
+  }, [transformedBuilds, organization.slug, projectId, navigate]);
 
   if (isLoading) {
     return (
@@ -122,7 +134,7 @@ export function BuildTable({builds, projectId, isLoading}: BuildTableProps) {
   }
 
   if (builds.length === 0) {
-    return <div>{t('No builds found')}</div>;
+    return <Alert type="info">{t('No builds found for this project.')}</Alert>;
   }
 
   return (
@@ -159,7 +171,7 @@ const createAppRenderer: FieldRenderer = data => {
         </Text>
       </Flex>
       <Text size="sm" variant="muted">
-        <TextOverflow>{appId}</TextOverflow>
+        <TextOverflow>{appId ?? '--'}</TextOverflow>
       </Text>
     </Flex>
   );
@@ -171,14 +183,18 @@ const createBuildRenderer: FieldRenderer = data => {
   const buildState = data.build_state as number;
   const commitSha = data.commit_sha as string;
   const commitRef = data.commit_ref as string;
+  const versionDisplay =
+    version !== null && buildNumber !== null
+      ? `${version} (${buildNumber})`
+      : version === null
+        ? '--'
+        : version;
 
   return (
     <Flex direction="column" gap="xs">
       <Flex align="center" gap="xs">
         <Text size="lg" bold>
-          <TextOverflow>
-            {version} ({buildNumber})
-          </TextOverflow>
+          <TextOverflow>{versionDisplay}</TextOverflow>
         </Text>
         {buildState === 3 && <IconCheckmark size="sm" color="green300" />}
       </Flex>
