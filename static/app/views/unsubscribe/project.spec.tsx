@@ -1,10 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UnsubscribeProject from 'sentry/views/unsubscribe/project';
 
 describe('UnsubscribeProject', () => {
-  const params = {orgId: 'acme', id: '9876'};
   let mockUpdate: jest.Mock;
   let mockGet: jest.Mock;
   beforeEach(() => {
@@ -27,16 +25,17 @@ describe('UnsubscribeProject', () => {
   });
 
   it('loads data from the API based on URL parameters', async () => {
-    const {router, routerProps} = initializeOrg({
-      router: {location: {query: {_: 'signature-value'}}, params},
+    render(<UnsubscribeProject />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/unsubscribe/acme/project/9876/',
+          query: {
+            _: 'signature-value',
+          },
+        },
+        route: '/unsubscribe/:orgId/project/:id/',
+      },
     });
-    render(
-      <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
-    );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Unsubscribe'})).toBeInTheDocument();
@@ -44,16 +43,17 @@ describe('UnsubscribeProject', () => {
   });
 
   it('makes an API request when the form is submitted', async () => {
-    const {router, routerProps} = initializeOrg({
-      router: {location: {query: {_: 'signature-value'}}, params},
+    render(<UnsubscribeProject />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/unsubscribe/acme/project/9876/',
+          query: {
+            _: 'signature-value',
+          },
+        },
+        route: '/unsubscribe/:orgId/project/:id/',
+      },
     });
-    render(
-      <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
-    );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();
     const button = screen.getByRole('button', {name: 'Unsubscribe'});
