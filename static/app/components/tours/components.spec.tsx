@@ -341,7 +341,7 @@ describe('Tour Components', () => {
           handleDismiss={jest.fn()}
           stepCount={50}
           stepTotal={100}
-          id={'test-id'}
+          id="test-id"
         >
           <div>Child Element</div>
         </TourGuide>
@@ -366,7 +366,7 @@ describe('Tour Components', () => {
           handleDismiss={mockHandleDismiss}
           stepCount={50}
           stepTotal={100}
-          id={'test-id'}
+          id="test-id"
         >
           <div>Child Element</div>
         </TourGuide>

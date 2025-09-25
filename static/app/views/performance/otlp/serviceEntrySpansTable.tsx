@@ -269,7 +269,7 @@ function CustomPagination({
   if (isLoading) {
     return (
       <StyledPagination
-        pageLinks={'n/a'}
+        pageLinks="n/a"
         disabled
         onCursor={() => {}}
         size={PAGINATION_CURSOR_SIZE}

@@ -109,7 +109,7 @@ export function IntegratedOrgSelector() {
           </DropdownButton>
         );
       }}
-      menuWidth={'22em'}
+      menuWidth="22em"
       menuFooter={<OrgFooterMessage />}
     />
   );

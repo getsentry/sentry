@@ -202,9 +202,7 @@ export const getPythonProfilingOnboarding = ({
             'For more detailed information on profiling, see the [link:profiling documentation].',
             {
               link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/python/profiling/`}
-                />
+                <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
               ),
             }
           ),

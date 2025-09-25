@@ -162,7 +162,7 @@ export function BranchSelector() {
           </DropdownButton>
         );
       }}
-      menuWidth={'22em'}
+      menuWidth="22em"
     />
   );
 }

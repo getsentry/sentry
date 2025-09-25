@@ -149,7 +149,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
           <TimeSpentCell
             percentage={item['time_spent_percentage()']}
             total={item[totalTimeField]}
-            op={'resource'}
+            op="resource"
           />
         </Fragment>
       ))}

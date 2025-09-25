@@ -163,7 +163,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
               "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
               {
                 link: (
-                  <ExternalLink href={'https://docs.sentry.io/pricing/#seer-pricing'} />
+                  <ExternalLink href="https://docs.sentry.io/pricing/#seer-pricing" />
                 ),
                 spendlink: (
                   <ExternalLink

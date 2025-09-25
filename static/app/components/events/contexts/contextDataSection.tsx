@@ -44,7 +44,7 @@ export default function ContextDataSection({
 
   return (
     <InterimSection
-      key={'context'}
+      key="context"
       type={SectionKey.CONTEXTS}
       title={t('Contexts')}
       help={tct(

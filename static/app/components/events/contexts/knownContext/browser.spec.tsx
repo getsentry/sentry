@@ -60,8 +60,8 @@ describe('BrowserContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'browser'}
-        alias={'browser'}
+        type="browser"
+        alias="browser"
         value={{...MOCK_BROWSER_CONTEXT, name: ''}}
       />
     );

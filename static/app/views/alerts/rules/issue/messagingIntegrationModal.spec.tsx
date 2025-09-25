@@ -26,8 +26,8 @@ describe('MessagingIntegrationModal', () => {
       closeModal={closeModal}
       Header={makeClosableHeader(() => {})}
       Body={ModalBody}
-      headerContent={'Connect with a messaging tool'}
-      bodyContent={'Receive alerts and digests right where you work.'}
+      headerContent="Connect with a messaging tool"
+      bodyContent="Receive alerts and digests right where you work."
       providers={providers}
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}

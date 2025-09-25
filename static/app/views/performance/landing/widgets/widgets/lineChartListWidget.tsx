@@ -661,7 +661,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <TimeSpentCell
                   percentage={listItem[fieldString] as number}
                   total={listItem[`sum(${SpanFields.SPAN_SELF_TIME})`] as number}
-                  op={'http.client'}
+                  op="http.client"
                 />
               </RightAlignedCell>
 

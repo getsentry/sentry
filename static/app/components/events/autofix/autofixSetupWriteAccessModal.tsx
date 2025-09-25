@@ -66,9 +66,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
             'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the following repositories:',
             {
               link: (
-                <ExternalLink
-                  href={`https://github.com/apps/seer-by-sentry/installations/new`}
-                />
+                <ExternalLink href="https://github.com/apps/seer-by-sentry/installations/new" />
               ),
             }
           )}
@@ -89,9 +87,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
           'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the relevant repositories.',
           {
             link: (
-              <ExternalLink
-                href={`https://github.com/apps/seer-by-sentry/installations/new`}
-              />
+              <ExternalLink href="https://github.com/apps/seer-by-sentry/installations/new" />
             ),
           }
         )}

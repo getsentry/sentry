@@ -79,8 +79,8 @@ describe('CloudResourceContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'cloud_resource'}
-        alias={'cloud_resource'}
+        type="cloud_resource"
+        alias="cloud_resource"
         value={{...MOCK_CLOUD_RESOURCE, ['host.id']: ''}}
       />
     );

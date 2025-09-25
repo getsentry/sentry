@@ -16,7 +16,7 @@ describe('EnvironmentSelector', () => {
 
     const mockOnChange = jest.fn();
 
-    render(<EnvironmentSelector value={''} onChange={mockOnChange} />);
+    render(<EnvironmentSelector value="" onChange={mockOnChange} />);
 
     // Open list
     await userEvent.click(screen.getByRole('button', {name: 'All Environments'}));
