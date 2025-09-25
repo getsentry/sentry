@@ -118,7 +118,7 @@ class EnforceNoCrossTransactionWrapper:
         # Ideally, restructure transactions that span different databases into separate discrete blocks.
         # It is fine to nest transactions so long as they are operating on the same database.
         # Alternatively, it may be possible you are hitting this due to limitations in the test environment, such as
-        # when celery tasks fire synchronously, or other work is done in a test that would normally be separated by
+        # when tasks fire synchronously, or other work is done in a test that would normally be separated by
         # different connections / processes.  If you believe this is the case, context the #project-hybrid-cloud channel
         # for assistance.
         if len(open_transactions) >= 2:
