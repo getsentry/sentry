@@ -244,7 +244,7 @@ function ResolveActions({
             handleCurrentReleaseResolution({isLatestSemverRelease: false})
           ),
       },
-      ...(hasSemverReleaseFeature
+      ...(hasSemverReleaseFeature && latestSemverRelease?.version
         ? [
             {
               key: 'semver-release',
@@ -253,7 +253,7 @@ function ResolveActions({
                 <CurrentReleaseWrapper>
                   {actionTitle ? (
                     actionTitle
-                  ) : latestSemverRelease ? (
+                  ) : (
                     <Fragment>
                       <div>
                         <MaxReleaseWidthWrapper>
@@ -261,7 +261,7 @@ function ResolveActions({
                         </MaxReleaseWidthWrapper>
                       </div>{' '}
                     </Fragment>
-                  ) : null}
+                  )}
                 </CurrentReleaseWrapper>
               ),
               onAction: () =>
@@ -304,7 +304,9 @@ function ResolveActions({
             ? [
                 'next-release',
                 'current-release',
-                ...(hasSemverReleaseFeature ? ['semver-release'] : []),
+                ...(hasSemverReleaseFeature && latestSemverRelease?.version
+                  ? ['semver-release']
+                  : []),
                 'another-release',
                 'a-commit',
               ]
@@ -312,7 +314,9 @@ function ResolveActions({
               ? [
                   'next-release',
                   'current-release',
-                  ...(hasSemverReleaseFeature ? ['semver-release'] : []),
+                  ...(hasSemverReleaseFeature && latestSemverRelease?.version
+                    ? ['semver-release']
+                    : []),
                   'another-release',
                 ]
               : []
