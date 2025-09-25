@@ -204,20 +204,18 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                   ) : (
                     isPaygOnly &&
                     (hasPaygForCategory ? (
-                      <Tag>
-                        {tct('Available with [budgetTerm]', {
-                          budgetTerm:
-                            activePlan.budgetTerm === 'pay-as-you-go'
-                              ? t('PAYG')
-                              : activePlan.budgetTerm,
-                        })}
-                      </Tag>
+                      <Tag>{t('Available')}</Tag>
                     ) : (
                       <Tooltip
                         title={t('This product is only available with a PAYG budget.')}
                       >
                         <Tag icon={<IconLock locked size="xs" />}>
-                          {t('Product not available')}
+                          {tct('Unlock with [budgetTerm]', {
+                            budgetTerm:
+                              activePlan.budgetTerm === 'pay-as-you-go'
+                                ? 'PAYG'
+                                : activePlan.budgetTerm,
+                          })}
                         </Tag>
                       </Tooltip>
                     ))
