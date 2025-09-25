@@ -29,7 +29,6 @@ from snuba_sdk import (
 
 from sentry import options
 from sentry.models.files.utils import get_storage
-from sentry.utils.retries import ConditionalRetryPolicy
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -374,17 +373,24 @@ def export_replay_row_set(
     initial_offset: int,
     write_to_sink: Callable[[str, str], None],
     num_pages: int = 10,
-):
-    row_iterator = export_clickhouse_rows(
-        lambda limit, offset: query_replays_dataset(project_id, start, end, limit, offset),
-        limit=limit,
-        offset=initial_offset,
-        num_pages=num_pages,
+) -> int | None:
+    rows = list(
+        export_clickhouse_rows(
+            lambda limit, offset: query_replays_dataset(project_id, start, end, limit, offset),
+            limit=limit,
+            offset=initial_offset,
+            num_pages=num_pages,
+        )
     )
 
     filename = f"replay-row-data/{uuid.uuid4().hex}"
-    csv_data = row_iterator_to_csv(row_iterator)
+    csv_data = row_iterator_to_csv(rows)
     write_to_sink(filename, csv_data)
+
+    if len(rows) == (limit * num_pages):
+        return initial_offset + len(rows)
+    else:
+        return None
 
 
 def generate_ninety_days_pairs(dt: datetime) -> Iterator[tuple[datetime, datetime]]:
@@ -408,45 +414,51 @@ def save_to_gcs(destination_bucket: str, filename: str, contents: str) -> None:
     storage.save(filename, io.BytesIO(contents.encode()))
 
 
-@instrumented_task
+@instrumented_task(
+    name="sentry.replays.tasks.export_replay_row_set_async",
+    default_retry_delay=5,
+    max_retries=120,
+)
 def export_replay_row_set_async(
     project_id: int,
     start: datetime,
     end: datetime,
-    limit: int,
-    offset: int,
     destination_bucket: str,
-    num_pages: int,
-    max_retries: int = 40,
-    retry_after_seconds: float = 1.0,
+    limit: int = 1000,
+    offset: int = 0,
+    num_pages: int = 10,
 ):
-    assert max_retries >= 0, "max_retries mut be a positive integer greater than or equal to zero."
-    assert (
-        retry_after_seconds >= 0
-    ), "retry_after_seconds mut be a positive float greater than or equal to zero."
+    assert limit > 0, "Limit must be greater than 0."
+    assert offset >= 0, "Offset must be greater than or equal to 0."
+    assert start < end, "End must be before start date."
+    assert num_pages > 0, "num_pages must be greater than 0."
 
-    # Rate-limits or service outages might derail our service requests. This policy will let us
-    # retry up to a maximum before giving up. Should we ever give up on a data-export? Probably
-    # but the specifics of that question are better answered elsewhere.
-    policy = ConditionalRetryPolicy(
-        test_function=lambda a, _: a <= max_retries,
-        delay_function=lambda _: retry_after_seconds,
+    next_offset = export_replay_row_set(
+        project_id,
+        start,
+        end,
+        limit,
+        offset,
+        lambda filename, contents: save_to_gcs(destination_bucket, filename, contents),
+        num_pages,
     )
 
-    policy(
-        lambda: export_replay_row_set(
-            project_id,
-            start,
-            end,
-            limit,
-            offset,
-            lambda filename, contents: save_to_gcs(destination_bucket, filename, contents),
-            num_pages,
+    # If more rows need to be queried we do it in another task so any one task does not take too
+    # long.
+    if next_offset:
+        assert next_offset > offset, "Next offset was not greater than previous offset."
+        export_replay_row_set_async.delay(
+            project_id=project_id,
+            start=start,
+            end=end,
+            limit=limit,
+            offset=next_offset,
+            destination_bucket=destination_bucket,
+            num_pages=num_pages,
         )
-    )
 
 
-@instrumented_task
+@instrumented_task(name="sentry.replays.tasks.export_replay_project_async")
 def export_replay_project_async(
     project_id: int,
     limit: int,
