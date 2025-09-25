@@ -734,7 +734,7 @@ describe('OnDemandBudgets', () => {
       },
       organization,
       onDemandBudgets: {
-        enabled: true,
+        enabled: false,
         budgetMode: OnDemandBudgetMode.SHARED,
         sharedMaxBudget: 0,
         onDemandSpendUsed: 0,
@@ -746,7 +746,8 @@ describe('OnDemandBudgets', () => {
         {...defaultProps}
         subscription={subscription}
         organization={organization}
-        hasPaymentSource
+        onDemandEnabled={false}
+        hasPaymentSource={false}
       />
     );
 
