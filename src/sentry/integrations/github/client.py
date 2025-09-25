@@ -30,6 +30,7 @@ from sentry.integrations.source_code_management.status_check import StatusCheckC
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.options.rollout import in_random_rollout
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
 from sentry.silo.base import control_silo_function
@@ -620,6 +621,25 @@ class GitHubBaseClient(
                 raise ApiRateLimitedError("Not enough requests remaining for GitHub")
 
         file_path_mapping = generate_file_path_mapping(files)
+
+        if (
+            in_random_rollout("github.blame-queries.batch-by-repo-rollout")
+            and len(file_path_mapping) > 1
+        ):
+            all_file_blames = []
+            for repo_name in file_path_mapping.keys():
+                repo_file_mapping = {repo_name: file_path_mapping[repo_name]}
+                repo_files = [f for f in files if f.repo.name == repo_name]
+
+                repo_blames = self._execute_blame_query(
+                    repo_file_mapping, repo_files, extra, log_info
+                )
+                all_file_blames.extend(repo_blames)
+            return all_file_blames
+        else:
+            return self._execute_blame_query(file_path_mapping, files, extra, log_info)
+
+    def _execute_blame_query(self, file_path_mapping, files, extra, log_info):
         query, variables = create_blame_query(file_path_mapping, extra=log_info)
         data = {"query": query, "variables": variables}
         cache_key = self.get_cache_key("/graphql", "", orjson.dumps(data).decode())
