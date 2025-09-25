@@ -378,3 +378,23 @@ class ComponentTest(TestCase):
             in_app_non_contributing_frames=21,
             in_app_contributing_frames=39,
         )
+
+    def test_get_subcomponent(self) -> None:
+        root_component = self.event.get_grouping_variants()["app"].root_component
+
+        # When `recursive` isn't specified, it should find direct children but not grandchildren
+        exception_component = root_component.get_subcomponent("exception")
+        stacktrace_component = root_component.get_subcomponent("stacktrace")
+        assert exception_component
+        assert not stacktrace_component
+
+        # Grandchildren can be found, however, if the search is recursive
+        stacktrace_component = root_component.get_subcomponent("stacktrace", recursive=True)
+        assert stacktrace_component
+
+        # The `only_contributing` flag can be used to exclude components which don't contribute
+        assert stacktrace_component.contributes is False
+        contributing_stacktrace_component = root_component.get_subcomponent(
+            "stacktrace", recursive=True, only_contributing=True
+        )
+        assert not contributing_stacktrace_component
