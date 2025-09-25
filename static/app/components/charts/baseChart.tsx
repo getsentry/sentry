@@ -5,7 +5,7 @@ import 'echarts/lib/component/brush';
 import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
 
-import {useId, useMemo} from 'react';
+import {useEffect, useId, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -45,6 +45,7 @@ import type {
   EChartMouseOverHandler,
   EChartRenderedHandler,
   EChartRestoreHandler,
+  ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -396,6 +397,7 @@ function BaseChart({
   'data-test-id': dataTestId,
 }: BaseChartProps) {
   const theme = useTheme();
+  const chartRef = useRef<ReactEchartsRef>(null);
 
   const resolveColors =
     colors === undefined ? null : typeof colors === 'function' ? colors(theme) : colors;
@@ -680,6 +682,44 @@ function BaseChart({
     };
   }, [style, autoHeightResize, height, width]);
 
+  // Cleanup effect to dispose of the chart instance and cancel pending timeouts when component unmounts
+  useEffect(() => {
+    return () => {
+      // Get the chart instance - use ref or the passed ref
+      const chartInstance = (ref && typeof ref !== 'function' ? ref.current : chartRef.current)?.getEchartsInstance?.();
+      
+      if (chartInstance) {
+        try {
+          // Access the internal view manager to get the tooltip view
+          const viewManager = chartInstance._componentsViews;
+          
+          if (viewManager) {
+            // Look for the tooltip view in the components views
+            const tooltipView = viewManager.find((view: any) => view.type === 'tooltip');
+            
+            if (tooltipView) {
+              // Cancel any pending timeouts to prevent race conditions
+              if (tooltipView._showTimout) {
+                clearTimeout(tooltipView._showTimout);
+                tooltipView._showTimout = null;
+              }
+              if (tooltipView._refreshUpdateTimeout) {
+                clearTimeout(tooltipView._refreshUpdateTimeout);
+                tooltipView._refreshUpdateTimeout = null;
+              }
+            }
+          }
+        } catch (error) {
+          // Silently handle any errors accessing tooltip internals
+          // This is expected when using internal APIs that may change
+        }
+        
+        // The ReactEchartsCore component should handle dispose() internally,
+        // but this cleanup ensures any lingering timeouts are cancelled
+      }
+    };
+  }, [ref]);
+
   return (
     <ChartContainer
       id={isTooltipPortalled ? chartId : undefined}
@@ -688,7 +728,7 @@ function BaseChart({
     >
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
-        ref={ref}
+        ref={ref || chartRef}
         echarts={echarts}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
