@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
