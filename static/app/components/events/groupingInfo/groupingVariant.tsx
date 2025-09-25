@@ -167,7 +167,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
           ?.split(' ')
           .map(i => capitalize(i))
           .join(' ') ?? t('Nothing')}
-        <VariantHint>{!isContributing && hint && t('(%s)', hint)}</VariantHint>
+        <VariantHint>{hint && t('(%s)', hint)}</VariantHint>
       </VariantTitle>
     );
   };
@@ -211,7 +211,7 @@ const VariantTitle = styled('h5')`
   align-items: center;
 `;
 
-const VariantHint = styled('span')`
+const VariantHint = styled('text')`
   font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.fontWeight.normal};
