@@ -1,10 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useGetActiveIntegratedOrgs} from './useGetActiveIntegratedOrgs';
 
@@ -34,15 +30,10 @@ describe('useGetActiveIntegratedOrgs', () => {
       body: mockIntegrations,
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
+    const {result} = renderHookWithProviders(
+      () => useGetActiveIntegratedOrgs({organization}),
+      {organization}
     );
-
-    const {result} = renderHook(() => useGetActiveIntegratedOrgs({organization}), {
-      wrapper,
-    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -79,15 +70,10 @@ describe('useGetActiveIntegratedOrgs', () => {
       body: mockIntegrations,
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
+    const {result} = renderHookWithProviders(
+      () => useGetActiveIntegratedOrgs({organization}),
+      {organization}
     );
-
-    const {result} = renderHook(() => useGetActiveIntegratedOrgs({organization}), {
-      wrapper,
-    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -105,15 +91,10 @@ describe('useGetActiveIntegratedOrgs', () => {
       body: {detail: 'Repository not found'},
     });
 
-    const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
+    const {result} = renderHookWithProviders(
+      () => useGetActiveIntegratedOrgs({organization}),
+      {organization}
     );
-
-    const {result} = renderHook(() => useGetActiveIntegratedOrgs({organization}), {
-      wrapper,
-    });
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
