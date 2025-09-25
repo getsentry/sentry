@@ -1,13 +1,14 @@
 import {cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Radio} from 'sentry/components/core/radio';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
+import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import type {PlanSelectRowProps} from 'getsentry/views/amCheckout/steps/planSelectRow';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getShortInterval} from 'getsentry/views/amCheckout/utils';
@@ -20,6 +21,7 @@ interface PlanSelectCardProps
     | 'planWarning'
     | 'priceHeader'
     | 'shouldShowEventPrice'
+    | 'highlightedFeatures'
   > {
   /**
    * Icon to use for the plan
@@ -31,7 +33,6 @@ function PlanSelectCard({
   plan,
   isSelected,
   onUpdate,
-  planValue,
   planName,
   planContent,
   price,
@@ -61,75 +62,42 @@ function PlanSelectCard({
     : planIcon;
 
   return (
-    <PlanOption
-      data-test-id={`plan-option-${plan.id}`}
+    <CheckoutOption
+      dataTestId={`plan-option-${plan.id}`}
+      ariaLabel={planName}
       isSelected={isSelected}
       onClick={onPlanSelect}
-      direction="column"
-      gap="md"
-      padding="2xl"
+      ariaRole="radio"
     >
-      <Row>
-        <PlanIconContainer>
-          {adjustedPlanIcon}
-          {badge}
-        </PlanIconContainer>
-        <StyledRadio
-          readOnly
-          id={plan.id}
-          aria-label={`${planName} plan`}
-          value={planValue}
-          checked={isSelected}
-          onClick={onPlanSelect}
-          onKeyDown={e => {
-            if (e.key === 'Enter') {
-              onPlanSelect();
-            }
-          }}
-        />
-      </Row>
-      <div>
-        <Title>{planName}</Title>
-        <Description isSelected={isSelected}>{description}</Description>
-      </div>
-      <div>
-        <Price>{`$${price}`}</Price>
-        <BillingInterval>{`/${billingInterval}`}</BillingInterval>
-      </div>
-    </PlanOption>
+      <Flex align="start" justify="between" gap="md" padding="xl">
+        <Container paddingTop="sm">
+          <RadioMarker isSelected={isSelected} />
+        </Container>
+
+        <Flex direction="column" gap="sm" width="100%">
+          <Flex align="center" justify="between" gap="sm">
+            <Flex align="center" gap="sm">
+              <Heading as="h3" variant="primary">
+                {planName}
+              </Heading>
+              {badge}
+            </Flex>
+            <IconContainer isSelected={isSelected}>{adjustedPlanIcon}</IconContainer>
+          </Flex>
+          <Text size="md" variant="muted">
+            {description}
+          </Text>
+          <Container>
+            <Price>{`$${price}`}</Price>
+            <BillingInterval>{`/${billingInterval}`}</BillingInterval>
+          </Container>
+        </Flex>
+      </Flex>
+    </CheckoutOption>
   );
 }
 
 export default PlanSelectCard;
-
-const PlanOption = styled(Flex)<{isSelected?: boolean}>`
-  background: ${p => (p.isSelected ? `${p.theme.active}05` : p.theme.background)};
-  color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => (p.isSelected ? p.theme.active : p.theme.border)};
-  cursor: pointer;
-`;
-
-const Row = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const PlanIconContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const Description = styled('div')<{isSelected?: boolean}>`
-  color: ${p => (p.isSelected ? p.theme.activeText : p.theme.subText)};
-`;
 
 const Price = styled('span')`
   font-size: ${p => p.theme.fontSize['2xl']};
@@ -140,6 +108,22 @@ const BillingInterval = styled('span')`
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
-const StyledRadio = styled(Radio)`
+const IconContainer = styled('div')<{isSelected?: boolean}>`
+  display: flex;
+  background: ${p =>
+    p.isSelected ? p.theme.tokens.graphics.accent : p.theme.background};
+  border: 1px solid ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs};
+  color: ${p => (p.isSelected ? p.theme.background : p.theme.textColor)};
+`;
+
+const RadioMarker = styled('div')<{isSelected?: boolean}>`
+  width: ${p => p.theme.space.xl};
+  height: ${p => p.theme.space.xl};
+  border-radius: ${p => p.theme.space['3xl']};
   background: ${p => p.theme.background};
+  border-color: ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
+  border-width: ${p => (p.isSelected ? '4px' : '1px')};
+  border-style: solid;
 `;

@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
@@ -25,6 +26,7 @@ const requestMocks = {
   missRateChart: jest.fn(),
   cacheSamplesMissRateChart: jest.fn(),
   throughputChart: jest.fn(),
+  cacheMissRateError: jest.fn(),
   spanTransactionList: jest.fn(),
   transactionDurations: jest.fn(),
   spanFields: jest.fn(),
@@ -92,27 +94,22 @@ describe('CacheLandingPage', () => {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.throughputChart).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-stats/`,
+      `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          cursor: undefined,
           dataset: 'spans',
           sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
-          field: [],
+          groupBy: undefined,
           interval: '30m',
-          orderby: undefined,
           partial: 1,
-          per_page: 50,
           project: [],
           query: 'span.op:[cache.get_item,cache.get]',
           referrer: 'api.insights.cache.landing-cache-throughput-chart',
           statsPeriod: '10d',
-          topEvents: undefined,
-          yAxis: 'epm()',
-          transformAliasToInputFormat: '1',
+          yAxis: ['epm()'],
         },
       })
     );
@@ -297,53 +294,29 @@ const setRequestMocks = (organization: Organization) => {
   });
 
   requestMocks.missRateChart = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-stats/`,
+    url: `/organizations/${organization.slug}/events-timeseries/`,
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
         referrer: 'api.insights.cache.landing-cache-hit-miss-chart',
+        yAxis: ['cache_miss_rate()'],
       }),
     ],
     body: {
-      data: [
-        [1716379200, [{count: 0.5}]],
-        [1716393600, [{count: 0.75}]],
+      timeSeries: [
+        TimeSeriesFixture({
+          yAxis: 'cache_miss_rate()',
+          values: [
+            {value: 0.5, timestamp: 1716379200000},
+            {value: 0.75, timestamp: 1716393600000},
+          ],
+        }),
       ],
-      meta: {
-        fields: {
-          time: 'date',
-          cache_miss_rate: 'percentage',
-        },
-        units: {},
-      },
-    },
-  });
-
-  requestMocks.missRateChart = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-stats/`,
-    method: 'GET',
-    match: [
-      MockApiClient.matchQuery({
-        referrer: 'api.insights.cache.samples-cache-hit-miss-chart',
-      }),
-    ],
-    body: {
-      data: [
-        [1716379200, [{count: 0.5}]],
-        [1716393600, [{count: 0.75}]],
-      ],
-      meta: {
-        fields: {
-          time: 'date',
-          cache_miss_rate: 'percentage',
-        },
-        units: {},
-      },
     },
   });
 
   requestMocks.throughputChart = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-stats/`,
+    url: `/organizations/${organization.slug}/events-timeseries/`,
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
@@ -351,17 +324,15 @@ const setRequestMocks = (organization: Organization) => {
       }),
     ],
     body: {
-      data: [
-        [1716379200, [{count: 100}]],
-        [1716393600, [{count: 200}]],
+      timeSeries: [
+        TimeSeriesFixture({
+          yAxis: 'epm()',
+          values: [
+            {value: 100, timestamp: 1716379200000},
+            {value: 200, timestamp: 1716393600000},
+          ],
+        }),
       ],
-      meta: {
-        fields: {
-          time: 'date',
-          epm_14400: 'rate',
-        },
-        units: {},
-      },
     },
   });
 

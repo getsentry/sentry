@@ -471,8 +471,9 @@ def update_existing_attachments(job):
 
 def fetch_buffered_group_stats(group):
     """
-    Fetches buffered increments to `times_seen` for this group and adds them to the current
-    `times_seen`.
+    Populates `times_seen_pending` with the number of buffered increments to `times_seen`
+    for this group. `times_seen_with_pending` can subsequently be used as the total times seen,
+    including the pending buffer updates.
     """
     from sentry import buffer
     from sentry.models.group import Group
@@ -1021,6 +1022,16 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
 
+def _should_single_process_event(job: PostProcessJob) -> bool:
+    org = job["event"].project.organization
+
+    return (
+        features.has("organizations:workflow-engine-single-process-workflows", org)
+        and job["event"].group.type
+        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
+    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga")
+
+
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     """
     Call for process_workflow_engine with the issue alert feature flag
@@ -1028,12 +1039,8 @@ def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-
     # process workflow engine if we are single processing or dual processing for a specific org
-    if features.has("organizations:workflow-engine-single-process-workflows", org) or features.has(
-        "organizations:workflow-engine-process-workflows", org
-    ):
+    if _should_single_process_event(job):
         process_workflow_engine(job)
 
 
@@ -1058,14 +1065,8 @@ def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-
-    if (
-        features.has("organizations:workflow-engine-single-process-workflows", org)
-        and job["event"].group.type
-        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
-    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
-        # we are only processing through the workflow engine
+    if _should_single_process_event(job):
+        # we are only processing through workflow engine
         return
 
     metrics.incr(
@@ -1096,10 +1097,9 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        if not features.has("organizations:workflow-engine-trigger-actions", org):
-            for callback, futures in callback_and_futures:
-                has_alert = True
-                safe_execute(callback, group_event, futures)
+        for callback, futures in callback_and_futures:
+            has_alert = True
+            safe_execute(callback, group_event, futures)
 
     job["has_alert"] = has_alert
     return

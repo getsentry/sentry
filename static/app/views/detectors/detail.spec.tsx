@@ -80,6 +80,10 @@ describe('DetectorDetails', () => {
       url: '/organizations/org-slug/open-periods/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: GroupFixture(),
+    });
   });
 
   describe('metric detectors', () => {
@@ -298,10 +302,10 @@ describe('DetectorDetails', () => {
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
 
       // Verify check-in data is displayed
-      expect(screen.getByText('Uptime')).toBeInTheDocument();
+      expect(screen.getAllByText('Uptime')).toHaveLength(2); // timeline legend + check-in row
       expect(screen.getByText('200')).toBeInTheDocument();
       expect(screen.getByText('US East')).toBeInTheDocument();
-      expect(screen.getByText('Failure')).toBeInTheDocument();
+      expect(screen.getAllByText('Failure')).toHaveLength(2); // timeline legend + check-in row
       expect(screen.getByText('500')).toBeInTheDocument();
       expect(screen.getByText('US West')).toBeInTheDocument();
     });

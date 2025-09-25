@@ -25,6 +25,7 @@ import PerformanceNewProjectPrompt from 'getsentry/components/features/performan
 import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
 import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
 import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
+import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import {
@@ -59,11 +60,9 @@ import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import OrgStatsProfilingBanner from 'getsentry/hooks/orgStatsProfilingBanner';
 import hookRootRoutes from 'getsentry/hooks/rootRoutes';
-import hookSettingsRoutes from 'getsentry/hooks/settingsRoutes';
-import hookSidebarDropdownMenu from 'getsentry/hooks/sidebarDropdownMenu';
-import hookSidebarHelpMenu from 'getsentry/hooks/sidebarHelpMenu';
 import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedIndex';
 import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
+import subscriptionSettingsRoutes from 'getsentry/hooks/subscriptionSettingsRoutes';
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
@@ -106,8 +105,12 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Additional routes to be inserted into sentrys route tree
    */
   'routes:root': hookRootRoutes,
-  'routes:settings': hookSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
+
+  /**
+   *
+   */
+  'routes:subscription-settings': subscriptionSettingsRoutes,
 
   /**
    * Analytics functionality
@@ -119,8 +122,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
    * Sidebar augmentation
    */
-  'sidebar:organization-dropdown-menu': hookSidebarDropdownMenu,
-  'sidebar:help-menu': hookSidebarHelpMenu,
   'sidebar:item-label': () => LabelWithPowerIcon,
   'sidebar:try-business': props => (
     <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
@@ -149,6 +150,12 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * and modals for various overage warnings.
    */
   'component:organization-header': () => OrganizationHeader,
+
+  /**
+   * Ensure the Invite Members button is always enabled without regard for the
+   * `feature:invite-members` flag.
+   */
+  'member-invite-button:customization': () => InviteMembersButtonCustomization,
 
   /**
    * Augment the invite members modal component to start a trial before

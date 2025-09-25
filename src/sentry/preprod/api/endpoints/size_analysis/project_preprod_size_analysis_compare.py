@@ -13,6 +13,9 @@ from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisComparePostEvent,
 )
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
+from sentry.preprod.api.models.project_preprod_build_details_models import (
+    transform_preprod_artifact_to_build_details,
+)
 from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compare_models import (
     SizeAnalysisCompareGETResponse,
     SizeAnalysisComparePOSTResponse,
@@ -222,9 +225,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 "comparisons": len(comparisons),
             },
         )
+        head_build_details = transform_preprod_artifact_to_build_details(head_artifact)
+        base_build_details = transform_preprod_artifact_to_build_details(base_artifact)
         response = SizeAnalysisCompareGETResponse(
-            head_artifact_id=int(head_artifact_id),
-            base_artifact_id=int(base_artifact_id),
+            head_build_details=head_build_details,
+            base_build_details=base_build_details,
             comparisons=comparisons,
         )
         return Response(response.dict())
@@ -272,6 +277,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             "preprod.size_analysis.compare.api.post",
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
+
+        if head_artifact.build_configuration != base_artifact.build_configuration:
+            return Response(
+                {"error": "Head and base build configurations must be the same."}, status=400
+            )
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[head_artifact.id],
@@ -375,33 +385,19 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             )
             return Response(body.dict(), status=200)
 
-        head_metrics_map = build_size_metrics_map(head_size_metrics)
-        base_metrics_map = build_size_metrics_map(base_size_metrics)
-
         logger.info(
-            "preprod.size_analysis.compare.api.post.running_comparisons",
-            extra={"head_metrics_map": head_metrics_map, "base_metrics_map": base_metrics_map},
+            "preprod.size_analysis.compare.api.post.running_comparison",
+            extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
         )
 
-        for key, head_metric in head_metrics_map.items():
-            base_metric = base_metrics_map.get(key)
-            if not base_metric:
-                logger.info(
-                    "preprod.size_analysis.compare.api.no_matching_base_metric",
-                    extra={"head_metric_id": head_metric.id},
-                )
-                continue
-
-            logger.info(
-                "preprod.size_analysis.compare.api.post.running_comparison",
-                extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
-            )
-            manual_size_analysis_comparison.apply_async(
-                kwargs={
-                    "head_size_metric_id": head_metric.id,
-                    "base_size_metric_id": base_metric.id,
-                }
-            )
+        manual_size_analysis_comparison.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "org_id": project.organization_id,
+                "head_artifact_id": head_artifact.id,
+                "base_artifact_id": base_artifact.id,
+            }
+        )
 
         logger.info(
             "preprod.size_analysis.compare.api.post.success",

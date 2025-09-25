@@ -1,14 +1,16 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import {IconClock, IconFile, IconJson, IconLink} from 'sentry/icons';
+import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {
+  BuildDetailsSizeAnalysisState,
   type BuildDetailsAppInfo,
   type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -43,18 +45,23 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
       </Flex>
 
-      {props.sizeInfo && (
-        <Flex gap="sm">
-          <Flex direction="column" gap="xs" flex={1}>
-            <Heading as="h4">{installSizeText}</Heading>
-            <Text size="md">{formatBytesBase10(props.sizeInfo.install_size_bytes)}</Text>
+      {props.sizeInfo &&
+        props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED && (
+          <Flex gap="sm">
+            <Flex direction="column" gap="xs" flex={1}>
+              <Heading as="h4">{installSizeText}</Heading>
+              <Text size="md">
+                {formatBytesBase10(props.sizeInfo.install_size_bytes)}
+              </Text>
+            </Flex>
+            <Flex direction="column" gap="xs" flex={1}>
+              <Heading as="h4">{t('Download Size')}</Heading>
+              <Text size="md">
+                {formatBytesBase10(props.sizeInfo.download_size_bytes)}
+              </Text>
+            </Flex>
           </Flex>
-          <Flex direction="column" gap="xs" flex={1}>
-            <Heading as="h4">{t('Download Size')}</Heading>
-            <Text size="md">{formatBytesBase10(props.sizeInfo.download_size_bytes)}</Text>
-          </Flex>
-        </Flex>
-      )}
+        )}
 
       <Flex wrap="wrap" gap="md">
         <Flex gap="2xs" align="center">
@@ -107,6 +114,18 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             )}
           </Text>
         </Flex>
+        {props.appInfo.build_configuration && (
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconMobile />
+            </InfoIcon>
+            <Text monospace>
+              <InlineCodeSnippet data-render-inline>
+                {props.appInfo.build_configuration}
+              </InlineCodeSnippet>
+            </Text>
+          </Flex>
+        )}
       </Flex>
     </Flex>
   );
@@ -151,4 +170,8 @@ const InstallableLink = styled('button')`
   &:hover {
     color: ${p => p.theme.linkHoverColor};
   }
+`;
+
+const InlineCodeSnippet = styled(CodeSnippet)`
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 `;

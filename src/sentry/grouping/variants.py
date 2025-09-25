@@ -104,31 +104,31 @@ class ComponentVariant(BaseVariant):
     def __init__(
         self,
         # The root of the component tree
-        component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        root_component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
         # The highest non-root contributing component in the tree, representing the overall grouping
         # method (exception, threads, message, etc.). For non-contributing variants, this will be
         # None.
         contributing_component: ContributingComponent | None,
         strategy_config: StrategyConfiguration,
     ):
-        self.component = component
+        self.root_component = root_component
         self.config = strategy_config
         self.contributing_component = contributing_component
-        self.variant_name = self.component.id  # "app", "system", or "default"
+        self.variant_name = self.root_component.id  # "app", "system", or "default"
 
     @property
     def description(self) -> str:
-        return self.component.description
+        return self.root_component.description
 
     @property
     def contributes(self) -> bool:
-        return self.component.contributes
+        return self.root_component.contributes
 
     def get_hash(self) -> str | None:
-        return self.component.get_hash()
+        return self.root_component.get_hash()
 
     def _get_metadata_as_dict(self) -> Mapping[str, Any]:
-        return {"component": self.component.as_dict(), "config": self.config.as_dict()}
+        return {"component": self.root_component.as_dict(), "config": self.config.as_dict()}
 
     def __repr__(self) -> str:
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
@@ -202,7 +202,7 @@ class SaltedComponentVariant(ComponentVariant):
     ) -> Self:
         return cls(
             fingerprint=fingerprint,
-            component=component_variant.component,
+            component=component_variant.root_component,
             contributing_component=component_variant.contributing_component,
             strategy_config=component_variant.config,
             fingerprint_info=fingerprint_info,
@@ -226,17 +226,17 @@ class SaltedComponentVariant(ComponentVariant):
 
     @property
     def description(self) -> str:
-        return "modified " + self.component.description
+        return "modified " + self.root_component.description
 
     def get_hash(self) -> str | None:
-        if not self.component.contributes:
+        if not self.root_component.contributes:
             return None
         final_values: list[str | int] = []
         for value in self.values:
             # If we've hit the `{{ default }}` part of the fingerprint, pull in values from the
             # original grouping method (message, stacktrace, etc.)
             if is_default_fingerprint_var(value):
-                final_values.extend(self.component.iter_values())
+                final_values.extend(self.root_component.iter_values())
             else:
                 final_values.append(value)
         return hash_from_values(final_values)

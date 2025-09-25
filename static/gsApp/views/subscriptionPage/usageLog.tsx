@@ -7,6 +7,7 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Container} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -159,7 +160,7 @@ function UsageLog({location, subscription}: Props) {
   const selectedEventName = decodeScalar(location.query.event);
 
   return (
-    <Fragment>
+    <Container>
       <SubscriptionHeader subscription={subscription} organization={organization} />
       <UsageLogContainer>
         <CompactSelect
@@ -211,7 +212,7 @@ function UsageLog({location, subscription}: Props) {
         )}
       </UsageLogContainer>
       <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
-    </Fragment>
+    </Container>
   );
 }
 
