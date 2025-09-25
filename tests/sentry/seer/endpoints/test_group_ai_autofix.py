@@ -815,3 +815,29 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             organization_id=group.organization.id,
         )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
+
+    def test_ai_autofix_post_invalid_stopping_point_string(self, mock_get_seer_org_acknowledgement):
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "test", "stopping_point": "invalid"},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "Invalid stopping_point" in response.data.get("detail", "")
+
+    def test_ai_autofix_post_invalid_stopping_point_type(self, mock_get_seer_org_acknowledgement):
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "test", "stopping_point": 123},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "Invalid stopping_point" in response.data.get("detail", "")

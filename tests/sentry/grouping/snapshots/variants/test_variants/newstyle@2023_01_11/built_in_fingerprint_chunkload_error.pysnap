@@ -1,19 +1,19 @@
 ---
-created: '2025-07-18T18:34:02.043165+00:00'
+created: '2025-09-24T20:27:05.583626+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: null
-  component:
-    app (built-in fingerprint takes precedence)
+  root_component:
+    app (ignored because built-in fingerprint takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             module*
               "foo.bar"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "bar.tsx"
             function*
               "main"
@@ -30,14 +30,14 @@ built_in_fingerprint:
 system:
   hash: null
   contributing component: exception
-  component:
-    system (built-in fingerprint takes precedence)
+  root_component:
+    system (ignored because built-in fingerprint takes precedence)
       exception*
         stacktrace*
           frame*
             module*
               "foo.bar"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "bar.tsx"
             function*
               "main"

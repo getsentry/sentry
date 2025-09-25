@@ -94,14 +94,14 @@ class IdentityManager(BaseManager["Identity"]):
         if is_demo_user(user) and options.get(
             "identity.prevent-link-identity-for-demo-users.enabled"
         ):
-            logger.info(
+            logger.warning(
                 "Preventing link identity for demo user",
                 extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
                 stack_info=True,
             )
             return None
 
-        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
+        from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
 
         defaults = {
             **(defaults or {}),
@@ -120,7 +120,7 @@ class IdentityManager(BaseManager["Identity"]):
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
-            IntegrationIdentityLinked(
+            SlackIntegrationIdentityLinked(
                 provider=IntegrationProviderSlug.SLACK.value,
                 # Note that prior to circa March 2023 this was user.actor_id. It changed
                 # when actor ids were no longer stable between regions for the same user
@@ -145,7 +145,18 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
+        # NOTE(vgrozdanic): temporary fix for #inc-1373 to stop the bleed
+        if is_demo_user(user) and options.get(
+            "identity.prevent-link-identity-for-demo-users.enabled"
+        ):
+            logger.warning(
+                "Preventing creating identity for demo user",
+                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
+                stack_info=True,
+            )
+            return None
+
         identity_model = self.create(
             idp_id=idp.id, user_id=user.id, external_id=external_id, **defaults
         )
@@ -166,11 +177,21 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Removes identities under `idp` associated with either `external_id` or `user`
         and creates a new identity linking them.
         """
+        if is_demo_user(user) and options.get(
+            "identity.prevent-link-identity-for-demo-users.enabled"
+        ):
+            logger.warning(
+                "Preventing reattaching identity for demo user",
+                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
+                stack_info=True,
+            )
+            return None
+
         self.delete_identity(user=user, idp=idp, external_id=external_id)
         return self.create_identity(user=user, idp=idp, external_id=external_id, defaults=defaults)
 
@@ -180,11 +201,22 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Updates the identity object for a given user and identity provider
         with the new external id and other fields related to the identity status
         """
+        # NOTE(vgrozdanic): temporary fix for #inc-1373 to stop the bleed
+        if is_demo_user(user) and options.get(
+            "identity.prevent-link-identity-for-demo-users.enabled"
+        ):
+            logger.warning(
+                "Preventing updating identity for demo user",
+                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
+                stack_info=True,
+            )
+            return None
+
         query = self.filter(user_id=user.id, idp=idp)
         query.update(external_id=external_id, **defaults)
         identity_model = query.get()

@@ -3476,12 +3476,19 @@ register(
     "commit.dual-write-start-date",
     type=String,
     default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswitch for linking identities for demo users
 register(
     "identity.prevent-link-identity-for-demo-users.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.send_onboarding_task_metrics",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

@@ -1,9 +1,10 @@
 import trimStart from 'lodash/trimStart';
 
 import type {Client, ResponseMeta} from 'sentry/api';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -39,6 +40,17 @@ export type WidgetBuilderSearchBarProps = {
   disabled?: boolean;
   portalTarget?: HTMLElement | null;
 };
+
+export type SearchBarDataProviderProps = {
+  pageFilters: PageFilters;
+  widgetQuery?: WidgetQuery;
+};
+
+export interface SearchBarData {
+  getFilterKeySections: () => FilterKeySection[];
+  getFilterKeys: () => TagCollection;
+  getTagValues: (tag: Tag, searchQuery: string) => Promise<string[]>;
+}
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
@@ -83,6 +95,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  /**
+   * Context provider component that wraps the search bar data provider.
+   * Required when the data provider hook needs specific context.
+   */
+  SearchBarDataProviderWrapper?: React.ComponentType<{
+    children: React.ReactNode;
+  }>;
   /**
    * Configure enabling/disabling sort/direction options with an
    * optional message for why it is disabled.
@@ -225,6 +244,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     organization: Organization
   ) => Series[];
+  /**
+   * Data provider hook that provides methods
+   * to retrieve tags and values for the search bar.
+   */
+  useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(

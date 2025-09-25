@@ -149,7 +149,6 @@ describe('Upsell Modal Details', () => {
     expect(await screen.findByText('Features Include')).toBeInTheDocument();
 
     // Check that the source feature is highlighted.
-    expect(screen.queryByTestId('global-views')).not.toBeInTheDocument();
     expect(screen.getByTestId('tracing')).toHaveAttribute('aria-selected');
   });
 
