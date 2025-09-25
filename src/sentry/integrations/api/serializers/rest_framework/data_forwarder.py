@@ -52,11 +52,13 @@ class DataForwarderSerializer(Serializer):
         if missing_fields:
             raise ValidationError(f"Missing required SQS fields: {', '.join(missing_fields)}")
 
+        errors = []
+
         # SQS URL format: https://sqs.region.amazonaws.com/account/queue-name
         queue_url = config.get("queue_url")
         sqs_url_pattern = r"^https://sqs\.[a-z0-9\-]+\.amazonaws\.com/\d+/[a-zA-Z0-9\-_/]+$"
         if not isinstance(queue_url, str) or not re.match(sqs_url_pattern, queue_url):
-            raise ValidationError(
+            errors.append(
                 "queue_url must be a valid SQS URL format: "
                 "https://sqs.region.amazonaws.com/account/queue-name"
             )
@@ -64,31 +66,35 @@ class DataForwarderSerializer(Serializer):
         aws_region_pattern = r"^[a-z0-9\-]+$"
         region = config.get("region")
         if not isinstance(region, str) or not re.match(aws_region_pattern, region):
-            raise ValidationError("region must be a valid AWS region format")
+            errors.append("region must be a valid AWS region format")
 
         access_key = config.get("access_key")
         secret_key = config.get("secret_key")
 
         if not isinstance(access_key, str) or access_key.strip() == "":
-            raise ValidationError("access_key must be a non-empty string")
+            errors.append("access_key must be a non-empty string")
 
         if not isinstance(secret_key, str) or secret_key.strip() == "":
-            raise ValidationError("secret_key must be a non-empty string")
+            errors.append("secret_key must be a non-empty string")
 
         message_group_id = config.get("message_group_id")
         if message_group_id is not None:
             if not isinstance(message_group_id, str):
-                raise ValidationError("message_group_id must be a string or null")
+                errors.append("message_group_id must be a string or null")
             if "fifo" in queue_url.lower() and not message_group_id:
-                raise ValidationError("message_group_id is required for FIFO queues")
+                errors.append("message_group_id is required for FIFO queues")
 
         s3_bucket = config.get("s3_bucket")
         if s3_bucket is not None:
             if not isinstance(s3_bucket, str) or s3_bucket.strip() == "":
-                raise ValidationError("s3_bucket must be a non-empty string")
-            s3_bucket_pattern = r"^[a-z0-9\-\.]+$"
-            if not re.match(s3_bucket_pattern, s3_bucket):
-                raise ValidationError("s3_bucket must be a valid S3 bucket name")
+                errors.append("s3_bucket must be a non-empty string")
+            else:
+                s3_bucket_pattern = r"^[a-z0-9\-\.]+$"
+                if not re.match(s3_bucket_pattern, s3_bucket):
+                    errors.append("s3_bucket must be a valid S3 bucket name")
+
+        if errors:
+            raise ValidationError(errors)
 
         return config
 
@@ -110,28 +116,31 @@ class DataForwarderSerializer(Serializer):
         if missing_fields:
             raise ValidationError(f"Missing required Splunk fields: {', '.join(missing_fields)}")
 
+        errors = []
+
         splunk_url_pattern = r"^https?://[a-zA-Z0-9\-\.]+(?::\d+)?(?:/.*)?$"
         instance_url = config.get("instance_URL")
         if not isinstance(instance_url, str) or not re.match(splunk_url_pattern, instance_url):
-            raise ValidationError(
-                "instance_URL must be a valid URL starting with http:// or https://"
-            )
+            errors.append("instance_URL must be a valid URL starting with http:// or https://")
 
         index = config.get("index")
         if not isinstance(index, str) or index.strip() == "":
-            raise ValidationError("index must be a non-empty string")
+            errors.append("index must be a non-empty string")
 
         source = config.get("source")
         if not isinstance(source, str) or source.strip() == "":
-            raise ValidationError("source must be a non-empty string")
+            errors.append("source must be a non-empty string")
 
         token = config.get("token")
         if not isinstance(token, str) or token.strip() == "":
-            raise ValidationError("token must be a non-empty string")
+            errors.append("token must be a non-empty string")
+        else:
+            splunk_token_pattern = r"^[a-zA-Z0-9\-]+$"
+            if not re.match(splunk_token_pattern, token):
+                errors.append("token must be a valid Splunk HEC token format")
 
-        splunk_token_pattern = r"^[a-zA-Z0-9\-]+$"
-        if not isinstance(token, str) or not re.match(splunk_token_pattern, token):
-            raise ValidationError("token must be a valid Splunk HEC token format")
+        if errors:
+            raise ValidationError(errors)
 
         return config
 
