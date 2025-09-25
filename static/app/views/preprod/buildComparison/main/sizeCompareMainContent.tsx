@@ -232,12 +232,29 @@ export function SizeCompareMainContent() {
     );
   }
 
-  if (
-    [
-      SizeAnalysisComparisonState.PROCESSING,
-      SizeAnalysisComparisonState.PENDING,
-    ].includes(mainArtifactComparison.state)
-  ) {
+  // Should likely never be hit, but allow a user to trigger a comparison if they get here.
+  if (mainArtifactComparison.state === SizeAnalysisComparisonState.PENDING) {
+    return (
+      <BuildError
+        title={t('No comparison data available')}
+        message={t("We don't have any comparison data available yet for these builds.")}
+      >
+        <Button
+          priority="primary"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          {t('Trigger a comparison')}
+        </Button>
+      </BuildError>
+    );
+  }
+
+  if (mainArtifactComparison.state === SizeAnalysisComparisonState.PROCESSING) {
     return (
       <Flex width="100%" justify="center" align="center">
         <BuildProcessing
