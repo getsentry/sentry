@@ -65,7 +65,7 @@ export function SizeCompareSelectionContent({
     state: BuildDetailsState.PROCESSED,
     app_id: headBuildDetails.app_info?.app_id,
     build_configuration: headBuildDetails.app_info?.build_configuration,
-    cursor,
+    ...(cursor && {cursor}),
     ...(searchQuery && {query: searchQuery}),
   };
 
@@ -135,7 +135,16 @@ export function SizeCompareSelectionContent({
         <InputGroup.Input
           placeholder={t('Search builds')}
           value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          onChange={e => {
+            setSearchQuery(e.target.value);
+            // Clear cursor when search query changes to avoid pagination issues
+            if (cursor) {
+              navigate(
+                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                {replace: true}
+              );
+            }
+          }}
         />
       </InputGroup>
 
