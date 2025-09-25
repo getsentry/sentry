@@ -15,7 +15,7 @@ export default function useProjectReleaseVersionIsSemver({
     {staleTime: 0, enabled: Boolean(version)}
   );
 
-  if (isPending || isError) {
+  if (isPending || isError || !data?.versionInfo) {
     return false;
   }
 
