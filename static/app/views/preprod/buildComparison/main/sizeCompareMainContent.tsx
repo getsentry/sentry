@@ -211,31 +211,6 @@ export function SizeCompareMainContent() {
   if (!mainArtifactComparison) {
     return (
       <BuildError
-        title={t('Comparison data not found')}
-        message={t(
-          'Something went wrong and we weren’t able to find the correct comparison.'
-        )}
-      >
-        <Flex gap="sm">
-          <Button
-            priority="default"
-            onClick={() => {
-              navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headArtifactId}/`
-              );
-            }}
-          >
-            {t('Back')}
-          </Button>
-        </Flex>
-      </BuildError>
-    );
-  }
-
-  // Should likely never be hit, but allow a user to trigger a comparison if they get here.
-  if (mainArtifactComparison.state === SizeAnalysisComparisonState.PENDING) {
-    return (
-      <BuildError
         title={t('No comparison data available')}
         message={t("We don't have any comparison data available yet for these builds.")}
       >
@@ -254,7 +229,12 @@ export function SizeCompareMainContent() {
     );
   }
 
-  if (mainArtifactComparison.state === SizeAnalysisComparisonState.PROCESSING) {
+  if (
+    [
+      SizeAnalysisComparisonState.PROCESSING,
+      SizeAnalysisComparisonState.PENDING,
+    ].includes(mainArtifactComparison.state)
+  ) {
     return (
       <Flex width="100%" justify="center" align="center">
         <BuildProcessing
