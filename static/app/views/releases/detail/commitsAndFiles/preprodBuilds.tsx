@@ -20,11 +20,13 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
+import {PreprodOnboarding} from './preprodOnboarding';
+
 export default function PreprodBuilds() {
   const organization = useOrganization();
   const releaseContext = useContext(ReleaseContext);
   const projectSlug = releaseContext.project.slug;
-
+  const projectPlatform = releaseContext.project.platform;
   const params = useParams<{release: string}>();
   const location = useLocation();
 
@@ -96,9 +98,8 @@ export default function PreprodBuilds() {
   const pageLinks = getResponseHeader?.('Link') || null;
 
   const shouldShowSearchBar = builds.length > 0 || !!urlSearchQuery?.trim();
-  const emptyStateMessage = shouldShowSearchBar
-    ? t('No builds found for your search')
-    : t('No preprod builds found for this release');
+  const hasSearchQuery = !!urlSearchQuery?.trim();
+  const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
 
   return (
     <Layout.Body>
@@ -118,15 +119,23 @@ export default function PreprodBuilds() {
             />
           </Container>
         )}
-        <PreprodBuildsTable
-          builds={builds}
-          isLoading={isLoadingBuilds}
-          error={!!buildsError}
-          pageLinks={pageLinks}
-          organizationSlug={organization.slug}
-          projectSlug={projectSlug}
-          emptyStateMessage={emptyStateMessage}
-        />
+        {showOnboarding ? (
+          <PreprodOnboarding
+            organizationSlug={organization.slug}
+            projectPlatform={projectPlatform || null}
+            projectSlug={projectSlug}
+          />
+        ) : (
+          <PreprodBuildsTable
+            builds={builds}
+            isLoading={isLoadingBuilds}
+            error={!!buildsError}
+            pageLinks={pageLinks}
+            organizationSlug={organization.slug}
+            projectSlug={projectSlug}
+            emptyStateMessage={hasSearchQuery ? t('No builds found for your search') : undefined}
+          />
+        )}
       </Layout.Main>
     </Layout.Body>
   );
