@@ -653,6 +653,9 @@ function Cart({
 
   const fetchPreview = useCallback(async () => {
     if (!hasCompleteBillingInfo) {
+      // NOTE: this should never be necessary because you cannot clear
+      // existing billing info, BUT YA NEVER KNOW
+      resetPreviewState();
       return;
     }
     await utils.fetchPreviewData(
