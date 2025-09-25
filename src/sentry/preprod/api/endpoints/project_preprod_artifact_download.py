@@ -1,4 +1,4 @@
-from django.http.response import FileResponse, HttpResponse, HttpResponseBase
+from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +11,7 @@ from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
+from sentry.replays.lib.http import MalformedRangeHeader, UnsatisfiableRange, parse_range_header
 
 
 class LaunchpadServiceOrStaffPermission(StaffPermission):
@@ -96,30 +97,38 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         filename = self._get_filename(head_artifact)
         file_size = file_obj.size
 
+        if file_size is None or file_size < 0:
+            return Response({"error": "File size unavailable"}, status=500)
+
         range_header = request.META.get("HTTP_RANGE")
         if range_header:
             try:
-                range_type, range_spec = range_header.split("=", 1)
-                if range_type != "bytes":
+                ranges = parse_range_header(range_header)
+                if not ranges:
+                    return HttpResponse(status=400)
+
+                range_obj = ranges[0]
+
+                if file_size == 0:
                     return HttpResponse(status=416)
 
-                ranges = range_spec.split("-", 1)
-                start = int(ranges[0]) if ranges[0] else 0
-                end = int(ranges[1]) if ranges[1] else file_size - 1
+                start, end = range_obj.make_range(file_size - 1)
 
-                if start >= file_size or end >= file_size or start > end:
-                    return HttpResponse(status=416)
                 try:
                     fp = file_obj.getfile()
-                    fp.seek(start)
+                    try:
+                        fp.seek(start)
+                        content_length = end - start + 1
+                        file_content = fp.read(content_length)
+                    finally:
+                        fp.close()
                 except Exception:
                     return Response(
                         {"error": "Failed to retrieve preprod artifact file"}, status=500
                     )
 
-                content_length = end - start + 1
                 response = HttpResponse(
-                    fp.read(content_length),
+                    file_content,
                     content_type="application/octet-stream",
                     status=206,
                 )
@@ -131,16 +140,22 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
 
                 return response
 
+            except (MalformedRangeHeader, UnsatisfiableRange):
+                return HttpResponse(status=416)
             except (ValueError, IndexError):
                 return HttpResponse(status=400)
 
         try:
             fp = file_obj.getfile()
+            try:
+                file_content = fp.read()
+            finally:
+                fp.close()
         except Exception:
             return Response({"error": "Failed to retrieve preprod artifact file"}, status=500)
 
-        response = FileResponse(
-            fp,
+        response = HttpResponse(
+            file_content,
             content_type="application/octet-stream",
         )
 
