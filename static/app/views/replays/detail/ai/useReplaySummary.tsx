@@ -13,7 +13,8 @@ import {
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
 
-const POLL_INTERVAL_MS = 500;
+const POLL_INTERVAL_MS = 500; // Time between polls if the fetch request succeeds.
+const ERROR_POLL_INTERVAL_MS = 5000; // Time between polls if the fetch request failed.
 const POLL_TIMEOUT_MS = 100 * 1000; // Task timeout in Seer (90s) + 10s buffer.
 
 export interface UseReplaySummaryResult {
@@ -152,7 +153,6 @@ export function useReplaySummary(
   const {
     data: summaryData,
     isPending,
-    isError,
     dataUpdatedAt,
   } = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
@@ -161,7 +161,9 @@ export function useReplaySummary(
       retry: false,
       refetchInterval: query => {
         if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
-          return POLL_INTERVAL_MS;
+          return query.state.status === 'error'
+            ? ERROR_POLL_INTERVAL_MS
+            : POLL_INTERVAL_MS;
         }
         return false;
       },
@@ -189,6 +191,7 @@ export function useReplaySummary(
     dataUpdatedAt < startSummaryRequestTime.current ||
     isStartSummaryRequestPending ||
     isPending ||
+    summaryData === undefined ||
     summaryData?.status === ReplaySummaryStatus.NOT_STARTED ||
     summaryData?.status === ReplaySummaryStatus.PROCESSING;
 
@@ -203,9 +206,7 @@ export function useReplaySummary(
     summaryData,
     isPending: isPendingRet,
     isError:
-      isStartSummaryRequestError ||
-      isError ||
-      summaryData?.status === ReplaySummaryStatus.ERROR,
+      isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR,
     isTimedOut: didTimeout,
     startSummaryRequest,
     isStartSummaryRequestPending,
