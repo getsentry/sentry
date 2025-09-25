@@ -88,7 +88,7 @@ export function useBuildDetailsActions({
           try {
             errorJson = JSON.parse(errorText);
           } catch {
-            errorMessage = errorText || errorMessage;
+            addErrorMessage(t('Download failed: %s', errorText || errorMessage));
             return;
           }
 
