@@ -4,12 +4,13 @@ import {PlatformIcon} from 'platformicons';
 
 import emptyBuildImg from 'sentry-images/spot/releases-tour-commits.svg';
 
+import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 
 interface PreprodOnboardingProps {
@@ -22,21 +23,30 @@ type UploadMethod = 'fastlane' | 'gradle' | 'cli';
 
 function FastlaneMethod({
   organizationSlug,
+  projectPlatform,
   projectSlug,
 }: {
   organizationSlug: string;
+  projectPlatform: PlatformKey | null;
   projectSlug: string;
 }) {
+  const isIOS = projectPlatform?.includes('apple') || projectPlatform?.includes('ios');
+
   return (
-    <div>
-      <StepContainer>
+    <MethodContent>
+      {!isIOS && (
+        <Alert type="info" showIcon>
+          {t('Fastlane is for iOS applications only')}
+        </Alert>
+      )}
+      <div>
         <StepDescription>Add to your fastlane/Pluginfile:</StepDescription>
         <OnboardingCodeSnippet language="ruby">
           {`gem 'fastlane-plugin-sentry', git: 'https://github.com/getsentry/sentry-fastlane-plugin.git', ref: 'b0c36a1472a6bfde0a4766c612c1154706dbd014'`}
         </OnboardingCodeSnippet>
-      </StepContainer>
+      </div>
 
-      <StepContainer>
+      <div>
         <StepDescription>Add a lane to your Fastfile:</StepDescription>
         <OnboardingCodeSnippet language="ruby">
           {`sentry_upload_build(
@@ -48,9 +58,9 @@ function FastlaneMethod({
   head_sha: ENV['SENTRY_SHA'],
 )`}
         </OnboardingCodeSnippet>
-      </StepContainer>
+      </div>
 
-      <StepContainer>
+      <div>
         <StepDescription>
           Set environment variables in your GitHub Action:
         </StepDescription>
@@ -61,24 +71,31 @@ function FastlaneMethod({
   GITHUB_BASE_SHA: \${{ github.event.pull_request.base.sha }}
   SENTRY_SHA: \${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}`}
         </OnboardingCodeSnippet>
-      </StepContainer>
-    </div>
+      </div>
+    </MethodContent>
   );
 }
 
-function GradleMethod() {
+function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) {
+  const isAndroid = projectPlatform?.includes('android');
+
   return (
-    <div>
-      <StepContainer>
+    <MethodContent>
+      {!isAndroid && (
+        <Alert type="info" showIcon>
+          {t('Gradle Plugin is for Android only.')}
+        </Alert>
+      )}
+      <div>
         <StepDescription>Apply the plugin (use version 6.0.0-alpha.3):</StepDescription>
         <OnboardingCodeSnippet language="kotlin">
           {`plugins {
   id "io.sentry.android.gradle" version "6.0.0-alpha.3"
 }`}
         </OnboardingCodeSnippet>
-      </StepContainer>
+      </div>
 
-      <StepContainer>
+      <div>
         <StepDescription>Configure the plugin:</StepDescription>
         <OnboardingCodeSnippet language="kotlin">
           {`sentry {
@@ -96,9 +113,9 @@ function GradleMethod() {
   }
 }`}
         </OnboardingCodeSnippet>
-      </StepContainer>
+      </div>
 
-      <StepContainer>
+      <div>
         <StepDescription>Set environment variables in GitHub Actions:</StepDescription>
         <OnboardingCodeSnippet language="yaml">
           {`env:
@@ -106,8 +123,8 @@ function GradleMethod() {
   GITHUB_BASE_SHA: \${{ github.event.pull_request.base.sha }}
   SENTRY_SHA: \${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}`}
         </OnboardingCodeSnippet>
-      </StepContainer>
-    </div>
+      </div>
+    </MethodContent>
   );
 }
 
@@ -119,9 +136,19 @@ function CliMethod({
   projectSlug: string;
 }) {
   return (
-    <div>
-      <StepContainer>
-        <StepDescription>Install the Sentry CLI tool:</StepDescription>
+    <MethodContent>
+      <div>
+        <StepDescription>
+          {tct('Install the [link:Sentry CLI]', {
+            link: (
+              <a
+                href="https://docs.sentry.io/cli/installation/"
+                target="_blank"
+                rel="noreferrer"
+              />
+            ),
+          })}
+        </StepDescription>
         <OnboardingCodeSnippet language="bash">
           {`# Using npm
 npm install -g @sentry/cli
@@ -129,9 +156,9 @@ npm install -g @sentry/cli
 # Using curl
 curl -sL https://sentry.io/get-cli/ | bash`}
         </OnboardingCodeSnippet>
-      </StepContainer>
+      </div>
 
-      <StepContainer>
+      <div>
         <StepDescription>Upload your build using the CLI:</StepDescription>
         <OnboardingCodeSnippet language="bash">
           {`sentry-cli build upload <path-to-apk|aab|xcarchive> \\
@@ -144,17 +171,17 @@ curl -sL https://sentry.io/get-cli/ | bash`}
   --vcs-provider github \\
   --build-configuration <build-config>`}
         </OnboardingCodeSnippet>
-      </StepContainer>
+      </div>
 
-      <StepContainer>
+      <div>
         <StepDescription>Set these environment variables in your CI:</StepDescription>
         <OnboardingCodeSnippet language="bash">
           {`export SENTRY_AUTH_TOKEN=<your-auth-token>
 # These are set automatically in GitHub Actions:
 # --repo-name, --vcs-provider, --pr-number`}
         </OnboardingCodeSnippet>
-      </StepContainer>
-    </div>
+      </div>
+    </MethodContent>
   );
 }
 
@@ -196,10 +223,14 @@ export function PreprodOnboarding({
     switch (selectedMethod) {
       case 'fastlane':
         return (
-          <FastlaneMethod organizationSlug={organizationSlug} projectSlug={projectSlug} />
+          <FastlaneMethod
+            organizationSlug={organizationSlug}
+            projectPlatform={projectPlatform}
+            projectSlug={projectSlug}
+          />
         );
       case 'gradle':
-        return <GradleMethod />;
+        return <GradleMethod projectPlatform={projectPlatform} />;
       case 'cli':
       default:
         return (
@@ -266,7 +297,6 @@ export function PreprodOnboarding({
                     </Tab>
                   ))}
                 </TabsContainer>
-
                 {renderMethodContent()}
               </Section>
 
@@ -315,7 +345,7 @@ export function PreprodOnboarding({
 }
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
@@ -326,19 +356,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -349,14 +379,8 @@ const HeaderText = styled('div')`
   }
 `;
 
-const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
-`;
-
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -391,7 +415,7 @@ const Divider = styled('hr')`
 `;
 
 const Section = styled('section')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
   &:last-child {
     margin-bottom: 0;
   }
@@ -400,7 +424,7 @@ const Section = styled('section')`
 const SectionTitle = styled('h3')`
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;
@@ -408,26 +432,32 @@ const SectionTitle = styled('h3')`
 `;
 
 const Description = styled('p')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   color: ${p => p.theme.subText};
   line-height: 1.5;
 `;
 
+const MethodContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space['2xl']};
+`;
+
 const TabsContainer = styled('div')`
   display: flex;
+  gap: ${p => p.theme.space.sm};
+  margin-bottom: ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.border};
-  margin-bottom: ${space(2)};
-  gap: ${space(2)};
 `;
 
 const Tab = styled('button')<{active: boolean}>`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   background: none;
   border: none;
   border-bottom: 2px solid ${p => (p.active ? p.theme.active : 'transparent')};
   color: ${p => (p.active ? p.theme.textColor : p.theme.subText)};
   cursor: pointer;
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => (p.active ? 600 : 400)};
   transition: all 0.2s ease;
 
@@ -437,18 +467,13 @@ const Tab = styled('button')<{active: boolean}>`
   }
 `;
 
-const StepContainer = styled('div')`
-  margin-bottom: ${space(3)};
-`;
-
 const StepDescription = styled('p')`
-  margin-bottom: ${space(1)};
   color: ${p => p.theme.subText};
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ActionsContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   flex-wrap: wrap;
 `;
