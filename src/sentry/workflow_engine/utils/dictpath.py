@@ -96,6 +96,14 @@ def _success[T](path: list[str], v: T) -> Result[T]:
 def walk(data: object, *path: str) -> Result[object]:
     """
     Traverse an object based on a path and return a result.
+
+    Example:
+        >>> walk({"a": {"b": "c"}}, "a", "b").get()
+        "c"
+        >>> walk({"a": {"b": "c"}}, "e", "f", "g").get()
+        ValueError: e.f.g: not found!
+        >>> walk({"a": {"b": "c"}}, "a", "b", "c").is_type(int).get()
+        ValueError: a.b.c: Expected int, got str
     """
     current = data
     history = []

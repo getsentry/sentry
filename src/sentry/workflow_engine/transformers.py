@@ -88,15 +88,10 @@ class TargetTypeConfigTransformer(ConfigTransformer):
         self.action_target_from_string = {v: k for k, v in self.action_target_to_string.items()}
 
     @staticmethod
-    def from_config_schema(config_schema: dict[str, Any]) -> TargetTypeConfigTransformer | None:
+    def from_config_schema(config_schema: dict[str, Any]) -> TargetTypeConfigTransformer:
         """
         Analyze a config schema and generate a TargetTypeConfigTransformer if target_type field is found.
         """
-        target_type_result = dictpath.walk(config_schema, "properties", "target_type")
-        if target_type_result.failed():
-            return None
-
-        # Use the extracted transformation function
         api_schema = transform_config_schema_target_type_to_api(config_schema)
         return TargetTypeConfigTransformer(api_schema)
 
@@ -104,8 +99,13 @@ class TargetTypeConfigTransformer(ConfigTransformer):
         """
         Convert from api format to config_schema format.
         Main transformation: target_type string -> target_type integer enum
+
+        IMPORTANT: This method validates against the API schema (not config schema)
+        to provide meaningful error messages about the actual API input that users
+        sent, rather than our internal transformed representation. We assume the
+        transformer logic is correct and focus on user-facing validation errors.
         """
-        # First validate the input against api_schema
+        # Validate the API input against the API schema to catch user errors
         validate_json_schema(config, self.api_schema)
 
         # Create a copy to avoid mutating the input

@@ -256,18 +256,18 @@ class TestTargetTypeConfigTransformerFromConfigSchema(TestCase):
             },
         }
 
-        transformer = TargetTypeConfigTransformer.from_config_schema(config_schema)
-        assert transformer is None
+        with pytest.raises(ValueError):
+            TargetTypeConfigTransformer.from_config_schema(config_schema)
 
     def test_from_config_schema_invalid_structure(self) -> None:
         """Test returns None for invalid structure."""
         # No properties
-        transformer = TargetTypeConfigTransformer.from_config_schema({"type": "object"})
-        assert transformer is None
+        with pytest.raises(ValueError):
+            TargetTypeConfigTransformer.from_config_schema({"type": "object"})
 
         # Properties not dict
-        transformer = TargetTypeConfigTransformer.from_config_schema({"properties": "not_dict"})
-        assert transformer is None
+        with pytest.raises(ValueError):
+            TargetTypeConfigTransformer.from_config_schema({"properties": "not_dict"})
 
     def test_from_config_schema_invalid_target_type_raises(self) -> None:
         """Test raises ValueError for invalid target_type field."""

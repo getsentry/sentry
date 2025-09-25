@@ -43,14 +43,11 @@ class BaseActionValidator(CamelSnakeSerializer):
         config_transformer = action_handler.get_config_transformer()
 
         if config_transformer is not None:
-            # Transform from API format to config format, then validate
-            transformed_value = config_transformer.from_api(value)
-            config_schema = action_handler.config_schema
-            return validate_json_schema(transformed_value, config_schema)
+            # Transform from API format (transformer handles API schema validation)
+            return config_transformer.from_api(value)
         else:
             # No transformer, validate directly against config schema
-            config_schema = action_handler.config_schema
-            return validate_json_schema(value, config_schema)
+            return validate_json_schema(value, action_handler.config_schema)
 
     def validate_type(self, value) -> Any:
         try:
