@@ -15,6 +15,7 @@ from sentry.db.models import Model, WrappingU32IntegerField
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
     get_and_optionally_update_blob,
+    get_and_optionally_update_blobs,
     get_size_and_checksum,
     get_storage,
     nooplogger,
@@ -213,6 +214,58 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         metrics.distribution("filestore.blob-size", size, unit="byte")
         logger.debug("FileBlob.from_file.end")
         return blob
+
+    @classmethod
+    @sentry_sdk.tracing.trace
+    def from_files_bulk(cls, files_with_checksums: list[tuple[Any, str, int]], logger=nooplogger) -> list[Self]:
+        """
+        Bulk version of from_file that processes multiple files efficiently.
+        Takes a list of tuples: (fileobj, checksum, size)
+        Returns a list of FileBlob instances in the same order.
+        """
+        logger.debug("FileBlob.from_files_bulk.start", extra={"count": len(files_with_checksums)})
+
+        if not files_with_checksums:
+            return []
+
+        # Extract checksums for bulk lookup
+        checksums = [checksum for _, checksum, _ in files_with_checksums]
+
+        # Get existing blobs in bulk
+        existing_blobs = get_and_optionally_update_blobs(cls, checksums)
+
+        # Prepare results list and identify which blobs need to be created
+        results = []
+        blobs_to_create = []
+        storage = get_storage(cls._storage_config())
+
+        for i, (fileobj, checksum, size) in enumerate(files_with_checksums):
+            if checksum in existing_blobs:
+                # Use existing blob
+                results.append(existing_blobs[checksum])
+            else:
+                # Mark for creation
+                blob = cls(size=size, checksum=checksum)
+                blob.path = cls.generate_unique_path()
+                results.append(blob)
+                blobs_to_create.append((i, blob, fileobj))
+
+        # Create new blobs for those that don't exist
+        for i, blob, fileobj in blobs_to_create:
+            storage.save(blob.path, fileobj)
+            try:
+                blob.save()
+                metrics.distribution("filestore.blob-size", blob.size, unit="byte")
+            except IntegrityError:
+                # Handle race condition where another process created the same blob
+                metrics.incr("filestore.upload_race", sample_rate=1.0)
+                saved_path = blob.path
+                blob = cls.objects.get(checksum=blob.checksum)
+                storage.delete(saved_path)
+                results[i] = blob  # Update the result with the existing blob
+
+        logger.debug("FileBlob.from_files_bulk.end", extra={"count": len(files_with_checksums)})
+        return results
 
     @classmethod
     def generate_unique_path(cls):

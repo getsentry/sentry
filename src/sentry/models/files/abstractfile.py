@@ -329,6 +329,55 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         return results
 
     @sentry_sdk.tracing.trace
+    def putfile_bulk(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+        """
+        Optimized version of putfile that uses bulk blob creation to avoid N+1 queries.
+
+        Save a fileobj into a number of chunks using bulk operations.
+
+        Returns a list of `FileBlobIndex` items.
+
+        >>> indexes = file.putfile_bulk(fileobj)
+        """
+        chunks_data = []
+        offset = 0
+        checksum = sha1(b"")
+
+        # First pass: read all chunks and calculate checksums
+        while True:
+            contents = fileobj.read(blob_size)
+            if not contents:
+                break
+
+            checksum.update(contents)
+            blob_fileobj = ContentFile(contents)
+
+            # Calculate checksum for this chunk
+            chunk_checksum = sha1(contents).hexdigest()
+            chunks_data.append((blob_fileobj, chunk_checksum, len(contents), offset))
+            offset += len(contents)
+
+        # Second pass: bulk create blobs
+        files_with_checksums = [(chunk[0], chunk[1], chunk[2]) for chunk in chunks_data]
+        blobs = self._create_blobs_from_files_bulk(files_with_checksums, logger=logger)
+
+        # Third pass: create blob indexes
+        results = []
+        for i, (_, _, _, chunk_offset) in enumerate(chunks_data):
+            blob = blobs[i]
+            results.append(self._create_blob_index(blob=blob, offset=chunk_offset))
+
+        self.size = offset
+        self.checksum = checksum.hexdigest()
+        metrics.distribution("filestore.file-size", offset, unit="byte")
+        if commit:
+            self.save()
+        return results
+
+    @abc.abstractmethod
+    def _create_blobs_from_files_bulk(self, files_with_checksums: list[tuple[Any, str, int]], logger: Any) -> list[BlobType]: ...
+
+    @sentry_sdk.tracing.trace
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum):
         """
         This creates a file, from file blobs and returns a temp file with the
