@@ -56,8 +56,6 @@ def export_clickhouse_rows(
     num_pages: int = 1,
     limit: int = 1000,
     offset: int = 0,
-    max_retries: int = 10,
-    retry_after_seconds: float = 1.0,
 ) -> Generator[dict[str, Any]]:
     """
     ClickHouse row export.
@@ -73,20 +71,8 @@ def export_clickhouse_rows(
     :param retry_after_seconds: The number of seconds to wait after each query failure.
     """
     assert limit > 0, "limit mut be a positive integer greater than zero."
-    assert max_retries >= 0, "max_retries mut be a positive integer greater than or equal to zero."
     assert num_pages > 0, "num_pages mut be a positive integer greater than zero."
     assert offset >= 0, "offset mut be a positive integer greater than or equal to zero."
-    assert (
-        retry_after_seconds >= 0
-    ), "retry_after_seconds mut be a positive float greater than or equal to zero."
-
-    # Rate-limits might derail our queries. This policy will let us retry up to a maximum before
-    # giving up. Should we ever give up on a data-export? Probably but the specifics of that
-    # question are better answered elsewhere.
-    policy = ConditionalRetryPolicy(
-        test_function=lambda a, _: a <= max_retries,
-        delay_function=lambda _: retry_after_seconds,
-    )
 
     # Iteration is capped to a maximum number of pages. This ensures termination and encourages
     # appropriate bounding by the calling function. Ideally this export is ran in an asynchonrous
@@ -94,8 +80,7 @@ def export_clickhouse_rows(
     # process a chunk of data commit it (and perhaps its progress) and then schedule another task
     # to complete the remainder of the job which itself is bounded.
     for _ in range(num_pages):
-        request = query_fn(limit=limit, offset=offset)
-        results = policy(lambda: raw_snql_query(request, referrer)["data"])
+        results = raw_snql_query(query_fn(limit=limit, offset=offset), referrer)["data"]
         if results:
             yield from results
 
@@ -432,9 +417,33 @@ def export_replay_row_set_async(
     offset: int,
     destination_bucket: str,
     num_pages: int,
+    max_retries: int = 40,
+    retry_after_seconds: float = 1.0,
 ):
-    writer_fn = lambda filename, contents: save_to_gcs(destination_bucket, filename, contents)
-    export_replay_row_set(project_id, start, end, limit, offset, writer_fn, num_pages)
+    assert max_retries >= 0, "max_retries mut be a positive integer greater than or equal to zero."
+    assert (
+        retry_after_seconds >= 0
+    ), "retry_after_seconds mut be a positive float greater than or equal to zero."
+
+    # Rate-limits or service outages might derail our service requests. This policy will let us
+    # retry up to a maximum before giving up. Should we ever give up on a data-export? Probably
+    # but the specifics of that question are better answered elsewhere.
+    policy = ConditionalRetryPolicy(
+        test_function=lambda a, _: a <= max_retries,
+        delay_function=lambda _: retry_after_seconds,
+    )
+
+    policy(
+        lambda: export_replay_row_set(
+            project_id,
+            start,
+            end,
+            limit,
+            offset,
+            lambda filename, contents: save_to_gcs(destination_bucket, filename, contents),
+            num_pages,
+        )
+    )
 
 
 @instrumented_task
