@@ -39,7 +39,6 @@ function GroupingComponent({component, showNonContributing}: Props) {
         />
       )}
 
-      {/* everything textual goes in column 2 */}
       <GroupingComponentWrapper isContributing={component.contributes}>
         <span>
           {component.name || component.id}
