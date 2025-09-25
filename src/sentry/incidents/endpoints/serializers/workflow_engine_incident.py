@@ -105,7 +105,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         """
         incident_group_open_period = IncidentGroupOpenPeriod.objects.get(group_open_period=obj)
         incident = Incident.objects.get(id=incident_group_open_period.incident_id)
-        return serialize(incident, serializer=IncidentSerializer())
+        return serialize(incident, serializer=IncidentSerializer(expand=self.expand))
 
 
 class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):
