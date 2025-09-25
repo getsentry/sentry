@@ -5,8 +5,12 @@ import pytest
 import requests
 from django.conf import settings
 
+from sentry.replays.data_export import (
+    export_clickhouse_rows,
+    export_replay_row_set,
+    query_replays_dataset,
+)
 from sentry.replays.testutils import mock_replay
-from sentry.replays.usecases.data_export import export_clickhouse_rows, export_replays_dataset
 from sentry.testutils.skips import requires_snuba
 
 
@@ -47,6 +51,31 @@ def test_export_clickhouse_rows(replay_store):
     replay_store.save(mock_replay(t3, 1, replay4_id, segment_id=0))
     replay_store.save(mock_replay(t2, 2, replay5_id, segment_id=0))
 
-    query_fn = lambda limit, offset: export_replays_dataset(1, t0, t3, limit, offset)
+    query_fn = lambda limit, offset: query_replays_dataset(1, t0, t3, limit, offset)
     rows = list(export_clickhouse_rows(query_fn, limit=1, num_pages=10))
     assert len(rows) == 3
+
+
+@pytest.mark.snuba
+@requires_snuba
+def test_export_replay_row_set(replay_store):
+    replay_id = uuid.uuid4().hex
+    t0 = datetime.datetime.now()
+    t1 = t0 + datetime.timedelta(minutes=1)
+
+    replay_store.save(mock_replay(t0, 1, replay_id, segment_id=0))
+
+    class Sink:
+        def __init__(self):
+            self.file_name = None
+            self.query_data = None
+
+        def __call__(self, file_name: str, query_data: str) -> None:
+            self.file_name = file_name
+            self.query_data = query_data
+
+    sink = Sink()
+    export_replay_row_set(1, t0, t1, limit=1, initial_offset=0, write_to_sink=sink)
+
+    assert sink.file_name is not None
+    assert sink.query_data is not None

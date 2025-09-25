@@ -8,7 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import ApiKeyAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
-from sentry.replays.usecases.data_export import retry_export_blob_data
+from sentry.replays.data_export import retry_transfer_job_run
 
 logger = logging.getLogger()
 
@@ -24,7 +24,7 @@ class NotificationEndpoint(Endpoint):
 
     def get(self, request: Request, service: str) -> Response:
         if service == "google-cloud":
-            retry_export_blob_data(request.data)
+            retry_transfer_job_run(request.data)
         else:
             logger.error("Service has not been implemented.", extra={"service": service})
 

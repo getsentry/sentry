@@ -7,14 +7,18 @@ from google.cloud.storage_transfer_v1 import (
     CreateTransferJobRequest,
     GcsData,
     NotificationConfig,
+    RunTransferJobRequest,
     Schedule,
     TransferJob,
     TransferSpec,
-    UpdateTransferJobRequest,
 )
 from google.type import date_pb2
 
-from sentry.replays.usecases.data_export import export_blob_data, retry_export_blob_data
+from sentry.replays.data_export import (
+    create_transfer_job,
+    generate_ninety_days_pairs,
+    retry_transfer_job_run,
+)
 from sentry.utils import json
 
 
@@ -28,14 +32,15 @@ def test_export_blob_data():
     job_duration = timedelta(days=5)
     end_date = start_date + job_duration
 
-    result = export_blob_data(
+    result = create_transfer_job(
         gcs_project_id=gcs_project_id,
         source_bucket=bucket_name,
         source_prefix=bucket_prefix,
         destination_bucket="b",
-        pubsub_topic_name=pubsub_topic,
+        notification_topic=pubsub_topic,
         job_duration=job_duration,
-        schedule_transfer_job=lambda event: event,
+        transfer_job_name=None,
+        do_create_transfer_job=lambda event: event,
         get_current_datetime=lambda: start_date,
     )
 
@@ -91,14 +96,15 @@ def test_request_schedule_transfer_job():
     mock_rpc = Mock()
     client._transport._wrapped_methods[client._transport.create_transfer_job] = mock_rpc
 
-    export_blob_data(
+    create_transfer_job(
         gcs_project_id=gcs_project_id,
         source_bucket=bucket_name,
         source_prefix=bucket_prefix,
         destination_bucket="b",
-        pubsub_topic_name=pubsub_topic,
+        notification_topic=pubsub_topic,
         job_duration=job_duration,
-        schedule_transfer_job=request_schedule_transfer_job,
+        transfer_job_name=None,
+        do_create_transfer_job=request_schedule_transfer_job,
         get_current_datetime=lambda: start_date,
     )
 
@@ -120,16 +126,12 @@ def test_retry_export_blob_data():
         }
     }
 
-    result = retry_export_blob_data(
+    result = retry_transfer_job_run(
         {"data": base64.b64encode(json.dumps(transfer_operation).encode()).decode("utf-8")},
         lambda request: request,
     )
 
-    assert result == UpdateTransferJobRequest(
-        job_name=job_name,
-        project_id=job_project_id,
-        transfer_job=TransferJob(status=storage_transfer_v1.TransferJob.Status.ENABLED),
-    )
+    assert result == RunTransferJobRequest(job_name=job_name, project_id=job_project_id)
 
 
 def test_request_retry_transfer_job():
@@ -145,10 +147,10 @@ def test_request_retry_transfer_job():
     client = storage_transfer_v1.StorageTransferServiceClient()
 
     def request_retry_transfer_job(transfer_job):
-        return client.update_transfer_job(transfer_job)
+        return client.run_transfer_job(transfer_job)
 
     mock_rpc = Mock()
-    client._transport._wrapped_methods[client._transport.update_transfer_job] = mock_rpc
+    client._transport._wrapped_methods[client._transport.run_transfer_job] = mock_rpc
 
     transfer_operation = {
         "transferOperation": {
@@ -158,7 +160,7 @@ def test_request_retry_transfer_job():
         }
     }
 
-    retry_export_blob_data(
+    retry_transfer_job_run(
         {"data": base64.b64encode(json.dumps(transfer_operation).encode()).decode("utf-8")},
         request_retry_transfer_job,
     )
@@ -167,3 +169,20 @@ def test_request_retry_transfer_job():
     # execute now.
     assert mock_rpc.call_count == 1
     mock_rpc.reset_mock()
+
+
+def test_generate_ninety_days_pairs():
+    dates = list(generate_ninety_days_pairs(datetime(year=2025, month=4, day=1, hour=9)))
+
+    expected_start = datetime(year=2025, month=1, day=1)
+    expected_end = datetime(year=2025, month=1, day=2)
+
+    for start, end in dates:
+        assert start == expected_start
+        assert end == expected_end
+
+        expected_start = end
+        expected_end = end + timedelta(days=1)
+
+    assert expected_start == datetime(year=2025, month=4, day=1)
+    assert expected_end == datetime(year=2025, month=4, day=2)

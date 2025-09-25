@@ -1,5 +1,5 @@
-#  $$$$$$\  $$\       $$$$$$\  $$$$$$\  $$\   $$\ $$\   $$\  $$$$$$\  $$\   $$\  $$$$$$\  $$$$$$$$\
 # $$  __$$\ $$ |      \_$$  _|$$  __$$\ $$ | $$  |$$ |  $$ |$$  __$$\ $$ |  $$ |$$  __$$\ $$  _____|
+#  $$$$$$\  $$\       $$$$$$\  $$$$$$\  $$\   $$\ $$\   $$\  $$$$$$\  $$\   $$\  $$$$$$\  $$$$$$$$\
 # $$ /  \__|$$ |        $$ |  $$ /  \__|$$ |$$  / $$ |  $$ |$$ /  $$ |$$ |  $$ |$$ /  \__|$$ |
 # $$ |      $$ |        $$ |  $$ |      $$$$$  /  $$$$$$$$ |$$ |  $$ |$$ |  $$ |\$$$$$$\  $$$$$\
 # $$ |      $$ |        $$ |  $$ |      $$  $$<   $$  __$$ |$$ |  $$ |$$ |  $$ | \____$$\ $$  __|
@@ -35,8 +35,8 @@ class QueryFnProtocol(Protocol):
     def __call__(self, limit: int, offset: int) -> Request: ...
 
 
-def row_iterator_to_csv(rows: Iterator[dict[str, Any]]) -> io.BytesIO:
-    buf = io.BytesIO()
+def row_iterator_to_csv(rows: Iterator[dict[str, Any]]) -> str:
+    buf = io.StringIO()
     writer = csv.writer(buf)
 
     for i, row in enumerate(rows):
@@ -45,15 +45,15 @@ def row_iterator_to_csv(rows: Iterator[dict[str, Any]]) -> io.BytesIO:
 
         writer.writerow(row.values())
 
-    return buf
+    return buf.getvalue()
 
 
 def export_clickhouse_rows(
     query_fn: QueryFnProtocol,
     referrer: str = "sentry.internal.eu-compliance-data-export",
+    num_pages: int = 1,
     limit: int = 1000,
     offset: int = 0,
-    num_pages: int = 1,
     max_retries: int = 10,
     retry_after_seconds: float = 1.0,
 ) -> Generator[dict[str, Any]]:
@@ -114,40 +114,49 @@ def export_clickhouse_rows(
 
 
 import base64
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 
 from google.cloud import storage_transfer_v1
 from google.cloud.storage_transfer_v1 import (
     CreateTransferJobRequest,
     GcsData,
     NotificationConfig,
+    RunTransferJobRequest,
     Schedule,
     TransferJob,
     TransferSpec,
-    UpdateTransferJobRequest,
 )
 from google.type import date_pb2
 
 from sentry.utils import json
 
 
-def request_schedule_transfer_job(transfer_job: dict[str, Any]) -> Any:
+def request_create_transfer_job(request: CreateTransferJobRequest) -> None:
     client = storage_transfer_v1.StorageTransferServiceClient()
-    return client.create_transfer_job(transfer_job=transfer_job)
+    client.create_transfer_job(request)
+    return None
 
 
-def export_blob_data[T](
+def create_transfer_job[T](
     gcs_project_id: str,
+    transfer_job_name: str | None,
     source_bucket: str,
     source_prefix: str,
     destination_bucket: str,
     job_duration: timedelta,
-    pubsub_topic_name: str | None = None,
-    schedule_transfer_job: Callable[[CreateTransferJobRequest], T] = request_schedule_transfer_job,
+    do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
+    notification_topic: str | None = None,
     get_current_datetime: Callable[[], datetime] = lambda: datetime.now(tz=timezone.utc),
 ) -> T:
     """
-    Schedule a transfer job copying the prefix.
+    Create a transfer-job which copies a bucket by prefix to another bucket.
+
+    Transfer jobs are templates for transfer-job-runs. Transfer jobs do not automatically create
+    transfer-job-runs. You can run a transfer-job manually but this function will define a
+    schedule for automatic transfer-job-run creation. Once the schedules constraints are met GCS
+    will create a transfer-job-run automatically. Automatic run creation is one-time only (for the
+    schedule adopted by this function). If it fails or you want to run the transfer-job twice you
+    will need to manually create a transfer-job-run on the second attempt.
 
     Failure notifications are handled by pubsub. When the transfer service fails it will send a
     notification to the specified topic. That topic should be configured to propagate the failure
@@ -157,9 +166,11 @@ def export_blob_data[T](
     :param source_bucket:
     :param source_prefix:
     :param destination_bucket:
-    :param pubsub_topic_name:
-    :param job_duration:
-    :param schedule_transfer_job: An injected function which manages the service interaction.
+    :param job_duration: The amount of time the job should take to complete. Longer runs put less
+        pressure on our buckets.
+    :param notification_topic: Specifying a topic will enable automatic run retries on failure.
+    :param do_create_transfer_job: Injected function which creates the transfer-job.
+    :param get_current_datetime: Injected function which computes the current datetime.
     """
     date_job_starts = get_current_datetime()
     date_job_ends = date_job_starts + job_duration
@@ -186,35 +197,38 @@ def export_blob_data[T](
         ),
     )
 
-    if pubsub_topic_name:
+    if notification_topic:
         transfer_job.notification_config = NotificationConfig(
-            pubsub_topic=pubsub_topic_name,
+            pubsub_topic=notification_topic,
             event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
             payload_format=NotificationConfig.PayloadFormat.JSON,
         )
 
+    if transfer_job_name:
+        transfer_job.name = transfer_job_name
+
     request = CreateTransferJobRequest(transfer_job=transfer_job)
+    return do_create_transfer_job(request)
 
-    return schedule_transfer_job(request)
 
-
-def request_retry_transfer_job(request: UpdateTransferJobRequest) -> None:
+def request_run_transfer_job(request: RunTransferJobRequest) -> None:
     client = storage_transfer_v1.StorageTransferServiceClient()
-    client.update_transfer_job(request)
+    client.run_transfer_job(request)
+    return None
 
 
-def retry_export_blob_data[T](
+def retry_transfer_job_run[T](
     event: dict[str, Any],
-    retry_transfer_job: Callable[[UpdateTransferJobRequest], T] = request_retry_transfer_job,
-) -> T:
+    do_run_transfer_job: Callable[[RunTransferJobRequest], T],
+) -> T | None:
     """
-    Retry data export.
+    Retry failed transfer job run.
 
     :param event:
-    :param retry_transfer_job:
+    :param do_run_transfer_job:
     """
     if "data" not in event:
-        return
+        return None
 
     # Decode the Pub/Sub message payload
     message = base64.b64decode(event["data"]).decode("utf-8")
@@ -225,12 +239,10 @@ def retry_export_blob_data[T](
         job_name = payload["transferOperation"]["transferJobName"]
         gcs_project_id = payload["transferOperation"]["projectId"]
 
-        request = UpdateTransferJobRequest(
-            job_name=job_name,
-            project_id=gcs_project_id,
-            transfer_job=TransferJob(status=storage_transfer_v1.TransferJob.Status.ENABLED),
-        )
-        return retry_transfer_job(request)
+        request = RunTransferJobRequest(job_name=job_name, project_id=gcs_project_id)
+        return do_run_transfer_job(request)
+
+    return None
 
 
 # $$$$$$$\  $$$$$$$$\ $$$$$$$\  $$\        $$$$$$\ $$\     $$\
@@ -241,10 +253,20 @@ def retry_export_blob_data[T](
 # $$ |  $$ |$$ |      $$ |      $$ |      $$ |  $$ |   $$ |
 # $$ |  $$ |$$$$$$$$\ $$ |      $$$$$$$$\ $$ |  $$ |   $$ |
 # \__|  \__|\________|\__|      \________|\__|  \__|   \__|
+
+import logging
 import uuid
 
+from django.db.models import F
 
-def export_replays_dataset(
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.tasks.base import instrumented_task
+
+logger = logging.getLogger()
+
+
+def query_replays_dataset(
     project_id: int,
     start: datetime,
     end: datetime,
@@ -357,103 +379,140 @@ def export_replays_dataset(
     )
 
 
-# $$$$$$\ $$\      $$\ $$$$$$$\  $$\
-# \_$$  _|$$$\    $$$ |$$  __$$\ $$ |
-#   $$ |  $$$$\  $$$$ |$$ |  $$ |$$ |
-#   $$ |  $$\$$\$$ $$ |$$$$$$$  |$$ |
-#   $$ |  $$ \$$$  $$ |$$  ____/ $$ |
-#   $$ |  $$ |\$  /$$ |$$ |      $$ |
-# $$$$$$\ $$ | \_/ $$ |$$ |      $$$$$$$$\
-# \______|\__|     \__|\__|      \________|
-
-from django.db.models import F
-
-from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.tasks.base import instrumented_task
-
-
-@instrumented_task(name="sentry.replays.tasks.export_clickhouse_rows_async")
-def export_clickhouse_rows_async(
+def export_replay_row_set(
     project_id: int,
     start: datetime,
     end: datetime,
     limit: int,
     initial_offset: int,
-    destination_bucket: str,
+    write_to_sink: Callable[[str, str], None],
+    num_pages: int = 10,
 ):
     row_iterator = export_clickhouse_rows(
-        lambda limit, offset: export_replays_dataset(project_id, start, end, limit, offset),
+        lambda limit, offset: query_replays_dataset(project_id, start, end, limit, offset),
         limit=limit,
         offset=initial_offset,
-        num_pages=10,
+        num_pages=num_pages,
     )
 
-    file_name = f"replay-row-data/{uuid.uuid4().hex}"
-    csv_bytes = row_iterator_to_csv(row_iterator)
-    write_to_bucket(destination_bucket, file_name, csv_bytes)
+    filename = f"replay-row-data/{uuid.uuid4().hex}"
+    csv_data = row_iterator_to_csv(row_iterator)
+    write_to_sink(filename, csv_data)
 
 
-@instrumented_task(name="sentry.replays.tasks.export_replay_clickhouse_data_async")
-def export_replay_clickhouse_data_async(project_id: int, limit: int, destination_bucket: str):
-    def generate_ninety_days_pairs() -> Iterator[tuple[datetime, datetime]]:
-        now = datetime.now(tz=timezone.utc)
+def generate_ninety_days_pairs(dt: datetime) -> Iterator[tuple[datetime, datetime]]:
+    start = datetime(year=dt.year, month=dt.month, day=dt.day) - timedelta(days=90)
+    end = start + timedelta(days=1)
+    for _ in range(90):
+        yield (start, end)
+        start = start + timedelta(days=1)
+        end = end + timedelta(days=1)
 
-        start = datetime(year=now.year, month=now.month, day=now.day) - timedelta(days=89)
-        end = start + timedelta(days=1)
-        for _ in range(90):
-            yield (start, end)
-            start = start + timedelta(days=1)
-            end = end + timedelta(days=1)
 
-    for start, end in generate_ninety_days_pairs():
-        export_clickhouse_rows_async.delay(
-            project_id=project_id,
-            start=start,
-            end=end,
-            limit=limit,
-            initial_offset=0,
-            destination_bucket=destination_bucket,
+@instrumented_task
+def export_replay_row_set_async(
+    project_id: int,
+    start: datetime,
+    end: datetime,
+    limit: int,
+    offset: int,
+    destination_bucket: str,
+    num_pages: int,
+):
+    gcs_bucket_writer = lambda a, b: None
+    export_replay_row_set(project_id, start, end, limit, offset, gcs_bucket_writer, num_pages)
+
+
+@instrumented_task
+def export_replay_project_async(
+    project_id: int,
+    limit: int,
+    destination_bucket: str,
+    num_pages: int = 10,
+):
+    for start, end in generate_ninety_days_pairs(datetime.now(tz=timezone.utc)):
+        export_replay_row_set_async.delay(
+            project_id, start, end, limit, 0, destination_bucket, num_pages
         )
 
 
-def export_replay_blob_data(
+def export_replay_blob_data[T](
     project_id: int,
     gcs_project_id: str,
     destination_bucket: str,
     job_duration: timedelta,
+    do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
     pubsub_topic_name: str | None = None,
     source_bucket: str = "sentry-replays",
 ):
+    # In the future we could set a non-unique transfer-job name. This would prevent duplicate runs
+    # from doing the same work over and over again. However, we'd need to catch the exception,
+    # look-up any active runs, and, if no active runs, schedule a new run. This is a bit much for
+    # me considering I don't know if this works yet and I don't have a good mechanism for testing
+    # this locally.
+    #
+    # transfer_job_name = f"{source_bucket}/{project_id}"
+
     for retention_days in (30, 60, 90):
-        export_blob_data(
+        create_transfer_job(
             gcs_project_id=gcs_project_id,
+            transfer_job_name=None,
             source_bucket=source_bucket,
             source_prefix=f"{retention_days}/{project_id}",
             destination_bucket=destination_bucket,
-            pubsub_topic_name=pubsub_topic_name,
+            notification_topic=pubsub_topic_name,
             job_duration=job_duration,
+            do_create_transfer_job=do_create_transfer_job,
         )
 
 
+def get_organization(organization_id: int) -> Organization | None:
+    try:
+        return Organization.objects.filter(organization_id=organization_id).get()
+    except Organization.DoesNotExist:
+        return None
+
+
+def get_projects(organization_id: int) -> list[Project]:
+    return Project.objects.filter(
+        organization_id=organization_id, flags=F("flags").bitor(Project.flags.has_replays)
+    )
+
+
 def export_replay_data(
-    organization_id: int,
+    gcs_project_id: str,
     destination_bucket: str,
-    gcs_project_id: int,
+    organization_id: int,
     job_duration: timedelta,
+    database_rows_per_page: int = 1000,
+    database_pages_per_task: int = 10,
     source_bucket: str = "sentry-replays",
     pubsub_topic_name: str | None = None,
 ):
-    # Assert the organization exists.
-    organization = Organization.objects.filter(organization_id=organization_id).get()
+    logger.info("Starting replay export...")
 
-    # Fetch the organization's projects.
-    projects = Project.objects.filter(
-        organization=organization,
-        flags=F("flags").bitor(Project.flags.has_replays),
+    try:
+        organization = Organization.objects.filter(organization_id=organization_id).get()
+        logger.info("Found organization", extra={"organization.slug": organization.slug})
+    except Organization.DoesNotExist:
+        logger.exception("Could not find organization", extra={"organization.id": organization_id})
+        return None
+
+    projects = list(
+        Project.objects.filter(
+            organization_id=organization_id, flags=F("flags").bitor(Project.flags.has_replays)
+        )
     )
 
+    if projects:
+        logger.info(
+            "Found projects which have replays.", extra={"number_of_projects": len(projects)}
+        )
+
     for project in projects:
+        logger.info(
+            "Starting recording export job for project", extra={"project_slug": project.slug}
+        )
         export_replay_blob_data(
             project_id=project.id,
             gcs_project_id=gcs_project_id,
@@ -461,11 +520,23 @@ def export_replay_data(
             pubsub_topic_name=pubsub_topic_name,
             source_bucket=source_bucket,
             job_duration=job_duration,
+            do_create_transfer_job=request_create_transfer_job,
         )
+        logger.info("Successfully scheduled recording export job.")
 
     for project in projects:
-        export_replay_clickhouse_data_async.delay(
-            project_id=project.id,
-            limit=1000,
-            destination_bucket=destination_bucket,
+        logger.info(
+            "Starting database export job for project", extra={"project_slug": project.slug}
         )
+        export_replay_project_async.delay(
+            project_id=project.id,
+            limit=database_rows_per_page,
+            destination_bucket=destination_bucket,
+            num_pages=database_pages_per_task,
+        )
+        logger.info("Successfully scheduled database export job.")
+
+    # Really need a way to signal an export has finished or failed. Probably a screen in the
+    # application exposed to the customer or admins. This will require database models, front-end
+    # engineers, API blueprints, a concept of a work group...
+    logger.info("Export finished! It will run in the background. No further action is required.")
