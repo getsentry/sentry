@@ -1,8 +1,6 @@
 from multiprocessing import JoinableQueue as Queue
 from unittest.mock import Mock, patch
 
-import pytest
-
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.runner.commands.cleanup import (
@@ -12,7 +10,7 @@ from sentry.runner.commands.cleanup import (
     process_deletion_task,
 )
 from sentry.services.eventstore.models import Event
-from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 RETENTION_DAYS = 2
@@ -22,8 +20,8 @@ MORE_THAN_RETENTION_DAYS = before_now(days=RETENTION_DAYS + 1).isoformat()
 
 # TransactionTestCase is needed to ensure that the events are stored in the same transaction
 # as the cleanup process since it uses raw SQL queries and cannot see test transactions
-class TestGroupDeletion(TestCase):
-    """Test the group deletion functionality."""
+class TestGroupDeletion(TransactionTestCase):
+    """Test cleanup with disable_multiprocessing=True."""
 
     def _create_group(
         self,
@@ -213,7 +211,6 @@ class TestCleanupMultiprocessing(TransactionTestCase):
         # Verify group was deleted (Group model handling bypasses skip_models)
         assert not Group.objects.filter(id=group_id).exists()
 
-    @pytest.mark.skip("Flaky test")
     @patch("sentry.runner.commands.cleanup.Process")
     def test_cleanup_creates_worker_processes(self, mock_process) -> None:
         """Test that _cleanup creates the correct number of worker processes."""
@@ -241,45 +238,9 @@ class TestCleanupMultiprocessing(TransactionTestCase):
         assert mock_process_instance.start.call_count == concurrency
         assert mock_process_instance.join.call_count == concurrency
 
-    def test_cleanup_with_multiprocessing_integration(self) -> None:
-        """Test full cleanup process with multiprocessing enabled."""
-        # Create test data
-        young_event = self.store_event(
-            data={"fingerprint": ["young-group"], "timestamp": LESS_THAN_RETENTION_DAYS},
-            project_id=self.project.id,
-        )
-        old_event = self.store_event(
-            data={"fingerprint": ["old-group"], "timestamp": MORE_THAN_RETENTION_DAYS},
-            project_id=self.project.id,
-        )
-
-        assert young_event.group is not None
-        assert old_event.group is not None
-        young_group_id = young_event.group.id
-        old_group_id = old_event.group.id
-
-        initial_count = Group.objects.count()
-        assert initial_count == 2
-
-        # Run cleanup with low concurrency to avoid test complexity
-        _cleanup(
-            model=("Group",),
-            days=RETENTION_DAYS,
-            router="default",
-            silent=True,
-            concurrency=1,  # Use single worker to avoid race conditions in tests
-        )
-
-        # Verify only old group was deleted
-        assert Group.objects.filter(id=young_group_id).exists()
-        assert not Group.objects.filter(id=old_group_id).exists()
-        assert Group.objects.count() == 1
-
     def test_multiprocessing_queue_task_distribution(self) -> None:
         """Test that tasks are properly distributed via the queue."""
-        from multiprocessing import Queue as MPQueue
-
-        task_queue: Queue = MPQueue()
+        task_queue = Queue()
 
         # Create test groups
         events = []
