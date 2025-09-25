@@ -6,63 +6,7 @@ from typing import Any
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
 from sentry.workflow_engine.types import ConfigTransformer
-
-
-def _tname(t: type | tuple[type, ...]) -> str:
-    if isinstance(t, type):
-        return t.__name__
-    return " | ".join(t.__name__ for t in t)
-
-
-class Result:
-    """
-    A dictpath result. May not be successful.
-    """
-
-    def __init__(
-        self, path: list[str], v: object | None = None, exc: ValueError | None = None
-    ) -> None:
-        self._path = path
-        self._v = v
-        self._exc = exc
-
-    def expect(self, t: type | tuple[type, ...]) -> Result:
-        if self.failed():
-            return self
-        if not isinstance(self._v, t):
-            return Result(
-                self._path,
-                exc=ValueError(
-                    f"{'.'.join(self._path)}: Expected {_tname(t)}, got {_tname(type(self._v))}"
-                ),
-            )
-        return self
-
-    def failed(self) -> bool:
-        return self._exc is not None
-
-    def get(self, fallback: object | None = None) -> object | None:
-        if self._exc:
-            if fallback is not None:
-                return fallback
-            raise self._exc
-        return self._v
-
-
-def dictpath(data: object, *path: str) -> Result:
-    """
-    Traverse an object based on a path and return a result.
-    """
-    current = data
-    history = []
-    for pathelt in path:
-        history.append(pathelt)
-        if not isinstance(current, dict):
-            return Result(history, exc=ValueError(f"{'.'.join(history)} was not a dict!"))
-        if pathelt not in current:
-            return Result(history, exc=ValueError(f"{'.'.join(history)} not found!"))
-        current = current[pathelt]
-    return Result(history, v=current)
+from sentry.workflow_engine.utils import dictpath
 
 
 def action_target_strings(lst: list[ActionTarget]) -> list[str]:
@@ -84,13 +28,10 @@ def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) ->
     Raises:
         ValueError: If target_type field is malformed or contains invalid enum values
     """
-    target_type_spec = dictpath(config_schema, "properties", "target_type").expect(dict).get()
-    assert isinstance(target_type_spec, dict)
+    target_type_spec = dictpath.walk(config_schema, "properties", "target_type").expect(dict).get()
 
     # Extract type specification
-    type_spec = dictpath(target_type_spec, "type").get()
-    if type_spec is None:
-        raise ValueError("target_type field must have a 'type' specification")
+    type_spec = dictpath.walk(target_type_spec, "type").get()
 
     # Handle both single type and list of types
     if isinstance(type_spec, list):
@@ -100,35 +41,30 @@ def transform_config_schema_target_type_to_api(config_schema: dict[str, Any]) ->
         raise ValueError("target_type field must be of type 'integer'")
 
     # Extract enum values
-    enum_values = dictpath(target_type_spec, "enum").expect(list).get()
-    assert isinstance(enum_values, list)  # For mypy, already validated by expect(list)
+    enum_values = dictpath.walk(target_type_spec, "enum").expect(list).get()
     if len(enum_values) == 0:
         raise ValueError("target_type enum must be a non-empty list")
 
     # Convert integer enum values to ActionTarget instances for validation
-    try:
-        action_targets = []
-        for val in enum_values:
-            if not isinstance(val, int):
-                raise ValueError(f"All enum values must be integers, got: {val}")
-            # Find the ActionTarget that matches this integer value
-            matching_target = None
-            for target in ActionTarget:
-                if target.value == val:
-                    matching_target = target
-                    break
-            if matching_target is None:
-                raise ValueError(f"Unknown ActionTarget value: {val}")
-            action_targets.append(matching_target)
-    except Exception as e:
-        raise ValueError(f"Failed to process target_type enum values: {e}")
+    action_targets = []
+    for val in enum_values:
+        if not isinstance(val, int):
+            raise ValueError(f"All enum values must be integers, got: {val}")
+        # Find the ActionTarget that matches this integer value
+        matching_target = None
+        for target in ActionTarget:
+            if target.value == val:
+                matching_target = target
+                break
+        if matching_target is None:
+            raise ValueError(f"Unknown ActionTarget value: {val}")
+        action_targets.append(matching_target)
 
     # Generate API schema by copying config schema and transforming target_type field
     api_schema = copy.deepcopy(config_schema)
 
     # Replace target_type specification with string version
     api_target_type_spec = copy.deepcopy(target_type_spec)
-    assert isinstance(api_target_type_spec, dict)  # For mypy
 
     # Convert type from integer to string
     if isinstance(type_spec, list):
@@ -158,7 +94,7 @@ class TargetTypeConfigTransformer(ConfigTransformer):
         """
         Analyze a config schema and generate a TargetTypeConfigTransformer if target_type field is found.
         """
-        target_type_result = dictpath(config_schema, "properties", "target_type")
+        target_type_result = dictpath.walk(config_schema, "properties", "target_type")
         if target_type_result.failed():
             return None
 
