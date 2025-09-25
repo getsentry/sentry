@@ -1142,6 +1142,30 @@ def test_as_trace_item_context_rage_click_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_tap_event() -> None:
+    event = {
+        "type": 5,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "category": "ui.tap",
+                "timestamp": 17585239875.928,
+                "message": "add_attachment",
+                "data": {
+                    "view.class": "androidx.appcompat.widget.AppCompatButton",
+                    "view.id": "add_attachment",
+                },
+            },
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["attributes"]["message"] == "add_attachment"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_navigation_event() -> None:
     event = {
         "type": 5,
