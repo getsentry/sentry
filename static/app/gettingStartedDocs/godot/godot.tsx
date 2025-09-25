@@ -11,7 +11,7 @@ const getVerifySnippet = () => `
 extends Node
 
 func _ready():
-	SentrySDK.add_breadcrumb("Just about to welcome the World.", "Note")
+	SentrySDK.add_breadcrumb(SentryBreadcrumb.create("Just about to welcome the World."))
 	SentrySDK.capture_message("Hello, World!")
 `;
 
@@ -23,7 +23,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "To get started, download the latest release of sentry Godot GDExtension from [releasesLink: GitHub Releases page] and place the Sentry SDK addon in [code: addons/sentry] in your project's directory.",
+            "To get started, download the latest release of Sentry for Godot from [releasesLink: GitHub Releases] and place the Sentry addon in [code: addons/sentry] in your project's directory.",
             {
               releasesLink: (
                 <ExternalLink href="https://github.com/getsentry/sentry-godot/releases" />
@@ -42,11 +42,11 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Sentry can be configured via Project Settings or with a [link: Configuration Script]. To access project settings in Godot Engine, navigate to [code:Project > Project Settings > Sentry] section, and enter the DSN for the [code:Dsn] option.',
+            'Sentry can be configured in the Project Settings window or [link: programmatically]. To access project settings in Godot Engine, navigate to [code:Project > Project Settings > Sentry] section, and enter the DSN for the [code:Dsn] option.',
             {
               code: <code />,
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/godot/configuration/options/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/godot/configuration/options/#programmatic-configuration" />
               ),
             }
           ),
