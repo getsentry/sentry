@@ -22,6 +22,9 @@ ALLOWED_CONDITIONS = {
     "reappeared_event",
     "every_event",
     "age_comparison",
+    "issue_priority_equals",
+    "issue_priority_greater_or_equal",
+    "issue_priority_deescalating",
 }
 
 
