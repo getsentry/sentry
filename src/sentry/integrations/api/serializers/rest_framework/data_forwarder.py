@@ -56,7 +56,9 @@ class DataForwarderSerializer(Serializer):
 
         # SQS URL format: https://sqs.region.amazonaws.com/account/queue-name
         queue_url = config.get("queue_url")
-        sqs_url_pattern = r"^https://sqs\.[a-z0-9\-]+\.amazonaws\.com/\d+/[a-zA-Z0-9\-_/]+$"
+        sqs_url_pattern = (
+            r"^https://sqs\.[a-z0-9\-]+\.amazonaws\.com/\d+/[a-zA-Z0-9\-_/]+(?:\.fifo)?$"
+        )
         if not isinstance(queue_url, str) or not re.match(sqs_url_pattern, queue_url):
             errors.append(
                 "queue_url must be a valid SQS URL format: "
@@ -80,7 +82,8 @@ class DataForwarderSerializer(Serializer):
         message_group_id = config.get("message_group_id")
         if message_group_id is not None and not isinstance(message_group_id, str):
             errors.append("message_group_id must be a string or null")
-        if isinstance(queue_url, str) and "fifo" in queue_url.lower() and not message_group_id:
+
+        if isinstance(queue_url, str) and queue_url.endswith(".fifo") and not message_group_id:
             errors.append("message_group_id is required for FIFO queues")
 
         s3_bucket = config.get("s3_bucket")

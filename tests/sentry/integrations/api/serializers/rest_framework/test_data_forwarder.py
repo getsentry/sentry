@@ -206,7 +206,7 @@ class DataForwarderSerializerTest(TestCase):
 
     def test_sqs_config_validation_fifo_queue_without_message_group_id(self) -> None:
         config: dict[str, str] = {
-            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue-fifo",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue.fifo",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
             "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
@@ -224,7 +224,7 @@ class DataForwarderSerializerTest(TestCase):
 
     def test_sqs_config_validation_fifo_queue_with_message_group_id(self) -> None:
         config: dict[str, str] = {
-            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue-fifo",
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue.fifo",
             "region": "us-east-1",
             "access_key": "AKIAIOSFODNN7EXAMPLE",
             "secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
@@ -605,7 +605,7 @@ class DataForwarderProjectSerializerTest(TestCase):
             project=self.project,
         )
 
-        # valid combos
+        # Valid combos
         valid_combinations = [
             (self.data_forwarder, project2),  # same forwarder, different project
             (data_forwarder2, self.project),  # different forwarder, same project
