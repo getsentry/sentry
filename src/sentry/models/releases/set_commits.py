@@ -5,7 +5,7 @@ import logging
 import re
 from typing import TypedDict
 
-from django.db import IntegrityError, router
+from django.db import IntegrityError, router, models
 
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -35,6 +35,182 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.plugins.providers.repository import RepositoryProvider
+
+
+def bulk_set_commits(commit_list, release):
+    """
+    Efficiently process commits in bulk to avoid database performance bottlenecks
+    when dealing with large numbers of commits.
+    """
+    if not commit_list:
+        return []
+    
+    # Group commits by repository and key for efficient lookups
+    commits_by_repo_key = {}
+    commit_data_map = {}
+    
+    for idx, data in enumerate(commit_list):
+        repo = data["repo_model"]
+        commit_key = data["id"]
+        repo_key_tuple = (repo.id, commit_key)
+        
+        commits_by_repo_key[repo_key_tuple] = {
+            "idx": idx,
+            "data": data,
+            "repo": repo,
+            "commit_key": commit_key
+        }
+        
+        # Prepare commit data
+        commit_data = {}
+        author = data["author_model"]
+        if author is not None:
+            commit_data["author"] = author
+        if "message" in data:
+            commit_data["message"] = data["message"]
+        if "timestamp" in data:
+            commit_data["date_added"] = data["timestamp"]
+            
+        commit_data_map[repo_key_tuple] = commit_data
+    
+    # Bulk query existing commits
+    existing_commits = {}
+    if commits_by_repo_key:
+        repo_key_filters = [
+            models.Q(repository_id=repo_id, key=commit_key, organization_id=release.organization_id)
+            for (repo_id, commit_key) in commits_by_repo_key.keys()
+        ]
+        
+        # Use union of Q objects for efficient querying
+        query = repo_key_filters[0]
+        for filter_q in repo_key_filters[1:]:
+            query |= filter_q
+            
+        for commit in Commit.objects.filter(query):
+            repo_key_tuple = (commit.repository_id, commit.key)
+            existing_commits[repo_key_tuple] = commit
+    
+    # Prepare commits to create and update
+    commits_to_create = []
+    commits_to_update = []
+    commit_file_changes_to_create = []
+    release_commits_to_create = []
+    
+    result_commits = []
+    
+    for repo_key_tuple, entry in commits_by_repo_key.items():
+        data = entry["data"]
+        repo = entry["repo"]
+        idx = entry["idx"]
+        commit_data = commit_data_map[repo_key_tuple]
+        
+        if repo_key_tuple in existing_commits:
+            # Update existing commit if needed
+            commit = existing_commits[repo_key_tuple]
+            needs_update = any(getattr(commit, key) != value for key, value in commit_data.items())
+            if needs_update:
+                for key, value in commit_data.items():
+                    setattr(commit, key, value)
+                commits_to_update.append(commit)
+        else:
+            # Create new commit
+            commit = Commit(
+                organization_id=release.organization_id,
+                repository_id=repo.id,
+                key=data["id"],
+                **commit_data
+            )
+            commits_to_create.append(commit)
+            existing_commits[repo_key_tuple] = commit
+        
+        result_commits.append((idx, existing_commits[repo_key_tuple]))
+    
+    # Bulk create new commits
+    if commits_to_create:
+        # Create commits and then re-fetch them to get the IDs
+        created_commit_keys = [(c.repository_id, c.key) for c in commits_to_create]
+        Commit.objects.bulk_create(commits_to_create, batch_size=100, ignore_conflicts=True)
+        
+        # Re-fetch the created commits to get their IDs
+        if created_commit_keys:
+            created_query_parts = [
+                models.Q(repository_id=repo_id, key=commit_key, organization_id=release.organization_id)
+                for repo_id, commit_key in created_commit_keys
+            ]
+            
+            if len(created_query_parts) == 1:
+                created_query = created_query_parts[0]
+            else:
+                created_query = created_query_parts[0]
+                for q in created_query_parts[1:]:
+                    created_query |= q
+            
+            created_commits = Commit.objects.filter(created_query)
+            for commit in created_commits:
+                repo_key_tuple = (commit.repository_id, commit.key)
+                existing_commits[repo_key_tuple] = commit
+    
+    # Bulk update existing commits
+    if commits_to_update:
+        # Update in batches using bulk_update
+        update_fields = set()
+        for key in commit_data_map.values():
+            update_fields.update(key.keys())
+        
+        if update_fields:
+            Commit.objects.bulk_update(commits_to_update, list(update_fields), batch_size=100)
+    
+    # Now prepare the file changes and release commits with proper commit objects
+    final_commit_file_changes = []
+    final_release_commits = []
+    
+    for repo_key_tuple, entry in commits_by_repo_key.items():
+        data = entry["data"]
+        idx = entry["idx"]
+        commit = existing_commits[repo_key_tuple]
+        
+        # Prepare CommitFileChange objects
+        patch_set = data.get("patch_set") or []
+        if patch_set:
+            for patched_file in patch_set:
+                final_commit_file_changes.append(
+                    CommitFileChange(
+                        organization_id=release.organization.id,
+                        commit=commit,
+                        filename=patched_file["path"],
+                        type=patched_file["type"],
+                    )
+                )
+        
+        # Prepare ReleaseCommit objects
+        final_release_commits.append(
+            ReleaseCommit(
+                organization_id=release.organization_id,
+                release=release,
+                commit=commit,
+                order=idx,
+            )
+        )
+    
+    # Bulk create CommitFileChange objects
+    if final_commit_file_changes:
+        CommitFileChange.objects.bulk_create(
+            final_commit_file_changes,
+            ignore_conflicts=True,
+            batch_size=100,
+        )
+    
+    # Bulk create ReleaseCommit objects
+    if final_release_commits:
+        ReleaseCommit.objects.bulk_create(
+            final_release_commits,
+            ignore_conflicts=True,
+            batch_size=100,
+        )
+    
+    # Sort result commits by original order
+    result_commits.sort(key=lambda x: x[0])
+    return [commit for _, commit in result_commits]
 
 
 class _CommitDataKwargs(TypedDict, total=False):
@@ -85,9 +261,11 @@ def set_commits_on_release(release, commit_list):
     commit_author_by_commit = {}
     head_commit_by_repo: dict[int, int] = {}
 
+    # Bulk process commits for better performance with large commit volumes
+    commits = bulk_set_commits(commit_list, release)
+    
     latest_commit = None
-    for idx, data in enumerate(commit_list):
-        commit = set_commit(idx, data, release)
+    for idx, (data, commit) in enumerate(zip(commit_list, commits)):
         if idx == 0:
             latest_commit = commit
 
