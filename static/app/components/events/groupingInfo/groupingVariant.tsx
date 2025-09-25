@@ -211,7 +211,7 @@ const VariantTitle = styled('h5')`
   align-items: center;
 `;
 
-const VariantHint = styled('text')`
+const VariantHint = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.fontWeight.normal};
