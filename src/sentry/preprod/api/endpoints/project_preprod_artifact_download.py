@@ -150,13 +150,13 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         except Exception:
             return Response({"error": "Failed to retrieve preprod artifact file"}, status=500)
 
-        response = FileResponse(
+        file_response: HttpResponseBase = FileResponse(
             fp,
             content_type="application/octet-stream",
         )
 
-        response["Content-Length"] = file_size
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        response["Accept-Ranges"] = "bytes"
+        file_response["Content-Length"] = file_size
+        file_response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        file_response["Accept-Ranges"] = "bytes"
 
-        return response
+        return file_response
