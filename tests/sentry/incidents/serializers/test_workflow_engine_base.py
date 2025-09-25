@@ -90,7 +90,7 @@ class TestWorkflowEngineSerializer(TestCase):
         self.expected = {
             "id": str(self.alert_rule.id),
             "name": self.detector.name,
-            "organizationId": self.detector.project.organization_id,
+            "organizationId": str(self.detector.project.organization_id),
             "status": AlertRuleStatus.PENDING.value,
             "query": self.alert_rule.snuba_query.query,
             "aggregate": self.alert_rule.snuba_query.aggregate,
@@ -104,7 +104,7 @@ class TestWorkflowEngineSerializer(TestCase):
             "dateCreated": self.detector.date_added,
             "createdBy": None,
             "description": self.detector.description or "",
-            "detectionType": self.detector.config.get("detectionType"),
+            "detectionType": self.detector.config.get("detection_type"),
         }
 
     def add_warning_trigger(self) -> None:

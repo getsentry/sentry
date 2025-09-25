@@ -350,7 +350,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by"),
             "description": obj.description if obj.description else "",
-            "detectionType": obj.type,
+            "detectionType": obj.config.get("detection_type"),
         }
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
