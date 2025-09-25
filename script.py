@@ -1,8 +1,12 @@
+import re
+import sys
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from typing import TextIO
 
 import yaml
-from django.urls import ResolverMatch, resolve
+from django.urls import ResolverMatch, get_resolver, resolve
+from drf_spectacular.generators import EndpointEnumerator
 
 from sentry.api.api_owners import ApiOwner
 
@@ -40,8 +44,8 @@ def process_endpoint(endpoint: str) -> Endpoint:
     return Endpoint(endpoint, cls, owner, name)
 
 
-def process_endpoints(endpoints: list[str]) -> dict[str, dict[str, str]]:
-    """Process a list of endpoint strings into a list of Endpoint objects."""
+def process_endpoints(endpoints: Iterable[str]) -> dict[str, dict[str, str]]:
+    """Process an iterable of endpoint strings into a dictionary of Endpoint objects."""
     return dict(process_endpoint(endpoint).to_dict_item() for endpoint in endpoints)
 
 
@@ -59,5 +63,25 @@ def process_yaml(input_path: str, output_path: str):
         yaml.dump(endpoints, f)
 
 
+def all_api_endpoints() -> Generator[str]:
+    """Generate all API endpoints.
+
+    Get all API endpoints (that is, all endpoints that start with /api/0/).
+    Return the path without the /api/0 prefix.
+    """
+    enumerator = EndpointEnumerator(get_resolver().url_patterns)
+    api_0_prefix = re.compile(r"^/api/0(/.*)$")
+
+    for path, *_ in enumerator.get_api_endpoints():
+        match = api_0_prefix.match(path)
+        if match:
+            yield match.group(1)
+
+
+def main():
+    endpoints = process_endpoints(all_api_endpoints())
+    yaml.dump(endpoints, sys.stdout)
+
+
 if __name__ == "__main__":
-    process_yaml("api_endpoints_absolute_false_list.yaml", "output.yaml")
+    main()
