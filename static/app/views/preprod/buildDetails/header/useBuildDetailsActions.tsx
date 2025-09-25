@@ -64,36 +64,42 @@ export function useBuildDetailsActions({
       if (!response.ok) {
         let errorMessage = `Download failed (${response.status})`;
 
+        let errorResponse: Response;
         try {
-          const errorResponse = await fetch(downloadUrl, {
+          errorResponse = await fetch(downloadUrl, {
             method: 'GET',
             credentials: 'include',
           });
-
-          if (!errorResponse.ok) {
-            const errorText = await errorResponse.text();
-            try {
-              const errorJson = JSON.parse(errorText);
-              if (errorJson.detail) {
-                if (typeof errorJson.detail === 'string') {
-                  errorMessage = errorJson.detail;
-                } else if (errorJson.detail.message) {
-                  errorMessage = errorJson.detail.message;
-                } else if (errorJson.detail.code) {
-                  errorMessage = `${errorJson.detail.code}: ${errorJson.detail.message || 'Authentication required'}`;
-                }
-              }
-            } catch {
-              errorMessage = errorText || errorMessage;
-            }
-          }
         } catch {
           if (response.status === 403) {
             errorMessage = 'Access denied. You may need to re-authenticate as staff.';
           } else if (response.status === 404) {
             errorMessage = 'Build file not found.';
           } else if (response.status === 401) {
-            errorMessage = 'Authentication required.';
+            errorMessage = 'Unauthorized.';
+          }
+          addErrorMessage(t('Download failed: %s', errorMessage));
+          return;
+        }
+
+        if (!errorResponse.ok) {
+          const errorText = await errorResponse.text();
+          let errorJson: any;
+          try {
+            errorJson = JSON.parse(errorText);
+          } catch {
+            errorMessage = errorText || errorMessage;
+            return;
+          }
+
+          if (errorJson.detail) {
+            if (typeof errorJson.detail === 'string') {
+              errorMessage = errorJson.detail;
+            } else if (errorJson.detail.message) {
+              errorMessage = errorJson.detail.message;
+            } else if (errorJson.detail.code) {
+              errorMessage = `${errorJson.detail.code}: ${errorJson.detail.message || 'Authentication required'}`;
+            }
           }
         }
 
