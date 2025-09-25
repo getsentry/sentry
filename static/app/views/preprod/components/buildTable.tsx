@@ -29,11 +29,11 @@ import {
 } from 'sentry/views/preprod/utils/labelUtils';
 
 const COLUMNS: TabularColumn[] = [
-  {key: 'app', sortable: false, width: 320},
-  {key: 'build', sortable: false, width: 320},
-  {key: 'install_size', sortable: false, width: 140},
-  {key: 'download_size', sortable: false, width: 140},
-  {key: 'created', sortable: false, width: 160},
+  {key: 'app', sortable: false},
+  {key: 'build', sortable: false},
+  {key: 'install_size', sortable: false},
+  {key: 'download_size', sortable: false},
+  {key: 'created', sortable: false},
 ];
 
 const ALIASES: Record<string, string> = {
@@ -148,7 +148,7 @@ export function BuildTable({builds, projectId, isLoading}: BuildTableProps) {
           scrollable
           fit="max-content"
           allowedCellActions={[]}
-          resizable={false}
+          resizable
         />
       </ClickableTableWrapper>
     </TableWrapper>
@@ -178,17 +178,13 @@ const createAppRenderer: FieldRenderer = data => {
 };
 
 const createBuildRenderer: FieldRenderer = data => {
-  const version = data.version as string;
-  const buildNumber = data.build_number as string;
+  const version = data.version as string | null;
+  const buildNumber = data.build_number as string | null;
   const buildState = data.build_state as number;
-  const commitSha = data.commit_sha as string;
-  const commitRef = data.commit_ref as string;
+  const commitSha = data.commit_sha as string | null;
+  const commitRef = data.commit_ref as string | null;
   const versionDisplay =
-    version !== null && buildNumber !== null
-      ? `${version} (${buildNumber})`
-      : version === null
-        ? '--'
-        : version;
+    version !== null && buildNumber !== null ? `${version} (${buildNumber})` : '--';
 
   return (
     <Flex direction="column" gap="xs">
@@ -198,16 +194,16 @@ const createBuildRenderer: FieldRenderer = data => {
         </Text>
         {buildState === 3 && <IconCheckmark size="sm" color="green300" />}
       </Flex>
-      <Flex align="center" gap="xs">
+      <Flex align="center" gap="xs" style={{minWidth: 0}}>
         <IconCommit size="xs" />
         <Text size="sm" variant="muted">
-          #{commitSha.slice(0, 7)}
+          #{commitSha ? commitSha.slice(0, 7) : 'N/A'}
         </Text>
         <Text size="sm" variant="muted">
           -
         </Text>
-        <Text size="sm" variant="muted">
-          <TextOverflow>{commitRef}</TextOverflow>
+        <Text size="sm" variant="muted" style={{minWidth: 0, flex: 1}}>
+          <TextOverflow>{commitRef || '--'}</TextOverflow>
         </Text>
       </Flex>
     </Flex>
