@@ -797,11 +797,6 @@ BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
-# Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
-# this works.
-CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
-
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -1768,10 +1763,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.schedule_auto_transition_to_ongoing",
         "schedule": task_crontab("*/5", "*", "*", "*", "*"),
     },
-    "github_comment_reactions": {
-        "task": "integrations:sentry.integrations.github.tasks.github_comment_reactions",
-        "schedule": task_crontab("0", "4", "*", "*", "*"),
-    },
     "statistical-detectors-detect-regressions": {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
@@ -1799,6 +1790,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+    },
+    "preprod-detect-expired-artifacts": {
+        "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
 }
 
@@ -2024,12 +2019,10 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_EARLY_FEATURES = {
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
     "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
@@ -3752,6 +3745,10 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
+# Used to validate RPC requests from the Overwatch service
+OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
+if (val := os.environ.get("OVERWATCH_RPC_SHARED_SECRET")) is not None:
+    OVERWATCH_RPC_SHARED_SECRET = [val]
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")

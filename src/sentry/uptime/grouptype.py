@@ -11,18 +11,13 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, Che
 from sentry import features, options
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.models.group import GroupStatus
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
+from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator
 from sentry.uptime.models import UptimeStatus, UptimeSubscription
-from sentry.uptime.types import (
-    DEFAULT_DOWNTIME_THRESHOLD,
-    DEFAULT_RECOVERY_THRESHOLD,
-    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-    UptimeMonitorMode,
-)
+from sentry.uptime.subscriptions.subscriptions import build_fingerprint
+from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
@@ -41,23 +36,6 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-def resolve_uptime_issue(detector: Detector) -> None:
-    """
-    Sends an update to the issue platform to resolve the uptime issue for this
-    monitor.
-    """
-    status_change = StatusChangeMessage(
-        fingerprint=build_fingerprint(detector),
-        project_id=detector.project_id,
-        new_status=GroupStatus.RESOLVED,
-        new_substatus=None,
-    )
-    produce_occurrence_to_kafka(
-        payload_type=PayloadType.STATUS_CHANGE,
-        status_change=status_change,
-    )
-
-
 @dataclass(frozen=True)
 class UptimePacketValue:
     """
@@ -67,14 +45,6 @@ class UptimePacketValue:
     check_result: CheckResult
     subscription: UptimeSubscription
     metric_tags: dict[str, str]
-
-
-def build_detector_fingerprint_component(detector: Detector) -> str:
-    return f"uptime-detector:{detector.id}"
-
-
-def build_fingerprint(detector: Detector) -> list[str]:
-    return [build_detector_fingerprint_component(detector)]
 
 
 def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
@@ -136,13 +106,8 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
     @override
     @property
     def thresholds(self) -> DetectorThresholds:
-        # TODO: Drop these fallbacks once migration 0045 is deployed and all detectors have config values
-        recovery_threshold = self.detector.config.get(
-            "recovery_threshold", DEFAULT_RECOVERY_THRESHOLD
-        )
-        downtime_threshold = self.detector.config.get(
-            "downtime_threshold", DEFAULT_DOWNTIME_THRESHOLD
-        )
+        recovery_threshold = self.detector.config["recovery_threshold"]
+        downtime_threshold = self.detector.config["downtime_threshold"]
 
         return {
             DetectorPriorityLevel.OK: recovery_threshold,
@@ -294,11 +259,12 @@ class UptimeDomainCheckFailure(GroupType):
     enable_escalation_detection = False
     detector_settings = DetectorSettings(
         handler=UptimeDetectorHandler,
+        validator=UptimeDomainCheckFailureValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of an uptime alert",
             "type": "object",
-            "required": ["mode", "environment"],
+            "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
             "properties": {
                 "mode": {
                     "type": ["integer"],

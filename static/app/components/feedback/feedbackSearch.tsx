@@ -3,8 +3,8 @@ import orderBy from 'lodash/orderBy';
 import union from 'lodash/union';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
+import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';

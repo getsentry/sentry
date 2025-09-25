@@ -249,7 +249,7 @@ describe('OrganizationSettingsForm', () => {
     expect(toggle).toBeEnabled();
   });
 
-  it('renders Prevent AI field', () => {
+  it('renders AI Code Review field', () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -258,7 +258,7 @@ describe('OrganizationSettingsForm', () => {
       />
     );
 
-    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
+    expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
 
     expect(screen.getByText('beta')).toBeInTheDocument();
 
@@ -274,7 +274,7 @@ describe('OrganizationSettingsForm', () => {
     );
   });
 
-  it('hides Prevent AI field when AI features are disabled', () => {
+  it('hides AI Code Review field when AI features are disabled', () => {
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -284,7 +284,7 @@ describe('OrganizationSettingsForm', () => {
       />
     );
 
-    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
     expect(
       screen.queryByText(
         'Use AI to review, find bugs, and generate tests in pull requests'
@@ -301,7 +301,7 @@ describe('OrganizationSettingsForm', () => {
       />
     );
 
-    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
+    expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
     expect(
       screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
     ).toBeInTheDocument();
@@ -322,17 +322,122 @@ describe('OrganizationSettingsForm', () => {
     });
 
     // Initially AI features are disabled, so PR Review field should be hidden
-    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
 
     const aiToggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     await userEvent.click(aiToggle);
 
     // PR Review field should now be visible
-    expect(screen.getByText('Enable Prevent AI')).toBeInTheDocument();
+    expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
 
     await userEvent.click(aiToggle);
 
     // PR Review field should be hidden again
-    expect(screen.queryByText('Enable Prevent AI')).not.toBeInTheDocument();
+    expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+  });
+
+  describe('AI Code Review field', () => {
+    it('is enabled when US region', () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeEnabled();
+    });
+
+    it('is disabled when non US region', () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'de',
+        displayName: 'Europe (Frankfurt)',
+        url: 'https://sentry.de.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeDisabled();
+    });
+
+    it('is enabled when user is an admin (has org:write access)', () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({
+            hideAiFeatures: true,
+          })}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            ...organization,
+            access: ['org:write'],
+          },
+        }
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeEnabled();
+    });
+
+    it('is disabled when user is a member (does not have org:write access)', async () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({
+            hideAiFeatures: true,
+          })}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            access: ['org:read'],
+          },
+        }
+      );
+
+      const preventAiField = await screen.findByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeDisabled();
+    });
   });
 });
