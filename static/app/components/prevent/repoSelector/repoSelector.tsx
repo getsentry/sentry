@@ -170,7 +170,7 @@ export function RepoSelector() {
       value={repository ?? ''}
       onChange={handleChange}
       onOpenChange={_ => setSearchValue(undefined)}
-      menuWidth={'16rem'}
+      menuWidth="16rem"
       menuBody={<SyncRepoButton searchValue={searchValue} />}
       menuFooter={<MenuFooter repoAccessLink={currentOrgGHIntegrationRepoAccessLink} />}
       disabled={disabled}

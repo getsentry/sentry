@@ -386,8 +386,8 @@ export function LogsTabContent({
             <LogsTableActionsContainer>
               <Tabs value={tableTab} onChange={setTableTab} size="sm">
                 <TabList hideBorder variant="floating">
-                  <TabList.Item key={'logs'}>{t('Logs')}</TabList.Item>
-                  <TabList.Item key={'aggregates'}>{t('Aggregates')}</TabList.Item>
+                  <TabList.Item key="logs">{t('Logs')}</TabList.Item>
+                  <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
                 </TabList>
               </Tabs>
               <TableActionsContainer>

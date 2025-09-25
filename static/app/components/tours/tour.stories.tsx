@@ -54,24 +54,24 @@ export default Storybook.story('Tours', story => {
       <TourProvider>
         <TourElement<MyTour>
           id={MyTour.NAME}
-          title={'Name Time!'}
-          description={'This is the description of the name tour step.'}
+          title="Name Time!"
+          description="This is the description of the name tour step."
           tourContext={MyTourContext}
         >
           <Input placeholder="Step 1: Name" />
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.EMAIL}
-          title={'Email Time!'}
-          description={'This is the description of the email tour step.'}
+          title="Email Time!"
+          description="This is the description of the email tour step."
           tourContext={MyTourContext}
         >
           <Input placeholder="Step 2: Email" type="email" />
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.PASSWORD}
-          title={'Password Time!'}
-          description={'This is the description of the password tour step.'}
+          title="Password Time!"
+          description="This is the description of the password tour step."
           tourContext={MyTourContext}
         >
           <Input placeholder="Step 3: Password" type="password" />
@@ -194,16 +194,16 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         <TourElement<MyTour>
           tourContext={MyTourContext}
           id={MyTour.NAME}
-          title={'Name Time!'}
-          description={'This is the description of the name tour step.'}
+          title="Name Time!"
+          description="This is the description of the name tour step."
         >
           <Input placeholder="Step 1: Name" />
         </TourElement>
         <TourElement<MyTour>
           tourContext={MyTourContext}
           id={MyTour.EMAIL}
-          title={'Email Time!'}
-          description={'This is the description of the email tour step.'}
+          title="Email Time!"
+          description="This is the description of the email tour step."
         >
           <Input placeholder="Step 2: Email" type="email" />
         </TourElement>
@@ -228,8 +228,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         <CustomTourElement
           tourContext={MyTourContext}
           id={MyTour.NAME}
-          title={'Name Time!'}
-          description={'This is the description of the name tour step.'}
+          title="Name Time!"
+          description="This is the description of the name tour step."
           color="blue400"
         >
           <Input placeholder="Step 1: Name" />
@@ -237,8 +237,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         <CustomTourElement
           tourContext={MyTourContext}
           id={MyTour.EMAIL}
-          title={'Email Time!'}
-          description={'This is the description of the email tour step.'}
+          title="Email Time!"
+          description="This is the description of the email tour step."
           color="red400"
         >
           <Input placeholder="Step 2: Email" type="email" />
@@ -246,8 +246,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         <CustomTourElement
           tourContext={MyTourContext}
           id={MyTour.PASSWORD}
-          title={'Password Time!'}
-          description={'This is the description of the password tour step.'}
+          title="Password Time!"
+          description="This is the description of the password tour step."
           color="green400"
         >
           <Input placeholder="Step 3: Password" type="password" />
@@ -275,8 +275,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.NAME}
-          title={'Name Time!'}
-          description={'Look at all these name inputs!'}
+          title="Name Time!"
+          description="Look at all these name inputs!"
           tourContext={MyTourContext}
           position="right"
         >
@@ -292,16 +292,16 @@ export const MY_TOUR_KEY = 'tour.my_tour';
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.EMAIL}
-          title={'Email Time!'}
-          description={'This is the description of the email tour step.'}
+          title="Email Time!"
+          description="This is the description of the email tour step."
           tourContext={MyTourContext}
         >
           <Input placeholder="Step 2: Email" type="email" />
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.PASSWORD}
-          title={'Password Time!'}
-          description={'This is the description of the password tour step.'}
+          title="Password Time!"
+          description="This is the description of the password tour step."
           tourContext={MyTourContext}
         >
           <Input placeholder="Step 3: Password" type="password" />

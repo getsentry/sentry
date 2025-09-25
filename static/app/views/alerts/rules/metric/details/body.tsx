@@ -218,7 +218,7 @@ export default function MetricDetailsBody({
             />
             {selectedIncident && (
               <Tooltip
-                title={`Click to clear filters`}
+                title="Click to clear filters"
                 isHoverable
                 containerDisplayMode="inline-flex"
               >

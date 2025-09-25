@@ -56,8 +56,8 @@ describe('ReactContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'react'}
+        type="default"
+        alias="react"
         value={{...MOCK_REACT_CONTEXT, version: ''}}
       />
     );

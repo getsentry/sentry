@@ -53,7 +53,7 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
         }
       >
         <NumberContainer>
-          {isBrokenTest && <StyledTag type={'highlight'}>Broken test</StyledTag>}
+          {isBrokenTest && <StyledTag type="highlight">Broken test</StyledTag>}
           {Number(value).toFixed(2)}%
         </NumberContainer>
       </Tooltip>

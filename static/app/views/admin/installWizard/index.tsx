@@ -118,7 +118,7 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
           </Heading>
           <Form
             apiMethod="PUT"
-            apiEndpoint={'/internal/options/?query=is:required'}
+            apiEndpoint="/internal/options/?query=is:required"
             submitLabel={t('Continue')}
             initialData={getInitialData()}
             onSubmitSuccess={onConfigured}

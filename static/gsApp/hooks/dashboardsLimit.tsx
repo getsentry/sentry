@@ -55,7 +55,7 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
         'You have reached the maximum number of Dashboards available on your plan. To add more, [link:upgrade your plan]',
         {
           link: (
-            <Link to={`/settings/billing/checkout/?referrer=dashboards-limit-upsell`} />
+            <Link to="/settings/billing/checkout/?referrer=dashboards-limit-upsell" />
           ),
         }
       )

@@ -283,7 +283,7 @@ export default function FeedbackSearch() {
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
       onSearch={onSearch}
-      searchSource={'feedback-list'}
+      searchSource="feedback-list"
       placeholder={t('Search Feedback')}
       matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
     />

@@ -197,7 +197,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
-            height={'100%'}
+            height="100%"
           />
           <InsightsLineChartWidget
             queryInfo={{search, groupBy: [groupBy], referrer}}
@@ -208,7 +208,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
-            height={'100%'}
+            height="100%"
           />
           <ScreensBarChart search={search} type="ttfd" chartHeight={150} />
           <InsightsLineChartWidget
@@ -220,7 +220,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             aliases={chartAliases}
             showReleaseAs="none"
             showLegend="always"
-            height={'100%'}
+            height="100%"
           />
         </ChartContainer>
       </Fragment>

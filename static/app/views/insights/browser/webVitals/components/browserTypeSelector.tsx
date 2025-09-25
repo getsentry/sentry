@@ -86,7 +86,7 @@ export default function BrowserTypeSelector() {
       clearable
       value={value}
       triggerLabel={value.length === 0 ? 'All' : undefined}
-      menuTitle={'Filter Browsers'}
+      menuTitle="Filter Browsers"
       options={browserOptions ?? []}
       onChange={(selectedOptions: Array<SelectOption<string>>) => {
         trackAnalytics('insight.vital.select_browser_value', {

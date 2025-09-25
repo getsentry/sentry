@@ -168,7 +168,7 @@ export function PrimaryNavigationItems() {
         >
           <SidebarLink
             to={`/settings/${organization.slug}/`}
-            activeTo={`/settings/`}
+            activeTo="/settings/"
             analyticsKey="settings"
             group={PrimaryNavGroup.SETTINGS}
             {...makeNavItemProps(PrimaryNavGroup.SETTINGS)}

@@ -399,13 +399,13 @@ function ProducerMetricsRibbon({
       <MetricReadout
         title={t('Published')}
         value={metrics?.[0]?.['count_op(queue.publish)']}
-        unit={'count'}
+        unit="count"
         isLoading={isLoading}
       />
       <MetricReadout
         title={t('Error Rate')}
         value={errorRate}
-        unit={'percentage'}
+        unit="percentage"
         isLoading={isLoading}
       />
     </ReadoutRibbon>
@@ -425,13 +425,13 @@ function ConsumerMetricsRibbon({
       <MetricReadout
         title={t('Processed')}
         value={metrics?.[0]?.['count_op(queue.process)']}
-        unit={'count'}
+        unit="count"
         isLoading={isLoading}
       />
       <MetricReadout
         title={t('Error Rate')}
         value={errorRate}
-        unit={'percentage'}
+        unit="percentage"
         isLoading={isLoading}
       />
       <MetricReadout

@@ -338,7 +338,7 @@ function ReviewAndConfirmBody({
 
 function MigrateNowBody({cardActionError, handleComplete, previewData, submitting}: any) {
   return (
-    <MigrateNowAlert type="info" data-test-id={'migrate-now-body'}>
+    <MigrateNowAlert type="info" data-test-id="migrate-now-body">
       <MigrateNowAlertContext>
         <div>{t('Why wait? Apply these changes immediately.')}</div>
         <MigrateNowButton
