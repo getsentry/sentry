@@ -22,7 +22,10 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (
-    <LogsQueryParamsProvider source="location">
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
       <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
         <table>
           <tbody>{children}</tbody>

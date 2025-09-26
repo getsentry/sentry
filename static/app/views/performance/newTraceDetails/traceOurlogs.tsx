@@ -26,7 +26,11 @@ export function TraceViewLogsDataProvider({
   children,
 }: UseTraceViewLogsDataProps) {
   return (
-    <LogsQueryParamsProvider source="state" freeze={{traceId: traceSlug}}>
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      source="state"
+      freeze={{traceId: traceSlug}}
+    >
       <LogsPageParamsProvider
         isTableFrozen
         analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}

@@ -88,7 +88,7 @@ interface LogsPageParams {
   readonly title?: string;
 }
 
-const [_LogsPageParamsProvider, useLogsPageParams, LogsPageParamsContext] =
+const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
     name: 'LogsPageParamsContext',
   });
@@ -211,11 +211,6 @@ export function usePersistedLogsPageParams() {
       sortBys: [logsTimestampDescendingSortBy],
     }
   );
-}
-
-export function useLogsAnalyticsPageSource() {
-  const {analyticsPageSource} = useLogsPageParams();
-  return analyticsPageSource;
 }
 
 function getLogTitleFromLocation(location: Location): string {

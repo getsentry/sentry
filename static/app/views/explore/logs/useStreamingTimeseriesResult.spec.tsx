@@ -62,7 +62,10 @@ describe('useStreamingTimeseriesResult', () => {
 
       return (
         <OrganizationContext.Provider value={organization ?? logsOrganization}>
-          <LogsQueryParamsProvider source="location">
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
             <LogsPageParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
               _testContext={testContext}

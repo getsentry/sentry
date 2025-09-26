@@ -52,7 +52,10 @@ describe('useInfiniteLogsQuery', () => {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsQueryParamsProvider source="location">
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
             <LogsPageParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             >
@@ -427,7 +430,10 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsQueryParamsProvider source="location">
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
             <LogsPageParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
               _testContext={{

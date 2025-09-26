@@ -200,7 +200,10 @@ describe('LogsInfiniteTable', () => {
   const renderWithProviders = (children: React.ReactNode) => {
     return render(
       <OrganizationContext.Provider value={organization}>
-        <LogsQueryParamsProvider source="location">
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
+        >
           <LogsPageParamsProvider
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           >

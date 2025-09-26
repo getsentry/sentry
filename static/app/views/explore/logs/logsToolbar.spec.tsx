@@ -9,7 +9,10 @@ import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
-    <LogsQueryParamsProvider source="location">
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
       <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
         {children}
       </LogsPageParamsProvider>

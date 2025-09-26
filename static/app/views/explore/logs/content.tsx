@@ -76,7 +76,10 @@ export default function LogsContent() {
           },
         }}
       >
-        <LogsQueryParamsProvider source="location">
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
+        >
           <LogsPageParamsProvider
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           >
