@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type FormModel from 'sentry/components/forms/model';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
@@ -47,22 +48,28 @@ export default function AutomationForm({model}: {model: FormModel}) {
         setConnectedIds={setConnectedIds}
       />
       <Card>
-        <Flex direction="column" gap="xs">
-          <Heading>{t('Choose Environment')}</Heading>
-          <Description>
+        <Flex direction="column" gap="sm">
+          <Text size="lg" bold>
+            {t('Choose Environment')}
+          </Text>
+          <Text size="sm" variant="muted">
             {t(
               'If you select environments different than your monitors then the automation will not fire.'
             )}
-          </Description>
+          </Text>
         </Flex>
         <EnvironmentSelector value={environment} onChange={updateEnvironment} />
       </Card>
       <Card>
-        <Heading>{t('Automation Builder')}</Heading>
+        <Text size="lg" bold>
+          {t('Automation Builder')}
+        </Text>
         <AutomationBuilder />
       </Card>
       <Card>
-        <Heading>{t('Action Interval')}</Heading>
+        <Text size="lg" bold>
+          {t('Action Interval')}
+        </Text>
         <EmbeddedSelectField
           required
           name="frequency"
@@ -75,18 +82,6 @@ export default function AutomationForm({model}: {model: FormModel}) {
     </Flex>
   );
 }
-
-const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSize.xl};
-  margin: 0;
-`;
-
-const Description = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  margin: 0;
-  padding: 0;
-`;
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
