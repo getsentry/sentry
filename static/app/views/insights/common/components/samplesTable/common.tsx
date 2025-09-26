@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {NEAR_AVERAGE_THRESHOLD_PERCENTAGE} from 'sentry/views/insights/settings';
 
 type Props = {
   compareToDuration: number;
@@ -21,7 +22,9 @@ export function DurationComparisonCell({
 }: Props) {
   const diff = duration - compareToDuration;
 
-  if (areNumbersAlmostEqual(duration, compareToDuration, 3)) {
+  if (
+    areNumbersAlmostEqual(duration, compareToDuration, NEAR_AVERAGE_THRESHOLD_PERCENTAGE)
+  ) {
     return <TextAlignRight {...containerProps}>{t('Near Average')}</TextAlignRight>;
   }
 
