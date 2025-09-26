@@ -441,15 +441,6 @@ def export_replay_row_set(
         return None
 
 
-def generate_ninety_days_pairs(dt: datetime) -> Iterator[tuple[datetime, datetime]]:
-    start = datetime(year=dt.year, month=dt.month, day=dt.day) - timedelta(days=90)
-    end = start + timedelta(days=1)
-    for _ in range(91):
-        yield (start, end)
-        start = start + timedelta(days=1)
-        end = end + timedelta(days=1)
-
-
 def save_to_gcs(destination_bucket: str, filename: str, contents: str) -> None:
     storage = get_storage(None)
     storage.bucket_name = destination_bucket
