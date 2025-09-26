@@ -385,12 +385,16 @@ class ComponentTest(TestCase):
         # When `recursive` isn't specified, it should find direct children but not grandchildren
         exception_component = root_component.get_subcomponent("exception")
         stacktrace_component = root_component.get_subcomponent("stacktrace")
+        error_value_component = root_component.get_subcomponent("value")
         assert exception_component
         assert not stacktrace_component
+        assert not error_value_component
 
         # Grandchildren can be found, however, if the search is recursive
         stacktrace_component = root_component.get_subcomponent("stacktrace", recursive=True)
+        error_value_component = root_component.get_subcomponent("value", recursive=True)
         assert stacktrace_component
+        assert error_value_component
 
         # The `only_contributing` flag can be used to exclude components which don't contribute
         assert stacktrace_component.contributes is False
@@ -398,3 +402,12 @@ class ComponentTest(TestCase):
             "stacktrace", recursive=True, only_contributing=True
         )
         assert not contributing_stacktrace_component
+
+        # Even if a component itself is marked as contributing, if `only_contributing` is set, the
+        # component won't be found if it has a non-contributing ancestor
+        exception_component.contributes = False
+        assert error_value_component.contributes is True
+        contributing_error_value_component = root_component.get_subcomponent(
+            "value", recursive=True, only_contributing=True
+        )
+        assert not contributing_error_value_component
