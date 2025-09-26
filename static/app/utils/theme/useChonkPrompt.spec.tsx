@@ -2,25 +2,11 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useChonkPrompt} from './useChonkPrompt';
-
-const queryClient = new QueryClient();
-function makeWrapper(organization: Organization) {
-  return function ({children}: {children: React.ReactNode}) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  };
-}
 
 describe('useChonkPrompt', () => {
   beforeEach(() => {
@@ -29,8 +15,8 @@ describe('useChonkPrompt', () => {
   });
 
   it('org without chonk-ui does not show prompts', () => {
-    const {result} = renderHook(() => useChonkPrompt(), {
-      wrapper: makeWrapper(OrganizationFixture({features: []})),
+    const {result} = renderHookWithProviders(() => useChonkPrompt(), {
+      organization: OrganizationFixture({features: []}),
     });
 
     expect(result.current.showbannerPrompt).toBe(false);
@@ -43,8 +29,8 @@ describe('useChonkPrompt', () => {
       body: {data: {dismissed_ts: null}},
     });
 
-    const {result} = renderHook(() => useChonkPrompt(), {
-      wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
+    const {result} = renderHookWithProviders(() => useChonkPrompt(), {
+      organization: OrganizationFixture({features: ['chonk-ui']}),
     });
 
     await waitFor(() => expect(result.current.showbannerPrompt).toBe(true));
@@ -62,11 +48,11 @@ describe('useChonkPrompt', () => {
       method: 'PUT',
     });
 
-    const {result} = renderHook(() => useChonkPrompt(), {
-      wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
+    const {result} = renderHookWithProviders(() => useChonkPrompt(), {
+      organization: OrganizationFixture({features: ['chonk-ui']}),
     });
 
-    expect(result.current.showbannerPrompt).toBe(true);
+    await waitFor(() => expect(result.current.showbannerPrompt).toBe(true));
     expect(result.current.showDotIndicatorPrompt).toBe(false);
 
     result.current.dismissBannerPrompt();
@@ -88,7 +74,14 @@ describe('useChonkPrompt', () => {
   it('dismissing dot indicator prompt hides both prompts', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
-      body: {data: {dismissed_ts: Date.now()}},
+      body: {data: {dismissed_ts: Date.now() / 1000}},
+      match: [MockApiClient.matchQuery({feature: 'chonk_ui_banner'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+      match: [MockApiClient.matchQuery({feature: 'chonk_ui_dot_indicator'})],
     });
 
     const dismissMock = MockApiClient.addMockResponse({
@@ -96,11 +89,11 @@ describe('useChonkPrompt', () => {
       method: 'PUT',
     });
 
-    const {result} = renderHook(() => useChonkPrompt(), {
-      wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
+    const {result} = renderHookWithProviders(() => useChonkPrompt(), {
+      organization: OrganizationFixture({features: ['chonk-ui']}),
     });
 
-    expect(result.current.showbannerPrompt).toBe(false);
+    await waitFor(() => expect(result.current.showbannerPrompt).toBe(false));
     expect(result.current.showDotIndicatorPrompt).toBe(true);
 
     result.current.dismissDotIndicatorPrompt();
@@ -135,8 +128,8 @@ describe('useChonkPrompt', () => {
       body: {data: {dismissed_ts: null}},
     });
 
-    const {result} = renderHook(() => useChonkPrompt(), {
-      wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
+    const {result} = renderHookWithProviders(() => useChonkPrompt(), {
+      organization: OrganizationFixture({features: ['chonk-ui']}),
     });
 
     expect(result.current.showbannerPrompt).toBe(false);
