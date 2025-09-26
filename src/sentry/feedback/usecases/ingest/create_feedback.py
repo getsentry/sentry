@@ -275,8 +275,10 @@ def create_feedback_issue(
     if spam_detection_enabled(project):
         is_spam_enabled = True
         if features.has("organizations:seer-feedback-spam-detection", project.organization):
-            # Will be None if the request fails.
+            # Will be None if the request fails
             is_message_spam = is_spam_seer(feedback_message, project.organization_id)
+            # Add "seer-" to the metric name to differentiate it from the LLM metric
+            is_message_spam_metric = "seer-" + str(is_message_spam).lower()
         else:
             try:
                 is_message_spam = is_spam(feedback_message)
@@ -285,12 +287,13 @@ def create_feedback_issue(
                 logger.exception(
                     "Error checking if message is spam", extra={"project_id": project.id}
                 )
+            is_message_spam_metric = is_message_spam
 
         # In DD we use is_spam = None to indicate spam failed.
         metrics.incr(
             "feedback.create_feedback_issue.spam_detection",
             tags={
-                "is_spam": is_message_spam,
+                "is_spam": is_message_spam_metric,
                 "referrer": source.value,
             },
         )
