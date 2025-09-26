@@ -61,6 +61,10 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     return this._autogroupedSegments;
   }
 
+  get nodePath(): TraceTree.NodePath {
+    return `ag-${this.id}`;
+  }
+
   analyticsName(): string {
     return 'sibling autogroup';
   }
@@ -73,19 +77,6 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
     return <TraceAutogroupedRow {...props} node={props.node} />;
-  }
-
-  pathToNode(): TraceTree.NodePath[] {
-    const path: TraceTree.NodePath[] = [];
-    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
-
-    path.push(`ag-${this.id}`);
-
-    if (closestFetchableParent) {
-      path.push(...closestFetchableParent.pathToNode());
-    }
-
-    return path;
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
