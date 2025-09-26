@@ -1,3 +1,5 @@
+import {ATTRIBUTE_METADATA, AttributeName, AttributeType} from '@sentry/conventions';
+
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
@@ -1624,7 +1626,10 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
+  [FieldKey.PROJECT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.HAS]: {
     desc: t('Determines if a tag or field exists in an event'),
     kind: FieldKind.FIELD,
@@ -2199,6 +2204,42 @@ const OTA_FIELD_DEFINITIONS: Record<OTAFieldKey, FieldDefinition> = {
   },
 };
 
+function convertSentryConventionsAttributeMetadata<K extends string, V>(
+  entries: Array<[K, V]>
+): Record<K, V> {
+  return Object.fromEntries(entries) as Record<K, V>;
+}
+
+function convertSentryConventionsAttributeType(ty: AttributeType) {
+  switch (ty) {
+    case AttributeType.STRING:
+      return FieldValueType.STRING;
+    case AttributeType.BOOLEAN:
+      return FieldValueType.BOOLEAN;
+    case AttributeType.INTEGER:
+      return FieldValueType.INTEGER;
+    case AttributeType.DOUBLE:
+      return FieldValueType.NUMBER;
+    default:
+      return FieldValueType.STRING;
+  }
+}
+
+// Attributes defined in `sentry-conventions` (https://github.com/getsentry/sentry-conventions/tree/main).
+// These can be present on all items that are stored in EAP.
+const SENTRY_CONVENTIONS_FIELD_DEFINITIONS: Record<AttributeName, FieldDefinition> =
+  convertSentryConventionsAttributeMetadata(
+    Object.entries(ATTRIBUTE_METADATA).map(([name, metadata]) => [
+      name as AttributeName,
+      {
+        desc: t(metadata.brief), // eslint-disable-line sentry/no-dynamic-translations
+        kind: FieldKind.FIELD,
+        valueType: convertSentryConventionsAttributeType(metadata.type),
+        deprecated: metadata.deprecation !== undefined,
+      },
+    ])
+  );
+
 type AllEventFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
   | keyof typeof MEASUREMENT_FIELDS
@@ -2223,6 +2264,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...USER_FIELD_DEFINITIONS,
   ...PROFILE_FIELD_DEFINITIONS,
   ...OTA_FIELD_DEFINITIONS,
+  ...SENTRY_CONVENTIONS_FIELD_DEFINITIONS,
 };
 
 const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
@@ -2242,6 +2284,7 @@ const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
     valueType: FieldValueType.SIZE,
   },
 };
+
 const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...EVENT_FIELD_DEFINITIONS,
   ...SPAN_AGGREGATION_FIELDS,
@@ -3073,7 +3116,11 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(fieldKey => [
       fieldKey,
-      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
+      {
+        key: fieldKey,
+        name: fieldKey,
+        kind: getFieldDefinition(fieldKey)?.kind,
+      },
     ])
   );
 }
