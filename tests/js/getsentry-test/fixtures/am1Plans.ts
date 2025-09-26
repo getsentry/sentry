@@ -39,7 +39,7 @@ const AM1_CATEGORY_DISPLAY_NAMES = {
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
-  preventUser: {singular: 'prevent user', plural: 'prevent users'},
+  preventUsers: {singular: 'prevent user', plural: 'prevent users'},
 };
 
 const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {

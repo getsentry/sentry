@@ -49,7 +49,7 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
-  preventUser: {singular: 'prevent user', plural: 'prevent users'},
+  preventUsers: {singular: 'prevent user', plural: 'prevent users'},
 };
 
 const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
