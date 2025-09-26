@@ -109,6 +109,8 @@ class Referrer(StrEnum):
     API_GROUP_HASHES = "api.group-hashes"
 
     # ** Explore **
+    API_EXPLORE_SPANS_STATS = "api.explore.spans-stats"
+    API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
