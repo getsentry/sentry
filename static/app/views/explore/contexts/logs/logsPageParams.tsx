@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useState} from 'react';
+import {useLayoutEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -10,7 +10,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   defaultLogFields,
   getLogFieldsFromLocation,
@@ -105,7 +104,7 @@ type NonUpdatableParams =
   | 'groupBy';
 type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
-const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
+const [_LogsPageParamsProvider, useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
     name: 'LogsPageParamsContext',
   });
@@ -196,8 +195,6 @@ export function LogsPageParamsProvider({
   );
 }
 
-export const useLogsPageParams = _useLogsPageParams;
-
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query?.[LOGS_QUERY_KEY]) {
     return '';
@@ -269,19 +266,6 @@ function updateNullableLocation(
   return false;
 }
 
-function useSetLogsPageParams() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  return useCallback(
-    (pageParams: LogPageParamsUpdate) => {
-      const target = setLogsPageParams(location, pageParams);
-      navigate(target);
-    },
-    [location, navigate]
-  );
-}
-
 export interface PersistedLogsPageParams {
   fields: string[];
   sortBys: Sort[];
@@ -303,26 +287,6 @@ export function usePersistedLogsPageParams() {
       fields: defaultLogFields() as string[],
       sortBys: [logsTimestampDescendingSortBy],
     }
-  );
-}
-
-export function useLogsId() {
-  const {id} = useLogsPageParams();
-  return id;
-}
-
-export function useLogsTitle() {
-  const {title} = useLogsPageParams();
-  return title;
-}
-
-export function useSetLogsSavedQueryInfo() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (id: string, title: string) => {
-      setPageParams({id, title});
-    },
-    [setPageParams]
   );
 }
 

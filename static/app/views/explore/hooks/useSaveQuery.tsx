@@ -5,7 +5,6 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   isGroupBy as isLegacyGroupBy,
@@ -173,21 +172,19 @@ export function useFromSavedQuery() {
 export function useLogsSaveQuery() {
   const pageFilters = usePageFilters();
   const [interval] = useChartInterval();
-  const logsParams = useLogsPageParams();
   const queryParams = useQueryParams();
-  const {id, title} = logsParams;
+  const {id, title} = queryParams;
 
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
     return convertLogsPageParamsToRequest({
-      logsParams,
       queryParams,
       pageFilters,
       interval,
       title: title ?? '',
     });
-  }, [logsParams, queryParams, pageFilters, interval, title]);
+  }, [queryParams, pageFilters, interval, title]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
@@ -257,14 +254,12 @@ function convertExplorePageParamsToRequest(
 }
 
 function convertLogsPageParamsToRequest({
-  logsParams,
   queryParams,
   pageFilters,
   interval,
   title,
 }: {
   interval: string;
-  logsParams: ReturnType<typeof useLogsPageParams>;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;
   title: string;
@@ -273,7 +268,7 @@ function convertLogsPageParamsToRequest({
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
 
-  const {sortBys, fields, search, mode} = logsParams;
+  const {sortBys, fields, search, mode} = queryParams;
   const query = search?.formatString() ?? '';
 
   const aggregateFields = queryParams.aggregateFields

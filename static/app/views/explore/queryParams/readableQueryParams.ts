@@ -16,6 +16,8 @@ export interface ReadableQueryParamsOptions {
   readonly mode: Mode;
   readonly query: string;
   readonly sortBys: Sort[];
+  readonly id?: string;
+  readonly title?: string;
 }
 
 export class ReadableQueryParams {
@@ -34,6 +36,9 @@ export class ReadableQueryParams {
   readonly groupBys: readonly string[];
   readonly visualizes: readonly Visualize[];
 
+  readonly id?: string;
+  readonly title?: string;
+
   constructor(options: ReadableQueryParamsOptions) {
     this.extrapolate = options.extrapolate;
     this.mode = options.mode;
@@ -50,5 +55,8 @@ export class ReadableQueryParams {
 
     this.groupBys = this.aggregateFields.filter(isGroupBy).map(({groupBy}) => groupBy);
     this.visualizes = this.aggregateFields.filter(isVisualize);
+
+    this.id = options.id;
+    this.title = options.title;
   }
 }
