@@ -64,6 +64,7 @@ import {
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
+import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type UpdateData =
   | {isBookmarked: boolean}
@@ -95,9 +96,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
   const hasRelease = !!project.features?.includes('releases');
 
-  const hasSemverRelease = useProjectReleaseVersionIsSemver({
-    version: project.latestRelease?.version,
-  });
+  const hasSemverRelease = event?.release?.versionInfo.version
+    ? isVersionInfoSemver(event.release.versionInfo.version)
+    : false;
   const hasSemverReleaseFeature =
     organization.features?.includes('resolve-in-semver-release') && hasSemverRelease;
 
