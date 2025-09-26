@@ -3,10 +3,7 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
-import {
-  LOGS_AGGREGATE_CURSOR_KEY,
-  LOGS_CURSOR_KEY,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 export const LOGS_SORT_BYS_KEY = 'logsSortBys';
