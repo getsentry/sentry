@@ -5,7 +5,7 @@ import argparse
 import dataclasses
 import sys
 from pathlib import Path
-from typing import Any, Tuple, cast
+from typing import Any, cast
 
 import yaml
 
@@ -118,9 +118,20 @@ def evaluate_flag(
     for segment in feature.segments:
         test = dataclasses.replace(feature, segments=[segment])
         original_rollout = segment.rollout
+
+        # Force the segment to be rolled out to 100% so that we text whether the
+        # conditions match our `context`, isolated from rollout bucketing.
         segment.rollout = 100
         if test.match(context):
             return (real_result, original_rollout, segment)
+
+        # TODO: We could test the segment again with it's defined rollout in
+        # order to report whether a project_id or organization_id would be in
+        # the rollout group or not. Bucketing is based on the
+        # `__identity_fields` inside `EvaluationContext`, which are set to be
+        # `project_id` and `organization_id`, so both those fields would need to be set correctly
+        # on the input.
+        # See: https://github.com/getsentry/sentry/blob/master/src/sentry/features/flagpole_context.py#L122-L123
 
     return (real_result, None, None)
 
