@@ -207,5 +207,5 @@ const BetaBadge = styled(FeatureBadge)`
   position: absolute;
   pointer-events: none;
   top: -2px;
-  right: 6px;
+  right: 4px;
 `;
