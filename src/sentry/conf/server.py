@@ -1446,6 +1446,18 @@ BGTASKS: dict[str, BgTaskConfig] = {
     },
 }
 
+# Fernet keys for database encryption.
+# First key in the dict is used as a primary key, and if
+# encryption method options is "fernet", the first key will be
+# used to decrypt the data.
+#
+# Other keys are used only for data decryption. This structure
+# is used to allow easier key rotation when "fernet" is used
+# as an encryption method.
+DATABASE_ENCRYPTION_FERNET_KEYS = {
+    os.getenv("DATABASE_ENCRYPTION_KEY_ID_1"): os.getenv("DATABASE_ENCRYPTION_FERNET_KEY_1"),
+}
+
 #######################
 # Taskworker settings #
 #######################
@@ -1977,12 +1989,10 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_EARLY_FEATURES = {
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
     "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",

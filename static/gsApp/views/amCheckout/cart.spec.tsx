@@ -2,10 +2,17 @@ import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
+import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -77,6 +84,7 @@ describe('Cart', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
+      body: BillingDetailsFixture(),
     });
   });
 
@@ -146,7 +154,7 @@ describe('Cart', () => {
 
     // PAYG-only categories are also shown for paid plans
     expect(planItem).toHaveTextContent('Continuous profile hours');
-    expect(planItem).toHaveTextContent('Available with PAYG');
+    expect(planItem).toHaveTextContent('Available');
 
     const seerItem = screen.getByTestId('summary-item-product-seer');
     expect(seerItem).toHaveTextContent('Seer');
@@ -215,8 +223,36 @@ describe('Cart', () => {
     );
   });
 
-  it('renders preview data', async () => {
+  it('does not fetch preview data if billing info is incomplete', async () => {
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
+    });
     MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
+
+    render(
+      <Cart
+        activePlan={businessPlan}
+        formData={defaultFormData}
+        formDataForPreview={getFormDataForPreview(defaultFormData)}
+        organization={organization}
+        subscription={subscription}
+        onSuccess={jest.fn()}
+      />
+    );
+
+    expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+    expect(mockResponse).not.toHaveBeenCalled();
+  });
+
+  it('renders preview data', async () => {
+    const mockResponse = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {
@@ -252,7 +288,10 @@ describe('Cart', () => {
     );
 
     const dueToday = await screen.findByTestId('summary-item-due-today');
-    expect(dueToday).toHaveTextContent('$91'); // original price
+    expect(mockResponse).toHaveBeenCalled();
+
+    // wait for preview to be loaded
+    await waitFor(() => expect(dueToday).toHaveTextContent('$91')); // original price
     expect(dueToday).toHaveTextContent('$80'); // price after credits + additional fees
     expect(screen.getByTestId('summary-item-plan-total')).toHaveTextContent('$89');
     expect(screen.getByTestId('summary-item-sales_tax')).toHaveTextContent('$2');
@@ -291,8 +330,11 @@ describe('Cart', () => {
       />
     );
 
-    expect(await screen.findByTestId('summary-item-due-today')).toHaveTextContent(
-      'Due on Jun 7, 2023'
+    // wait for preview to be loaded
+    await waitFor(() =>
+      expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent(
+        'Due on Jun 7, 2023'
+      )
     );
     expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent('$89 USD');
     expect(screen.getByTestId('summary-item-plan-total')).toHaveTextContent('$89');
@@ -339,11 +381,10 @@ describe('Cart', () => {
     expect(
       screen.queryByRole('button', {name: 'Confirm and pay'})
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /These changes will take effect at the end of your current Partner sponsored plan on Jun 14, 2022/
-      )
-    ).toBeInTheDocument();
+    // wait for preview to be loaded
+    await screen.findByText(
+      /These changes will take effect at the end of your current Partner sponsored plan on Jun 14, 2022/
+    );
     expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument(); // changes aren't shown for migrating partner customers
   });
 
@@ -374,7 +415,8 @@ describe('Cart', () => {
       />
     );
 
-    expect(await screen.findByText(/you will be billed by Partner/)).toBeInTheDocument();
+    // wait for preview to be loaded
+    await screen.findByText(/you will be billed by Partner/);
     expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeInTheDocument();
   });
 
