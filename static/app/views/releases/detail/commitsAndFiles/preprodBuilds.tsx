@@ -133,9 +133,6 @@ export default function PreprodBuilds() {
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
             projectSlug={projectSlug}
-            emptyStateMessage={
-              hasSearchQuery ? t('No builds found for your search') : undefined
-            }
           />
         )}
       </Layout.Main>
