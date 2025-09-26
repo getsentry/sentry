@@ -3,7 +3,6 @@ import type {Theme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {ParentAutogroupNode as LegacyParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
@@ -70,12 +69,12 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
 
   pathToNode(): TraceTree.NodePath[] {
     const path: TraceTree.NodePath[] = [];
-    const closestTransaction = this.findParent(p => isTransactionNode(p));
+    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
 
     path.push(`ag-${this.id}`);
 
-    if (closestTransaction) {
-      path.push(`txn-${closestTransaction.id}`);
+    if (closestFetchableParent) {
+      path.push(...closestFetchableParent.pathToNode());
     }
 
     return path;
