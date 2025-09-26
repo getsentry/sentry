@@ -170,16 +170,16 @@ class Buffer(Service):
             for column, value in columns.items():
                 if model is Group and column == "times_seen":
                     from django.db.models import Func, Value
+
                     from sentry.db.models.fields.bounded import I32_MAX
+
                     # Cap the increment to prevent overflow when added to existing times_seen
                     # Use a conservative approach: ensure the increment itself doesn't exceed a safe limit
                     MAX_TIMES_SEEN_INCREMENT = I32_MAX // 2  # Conservative limit: ~1B
                     capped_value = min(value, MAX_TIMES_SEEN_INCREMENT)
                     # Use LEAST() to ensure the final result never exceeds I32_MAX
                     update_kwargs[column] = Func(
-                        F(column) + capped_value,
-                        Value(I32_MAX),
-                        function='LEAST'
+                        F(column) + capped_value, Value(I32_MAX), function="LEAST"
                     )
                 else:
                     update_kwargs[column] = F(column) + value
