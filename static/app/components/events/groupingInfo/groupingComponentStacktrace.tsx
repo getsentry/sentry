@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import type {EventGroupComponent} from 'sentry/types/event';
 
@@ -17,8 +17,8 @@ type Props = {
 };
 
 function GroupingComponentStacktrace({component, showNonContributing}: Props) {
-  const getFrameGroups = () => {
-    const frameGroups: FrameGroup[] = [];
+  const frameGroups = useMemo(() => {
+    const groups: FrameGroup[] = [];
 
     (component.values as EventGroupComponent[])
       .filter(value => groupingComponentFilter(value, showNonContributing))
@@ -29,20 +29,20 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
           .sort((a, b) => a.localeCompare(b))
           .join('');
 
-        const lastGroup = frameGroups[frameGroups.length - 1];
+        const lastGroup = groups[groups.length - 1];
 
         if (lastGroup?.key === key) {
           lastGroup.data.push(value);
         } else {
-          frameGroups.push({key, data: [value]});
+          groups.push({key, data: [value]});
         }
       });
 
-    return frameGroups;
-  };
+    return groups;
+  }, [component, showNonContributing]);
   return (
     <Fragment>
-      {getFrameGroups().map((group, index) => (
+      {frameGroups.map((group, index) => (
         <GroupingComponentFrames
           key={index}
           items={group.data.map((v, idx) => (
