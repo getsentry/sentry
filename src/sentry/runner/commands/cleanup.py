@@ -196,8 +196,6 @@ def _cleanup(
     if silent:
         os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
-    pool = None
-    task_queue = None
     if not disable_multiprocessing:
         pool, task_queue = start_pool(concurrency)
 
