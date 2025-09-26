@@ -76,30 +76,27 @@ def get_and_optionally_update_blobs_batch(
     """
     Batch version of get_and_optionally_update_blob that retrieves multiple FileBlobs
     by their checksums in a single query, avoiding N+1 query issues.
-    
+
     Returns a dictionary mapping checksum -> FileBlob for existing blobs.
     """
     if not checksums:
         return {}
-    
+
     # Get all existing blobs in a single query
     existing_blobs = file_blob_model.objects.filter(checksum__in=checksums)
-    
+
     # Create a mapping of checksum to blob
     blob_map = {blob.checksum: blob for blob in existing_blobs}
-    
+
     # Update timestamps for old blobs that need it
     now = timezone.now()
     threshold = now - HALF_DAY
-    blobs_to_update = [
-        blob.id for blob in existing_blobs 
-        if blob.timestamp <= threshold
-    ]
-    
+    blobs_to_update = [blob.id for blob in existing_blobs if blob.timestamp <= threshold]
+
     if blobs_to_update:
         # Batch update timestamps
         file_blob_model.objects.filter(id__in=blobs_to_update).update(timestamp=now)
-    
+
     return blob_map
 
 

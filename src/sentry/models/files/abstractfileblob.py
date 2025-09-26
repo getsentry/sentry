@@ -217,32 +217,36 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_file_chunks_batch(cls, file_chunks: list[tuple[bytes, str]], logger=nooplogger) -> list[Self]:
+    def from_file_chunks_batch(
+        cls, file_chunks: list[tuple[bytes, str]], logger=nooplogger
+    ) -> list[Self]:
         """
         Batch version of from_file that processes multiple file chunks efficiently.
-        
+
         Args:
             file_chunks: List of (file_content, checksum) tuples
             logger: Logger instance
-            
+
         Returns:
             List of FileBlob instances corresponding to the input chunks
         """
-        logger.debug("FileBlob.from_file_chunks_batch.start", extra={"chunk_count": len(file_chunks)})
-        
+        logger.debug(
+            "FileBlob.from_file_chunks_batch.start", extra={"chunk_count": len(file_chunks)}
+        )
+
         if not file_chunks:
             return []
-        
+
         # Extract checksums for batch lookup
         checksums = [checksum for _, checksum in file_chunks]
-        
+
         # Batch lookup of existing blobs
         existing_blobs = get_and_optionally_update_blobs_batch(cls, checksums)
-        
+
         # Prepare results list and track what needs to be created
         results = []
         blobs_to_create = []
-        
+
         for file_content, checksum in file_chunks:
             existing = existing_blobs.get(checksum)
             if existing is not None:
@@ -253,16 +257,17 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 blob.path = cls.generate_unique_path()
                 blobs_to_create.append((blob, file_content))
                 results.append(blob)
-        
+
         # Create new blobs if needed
         if blobs_to_create:
             storage = get_storage(cls._storage_config())
-            
+
             for blob, file_content in blobs_to_create:
                 # Save to storage
                 from django.core.files.base import ContentFile
+
                 storage.save(blob.path, ContentFile(file_content))
-                
+
                 # Save to database
                 try:
                     blob.save()
@@ -280,8 +285,10 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                             break
                     # Clean up our storage
                     storage.delete(saved_path)
-        
-        logger.debug("FileBlob.from_file_chunks_batch.end", extra={"created_count": len(blobs_to_create)})
+
+        logger.debug(
+            "FileBlob.from_file_chunks_batch.end", extra={"created_count": len(blobs_to_create)}
+        )
         return results
 
     @classmethod
