@@ -26,12 +26,7 @@ export function DateSelector() {
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    const currentAndDefaultPreventPeriods = {
-      ...getArbitraryRelativePeriod(preventPeriod),
-      ...PREVENT_DEFAULT_RELATIVE_PERIODS,
-    };
-
-    return Object.entries(currentAndDefaultPreventPeriods).map(
+    return Object.entries(PREVENT_DEFAULT_RELATIVE_PERIODS).map(
       ([key, value]): SelectOption<string> => {
         return {
           value: key,
@@ -40,7 +35,7 @@ export function DateSelector() {
         };
       }
     );
-  }, [preventPeriod]);
+  }, []);
 
   return (
     <CompactSelect
