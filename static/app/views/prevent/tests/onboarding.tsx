@@ -15,12 +15,12 @@ import {usePreventContext} from 'sentry/components/prevent/context/preventContex
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {getPreventParamsString} from 'sentry/components/prevent/utils';
-import Redirect from 'sentry/components/redirect';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
@@ -48,6 +48,7 @@ export default function TestsOnboardingPage() {
   const organization = useOrganization();
   const {integratedOrgId, repository} = usePreventContext();
   const {data: repoData, isSuccess: isRepoSuccess} = useRepo();
+  const navigate = useNavigate();
   const opt = searchParams.get('opt');
 
   const theme = useTheme();
@@ -72,16 +73,24 @@ export default function TestsOnboardingPage() {
 
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
+  const cameFromTestsRoute =
+    location.state?.from === '/prevent/tests' ||
+    document.referrer.includes('/prevent/tests');
 
   // We want to navigate to show TA if this repo should have data to show, if we need to show
   // preOnboarding when they have no integrations, or if this org is not in the US region
   if (
-    (repoData?.testAnalyticsEnabled && isRepoSuccess) ||
-    (!integrations.length && !isIntegrationsPending) ||
-    !isUSStorage
+    !cameFromTestsRoute &&
+    ((repoData?.testAnalyticsEnabled && isRepoSuccess) ||
+      (!integrations.length && !isIntegrationsPending) ||
+      !isUSStorage)
   ) {
     const queryString = getPreventParamsString(location);
-    return <Redirect to={`/prevent/tests${queryString ? `?${queryString}` : ''}`} />;
+    navigate(`/prevent/tests${queryString ? `?${queryString}` : ''}`, {
+      state: {from: '/prevent/tests/new'},
+      replace: true,
+    });
+    return null;
   }
 
   if (isIntegrationsPending) {

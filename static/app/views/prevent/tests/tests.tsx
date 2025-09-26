@@ -12,7 +12,6 @@ import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSele
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
 import {TestSuiteDropdown} from 'sentry/components/prevent/testSuiteDropdown/testSuiteDropdown';
 import {getPreventParamsString} from 'sentry/components/prevent/utils';
-import Redirect from 'sentry/components/redirect';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -147,9 +146,17 @@ function Content({response}: TestResultsContentData) {
     [navigate, response, location.query]
   );
 
-  if (!repoData?.testAnalyticsEnabled && !isRepoPending) {
+  const cameFromOnboardingRoute =
+    location.state?.from === '/prevent/tests/new' ||
+    document.referrer.includes('/prevent/tests/new');
+
+  if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && !isRepoPending) {
     const queryString = getPreventParamsString(location);
-    return <Redirect to={`/prevent/tests/new${queryString ? `?${queryString}` : ''}`} />;
+    navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
+      state: {from: '/prevent/tests'},
+      replace: true,
+    });
+    return null;
   }
 
   return (
