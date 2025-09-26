@@ -34,7 +34,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.analytics import (
     SlackIntegrationApproveMemberInvitation,
     SlackIntegrationAssign,
-    SlackIntegrationLinkIdentity,
+    SlackIntegrationChartUnfurlAction,
     SlackIntegrationRejectMemberInvitation,
     SlackIntegrationStatus,
 )
@@ -533,7 +533,7 @@ class SlackActionEndpoint(Endpoint):
         )
         if len(organization_integrations) > 0:
             analytics.record(
-                SlackIntegrationLinkIdentity(
+                SlackIntegrationChartUnfurlAction(
                     organization_id=organization_integrations[0].id,
                     action=action,
                 )
