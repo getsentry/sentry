@@ -326,6 +326,7 @@ function useTrackAnalytics({
       page_source,
       interval,
       gave_seer_consent: gaveSeerConsent,
+      version: 2,
     });
   }, [
     dataset,
