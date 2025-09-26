@@ -269,19 +269,6 @@ function updateNullableLocation(
   return false;
 }
 
-function useSetLogsPageParams() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  return useCallback(
-    (pageParams: LogPageParamsUpdate) => {
-      const target = setLogsPageParams(location, pageParams);
-      navigate(target);
-    },
-    [location, navigate]
-  );
-}
-
 export interface PersistedLogsPageParams {
   fields: string[];
   sortBys: Sort[];
