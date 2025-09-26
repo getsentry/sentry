@@ -213,11 +213,10 @@ export function useReplaySummary(
       !isStartSummaryRequestPending &&
       summaryData?.status === ReplaySummaryStatus.COMPLETED);
 
-  // Cancel timeouts when we get a finished state.
+  // Cancel total timeout when we get a finished state.
   useEffect(() => {
     if (isFinishedState) {
       cancelTotalTimeout();
-      cancelStartTimeout();
     }
   }, [cancelTotalTimeout, cancelStartTimeout, isFinishedState]);
 
