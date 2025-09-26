@@ -40,7 +40,9 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
     def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> FileBlob:
         return FileBlob.from_file(contents, logger)
 
-    def _create_blobs_from_files_batch(self, file_chunks: list[tuple[Any, str, int]], logger: Any) -> dict[str, FileBlob]:
+    def _create_blobs_from_files_batch(
+        self, file_chunks: list[tuple[Any, str, int]], logger: Any
+    ) -> dict[str, FileBlob]:
         return FileBlob.from_files_batch(file_chunks, logger)
 
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[FileBlob]:

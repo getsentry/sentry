@@ -239,7 +239,9 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> BlobType: ...
 
     @abc.abstractmethod
-    def _create_blobs_from_files_batch(self, file_chunks: list[tuple[Any, str, int]], logger: Any) -> dict[str, BlobType]: ...
+    def _create_blobs_from_files_batch(
+        self, file_chunks: list[tuple[Any, str, int]], logger: Any
+    ) -> dict[str, BlobType]: ...
 
     @abc.abstractmethod
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[BlobType]: ...
@@ -335,11 +337,11 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     def putfile_batch(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
         """
         Optimized version of putfile that reduces N+1 queries by batching blob operations.
-        
+
         Save a fileobj into a number of chunks using batch operations to minimize database queries.
-        
+
         Returns a list of `FileBlobIndex` items.
-        
+
         >>> indexes = file.putfile_batch(fileobj)
         """
         # First pass: read file and prepare all chunks with their checksums
@@ -347,23 +349,23 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         chunk_data = []
         offset = 0
         file_checksum = sha1(b"")
-        
+
         while True:
             contents = fileobj.read(blob_size)
             if not contents:
                 break
-                
+
             file_checksum.update(contents)
-            
+
             # Calculate checksum for this chunk
             chunk_checksum = sha1(contents).hexdigest()
             chunk_size = len(contents)
-            
+
             blob_fileobj = ContentFile(contents)
             file_chunks.append((blob_fileobj, chunk_checksum, chunk_size))
             chunk_data.append((chunk_checksum, offset, chunk_size))
             offset += chunk_size
-        
+
         # Batch create/retrieve all blobs
         if file_chunks:
             # Use the abstract method to determine blob class, but call batch method
@@ -371,16 +373,16 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             blobs_dict = self._create_blobs_from_files_batch(file_chunks, logger=logger)
         else:
             blobs_dict = {}
-        
+
         # Batch create blob indexes
         results = []
         blob_indexes_to_create = []
-        
+
         for chunk_checksum, chunk_offset, chunk_size in chunk_data:
             blob = blobs_dict[chunk_checksum]
             blob_index = self._create_blob_index(blob=blob, offset=chunk_offset)
             results.append(blob_index)
-            
+
         self.size = offset
         self.checksum = file_checksum.hexdigest()
         metrics.distribution("filestore.file-size", offset, unit="byte")
