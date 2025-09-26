@@ -1,4 +1,5 @@
 import hashlib
+import itertools
 import logging
 import math
 import uuid
@@ -85,11 +86,8 @@ def process_in_batches(client: ProjectDelayedWorkflowClient) -> None:
             )
 
 
-NUM_COHORTS = 6
-
-
 class ProjectChooser:
-    def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts: int = NUM_COHORTS):
+    def __init__(self, buffer_client: DelayedWorkflowClient, num_cohorts):
         self.client = buffer_client
         assert num_cohorts > 0 and num_cohorts <= 255
         self.num_cohorts = num_cohorts
@@ -148,7 +146,7 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
         )
 
         project_chooser = ProjectChooser(
-            buffer_client, num_cohorts=options.get("workflow_engine.num_cohorts", NUM_COHORTS)
+            buffer_client, num_cohorts=options.get("workflow_engine.num_cohorts", 1)
         )
         with chosen_projects(
             project_chooser, fetch_time, list(all_project_ids_and_timestamps.keys())
@@ -162,11 +160,14 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
             for project_id in project_ids_to_process:
                 process_in_batches(buffer_client.for_project(project_id))
 
-        mark_projects_processed(buffer_client, all_project_ids_and_timestamps)
+            mark_projects_processed(
+                buffer_client, project_ids_to_process, all_project_ids_and_timestamps
+            )
 
 
 def mark_projects_processed(
     buffer_client: DelayedWorkflowClient,
+    project_ids_to_process: list[int],
     all_project_ids_and_timestamps: dict[int, list[float]],
 ) -> None:
     if not all_project_ids_and_timestamps:
@@ -186,9 +187,24 @@ def mark_projects_processed(
                 deleted = buffer_client.mark_project_ids_as_processed(dict(chunk))
                 deleted_project_ids.update(deleted)
 
-        logger.info(
-            "process_buffered_workflows.project_ids_deleted",
-            extra={
-                "deleted_project_ids": sorted(deleted_project_ids),
-            },
-        )
+                logger.info(
+                    "process_buffered_workflows.project_ids_deleted",
+                    extra={
+                        "deleted_project_ids": sorted(deleted_project_ids),
+                        "processed_project_ids": sorted(project_ids_to_process),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "process_buffered_workflows.conditional_delete_from_sorted_sets_error"
+                )
+                # Fallback.
+                buffer_client.clear_project_ids(
+                    min=0,
+                    max=max_project_timestamp,
+                )
+        else:
+            buffer_client.clear_project_ids(
+                min=0,
+                max=max_project_timestamp,
+            )
