@@ -329,6 +329,60 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         return results
 
     @sentry_sdk.tracing.trace
+    def putfile_batch(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+        """
+        Batch-optimized version of putfile that avoids N+1 queries when creating blobs.
+        
+        Save a fileobj into a number of chunks using batch blob creation.
+
+        Returns a list of `FileBlobIndex` items.
+
+        >>> indexes = file.putfile_batch(fileobj)
+        """
+        # First pass: collect all chunks and their checksums
+        chunks = []
+        file_checksum = sha1(b"")
+        total_size = 0
+        
+        while True:
+            contents = fileobj.read(blob_size)
+            if not contents:
+                break
+            
+            file_checksum.update(contents)
+            chunk_checksum = sha1(contents).hexdigest()
+            chunks.append((contents, chunk_checksum))
+            total_size += len(contents)
+        
+        # Batch create all blobs at once
+        if hasattr(self, '_create_blobs_from_chunks_batch'):
+            # Use batch method if available
+            blobs = self._create_blobs_from_chunks_batch(chunks, logger=logger)
+        else:
+            # Fallback to individual creation
+            blobs = []
+            for contents, chunk_checksum in chunks:
+                blob_fileobj = ContentFile(contents)
+                blob = self._create_blob_from_file(blob_fileobj, logger=logger)
+                blobs.append(blob)
+        
+        # Create blob indexes
+        results = []
+        offset = 0
+        for blob in blobs:
+            results.append(self._create_blob_index(blob=blob, offset=offset))
+            offset += blob.size
+        
+        self.size = total_size
+        self.checksum = file_checksum.hexdigest()
+        metrics.distribution("filestore.file-size", total_size, unit="byte")
+        
+        if commit:
+            self.save()
+        
+        return results
+
+    @sentry_sdk.tracing.trace
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum):
         """
         This creates a file, from file blobs and returns a temp file with the

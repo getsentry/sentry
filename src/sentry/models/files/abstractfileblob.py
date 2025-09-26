@@ -15,6 +15,7 @@ from sentry.db.models import Model, WrappingU32IntegerField
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
     get_and_optionally_update_blob,
+    get_and_optionally_update_blobs_batch,
     get_size_and_checksum,
     get_storage,
     nooplogger,
@@ -213,6 +214,75 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         metrics.distribution("filestore.blob-size", size, unit="byte")
         logger.debug("FileBlob.from_file.end")
         return blob
+
+    @classmethod
+    @sentry_sdk.tracing.trace
+    def from_file_chunks_batch(cls, file_chunks: list[tuple[bytes, str]], logger=nooplogger) -> list[Self]:
+        """
+        Batch version of from_file that processes multiple file chunks efficiently.
+        
+        Args:
+            file_chunks: List of (file_content, checksum) tuples
+            logger: Logger instance
+            
+        Returns:
+            List of FileBlob instances corresponding to the input chunks
+        """
+        logger.debug("FileBlob.from_file_chunks_batch.start", extra={"chunk_count": len(file_chunks)})
+        
+        if not file_chunks:
+            return []
+        
+        # Extract checksums for batch lookup
+        checksums = [checksum for _, checksum in file_chunks]
+        
+        # Batch lookup of existing blobs
+        existing_blobs = get_and_optionally_update_blobs_batch(cls, checksums)
+        
+        # Prepare results list and track what needs to be created
+        results = []
+        blobs_to_create = []
+        
+        for file_content, checksum in file_chunks:
+            existing = existing_blobs.get(checksum)
+            if existing is not None:
+                results.append(existing)
+            else:
+                # Need to create this blob
+                blob = cls(size=len(file_content), checksum=checksum)
+                blob.path = cls.generate_unique_path()
+                blobs_to_create.append((blob, file_content))
+                results.append(blob)
+        
+        # Create new blobs if needed
+        if blobs_to_create:
+            storage = get_storage(cls._storage_config())
+            
+            for blob, file_content in blobs_to_create:
+                # Save to storage
+                from django.core.files.base import ContentFile
+                storage.save(blob.path, ContentFile(file_content))
+                
+                # Save to database
+                try:
+                    blob.save()
+                    metrics.distribution("filestore.blob-size", blob.size, unit="byte")
+                except IntegrityError:
+                    # Race condition - another thread created the same blob
+                    metrics.incr("filestore.upload_race", sample_rate=1.0)
+                    saved_path = blob.path
+                    # Replace with the existing blob
+                    existing_blob = cls.objects.get(checksum=checksum)
+                    # Update the results list to point to the existing blob
+                    for i, result_blob in enumerate(results):
+                        if result_blob.checksum == checksum and result_blob.path == saved_path:
+                            results[i] = existing_blob
+                            break
+                    # Clean up our storage
+                    storage.delete(saved_path)
+        
+        logger.debug("FileBlob.from_file_chunks_batch.end", extra={"created_count": len(blobs_to_create)})
+        return results
 
     @classmethod
     def generate_unique_path(cls):
