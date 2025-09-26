@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -19,6 +19,11 @@ function GroupingComponentFrames({
 }: GroupingComponentFramesProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const isCollapsible = items.length > maxVisibleItems;
+
+  useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setCollapsed(initialCollapsed);
+  }, [initialCollapsed]);
 
   return (
     <Fragment>
