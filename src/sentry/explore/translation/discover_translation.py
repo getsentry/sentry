@@ -168,25 +168,40 @@ def _translate_discover_query_field_to_explore_query_schema(
         else []
     )
 
+    display = query.get("display", "default")
+
     # if we have any aggregates or equation we should be in aggregate mode
     if len(translated_aggregate_columns) > 0 or len(translated_equations) > 0:
-        mode = "aggregate"
+        # check for ones we can make to samples
+        if display in ["top5", "dailytop5"]:
+            mode = "aggregate"
+        else:
+            mode = "samples"
     else:
         mode = "samples"
 
-    display = query.get("display", "default")
     interval = None
 
-    chart_type = CHART_TYPES[display]
+    try:
+        chart_type = CHART_TYPES[display]
+    except KeyError:
+        chart_type = CHART_TYPES["default"]
     # only intervals that matter are the daily ones, rest can be defaulted to explore default
     if display in ["daily", "dailytop5"]:
         interval = "1d"
 
     y_axes = translated_aggregate_columns + translated_equations
-    # aggregate fields parameter contains groupBys and yAxes
-    aggregate_fields = [
-        {"groupBy": translated_column} for translated_column in translated_non_aggregate_columns
-    ] + [{"yAxes": [y_axis], "chartType": chart_type} for y_axis in y_axes]
+    # aggregate fields parameter contains groupBys (only if in aggregate mode) and yAxes.
+    # group bys shouldn't include id or timestamp
+    aggregate_fields = (
+        [
+            {"groupBy": translated_column}
+            for translated_column in translated_non_aggregate_columns
+            if translated_column not in ["id", "timestamp"]
+        ]
+        if mode == "aggregate"
+        else []
+    ) + [{"yAxes": [y_axis], "chartType": chart_type} for y_axis in y_axes]
 
     # we want to make sure the id field is always included in samples mode
     # because without it the 'id' field is not sortable on the samples table
@@ -230,7 +245,7 @@ def _translate_discover_query_field_to_explore_query_schema(
             "orderby": (translated_orderby if aggregate_orderby is None else None),
             "mode": mode,
             "aggregateField": aggregate_fields,
-            "aggregateOrderby": aggregate_orderby if mode == "aggregate" else None,
+            "aggregateOrderby": aggregate_orderby,
         }
     ]
 
