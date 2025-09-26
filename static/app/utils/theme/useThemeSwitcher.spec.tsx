@@ -27,7 +27,7 @@ describe('useChonkTheme', () => {
 
   describe('disabled states', () => {
     it('returns null if no organization is loaded', () => {
-      const {result} = renderHookWithProviders(() => useThemeSwitcher());
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(lightTheme);
     });
 
@@ -38,7 +38,7 @@ describe('useChonkTheme', () => {
         })
       );
 
-      const {result} = renderHookWithProviders(() => useThemeSwitcher());
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(lightTheme);
     });
 
@@ -49,7 +49,7 @@ describe('useChonkTheme', () => {
         })
       );
 
-      const {result} = renderHookWithProviders(() => useThemeSwitcher());
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(lightTheme);
     });
 
@@ -68,7 +68,7 @@ describe('useChonkTheme', () => {
         })
       );
 
-      const {result} = renderHookWithProviders(() => useThemeSwitcher());
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(darkTheme);
     });
   });
@@ -84,7 +84,7 @@ describe('useChonkTheme', () => {
       );
       OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui']}));
 
-      const {result} = renderHookWithProviders(() => useThemeSwitcher());
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(DO_NOT_USE_lightChonkTheme);
     });
 
@@ -98,7 +98,7 @@ describe('useChonkTheme', () => {
       );
       OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui']}));
 
-      const {result} = renderHookWithProviders(() => useThemeSwitcher());
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
     });
   });
