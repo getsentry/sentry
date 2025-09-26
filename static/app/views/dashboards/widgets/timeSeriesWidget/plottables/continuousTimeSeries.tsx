@@ -6,6 +6,7 @@ import type {
   TimeSeries,
   TimeSeriesValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
@@ -62,21 +63,11 @@ export abstract class ContinuousTimeSeries<
    * Continuous time series names need to be unique to disambiguate them from other series. We use both the `yAxis` and the `groupBy` to create the name. This makes it possible to pass in two different time series with the same `yAxis` as long as they have different `groupBy` information.
    */
   get name(): string {
-    let name = `${this.timeSeries.yAxis}`;
-
-    if (this.timeSeries.groupBy?.length) {
-      name += ` : ${this.timeSeries.groupBy
-        ?.map(groupBy => {
-          return `${groupBy.key} : ${groupBy.value}`;
-        })
-        .join(',')}`;
-    }
-
-    return name;
+    return formatTimeSeriesName(this.timeSeries);
   }
 
   get label(): string {
-    return this.config?.alias ?? formatTimeSeriesName(this.timeSeries);
+    return this.config?.alias ?? formatTimeSeriesLabel(this.timeSeries);
   }
 
   get isEmpty(): boolean {
