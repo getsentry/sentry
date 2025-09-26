@@ -7,10 +7,6 @@ const UNSUPPORTED_REPLAY_LOGS_SDK_NAMES = [
   'sentry.cocoa.flutter',
   'sentry.dart.flutter',
   'sentry.java.android.flutter',
-  'npm:@sentry/react-native',
-  'sentry.cocoa.react-native',
-  'sentry.javascript.react-native',
-  'sentry.java.android.react-native',
 ] as const;
 
 type UnsupportedSDKName = (typeof UNSUPPORTED_REPLAY_LOGS_SDK_NAMES)[number];
