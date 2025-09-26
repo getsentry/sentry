@@ -23,16 +23,25 @@ type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
   /**
-   * Difference between the timestamps of the datapoints, in milliseconds
+   * Difference between the timestamps of the datapoints, in milliseconds.
    */
   interval: number;
+  /**
+   * The type of the values (e.g., "duration")
+   */
   valueType: TimeSeriesValueType;
   dataScanned?: 'partial' | 'full';
+  /**
+   * `isOther` is true if this `TimeSeries` is the result of a `groupBy` query, and this is the "other" group.
+   */
   isOther?: boolean;
   /**
    * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
    */
   order?: number;
+  /**
+   * The unit of the values, if available. The value unit is null if the value type is unitless (e.g., "number"). The value unit may be missing altogether if the Y axis of the time series is something unknown.
+   */
   valueUnit?: TimeSeriesValueUnit;
 };
 
