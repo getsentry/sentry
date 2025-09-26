@@ -53,8 +53,7 @@ def compare_signature(request: Request, signature: str) -> bool:
     message = _signature_input_from_request(request)
     expected_digests: list[str] = []
     for secret in settings.OVERWATCH_RPC_SHARED_SECRET:
-        secret_bytes = secret.encode()
-        computed = hmac.new(secret_bytes, message, hashlib.sha256).hexdigest()
+        computed = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
         expected_digests.append(computed)
         if hmac.compare_digest(computed, signature_data):
             return True
