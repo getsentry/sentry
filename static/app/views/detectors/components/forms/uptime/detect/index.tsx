@@ -14,10 +14,7 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
-import {
-  UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
-  UPTIME_DEFAULT_RECOVERY_THRESHOLD,
-} from 'sentry/views/detectors/components/forms/uptime/fields';
+import {UPTIME_DEFAULT_DOWNTIME_THRESHOLD} from 'sentry/views/detectors/components/forms/uptime/fields';
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
