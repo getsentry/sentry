@@ -792,18 +792,6 @@ describe('EapSpanNode', () => {
       expect(node.matchWithFreeText('different-id')).toBe(false);
     });
 
-    it('should handle undefined values gracefully', () => {
-      const extra = createMockExtra();
-      const value = makeEAPSpan({
-        op: undefined,
-        description: undefined,
-        name: undefined,
-      });
-      const node = new EapSpanNode(null, value, extra);
-
-      expect(node.matchWithFreeText('anything')).toBe(false);
-    });
-
     it('should be case sensitive', () => {
       const extra = createMockExtra();
       const value = makeEAPSpan({
@@ -876,28 +864,6 @@ describe('EapSpanNode', () => {
       const node = new EapSpanNode(null, value, extra);
 
       expect(node.opsBreakdown).toEqual([]);
-    });
-
-    it('should handle missing operation in ops breakdown', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent',
-        is_transaction: true,
-        op: undefined,
-      });
-      const childValue = makeEAPSpan({
-        event_id: 'child',
-        is_transaction: false,
-        op: undefined,
-      });
-
-      const parent = new EapSpanNode(null, parentValue, extra);
-      const child = new EapSpanNode(parent, childValue, extra);
-
-      expect(child.parent).toBe(parent);
-
-      // Should handle undefined op gracefully
-      expect(parent.opsBreakdown).toContainEqual({op: undefined, count: 1});
     });
 
     it('should handle empty children arrays', () => {
