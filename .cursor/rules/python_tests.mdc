@@ -6,6 +6,12 @@ alwaysApply: false
 
 # Python tests
 
+## Do this when you want to run tests
+
+Change the directory to the top of the source code and type `source .venv/bin/activate` before calling any Python commands.
+
+Run pytest with these parameters: `pytest -svv --reuse-db`
+
 ## Use factories instead of directly calling `Model.objects.create`
 
 In Sentry Python tests, prefer using factory methods from `sentry.testutils.factories.Factories` @factories.py or fixture methods (e.g., `self.create_model`) provided by base classes like `sentry.testutils.fixtures.Fixtures` @fixtures.py  instead of directly calling `Model.objects.create`. This promotes consistency, reduces boilerplate, and leverages shared test setup logic defined in the factories.
