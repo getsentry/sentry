@@ -24,6 +24,7 @@ from sentry.workflow_engine.models import (
     DataSourceDetector,
     Detector,
     DetectorWorkflow,
+    IncidentGroupOpenPeriod,
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
@@ -102,8 +103,10 @@ class WorkflowEngineIncidentSerializer(Serializer):
         """
         Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
         """
-        incident = Incident.objects.get(incidentgroupopenperiod__group_open_period=obj)
-        return serialize(incident, user=user, serializer=IncidentSerializer(expand=self.expand))
+        incident = Incident.objects.get(
+            id=IncidentGroupOpenPeriod.objects.get(group_open_period=obj).incident_id
+        )
+        return serialize(incident, serializer=IncidentSerializer(expand=self.expand))
 
 
 class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):
