@@ -18,16 +18,16 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  LogsPageParamsProvider,
-  useLogsId,
-  useLogsTitle,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {logsPickableDays} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsId,
+  useQueryParamsTitle,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
@@ -110,8 +110,8 @@ export default function LogsContent() {
 }
 
 function LogsHeader() {
-  const pageId = useLogsId();
-  const title = useLogsTitle();
+  const pageId = useQueryParamsId();
+  const title = useQueryParamsTitle();
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
