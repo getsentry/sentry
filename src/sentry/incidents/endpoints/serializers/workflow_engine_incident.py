@@ -103,7 +103,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
         """
         incident = Incident.objects.get(incidentgroupopenperiod__group_open_period=obj)
-        return serialize(incident, serializer=IncidentSerializer(expand=self.expand))
+        return serialize(incident, user=user, serializer=IncidentSerializer(expand=self.expand))
 
 
 class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):
