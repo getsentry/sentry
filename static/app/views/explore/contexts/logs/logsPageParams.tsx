@@ -213,11 +213,6 @@ export function usePersistedLogsPageParams() {
   );
 }
 
-export function useLogsAnalyticsPageSource() {
-  const {analyticsPageSource} = useLogsPageParams();
-  return analyticsPageSource;
-}
-
 function getLogTitleFromLocation(location: Location): string {
   return decodeScalar(location.query.title, '');
 }
