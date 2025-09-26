@@ -328,7 +328,6 @@ export function PreprodOnboarding({
             </Flex>
             {renderMethodContent()}
 
-            {/* Next Steps */}
             <Container>
               <Heading as="h3" size="lg" style={{marginBottom: space(2)}}>
                 Integrating into CI
