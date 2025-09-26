@@ -821,16 +821,16 @@ def threads(
     interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
-    thread_variants = _filtered_threads(crashed_threads, event, context, **kwargs)
+    thread_variants = _get_thread_components(crashed_threads, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
     current_threads = [thread for thread in interface.values if thread.get("current")]
-    thread_variants = _filtered_threads(current_threads, event, context, **kwargs)
+    thread_variants = _get_thread_components(current_threads, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(interface.values, event, context, **kwargs)
+    thread_variants = _get_thread_components(interface.values, event, context, **kwargs)
     if thread_variants is not None:
         return thread_variants
 
@@ -847,7 +847,7 @@ def threads(
     }
 
 
-def _filtered_threads(
+def _get_thread_components(
     threads: list[dict[str, Any]], event: Event, context: GroupingContext, **kwargs: dict[str, Any]
 ) -> ComponentsByVariant | None:
     if len(threads) != 1:
