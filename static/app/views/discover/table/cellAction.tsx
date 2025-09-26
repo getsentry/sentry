@@ -357,7 +357,7 @@ function CellAction({
   });
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER)
+  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
@@ -409,6 +409,7 @@ function CellAction({
         )}
       </Container>
     );
+  }
 
   return (
     <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
