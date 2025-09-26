@@ -52,20 +52,23 @@ class GroupFeedback(DefaultFieldsModel):
                 condition=~models.Q(commit__isnull=True, group__isnull=True),
                 name="commit_or_group_required",
             ),
+            # User feedback constraints: one feedback per user per context
             models.UniqueConstraint(
                 fields=["project", "commit", "group", "user_id"],
-                condition=models.Q(commit__isnull=False, group__isnull=False),
-                name="unique_commit_group_feedback",
+                condition=models.Q(
+                    commit__isnull=False, group__isnull=False, user_id__isnull=False
+                ),
+                name="unique_user_commit_group_feedback",
             ),
             models.UniqueConstraint(
                 fields=["project", "commit", "user_id"],
-                condition=models.Q(commit__isnull=False, group__isnull=True),
-                name="unique_project_commit_feedback",
+                condition=models.Q(commit__isnull=False, group__isnull=True, user_id__isnull=False),
+                name="unique_user_project_commit_feedback",
             ),
             models.UniqueConstraint(
                 fields=["project", "group", "user_id"],
-                condition=models.Q(commit__isnull=True, group__isnull=False),
-                name="unique_group_exclusion_feedback",
+                condition=models.Q(commit__isnull=True, group__isnull=False, user_id__isnull=False),
+                name="unique_user_group_exclusion_feedback",
             ),
         ]
 
