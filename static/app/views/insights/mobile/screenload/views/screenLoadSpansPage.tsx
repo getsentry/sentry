@@ -100,13 +100,13 @@ export function ScreenLoadSpansContent() {
                   `count_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
                 ]
               : [
-                  primaryRelease && primaryRelease !== ''
+                  primaryRelease
                     ? `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
                     : 'avg(measurements.time_to_initial_display)',
-                  primaryRelease && primaryRelease !== ''
+                  primaryRelease
                     ? `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`
                     : 'avg(measurements.time_to_full_display)',
-                  primaryRelease && primaryRelease !== ''
+                  primaryRelease
                     ? `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
                     : 'count()',
                 ]
@@ -148,26 +148,23 @@ export function ScreenLoadSpansContent() {
               : [
                   {
                     unit: DurationUnit.MILLISECOND,
-                    dataKey:
-                      primaryRelease && primaryRelease !== ''
-                        ? `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
-                        : 'avg(measurements.time_to_initial_display)',
+                    dataKey: primaryRelease
+                      ? `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
+                      : 'avg(measurements.time_to_initial_display)',
                     title: t('Avg TTID'),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
-                    dataKey:
-                      primaryRelease && primaryRelease !== ''
-                        ? `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`
-                        : 'avg(measurements.time_to_full_display)',
+                    dataKey: primaryRelease
+                      ? `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`
+                      : 'avg(measurements.time_to_full_display)',
                     title: t('Avg TTFD'),
                   },
                   {
                     unit: 'count',
-                    dataKey:
-                      primaryRelease && primaryRelease !== ''
-                        ? `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
-                        : 'count()',
+                    dataKey: primaryRelease
+                      ? `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`
+                      : 'count()',
                     title: t('Total Count'),
                   },
                 ]

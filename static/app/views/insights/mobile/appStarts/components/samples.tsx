@@ -27,12 +27,9 @@ export function SamplesTables({transactionName}: any) {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const organization = useOrganization();
 
-  const primaryReleaseSelected = primaryRelease && primaryRelease !== '';
-  const secondaryReleaseSelected = secondaryRelease && secondaryRelease !== '';
-
   const content = useMemo(() => {
     if (sampleType === EVENT) {
-      if (primaryReleaseSelected && secondaryReleaseSelected) {
+      if (primaryRelease && secondaryRelease) {
         return (
           <EventSplitContainer>
             <ErrorBoundary mini>
@@ -82,14 +79,7 @@ export function SamplesTables({transactionName}: any) {
         />
       </ErrorBoundary>
     );
-  }, [
-    primaryRelease,
-    sampleType,
-    secondaryRelease,
-    transactionName,
-    primaryReleaseSelected,
-    secondaryReleaseSelected,
-  ]);
+  }, [primaryRelease, sampleType, secondaryRelease, transactionName]);
 
   return (
     <div>

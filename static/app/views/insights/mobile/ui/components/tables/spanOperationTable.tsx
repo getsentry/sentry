@@ -67,9 +67,8 @@ export function SpanOperationTable({
   );
 
   // Only show comparison when we have two different releases selected
-  const primaryReleaseSelected = primaryRelease && primaryRelease !== '';
-  const secondaryReleaseSelected = secondaryRelease && secondaryRelease !== '';
-  const showComparison = primaryReleaseSelected && secondaryReleaseSelected;
+  const showComparison =
+    primaryRelease && secondaryRelease && primaryRelease !== secondaryRelease;
 
   const orderby = decodeScalar(location.query.sort, '');
 
@@ -123,6 +122,7 @@ export function SpanOperationTable({
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
   };
+  const columnTooltipMap: Record<string, string> = {};
 
   if (showComparison) {
     columnNameMap[
@@ -148,15 +148,7 @@ export function SpanOperationTable({
     columnNameMap[
       `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`
     ] = t('Change');
-  } else {
-    columnNameMap['division(mobile.slow_frames,mobile.total_frames)'] = t('Slow');
-    columnNameMap['division(mobile.frozen_frames,mobile.total_frames)'] = t('Frozen');
-    columnNameMap['avg(mobile.frames_delay)'] = t('Delay');
-  }
 
-  const columnTooltipMap: Record<string, string> = {};
-
-  if (showComparison) {
     columnTooltipMap[
       `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${primaryRelease})`
     ] = t(
@@ -182,6 +174,10 @@ export function SpanOperationTable({
       SECONDARY_RELEASE_ALIAS
     );
   } else {
+    columnNameMap['division(mobile.slow_frames,mobile.total_frames)'] = t('Slow');
+    columnNameMap['division(mobile.frozen_frames,mobile.total_frames)'] = t('Frozen');
+    columnNameMap['avg(mobile.frames_delay)'] = t('Delay');
+
     columnTooltipMap['division(mobile.slow_frames,mobile.total_frames)'] = t(
       'The number of slow frames divided by total frames'
     );

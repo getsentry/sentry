@@ -83,14 +83,8 @@ export function ScreenSummaryContentPage() {
 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
-  // Only show comparison when we have two different releases selected
-  const primaryReleaseSelected = primaryRelease && primaryRelease !== '';
-  const secondaryReleaseSelected = secondaryRelease && secondaryRelease !== '';
-
   const showComparison =
-    primaryReleaseSelected &&
-    secondaryReleaseSelected &&
-    primaryRelease !== secondaryRelease;
+    primaryRelease && secondaryRelease && primaryRelease !== secondaryRelease;
 
   useEffect(() => {
     // Default the start type to cold start if not present
@@ -138,7 +132,7 @@ export function ScreenSummaryContentPage() {
       `count_if(release,equals,${primaryRelease})`,
       `count_if(release,equals,${secondaryRelease})`,
     ];
-  } else if (primaryReleaseSelected) {
+  } else if (primaryRelease) {
     fields = [
       `avg_if(span.duration,release,equals,${primaryRelease})`,
       `count_if(release,equals,${primaryRelease})`,
@@ -212,18 +206,16 @@ export function ScreenSummaryContentPage() {
                       appStartType === COLD_START_TYPE
                         ? t('Avg Cold Start')
                         : t('Avg Warm Start'),
-                    dataKey:
-                      primaryRelease && primaryRelease !== ''
-                        ? `avg_if(span.duration,release,equals,${primaryRelease})`
-                        : 'avg(span.duration)',
+                    dataKey: primaryRelease
+                      ? `avg_if(span.duration,release,equals,${primaryRelease})`
+                      : 'avg(span.duration)',
                   },
                   {
                     unit: 'count',
                     title: t('Count'),
-                    dataKey:
-                      primaryRelease && primaryRelease !== ''
-                        ? `count_if(release,equals,${primaryRelease})`
-                        : 'count()',
+                    dataKey: primaryRelease
+                      ? `count_if(release,equals,${primaryRelease})`
+                      : 'count()',
                   },
                 ]
           }

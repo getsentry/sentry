@@ -218,7 +218,7 @@ function DeviceClassBreakdownBarChart({
             <ChartActionDropdown
               chartType={ChartType.LINE}
               yAxes={[appStartMetric]}
-              groupBy={[...groupBy]}
+              groupBy={groupBy}
               search={search}
               title={title}
               referrer={referrer}
