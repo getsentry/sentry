@@ -37,6 +37,8 @@ class CompatibleSpan(EnrichedSpan, total=True):
 def attribute_value(span: SegmentSpan, key) -> Any:
     attributes = span.get("attributes") or {}
     try:
-        return attributes.get(key)["value"]
+        return attributes.get(key).get("value")
     except Exception as e:
+        # `attributes` is not a dict or the attribute itself is not a dict.
         sentry_sdk.capture_exception(e)
+        return None

@@ -77,6 +77,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
+from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
@@ -428,17 +429,17 @@ class SpansBuffer:
             has_root_span = False
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             for payload in segment:
-                val = orjson.loads(payload)
+                span = orjson.loads(payload)
 
-                if not val.get("segment_id"):
-                    val["segment_id"] = segment_span_id
+                if not attribute_value(span, "sentry.segment.id"):
+                    span.setdefault("attributes", {})["sentry.segment.id"] = segment_span_id
 
-                is_segment = segment_span_id == val["span_id"]
-                val["is_segment"] = is_segment
+                is_segment = segment_span_id == span["span_id"]
+                span["is_segment"] = is_segment
                 if is_segment:
                     has_root_span = True
 
-                output_spans.append(OutputSpan(payload=val))
+                output_spans.append(OutputSpan(payload=span))
 
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}

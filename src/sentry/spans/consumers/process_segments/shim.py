@@ -90,7 +90,7 @@ def build_shim_event_data(
         "spans": [],
     }
 
-    if (profile_id := segment_span.get("profile_id")) is not None:
+    if (profile_id := attribute_value(segment_span, "sentry.profile_id")) is not None:
         event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
 
     # Add legacy span attributes required only by issue detectors. As opposed to

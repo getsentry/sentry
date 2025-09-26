@@ -10,7 +10,6 @@ def build_mock_span(project_id, *, span_op=None, is_segment=False, attributes=No
         "organization_id": 1,
         "received": 1707953019.044972,
         "retention_days": 90,
-        "segment_id": "a49b42af9fb69da0",
         "attributes": {
             "sentry.environment": {"value": "development"},
             "sentry.release": {
@@ -18,6 +17,7 @@ def build_mock_span(project_id, *, span_op=None, is_segment=False, attributes=No
             },
             "sentry.platform": {"value": "python"},
             "sentry.op": {"value": span_op or "base.dispatch.sleep"},
+            "sentry.segment.id": "a49b42af9fb69da0",
             **(attributes or {}),
         },
         "span_id": "a49b42af9fb69da0",

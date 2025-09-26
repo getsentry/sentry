@@ -22,15 +22,14 @@ FIELD_TO_ATTRIBUTE = {
     "kind": "sentry.kind",
     "origin": "sentry.origin",
     "parent_span_id": "sentry.parent_span_id",
-    "profile_id": "sentry.profile_id",
     "received": "sentry.received",
-    "segment_id": "sentry.segment_id",
     "start_timestamp": "sentry.start_timestamp_precise",
 }
 
 RENAME_ATTRIBUTES = {
     "sentry.description": "sentry.raw_description",
     "sentry.duration": "sentry.duration_ms",
+    "sentry.segment.id": "sentry.segment_id",
 }
 
 
