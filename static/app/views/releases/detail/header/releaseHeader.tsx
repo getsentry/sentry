@@ -86,7 +86,9 @@ function ReleaseHeader({
       title: tct('Builds [count]', {
         count:
           numberOfMobileBuilds === 0 ? (
-            <FeatureBadge type="new" />
+            <BadgeWrapper>
+              <FeatureBadge type="new" />
+            </BadgeWrapper>
           ) : (
             <NavTabsBadge type="default">
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
@@ -196,6 +198,10 @@ const NavTabsBadge = styled(Badge)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
+`;
+
+const BadgeWrapper = styled('div')`
+  margin-left: ${p => (p.theme.isChonk ? '' : p.theme.space.sm)};
 `;
 
 export default ReleaseHeader;

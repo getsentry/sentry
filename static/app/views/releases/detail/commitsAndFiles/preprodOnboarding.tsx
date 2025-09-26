@@ -8,6 +8,7 @@ import emptyBuildImg from 'sentry-images/spot/releases-tour-commits.svg';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Heading, Text} from 'sentry/components/core/text';
 import List from 'sentry/components/list';
@@ -16,7 +17,6 @@ import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStarted
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 
 interface PreprodOnboardingProps {
@@ -45,16 +45,16 @@ function FastlaneMethod({
           {t('Fastlane is for iOS applications only')}
         </Alert>
       )}
-      <div>
+      <Container>
         <Text as="p" size="md">
           Add to your fastlane/Pluginfile:
         </Text>
         <OnboardingCodeSnippet language="ruby">
           {`gem 'fastlane-plugin-sentry', git: 'https://github.com/getsentry/sentry-fastlane-plugin.git', ref: 'b0c36a1472a6bfde0a4766c612c1154706dbd014'`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
 
-      <div>
+      <Container>
         <Text as="p" size="md">
           Add a lane to your Fastfile:
         </Text>
@@ -68,9 +68,9 @@ function FastlaneMethod({
   head_sha: ENV['SENTRY_SHA'],
 )`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
 
-      <div>
+      <Container>
         <Text as="p" size="md">
           Set environment variables in your GitHub Action:
         </Text>
@@ -81,7 +81,7 @@ function FastlaneMethod({
   GITHUB_BASE_SHA: \${{ github.event.pull_request.base.sha }}
   SENTRY_SHA: \${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
     </Flex>
   );
 }
@@ -96,7 +96,7 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
           {t('Gradle Plugin is for Android applications only')}
         </Alert>
       )}
-      <div>
+      <Container>
         <Text as="p" size="md">
           Apply the plugin (use version 6.0.0-alpha.3):
         </Text>
@@ -105,9 +105,9 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
   id "io.sentry.android.gradle" version "6.0.0-alpha.3"
 }`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
 
-      <div>
+      <Container>
         <Text as="p" size="md">
           Configure the plugin:
         </Text>
@@ -127,9 +127,9 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
   }
 }`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
 
-      <div>
+      <Container>
         <Text as="p" size="md">
           Set environment variables in GitHub Actions:
         </Text>
@@ -139,7 +139,7 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
   GITHUB_BASE_SHA: \${{ github.event.pull_request.base.sha }}
   SENTRY_SHA: \${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
     </Flex>
   );
 }
@@ -153,11 +153,11 @@ function CliMethod({
 }) {
   return (
     <Flex direction="column" gap="2xl">
-      <div>
+      <Container>
         <Text as="p" size="md">
           {tct('Install the [link:Sentry CLI]', {
             link: (
-              <a
+              <ExternalLink
                 href="https://docs.sentry.io/cli/installation/"
                 target="_blank"
                 rel="noreferrer"
@@ -172,9 +172,9 @@ npm install -g @sentry/cli
 # Using curl
 curl -sL https://sentry.io/get-cli/ | bash`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
 
-      <div>
+      <Container>
         <Text as="p" size="md">
           Upload your build using the CLI:
         </Text>
@@ -189,9 +189,9 @@ curl -sL https://sentry.io/get-cli/ | bash`}
   --vcs-provider github \\
   --build-configuration <build-config>`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
 
-      <div>
+      <Container>
         <Text as="p" size="md">
           Set these environment variables in your CI:
         </Text>
@@ -200,7 +200,7 @@ curl -sL https://sentry.io/get-cli/ | bash`}
 # These are set automatically in GitHub Actions:
 # --repo-name, --vcs-provider, --pr-number`}
         </OnboardingCodeSnippet>
-      </div>
+      </Container>
     </Flex>
   );
 }
@@ -216,6 +216,7 @@ export function PreprodOnboarding({
 
   let availableMethods: Array<{label: string; value: UploadMethod}>;
   let defaultMethod: UploadMethod;
+  let platformLabel: string | null = null;
 
   if (isIOS) {
     availableMethods = [
@@ -223,12 +224,14 @@ export function PreprodOnboarding({
       {label: 'Sentry CLI', value: 'cli'},
     ];
     defaultMethod = 'fastlane';
+    platformLabel = 'iOS';
   } else if (isAndroid) {
     availableMethods = [
       {label: 'Gradle Plugin', value: 'gradle'},
       {label: 'Sentry CLI', value: 'cli'},
     ];
     defaultMethod = 'gradle';
+    platformLabel = 'Android';
   } else {
     availableMethods = [
       {label: 'Sentry CLI', value: 'cli'},
@@ -288,19 +291,13 @@ export function PreprodOnboarding({
           <Flex direction="column" gap="2xl">
             <Container>
               <Heading as="h3" size="lg" style={{marginBottom: theme.space.xl}}>
-                Prerequisites
+                {t('Prerequisites')}
               </Heading>
               <Text as="p" size="md">
                 {tct(
                   'You need a Sentry Auth Token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment.',
                   {
-                    link: (
-                      <a
-                        href={`/settings/${organizationSlug}/auth-tokens/`}
-                        target="_blank"
-                        rel="noreferrer"
-                      />
-                    ),
+                    link: <Link to={`/settings/${organizationSlug}/auth-tokens/`} />,
                     code: <code />,
                   }
                 )}
@@ -309,9 +306,8 @@ export function PreprodOnboarding({
 
             <Flex direction="column" gap="md">
               <Flex align="center" gap="sm">
-                {projectPlatform && <PlatformIcon platform={projectPlatform} />}
                 <Heading as="h3" size="lg">
-                  Uploading Builds
+                  {t('Uploading %s Builds', platformLabel || 'Mobile')}
                 </Heading>
               </Flex>
               <Container borderBottom="primary">
@@ -328,29 +324,19 @@ export function PreprodOnboarding({
             </Flex>
             {renderMethodContent()}
 
-            <Container>
-              <Heading as="h3" size="lg" style={{marginBottom: space(2)}}>
+            <Flex direction="column" gap="md">
+              <Heading as="h3" size="lg">
                 Integrating into CI
               </Heading>
-              <Text as="p" size="md" style={{marginBottom: space(2), lineHeight: 1.5}}>
-                {tct(
-                  'Integrating the GitHub App is required for PR annotations and workflow automation. [link:Install the GitHub App →]',
-                  {
-                    link: (
-                      <a
-                        href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/"
-                        target="_blank"
-                        rel="noreferrer"
-                      />
-                    ),
-                  }
-                )}
+              <Text as="p" size="md">
+                Integrating the GitHub App is required for PR annotations and workflow
+                automation
               </Text>
 
               <Flex gap="xl" wrap="wrap">
                 <LinkButton
                   priority="primary"
-                  href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/"
+                  href="/settings/integrations/github"
                   size="md"
                 >
                   Install GitHub App
@@ -364,7 +350,7 @@ export function PreprodOnboarding({
                   View Documentation
                 </LinkButton>
               </Flex>
-            </Container>
+            </Flex>
           </Flex>
         </Flex>
       </PanelBody>
