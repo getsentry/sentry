@@ -33,6 +33,7 @@ COLUMNS_TO_DROP = (
     "last_seen",
     "total.count",
     "linear_regression",
+    "corr(",
 )
 
 FIELDS_TO_DROP = ("total.count",)
