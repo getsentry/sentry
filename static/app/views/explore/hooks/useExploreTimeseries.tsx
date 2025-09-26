@@ -38,10 +38,8 @@ interface UseExploreTimeseriesResults {
 export const useExploreTimeseries = ({
   query,
   enabled,
-}: {
-  enabled: boolean;
-  query: string;
-}) => {
+  queryExtras,
+}: UseExploreTimeseriesOptions) => {
   const visualizes = useQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
   const topEvents = useTopEvents();
@@ -56,7 +54,7 @@ export const useExploreTimeseries = ({
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl,
-    queryHookArgs: {query, enabled},
+    queryHookArgs: {query, enabled, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
@@ -115,7 +113,7 @@ function useExploreTimeseriesImpl({
       enabled,
       ...queryExtras,
     };
-  }, [query, yAxes, interval, fields, orderby, topEvents, enabled, queryExtras]);
+  }, [enabled, fields, interval, orderby, query, queryExtras, topEvents, yAxes]);
 
   const timeseriesResult = useSortedTimeSeries(
     options,
