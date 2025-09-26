@@ -176,8 +176,6 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"
     settings.TASKWORKER_ALWAYS_EAGER = False
-    settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
-    settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
     settings.SENTRY_METRICS_DISALLOW_BAD_TAGS = True
 
     settings.DEBUG_VIEWS = True
@@ -294,9 +292,6 @@ def pytest_configure(config: pytest.Config) -> None:
     with clusters.get("default").all() as client:
         client.flushdb()
 
-    # force celery registration
-    from sentry.celery import app  # NOQA
-
 
 def register_extensions() -> None:
     from sentry.plugins.base import plugins
@@ -346,13 +341,6 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     with clusters.get("default").all() as client:
         client.flushdb()
-
-    from celery.app.control import Control
-
-    from sentry.celery import app
-
-    celery_app_control = Control(app)
-    celery_app_control.discard_all()
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
