@@ -2,15 +2,10 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-} from 'sentry/utils/queryClient';
 // eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
@@ -18,11 +13,6 @@ import {DO_NOT_USE_darkChonkTheme, DO_NOT_USE_lightChonkTheme} from './theme.cho
 import {useThemeSwitcher} from './useThemeSwitcher';
 
 jest.mock('sentry/utils/removeBodyTheme');
-
-const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
-const wrapper = ({children}: {children?: React.ReactNode}) => (
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-);
 
 describe('useChonkTheme', () => {
   beforeEach(() => {
@@ -37,7 +27,7 @@ describe('useChonkTheme', () => {
 
   describe('disabled states', () => {
     it('returns null if no organization is loaded', () => {
-      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(lightTheme);
     });
 
@@ -48,7 +38,7 @@ describe('useChonkTheme', () => {
         })
       );
 
-      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(lightTheme);
     });
 
@@ -59,7 +49,7 @@ describe('useChonkTheme', () => {
         })
       );
 
-      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(lightTheme);
     });
 
@@ -78,7 +68,7 @@ describe('useChonkTheme', () => {
         })
       );
 
-      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(darkTheme);
     });
   });
@@ -94,7 +84,7 @@ describe('useChonkTheme', () => {
       );
       OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui']}));
 
-      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(DO_NOT_USE_lightChonkTheme);
     });
 
@@ -108,7 +98,7 @@ describe('useChonkTheme', () => {
       );
       OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui']}));
 
-      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      const {result} = renderHookWithProviders(useThemeSwitcher);
       expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
     });
   });
