@@ -248,6 +248,9 @@ from django.db.models import F
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import replays_tasks
+from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger()
 
@@ -418,6 +421,14 @@ def save_to_gcs(destination_bucket: str, filename: str, contents: str) -> None:
     name="sentry.replays.tasks.export_replay_row_set_async",
     default_retry_delay=5,
     max_retries=120,
+    taskworker_config=TaskworkerConfig(
+        namespace=replays_tasks,
+        processing_deadline_duration=15 * 60 + 5,
+        retry=Retry(
+            times=120,
+            delay=5,
+        ),
+    ),
 )
 def export_replay_row_set_async(
     project_id: int,
@@ -458,7 +469,10 @@ def export_replay_row_set_async(
         )
 
 
-@instrumented_task(name="sentry.replays.tasks.export_replay_project_async")
+@instrumented_task(
+    name="sentry.replays.tasks.export_replay_project_async",
+    taskworker_config=TaskworkerConfig(namespace=replays_tasks),
+)
 def export_replay_project_async(
     project_id: int,
     limit: int,
