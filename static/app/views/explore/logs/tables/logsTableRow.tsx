@@ -33,10 +33,7 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  useLogsAddSearchFilter,
-  useLogsAnalyticsPageSource,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsAnalyticsPageSource} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -81,7 +78,10 @@ import {
   ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
-import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
+import {
+  useAddSearchFilter,
+  useQueryParamsFields,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type LogsRowProps = {
@@ -222,7 +222,7 @@ export const LogRowContent = memo(function LogRowContent({
     }
   }, [isExpanded, onExpandHeight, dataRow]);
 
-  const addSearchFilter = useLogsAddSearchFilter();
+  const addSearchFilter = useAddSearchFilter();
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -556,7 +556,7 @@ function LogRowDetails({
 }
 
 function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: OurLogsResponseItem}) {
-  const addSearchFilter = useLogsAddSearchFilter();
+  const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
       <Button

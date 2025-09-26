@@ -269,7 +269,7 @@ function updateNullableLocation(
   return false;
 }
 
-export function useSetLogsPageParams() {
+function useSetLogsPageParams() {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -280,26 +280,6 @@ export function useSetLogsPageParams() {
     },
     [location, navigate]
   );
-}
-
-export function useLogsSearch(): MutableSearch {
-  const {search} = useLogsPageParams();
-  return search;
-}
-
-export function useSetLogsSearch() {
-  const setPageParams = useSetLogsPageParams();
-  const {setSearchForFrozenPages, isTableFrozen} = useLogsPageParams();
-  const setPageParamsCallback = useCallback(
-    (search: MutableSearch) => {
-      setPageParams({search});
-    },
-    [setPageParams]
-  );
-  if (isTableFrozen) {
-    return setSearchForFrozenPages;
-  }
-  return setPageParamsCallback;
 }
 
 export interface PersistedLogsPageParams {
@@ -389,26 +369,4 @@ function getLogsParamsStorageKey(version: number) {
 
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
-}
-
-export function useLogsAddSearchFilter() {
-  const setLogsSearch = useSetLogsSearch();
-  const search = useLogsSearch();
-
-  return useCallback(
-    ({
-      key,
-      value,
-      negated,
-    }: {
-      key: string;
-      value: string | number | boolean;
-      negated?: boolean;
-    }) => {
-      const newSearch = search.copy();
-      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
-      setLogsSearch(newSearch);
-    },
-    [setLogsSearch, search]
-  );
 }

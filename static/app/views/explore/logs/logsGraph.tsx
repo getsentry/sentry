@@ -28,7 +28,6 @@ import {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -40,6 +39,7 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
+  useQueryParamsSearch,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
@@ -227,7 +227,7 @@ function ContextMenu({
   const pageFilters = usePageFilters();
 
   const mode = useQueryParamsMode();
-  const search = useLogsSearch();
+  const search = useQueryParamsSearch();
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 

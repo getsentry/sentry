@@ -11,7 +11,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   useExploreDataset,
   useExploreFields,
@@ -29,6 +28,8 @@ import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogs
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsFields,
+  useQueryParamsQuery,
+  useQueryParamsSearch,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
@@ -462,8 +463,8 @@ export function useLogAnalytics({
 
   const dataset = DiscoverDatasets.OURLOGS;
   const dataScanned = logsTableResult.meta?.dataScanned ?? '';
-  const search = useLogsSearch();
-  const query = search.formatString();
+  const search = useQueryParamsSearch();
+  const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
   const page_source = source;
 

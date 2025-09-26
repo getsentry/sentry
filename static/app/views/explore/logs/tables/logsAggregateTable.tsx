@@ -19,11 +19,7 @@ import useProjects from 'sentry/utils/useProjects';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
-import {
-  LOGS_AGGREGATE_CURSOR_KEY,
-  useLogsSearch,
-  useSetLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_AGGREGATE_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
@@ -38,10 +34,12 @@ import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsSearch,
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsAggregateCursor,
+  useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 
 export function LogsAggregateTable({
@@ -66,8 +64,8 @@ export function LogsAggregateTable({
   const setAggregateCursor = useSetQueryParamsAggregateCursor();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
-  const search = useLogsSearch();
-  const setSearch = useSetLogsSearch();
+  const search = useQueryParamsSearch();
+  const setSearch = useSetQueryParamsSearch();
   const fields = useQueryParamsFields();
   const sorts = useQueryParamsSortBys();
   const location = useLocation();
