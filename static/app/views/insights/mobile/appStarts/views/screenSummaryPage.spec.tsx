@@ -2,6 +2,7 @@ import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
@@ -67,7 +68,14 @@ describe('Screen Summary', () => {
         ],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        body: {
+          timeSeries: [
+            TimeSeriesFixture({
+              yAxis: 'epm()',
+            }),
+          ],
+        },
       });
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
