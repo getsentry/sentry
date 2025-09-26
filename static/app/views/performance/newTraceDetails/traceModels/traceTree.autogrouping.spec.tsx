@@ -229,9 +229,9 @@ describe('autogrouping', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isParentAutogroupedNode(c)) {
-          tree.expand(c, true);
+          c.expand(true, tree);
         }
       });
 
@@ -248,17 +248,17 @@ describe('autogrouping', () => {
 
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isParentAutogroupedNode(c)) {
-          tree.expand(c, true);
+          c.expand(true, tree);
         }
       });
 
       expect(tree.build().serialize()).toMatchSnapshot();
 
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isParentAutogroupedNode(c)) {
-          tree.expand(c, false);
+          c.expand(false, tree);
         }
       });
 
@@ -298,17 +298,17 @@ describe('autogrouping', () => {
       const initial = tree.build().serialize();
 
       // Expand autogroup part
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isParentAutogroupedNode(c)) {
-          tree.expand(c, true);
+          c.expand(true, tree);
         }
       });
       expect(tree.build().serialize()).toMatchSnapshot();
 
       // Collapse autogroup part
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isParentAutogroupedNode(c)) {
-          tree.expand(c, false);
+          c.expand(false, tree);
         }
       });
 
@@ -353,12 +353,12 @@ describe('autogrouping', () => {
       const snapshot = tree.build().serialize();
       // Add sibling autogroup
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
-      expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).not.toBeNull();
+      expect(tree.root.findChild(c => isParentAutogroupedNode(c))).not.toBeNull();
 
       // Remove it and assert that the tree is back to the original state
       TraceTree.RemoveDirectChildrenAutogroupNodes(tree.root);
 
-      expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).toBeNull();
+      expect(tree.root.findChild(c => isParentAutogroupedNode(c))).toBeNull();
       expect(tree.build().serialize()).toEqual(snapshot);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -374,19 +374,22 @@ describe('autogrouping', () => {
       const snapshot = tree.build().serialize();
       // Add sibling autogroup
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isParentAutogroupedNode(c)) {
-          tree.expand(c, true);
+          c.expand(true, tree);
         }
       });
 
       expect(tree.build().serialize()).toMatchSnapshot();
-      expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).not.toBeNull();
+      expect(tree.root.findChild(c => isParentAutogroupedNode(c))).not.toBeNull();
 
       // Remove it and assert that the tree is back to the original state
       TraceTree.RemoveDirectChildrenAutogroupNodes(tree.root);
-      expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).toBeNull();
-      TraceTree.invalidate(tree.root, true);
+      expect(tree.root.findChild(c => isParentAutogroupedNode(c))).toBeNull();
+      tree.root.invalidate();
+      tree.root.forEachChild(c => {
+        c.invalidate();
+      });
       expect(tree.build().serialize()).toEqual(snapshot);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -449,17 +452,17 @@ describe('autogrouping', () => {
         );
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
-        TraceTree.ForEachChild(tree.root, c => {
+        tree.root.forEachChild(c => {
           if (isParentAutogroupedNode(c)) {
-            tree.expand(c, true);
+            c.expand(true, tree);
           }
         });
 
         expect(tree.build().serialize()).toMatchSnapshot();
 
-        TraceTree.ForEachChild(tree.root, c => {
+        tree.root.forEachChild(c => {
           if (isParentAutogroupedNode(c)) {
-            tree.expand(c, false);
+            c.expand(false, tree);
           }
         });
 
@@ -475,12 +478,12 @@ describe('autogrouping', () => {
 
         // Add children autogroup
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
-        expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).not.toBeNull();
+        expect(tree.root.findChild(c => isParentAutogroupedNode(c))).not.toBeNull();
 
         // Remove it and assert that the tree is back to the original state
         TraceTree.RemoveDirectChildrenAutogroupNodes(tree.root);
 
-        expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).toBeNull();
+        expect(tree.root.findChild(c => isParentAutogroupedNode(c))).toBeNull();
         expect(tree.build().serialize()).toEqual(snapshot);
         expect(tree.build().serialize()).toMatchSnapshot();
       });
@@ -540,9 +543,9 @@ describe('autogrouping', () => {
 
       TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isSiblingAutogroupedNode(c)) {
-          tree.expand(c, true);
+          c.expand(true, tree);
         }
       });
 
@@ -559,15 +562,15 @@ describe('autogrouping', () => {
 
       TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isSiblingAutogroupedNode(c)) {
-          tree.expand(c, true);
+          c.expand(true, tree);
         }
       });
       expect(tree.build().serialize()).toMatchSnapshot();
-      TraceTree.ForEachChild(tree.root, c => {
+      tree.root.forEachChild(c => {
         if (isSiblingAutogroupedNode(c)) {
-          tree.expand(c, false);
+          c.expand(false, tree);
         }
       });
       expect(tree.build().serialize()).toMatchSnapshot();
@@ -585,7 +588,7 @@ describe('autogrouping', () => {
 
       // Add sibling autogroup
       TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
-      expect(TraceTree.Find(tree.root, c => isSiblingAutogroupedNode(c))).not.toBeNull();
+      expect(tree.root.findChild(c => isSiblingAutogroupedNode(c))).not.toBeNull();
 
       // Remove it and assert that the tree is back to the original state
       TraceTree.RemoveSiblingAutogroupNodes(tree.root);
@@ -618,6 +621,7 @@ describe('autogrouping', () => {
             makeEAPSpan({
               op: 'http.server',
               description: 'redis',
+              name: 'redis',
               event_id: '0000',
               children: [
                 makeEAPSpan({
@@ -668,7 +672,10 @@ describe('autogrouping', () => {
               ],
             }),
           ]),
-          traceMetadata
+          {
+            ...traceMetadata,
+            organization: OTELOrganization,
+          }
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, {
@@ -728,9 +735,9 @@ describe('autogrouping', () => {
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
-        TraceTree.ForEachChild(tree.root, c => {
+        tree.root.forEachChild(c => {
           if (isSiblingAutogroupedNode(c)) {
-            tree.expand(c, true);
+            c.expand(true, tree);
           }
         });
 
@@ -745,15 +752,15 @@ describe('autogrouping', () => {
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
-        TraceTree.ForEachChild(tree.root, c => {
+        tree.root.forEachChild(c => {
           if (isSiblingAutogroupedNode(c)) {
-            tree.expand(c, true);
+            c.expand(true, tree);
           }
         });
         expect(tree.build().serialize()).toMatchSnapshot();
-        TraceTree.ForEachChild(tree.root, c => {
+        tree.root.forEachChild(c => {
           if (isSiblingAutogroupedNode(c)) {
-            tree.expand(c, false);
+            c.expand(false, tree);
           }
         });
         expect(tree.build().serialize()).toMatchSnapshot();
@@ -769,9 +776,7 @@ describe('autogrouping', () => {
 
         // Add sibling autogroup
         TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
-        expect(
-          TraceTree.Find(tree.root, c => isSiblingAutogroupedNode(c))
-        ).not.toBeNull();
+        expect(tree.root.findChild(c => isSiblingAutogroupedNode(c))).not.toBeNull();
 
         // Remove it and assert that the tree is back to the original state
         TraceTree.RemoveSiblingAutogroupNodes(tree.root);

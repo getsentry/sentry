@@ -7,8 +7,10 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 
+import type {BaseNode} from './traceTreeNode/baseNode';
+import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
+import type {TransactionNode} from './traceTreeNode/transactionNode';
 import type {TraceTree} from './traceTree';
-import type {TraceTreeNode} from './traceTreeNode';
 
 export function makeTrace(
   overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
@@ -189,22 +191,21 @@ export function makeSiblingAutogroup(
     autogrouped_by: {
       op: overrides.op ?? 'op',
       description: overrides.description ?? 'description',
+      name: overrides.name ?? 'name',
     },
     ...overrides,
   } as TraceTree.SiblingAutogroup;
 }
 
 export function assertTransactionNode(
-  node: TraceTreeNode<TraceTree.NodeValue> | null
-): asserts node is TraceTreeNode<TraceTree.Transaction> {
+  node: BaseNode | null
+): asserts node is TransactionNode {
   if (!node || !isTransactionNode(node)) {
     throw new Error('node is not a transaction');
   }
 }
 
-export function assertEAPSpanNode(
-  node: TraceTreeNode<TraceTree.NodeValue> | null
-): asserts node is TraceTreeNode<TraceTree.EAPSpan> {
+export function assertEAPSpanNode(node: BaseNode | null): asserts node is EapSpanNode {
   if (!node || !isEAPSpanNode(node)) {
     throw new Error('node is not a eap span');
   }
