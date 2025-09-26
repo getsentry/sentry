@@ -183,24 +183,24 @@ export function useReplaySummary(
     }
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
-  const isPendingRet =
-    lastFetchTime < startSummaryRequestTime.current ||
-    isStartSummaryRequestPending ||
-    !summaryData ||
-    ![ReplaySummaryStatus.COMPLETED, ReplaySummaryStatus.ERROR].includes(
+  const isFinishedState =
+    lastFetchTime >= startSummaryRequestTime.current &&
+    !isStartSummaryRequestPending &&
+    summaryData &&
+    [ReplaySummaryStatus.COMPLETED, ReplaySummaryStatus.ERROR].includes(
       summaryData.status
     );
 
-  // Clears the polling timeout when we get valid summary results.
+  // Clears the polling timeout when we get a finished state.
   useEffect(() => {
-    if (!isPendingRet) {
+    if (isFinishedState) {
       cancelPollingTimeout();
     }
-  }, [isPendingRet, cancelPollingTimeout]);
+  }, [isFinishedState, cancelPollingTimeout]);
 
   return {
     summaryData,
-    isPending: isPendingRet,
+    isPending: !isFinishedState,
     isError:
       isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR,
     isTimedOut: didTimeout,
