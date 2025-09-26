@@ -1166,13 +1166,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         serializer.validated_data["defaultSeerScannerAutomation"],
                     )
 
-            # Handle prevent AI config option
-            if "preventAiConfig" in changed_data:
-                organization.update_option(
-                    "sentry:prevent_ai_config",
-                    serializer.validated_data["preventAiConfig"],
-                )
-
             if was_pending_deletion:
                 self.create_audit_entry(
                     request=request,

@@ -1361,24 +1361,31 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:prevent_ai_config") == data["preventAiConfig"]
 
+        data = {
+            "preventAiConfig": {
+                "org_defaults": {
+                    "on_command_phrase": {"bug_prediction": True, "pr_review": True},
+                    "on_ready_for_review": {"bug_prediction": True, "pr_review": False},
+                },
+                "repo_overrides": {
+                    "my_repo_name": {
+                        "on_command_phrase": {"bug_prediction": False, "pr_review": True},
+                        "on_ready_for_review": {"bug_prediction": True, "pr_review": False},
+                    },
+                    "my_other_repo_name": {
+                        "on_command_phrase": {"bug_prediction": True, "pr_review": True},
+                        "on_ready_for_review": {"bug_prediction": False, "pr_review": False},
+                    },
+                },
+            }
+        }
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:prevent_ai_config") == data["preventAiConfig"]
+
     def test_prevent_ai_config_null_rejected(self) -> None:
         """Test that setting preventAiConfig to null is rejected"""
         data = {"preventAiConfig": None}
         self.get_error_response(self.organization.slug, status_code=400, **data)
-
-    def test_prevent_ai_config_get(self) -> None:
-        # First test PUT functionality - set via API
-        config_value = {
-            "org_defaults": {"on_command_phrase": {"bug_prediction": True, "pr_review": False}}
-        }
-
-        # Verify the option was saved correctly
-        saved_value = self.organization.get_option("sentry:prevent_ai_config")
-        assert saved_value == config_value
-
-        # Then verify it appears in GET response
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["preventAiConfig"] == config_value
 
     def test_prevent_ai_config_get_default(self) -> None:
         # Verify that when no config is set, it returns the default config
