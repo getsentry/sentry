@@ -11,7 +11,7 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_SPAM_DETECTION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/spam"
+SEER_SPAM_DETECTION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/spam-detection"
 SEER_TIMEOUT_S = 15
 SEER_RETRIES = 0
 
