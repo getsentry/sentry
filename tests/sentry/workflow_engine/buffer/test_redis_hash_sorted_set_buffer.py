@@ -65,7 +65,7 @@ class TestRedisHashSortedSetBuffer:
 
     @pytest.fixture(autouse=True)
     def setup_buffer(self, buffer, mock_time_provider):
-        self.buf = buffer
+        self.buf: RedisHashSortedSetBuffer = buffer
         self.mock_time = mock_time_provider
 
     def test_push_to_hash(self):

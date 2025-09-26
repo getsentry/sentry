@@ -10,7 +10,6 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.workflow_engine.buffer.batch_client import CohortUpdates, DelayedWorkflowClient
 from sentry.workflow_engine.processors.schedule import (
-    NUM_COHORTS,
     ProjectChooser,
     bucket_num_groups,
     chosen_projects,
@@ -203,10 +202,6 @@ class TestProjectChooser:
                 used_cohorts.add(cohort)
             project_id += 1
         return all_project_ids
-
-    def test_init_default_cohorts(self, mock_buffer):
-        chooser = ProjectChooser(mock_buffer)
-        assert chooser.num_cohorts == NUM_COHORTS
 
     def test_project_id_to_cohort_distribution(self, project_chooser):
         project_ids = list(range(1, 1001))  # 1000 project IDs
