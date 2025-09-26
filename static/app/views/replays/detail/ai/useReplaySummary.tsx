@@ -211,11 +211,11 @@ export function useReplaySummary(
     }
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
-  const isPendingRet =
-    lastFetchTime < startSummaryRequestTime.current ||
-    isStartSummaryRequestPending ||
-    !summaryData ||
-    ![ReplaySummaryStatus.COMPLETED, ReplaySummaryStatus.ERROR].includes(
+  const hasValidResults =
+    lastFetchTime >= startSummaryRequestTime.current &&
+    !isStartSummaryRequestPending &&
+    summaryData &&
+    [ReplaySummaryStatus.COMPLETED, ReplaySummaryStatus.ERROR].includes(
       summaryData.status
     );
 
@@ -230,17 +230,16 @@ export function useReplaySummary(
     }
   }, [summaryData?.status, summaryData?.created_at, cancelStartTimeout]);
 
-  // Clears all timeouts when we get valid summary results.
+  // Clears total timeout when we get valid summary results.
   useEffect(() => {
-    if (!isPendingRet) {
+    if (hasValidResults) {
       cancelTotalTimeout();
-      cancelStartTimeout();
     }
-  }, [isPendingRet, cancelTotalTimeout, cancelStartTimeout]);
+  }, [hasValidResults, cancelTotalTimeout]);
 
   return {
     summaryData,
-    isPending: isPendingRet,
+    isPending: !hasValidResults,
     isError:
       isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR,
     isTimedOut: didTimeout,
