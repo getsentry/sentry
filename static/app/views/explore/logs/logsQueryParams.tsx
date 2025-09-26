@@ -127,6 +127,15 @@ export function getTargetWithReadableQueryParams(
       JSON.stringify(aggregateField)
     )
   );
+  updateNullableLocation(
+    target,
+    LOGS_AGGREGATE_SORT_BYS_KEY,
+    writableQueryParams.aggregateSortBys === null
+      ? null
+      : writableQueryParams.aggregateSortBys?.map(
+          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
+        )
+  );
 
   // when using aggregate fields, we want to make sure to delete the params
   // used by the separate group by, aggregate fn and aggregate param
