@@ -108,6 +108,7 @@ function useSpansQueryBase<T>({
     referrer,
     cursor,
     allowAggregateConditions,
+    caseInsensitive: queryExtras?.caseInsensitive,
     samplingMode: queryExtras?.samplingMode,
     disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
   });
@@ -121,6 +122,7 @@ function useSpansQueryBase<T>({
 
 type WrappedDiscoverTimeseriesQueryProps = {
   eventView: EventView;
+  caseInsensitive?: boolean;
   cursor?: string;
   enabled?: boolean;
   initialData?: any;
@@ -137,6 +139,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   cursor,
   overriddenRoute,
   samplingMode,
+  caseInsensitive,
 }: WrappedDiscoverTimeseriesQueryProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -174,6 +177,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
         eventView.dataset === DiscoverDatasets.SPANS && samplingMode
           ? samplingMode
           : undefined,
+      caseInsensitive,
     }),
     options: {
       enabled,
@@ -227,6 +231,7 @@ type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
   additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
+  caseInsensitive?: boolean;
   cursor?: string;
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
@@ -254,6 +259,7 @@ function useWrappedDiscoverQueryBase<T>({
   pageFiltersReady,
   additionalQueryKey,
   refetchInterval,
+  caseInsensitive,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -264,6 +270,10 @@ function useWrappedDiscoverQueryBase<T>({
   if (eventView.dataset === DiscoverDatasets.SPANS) {
     if (samplingMode) {
       queryExtras.sampling = samplingMode;
+    }
+
+    if (typeof caseInsensitive === 'boolean') {
+      queryExtras.caseInsensitive = caseInsensitive ? 'true' : 'false';
     }
 
     if (disableAggregateExtrapolation) {
