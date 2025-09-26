@@ -265,7 +265,7 @@ class NSErrorGroupingComponent(
     id: str = "ns_error"
 
 
-FrameGroupingComponentChildren = (
+FrameGroupingComponentChild = (
     ContextLineGroupingComponent
     | FilenameGroupingComponent
     | FunctionGroupingComponent
@@ -273,13 +273,13 @@ FrameGroupingComponentChildren = (
 )
 
 
-class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildren]):
+class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChild]):
     id: str = "frame"
     in_app: bool
 
     def __init__(
         self,
-        values: Sequence[FrameGroupingComponentChildren],
+        values: Sequence[FrameGroupingComponentChild],
         in_app: bool,
         hint: str | None = None,
         contributes: bool | None = None,

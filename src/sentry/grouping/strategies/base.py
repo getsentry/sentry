@@ -33,10 +33,10 @@ ContextValue = Any
 ContextDict = dict[str, ContextValue]
 
 
-# TODO: Hack to make `ReturnedVariants` (no pun intended) covariant. At some point we should
-# probably turn `ReturnedVariants` into a Mapping (immutable), since in practice it's read-only.
+# TODO: Hack to make `ComponentsByVariant` covariant. At some point we should probably turn
+# `ComponentsByVariant` into a Mapping (immutable), since in practice it's read-only.
 GroupingComponent = TypeVar("GroupingComponent", bound=BaseGroupingComponent[Any])
-ReturnedVariants = dict[str, GroupingComponent]
+ComponentsByVariant = dict[str, GroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
 
@@ -47,13 +47,13 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         event: Event,
         context: GroupingContext,
         **kwargs: Any,
-    ) -> ReturnedVariants: ...
+    ) -> ComponentsByVariant: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
-        self, variants: ReturnedVariants, context: GroupingContext, **kwargs: Any
-    ) -> ReturnedVariants: ...
+        self, variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
+    ) -> ComponentsByVariant: ...
 
 
 def strategy(
@@ -154,7 +154,7 @@ class GroupingContext:
 
     def get_grouping_components_by_variant(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> ReturnedVariants:
+    ) -> ComponentsByVariant:
         """
         Called by a strategy to invoke delegates on its child interfaces.
 
@@ -197,7 +197,7 @@ class GroupingContext:
 
     def _get_grouping_components_for_interface(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> ReturnedVariants:
+    ) -> ComponentsByVariant:
         """
         Apply a delegate strategy to the given interface to get a dictionary of grouping components
         keyed by variant name.
@@ -248,15 +248,15 @@ class Strategy(Generic[ConcreteInterface]):
         return f"<{self.__class__.__name__} id={self.id!r}>"
 
     def _invoke(
-        self, func: Callable[..., ReturnedVariants], *args: Any, **kwargs: Any
-    ) -> ReturnedVariants:
+        self, func: Callable[..., ComponentsByVariant], *args: Any, **kwargs: Any
+    ) -> ComponentsByVariant:
         # We forcefully override strategy here. This lets a strategy
         # function always access its metadata and directly forward it to
         # subcomponents.
         kwargs["strategy"] = self
         return func(*args, **kwargs)
 
-    def __call__(self, *args: Any, **kwargs: Any) -> ReturnedVariants:
+    def __call__(self, *args: Any, **kwargs: Any) -> ComponentsByVariant:
         return self._invoke(self.func, *args, **kwargs)
 
     def variant_processor(self, func: VariantProcessor) -> VariantProcessor:
@@ -266,7 +266,9 @@ class Strategy(Generic[ConcreteInterface]):
         self.variant_processor_func = func
         return func
 
-    def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
+    def get_grouping_components(
+        self, event: Event, context: GroupingContext
+    ) -> ComponentsByVariant:
         """
         Return a dictionary, keyed by variant name, of components produced by this strategy.
         """
@@ -465,7 +467,7 @@ def produces_variants(
     def decorator(
         strategy_func: StrategyFunc[ConcreteInterface],
     ) -> StrategyFunc[ConcreteInterface]:
-        def inner(*args: Any, **kwargs: Any) -> ReturnedVariants:
+        def inner(*args: Any, **kwargs: Any) -> ComponentsByVariant:
             return call_with_variants(strategy_func, variants, *args, **kwargs)
 
         return inner
@@ -474,11 +476,11 @@ def produces_variants(
 
 
 def call_with_variants(
-    strategy_func: Callable[..., ReturnedVariants],
+    strategy_func: Callable[..., ComponentsByVariant],
     variants_to_produce: Sequence[str],
     *args: Any,
     **kwargs: Any,
-) -> ReturnedVariants:
+) -> ComponentsByVariant:
     context = kwargs["context"]
     incoming_variant_name = context.get("variant_name")
 
