@@ -104,7 +104,7 @@ type NonUpdatableParams =
   | 'groupBy';
 type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
-const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
+const [_LogsPageParamsProvider, useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
     name: 'LogsPageParamsContext',
   });
@@ -194,8 +194,6 @@ export function LogsPageParamsProvider({
     </LogsPageParamsContext>
   );
 }
-
-export const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query?.[LOGS_QUERY_KEY]) {
