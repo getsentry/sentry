@@ -84,11 +84,9 @@ def build_shim_event_data(
         "platform": attribute_value(segment_span, "sentry.platform"),
         "tags": [["environment", attribute_value(segment_span, "sentry.environment")]],
         "received": segment_span["received"],
-        "timestamp": segment_span["end_timestamp_precise"],
-        "start_timestamp": segment_span["start_timestamp_precise"],
-        "datetime": to_datetime(segment_span["end_timestamp_precise"]).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        ),
+        "timestamp": segment_span["end_timestamp"],
+        "start_timestamp": segment_span["start_timestamp"],
+        "datetime": to_datetime(segment_span["end_timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "spans": [],
     }
 
@@ -100,8 +98,8 @@ def build_shim_event_data(
     # topological sorting on the span tree.
     for span in spans:
         event_span = cast(dict[str, Any], deepcopy(span))
-        event_span["start_timestamp"] = span["start_timestamp_precise"]
-        event_span["timestamp"] = span["end_timestamp_precise"]
+        event_span["start_timestamp"] = span["start_timestamp"]
+        event_span["timestamp"] = span["end_timestamp"]
         event["spans"].append(event_span)
 
     return event

@@ -29,7 +29,7 @@ from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data, make_compatible
-from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
+from sentry.spans.consumers.process_segments.types import CompatibleSpan
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
@@ -145,7 +145,7 @@ def _compute_breakdowns(
 ) -> None:
     config = project.get_option("sentry:breakdowns")
     breakdowns = compute_breakdowns(spans, config)
-    segment.setdefault("attributes", {}).update(breakdowns)
+    segment.setdefault("data", {}).update(breakdowns)
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
@@ -155,10 +155,10 @@ def _create_models(segment: CompatibleSpan, project: Project) -> None:
     relationships between them and the Project model.
     """
 
-    environment_name = attribute_value(segment, "sentry.environment")
-    release_name = attribute_value(segment, "sentry.release")
-    dist_name = attribute_value(segment, "sentry.dist")
-    date = to_datetime(segment["end_timestamp_precise"])
+    environment_name = segment["data"].get("sentry.environment")
+    release_name = segment["data"].get("sentry.release")
+    dist_name = segment["data"].get("sentry.dist")
+    date = to_datetime(segment["end_timestamp"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
 
@@ -232,7 +232,7 @@ def _detect_performance_problems(
             culprit=event_data["transaction"],
             evidence_data=problem.evidence_data or {},
             evidence_display=problem.evidence_display,
-            detection_time=to_datetime(segment_span["end_timestamp_precise"]),
+            detection_time=to_datetime(segment_span["end_timestamp"]),
             level="info",
         )
 
@@ -248,16 +248,17 @@ def _detect_performance_problems(
 def _record_signals(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
 ) -> None:
+    data = segment_span.get("data", {})
 
     record_generic_event_processed(
         project,
-        platform=attribute_value(segment_span, "sentry.platform"),
-        release=attribute_value(segment_span, "sentry.release"),
-        environment=attribute_value(segment_span, "sentry.environment"),
+        platform=data.get("sentry.platform"),
+        release=data.get("sentry.release"),
+        environment=data.get("sentry.environment"),
     )
 
     # signal expects an event like object with a datetime attribute
-    event_like = types.SimpleNamespace(datetime=to_datetime(segment_span["end_timestamp_precise"]))
+    event_like = types.SimpleNamespace(datetime=to_datetime(segment_span["end_timestamp"]))
 
     set_project_flag_and_signal(
         project,
@@ -267,7 +268,7 @@ def _record_signals(
     )
 
     for module in insights_modules(
-        [FilterSpan.from_span_attributes(span.get("attributes") or {}) for span in spans]
+        [FilterSpan.from_span_data(span.get("data", {})) for span in spans]
     ):
         set_project_flag_and_signal(
             project,

@@ -22,8 +22,8 @@ def build_mock_span(project_id, *, span_op=None, is_segment=False, attributes=No
         },
         "span_id": "a49b42af9fb69da0",
         "start_timestamp_ms": 1707953018865,
-        "start_timestamp_precise": 1707953018.865,
-        "end_timestamp_precise": 1707953018.972,
+        "start_timestamp": 1707953018.865,
+        "end_timestamp": 1707953018.972,
         "trace_id": "94576097f3a64b68b85a59c7d4e3ee2a",
     }
 

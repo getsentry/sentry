@@ -99,9 +99,9 @@ class TreeEnricher:
                 if not ret.get("sentry.app_start_type") and mobile_start_type:
                     ret["sentry.app_start_type"] = mobile_start_type
 
-            if self._ttid_ts is not None and span["end_timestamp_precise"] <= self._ttid_ts:
+            if self._ttid_ts is not None and span["end_timestamp"] <= self._ttid_ts:
                 ret["sentry.ttid"] = "ttid"
-            if self._ttfd_ts is not None and span["end_timestamp_precise"] <= self._ttfd_ts:
+            if self._ttfd_ts is not None and span["end_timestamp"] <= self._ttfd_ts:
                 ret["sentry.ttfd"] = "ttfd"
 
             for key, value in shared_tags.items():
@@ -180,13 +180,13 @@ def _get_mobile_start_type(segment: SegmentSpan) -> str | None:
 def _timestamp_by_op(spans: list[SegmentSpan], op: str) -> float | None:
     for span in spans:
         if get_span_op(span) == op:
-            return span["end_timestamp_precise"]
+            return span["end_timestamp"]
     return None
 
 
 def _span_interval(span: SegmentSpan | EnrichedSpan) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
-    return _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
+    return _us(span["start_timestamp"]), _us(span["end_timestamp"])
 
 
 def _us(timestamp: float) -> int:

@@ -185,7 +185,7 @@ def process_batch(
                 segment_id=cast(str | None, val.get("segment_id")),
                 project_id=val["project_id"],
                 payload=payload.value,
-                end_timestamp_precise=val["end_timestamp_precise"],
+                end_timestamp=val["end_timestamp"],
                 is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
             )
             spans.append(span)

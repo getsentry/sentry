@@ -129,7 +129,7 @@ class Span(NamedTuple):
     segment_id: str | None
     project_id: int
     payload: bytes
-    end_timestamp_precise: float
+    end_timestamp: float
     is_segment_span: bool = False
 
     def effective_parent_id(self):
@@ -339,7 +339,7 @@ class SpansBuffer:
 
     def _prepare_payloads(self, spans: list[Span]) -> dict[str | bytes, float]:
         if self._zstd_compressor is None:
-            return {span.payload: span.end_timestamp_precise for span in spans}
+            return {span.payload: span.end_timestamp for span in spans}
 
         combined = b"\x00".join(span.payload for span in spans)
         original_size = len(combined)
@@ -354,7 +354,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        min_timestamp = min(span.end_timestamp_precise for span in spans)
+        min_timestamp = min(span.end_timestamp for span in spans)
         return {compressed: min_timestamp}
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:

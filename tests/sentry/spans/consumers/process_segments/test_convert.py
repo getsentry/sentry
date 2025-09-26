@@ -73,8 +73,8 @@ SPAN_KAFKA_MESSAGE = {
     "span_id": "8873a98879faf06d",
     "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
     "start_timestamp_ms": 1721319572616,
-    "start_timestamp_precise": 1721319572.616648,
-    "end_timestamp_precise": 1721319572.768806,
+    "start_timestamp": 1721319572.616648,
+    "end_timestamp": 1721319572.768806,
 }
 
 
@@ -117,7 +117,7 @@ def test_convert_span_to_item() -> None:
         "sentry.category": AnyValue(string_value="http"),
         "sentry.client_sample_rate": AnyValue(double_value=0.1),
         "sentry.duration_ms": AnyValue(int_value=152),
-        "sentry.end_timestamp_precise": AnyValue(double_value=1721319572.768806),
+        "sentry.end_timestamp": AnyValue(double_value=1721319572.768806),
         "sentry.environment": AnyValue(string_value="development"),
         "sentry.exclusive_time_ms": AnyValue(double_value=0.228),
         "sentry.is_segment": AnyValue(bool_value=True),
@@ -136,7 +136,7 @@ def test_convert_span_to_item() -> None:
         "sentry.segment_id": AnyValue(string_value="8873a98879faf06d"),
         "sentry.segment.name": AnyValue(string_value="/api/0/relays/projectconfigs/"),
         "sentry.server_sample_rate": AnyValue(double_value=0.2),
-        "sentry.start_timestamp_precise": AnyValue(double_value=1721319572.616648),
+        "sentry.start_timestamp": AnyValue(double_value=1721319572.616648),
         "sentry.status_code": AnyValue(string_value="200"),
         "sentry.status": AnyValue(string_value="ok"),
         "sentry.thread.id": AnyValue(string_value="8522009600"),

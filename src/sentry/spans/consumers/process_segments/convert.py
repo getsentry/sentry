@@ -13,23 +13,22 @@ from sentry.spans.consumers.process_segments.types import CompatibleSpan
 I64_MAX = 2**63 - 1
 
 FIELD_TO_ATTRIBUTE = {
-    "duration_ms": "sentry.duration_ms",
-    "is_segment": "sentry.is_segment",
+    "end_timestamp": "sentry.end_timestamp_precise",
+    "event_id": "sentry.event_id",
     "exclusive_time_ms": "sentry.exclusive_time_ms",
-    "start_timestamp_precise": "sentry.start_timestamp_precise",
-    "end_timestamp_precise": "sentry.end_timestamp_precise",
+    "hash": "sentry.hash",
     "is_remote": "sentry.is_remote",
+    "is_segment": "sentry.is_segment",
+    "kind": "sentry.kind",
+    "origin": "sentry.origin",
     "parent_span_id": "sentry.parent_span_id",
     "profile_id": "sentry.profile_id",
-    "segment_id": "sentry.segment_id",
     "received": "sentry.received",
-    "origin": "sentry.origin",
-    "kind": "sentry.kind",
-    "hash": "sentry.hash",
-    "event_id": "sentry.event_id",
+    "segment_id": "sentry.segment_id",
+    "start_timestamp": "sentry.start_timestamp_precise",
 }
 
-ATTRIBUTE_TO_ATTRIBUTE = {
+RENAME_ATTRIBUTES = {
     "sentry.description": "sentry.raw_description",
     "sentry.duration": "sentry.duration_ms",
 }
@@ -65,13 +64,11 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         if v is not None:
             attributes[attribute_name] = _anyvalue(v)
 
-    if "sentry.duration_ms" not in attributes:
-        pass  # FIXME
-        # attributes["sentry.duration_ms"] =
-
-    for input_name, output_name in ATTRIBUTE_TO_ATTRIBUTE.items():
-        if input_name in attributes:
-            attributes[output_name] = attributes[input_name]
+    # Rename some attributes from their sentry-conventions name to what the product currently expects.
+    # Eventually this should all be handled by deprecation policies in sentry-conventions.
+    for convention_name, eap_name in RENAME_ATTRIBUTES.items():
+        if convention_name in attributes:
+            attributes[eap_name] = attributes.pop(convention_name)
 
     if links := span.get("links"):
         try:
@@ -87,7 +84,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         trace_id=span["trace_id"],
         item_id=int(span["span_id"], 16).to_bytes(16, "little"),
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-        timestamp=_timestamp(span["start_timestamp_precise"]),
+        timestamp=_timestamp(span["start_timestamp"]),
         attributes=attributes,
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
