@@ -72,7 +72,7 @@ const CollapseButton = styled(Button)<{folded: boolean}>`
   opacity: ${p => (p.folded ? 1 : 0.25)};
   transition: opacity 0.2s ease;
   align-self: ${p => (p.folded ? 'center' : 'baseline')};
-  color: ${p => (p.folded ? p.theme.blue300 : p.theme.subText)};
+  color: ${p => (p.folded ? p.theme.linkColor : p.theme.subText)};
 
   transform: ${p => (p.folded ? 'translateY(1px)' : 'translateY(2px)')};
 `;
