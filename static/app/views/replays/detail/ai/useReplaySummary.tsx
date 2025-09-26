@@ -14,8 +14,8 @@ import {
 } from 'sentry/views/replays/detail/ai/utils';
 
 const POLL_INTERVAL_MS = 500;
-const START_TIMEOUT_MS = 15e3; // Max time to wait for processing to start after a start request.
-const TOTAL_TIMEOUT_MS = 100e3; // Max time to wait for results after a start request. Task timeout in Seer (90s) + 10s buffer.
+const START_TIMEOUT_MS = 15_000; // Max time to wait for processing to start after a start request.
+const TOTAL_TIMEOUT_MS = 100_000; // Max time to wait for results after a start request. Task timeout in Seer (90s) + 10s buffer.
 
 export interface UseReplaySummaryResult {
   /**
