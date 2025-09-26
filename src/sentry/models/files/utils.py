@@ -83,23 +83,20 @@ def get_and_optionally_update_blobs(
 
     # Fetch all existing blobs in a single query
     existing_blobs = file_blob_model.objects.filter(checksum__in=checksums)
-    
+
     # Create a mapping of checksum to blob
     blob_map = {blob.checksum: blob for blob in existing_blobs}
-    
+
     # Update timestamps for blobs that need it (in batch if possible)
     now = timezone.now()
     threshold = now - HALF_DAY
-    blobs_to_update = [
-        blob for blob in existing_blobs 
-        if blob.timestamp <= threshold
-    ]
-    
+    blobs_to_update = [blob for blob in existing_blobs if blob.timestamp <= threshold]
+
     if blobs_to_update:
         # Batch update timestamps
         blob_ids = [blob.id for blob in blobs_to_update]
         file_blob_model.objects.filter(id__in=blob_ids).update(timestamp=now)
-        
+
         # Update the in-memory objects as well
         for blob in blobs_to_update:
             blob.timestamp = now

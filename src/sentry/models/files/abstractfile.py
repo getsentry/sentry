@@ -308,48 +308,48 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         >>> indexes = file.putfile(fileobj)
         """
         from sentry.models.files.utils import get_and_optionally_update_blobs, get_size_and_checksum
-        
+
         results = []
         offset = 0
         checksum = sha1(b"")
-        
+
         # First pass: collect all chunks and their checksums
         chunks = []
         chunk_checksums = []
-        
+
         while True:
             contents = fileobj.read(blob_size)
             if not contents:
                 break
             checksum.update(contents)
-            
+
             # Calculate checksum for this chunk
             blob_fileobj = ContentFile(contents)
             chunk_size, chunk_checksum = get_size_and_checksum(blob_fileobj)
-            
+
             chunks.append((blob_fileobj, chunk_size))
             chunk_checksums.append(chunk_checksum)
-        
+
         # Batch query for existing blobs to avoid N+1 queries
         existing_blobs = get_and_optionally_update_blobs(
             self.__class__.FILE_BLOB_MODEL, chunk_checksums
         )
-        
+
         # Second pass: create blobs and indexes
         current_offset = 0
         for i, (blob_fileobj, chunk_size) in enumerate(chunks):
             chunk_checksum = chunk_checksums[i]
-            
+
             # Check if blob already exists
             if chunk_checksum in existing_blobs:
                 blob = existing_blobs[chunk_checksum]
             else:
                 # Create new blob
                 blob = self._create_blob_from_file(blob_fileobj, logger=logger)
-            
+
             results.append(self._create_blob_index(blob=blob, offset=current_offset))
             current_offset += blob.size
-            
+
         self.size = current_offset
         self.checksum = checksum.hexdigest()
         metrics.distribution("filestore.file-size", current_offset, unit="byte")
