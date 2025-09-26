@@ -396,3 +396,23 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         )
         assert response.status_code == 400
         assert "Invalid build_number format" in response.json()["error"]
+
+    def test_without_main_binary_identifier(self):
+        """Test that main_binary_identifier is optional"""
+        self._create_android_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=42,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url + "?app_id=com.example.app&platform=android&build_version=1.0.0",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current"] is not None
+        assert data["current"]["build_version"] == "1.0.0"
