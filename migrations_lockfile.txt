@@ -29,7 +29,7 @@ releases: 0001_release_models
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0991_projectownership_json_field
+sentry: 0992_latestrepoerelease_indexes
 
 social_auth: 0003_social_auth_json_field
 
