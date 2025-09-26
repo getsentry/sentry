@@ -61,9 +61,11 @@ export default function TestsOnboardingPage() {
   const [selectedUploadPermission, setSelectedUploadPermission] =
     useState<UploadPermission>(UploadPermission.OIDC);
 
-  const {data: integrations = [], isPending: isIntegrationsPending} = useApiQuery<
-    OrganizationIntegration[]
-  >(
+  const {
+    data: integrations = [],
+    isPending: isIntegrationsPending,
+    isSuccess: isIntegrationsSuccess,
+  } = useApiQuery<OrganizationIntegration[]>(
     [
       `/organizations/${organization.slug}/integrations/`,
       {query: {includeConfig: 0, provider_key: 'github'}},
@@ -82,7 +84,7 @@ export default function TestsOnboardingPage() {
   if (
     !cameFromTestsRoute &&
     ((repoData?.testAnalyticsEnabled && isRepoSuccess) ||
-      (!integrations.length && !isIntegrationsPending) ||
+      (!integrations.length && isIntegrationsSuccess) ||
       !isUSStorage)
   ) {
     const queryString = getPreventParamsString(location);

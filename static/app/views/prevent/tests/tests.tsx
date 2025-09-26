@@ -108,7 +108,7 @@ function Content({response}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
   const {branch: selectedBranch} = usePreventContext();
-  const {data: repoData, isPending: isRepoPending} = useRepo();
+  const {data: repoData, isSuccess: isRepoSuccess} = useRepo();
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
@@ -150,7 +150,7 @@ function Content({response}: TestResultsContentData) {
     location.state?.from === '/prevent/tests/new' ||
     document.referrer.includes('/prevent/tests/new');
 
-  if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && !isRepoPending) {
+  if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && isRepoSuccess) {
     const queryString = getPreventParamsString(location);
     navigate(`/prevent/tests/new${queryString ? `?${queryString}` : ''}`, {
       state: {from: '/prevent/tests'},
