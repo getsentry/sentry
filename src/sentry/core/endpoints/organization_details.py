@@ -987,8 +987,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     )
     apdexThreshold = serializers.IntegerField(required=False)
 
-    preventAiConfig = serializers.JSONField(required=False)
-
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @extend_schema(tags=["Organizations"])

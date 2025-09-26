@@ -809,6 +809,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "preventAiConfig",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
