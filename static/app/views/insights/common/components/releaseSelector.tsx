@@ -66,7 +66,7 @@ function ReleaseSelector({
     ),
   });
 
-  if (defined(selectorValue) && selectorValue !== '') {
+  if (defined(selectorValue)) {
     const index = data?.findIndex(({version}) => version === selectorValue);
     const selectedRelease = defined(index) ? data?.[index] : undefined;
     let selectedReleaseSessionCount: number | undefined = undefined;
