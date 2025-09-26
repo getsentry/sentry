@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:03.404459+00:00'
+created: '2025-09-24T22:53:02.189532+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -1016,11 +1016,27 @@ source: tests/sentry/grouping/test_grouping_inputs.py
             {
               "contributes": true,
               "hint": null,
-              "id": "ns-error",
+              "id": "ns_error",
               "name": null,
               "values": [
-                "<redacted>",
-                2
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "domain",
+                  "name": null,
+                  "values": [
+                    "<redacted>"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "code",
+                  "name": null,
+                  "values": [
+                    2
+                  ]
+                }
               ]
             },
             {
@@ -1054,8 +1070,9 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "description": "in-app exception stacktrace",
     "hash": "4ef1fb44d656c3be2a146971f2a222dc",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
@@ -1076,7 +1093,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -2071,11 +2088,27 @@ source: tests/sentry/grouping/test_grouping_inputs.py
             {
               "contributes": true,
               "hint": null,
-              "id": "ns-error",
+              "id": "ns_error",
               "name": null,
               "values": [
-                "<redacted>",
-                2
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "domain",
+                  "name": null,
+                  "values": [
+                    "<redacted>"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "code",
+                  "name": null,
+                  "values": [
+                    2
+                  ]
+                }
               ]
             },
             {
@@ -2109,8 +2142,9 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "description": "exception stacktrace",
     "hash": "47481871aa8d5ab5729cf2db78ce3032",
+    "hint": null,
     "key": "system",
     "type": "component"
   }

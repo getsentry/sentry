@@ -2,6 +2,7 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Container} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -322,10 +323,10 @@ function Overview({location, subscription, promotionData}: Props) {
 
   if (isPending) {
     return (
-      <Fragment>
+      <Container>
         <SubscriptionHeader subscription={subscription} organization={organization} />
         <LoadingIndicator />
-      </Fragment>
+      </Container>
     );
   }
 
@@ -379,14 +380,14 @@ function Overview({location, subscription, promotionData}: Props) {
   }
 
   return (
-    <Fragment>
+    <Container>
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <div>
         {hasBillingPerms
           ? contentWithBillingPerms(usage, subscription.planDetails)
           : contentWithoutBillingPerms(usage)}
       </div>
-    </Fragment>
+    </Container>
   );
 }
 

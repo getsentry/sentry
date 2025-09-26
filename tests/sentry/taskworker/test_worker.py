@@ -17,7 +17,6 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 from sentry_sdk.crons import MonitorStatus
-from usageaccountant import UsageUnit
 
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
@@ -162,7 +161,10 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_task(self) -> None:
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
+            app_module="sentry.taskworker.runtime:app",
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=100,
+            process_type="fork",
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
@@ -175,7 +177,10 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_no_task(self) -> None:
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
+            app_module="sentry.taskworker.runtime:app",
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=100,
+            process_type="fork",
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
@@ -187,7 +192,10 @@ class TestTaskWorker(TestCase):
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
+            app_module="sentry.taskworker.runtime:app",
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=1,
+            process_type="fork",
         )
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
@@ -220,7 +228,10 @@ class TestTaskWorker(TestCase):
         # be processed.
         max_runtime = 5
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
+            app_module="sentry.taskworker.runtime:app",
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=1,
+            process_type="fork",
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -259,6 +270,7 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where taskworker.fetch_next.disabled_pools is defined
         max_runtime = 5
         taskworker = TaskWorker(
+            app_module="sentry.taskworker.runtime:app",
             broker_hosts=["127.0.0.1:50051"],
             max_child_task_count=1,
             process_type="fork",
@@ -295,7 +307,10 @@ class TestTaskWorker(TestCase):
         # We should retain the result until RPC succeeds.
         max_runtime = 5
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
+            app_module="sentry.taskworker.runtime:app",
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=1,
+            process_type="fork",
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -338,7 +353,10 @@ class TestTaskWorker(TestCase):
         # to raise and catch a NoRetriesRemainingError
         max_runtime = 5
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
+            app_module="sentry.taskworker.runtime:app",
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=1,
+            process_type="fork",
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -387,6 +405,7 @@ def test_child_process_complete(mock_capture_checkin: mock.MagicMock) -> None:
 
     todo.put(SIMPLE_TASK)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -421,6 +440,7 @@ def test_child_process_remove_start_time_kwargs() -> None:
 
     todo.put(activation)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -436,39 +456,6 @@ def test_child_process_remove_start_time_kwargs() -> None:
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.usage_accountant.record")
-def test_child_process_complete_record_usage(mock_record: mock.Mock) -> None:
-    todo: queue.Queue[InflightTaskActivation] = queue.Queue()
-    processed: queue.Queue[ProcessingResult] = queue.Queue()
-    shutdown = Event()
-
-    todo.put(SIMPLE_TASK)
-
-    with override_options({"shared_resources_accounting_enabled": ["taskworker"]}):
-        child_process(
-            todo,
-            processed,
-            shutdown,
-            max_task_count=1,
-            processing_pool_name="test",
-            process_type="fork",
-        )
-
-    assert todo.empty()
-    result = processed.get()
-    assert result.task_id == SIMPLE_TASK.activation.id
-    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
-
-    assert mock_record.call_count == 1
-    mock_record.assert_called_with(
-        resource_id="taskworker",
-        app_feature="examples",
-        amount=mock.ANY,
-        usage_type=UsageUnit.MILLISECONDS,
-    )
-
-
-@pytest.mark.django_db
 def test_child_process_retry_task() -> None:
     todo: queue.Queue[InflightTaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -476,6 +463,7 @@ def test_child_process_retry_task() -> None:
 
     todo.put(RETRY_TASK)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -516,6 +504,7 @@ def test_child_process_retry_task_max_attempts(mock_capture: mock.Mock) -> None:
 
     todo.put(activation)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -544,6 +533,7 @@ def test_child_process_failure_task() -> None:
 
     todo.put(FAIL_TASK)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -567,6 +557,7 @@ def test_child_process_shutdown() -> None:
 
     todo.put(SIMPLE_TASK)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -589,6 +580,7 @@ def test_child_process_unknown_task() -> None:
     todo.put(UNDEFINED_TASK)
     todo.put(SIMPLE_TASK)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -616,6 +608,7 @@ def test_child_process_at_most_once() -> None:
     todo.put(AT_MOST_ONCE_TASK)
     todo.put(SIMPLE_TASK)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -643,6 +636,7 @@ def test_child_process_record_checkin(mock_capture_checkin: mock.Mock) -> None:
 
     todo.put(SCHEDULED_TASK)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -686,6 +680,7 @@ def test_child_process_terminate_task(mock_capture: mock.Mock) -> None:
 
     todo.put(sleepy)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,
@@ -712,6 +707,7 @@ def test_child_process_decompression(mock_capture_checkin: mock.MagicMock) -> No
 
     todo.put(COMPRESSED_TASK)
     child_process(
+        "sentry.taskworker.runtime:app",
         todo,
         processed,
         shutdown,

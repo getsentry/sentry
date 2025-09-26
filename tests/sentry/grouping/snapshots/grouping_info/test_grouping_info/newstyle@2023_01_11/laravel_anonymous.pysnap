@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:06.596045+00:00'
+created: '2025-09-24T22:53:04.849716+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -55,7 +55,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "require_once __DIR__.'/public/index.php';"
@@ -97,7 +97,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -139,7 +139,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -191,8 +191,9 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "description": "in-app exception stacktrace",
     "hash": "a728cdf5d62c8e017c35c3fe04051b6e",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
@@ -213,7 +214,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": true,
@@ -247,7 +248,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "require_once __DIR__.'/public/index.php';"
@@ -289,7 +290,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return $callable($passable);"
@@ -331,7 +332,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "? $pipe->{$this->method}(...$parameters)"
@@ -383,8 +384,9 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "description": "exception stacktrace",
     "hash": "63c67781779781d9b0a442a5b2bdb976",
+    "hint": null,
     "key": "system",
     "type": "component"
   }

@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
@@ -14,6 +14,7 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
+import {UPTIME_DEFAULT_DOWNTIME_THRESHOLD} from 'sentry/views/detectors/components/forms/uptime/fields';
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
@@ -129,17 +130,29 @@ export function UptimeDetectorFormDetectSection() {
               )}
               flexibleControlStateSize
             />
+            <NumberField
+              name="downtimeThreshold"
+              min={1}
+              placeholder={t('Defaults to %s', UPTIME_DEFAULT_DOWNTIME_THRESHOLD)}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('downtimeThreshold')) ||
+                  UPTIME_DEFAULT_DOWNTIME_THRESHOLD;
+                const downDuration = intervalSeconds * threshold;
+
+                return tct(
+                  'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    downtime: <strong>{getDuration(downDuration)}</strong>,
+                  }
+                );
+              }}
+              label={t('Failure Threshold')}
+              flexibleControlStateSize
+            />
           </div>
-          <Alert type="muted">
-            {tct(
-              'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
-                ),
-              }
-            )}
-          </Alert>
         </DetectFieldsContainer>
       </Section>
     </Container>

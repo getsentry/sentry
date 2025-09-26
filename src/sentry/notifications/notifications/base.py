@@ -182,40 +182,34 @@ class BaseNotification(abc.ABC):
         from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 
         with sentry_sdk.start_span(op="notification.send", name="record_notification_sent"):
-            event: analytics.Event | None = None
-
             project: Project | None = getattr(self, "project", None)
             group: Group | None = getattr(self, "group", None)
 
-            event_classes = {
+            PROVIDER_TO_EVENT_CLASS = {
                 ExternalProviders.EMAIL: EmailNotificationSent,
                 ExternalProviders.SLACK: SlackIntegrationNotificationSent,
+                ExternalProviders.MSTEAMS: MSTeamsIntegrationNotificationSent,
                 ExternalProviders.PAGERDUTY: PagerdutyIntegrationNotificationSent,
                 ExternalProviders.OPSGENIE: OpsgenieIntegrationNotificationSent,
                 ExternalProviders.DISCORD: DiscordIntegrationNotificationSent,
-                ExternalProviders.MSTEAMS: MSTeamsIntegrationNotificationSent,
             }
 
             try:
-                event = (
-                    event_classes[provider](
-                        organization_id=self.organization.id,
-                        project_id=project.id if project else None,
-                        category=self.metrics_key,
-                        actor_id=recipient.id if recipient.is_user else None,
-                        user_id=recipient.id if recipient.is_user else None,
-                        group_id=group.id if group else None,
-                        id=recipient.id,
-                        actor_type=recipient.actor_type,
-                        notification_uuid=self.notification_uuid,
-                        alert_id=self.alert_id if self.alert_id else None,
+                if event_class := PROVIDER_TO_EVENT_CLASS.get(provider):
+                    analytics.record(
+                        event_class(
+                            organization_id=self.organization.id,
+                            project_id=project.id if project else None,
+                            category=self.metrics_key,
+                            actor_id=recipient.id if recipient.is_user else None,
+                            user_id=recipient.id if recipient.is_user else None,
+                            group_id=group.id if group else None,
+                            id=recipient.id,
+                            actor_type=recipient.actor_type,
+                            notification_uuid=self.notification_uuid,
+                            alert_id=self.alert_id if self.alert_id else None,
+                        )
                     )
-                    if provider in event_classes
-                    else None
-                )
-
-                if event is not None:
-                    analytics.record(event)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 

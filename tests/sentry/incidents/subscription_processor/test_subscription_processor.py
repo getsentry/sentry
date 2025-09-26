@@ -359,6 +359,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             "incidents.alert_rules.ignore_update_missing_incidents_performance"
         )
 
+    def test_no_feature_on_demand(self) -> None:
+        self.sub.snuba_query.dataset = "generic_metrics"
+        message = self.build_subscription_update(self.sub)
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:performance-view"),
+        ):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_on_demand"
+        )
+
     def test_skip_already_processed_update(self) -> None:
         self.send_update(self.rule, self.trigger.alert_threshold)
         self.metrics.incr.reset_mock()
@@ -473,8 +485,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    @patch("sentry.incidents.subscription_processor.logger.info")
-    def test_no_new_incidents_within_ten_minutes(self, mock_logger) -> None:
+    def test_no_new_incidents_within_ten_minutes(self) -> None:
         """
         Verify that a new incident is not made for the same rule, trigger, and
         subscription if an incident was already made within the last 10 minutes.
@@ -507,14 +518,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 ),
             ],
             any_order=True,
-        )
-        mock_logger.assert_called_with(
-            "incidents.alert_rules.hit_rate_limit",
-            extra={
-                "last_incident_id": original_incident.id,
-                "project_id": self.sub.project.id,
-                "trigger_id": trigger.id,
-            },
         )
 
     def test_incident_made_after_ten_minutes(self) -> None:

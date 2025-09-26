@@ -1,4 +1,13 @@
-import type {Project} from 'sentry/types/project';
+import {
+  backend,
+  desktop,
+  frontend,
+  gaming,
+  mobile,
+  serverless,
+} from 'sentry/data/platformCategories';
+import {DataCategory} from 'sentry/types/core';
+import type {PlatformKey, Project} from 'sentry/types/project';
 
 type SupportedProfilingPlatformSDK =
   | 'android'
@@ -160,4 +169,51 @@ export function getProfilingDocsForPlatform(platform: string | undefined): strin
   }
 
   return `https://docs.sentry.io/platforms/${language}/guides/${framework}/profiling/`;
+}
+
+const UI_PROFILE_PLATFORMS = new Set<PlatformKey>([
+  'apple',
+  'cocoa',
+  'javascript-browser',
+  'objc',
+  'playstation',
+  'react',
+  'swift',
+]);
+const CONTINUOUS_PROFILE_PLATFORMS = new Set<PlatformKey>([
+  'django',
+  'dotnet-google-cloud-functions',
+  'PHP',
+  'rails',
+]);
+
+export function getProfileDurationCategoryForPlatform(
+  platform?: PlatformKey
+): DataCategory.PROFILE_DURATION | DataCategory.PROFILE_DURATION_UI | null {
+  if (!platform) {
+    return null;
+  }
+
+  if (
+    backend.includes(platform) ||
+    serverless.includes(platform) ||
+    CONTINUOUS_PROFILE_PLATFORMS.has(platform) ||
+    platform.startsWith('node-') ||
+    platform.startsWith('php-') ||
+    platform.startsWith('python-')
+  ) {
+    return DataCategory.PROFILE_DURATION;
+  }
+
+  if (
+    frontend.includes(platform) ||
+    desktop.includes(platform) ||
+    gaming.includes(platform) ||
+    mobile.includes(platform) ||
+    UI_PROFILE_PLATFORMS.has(platform)
+  ) {
+    return DataCategory.PROFILE_DURATION_UI;
+  }
+
+  return null;
 }

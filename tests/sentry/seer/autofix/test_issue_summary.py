@@ -352,9 +352,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
     @patch("sentry.seer.autofix.issue_summary.requests.post")
-    def test_call_seer_routes_to_summarization_and_falls_back_on_exception(
-        self, post: MagicMock, _sign: MagicMock
-    ) -> None:
+    def test_call_seer_routes_to_summarization_url(self, post: MagicMock, _sign: MagicMock) -> None:
         resp = Mock()
         resp.json.return_value = {
             "group_id": str(self.group.id),
@@ -365,21 +363,16 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             "scores": {},
         }
         resp.raise_for_status = Mock()
-        post.side_effect = [Exception("summarization error"), resp]
+        post.return_value = resp
 
         result = _call_seer(self.group, {"event_id": "e1"}, [], [])
 
         assert result.group_id == str(self.group.id)
-        assert post.call_count == 2
+        assert post.call_count == 1
         assert (
             post.call_args_list[0]
             .args[0]
             .startswith(f"{settings.SEER_SUMMARIZATION_URL}/v1/automation/summarize/issue")
-        )
-        assert (
-            post.call_args_list[1]
-            .args[0]
-            .startswith(f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/issue")
         )
         resp.raise_for_status.assert_called_once()
 
@@ -387,7 +380,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch(
         "sentry.seer.autofix.issue_summary.requests.post", side_effect=Exception("primary error")
     )
-    def test_call_seer_raises_exception_when_both_endpoints_fail(
+    def test_call_seer_raises_exception_when_endpoint_fails(
         self, post: MagicMock, sign: MagicMock
     ) -> None:
         with pytest.raises(Exception):
@@ -773,6 +766,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_run_automation.assert_called_once()
         mock_call_seer.assert_called_once()
 
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.autofix.issue_summary._get_trace_connected_issues")
@@ -785,8 +781,24 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_connected_issues,
         mock_get_acknowledgement,
         mock_record_seer_run,
+        mock_generate_fixability_score,
+        mock_get_autofix_state,
+        mock_trigger_autofix_task,
     ):
         mock_get_acknowledgement.return_value = True
+        mock_get_autofix_state.return_value = None
+        mock_fixability_response = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="some headline",
+            whats_wrong="some whats wrong",
+            trace="some trace",
+            possible_cause="some possible cause",
+            scores=SummarizeIssueScores(
+                fixability_score=0.5,
+                is_fixable=True,
+            ),
+        )
+        mock_generate_fixability_score.return_value = mock_fixability_response
         event = Mock(
             event_id="test_event_id",
             data="test_event_data",
@@ -838,3 +850,4 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert status_code == 200
         mock_record_seer_run.assert_not_called()
+        mock_trigger_autofix_task.assert_called_once()

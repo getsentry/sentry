@@ -9,6 +9,7 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
 )
 from sentry.preprod.size_analysis.tasks import (
     _run_size_analysis_comparison,
@@ -74,7 +75,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
                 artifact_id=artifact.id,
             )
 
-            mock_logger.info.assert_called_once()
+            mock_logger.info.assert_called()
             call_args = mock_logger.info.call_args
             assert "preprod.size_analysis.compare.artifact_no_commit_comparison" in call_args[0]
             assert call_args[1]["extra"]["artifact_id"] == artifact.id
@@ -369,6 +370,125 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             )
 
             # Should not call _run_size_analysis_comparison due to incompatible metrics
+            mock_run_comparison.assert_not_called()
+
+    def test_compare_preprod_artifact_size_analysis_different_build_configurations_as_head(self):
+        """Test compare_preprod_artifact_size_analysis with different build configurations when artifact is head."""
+        head_commit = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+        )
+        base_commit = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+        )
+
+        debug_config = PreprodBuildConfiguration.objects.create(project=self.project, name="debug")
+        release_config = PreprodBuildConfiguration.objects.create(
+            project=self.project, name="release"
+        )
+
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            build_configuration=debug_config,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            build_configuration=release_config,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        with patch(
+            "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+        ) as mock_run_comparison:
+            compare_preprod_artifact_size_analysis(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                artifact_id=head_artifact.id,
+            )
+
+            mock_run_comparison.assert_not_called()
+
+    def test_compare_preprod_artifact_size_analysis_different_build_configurations_as_base(self):
+        """Test compare_preprod_artifact_size_analysis with different build configurations when artifact is base."""
+        # Create commit comparison
+        base_commit = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+        )
+        head_commit = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="a" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+        )
+
+        # Create build configurations
+        debug_config = PreprodBuildConfiguration.objects.create(project=self.project, name="debug")
+        release_config = PreprodBuildConfiguration.objects.create(
+            project=self.project, name="release"
+        )
+
+        # Create artifacts with different build configurations
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=base_commit,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            build_configuration=debug_config,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            commit_comparison=head_commit,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            build_configuration=release_config,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        with (
+            patch(
+                "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+            ) as mock_run_comparison,
+            patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger,
+        ):
+            compare_preprod_artifact_size_analysis(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                artifact_id=base_artifact.id,
+            )
+
+            # Should log different build configurations and not run comparison
+            mock_logger.info.assert_called_with(
+                "preprod.size_analysis.compare.head_artifact_different_build_configurations",
+                extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
+            )
             mock_run_comparison.assert_not_called()
 
 

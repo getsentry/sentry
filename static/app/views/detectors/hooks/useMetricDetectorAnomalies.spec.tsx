@@ -1,27 +1,15 @@
-import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
 import {useMetricDetectorAnomalies} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalies';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-const {organization} = initializeOrg();
-
-function TestContext({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
+const organization = OrganizationFixture();
 
 describe('useMetricDetectorAnomalies', () => {
   beforeEach(() => {
@@ -68,18 +56,16 @@ describe('useMetricDetectorAnomalies', () => {
       },
     ];
 
-    const {result} = renderHook(
-      () =>
-        useMetricDetectorAnomalies({
-          series,
-          historicalSeries,
-          thresholdType: AlertRuleThresholdType.ABOVE,
-          sensitivity: AlertRuleSensitivity.MEDIUM,
-          interval: 900, // 15 minutes
-          projectId: '1',
-          enabled: true,
-        }),
-      {wrapper: TestContext}
+    const {result} = renderHookWithProviders(() =>
+      useMetricDetectorAnomalies({
+        series,
+        historicalSeries,
+        thresholdType: AlertRuleThresholdType.ABOVE,
+        sensitivity: AlertRuleSensitivity.MEDIUM,
+        interval: 900, // 15 minutes
+        projectId: '1',
+        enabled: true,
+      })
     );
 
     await waitFor(() => {

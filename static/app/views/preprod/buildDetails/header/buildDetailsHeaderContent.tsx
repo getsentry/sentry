@@ -8,13 +8,41 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import {createActionMenuItems} from './buildDetailsActionItems';
 import {useBuildDetailsActions} from './useBuildDetailsActions';
+
+function makeReleasesUrl(
+  projectId: string | undefined,
+  query: {appId?: string; version?: string}
+): string {
+  const {appId, version} = query;
+
+  // Not knowing the projectId should be transient.
+  if (projectId === undefined) {
+    return '#';
+  }
+
+  const params = new URLSearchParams();
+  params.set('project', projectId);
+  const parts = [];
+  if (appId) {
+    parts.push(`release.package:${appId}`);
+  }
+  if (version) {
+    parts.push(`release.version:${version}`);
+  }
+  if (parts.length) {
+    params.set('query', parts.join(' '));
+  }
+  return `/explore/releases/?${params}`;
+}
 
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
@@ -24,11 +52,13 @@ interface BuildDetailsHeaderContentProps {
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
+  const isSentryEmployee = useIsSentryEmployee();
   const {buildDetailsQuery, projectId, artifactId} = props;
-  const {isDeletingArtifact, handleDeleteAction} = useBuildDetailsActions({
-    projectId,
-    artifactId,
-  });
+  const {isDeletingArtifact, handleDeleteAction, handleDownloadAction} =
+    useBuildDetailsActions({
+      projectId,
+      artifactId,
+    });
 
   const {
     data: buildDetailsData,
@@ -54,23 +84,35 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  // TODO(preprod): Implement proper breadcrumbs once release connection is implemented
+  const project = ProjectsStore.getBySlug(projectId);
+
   const breadcrumbs: Crumb[] = [
     {
-      to: '#',
+      to: makeReleasesUrl(project?.id, {
+        version: buildDetailsData.app_info.version ?? undefined,
+      }),
       label: 'Releases',
-    },
-    {
-      to: '#',
-      label: buildDetailsData.app_info.version,
-    },
-    {
-      label: 'Build Details',
     },
   ];
 
+  if (buildDetailsData.app_info.version) {
+    breadcrumbs.push({
+      to: makeReleasesUrl(project?.id, {
+        version: buildDetailsData.app_info.version ?? undefined,
+        appId: buildDetailsData.app_info.app_id ?? undefined,
+      }),
+      label: buildDetailsData.app_info.version,
+    });
+  }
+
+  breadcrumbs.push({
+    label: 'Build Details',
+  });
+
   const actionMenuItems = createActionMenuItems({
     handleDeleteAction,
+    handleDownloadAction,
+    isSentryEmployee,
   });
 
   return (

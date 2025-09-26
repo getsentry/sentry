@@ -12,6 +12,9 @@ import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Separator} from 'sentry/components/core/separator';
+import {Heading, Text} from 'sentry/components/core/text';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -21,11 +24,36 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import type {AddOnCategory} from 'getsentry/types';
 import {getProductIcon} from 'getsentry/utils/billing';
 import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
+import CheckoutOption from 'getsentry/views/amCheckout/checkoutOption';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
+
+export function getProductCheckoutDescription(
+  product: SelectableProduct,
+  isNewCheckout: boolean,
+  includedBudget: string,
+  withPunctuation: boolean
+) {
+  if (product === SelectableProduct.SEER) {
+    if (isNewCheckout) {
+      return tct('Detect and fix issues faster with our AI agent[punctuation]', {
+        punctuation: withPunctuation ? '.' : '',
+      });
+    }
+    return tct(
+      'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent[punctuation]',
+      {
+        includedBudget,
+        punctuation: withPunctuation ? '.' : '',
+      }
+    );
+  }
+  return '';
+}
 
 function ProductSelect({
   activePlan,
@@ -51,14 +79,12 @@ function ProductSelect({
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
       getProductDescription: (includedBudget: string) =>
-        isNewCheckout
-          ? t('Detect and fix issues faster with our AI agent')
-          : tct(
-              'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent',
-              {
-                includedBudget,
-              }
-            ),
+        getProductCheckoutDescription(
+          SelectableProduct.SEER,
+          !!isNewCheckout,
+          includedBudget,
+          false
+        ),
       categoryInfo: {
         [DataCategory.SEER_AUTOFIX]: {
           perEventNameOverride: isNewCheckout ? 'run' : 'fix',
@@ -82,8 +108,11 @@ function ProductSelect({
 
   return (
     <Fragment>
-      {!isNewCheckout && <Separator />}
+      {!isNewCheckout && <Separator orientation="horizontal" />}
       {availableProducts.map(productInfo => {
+        const productName =
+          activePlan.addOnCategories[productInfo.apiName as unknown as AddOnCategory]
+            ?.productName ?? productInfo.productCheckoutName;
         const checkoutInfo =
           PRODUCT_CHECKOUT_INFO[productInfo.apiName as string as SelectableProduct];
         if (!checkoutInfo) {
@@ -92,7 +121,7 @@ function ProductSelect({
 
         const productIcon = getProductIcon(
           productInfo.apiName as string as SelectableProduct,
-          'lg'
+          'md'
         );
 
         // how much the customer is paying for the product
@@ -114,7 +143,7 @@ function ProductSelect({
           formData.selectedProducts?.[productInfo.apiName as string as SelectableProduct]
             ?.enabled;
 
-        const ariaLabel = t('Add %s to plan', productInfo.productCheckoutName);
+        const ariaLabel = t('Add %s to plan', productName);
 
         const toggleProductOption = () => {
           onUpdate({
@@ -129,100 +158,110 @@ function ProductSelect({
 
         if (isNewCheckout) {
           return (
-            <ProductOption
+            <CheckoutOption
               key={productInfo.apiName}
-              aria-label={ariaLabel}
-              data-test-id={`product-option-${productInfo.apiName}`}
+              ariaLabel={ariaLabel}
+              dataTestId={`product-option-${productInfo.apiName}`}
               onClick={toggleProductOption}
-              isNewCheckout={isNewCheckout}
+              isSelected={!!isSelected}
+              ariaRole="checkbox"
             >
-              <ProductOptionContent isSelected={isSelected} isNewCheckout>
-                <Column>
-                  {productIcon}
-                  <ProductLabel>
-                    <ProductName>
-                      {toTitleCase(productInfo.productCheckoutName, {
-                        allowInnerUpperCase: true,
-                      })}
-                    </ProductName>
-                  </ProductLabel>
-                  <ProductDescription
-                    isNewCheckout
-                    colorOverride={isSelected ? undefined : theme.subText}
-                  >
-                    {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
-                  </ProductDescription>
-                  <div>
-                    <Amount isNewCheckout>{`+$${priceInDollars}`}</Amount>
-                    <BillingInterval
-                      isNewCheckout
-                    >{`/${billingInterval}`}</BillingInterval>
-                  </div>
-                  <Separator />
-                  <FeatureItem data-test-id={`product-option-feature-credits`}>
-                    <IconContainer>
-                      <IconCheckmark color={theme.activeText as Color} />
-                    </IconContainer>
-                    <span>
-                      {tct('Includes [includedBudget]/mo in credits', {
-                        includedBudget: formattedMonthlyBudget,
-                      })}
-                    </span>
-                  </FeatureItem>
-                  {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
-                    const pricingInfo =
-                      activePlan.planCategories[category as DataCategory];
-                    const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
-                    return (
-                      <FeatureItem
-                        key={category}
-                        data-test-id={`product-option-feature-${category}`}
-                      >
-                        <IconContainer>
-                          <IconCheckmark color={theme.activeText as Color} />
-                        </IconContainer>
-                        <div>
-                          <FeatureItemCategory>
-                            {getSingularCategoryName({
-                              plan: activePlan,
-                              category: category as DataCategory,
-                              hadCustomDynamicSampling: false,
-                              title: true,
-                            })}
-                            {':'}
-                          </FeatureItemCategory>
-                          <span>
-                            {info.description}.{' '}
-                            {eventPrice &&
-                              `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}
-                          </span>
-                        </div>
-                      </FeatureItem>
-                    );
-                  })}
-                </Column>
-                <Column>
-                  <Checkbox
-                    aria-label={ariaLabel}
-                    aria-checked={isSelected}
-                    checked={isSelected}
-                    onChange={toggleProductOption}
-                    onKeyDown={({key}) => {
-                      if (key === 'Enter') {
-                        toggleProductOption();
-                      }
-                    }}
-                  />
-                </Column>
-              </ProductOptionContent>
-            </ProductOption>
+              <Flex direction="column" gap="md" padding="xl" width="100%">
+                <Flex align="start" justify="between" gap="md">
+                  <Container paddingTop="sm">
+                    <Checkbox
+                      aria-label={ariaLabel}
+                      aria-checked={isSelected}
+                      checked={isSelected}
+                      onChange={toggleProductOption}
+                      onKeyDown={({key}) => {
+                        if (key === 'Enter') {
+                          toggleProductOption();
+                        }
+                      }}
+                    />
+                  </Container>
+                  <Flex direction="column" gap="0" width="100%">
+                    <Flex align="center" justify="between" gap="sm">
+                      <Heading as="h3" variant="primary">
+                        {toTitleCase(productName, {
+                          allowInnerUpperCase: true,
+                        })}
+                      </Heading>
+                      <ProductIconContainer isSelected={isSelected}>
+                        {productIcon}
+                      </ProductIconContainer>
+                    </Flex>
+                    <ProductDescription isNewCheckout colorOverride={theme.subText}>
+                      {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
+                    </ProductDescription>
+                    <Container paddingTop="md">
+                      <Text
+                        size={'2xl'}
+                        bold
+                        variant="primary"
+                      >{`+$${priceInDollars}`}</Text>
+                      <Text size={'md'} variant="primary">{`/${billingInterval}`}</Text>
+                    </Container>
+                  </Flex>
+                </Flex>
+                <Flex direction="column" gap="2xs">
+                  <Separator orientation="horizontal" border="primary" />
+                  <Flex direction="column" gap="sm" paddingTop="xl">
+                    <FeatureItem data-test-id={`product-option-feature-credits`}>
+                      <IconContainer>
+                        <IconCheckmark color={theme.successText as Color} />
+                      </IconContainer>
+                      <Text size={'md'}>
+                        {tct('Includes [includedBudget]/mo in credits', {
+                          includedBudget: formattedMonthlyBudget,
+                        })}
+                      </Text>
+                    </FeatureItem>
+                    {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
+                      const pricingInfo =
+                        activePlan.planCategories[category as DataCategory];
+                      const eventPrice = pricingInfo
+                        ? pricingInfo[1]?.onDemandPrice
+                        : null;
+                      return (
+                        <FeatureItem
+                          key={category}
+                          data-test-id={`product-option-feature-${category}`}
+                        >
+                          <IconContainer>
+                            <IconCheckmark color={theme.successText as Color} />
+                          </IconContainer>
+                          <Text size={'md'}>
+                            <FeatureItemCategory>
+                              {getSingularCategoryName({
+                                plan: activePlan,
+                                category: category as DataCategory,
+                                hadCustomDynamicSampling: false,
+                                title: true,
+                              })}
+                              {':'}
+                            </FeatureItemCategory>
+                            <span>
+                              {info.description}.{' '}
+                              {eventPrice &&
+                                `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}
+                            </span>
+                          </Text>
+                        </FeatureItem>
+                      );
+                    })}
+                  </Flex>
+                </Flex>
+              </Flex>
+            </CheckoutOption>
           );
         }
 
         return (
           <ProductOption
             key={productInfo.apiName}
-            aria-label={productInfo.productCheckoutName}
+            aria-label={productName}
             data-test-id={`product-option-${productInfo.apiName}`}
             onClick={toggleProductOption}
           >
@@ -237,7 +276,7 @@ function ProductSelect({
                   <ProductLabel productColor={checkoutInfo.color}>
                     {productIcon}
                     <ProductName>
-                      {toTitleCase(productInfo.productCheckoutName, {
+                      {toTitleCase(productName, {
                         allowInnerUpperCase: true,
                       })}
                     </ProductName>
@@ -325,11 +364,6 @@ function ProductSelect({
 }
 
 export default ProductSelect;
-
-const Separator = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: 0;
-`;
 
 const ProductOption = styled(PanelItem)<{isNewCheckout?: boolean; isSelected?: boolean}>`
   margin: ${p => (p.isNewCheckout ? '0' : p.theme.space.lg)};
@@ -539,9 +573,19 @@ const EventPriceTag = styled(Tag)`
 `;
 
 const IconContainer = styled('div')`
-  margin-right: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space['2xs']};
   display: flex;
   align-items: center;
+`;
+
+const ProductIconContainer = styled('div')<{isSelected?: boolean}>`
+  display: flex;
+  background: ${p =>
+    p.isSelected ? p.theme.tokens.graphics.accent : p.theme.background};
+  border: 1px solid ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs};
+  color: ${p => (p.isSelected ? p.theme.background : p.theme.textColor)};
 `;
 
 const StyledButton = styled(Button)`
@@ -607,9 +651,10 @@ const IllustrationContainer = styled('div')`
 const FeatureItem = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   display: grid;
-  grid-template-columns: min-content 1fr;
+  grid-template-columns: ${p => p.theme.space.xl} 1fr;
   align-items: start;
   color: ${p => p.theme.textColor};
+  gap: ${p => p.theme.space.md};
 `;
 
 const FeatureItemCategory = styled('span')`

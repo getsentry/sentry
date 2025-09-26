@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:04.577361+00:00'
+created: '2025-09-24T22:53:03.033848+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -14,7 +14,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         {
           "contributes": true,
           "hint": null,
-          "id": "chained-exception",
+          "id": "chained_exception",
           "name": null,
           "values": [
             {
@@ -27,7 +27,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": false,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": []
                 },
                 {
@@ -60,7 +60,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": false,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": []
                 },
                 {
@@ -93,7 +93,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                   "contributes": false,
                   "hint": null,
                   "id": "stacktrace",
-                  "name": "stack-trace",
+                  "name": "stacktrace",
                   "values": []
                 },
                 {
@@ -142,6 +142,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
     },
     "description": "in-app exception",
     "hash": "fca0fd23f09e8da4481304ef2a531100",
+    "hint": null,
     "key": "app",
     "type": "component"
   }

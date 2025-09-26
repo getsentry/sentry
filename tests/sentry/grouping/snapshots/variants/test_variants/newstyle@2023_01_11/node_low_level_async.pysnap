@@ -1,19 +1,19 @@
 ---
-created: '2025-05-12T23:41:21.896373+00:00'
+created: '2025-09-24T20:27:08.656302+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "be36642f41f047346396f018f62375d3"
   contributing component: exception
-  component:
+  root_component:
     app*
       exception*
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by stack trace rule (function:processTicksAndRejections -app))
             module*
               "task_queues"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
@@ -30,14 +30,14 @@ app:
 system:
   hash: null
   contributing component: null
-  component:
-    system (exception of app takes precedence)
+  root_component:
+    system (ignored because app exception takes precedence)
       exception (ignored because hash matches app variant)
         stacktrace (ignored because it contains no contributing frames)
           frame (ignored by stack trace rule (function:processTicksAndRejections -group))
             module*
               "task_queues"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"

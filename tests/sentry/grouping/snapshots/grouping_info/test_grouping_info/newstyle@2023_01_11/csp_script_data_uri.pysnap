@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:03.695165+00:00'
+created: '2025-09-24T22:53:02.388409+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "default": {
@@ -28,7 +28,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
             },
             {
               "contributes": false,
-              "hint": "not a local script violation",
+              "hint": "ignored because it's not a local script violation",
               "id": "violation",
               "name": "violation",
               "values": []
@@ -68,6 +68,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
     },
     "description": "URL",
     "hash": "4e6f2bce9d121aa89f4dc5e5da08afb5",
+    "hint": null,
     "key": "default",
     "type": "component"
   }

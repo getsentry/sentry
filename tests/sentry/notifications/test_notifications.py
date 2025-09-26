@@ -290,7 +290,7 @@ class ActivityNotificationTest(APITestCase):
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -365,7 +365,7 @@ class ActivityNotificationTest(APITestCase):
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -383,6 +383,7 @@ class ActivityNotificationTest(APITestCase):
             with self.tasks():
                 event = manager.save(self.project.id)
 
+            assert event.group_id is not None
             group = Group.objects.get(id=event.group_id)
             group.status = GroupStatus.RESOLVED
             group.substatus = None
@@ -441,7 +442,7 @@ class ActivityNotificationTest(APITestCase):
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -512,7 +513,7 @@ class ActivityNotificationTest(APITestCase):
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
 
     def test_sends_processing_issue_notification(self, mock_post: MagicMock) -> None:
@@ -605,5 +606,5 @@ class ActivityNotificationTest(APITestCase):
                 actor_type="User",
                 category="",
             ),
-            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )

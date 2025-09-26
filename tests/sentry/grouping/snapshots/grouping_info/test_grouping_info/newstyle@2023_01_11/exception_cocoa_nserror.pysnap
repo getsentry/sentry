@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:04.183690+00:00'
+created: '2025-09-24T22:53:02.632861+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": false,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": []
             },
             {
@@ -36,11 +36,27 @@ source: tests/sentry/grouping/test_grouping_inputs.py
             {
               "contributes": true,
               "hint": null,
-              "id": "ns-error",
+              "id": "ns_error",
               "name": null,
               "values": [
-                "iOS_Swift.SampleError",
-                0
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "domain",
+                  "name": null,
+                  "values": [
+                    "iOS_Swift.SampleError"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "code",
+                  "name": null,
+                  "values": [
+                    0
+                  ]
+                }
               ]
             },
             {
@@ -56,7 +72,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         },
         {
           "contributes": false,
-          "hint": "exception of app takes precedence",
+          "hint": "ignored because app exception takes precedence",
           "id": "threads",
           "name": "thread",
           "values": [
@@ -64,7 +80,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -807,19 +823,20 @@ source: tests/sentry/grouping/test_grouping_inputs.py
     },
     "description": "in-app exception",
     "hash": "029f3b967068b1539f96957b7c0451d7",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
   "system": {
     "component": {
       "contributes": false,
-      "hint": "exception of app takes precedence",
+      "hint": "ignored because app exception takes precedence",
       "id": "system",
       "name": null,
       "values": [
         {
           "contributes": false,
-          "hint": "exception of app takes precedence",
+          "hint": "ignored because app exception takes precedence",
           "id": "threads",
           "name": "thread",
           "values": [
@@ -827,7 +844,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -1570,6 +1587,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
     },
     "description": "system",
     "hash": null,
+    "hint": "ignored because app exception takes precedence",
     "key": "system",
     "type": "component"
   }

@@ -21,7 +21,6 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.bgtask import BgTaskConfig
-from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.region_config import RegionConfig
@@ -31,7 +30,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils.celery import make_split_task_queues
 
 
 def gettext_noop(s: str) -> str:
@@ -167,6 +165,10 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
 # ensure that domains are fully resolved first to avoid poking internal
 # search domains.
 SENTRY_ENSURE_FQDN = False
+
+# When running in an air gap environment, set this to True to disable external
+# network calls and features that require internet connectivity.
+SENTRY_AIR_GAP = False
 
 # XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
 #           it can not be `default`. The default cluster in sentry.io
@@ -788,16 +790,6 @@ BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-# though it would cause timeouts/recursions in some cases
-CELERY_ALWAYS_EAGER = False
-
-# Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
-# this works.
-CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
-
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -849,7 +841,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.beacon",
     "sentry.tasks.ping",
     "sentry.tasks.auth.check_auth",
-    "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
@@ -908,38 +899,6 @@ CELERY_IMPORTS = (
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
 )
-
-# Enable split queue routing
-CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
-
-# Mapping from task names to split queues. This can be used when the
-# task does not have to specify the queue and can rely on Celery to
-# do the routing.
-# Each route has a task name as key and a tuple containing a list of queues
-# and a default one as destination. The default one is used when the
-# rollout option is not active.
-CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
-    "sentry.tasks.store.save_event_transaction": {
-        "default_queue": "events.save_event_transaction",
-        "queues_config": {
-            "total": 3,
-            "in_use": 3,
-        },
-    },
-    "sentry.profiles.task.process_profile": {
-        "default_queue": "profiles.process",
-        "queues_config": {
-            "total": 3,
-            "in_use": 3,
-        },
-    },
-}
-CELERY_SPLIT_TASK_QUEUES_REGION = make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION)
-
-# Mapping from queue name to split queues to be used by SplitQueueRouter.
-# This is meant to be used in those case where we have to specify the
-# queue name when issuing a task. Example: post process.
-CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {}
 
 default_exchange = Exchange("default", type="direct")
 control_exchange = default_exchange
@@ -1100,7 +1059,6 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
-    Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue(
         "integrations_slack_activity_notify",
         routing_key="integrations_slack_activity_notify",
@@ -1205,6 +1163,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 10, "queue": "buffers.process_pending_batch"},
+    },
+    "flush-delayed-workflows": {
+        "task": "sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 10, "queue": "workflow_engine.process_workflows"},
     },
     "sync-options": {
         "task": "sentry.tasks.options.sync_options",
@@ -1426,19 +1390,16 @@ if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
     CELERY_QUEUES = CELERY_QUEUES_CONTROL
-    CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {}
 
 elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_SPLIT_TASK_QUEUES_REGION
-    CELERY_SPLIT_QUEUE_TASK_ROUTES = CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION
+    CELERY_QUEUES = CELERY_QUEUES_REGION
 
 else:
     CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + CELERY_SPLIT_TASK_QUEUES_REGION
-    CELERY_SPLIT_QUEUE_TASK_ROUTES = CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL
 
 for queue in CELERY_QUEUES:
     queue.durable = False
@@ -1483,6 +1444,18 @@ BGTASKS: dict[str, BgTaskConfig] = {
         "interval": 5 * 60,
         "roles": ["worker"],
     },
+}
+
+# Fernet keys for database encryption.
+# First key in the dict is used as a primary key, and if
+# encryption method options is "fernet", the first key will be
+# used to decrypt the data.
+#
+# Other keys are used only for data decryption. This structure
+# is used to allow easier key rotation when "fernet" is used
+# as an encryption method.
+DATABASE_ENCRYPTION_FERNET_KEYS = {
+    os.getenv("DATABASE_ENCRYPTION_KEY_ID_1"): os.getenv("DATABASE_ENCRYPTION_FERNET_KEY_1"),
 }
 
 #######################
@@ -1567,7 +1540,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.autofix",
     "sentry.tasks.beacon",
     "sentry.tasks.check_am2_compatibility",
-    "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_resolutions",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.clear_expired_snoozes",
@@ -1631,6 +1603,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-buffers-batch": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending_batch",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "flush-delayed-workflows": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "sync-options": {
@@ -1757,10 +1733,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.schedule_auto_transition_to_ongoing",
         "schedule": task_crontab("*/5", "*", "*", "*", "*"),
     },
-    "github_comment_reactions": {
-        "task": "integrations:sentry.integrations.github.tasks.github_comment_reactions",
-        "schedule": task_crontab("0", "4", "*", "*", "*"),
-    },
     "statistical-detectors-detect-regressions": {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
@@ -1788,6 +1760,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+    },
+    "preprod-detect-expired-artifacts": {
+        "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
     },
 }
 
@@ -1843,12 +1819,6 @@ else:
         **TASKWORKER_CONTROL_SCHEDULES,
         **TASKWORKER_REGION_SCHEDULES,
     }
-
-TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
-    "ingest.profiling",
-    "ingest.transactions",
-    "ingest.errors",
-}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -2019,12 +1989,10 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_EARLY_FEATURES = {
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
     "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
@@ -3060,7 +3028,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.8.0"
+SELF_HOSTED_STABLE_VERSION = "25.9.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3079,10 +3047,11 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
-    "sentry.integrations.msteams.MsTeamsIntegrationProvider",
+    "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
+    "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
 )
 
 
@@ -3746,6 +3715,10 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
+# Used to validate RPC requests from the Overwatch service
+OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
+if (val := os.environ.get("OVERWATCH_RPC_SHARED_SECRET")) is not None:
+    OVERWATCH_RPC_SHARED_SECRET = [val]
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3912,19 +3885,15 @@ SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 
 # This is a view of which abstract processing service is backed by which infrastructure.
-# Right now, the infrastructure can be `redis` or `rabbitmq`.
+# Right now, the infrastructure can be `redis`.
 #
 # For `redis`, one has to provide the cluster id.
 # It has to match a cluster defined in `redis.redis_clusters`.
-#
-# For `rabbitmq`, one has to provide a list of server URLs.
-# The URL is in the format `http://{user}:{password}@{hostname}:{port}/`.
 #
 # The definition can also be empty, in which case nothing is checked and
 # the service is assumed to be healthy.
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
-    "celery": {"redis": "default"},
     "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-store-transactions": {},

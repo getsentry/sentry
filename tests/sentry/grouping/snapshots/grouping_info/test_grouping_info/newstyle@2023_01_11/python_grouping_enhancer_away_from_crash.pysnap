@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:07.100554+00:00'
+created: '2025-09-24T22:53:05.338001+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -40,7 +40,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -59,7 +59,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
@@ -84,7 +84,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -103,7 +103,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return self.dispatch(request, *args, **kwargs)"
@@ -128,7 +128,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -147,7 +147,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return bound_func(*args, **kwargs)"
@@ -172,7 +172,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -191,7 +191,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return view_func(*args, **kwargs)"
@@ -216,7 +216,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -235,7 +235,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return func(self, *args2, **kwargs2)"
@@ -260,7 +260,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -279,7 +279,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
@@ -304,7 +304,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -323,7 +323,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return handler(request, *args, **kwargs)"
@@ -348,7 +348,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -367,7 +367,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "hook.handle(request)"
@@ -392,7 +392,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -411,7 +411,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "email = request.POST['user']"
@@ -436,7 +436,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -455,7 +455,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise MultiValueDictKeyError(repr(key))"
@@ -507,8 +507,9 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stack-trace",
+    "description": "in-app exception stacktrace",
     "hash": "121caa876de75ec51bf72ed4c852cd75",
+    "hint": null,
     "key": "app",
     "type": "component"
   },
@@ -529,7 +530,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": [
                 {
                   "contributes": false,
@@ -548,7 +549,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -567,7 +568,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
@@ -592,7 +593,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -611,7 +612,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return self.dispatch(request, *args, **kwargs)"
@@ -636,7 +637,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -655,7 +656,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return bound_func(*args, **kwargs)"
@@ -680,7 +681,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -699,7 +700,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return view_func(*args, **kwargs)"
@@ -724,7 +725,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -743,7 +744,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return func(self, *args2, **kwargs2)"
@@ -768,7 +769,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -787,7 +788,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
@@ -812,7 +813,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -831,7 +832,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "return handler(request, *args, **kwargs)"
@@ -856,7 +857,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -875,7 +876,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "hook.handle(request)"
@@ -900,7 +901,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -919,7 +920,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "email = request.POST['user']"
@@ -944,7 +945,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     },
                     {
                       "contributes": false,
-                      "hint": "module takes precedence",
+                      "hint": "ignored because module takes precedence",
                       "id": "filename",
                       "name": null,
                       "values": [
@@ -963,7 +964,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                     {
                       "contributes": true,
                       "hint": null,
-                      "id": "context-line",
+                      "id": "context_line",
                       "name": null,
                       "values": [
                         "raise MultiValueDictKeyError(repr(key))"
@@ -1015,8 +1016,9 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "exception stack-trace",
+    "description": "exception stacktrace",
     "hash": "a5af2577d4caca8f983657c5d1919e14",
+    "hint": null,
     "key": "system",
     "type": "component"
   }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Union
+from typing import Literal, Union, overload
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -176,12 +176,14 @@ class ArithmeticVisitor(NodeVisitor):
         "count_if",
         "count_unique",
         "failure_count",
+        "failure_rate",
         "min",
         "max",
         "avg",
         "sum",
         "p50",
         "p75",
+        "p90",
         "p95",
         "p99",
         "p100",
@@ -292,12 +294,30 @@ class ArithmeticVisitor(NodeVisitor):
         return children or node
 
 
+@overload
+def parse_arithmetic(
+    equation: str,
+    max_operators: int | None = None,
+    custom_measurements: set[str] | None = None,
+    *,
+    validate_single_operator: Literal[True],
+) -> tuple[Operation, list[str], list[str]]: ...
+
+
+@overload
+def parse_arithmetic(
+    equation: str,
+    max_operators: int | None = None,
+    custom_measurements: set[str] | None = None,
+) -> tuple[Operation | float | str, list[str], list[str]]: ...
+
+
 def parse_arithmetic(
     equation: str,
     max_operators: int | None = None,
     custom_measurements: set[str] | None = None,
     validate_single_operator: bool = False,
-) -> tuple[Operation, list[str], list[str]]:
+) -> tuple[Operation | float | str, list[str], list[str]]:
     """Given a string equation try to parse it into a set of Operations"""
     try:
         tree = arithmetic_grammar.parse(equation)

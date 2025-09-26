@@ -1,13 +1,13 @@
 ---
-created: '2025-09-08T19:48:04.965061+00:00'
+created: '2025-09-24T22:53:03.468134+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
     "component": {
       "contributes": false,
-      "hint": "stacktrace of system takes precedence",
+      "hint": "ignored because system stacktrace takes precedence",
       "id": "app",
       "name": "in-app",
       "values": [
@@ -15,7 +15,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
           "contributes": false,
           "hint": "ignored because it contains no in-app frames",
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": false,
@@ -51,7 +51,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                 {
                   "contributes": true,
                   "hint": null,
-                  "id": "context-line",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "hello world"
@@ -93,7 +93,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                 {
                   "contributes": true,
                   "hint": null,
-                  "id": "context-line",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "hello world"
@@ -132,8 +132,8 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                 },
                 {
                   "contributes": false,
-                  "hint": "discarded because from URL origin and no function",
-                  "id": "context-line",
+                  "hint": "ignored because file path is a URL and function name is missing",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "hello world"
@@ -167,6 +167,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
     },
     "description": "in-app",
     "hash": null,
+    "hint": "ignored because system stacktrace takes precedence",
     "key": "app",
     "type": "component"
   },
@@ -181,7 +182,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
           "contributes": true,
           "hint": null,
           "id": "stacktrace",
-          "name": "stack-trace",
+          "name": "stacktrace",
           "values": [
             {
               "contributes": true,
@@ -217,7 +218,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                 {
                   "contributes": true,
                   "hint": null,
-                  "id": "context-line",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "hello world"
@@ -259,7 +260,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                 {
                   "contributes": true,
                   "hint": null,
-                  "id": "context-line",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "hello world"
@@ -298,8 +299,8 @@ source: tests/sentry/grouping/test_grouping_inputs.py
                 },
                 {
                   "contributes": false,
-                  "hint": "discarded because from URL origin and no function",
-                  "id": "context-line",
+                  "hint": "ignored because file path is a URL and function name is missing",
+                  "id": "context_line",
                   "name": null,
                   "values": [
                     "hello world"
@@ -331,8 +332,9 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         "threads:v1"
       ]
     },
-    "description": "stack-trace",
+    "description": "stacktrace",
     "hash": "e04dce7550635e05dbd7f656102cf304",
+    "hint": null,
     "key": "system",
     "type": "component"
   }

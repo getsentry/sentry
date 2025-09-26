@@ -55,6 +55,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.repository import Repository
+from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -174,6 +175,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
+    @sentry_sdk.trace
     def _is_authorized(self, request: Request) -> bool:
         if request.auth and isinstance(
             request.successful_authenticator, SeerRpcSignatureAuthentication
@@ -181,6 +183,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return True
         return False
 
+    @sentry_sdk.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -188,6 +191,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         method = seer_method_registry[method_name]
         return method(**arguments)
 
+    @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
         if not self._is_authorized(request):
             raise PermissionDenied
@@ -931,6 +935,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
+    #
+    # Replays
+    "get_replay_summary_logs": rpc_get_replay_summary_logs,
 }
 
 

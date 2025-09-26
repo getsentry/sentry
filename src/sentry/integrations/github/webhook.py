@@ -52,6 +52,7 @@ from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
+from .tasks.codecov_account_unlink import codecov_account_unlink
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -293,6 +294,21 @@ class InstallationEventWebhook(GitHubWebhook):
                 integration_id=integration.id,
             )
 
+        github_app_id = event["installation"].get("app_id")
+        SENTRY_GITHUB_APP_ID = options.get("github-app.id")
+
+        if (
+            github_app_id
+            and SENTRY_GITHUB_APP_ID
+            and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
+        ):
+            codecov_account_unlink.apply_async(
+                kwargs={
+                    "integration_id": integration.id,
+                    "organization_ids": list(org_ids),
+                }
+            )
+
 
 class PushEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
@@ -441,7 +457,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="A",
                             )
@@ -452,7 +468,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="D",
                             )
@@ -463,7 +479,7 @@ class PushEventWebhook(GitHubWebhook):
                         file_changes.append(
                             CommitFileChange(
                                 organization_id=organization.id,
-                                commit=c,
+                                commit_id=c.id,
                                 filename=fname,
                                 type="M",
                             )

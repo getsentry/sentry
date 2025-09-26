@@ -16,6 +16,7 @@ class TreemapElement(BaseModel):
     size: int
     path: str | None
     is_dir: bool
+    type: str | None
     """ Some files (like zip files) are not directories but have children. """
     children: list["TreemapElement"]
 
@@ -34,6 +35,7 @@ class SizeAnalysisResults(BaseModel):
     download_size: int
     install_size: int
     treemap: TreemapResults | None
+    analysis_version: str | None
 
 
 ###
@@ -46,7 +48,6 @@ class DiffType(str, Enum):
     REMOVED = "removed"
     INCREASED = "increased"
     DECREASED = "decreased"
-    UNCHANGED = "unchanged"
 
 
 class DiffItem(BaseModel):
@@ -54,6 +55,7 @@ class DiffItem(BaseModel):
     head_size: int | None
     base_size: int | None
     path: str
+    item_type: str | None
     type: DiffType
 
 

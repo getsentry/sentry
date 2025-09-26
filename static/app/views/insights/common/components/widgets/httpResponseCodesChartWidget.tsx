@@ -1,3 +1,4 @@
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,8 +11,8 @@ import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/c
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useHttpLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingChartFilter';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
@@ -31,32 +32,32 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
     isPending: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-      transformAliasToInputFormat: true,
+      pageFilters: props.pageFilters,
     },
-    referrer,
-    props.pageFilters
+    referrer
   );
 
   const responseRateField = 'tags[http.response.status_code,number]';
   const stringifiedSearch = search.formatString();
+  const yAxis = 'count()';
 
   const queries = [
     {
-      yAxes: ['count()'],
+      yAxes: [yAxis],
       label: '3xx',
       query: `${stringifiedSearch} ${responseRateField}:>=300 ${responseRateField}:<=399`,
     },
     {
-      yAxes: ['count()'],
+      yAxes: [yAxis],
       label: '4xx',
       query: `${stringifiedSearch} ${responseRateField}:>=400 ${responseRateField}:<=499`,
     },
     {
-      yAxes: ['count()'],
+      yAxes: [yAxis],
       label: '5xx',
       query: `${stringifiedSearch} ${responseRateField}:>=500 ${responseRateField}:<=599`,
     },
@@ -73,10 +74,19 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
     referrer,
   });
 
+  const addToDashboardOptions: AddToSpanDashboardOptions[] = queries.map(query => ({
+    chartType: ChartType.LINE,
+    yAxes: query.yAxes,
+    widgetName: query.label,
+    groupBy: [],
+    search: new MutableSearch(query.query),
+  }));
+
   const extraActions = [
     <BaseChartActionDropdown
       key="http response chart widget"
       exploreUrl={exploreUrl}
+      addToDashboardOptions={addToDashboardOptions}
       referrer={referrer}
       alertMenuOptions={queries.map(query => ({
         key: query.label,
@@ -98,13 +108,9 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
     <InsightsLineChartWidget
       {...props}
       id="httpResponseCodesChartWidget"
-      extraActions={extraActions}
       title={DataTitles.unsuccessfulHTTPCodes}
-      series={[
-        responseCodeData[`http_response_rate(3)`],
-        responseCodeData[`http_response_rate(4)`],
-        responseCodeData[`http_response_rate(5)`],
-      ]}
+      timeSeries={responseCodeData?.timeSeries}
+      extraActions={extraActions}
       aliases={FIELD_ALIASES}
       isLoading={isResponseCodeDataLoading}
       error={responseCodeError}

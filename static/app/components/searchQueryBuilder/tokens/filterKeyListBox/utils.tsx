@@ -19,7 +19,11 @@ import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  WildcardOperators,
+  type Token,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {
   getKeyLabel as getFilterKeyLabel,
   getKeyName,
@@ -166,6 +170,24 @@ export function createRawSearchFilterIsValueItem(
   };
 }
 
+export function createRawSearchFilterContainsValueItem(
+  key: string,
+  value: string
+): RawSearchFilterIsValueItem {
+  const filter = `${key}:${WildcardOperators.CONTAINS}${escapeFilterValue(value)}`;
+
+  return {
+    key: getEscapedKey(`${key}:${WildcardOperators.CONTAINS}${value}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-is-value',
+  };
+}
+
 export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
   const key = getKeyName(filter.key);
   return {
@@ -206,9 +228,9 @@ export function createAskSeerItem(): AskSeerItem {
   return {
     key: getEscapedKey(ASK_SEER_ITEM_KEY),
     value: ASK_SEER_ITEM_KEY,
-    textValue: 'Ask Seer',
+    textValue: 'Ask Seer to build your query',
     type: 'ask-seer' as const,
-    label: t('Ask Seer'),
+    label: t('Ask Seer to build your query'),
     hideCheck: true,
   };
 }

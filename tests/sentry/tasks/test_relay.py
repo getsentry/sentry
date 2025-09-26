@@ -53,7 +53,7 @@ def emulate_transactions(django_capture_on_commit_callbacks):
                 # hook has scheduled the build_project_config task prematurely.
                 #
                 # Remove any other jobs from the queue that may have been triggered via model hooks
-                assert not any("relay" in task.__name__ for task, _, _ in burst.queue)
+                assert not any("relay" in task.name for task, _, _ in burst.queue)
                 burst.queue.clear()
 
             # for some reason, the callbacks array is only populated by
@@ -137,11 +137,11 @@ def test_debounce(
 ):
     tasks = []
 
-    def apply_async(args, kwargs):
+    def signal_send(self, task, args, kwargs):
         assert not args
         tasks.append(kwargs)
 
-    with mock.patch("sentry.tasks.relay.build_project_config.apply_async", apply_async):
+    with mock.patch("sentry.taskworker.task.Task._signal_send", signal_send):
         schedule_build_project_config(public_key=default_projectkey.public_key)
         schedule_build_project_config(public_key=default_projectkey.public_key)
 

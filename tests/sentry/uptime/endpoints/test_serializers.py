@@ -12,7 +12,6 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
 
         assert result == {
             "id": str(detector.id),
-            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": detector.name,
             "environment": detector.config.get("environment"),
@@ -27,6 +26,8 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
             "timeoutMs": uptime_subscription.timeout_ms,
             "owner": None,
             "traceSampling": False,
+            "recoveryThreshold": detector.config["recovery_threshold"],
+            "downtimeThreshold": detector.config["downtime_threshold"],
         }
 
     def test_default_name(self) -> None:
@@ -39,7 +40,6 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
 
         assert result == {
             "id": str(detector.id),
-            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": f"Uptime Monitoring for {uptime_subscription.url}",
             "environment": detector.config.get("environment"),
@@ -54,6 +54,8 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
             "timeoutMs": uptime_subscription.timeout_ms,
             "owner": None,
             "traceSampling": False,
+            "recoveryThreshold": detector.config["recovery_threshold"],
+            "downtimeThreshold": detector.config["downtime_threshold"],
         }
 
     def test_owner(self) -> None:
@@ -63,7 +65,6 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
 
         assert result == {
             "id": str(detector.id),
-            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": detector.name,
             "environment": detector.config.get("environment"),
@@ -83,6 +84,8 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
                 "type": "user",
             },
             "traceSampling": False,
+            "recoveryThreshold": detector.config["recovery_threshold"],
+            "downtimeThreshold": detector.config["downtime_threshold"],
         }
 
     def test_trace_sampling(self) -> None:
@@ -91,6 +94,14 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
         result = serialize(detector, serializer=UptimeDetectorSerializer())
 
         assert result["traceSampling"] is True
+
+    def test_custom_thresholds(self) -> None:
+        """Test that custom threshold values are properly serialized."""
+        detector = self.create_uptime_detector(recovery_threshold=2, downtime_threshold=5)
+        result = serialize(detector, serializer=UptimeDetectorSerializer())
+
+        assert result["recoveryThreshold"] == 2
+        assert result["downtimeThreshold"] == 5
 
     def test_bulk_detector_id_lookup(self) -> None:
         """Test that detector IDs are properly included when serializing multiple monitors."""
@@ -104,7 +115,7 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
         # Get the detectors and serialize them
         results = serialize(detectors, serializer=UptimeDetectorSerializer())
 
-        # Verify each has a detector ID
+        # Verify each has the correct ID
         for i, result in enumerate(results):
-            assert result["detectorId"] == detectors[i].id
+            assert result["id"] == str(detectors[i].id)
             assert result["name"] == detectors[i].name

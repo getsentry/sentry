@@ -54,7 +54,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {
+  hasAgentInsightsFeature,
+  hasMCPInsightsFeature,
+} from 'sentry/views/insights/agents/utils/features';
+import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
@@ -444,7 +448,10 @@ function Highlights({
     return null;
   }
 
-  const isAiNode = getIsAiNode(node);
+  const isAiNode = hasAgentInsightsFeature(organization) && getIsAiNode(node);
+  const isMCPNode = hasMCPInsightsFeature(organization) && getIsMCPNode(node);
+
+  const hidePanelAndBreakdown = isAiNode || isMCPNode;
 
   const startTimestamp = node.space[0];
   const endTimestamp = node.space[0] + node.space[1];
@@ -496,27 +503,26 @@ function Highlights({
               ))}
             </HighlightedAttributesWrapper>
           ) : null}
-          {isAiNode && hasAgentInsightsFeature(organization) ? (
-            hideNodeActions ? null : (
-              <OpenInAIFocusButton
-                size="xs"
-                onClick={() => {
-                  trackAnalytics('agent-monitoring.view-ai-trace-click', {
-                    organization,
-                  });
-                }}
-                to={{
-                  ...location,
-                  query: {
-                    ...location.query,
-                    tab: TraceLayoutTabKeys.AI_SPANS,
-                  },
-                }}
-              >
-                {t('Open in AI View')}
-              </OpenInAIFocusButton>
-            )
-          ) : (
+          {isAiNode && !hideNodeActions && (
+            <OpenInAIFocusButton
+              size="xs"
+              onClick={() => {
+                trackAnalytics('agent-monitoring.view-ai-trace-click', {
+                  organization,
+                });
+              }}
+              to={{
+                ...location,
+                query: {
+                  ...location.query,
+                  tab: TraceLayoutTabKeys.AI_SPANS,
+                },
+              }}
+            >
+              {t('Open in AI View')}
+            </OpenInAIFocusButton>
+          )}
+          {!hidePanelAndBreakdown && (
             <Fragment>
               <StyledPanel>
                 <StyledPanelHeader>{headerContent}</StyledPanelHeader>
@@ -1321,7 +1327,16 @@ function MultilineJSON({
   const json = tryParseJson(value);
   return (
     <MultilineTextWrapperMonospace>
-      <StructuredData value={json} maxDefaultDepth={maxDefaultDepth} withAnnotatedText />
+      <StructuredData
+        config={{
+          isString: v => typeof v === 'string',
+          isBoolean: v => typeof v === 'boolean',
+          isNumber: v => typeof v === 'number',
+        }}
+        value={json}
+        maxDefaultDepth={maxDefaultDepth}
+        withAnnotatedText
+      />
     </MultilineTextWrapperMonospace>
   );
 }
@@ -1344,7 +1359,7 @@ function SectionTitleWithQuestionTooltip({
   tooltipText: string;
 }) {
   return (
-    <Flex gap="xs">
+    <Flex gap="xs" align="center">
       <div>{title}</div>
       <QuestionTooltip title={tooltipText} size="sm" />
     </Flex>

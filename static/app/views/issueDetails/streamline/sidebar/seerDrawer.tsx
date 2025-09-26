@@ -240,7 +240,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                         <Link
                           to={{
                             pathname: `/settings/${organization.slug}/`,
-                            hash: '#hideAiFeatures',
+                            hash: 'hideAiFeatures',
                           }}
                         />
                       ),
@@ -411,6 +411,7 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`
@@ -440,6 +441,7 @@ const SeerDrawerBody = styled(DrawerBody)`
   * {
     direction: ltr;
   }
+  padding-bottom: 80px;
 `;
 
 const Header = styled('h3')`

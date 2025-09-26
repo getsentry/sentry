@@ -1,4 +1,5 @@
 import {createContext, useContext, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   useDisclosure,
@@ -9,11 +10,12 @@ import {usePress} from '@react-aria/interactions';
 import {useDisclosureState, type DisclosureState} from '@react-stately/disclosure';
 
 import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 
-export interface DisclosureProps
+interface DisclosureProps
   extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
     React.HTMLAttributes<HTMLDivElement> {
   children: NonNullable<React.ReactNode>;
@@ -129,6 +131,22 @@ const StretchedButton = styled(Button)`
   &:hover {
     background-color: transparent;
   }
+
+  ${p =>
+    p.theme.isChonk
+      ? ''
+      : css`
+          display: flex;
+          box-shadow: none;
+
+          &:hover {
+            background-color: transparent;
+          }
+
+          ${InteractionStateLayer} {
+            display: none;
+          }
+        `}
 `;
 
 interface DisclosureContentProps {

@@ -57,7 +57,7 @@ function PreventSecondaryNav() {
             to={`${preventAIPathName}new/`}
             activeTo={`${preventAIPathName}new/`}
           >
-            {t('Prevent AI')}
+            {t('AI Code Review')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <Feature features={['prevent-test-analytics']}>

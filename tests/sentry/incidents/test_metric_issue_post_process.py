@@ -33,7 +33,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
                 "organizations:issue-metric-issue-ingest": True,
                 "organizations:issue-metric-issue-post-process-group": True,
                 "organizations:workflow-engine-single-process-metric-issues": True,
-                "organizations:issue-open-periods": True,
             }
         ):
             yield
@@ -126,7 +125,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         event = eventstore.backend.get_event_by_id(
             occurrence.project_id, stored_occurrence.event_id
         )
-        assert event
+        assert event and event.group_id
         return Group.objects.get(id=event.group_id)
 
     def test_simple(self, mock_trigger: MagicMock) -> None:

@@ -4,6 +4,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import type {
   AggregateField,
@@ -79,7 +80,7 @@ export function useQueryParams() {
   return queryParams;
 }
 
-function useSetQueryParams() {
+export function useSetQueryParams() {
   const {
     managedFields,
     setManagedFields,
@@ -108,6 +109,7 @@ function useSetQueryParams() {
         writableQueryParams.cursor = null;
         writableQueryParams.aggregateCursor = null;
       }
+
       setQueryParams(writableQueryParams);
     },
     [managedFields, setManagedFields, readableQueryParams, setQueryParams]
@@ -137,6 +139,60 @@ export function useSetQueryParamsMode() {
       setQueryParams({mode});
     },
     [setQueryParams]
+  );
+}
+
+export function useQueryParamsQuery(): string {
+  const queryParams = useQueryParams();
+  return queryParams.query;
+}
+
+export function useSetQueryParamsQuery() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (query: string) => {
+      setQueryParams({query});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsSearch(): MutableSearch {
+  const queryParams = useQueryParams();
+  return queryParams.search;
+}
+
+export function useSetQueryParamsSearch() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (search: MutableSearch) => {
+      setQueryParams({query: search.formatString()});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useAddSearchFilter() {
+  const setSearch = useSetQueryParamsSearch();
+  const search = useQueryParamsSearch();
+
+  return useCallback(
+    ({
+      key,
+      value,
+      negated,
+    }: {
+      key: string;
+      value: string | number | boolean;
+      negated?: boolean;
+    }) => {
+      const newSearch = search.copy();
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      setSearch(newSearch);
+    },
+    [setSearch, search]
   );
 }
 
@@ -346,4 +402,20 @@ export function useSetQueryParamsAggregateCursor() {
 export function useQueryParamsCursor(): string {
   const queryParams = useQueryParams();
   return queryParams.cursor;
+}
+
+export function useQueryParamsExtrapolate() {
+  const queryParams = useQueryParams();
+  return queryParams.extrapolate;
+}
+
+export function useSetQueryParamsExtrapolate() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (extrapolate: boolean) => {
+      setQueryParams({extrapolate});
+    },
+    [setQueryParams]
+  );
 }

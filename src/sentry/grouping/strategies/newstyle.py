@@ -17,6 +17,8 @@ from sentry.grouping.component import (
     FrameGroupingComponent,
     FunctionGroupingComponent,
     ModuleGroupingComponent,
+    NSErrorCodeGroupingComponent,
+    NSErrorDomainGroupingComponent,
     NSErrorGroupingComponent,
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
@@ -149,9 +151,11 @@ def get_filename_component(
     if has_url_origin(abs_path, files_count_as_urls=False):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
     elif filename == "<anonymous>":
-        filename_component.update(contributes=False, hint="anonymous filename discarded")
+        filename_component.update(contributes=False, hint="ignored because filename is anonymous")
     elif filename == "[native code]":
-        filename_component.update(contributes=False, hint="native code indicated by filename")
+        filename_component.update(
+            contributes=False, hint="ignored because filename suggests native code"
+        )
     elif platform == "java":
         new_filename = _java_assist_enhancer_re.sub(r"\1<auto>", filename)
         if new_filename != filename:
@@ -312,7 +316,7 @@ def frame(
     # take precedence over the filename if it contributes
     module_component = get_module_component(frame.abs_path, frame.module, platform, context)
     if module_component.contributes and filename_component.contributes:
-        filename_component.update(contributes=False, hint="module takes precedence")
+        filename_component.update(contributes=False, hint="ignored because module takes precedence")
 
     if frame.context_line and platform in context["contextline_platforms"]:
         context_line_component = get_contextline_component(
@@ -391,14 +395,15 @@ def get_contextline_component(
     context_line_component = ContextLineGroupingComponent(values=[line])
 
     if len(frame.context_line) > 120:
-        context_line_component.update(hint="discarded because line too long", contributes=False)
+        context_line_component.update(hint="ignored because line is too long", contributes=False)
     elif (
         get_behavior_family_for_platform(platform) == "javascript"
         and not function
         and has_url_origin(frame.abs_path, files_count_as_urls=True)
     ):
         context_line_component.update(
-            hint="discarded because from URL origin and no function", contributes=False
+            hint="ignored because file path is a URL and function name is missing",
+            contributes=False,
         )
 
     return context_line_component
@@ -529,11 +534,12 @@ def single_exception(
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
 
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
+            ns_error = exception.mechanism.meta["ns_error"]
             ns_error_component = NSErrorGroupingComponent(
                 values=[
-                    exception.mechanism.meta["ns_error"].get("domain"),
-                    exception.mechanism.meta["ns_error"].get("code"),
-                ],
+                    NSErrorDomainGroupingComponent(values=[ns_error.get("domain")]),
+                    NSErrorCodeGroupingComponent(values=[ns_error.get("code")]),
+                ]
             )
 
     if exception.stacktrace is not None:
@@ -849,7 +855,11 @@ def _filtered_threads(
 
     stacktrace = threads[0].get("stacktrace")
     if not stacktrace:
-        return {"app": ThreadsGroupingComponent(contributes=False, hint="thread has no stacktrace")}
+        return {
+            "app": ThreadsGroupingComponent(
+                contributes=False, hint="ignored because thread has no stacktrace"
+            )
+        }
 
     thread_components_by_variant = {}
 

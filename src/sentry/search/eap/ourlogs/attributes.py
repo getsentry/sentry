@@ -63,6 +63,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("environment"),
         simple_sentry_field("message.template"),
         simple_sentry_field("release"),
+        simple_sentry_field("replay_id"),
         simple_sentry_field("trace.parent_span_id"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),

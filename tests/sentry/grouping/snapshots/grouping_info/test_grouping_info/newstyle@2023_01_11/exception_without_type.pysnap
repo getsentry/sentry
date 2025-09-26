@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:04.636359+00:00'
+created: '2025-09-24T22:53:03.112395+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "app": {
@@ -21,7 +21,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
               "contributes": false,
               "hint": null,
               "id": "stacktrace",
-              "name": "stack-trace",
+              "name": "stacktrace",
               "values": []
             },
             {
@@ -66,6 +66,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
     },
     "description": "in-app exception",
     "hash": "5eb63bbbe01eeed093cb22bb8f5acdc3",
+    "hint": null,
     "key": "app",
     "type": "component"
   }

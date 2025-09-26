@@ -15,6 +15,10 @@ import {
   BASE_INTERVALS,
   getStandardTimePeriodsForInterval,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+import {
+  translateAggregateTag,
+  translateAggregateTagBack,
+} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
@@ -78,6 +82,7 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
     return getDiscoverSeriesQueryOptions({
       ...options,
       dataset: DetectorErrorsConfig.getDiscoverDataset(),
+      aggregate: translateAggregateTag(options.aggregate),
     });
   },
   getIntervals: ({detectionType}) => {
@@ -90,8 +95,12 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   transformComparisonSeriesData: data => {
     return [transformEventsStatsComparisonSeries(data)];
   },
-  fromApiAggregate: aggregate => aggregate,
-  toApiAggregate: aggregate => aggregate,
+  fromApiAggregate: aggregate => {
+    return translateAggregateTag(aggregate);
+  },
+  toApiAggregate: aggregate => {
+    return translateAggregateTagBack(aggregate);
+  },
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   toSnubaQueryString: snubaQuery => {
     if (!snubaQuery) {

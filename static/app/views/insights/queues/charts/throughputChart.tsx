@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -13,10 +14,11 @@ import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/c
 // Our loadable chart widgets use this to render, so this import is ok
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
+import type {AddToSpanDashboardOptions} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
@@ -43,6 +45,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
   const groupBy = SpanFields.SPAN_OP;
   const yAxis = 'epm()';
   const title = t('Published vs Processed');
+  const interval = getIntervalForTimeSeriesQuery(yAxis, selection.datetime);
 
   if (destination) {
     search.addFilterValue('messaging.destination.name', destination, false);
@@ -59,6 +62,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
       fields: [yAxis, groupBy],
       topN: 2,
       transformAliasToInputFormat: true,
+      interval,
     },
     referrer,
     pageFilters
@@ -88,12 +92,24 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
     query: search?.formatString(),
     sort: undefined,
     groupBy: [groupBy],
+    interval,
     referrer,
   });
+
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType: ChartType.LINE,
+    yAxes: [yAxis],
+    widgetName: title,
+    groupBy: [groupBy],
+    search,
+    topEvents: 2,
+    sort: {field: yAxis, kind: 'desc'},
+  };
 
   const extraActions = [
     <BaseChartActionDropdown
       key="throughput-chart-action"
+      addToDashboardOptions={addToDashboardOptions}
       alertMenuOptions={[
         {
           key: 'publish',

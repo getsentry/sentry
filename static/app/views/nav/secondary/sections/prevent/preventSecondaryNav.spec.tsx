@@ -109,7 +109,7 @@ describe('PreventSecondaryNav', () => {
       }
     );
 
-    const preventAILink = screen.getByRole('link', {name: 'Prevent AI'});
+    const preventAILink = screen.getByRole('link', {name: 'AI Code Review'});
     expect(preventAILink).toBeInTheDocument();
     expect(preventAILink).toHaveAttribute(
       'href',

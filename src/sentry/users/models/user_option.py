@@ -109,7 +109,7 @@ class UserOptionManager(OptionManager["UserOption"]):
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
-        uid = user.id if user and not isinstance(user, int) else user
+        uid = user if isinstance(user, int) else user.id
         metakey = self._make_key(user, project=project, organization=organization)
         project_id: int | None = project.id if isinstance(project, Model) else project
         organization_id: int | None = (
@@ -164,8 +164,6 @@ class UserOption(Model):
         - unused
      - prefers_issue_details_streamlined_ui
         - Whether the user prefers the new issue details experience (boolean)
-     - prefers_stacked_navigation
-        - Whether the user prefers the new stacked navigation experience (boolean)
     - prefers_nextjs_insights_overview
         - Whether the user prefers the new NextJS insights overview experience (boolean)
      - prefers_chonk_ui

@@ -6,11 +6,10 @@ import {Link} from 'sentry/components/core/link';
 import {Heading} from 'sentry/components/core/text';
 import {IconGithub, IconLink} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 import {StorySearch} from './storySearch';
 
-function SentryUiLogo(props: React.SVGProps<SVGSVGElement>) {
+function ScrapsLogo(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg fill="none" viewBox="0 0 34 36" {...props}>
       <path
@@ -35,8 +34,8 @@ export function StoryHeader() {
       <Link to="/stories">
         <Heading as="h1" variant="accent">
           <Flex align="center" gap="md">
-            <StyledSentryUiLogo />
-            UI
+            <StyledScrapsLogo />
+            Scraps
           </Flex>
         </Heading>
       </Link>
@@ -62,10 +61,10 @@ export function StoryHeader() {
 
 const HeaderGrid = styled('div')`
   display: grid;
-  grid-template-columns: 92px minmax(auto, 820px) auto;
-  gap: ${space(1)};
+  grid-template-columns: 256px minmax(auto, 820px) auto;
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   height: 53px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: sticky;
@@ -77,7 +76,7 @@ const HeaderGrid = styled('div')`
   }
 `;
 
-const StyledSentryUiLogo = styled(SentryUiLogo)`
+const StyledScrapsLogo = styled(ScrapsLogo)`
   width: 36px;
   height: 36px;
 `;

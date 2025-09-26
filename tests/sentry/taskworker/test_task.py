@@ -101,7 +101,6 @@ def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
         namespace=task_namespace,
     )
     # Within a TaskRunner context tasks should run immediately.
-    # This emulates the behavior we have with celery.
     with TaskRunner():
         task.delay("arg", org_id=1)
         task.apply_async(args=["arg2"], kwargs={"org_id": 2})

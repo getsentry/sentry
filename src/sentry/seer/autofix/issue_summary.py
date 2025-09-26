@@ -161,29 +161,16 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    # Route to summarization URL first
-    try:
-        response = requests.post(
-            f"{settings.SEER_SUMMARIZATION_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-        )
-        response.raise_for_status()
-    except Exception:
-        # If the new pod fails, fall back to the old pod
-        logger.warning("New Summarization pod connection failed", exc_info=True)
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-        )
-        response.raise_for_status()
+    # Route to summarization URL
+    response = requests.post(
+        f"{settings.SEER_SUMMARIZATION_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(body),
+        },
+    )
+    response.raise_for_status()
 
     return SummarizeIssueResponse.validate(response.json())
 
@@ -312,7 +299,10 @@ def _run_automation(
 
     group.update(seer_fixability_score=issue_summary.scores.fixability_score)
 
-    if not _is_issue_fixable(group, issue_summary.scores.fixability_score):
+    if (
+        not _is_issue_fixable(group, issue_summary.scores.fixability_score)
+        and not group.issue_type.always_trigger_seer_automation
+    ):
         return
 
     has_budget: bool = quotas.backend.has_available_reserved_budget(

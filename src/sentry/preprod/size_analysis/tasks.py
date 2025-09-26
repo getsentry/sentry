@@ -36,6 +36,11 @@ def compare_preprod_artifact_size_analysis(
     org_id: int,
     artifact_id: int,
 ):
+    logger.info(
+        "preprod.size_analysis.compare.start",
+        extra={"artifact_id": artifact_id},
+    )
+
     try:
         artifact = PreprodArtifact.objects.get(
             id=artifact_id,
@@ -61,6 +66,13 @@ def compare_preprod_artifact_size_analysis(
     # Run all comparisons with artifact as head
     base_artifact = artifact.get_base_artifact_for_commit().first()
     if base_artifact:
+        if artifact.build_configuration != base_artifact.build_configuration:
+            logger.info(
+                "preprod.size_analysis.compare.artifact_different_build_configurations",
+                extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
+            )
+            return
+
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[base_artifact.id],
             preprod_artifact__project__organization_id=org_id,
@@ -112,6 +124,13 @@ def compare_preprod_artifact_size_analysis(
     # Also run comparisons with artifact as base
     head_artifacts = artifact.get_head_artifacts_for_commit()
     for head_artifact in head_artifacts:
+        if head_artifact.build_configuration != artifact.build_configuration:
+            logger.info(
+                "preprod.size_analysis.compare.head_artifact_different_build_configurations",
+                extra={"head_artifact_id": head_artifact.id, "base_artifact_id": artifact_id},
+            )
+            continue
+
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[head_artifact.id],
             preprod_artifact__project__organization_id=org_id,
@@ -169,6 +188,11 @@ def manual_size_analysis_comparison(
     head_artifact_id: int,
     base_artifact_id: int,
 ):
+    logger.info(
+        "preprod.size_analysis.compare.manual.start",
+        extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
+    )
+
     try:
         head_artifact = PreprodArtifact.objects.get(
             id=head_artifact_id,
@@ -195,6 +219,14 @@ def manual_size_analysis_comparison(
         )
         return
 
+    # Should never be hit as we block this in manual compare endpoint, but safety check just in case
+    if head_artifact.build_configuration != base_artifact.build_configuration:
+        logger.info(
+            "preprod.size_analysis.compare.manual.different_build_configurations",
+            extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
+        )
+        return
+
     head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact_id__in=[head_artifact.id],
         preprod_artifact__project__organization_id=org_id,
@@ -209,6 +241,16 @@ def manual_size_analysis_comparison(
     ).select_related("preprod_artifact")
     base_size_metrics = list(base_size_metrics_qs)
 
+    logger.info(
+        "preprod.size_analysis.compare.manual.size_metrics",
+        extra={
+            "head_artifact_id": head_artifact.id,
+            "base_artifact_id": base_artifact.id,
+            "head_size_metrics_ids": [m.id for m in head_size_metrics],
+            "base_size_metrics_ids": [m.id for m in base_size_metrics],
+        },
+    )
+
     if can_compare_size_metrics(head_size_metrics, base_size_metrics):
 
         base_metrics_map = build_size_metrics_map(base_size_metrics)
@@ -218,7 +260,7 @@ def manual_size_analysis_comparison(
             matching_head_size_metric = head_metrics_map.get(key)
             if matching_head_size_metric:
                 logger.info(
-                    "preprod.size_analysis.compare.running_comparison",
+                    "preprod.size_analysis.compare.manual.running_comparison",
                     extra={
                         "head_artifact_id": head_artifact.id,
                         "base_artifact_id": base_artifact.id,
@@ -234,9 +276,14 @@ def manual_size_analysis_comparison(
                 )
             else:
                 logger.info(
-                    "preprod.size_analysis.compare.no_matching_base_size_metric",
+                    "preprod.size_analysis.compare.manual.no_matching_base_size_metric",
                     extra={"head_artifact_id": head_artifact.id, "size_metric_id": base_metric.id},
                 )
+    else:
+        logger.info(
+            "preprod.size_analysis.compare.manual.cannot_compare_size_metrics",
+            extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
+        )
 
 
 def _run_size_analysis_comparison(
@@ -305,7 +352,7 @@ def _run_size_analysis_comparison(
     base_size_analysis_results = SizeAnalysisResults.parse_raw(base_analysis_file.getfile().read())
 
     logger.info(
-        "preprod.size_analysis.compare.start",
+        "preprod.size_analysis.compare.running_comparison",
         extra={
             "head_artifact_size_metric_id": head_size_metric.id,
             "base_artifact_size_metric_id": base_size_metric.id,

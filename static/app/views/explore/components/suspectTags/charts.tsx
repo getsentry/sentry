@@ -8,6 +8,7 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {SuspectAttributesResult} from 'sentry/views/explore/hooks/useSuspectAttributes';
@@ -18,12 +19,19 @@ const SELECTED_SERIES_NAME = 'selected';
 const BASELINE_SERIES_NAME = 'baseline';
 
 type Props = {
+  cohort1Total: number;
+  cohort2Total: number;
   rankedAttributes: SuspectAttributesResult['rankedAttributes'];
   searchQuery: string;
 };
 
 // TODO Abdullah Khan: Add virtualization and search to the list of charts
-export function Charts({rankedAttributes, searchQuery}: Props) {
+export function Charts({
+  cohort1Total,
+  cohort2Total,
+  rankedAttributes,
+  searchQuery,
+}: Props) {
   const theme = useTheme();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +55,8 @@ export function Charts({rankedAttributes, searchQuery}: Props) {
               virtualizer={virtualizer}
               attribute={rankedAttributes[item.index]!}
               theme={theme}
+              cohort1Total={cohort1Total}
+              cohort2Total={cohort2Total}
             />
           </VirtualOffset>
         ))}
@@ -57,12 +67,23 @@ export function Charts({rankedAttributes, searchQuery}: Props) {
 
 type CohortData = SuspectAttributesResult['rankedAttributes'][number]['cohort1'];
 
+function calculatePopulationPercentage(cohort: CohortData, cohortTotal: number): number {
+  if (cohortTotal === 0) return 0;
+
+  const populatedCount = cohort.reduce((acc, curr) => acc + Number(curr.value), 0);
+  return (populatedCount / cohortTotal) * 100;
+}
+
 function cohortsToSeriesData(
   cohort1: CohortData,
-  cohort2: CohortData
+  cohort2: CohortData,
+  seriesTotals: {
+    [BASELINE_SERIES_NAME]: number;
+    [SELECTED_SERIES_NAME]: number;
+  }
 ): {
-  [BASELINE_SERIES_NAME]: Array<{label: string; value: string}>;
-  [SELECTED_SERIES_NAME]: Array<{label: string; value: string}>;
+  [BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
+  [SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
 } {
   const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
   const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
@@ -79,12 +100,21 @@ function cohortsToSeriesData(
     const baselineVal = cohort2Map.get(label) ?? '0';
 
     // We sort by descending value of the selected cohort
-    const sortVal = Number(selectedVal);
+    const selectedPercentage =
+      seriesTotals[SELECTED_SERIES_NAME] === 0
+        ? 0
+        : (Number(selectedVal) / seriesTotals[SELECTED_SERIES_NAME]) * 100;
+    const baselinePercentage =
+      seriesTotals[BASELINE_SERIES_NAME] === 0
+        ? 0
+        : (Number(baselineVal) / seriesTotals[BASELINE_SERIES_NAME]) * 100;
+
+    const sortVal = selectedPercentage;
 
     return {
       label,
-      selectedValue: selectedVal,
-      baselineValue: baselineVal,
+      selectedValue: selectedPercentage,
+      baselineValue: baselinePercentage,
       sortValue: sortVal,
     };
   });
@@ -107,30 +137,17 @@ function cohortsToSeriesData(
   };
 }
 
-// TODO Abdullah Khan: This is a temporary function to get the totals of the cohorts. Will be removed
-// once the backend returns the totals.
-function cohortTotals(
-  cohort1: CohortData,
-  cohort2: CohortData
-): {
-  [BASELINE_SERIES_NAME]: number;
-  [SELECTED_SERIES_NAME]: number;
-} {
-  const cohort1Total = cohort1.reduce((acc, curr) => acc + Number(curr.value), 0);
-  const cohort2Total = cohort2.reduce((acc, curr) => acc + Number(curr.value), 0);
-  return {
-    [SELECTED_SERIES_NAME]: cohort1Total,
-    [BASELINE_SERIES_NAME]: cohort2Total,
-  };
-}
-
 function Chart({
   attribute,
   theme,
   index,
   virtualizer,
+  cohort1Total,
+  cohort2Total,
 }: {
   attribute: SuspectAttributesResult['rankedAttributes'][number];
+  cohort1Total: number;
+  cohort2Total: number;
   index: number;
   theme: Theme;
   virtualizer: Virtualizer<HTMLDivElement, Element>;
@@ -139,31 +156,40 @@ function Chart({
   const [hideLabels, setHideLabels] = useState(false);
 
   const cohort1Color = theme.chart.getColorPalette(0)?.[0];
-  const cohort2Color = '#dddddd';
-
-  const seriesData = useMemo(
-    () => cohortsToSeriesData(attribute.cohort1, attribute.cohort2),
-    [attribute.cohort1, attribute.cohort2]
-  );
+  const cohort2Color = '#A29FAA';
 
   const seriesTotals = useMemo(
-    () => cohortTotals(attribute.cohort1, attribute.cohort2),
-    [attribute.cohort1, attribute.cohort2]
+    () => ({
+      [SELECTED_SERIES_NAME]: cohort1Total,
+      [BASELINE_SERIES_NAME]: cohort2Total,
+    }),
+    [cohort1Total, cohort2Total]
+  );
+
+  const seriesData = useMemo(
+    () => cohortsToSeriesData(attribute.cohort1, attribute.cohort2, seriesTotals),
+    [attribute.cohort1, attribute.cohort2, seriesTotals]
+  );
+
+  const populationPercentages = useMemo(
+    () => ({
+      selected: calculatePopulationPercentage(attribute.cohort1, cohort1Total),
+      baseline: calculatePopulationPercentage(attribute.cohort2, cohort2Total),
+    }),
+    [attribute.cohort1, attribute.cohort2, cohort1Total, cohort2Total]
   );
 
   const valueFormatter = useCallback(
-    (_value: number, label?: string, seriesParams?: CallbackDataParams) => {
-      const data = Number(seriesParams?.data);
-      const total = seriesTotals[label as keyof typeof seriesTotals];
+    (_value: number, _label?: string, seriesParams?: CallbackDataParams) => {
+      const percentage = Number(seriesParams?.data);
 
-      if (total === 0) {
+      if (isNaN(percentage) || percentage === 0 || !isFinite(percentage)) {
         return '\u2014';
       }
 
-      const percentage = (data / total) * 100;
       return `${percentage.toFixed(1)}%`;
     },
-    [seriesTotals]
+    []
   );
 
   const formatAxisLabel = useCallback(
@@ -191,17 +217,8 @@ function Chart({
         throw new Error('selectedParam or baselineParam is not defined');
       }
 
-      const selectedTotal =
-        seriesTotals[selectedParam?.seriesName as keyof typeof seriesTotals];
-      const selectedData = Number(selectedParam?.data);
-      const selectedPercentage =
-        selectedTotal === 0 ? 0 : (selectedData / selectedTotal) * 100;
-
-      const baselineTotal =
-        seriesTotals[baselineParam?.seriesName as keyof typeof seriesTotals];
-      const baselineData = Number(baselineParam?.data);
-      const baselinePercentage =
-        baselineTotal === 0 ? 0 : (baselineData / baselineTotal) * 100;
+      const selectedPercentage = Number(selectedParam?.data);
+      const baselinePercentage = Number(baselineParam?.data);
 
       const isDifferent = selectedPercentage.toFixed(1) !== baselinePercentage.toFixed(1);
 
@@ -214,7 +231,7 @@ function Chart({
 
       return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
     },
-    [seriesTotals, theme.textColor]
+    [theme.textColor]
   );
 
   const [tooltipOptions, setTooltipOptions] = useState<TooltipOption | undefined>(
@@ -260,7 +277,25 @@ function Chart({
   return (
     <div ref={virtualizer.measureElement} data-index={index}>
       <ChartWrapper>
-        <ChartTitle>{attribute.attributeName}</ChartTitle>
+        <ChartHeaderWrapper>
+          <Flex justify="between" align="center">
+            <ChartTitle>{attribute.attributeName}</ChartTitle>
+            <Flex gap="sm">
+              <PopulationIndicator
+                color={cohort1Color}
+                title={`${populationPercentages.selected.toFixed(1)}% of selected cohort has this attribute populated`}
+              >
+                {populationPercentages.selected.toFixed(0)}%
+              </PopulationIndicator>
+              <PopulationIndicator
+                color={cohort2Color}
+                title={`${populationPercentages.baseline.toFixed(1)}% of baseline cohort has this attribute populated`}
+              >
+                {populationPercentages.baseline.toFixed(0)}%
+              </PopulationIndicator>
+            </Flex>
+          </Flex>
+        </ChartHeaderWrapper>
         <BaseChart
           ref={chartRef}
           autoHeightResize
@@ -351,8 +386,29 @@ const ChartWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
+const ChartHeaderWrapper = styled('div')`
+  margin-bottom: ${space(1)};
+`;
+
 const ChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   color: ${p => p.theme.gray500};
+`;
+
+const PopulationIndicator = styled('div')<{color?: string}>`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: 500;
+  color: ${p => p.color || p.theme.gray400};
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${p => p.color || p.theme.gray400};
+    margin-right: ${space(0.5)};
+  }
 `;

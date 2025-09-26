@@ -1,9 +1,9 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.db import router
 
-from sentry import features
+from sentry import features, options
 from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
@@ -12,6 +12,29 @@ from sentry.releases.models import Commit, CommitFileChange
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
+
+
+def get_dual_write_start_date() -> datetime | None:
+    """
+    Get the dual-write start date from options.
+    Returns None if not set or invalid.
+    Always returns a timezone-aware datetime in UTC.
+    """
+    start_date_str = options.get("commit.dual-write-start-date")
+    if not start_date_str:
+        return None
+
+    try:
+        dt = datetime.fromisoformat(start_date_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt
+    except (ValueError, TypeError):
+        logger.exception(
+            "get_dual_write_start_date.invalid_date",
+            extra={"start_date_str": start_date_str},
+        )
+        return None
 
 
 def _dual_write_commit(

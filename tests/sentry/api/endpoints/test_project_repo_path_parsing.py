@@ -211,6 +211,15 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
+    def test_unsupported_frame_info(self) -> None:
+        source_url = (
+            "https://github.com/getsentry/sentry/blob/master/src/project_stacktrace_link.py"
+        )
+        stack_path = "project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 400, resp.content
+        assert resp.data == {"detail": "Unsupported frame info"}
+
     def test_basic(self) -> None:
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
@@ -311,6 +320,48 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "sourceRoot": "src/",
             "defaultBranch": "main",
         }
+
+    def test_trailing_slash_repo_url_short_path(self) -> None:
+        # Ensure branch parsing is correct when repo.url has a trailing slash
+        self.repo.update(url=f"{self.repo.url}/")
+
+        source_url = "https://github.com/getsentry/sentry/blob/main/project_stacktrace_link.py"
+        stack_path = "sentry/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "sentry/",
+            "sourceRoot": "",
+            "defaultBranch": "main",
+        }
+
+    def test_second_repo_trailing_slash_default_branch_main(self) -> None:
+        # Ensure defaultBranch is parsed as 'main' for another repo with trailing slash in repo.url
+        second_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/example",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            url="https://github.com/getsentry/example/",
+        )
+
+        source_url = "https://github.com/getsentry/example/blob/main/src/pkg/main.py"
+        stack_path = "/opt/app/src/pkg/main.py"
+        resp = self.make_post(
+            source_url,
+            stack_path,
+            module="pkg.main",
+            abs_path="/opt/app/src/pkg/main.py",
+            platform="python",
+        )
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["provider"] == "github"
+        assert resp.data["repositoryId"] == second_repo.id
+        assert resp.data["defaultBranch"] == "main"
 
 
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):

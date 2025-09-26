@@ -1,7 +1,7 @@
 ---
-created: '2025-09-08T19:48:03.729032+00:00'
+created: '2025-09-24T22:53:02.414531+00:00'
 creator: sentry
-source: tests/sentry/grouping/test_grouping_inputs.py
+source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
   "default": {
@@ -37,7 +37,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
             },
             {
               "contributes": false,
-              "hint": "violation takes precedence",
+              "hint": "ignored because violation takes precedence",
               "id": "uri",
               "name": "URL",
               "values": [
@@ -48,7 +48,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
         },
         {
           "contributes": false,
-          "hint": "csp takes precedence",
+          "hint": "ignored because csp takes precedence",
           "id": "message",
           "name": "message",
           "values": [
@@ -79,6 +79,7 @@ source: tests/sentry/grouping/test_grouping_inputs.py
     },
     "description": "violation",
     "hash": "56c6520f35bce2f89ed2c4e725ccef65",
+    "hint": null,
     "key": "default",
     "type": "component"
   }

@@ -35,7 +35,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
-  'enforce-stacked-navigation',
   'visibility-explore-view',
 ];
 
@@ -86,14 +85,6 @@ describe('Nav', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/dashboards/`,
       body: [],
-    });
-
-    ConfigStore.set('user', {
-      ...ConfigStore.get('user'),
-      options: {
-        ...ConfigStore.get('user').options,
-        prefersStackedNavigation: true,
-      },
     });
     mockUsingCustomerDomain.mockReturnValue(true);
   });
@@ -440,9 +431,7 @@ describe('Nav', () => {
       });
 
       renderGlobalModal();
-      renderNav({
-        features: ALL_AVAILABLE_FEATURES.concat('enforce-stacked-navigation'),
-      });
+      renderNav();
       await screen.findByRole('navigation', {name: 'Primary Navigation'});
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });

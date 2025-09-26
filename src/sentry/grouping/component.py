@@ -6,7 +6,10 @@ from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
 from typing import Any
 
+import sentry_sdk
+
 from sentry.grouping.utils import hash_from_values
+from sentry.utils.env import in_test_environment
 
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
@@ -14,7 +17,7 @@ from sentry.grouping.utils import hash_from_values
 KNOWN_MAJOR_COMPONENT_NAMES = {
     "app": "in-app",
     "exception": "exception",
-    "stacktrace": "stack-trace",
+    "stacktrace": "stacktrace",
     "threads": "thread",
     "hostname": "hostname",
     "violation": "violation",
@@ -112,10 +115,24 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         return self.name or self.id
 
     def get_subcomponent(
-        self, id: str, only_contributing: bool = False
+        self, id: str, recursive: bool = False, only_contributing: bool = False
     ) -> str | int | BaseGroupingComponent[Any] | None:
-        """Looks up a subcomponent by the id and returns the first or `None`."""
-        return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
+        """
+        Looks up a subcomponent by id and returns the first instance found, or `None` if no
+        instances are found.
+
+        Unless `recursive=True` is passed, only direct children (the components in `self.values`)
+        are checked.
+
+        By default, any matching result will be returned. To filter out non-contributing components,
+        pass `only_contributing=True`.
+        """
+        return next(
+            self.iter_subcomponents(
+                id=id, recursive=recursive, only_contributing=only_contributing
+            ),
+            None,
+        )
 
     def iter_subcomponents(
         self, id: str, recursive: bool = False, only_contributing: bool = False
@@ -145,6 +162,18 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         if values is not None:
             if contributes is None:
                 contributes = _calculate_contributes(values)
+
+            # Ensure components which wrap primitives only ever have one child
+            if len(values) > 0 and any(isinstance(value, (int, str)) for value in values):
+                try:
+                    assert (
+                        len(values) == 1
+                    ), f"Components which wrap primitives can wrap at most one value. Got {values}."
+                except AssertionError as e:
+                    if in_test_environment():
+                        raise
+                    sentry_sdk.capture_exception(e)
+
             self.values = values
         if contributes is not None:
             self.contributes = contributes
@@ -199,7 +228,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
 
 class ContextLineGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "context-line"
+    id: str = "context_line"
 
 
 class ErrorTypeGroupingComponent(BaseGroupingComponent[str]):
@@ -222,8 +251,18 @@ class ModuleGroupingComponent(BaseGroupingComponent[str]):
     id: str = "module"
 
 
-class NSErrorGroupingComponent(BaseGroupingComponent[str | int]):
-    id: str = "ns-error"
+class NSErrorDomainGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "domain"
+
+
+class NSErrorCodeGroupingComponent(BaseGroupingComponent[int]):
+    id: str = "code"
+
+
+class NSErrorGroupingComponent(
+    BaseGroupingComponent[NSErrorDomainGroupingComponent | NSErrorCodeGroupingComponent]
+):
+    id: str = "ns_error"
 
 
 FrameGroupingComponentChildren = (
@@ -324,7 +363,7 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
-    id: str = "chained-exception"
+    id: str = "chained_exception"
     frame_counts: Counter[str]
     reverse_when_serializing: bool = False
 
@@ -371,13 +410,13 @@ class CSPGroupingComponent(
 class ExpectCTGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-ct"
+    id: str = "expect_ct"
 
 
 class ExpectStapleGroupingComponent(
     BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
 ):
-    id: str = "expect-staple"
+    id: str = "expect_staple"
 
 
 class HPKPGroupingComponent(
