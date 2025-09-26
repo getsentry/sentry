@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -6,11 +7,16 @@ import emptyBuildImg from 'sentry-images/spot/releases-tour-commits.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Heading, Text} from 'sentry/components/core/text';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 
 interface PreprodOnboardingProps {
@@ -33,21 +39,25 @@ function FastlaneMethod({
   const isIOS = projectPlatform?.includes('apple') || projectPlatform?.includes('ios');
 
   return (
-    <MethodContent>
+    <Flex direction="column" gap="2xl">
       {!isIOS && (
         <Alert type="info" showIcon>
           {t('Fastlane is for iOS applications only')}
         </Alert>
       )}
       <div>
-        <StepDescription>Add to your fastlane/Pluginfile:</StepDescription>
+        <Text as="p" size="md">
+          Add to your fastlane/Pluginfile:
+        </Text>
         <OnboardingCodeSnippet language="ruby">
           {`gem 'fastlane-plugin-sentry', git: 'https://github.com/getsentry/sentry-fastlane-plugin.git', ref: 'b0c36a1472a6bfde0a4766c612c1154706dbd014'`}
         </OnboardingCodeSnippet>
       </div>
 
       <div>
-        <StepDescription>Add a lane to your Fastfile:</StepDescription>
+        <Text as="p" size="md">
+          Add a lane to your Fastfile:
+        </Text>
         <OnboardingCodeSnippet language="ruby">
           {`sentry_upload_build(
   org_slug: '${organizationSlug}',
@@ -61,9 +71,9 @@ function FastlaneMethod({
       </div>
 
       <div>
-        <StepDescription>
+        <Text as="p" size="md">
           Set environment variables in your GitHub Action:
-        </StepDescription>
+        </Text>
         <OnboardingCodeSnippet language="yaml">
           {`env:
   SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -72,7 +82,7 @@ function FastlaneMethod({
   SENTRY_SHA: \${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}`}
         </OnboardingCodeSnippet>
       </div>
-    </MethodContent>
+    </Flex>
   );
 }
 
@@ -80,14 +90,16 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
   const isAndroid = projectPlatform?.includes('android');
 
   return (
-    <MethodContent>
+    <Flex direction="column" gap="2xl">
       {!isAndroid && (
         <Alert type="info" showIcon>
           {t('Gradle Plugin is for Android applications only')}
         </Alert>
       )}
       <div>
-        <StepDescription>Apply the plugin (use version 6.0.0-alpha.3):</StepDescription>
+        <Text as="p" size="md">
+          Apply the plugin (use version 6.0.0-alpha.3):
+        </Text>
         <OnboardingCodeSnippet language="kotlin">
           {`plugins {
   id "io.sentry.android.gradle" version "6.0.0-alpha.3"
@@ -96,7 +108,9 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
       </div>
 
       <div>
-        <StepDescription>Configure the plugin:</StepDescription>
+        <Text as="p" size="md">
+          Configure the plugin:
+        </Text>
         <OnboardingCodeSnippet language="kotlin">
           {`sentry {
   sizeAnalysis {
@@ -116,7 +130,9 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
       </div>
 
       <div>
-        <StepDescription>Set environment variables in GitHub Actions:</StepDescription>
+        <Text as="p" size="md">
+          Set environment variables in GitHub Actions:
+        </Text>
         <OnboardingCodeSnippet language="yaml">
           {`env:
   SENTRY_AUTH_TOKEN: \${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -124,7 +140,7 @@ function GradleMethod({projectPlatform}: {projectPlatform: PlatformKey | null}) 
   SENTRY_SHA: \${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}`}
         </OnboardingCodeSnippet>
       </div>
-    </MethodContent>
+    </Flex>
   );
 }
 
@@ -136,9 +152,9 @@ function CliMethod({
   projectSlug: string;
 }) {
   return (
-    <MethodContent>
+    <Flex direction="column" gap="2xl">
       <div>
-        <StepDescription>
+        <Text as="p" size="md">
           {tct('Install the [link:Sentry CLI]', {
             link: (
               <a
@@ -148,7 +164,7 @@ function CliMethod({
               />
             ),
           })}
-        </StepDescription>
+        </Text>
         <OnboardingCodeSnippet language="bash">
           {`# Using npm
 npm install -g @sentry/cli
@@ -159,7 +175,9 @@ curl -sL https://sentry.io/get-cli/ | bash`}
       </div>
 
       <div>
-        <StepDescription>Upload your build using the CLI:</StepDescription>
+        <Text as="p" size="md">
+          Upload your build using the CLI:
+        </Text>
         <OnboardingCodeSnippet language="bash">
           {`sentry-cli build upload <path-to-apk|aab|xcarchive> \\
   --org ${organizationSlug} \\
@@ -174,14 +192,16 @@ curl -sL https://sentry.io/get-cli/ | bash`}
       </div>
 
       <div>
-        <StepDescription>Set these environment variables in your CI:</StepDescription>
+        <Text as="p" size="md">
+          Set these environment variables in your CI:
+        </Text>
         <OnboardingCodeSnippet language="bash">
           {`export SENTRY_AUTH_TOKEN=<your-auth-token>
 # These are set automatically in GitHub Actions:
 # --repo-name, --vcs-provider, --pr-number`}
         </OnboardingCodeSnippet>
       </div>
-    </MethodContent>
+    </Flex>
   );
 }
 
@@ -190,6 +210,7 @@ export function PreprodOnboarding({
   projectPlatform,
   projectSlug,
 }: PreprodOnboardingProps) {
+  const theme = useTheme();
   const isIOS = projectPlatform?.includes('apple') || projectPlatform?.includes('ios');
   const isAndroid = projectPlatform?.includes('android');
 
@@ -242,157 +263,115 @@ export function PreprodOnboarding({
   return (
     <Panel>
       <PanelBody>
-        <div>
-          <HeaderWrapper>
-            <HeaderText>
-              <Title>{t('Upload Builds to Sentry')}</Title>
-              <SubTitle>
+        <Flex padding="3xl" gap="2xl" direction="column">
+          <Flex justify="between" align="center" gap="xl">
+            <Container>
+              <Heading as="h1" size="2xl">
+                {t('Upload Builds to Sentry')}
+              </Heading>
+              <Text as="p" size="md" style={{marginBottom: theme.space.md}}>
                 {t('Monitor & reduce your app size and distribute pre-release builds')}
-              </SubTitle>
-              <BulletList>
-                <li>{t('Get automated checks and PR comments for size regressions')}</li>
-                <li>
-                  {t('See actionable insights on what can be removed or optimized')}
-                </li>
-                <li>{t('Track app size trends over time across releases')}</li>
-              </BulletList>
-            </HeaderText>
+              </Text>
+              <List symbol="bullet">
+                <ListItem>
+                  {t('Get automated checks size regressions and distributable builds')}
+                </ListItem>
+                <ListItem>
+                  {t('See actionable insights on how to reduce your app size')}
+                </ListItem>
+                <ListItem>{t('Distribute pre-release builds to your team')}</ListItem>
+              </List>
+            </Container>
             <Image src={emptyBuildImg} />
-          </HeaderWrapper>
+          </Flex>
           <Divider />
-          <Body>
-            <Setup>
-              <Section>
-                <SectionTitle>Prerequisites</SectionTitle>
-                <Description>
-                  {tct(
-                    'You need a Sentry Auth Token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment.',
-                    {
-                      link: (
-                        <a
-                          href={`/settings/${organizationSlug}/auth-tokens/`}
-                          target="_blank"
-                          rel="noreferrer"
-                        />
-                      ),
-                      code: <code />,
-                    }
-                  )}
-                </Description>
-              </Section>
+          <Flex direction="column" gap="2xl">
+            <Container>
+              <Heading as="h3" size="lg" style={{marginBottom: theme.space.xl}}>
+                Prerequisites
+              </Heading>
+              <Text as="p" size="md">
+                {tct(
+                  'You need a Sentry Auth Token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment.',
+                  {
+                    link: (
+                      <a
+                        href={`/settings/${organizationSlug}/auth-tokens/`}
+                        target="_blank"
+                        rel="noreferrer"
+                      />
+                    ),
+                    code: <code />,
+                  }
+                )}
+              </Text>
+            </Container>
 
-              <Section>
-                <SectionTitle>
-                  {projectPlatform && <PlatformIcon platform={projectPlatform} />}
+            <Flex direction="column" gap="md">
+              <Flex align="center" gap="sm">
+                {projectPlatform && <PlatformIcon platform={projectPlatform} />}
+                <Heading as="h3" size="lg">
                   Uploading Builds
-                </SectionTitle>
-                <TabsWrapper>
-                  <Tabs value={selectedMethod} onChange={setSelectedMethod}>
-                    <TabList>
-                      {availableMethods.map(method => (
-                        <TabList.Item key={method.value} textValue={method.label}>
-                          {method.label}
-                        </TabList.Item>
-                      ))}
-                    </TabList>
-                  </Tabs>
-                </TabsWrapper>
-                {renderMethodContent()}
-              </Section>
+                </Heading>
+              </Flex>
+              <Container borderBottom="primary">
+                <Tabs value={selectedMethod} onChange={setSelectedMethod}>
+                  <TabList>
+                    {availableMethods.map(method => (
+                      <TabList.Item key={method.value} textValue={method.label}>
+                        {method.label}
+                      </TabList.Item>
+                    ))}
+                  </TabList>
+                </Tabs>
+              </Container>
+            </Flex>
+            {renderMethodContent()}
 
-              {/* Next Steps */}
-              <Section>
-                <SectionTitle>Integrating into CI</SectionTitle>
-                <Description>
-                  {tct(
-                    'Integrating the GitHub App is required for PR annotations and workflow automation. [link:Install the GitHub App →]',
-                    {
-                      link: (
-                        <a
-                          href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/"
-                          target="_blank"
-                          rel="noreferrer"
-                        />
-                      ),
-                    }
-                  )}
-                </Description>
+            {/* Next Steps */}
+            <Container>
+              <Heading as="h3" size="lg" style={{marginBottom: space(2)}}>
+                Integrating into CI
+              </Heading>
+              <Text as="p" size="md" style={{marginBottom: space(2), lineHeight: 1.5}}>
+                {tct(
+                  'Integrating the GitHub App is required for PR annotations and workflow automation. [link:Install the GitHub App →]',
+                  {
+                    link: (
+                      <a
+                        href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/"
+                        target="_blank"
+                        rel="noreferrer"
+                      />
+                    ),
+                  }
+                )}
+              </Text>
 
-                <ActionsContainer>
-                  <LinkButton
-                    priority="primary"
-                    href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/"
-                    size="md"
-                  >
-                    Install GitHub App
-                  </LinkButton>
-                  <LinkButton
-                    href="https://docs.sentry.io/product/builds/"
-                    external
-                    disabled
-                    size="md"
-                  >
-                    View Documentation
-                  </LinkButton>
-                </ActionsContainer>
-              </Section>
-            </Setup>
-          </Body>
-        </div>
+              <Flex gap="xl" wrap="wrap">
+                <LinkButton
+                  priority="primary"
+                  href="https://docs.sentry.io/organization/integrations/source-code-mgmt/github/"
+                  size="md"
+                >
+                  Install GitHub App
+                </LinkButton>
+                <LinkButton
+                  href="https://docs.sentry.io/product/builds/"
+                  external
+                  disabled
+                  size="md"
+                >
+                  View Documentation
+                </LinkButton>
+              </Flex>
+            </Container>
+          </Flex>
+        </Flex>
       </PanelBody>
     </Panel>
   );
 }
-
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const Title = styled('div')`
-  font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const BulletList = styled('ul')`
-  list-style-type: disc;
-  padding-left: 20px;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  li {
-    margin-bottom: ${p => p.theme.space.md};
-  }
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
-`;
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const Body = styled('div')`
-  display: grid;
-  position: relative;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-
-  h4 {
-    margin-bottom: 0;
-  }
-`;
 
 const Image = styled('img')`
   display: block;
@@ -400,61 +379,15 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }
 `;
 
 const Divider = styled('hr')`
   height: 1px;
-  width: 95%;
+  width: 100%;
   background: ${p => p.theme.border};
   border: none;
-  margin-top: 0;
-  margin-bottom: 0;
-`;
-
-const Section = styled('section')`
-  margin-bottom: ${p => p.theme.space['2xl']};
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const SectionTitle = styled('h3')`
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: ${p => p.theme.space.xl};
-  color: ${p => p.theme.textColor};
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const Description = styled('p')`
-  margin-bottom: ${p => p.theme.space.xl};
-  color: ${p => p.theme.subText};
-  line-height: 1.5;
-`;
-
-const MethodContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xl']};
-`;
-
-const TabsWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xl']};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const StepDescription = styled('p')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const ActionsContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
-  flex-wrap: wrap;
+  margin: 0;
 `;
