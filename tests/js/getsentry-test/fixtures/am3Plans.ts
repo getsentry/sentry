@@ -142,7 +142,7 @@ const AM3_DS_FEATURES = [
 ];
 
 export const PREVENT_USER_TIERS = {
-  preventUser: [
+  preventUsers: [
     {
       events: 0,
       unitPrice: 0,
