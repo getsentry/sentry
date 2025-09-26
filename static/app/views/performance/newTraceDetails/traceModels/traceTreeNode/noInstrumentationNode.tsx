@@ -4,7 +4,6 @@ import {uuid4} from '@sentry/core';
 import {t} from 'sentry/locale';
 import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/missingInstrumentation';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
@@ -56,12 +55,12 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
 
   pathToNode(): TraceTree.NodePath[] {
     const path: TraceTree.NodePath[] = [];
-    const closestTransaction = this.findParent(p => isTransactionNode(p));
+    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
 
     path.push(`ms-${this.id}`);
 
-    if (closestTransaction) {
-      path.push(`txn-${closestTransaction.id}`);
+    if (closestFetchableParent) {
+      path.push(...closestFetchableParent.pathToNode());
     }
 
     return path;

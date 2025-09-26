@@ -5,7 +5,6 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
@@ -86,12 +85,12 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
 
   pathToNode(): TraceTree.NodePath[] {
     const path: TraceTree.NodePath[] = [];
-    const closestTransaction = this.findParent(p => isTransactionNode(p));
+    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
 
     path.push(`span-${this.id}`);
 
-    if (closestTransaction) {
-      path.push(`txn-${closestTransaction.id}`);
+    if (closestFetchableParent) {
+      path.push(...closestFetchableParent.pathToNode());
     }
 
     return path;
