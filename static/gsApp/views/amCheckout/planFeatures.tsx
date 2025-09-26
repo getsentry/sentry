@@ -203,7 +203,7 @@ function getFeaturesForPlan({
     result.push(userFeature);
   }
 
-  result.push(...quotaFeatures[planName as keyof typeof quotaFeatures]);
+  result.push(...quotaFeatures[planName]);
 
   if (dashboardFeature) {
     result.push(dashboardFeature);
