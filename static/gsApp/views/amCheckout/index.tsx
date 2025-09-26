@@ -140,11 +140,13 @@ class AMCheckout extends Component<Props, State> {
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
-    // TODO(checkout v3): remove these checks once checkout v3 is GA'd
+    // TODO(checkout v3): remove these checks once checkout v3 is GA'd and we remove the legacy checkout route
     if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
-      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`);
+      props.navigate(`/settings/${props.organization.slug}/billing/checkout/`, {
+        replace: true,
+      });
     } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
-      props.navigate(`/checkout-v3/`);
+      props.navigate(`/checkout-v3/`, {replace: true});
     }
     let step = 1;
     if (props.location?.hash) {
@@ -904,6 +906,12 @@ class AMCheckout extends Component<Props, State> {
             <BackButton
               aria-label={t('Back to Subscription Overview')}
               to={`/settings/${organization.slug}/billing/`}
+              onClick={() => {
+                trackGetsentryAnalytics('checkout.exit', {
+                  subscription,
+                  organization,
+                });
+              }}
             >
               <Flex gap="sm" align="center">
                 <IconArrow direction="left" />
