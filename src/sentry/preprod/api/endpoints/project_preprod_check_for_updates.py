@@ -113,7 +113,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             if provided_build_number is not None:
                 try:
                     current_filter_kwargs["build_number"] = int(provided_build_number)
-                except (ValueError, TypeError):
+                except ValueError:
                     return Response({"error": "Invalid build_number format"}, status=400)
 
             if provided_build_configuration:
