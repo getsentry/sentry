@@ -78,7 +78,7 @@ export type OrganizationStatsProps = {
   selection: PageFilters;
 };
 
-export class OrganizationStats extends Component<OrganizationStatsProps> {
+class OrganizationStats extends Component<OrganizationStatsProps> {
   get dataCategoryInfo(): DataCategoryInfo {
     const dataCategoryPlural = this.props.location?.query?.dataCategory;
 
