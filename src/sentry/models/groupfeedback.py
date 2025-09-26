@@ -37,7 +37,7 @@ class GroupFeedback(DefaultFieldsModel):
     source = models.PositiveSmallIntegerField(
         choices=(
             (
-                GroupFeedbackType.USER_SUSPECT_COMMIT_FEEDBACK,
+                GroupFeedbackType.USER_SUSPECT_COMMIT_FEEDBACK.value,
                 "User Submitted Suspect Commit Feedback",
             ),
         )
