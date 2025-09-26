@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type FormModel from 'sentry/components/forms/model';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
@@ -49,9 +49,9 @@ export default function AutomationForm({model}: {model: FormModel}) {
       />
       <Card>
         <Flex direction="column" gap="sm">
-          <Text size="lg" bold>
+          <Heading as="h2" size="lg">
             {t('Choose Environment')}
-          </Text>
+          </Heading>
           <Text size="sm" variant="muted">
             {t(
               'If you select environments different than your monitors then the automation will not fire.'
@@ -61,15 +61,15 @@ export default function AutomationForm({model}: {model: FormModel}) {
         <EnvironmentSelector value={environment} onChange={updateEnvironment} />
       </Card>
       <Card>
-        <Text size="lg" bold>
+        <Heading as="h2" size="lg">
           {t('Automation Builder')}
-        </Text>
+        </Heading>
         <AutomationBuilder />
       </Card>
       <Card>
-        <Text size="lg" bold>
+        <Heading as="h2" size="lg">
           {t('Action Interval')}
-        </Text>
+        </Heading>
         <EmbeddedSelectField
           required
           name="frequency"
