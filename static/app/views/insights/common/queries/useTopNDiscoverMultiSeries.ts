@@ -12,8 +12,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
   getRetryDelay,
   shouldRetryHandler,

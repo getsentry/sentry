@@ -15,7 +15,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 // TODO(release-drawer): Only used in mobile/screenload/components/
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {type DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {type DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useTopNSpanMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';

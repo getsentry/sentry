@@ -1,7 +1,7 @@
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 
 export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
   const values = (series?.data ?? []).map(datum => {
