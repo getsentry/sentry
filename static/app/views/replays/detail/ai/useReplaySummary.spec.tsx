@@ -67,13 +67,12 @@ describe('useReplaySummary', () => {
       expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('should handle GET errors gracefully', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         statusCode: 500,
         body: {detail: 'Internal server error'},
       });
-
       const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
         organization: mockOrganization,
       });

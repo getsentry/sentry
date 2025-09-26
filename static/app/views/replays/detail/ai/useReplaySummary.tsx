@@ -43,10 +43,11 @@ export interface UseReplaySummaryResult {
 
 const shouldPoll = (
   summaryData: SummaryResponse | undefined,
+  lastFetchFailed: boolean,
   startRequestFailed: boolean,
   didTimeout: boolean
 ) => {
-  if (startRequestFailed || didTimeout) {
+  if (lastFetchFailed || startRequestFailed || didTimeout) {
     return false;
   }
 
@@ -151,16 +152,22 @@ export function useReplaySummary(
 
   const {
     data: summaryData,
-    isPending,
-    isError,
-    dataUpdatedAt,
+    isError: isFetchError,
+    dataUpdatedAt: lastFetchTime,
   } = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
+        if (
+          shouldPoll(
+            query.state.data?.[0],
+            query.state.status === 'error',
+            isStartSummaryRequestError,
+            didTimeout
+          )
+        ) {
           return POLL_INTERVAL_MS;
         }
         return false;
@@ -185,27 +192,28 @@ export function useReplaySummary(
     }
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
-  const isPendingRet =
-    dataUpdatedAt < startSummaryRequestTime.current ||
-    isStartSummaryRequestPending ||
-    isPending ||
-    summaryData?.status === ReplaySummaryStatus.NOT_STARTED ||
-    summaryData?.status === ReplaySummaryStatus.PROCESSING;
+  const isErrorState =
+    isFetchError ||
+    isStartSummaryRequestError ||
+    summaryData?.status === ReplaySummaryStatus.ERROR;
 
-  // Clears the polling timeout when we get valid summary results.
+  const isFinishedState =
+    isErrorState ||
+    (lastFetchTime >= startSummaryRequestTime.current &&
+      !isStartSummaryRequestPending &&
+      summaryData?.status === ReplaySummaryStatus.COMPLETED);
+
+  // Clears the polling timeout when we get a finished state.
   useEffect(() => {
-    if (!isPendingRet) {
+    if (isFinishedState) {
       cancelPollingTimeout();
     }
-  }, [isPendingRet, cancelPollingTimeout]);
+  }, [isFinishedState, cancelPollingTimeout]);
 
   return {
     summaryData,
-    isPending: isPendingRet,
-    isError:
-      isStartSummaryRequestError ||
-      isError ||
-      summaryData?.status === ReplaySummaryStatus.ERROR,
+    isPending: !isFinishedState,
+    isError: isErrorState,
     isTimedOut: didTimeout,
     startSummaryRequest,
     isStartSummaryRequestPending,
