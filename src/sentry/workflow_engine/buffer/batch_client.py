@@ -25,7 +25,7 @@ class DelayedWorkflowClient:
         self, buf: RedisHashSortedSetBuffer | None = None, buffer_keys: list[str] | None = None
     ) -> None:
         self._buffer = buf or buffer.get_backend()
-        self._buffer_keys = buffer_keys or self._get_buffer_keys()
+        self._buffer_keys = tuple(buffer_keys or self._get_buffer_keys())
 
     def add_project_ids(self, project_ids: list[int]) -> None:
         """Add project IDs to a random shard for processing."""
@@ -47,6 +47,20 @@ class DelayedWorkflowClient:
             min=min,
             max=max,
         )
+
+    def mark_project_ids_as_processed(
+        self, project_id_max_timestamps: Mapping[int, float]
+    ) -> list[int]:
+        """
+        Mark project IDs as processed, removing any requests for them at the associated timestamp or earlier.
+
+        Returns a list of project IDs that were deleted.
+        """
+        result = self._buffer.conditional_delete_from_sorted_sets(
+            self._buffer_keys,
+            list(project_id_max_timestamps.items()),
+        )
+        return list(set().union(*result.values()))
 
     @classmethod
     def _get_buffer_keys(cls) -> list[str]:
