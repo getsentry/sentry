@@ -25,10 +25,9 @@ const AM3_ONDEMAND_CATEGORIES = [
   'profileDurationUI',
   'seerAutofix',
   'seerScanner',
-  'preventUser',
 ] as DataCategory[];
 
-const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES] as DataCategory[];
+const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES, 'preventUser'] as DataCategory[];
 
 const AM3_DS_CHECKOUT_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,

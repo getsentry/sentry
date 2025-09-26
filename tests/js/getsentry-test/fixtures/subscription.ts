@@ -38,6 +38,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
   );
   const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
   const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
+  const hasPreventUser = planDetails?.categories?.includes(DataCategory.PREVENT_USER);
   const hasSeer = !!planDetails?.availableReservedBudgetTypes?.seer;
 
   // Create a safe default for planCategories if it doesn't exist
@@ -240,6 +241,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
           reserved: 0,
           prepaid: 0,
           order: 15,
+        }),
+      }),
+      ...(hasPreventUser && {
+        preventUser: MetricHistoryFixture({
+          category: DataCategory.PREVENT_USER,
+          reserved: 0,
+          prepaid: 0,
+          order: 16,
         }),
       }),
     },

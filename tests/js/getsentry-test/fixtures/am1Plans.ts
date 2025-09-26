@@ -26,10 +26,9 @@ const AM1_ONDEMAND_CATEGORIES = [
   ...AM1_CHECKOUT_CATEGORIES,
   'seerAutofix',
   'seerScanner',
-  'preventUser',
 ] as DataCategory[];
 
-const AM1_CATEGORIES = [...AM1_ONDEMAND_CATEGORIES] as DataCategory[];
+const AM1_CATEGORIES = [...AM1_ONDEMAND_CATEGORIES, 'preventUser'] as DataCategory[];
 
 const AM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},

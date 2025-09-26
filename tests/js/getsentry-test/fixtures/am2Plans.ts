@@ -30,10 +30,9 @@ const AM2_ONDEMAND_CATEGORIES = [
   'profileDurationUI',
   'seerAutofix',
   'seerScanner',
-  'preventUser',
 ] as DataCategory[];
 
-const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES] as DataCategory[];
+const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES, 'preventUser'] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
