@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useState} from 'react';
+import {useLayoutEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -10,7 +10,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   defaultLogFields,
   getLogFieldsFromLocation,
