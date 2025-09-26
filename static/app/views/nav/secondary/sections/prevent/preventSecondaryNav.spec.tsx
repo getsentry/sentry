@@ -67,7 +67,7 @@ describe('PreventSecondaryNav', () => {
       }
     );
 
-    const testsLink = screen.getByRole('link', {name: 'Tests'});
+    const testsLink = screen.getByRole('link', {name: 'Test Analytics'});
     expect(testsLink).toBeInTheDocument();
     expect(testsLink).toHaveAttribute('href', '/organizations/org-slug/prevent/tests/');
   });

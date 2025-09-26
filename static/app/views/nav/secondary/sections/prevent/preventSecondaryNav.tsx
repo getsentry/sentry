@@ -50,7 +50,7 @@ function PreventSecondaryNav() {
           </Feature>
           <Feature features={['prevent-test-analytics']}>
             <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
-              {t('Tests')}
+              {t('Test Analytics')}
             </SecondaryNav.Item>
           </Feature>
           <SecondaryNav.Item
