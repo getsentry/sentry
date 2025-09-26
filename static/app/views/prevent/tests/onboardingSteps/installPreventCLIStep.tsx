@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
+import {Text} from 'sentry/components/core/text';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
@@ -29,11 +29,12 @@ const PLATFORM_OPTIONS = Object.values(PLATFORMS);
 const PIP_SNIPPET = `pip install sentry-prevent-cli
 sentry-prevent-cli upload --report-type test-results --token <SENTRY_PREVENT_TOKEN>`;
 
-const getBinarySnippet = (
-  platformSuffix: string
-) => `curl -LOs https://github.com/getsentry/prevent-cli/releases/latest/download/sentry-prevent-cli_${platformSuffix}
+const getBinarySnippet = (platformSuffix: string) =>
+  `
+curl -LOs https://github.com/getsentry/prevent-cli/releases/latest/download/sentry-prevent-cli_${platformSuffix}
 chmod u+x sentry-prevent-cli_${platformSuffix}
-./sentry-prevent-cli_${platformSuffix} -v upload --report-type test-results --token <SENTRY_PREVENT_TOKEN>`;
+./sentry-prevent-cli_${platformSuffix} -v upload --report-type test-results --token <SENTRY_PREVENT_TOKEN>
+`.trim();
 
 export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
   const [method, setMethod] = useState<Method>('pip');
@@ -65,28 +66,28 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
               ['binary', t('By downloading and installing a binary')],
             ]}
           />
-          {method === 'pip' ? (
+          {method === 'pip' && (
             <Fragment>
-              <Paragraph>
+              <Text>
                 {t(
                   'If you have Python installed already, you can run the script below to install the Sentry Prevent CLI.'
                 )}
-              </Paragraph>
+              </Text>
               <CodeSnippet dark language="bash">
                 {PIP_SNIPPET}
               </CodeSnippet>
               {CLILink}
             </Fragment>
-          ) : null}
-          {method === 'binary' ? (
+          )}
+          {method === 'binary' && (
             <Fragment>
-              <Paragraph>
+              <Text>
                 {t(
                   'Select a platform, and following snippet instructs the CLI to upload your reports to Sentry Prevent.'
                 )}
-              </Paragraph>
+              </Text>
               <StyledSelectControl
-                size="md"
+                size="sm"
                 options={PLATFORM_OPTIONS}
                 value={selectedPlatform}
                 onChange={(option: {value: Platform}) =>
@@ -98,7 +99,7 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
               </CodeSnippet>
               {CLILink}
             </Fragment>
-          ) : null}
+          )}
         </OnboardingStep.Content>
       </OnboardingStep.Body>
     </OnboardingStep.Container>
@@ -107,26 +108,16 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
 
 const StyledSelectControl = styled(Select)`
   width: 200px;
-  margin-bottom: ${p => p.theme.space.lg};
-`;
-
-const Paragraph = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const BottomParagraph = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
 `;
 
 const CLILink = (
-  <BottomParagraph>
+  <Text>
     {tct('Learn more about the [cliLink].', {
       cliLink: (
         <ExternalLink href="https://docs.sentry.io/product/test-analytics/sentry-prevent-cli/">
-          {t('Sentry Prevent CLI')} <IconOpen size="xs" />
+          {t('Sentry Prevent CLI')}
         </ExternalLink>
       ),
     })}
-  </BottomParagraph>
+  </Text>
 );
