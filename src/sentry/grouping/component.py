@@ -125,7 +125,9 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         are checked.
 
         By default, any matching result will be returned. To filter out non-contributing components,
-        pass `only_contributing=True`.
+        pass `only_contributing=True`. (Note that if a component has `contributes = True` but has a
+        non-contributing ancestor, the component is not considered contributing for purposes of this
+        method.)
         """
         return next(
             self.iter_subcomponents(
