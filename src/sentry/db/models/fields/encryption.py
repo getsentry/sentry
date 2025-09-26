@@ -8,7 +8,7 @@ from typing import Any, Literal, TypedDict
 import sentry_sdk
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
-from django.db.models import Field
+from django.db.models import CharField, Field
 
 from sentry import options
 
@@ -114,7 +114,7 @@ class EncryptedField(Field):
         handler = self._encryption_handlers[encryption_method]
         return handler["encrypt"](value)
 
-    def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
+    def from_db_value(self, value: Any, expression: Any, connection: Any) -> bytes | str | None:
         return self.to_python(value)
 
     def to_python(self, value: Any) -> Any:
@@ -343,3 +343,13 @@ class EncryptedField(Field):
             logger.exception("Invalid Fernet key")
 
         return None
+
+
+class EncryptedCharField(EncryptedField, CharField):
+    def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
+        db_value = super().from_db_value(value, expression, connection)
+        if db_value is None:
+            return db_value
+        if isinstance(db_value, bytes):
+            db_value = db_value.decode("utf-8")
+        return db_value
