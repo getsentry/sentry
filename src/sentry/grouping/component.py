@@ -116,7 +116,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
     def get_subcomponent(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> str | int | BaseGroupingComponent[Any] | None:
+    ) -> BaseGroupingComponent[Any] | None:
         """
         Looks up a subcomponent by id and returns the first instance found, or `None` if no
         instances are found.
@@ -138,7 +138,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
     def iter_subcomponents(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> Iterator[str | int | BaseGroupingComponent[Any] | None]:
+    ) -> Iterator[BaseGroupingComponent[Any] | None]:
         """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
             if isinstance(value, BaseGroupingComponent):
