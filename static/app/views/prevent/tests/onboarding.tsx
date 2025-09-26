@@ -75,9 +75,7 @@ export default function TestsOnboardingPage() {
 
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
-  const cameFromTestsRoute =
-    location.state?.from === '/prevent/tests' ||
-    document.referrer.includes('/prevent/tests');
+  const cameFromTestsRoute = location.state?.from === '/prevent/tests';
 
   // We want to navigate to show TA if this repo should have data to show, if we need to show
   // preOnboarding when they have no integrations, or if this org is not in the US region

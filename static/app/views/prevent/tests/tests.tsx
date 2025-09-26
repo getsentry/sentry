@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Flex} from 'sentry/components/core/layout/flex';
+import {Grid} from 'sentry/components/core/layout/grid';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
@@ -58,19 +60,32 @@ export default function TestsPage() {
   const organization = useOrganization();
   const shouldDisplayContent = integratedOrgId && repository && preventPeriod;
 
-  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
+  const {data: integrations = [], isPending: isIntegrationsPending} =
+    useGetActiveIntegratedOrgs({organization});
   const regionData = getRegionDataFromOrganization(organization);
   const isUSStorage = regionData?.name === 'us';
+
+  let mainContent: React.ReactNode;
+  if (isIntegrationsPending) {
+    mainContent = <LoadingIndicator />;
+  } else if (integrations.length === 0) {
+    mainContent = <TestsPreOnboardingPage />;
+  } else if (shouldDisplayContent) {
+    mainContent = <Content response={response} />;
+  } else {
+    mainContent = <EmptySelectorsMessage />;
+  }
+
   if (!isUSStorage) {
     return (
-      <LayoutGap>
+      <Grid gap="xl">
         <TestsPreOnboardingPage />
-      </LayoutGap>
+      </Grid>
     );
   }
 
   return (
-    <LayoutGap>
+    <Grid gap="xl">
       <ControlsContainer>
         <PageFilterBar condensed>
           <IntegratedOrgSelector />
@@ -80,25 +95,10 @@ export default function TestsPage() {
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
-      {integrations.length ? (
-        shouldDisplayContent ? (
-          <Content response={response} />
-        ) : (
-          <EmptySelectorsMessage />
-        )
-      ) : (
-        <LayoutGap>
-          <TestsPreOnboardingPage />
-        </LayoutGap>
-      )}
-    </LayoutGap>
+      {mainContent}
+    </Grid>
   );
 }
-
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-`;
 
 interface TestResultsContentData {
   response: UseInfiniteTestResultsResult;
@@ -146,9 +146,7 @@ function Content({response}: TestResultsContentData) {
     [navigate, response, location.query]
   );
 
-  const cameFromOnboardingRoute =
-    location.state?.from === '/prevent/tests/new' ||
-    document.referrer.includes('/prevent/tests/new');
+  const cameFromOnboardingRoute = location.state?.from === '/prevent/tests/new';
 
   if (!cameFromOnboardingRoute && !repoData?.testAnalyticsEnabled && isRepoSuccess) {
     const queryString = getPreventParamsString(location);
