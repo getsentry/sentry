@@ -16,6 +16,10 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 class TestNode extends BaseNode {
+  get nodePath(): TraceTree.NodePath {
+    return `test-${this.id}` as TraceTree.NodePath;
+  }
+
   get drawerTabsTitle(): string {
     return 'Tabs title';
   }
@@ -34,10 +38,6 @@ class TestNode extends BaseNode {
 
   printNode(): string {
     return `Print Node(${this.id})`;
-  }
-
-  pathToNode(): TraceTree.NodePath[] {
-    return [`test-${this.id}` as TraceTree.NodePath];
   }
 
   matchByPath(path: TraceTree.NodePath): boolean {

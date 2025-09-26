@@ -162,26 +162,8 @@ describe('CollapsedNode', () => {
       const node = new CollapsedNode(parentNode, collapsedValue, extra);
 
       const path = node.pathToNode();
-      expect(path).toEqual([]);
-      expect(Array.isArray(path)).toBe(true);
-      expect(path).toHaveLength(0);
-    });
-
-    it('should return same empty array on multiple calls', () => {
-      const extra = createMockExtra();
-      const parentValue = makeEAPSpan({event_id: 'parent'});
-      const collapsedValue = createCollapsedNodeValue();
-
-      const parentNode = new EapSpanNode(null, parentValue, extra);
-      const node = new CollapsedNode(parentNode, collapsedValue, extra);
-
-      const path1 = node.pathToNode();
-      const path2 = node.pathToNode();
-
-      expect(path1).toEqual([]);
-      expect(path2).toEqual([]);
-      // Each call should return a new array instance
-      expect(path1).not.toBe(path2);
+      expect(path).toHaveLength(1);
+      expect(path[0]).toMatch(/^collapsed-.+/);
     });
 
     it('should return correct analyticsName', () => {

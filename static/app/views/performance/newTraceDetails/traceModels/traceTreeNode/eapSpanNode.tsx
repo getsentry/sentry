@@ -254,6 +254,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return true;
   }
 
+  get nodePath(): TraceTree.NodePath {
+    return `span-${this.id}`;
+  }
+
   makeBarColor(theme: Theme): string {
     return pickBarColor(this.op, theme);
   }
@@ -265,10 +269,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
 
     return this.matchById(id);
-  }
-
-  pathToNode(): TraceTree.NodePath[] {
-    return [`span-${this.id}`];
   }
 
   analyticsName(): string {
