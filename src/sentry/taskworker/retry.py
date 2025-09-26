@@ -10,7 +10,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     RetryState,
 )
 
-from sentry.taskworker.state import current_task as taskworker_current_task
+from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 
@@ -46,7 +46,7 @@ def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -
     If all retries have been consumed, this will raise a
     sentry.taskworker.retry.NoRetriesRemaining
     """
-    current = taskworker_current_task()
+    current = current_task()
     if current and not current.retries_remaining:
         metrics.incr("taskworker.retry.no_retries_remaining")
         if raise_on_no_retries:
