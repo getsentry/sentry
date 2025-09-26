@@ -1,5 +1,3 @@
-import {uuid4} from '@sentry/core';
-
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
@@ -30,20 +28,16 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
     return {title: 'Collapsed'};
   }
 
-  get id(): string {
-    return uuid4();
-  }
-
-  get nodePath(): TraceTree.NodePath {
-    return `collapsed-${this.id}`;
-  }
-
   printNode(): string {
     return 'collapsed';
   }
 
   matchByPath(_path: TraceTree.NodePath): boolean {
     return false;
+  }
+
+  pathToNode(): TraceTree.NodePath[] {
+    return [];
   }
 
   analyticsName(): string {

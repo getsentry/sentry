@@ -447,22 +447,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return Promise.resolve(null);
   }
 
-  pathToNode(): TraceTree.NodePath[] {
-    const path = this.nodePath;
-
-    if (!path) {
-      return [];
-    }
-
-    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
-
-    if (closestFetchableParent) {
-      return [path, ...closestFetchableParent.pathToNode()];
-    }
-
-    return [path];
-  }
-
   abstract matchByPath(path: TraceTree.NodePath): boolean;
 
   abstract get drawerTabsTitle(): string;
@@ -472,7 +456,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     subtitle?: string;
   };
 
-  abstract get nodePath(): TraceTree.NodePath | null;
+  abstract pathToNode(): TraceTree.NodePath[];
 
   abstract analyticsName(): string;
 

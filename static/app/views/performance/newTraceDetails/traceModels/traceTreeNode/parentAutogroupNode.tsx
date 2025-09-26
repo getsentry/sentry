@@ -63,12 +63,21 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     return this.value.autogrouped_by.op;
   }
 
-  get nodePath(): TraceTree.NodePath {
-    return `ag-${this.id}`;
-  }
-
   printNode(): string {
     return `parent autogroup (${this.op}: ${this.groupCount})`;
+  }
+
+  pathToNode(): TraceTree.NodePath[] {
+    const path: TraceTree.NodePath[] = [];
+    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
+
+    path.push(`ag-${this.id}`);
+
+    if (closestFetchableParent) {
+      path.push(...closestFetchableParent.pathToNode());
+    }
+
+    return path;
   }
 
   analyticsName(): string {

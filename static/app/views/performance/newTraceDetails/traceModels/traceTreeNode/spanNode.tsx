@@ -70,10 +70,6 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return this.event?.sdk?.name ?? undefined;
   }
 
-  get nodePath(): TraceTree.NodePath {
-    return `span-${this.id}`;
-  }
-
   makeBarColor(theme: Theme): string {
     return pickBarColor(this.op, theme);
   }
@@ -85,6 +81,19 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     }
 
     return this.matchById(id);
+  }
+
+  pathToNode(): TraceTree.NodePath[] {
+    const path: TraceTree.NodePath[] = [];
+    const closestFetchableParent = this.findParent(p => p.canFetchChildren);
+
+    path.push(`span-${this.id}`);
+
+    if (closestFetchableParent) {
+      path.push(...closestFetchableParent.pathToNode());
+    }
+
+    return path;
   }
 
   analyticsName(): string {

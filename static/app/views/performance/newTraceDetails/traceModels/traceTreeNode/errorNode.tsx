@@ -57,8 +57,8 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     return this.description || t('Error');
   }
 
-  get nodePath(): TraceTree.NodePath {
-    return `error-${this.id}`;
+  pathToNode(): TraceTree.NodePath[] {
+    return [`error-${this.id}`];
   }
 
   analyticsName(): string {

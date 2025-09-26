@@ -25,8 +25,8 @@ export class RootNode extends BaseNode<null> {
     return 'root';
   }
 
-  get nodePath(): TraceTree.NodePath | null {
-    return null;
+  pathToNode(): TraceTree.NodePath[] {
+    return [];
   }
 
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(

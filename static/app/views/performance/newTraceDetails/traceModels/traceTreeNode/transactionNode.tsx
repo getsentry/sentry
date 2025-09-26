@@ -99,10 +99,6 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     return {title: this.op || t('Trace'), subtitle: this.value.transaction};
   }
 
-  get nodePath(): TraceTree.NodePath {
-    return `txn-${this.id}`;
-  }
-
   matchById(id: string): boolean {
     const hasMatchingErrors = Array.from(this.errors).some(
       error => error.event_id === id
@@ -179,6 +175,10 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
 
   analyticsName(): string {
     return 'transaction';
+  }
+
+  pathToNode(): TraceTree.NodePath[] {
+    return [`txn-${this.id}`];
   }
 
   matchByPath(path: TraceTree.NodePath): boolean {
