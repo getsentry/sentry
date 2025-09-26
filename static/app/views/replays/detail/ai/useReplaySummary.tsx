@@ -13,8 +13,7 @@ import {
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
 
-const POLL_INTERVAL_MS = 500; // Time between polls if the fetch request succeeds.
-const ERROR_POLL_INTERVAL_MS = 5000; // Time between polls if the fetch request failed.
+const POLL_INTERVAL_MS = 500;
 const POLL_TIMEOUT_MS = 100 * 1000; // Task timeout in Seer (90s) + 10s buffer.
 
 export interface UseReplaySummaryResult {
@@ -44,10 +43,11 @@ export interface UseReplaySummaryResult {
 
 const shouldPoll = (
   summaryData: SummaryResponse | undefined,
+  lastFetchFailed: boolean,
   startRequestFailed: boolean,
   didTimeout: boolean
 ) => {
-  if (startRequestFailed || didTimeout) {
+  if (lastFetchFailed || startRequestFailed || didTimeout) {
     return false;
   }
 
@@ -150,16 +150,25 @@ export function useReplaySummary(
     startPollingTimeout();
   }, [options?.enabled, startSummaryRequestMutate, startPollingTimeout]);
 
-  const {data: summaryData, dataUpdatedAt: lastFetchTime} = useApiQuery<SummaryResponse>(
+  const {
+    data: summaryData,
+    isError: isFetchError,
+    dataUpdatedAt: lastFetchTime,
+  } = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
-          return query.state.status === 'error'
-            ? ERROR_POLL_INTERVAL_MS
-            : POLL_INTERVAL_MS;
+        if (
+          shouldPoll(
+            query.state.data?.[0],
+            query.state.status === 'error',
+            isStartSummaryRequestError,
+            didTimeout
+          )
+        ) {
+          return POLL_INTERVAL_MS;
         }
         return false;
       },
@@ -184,7 +193,9 @@ export function useReplaySummary(
   }, [segmentsIncreased, startSummaryRequest, summaryData?.status]);
 
   const isErrorState =
-    isStartSummaryRequestError || summaryData?.status === ReplaySummaryStatus.ERROR;
+    isFetchError ||
+    isStartSummaryRequestError ||
+    summaryData?.status === ReplaySummaryStatus.ERROR;
 
   const isFinishedState =
     isErrorState ||
