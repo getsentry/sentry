@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
@@ -76,7 +77,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   const replayCrumb = {
     label: replayRecord ? (
-      <ReplayIdContainer
+      <Flex
+        align="center"
+        gap="xs"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -92,7 +95,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             />
           </Tooltip>
         )}
-      </ReplayIdContainer>
+      </Flex>
     ) : (
       <Placeholder width="100%" height="16px" />
     ),
@@ -109,10 +112,4 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
-`;
-
-const ReplayIdContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;
