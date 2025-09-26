@@ -136,6 +136,7 @@ const ModalHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   flex-direction: row;
+  flex: 1;
 `;
 
 const Title = styled('h4')`
