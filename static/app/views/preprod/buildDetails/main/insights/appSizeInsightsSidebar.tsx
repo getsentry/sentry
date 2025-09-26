@@ -6,8 +6,9 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
-import {IconClose} from 'sentry/icons';
+import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
@@ -24,6 +25,19 @@ export function AppSizeInsightsSidebar({
 }: AppSizeInsightsSidebarProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
+  const {
+    isHeld,
+    onDoubleClick,
+    onMouseDown,
+    size: width,
+  } = useResizableDrawer({
+    direction: 'right',
+    initialSize: 502,
+    min: 502,
+    onResize: () => {},
+    sizeStorageKey: 'app-size-insights-sidebar-width',
+  });
+
   const toggleExpanded = (insightName: string) => {
     const newExpanded = new Set(expandedInsights);
     if (newExpanded.has(insightName)) {
@@ -33,6 +47,9 @@ export function AppSizeInsightsSidebar({
     }
     setExpandedInsights(newExpanded);
   };
+
+  // Constrain width to viewport (leave 50px margin from screen edge)
+  const constrainedWidth = Math.min(width, window.innerWidth - 50);
 
   return (
     <Fragment>
@@ -51,7 +68,7 @@ export function AppSizeInsightsSidebar({
       <SlideOverPanel
         collapsed={!isOpen}
         slidePosition="right"
-        panelWidth="502px"
+        panelWidth={`${constrainedWidth}px`}
         ariaLabel={t('App size insights details')}
       >
         <Flex height="100%" direction="column">
@@ -67,16 +84,27 @@ export function AppSizeInsightsSidebar({
             />
           </Header>
 
-          <Flex flex={1} overflowY="auto" padding="xl">
-            <Flex direction="column" gap="xl" width="100%">
-              {processedInsights.map(insight => (
-                <AppSizeInsightsSidebarRow
-                  key={insight.name}
-                  insight={insight}
-                  isExpanded={expandedInsights.has(insight.name)}
-                  onToggleExpanded={() => toggleExpanded(insight.name)}
-                />
-              ))}
+          <Flex flex={1} position="relative" overflow="hidden">
+            <ResizeHandle
+              onMouseDown={onMouseDown}
+              onDoubleClick={onDoubleClick}
+              data-is-held={isHeld}
+              data-slide-direction="leftright"
+            >
+              <IconGrabbable size="sm" />
+            </ResizeHandle>
+
+            <Flex flex={1} overflowY="auto" padding="xl">
+              <Flex direction="column" gap="xl" width="100%">
+                {processedInsights.map(insight => (
+                  <AppSizeInsightsSidebarRow
+                    key={insight.name}
+                    insight={insight}
+                    isExpanded={expandedInsights.has(insight.name)}
+                    onToggleExpanded={() => toggleExpanded(insight.name)}
+                  />
+                ))}
+              </Flex>
             </Flex>
           </Flex>
         </Flex>
@@ -98,4 +126,31 @@ const Backdrop = styled(motion.div)`
 
 const Header = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const ResizeHandle = styled(Flex)`
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: ${p => p.theme.space.xl};
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  cursor: ew-resize;
+  background: transparent;
+
+  &:hover,
+  &[data-is-held='true'] {
+    background: ${p => p.theme.hover};
+  }
+
+  &[data-is-held='true'] {
+    user-select: none;
+  }
+
+  svg {
+    color: ${p => p.theme.subText};
+    transform: rotate(90deg);
+  }
 `;
