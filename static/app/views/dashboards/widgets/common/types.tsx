@@ -89,7 +89,7 @@ export type TimeSeries = {
   groupBy?: TimeSeriesGroupBy[];
 };
 
-export type TabularValueType = AttributeValueType;
+export type TabularValueType = AttributeValueType | null;
 export type TabularValueUnit = AttributeValueUnit;
 export type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
@@ -109,7 +109,7 @@ export type TabularData<TFields extends string = string> = {
 export type TabularColumn<TFields extends string = string> = {
   key: TFields;
   sortable?: boolean;
-  type?: AttributeValueType;
+  type?: TabularValueType;
   width?: number;
 };
 
