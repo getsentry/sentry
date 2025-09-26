@@ -48,7 +48,10 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
   renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
-    return <TraceCollapsedRow {...props} node={props.node as LegacyCollapsedNode} />;
+    // Won't need this cast once we use BaseNode type for props.node
+    return (
+      <TraceCollapsedRow {...props} node={props.node as unknown as LegacyCollapsedNode} />
+    );
   }
 
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(

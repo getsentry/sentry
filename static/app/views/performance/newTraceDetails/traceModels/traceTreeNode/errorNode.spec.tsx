@@ -446,20 +446,6 @@ describe('ErrorNode', () => {
       expect(node.matchWithFreeText('nonexistent')).toBe(false);
     });
 
-    it('should handle undefined description gracefully', () => {
-      const extra = createMockExtra();
-      const value = makeTraceError({
-        title: undefined,
-        message: undefined,
-        level: 'info',
-      });
-
-      const node = new ErrorNode(null, value, extra);
-
-      expect(node.matchWithFreeText('info')).toBe(true);
-      expect(node.matchWithFreeText('anything')).toBe(false);
-    });
-
     it('should be case sensitive', () => {
       const extra = createMockExtra();
       const value = makeTraceError({

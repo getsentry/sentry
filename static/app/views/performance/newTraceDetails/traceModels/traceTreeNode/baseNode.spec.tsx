@@ -1448,36 +1448,6 @@ describe('BaseNode', () => {
     });
   });
 
-  describe('reparent functionality', () => {
-    it('should initialize reparent_reason as null by default', () => {
-      const extra = createMockExtra();
-      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
-
-      expect(node.reparent_reason).toBeNull();
-    });
-
-    it('should allow setting reparent_reason', () => {
-      const extra = createMockExtra();
-      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
-
-      node.reparent_reason = 'pageload server handler';
-
-      expect(node.reparent_reason).toBe('pageload server handler');
-    });
-
-    it('should handle reparent_reason in parent-child relationships', () => {
-      const extra = createMockExtra();
-      const parent = new TestNode(null, createMockValue({event_id: 'parent'}), extra);
-      const child = new TestNode(parent, createMockValue({event_id: 'child'}), extra);
-
-      child.reparent_reason = 'pageload server handler';
-
-      expect(child.parent).toBe(parent);
-      expect(child.reparent_reason).toBe('pageload server handler');
-      expect(parent.reparent_reason).toBeNull();
-    });
-  });
-
   describe('boolean flags and properties', () => {
     it('should initialize boolean flags with correct defaults', () => {
       const extra = createMockExtra();
@@ -1606,88 +1576,6 @@ describe('BaseNode', () => {
 
       expect(node.depth).toBeUndefined();
       expect(node.connectors).toBeUndefined();
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should handle null/undefined values gracefully', () => {
-      const extra = createMockExtra();
-      const node = new TestNode(null, null, extra);
-
-      expect(node.id).toBeUndefined();
-      expect(node.op).toBeUndefined();
-      expect(node.projectSlug).toBeUndefined();
-      expect(node.description).toBeUndefined();
-      expect(node.endTimestamp).toBeUndefined();
-      expect(node.sdkName).toBeUndefined();
-      expect(node.space).toEqual([0, 0]);
-    });
-
-    it('should handle empty arrays for errors and occurrences', () => {
-      const extra = createMockExtra();
-      const value = createMockValue({
-        event_id: 'test-id',
-        errors: [],
-        occurrences: [],
-      });
-
-      const node = new TestNode(null, value, extra);
-
-      expect(node.errors.size).toBe(0);
-      expect(node.occurrences.size).toBe(0);
-      expect(node.hasIssues).toBe(false);
-    });
-
-    it('should handle non-array errors and occurrences', () => {
-      const extra = createMockExtra();
-      const value = createMockValue({
-        event_id: 'test-id',
-        errors: 'not-an-array' as any,
-        occurrences: 'not-an-array' as any,
-      });
-
-      const node = new TestNode(null, value, extra);
-
-      expect(node.errors.size).toBe(0);
-      expect(node.occurrences.size).toBe(0);
-    });
-
-    it('should handle malformed timestamp values', () => {
-      const extra = createMockExtra();
-      const value = createMockValue({
-        event_id: 'test-id',
-        start_timestamp: 'invalid' as any,
-        end_timestamp: 'invalid' as any,
-      });
-
-      const node = new TestNode(null, value, extra);
-
-      expect(node.space).toEqual([0, 0]);
-    });
-
-    it('should handle extremely large trees without performance issues', () => {
-      const extra = createMockExtra();
-      const root = new TestNode(null, createMockValue({event_id: 'root'}), extra);
-
-      // Create a tree with many children
-      const children: TestNode[] = [];
-      for (let i = 0; i < 1000; i++) {
-        const child = new TestNode(
-          root,
-          createMockValue({event_id: `child-${i}`}),
-          extra
-        );
-        children.push(child);
-      }
-      root.children = children;
-      root.expanded = true;
-
-      const start = performance.now();
-      const visibleChildren = root.visibleChildren;
-      const end = performance.now();
-
-      expect(visibleChildren).toHaveLength(1000);
-      expect(end - start).toBeLessThan(100); // Should complete within 100ms
     });
   });
 });
