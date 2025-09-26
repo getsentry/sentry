@@ -1,12 +1,70 @@
 import logging
+from typing import TypedDict
 
 from sentry import features
+from sentry.feedback.lib.seer_api import seer_summarization_connection_pool
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 from sentry.models.project import Project
 from sentry.seer.seer_setup import has_seer_access
-from sentry.utils import metrics
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
+
+SEER_SPAM_DETECTION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/spam"
+SEER_TIMEOUT_S = 15
+SEER_RETRIES = 0
+
+
+class IsSpamRequest(TypedDict):
+    """Corresponds to IsSpamRequest in Seer."""
+
+    organization_id: int
+    feedback_message: str
+
+
+class IsSpamResponse(TypedDict):
+    """Corresponds to IsSpamResponse in Seer."""
+
+    is_spam: bool
+
+
+def is_spam_seer(message: str, organization_id: int) -> bool | None:
+    """
+    Check if a message is spam using Seer.
+
+    Returns True if the message is spam, False otherwise.
+    Returns None if the request fails.
+    """
+    seer_request = IsSpamRequest(
+        organization_id=organization_id,
+        feedback_message=message,
+    )
+
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool=seer_summarization_connection_pool,
+            path=SEER_SPAM_DETECTION_ENDPOINT_PATH,
+            body=json.dumps(seer_request).encode("utf-8"),
+            timeout=SEER_TIMEOUT_S,
+            retries=SEER_RETRIES,
+        )
+        response_data = response.json()
+    except Exception:
+        logger.exception("Seer failed to check if message is spam")
+        return None
+
+    if response.status < 200 or response.status >= 300:
+        logger.error(
+            "Seer failed to check if message is spam",
+            extra={"status_code": response.status, "response_data": response.data},
+        )
+        return None
+
+    try:
+        return response_data["data"]["is_spam"]
+    except Exception:
+        return None
 
 
 def make_input_prompt(message: str):

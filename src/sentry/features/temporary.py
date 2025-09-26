@@ -492,6 +492,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:user-feedback-ai-titles", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable auto spam classification at User Feedback ingest time
     manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable rerouting of auto spam classification at User Feedback ingest time to Seer
+    manager.add("organizations:seer-feedback-spam-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable User Feedback v2 UI
     manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable view hierarchies options
