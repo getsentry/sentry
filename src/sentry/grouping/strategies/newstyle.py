@@ -821,18 +821,18 @@ def threads(
     interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
-    thread_variants = _get_thread_components(crashed_threads, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(crashed_threads, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
     current_threads = [thread for thread in interface.values if thread.get("current")]
-    thread_variants = _get_thread_components(current_threads, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(current_threads, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
-    thread_variants = _get_thread_components(interface.values, event, context, **kwargs)
-    if thread_variants is not None:
-        return thread_variants
+    thread_components = _get_thread_components(interface.values, event, context, **kwargs)
+    if thread_components is not None:
+        return thread_components
 
     return {
         "app": ThreadsGroupingComponent(
