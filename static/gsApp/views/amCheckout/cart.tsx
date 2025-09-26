@@ -605,6 +605,13 @@ function TotalSummary({
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
+            title={
+              buttonDisabled
+                ? t(
+                    'Please provide your billing information, including your business address and payment method'
+                  )
+                : null
+            }
             icon={<IconLock locked />}
           >
             {isSubmitting ? t('Checking out...') : buttonText}
@@ -637,11 +644,20 @@ function Cart({
   const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
   const {data: billingDetails} = useBillingDetails();
-  const hasCompleteBillingInfo = utils.hasBillingInfo(billingDetails, subscription, true);
+  const hasCompleteBillingInfo = useMemo(
+    () => utils.hasBillingInfo(billingDetails, subscription, true),
+    [billingDetails, subscription]
+  );
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
   const fetchPreview = useCallback(async () => {
+    if (!hasCompleteBillingInfo) {
+      // NOTE: this should never be necessary because you cannot clear
+      // existing billing info, BUT YA NEVER KNOW
+      resetPreviewState();
+      return;
+    }
     await utils.fetchPreviewData(
       organization,
       api,
@@ -687,7 +703,13 @@ function Cart({
         resetPreviewState();
       }
     );
-  }, [api, formDataForPreview, organization, subscription.contractPeriodEnd]);
+  }, [
+    api,
+    formDataForPreview,
+    organization,
+    subscription.contractPeriodEnd,
+    hasCompleteBillingInfo,
+  ]);
 
   useEffect(() => {
     fetchPreview();
