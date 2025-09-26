@@ -6,7 +6,14 @@ from .file import File
 from .fileblob import FileBlob
 from .fileblobindex import FileBlobIndex
 from .fileblobowner import FileBlobOwner
-from .utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, ONE_DAY, AssembleChecksumMismatch, get_storage
+from .utils import (
+    DEFAULT_BLOB_SIZE,
+    MAX_FILE_SIZE,
+    ONE_DAY,
+    AssembleChecksumMismatch,
+    get_and_optionally_update_blobs,
+    get_storage,
+)
 
 __all__ = (
     "File",
@@ -21,5 +28,6 @@ __all__ = (
     "DEFAULT_BLOB_SIZE",
     "MAX_FILE_SIZE",
     "AssembleChecksumMismatch",
+    "get_and_optionally_update_blobs",
     "get_storage",
 )

@@ -28,6 +28,8 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
         app_label = "sentry"
         db_table = "sentry_file"
 
+    FILE_BLOB_MODEL = FileBlob
+
     def _blob_index_records(self) -> Sequence[FileBlobIndex]:
         return sorted(
             FileBlobIndex.objects.filter(file=self).select_related("blob"),
